@@ -1,0 +1,11 @@
+{
+    "cmake.environment": {
+        "PICO_SDK_PATH": "/Users/helmutfieres/pico-sdk"
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.errorSquiggles": "enabled",
+    "files.associations": {
+        "dreq.h": "c",
+        "addressmap.h": "c"
+    }
+}
