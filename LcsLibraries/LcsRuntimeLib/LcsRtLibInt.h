@@ -513,6 +513,11 @@ struct LcsDrvBoardDesc {
 // During startup all extension boards will be located, if any. For each extension board the correct driver
 // will be stored in the driver map. There area at most four extension boards on a controller type board.
 //
+// ??? actually, the entry is just a refernce to the DRV object ... 
+// ??? This entry struct should be the base class of all drivers...
+//
+// REWORK !!!!!!
+//
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {
 

@@ -40,8 +40,10 @@ set( CMAKE_CXX_STANDARD 17 )
 add_subdirectory(LcsCdcLib-Test)
 add_subdirectory(LcsRuntimeLib-Test)
 
-add_subdirectory(LcsLibraries/LcsRuntimeLib)
-add_subdirectory(LcsLibraries/LcsDccPktFmtLib)
 add_subdirectory(LcsLibraries/LcsCdcLib)
+add_subdirectory(LcsLibraries/LcsDccPktFmtLib)
+add_subdirectory(LcsLibraries/LcsDrvOccDetectLib)
+add_subdirectory(LcsLibraries/LcsDrvServoLib)
+add_subdirectory(LcsLibraries/LcsRuntimeLib)
 
 
