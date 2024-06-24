@@ -257,6 +257,7 @@ namespace CDC {
   //----------------------------------------------------------------------------------------------------------
   uint8_t       configureConsoleIO( );
   char          getConsoleChar( );
+  bool          isConsoleConnected( );
 
   //----------------------------------------------------------------------------------------------------------
   // CDC setup and configuration routines. The idea is to help the library write with a default configuration

@@ -39,6 +39,7 @@
 
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
+#include "hardware/regs/usb.h"
 #include "hardware/regs/rosc.h"
 #include "hardware/regs/addressmap.h"
 #include "hardware/clocks.h"
@@ -588,8 +589,23 @@ uint8_t CDC::configureConsoleIO( ) {
 char CDC::getConsoleChar( ) {
 
   int ch = getchar_timeout_us( 0 );
-    // printf( "Got: %c\n", (char) ch );
-    return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
+  return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
+}
+
+bool CDC::isConsoleConnected( ) {
+
+/* to research first ... check USB register
+
+rp2040 usb peripheral has a status register called SIE_STATUS. Bits 16 and 4 show the CONNECTED and SUSPENDED 
+status. If CONNECTED ==1 and SUSPENDED ==0, the interface is active and writing to it will not block.
+
+  SIE_STATUS=const(0x50110000+0x50)
+  CONNECTED=const(1<<16)
+  SUSPENDED=const(1<<4)
+  if (machine.mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED:
+    print('....,')
+*/
+  return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -978,13 +994,14 @@ uint8_t CDC::getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 //------------------------------------------------------------------------------------------------------------
 // PWM section. The PICO is quite flexible when it comes to PWM signals. We implement a simple PWM capabilty.
 // There is the frequency which set during confugration and there is the write operation which set the duty
-// cycle.
+// cycle. The calculations are best described in the PICO C++ SDK. We do the setting of phase, wrap count,
+// etc. once when we configure the PWM channel. All the writePwm function then will do is to manipulate the
+// duty cycle. In other words, when we change the frequency we need to configure again.
 //
-//
-// There is one small issue left. For some reason there is no call to individually set the "inverted" option
-// on a channel. When we set the inverted option for a pin, we currently also set the inverted option for the
-// other channel since we just don't know better. To be correct, all possible PWM pins and their
-// "inverted" option would need to be stored somewhere.
+// There is one small issue left. Channel come in pairs. For some reason there is no call to individually 
+// set the "inverted" option on a channel. When we set the inverted option for a pin, we currently also set
+//  the inverted option for the other channel since we just don't know better. To be correct, all possible 
+// PWM pins and their "inverted" option would need to be stored somewhere.
 //
 // To do .... ( there is a way via the pwm_Config CSR field... )
 //
@@ -1001,15 +1018,13 @@ uint8_t CDC::configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorre
 
   if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
-  // ???? fix F_CPU .... what is it ?
-  const uint32_t F_CPU = 120000000L;
+  const uint32_t sysClock = 125000000L;
 
-  uint32_t clkDiv = F_CPU / pwmFreqency / 4096 + ( F_CPU % ( pwmFreqency * 4096 ) != 0 );
+  uint32_t clkDiv = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
   if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
-
   pwm -> pwmPin  = pwmPin;
-  pwm -> wrap    = F_CPU * 16 / clkDiv / pwmFreqency - 1;
+  pwm -> wrap    = sysClock * 16 / clkDiv / pwmFreqency - 1;
 
   pwm_config pwmConfig = pwm_get_default_config( );
   gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
