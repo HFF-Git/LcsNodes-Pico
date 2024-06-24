@@ -30,9 +30,10 @@
 // Externals.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LcsRuntimeMap             runtimeMap;
-extern LcsCallbackMap            callbackMap;
-
+extern LcsNodeMap               nodeMap;
+extern LcsPortMap               portMap;
+extern LcsEventMap              eventMap;
+extern LcsCallbackMap           callbackMap;
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLibConfig implementation file local declarations and routines.

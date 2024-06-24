@@ -35,9 +35,13 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------------------
+// Include files.
+//
+//------------------------------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
-
 
 //------------------------------------------------------------------------------------------------------------
 // Local file declarations.
@@ -175,9 +179,9 @@ namespace {
   }
 
   //----------------------------------------------------------------------------------------------------------
-  // When we have a valid nodeMap descriptor, we need to set up the local NVM chip table. For each chip in
-  // the nodeMap, an entry is properly initialized. Each chip then has a size and the start and end address
-  // which are absolute offsets over the entire set of chips.
+  // When we have found a valid nodeMap descriptor, we need to set up the local NVM chip table. For each chip
+  // in the nodeMap, an entry is properly initialized. Each chip then has a size and the address range, which
+  // are absolute offsets over the entire set of chips.
   //
   // ??? we insist on at least 8K NVM.
   //----------------------------------------------------------------------------------------------------------
@@ -458,7 +462,7 @@ uint8_t nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap ) {
 // boundary and also across a chip boundary. This routine will split the bytes to write only to one page in
 // a given write cycle.
 //
-// ??? check what we could do for wraparound of unsigned int ...
+// ??? check what we could do for wrap around of unsigned int ...
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap ) {
 
@@ -519,9 +523,3 @@ uint32_t nvmGetSize( bool userMap ) {
 
   return ( nvmMaxSize );
 }
-
-
-// it would perhaps be better to have a dedicated set of user routines, so that we do not write into
-// the system area...
-
-// we could also just have a optional paramater, which is false by default and all internal write set it to true...

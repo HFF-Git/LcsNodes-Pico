@@ -38,7 +38,7 @@
 
 #include <stdlib.h>  // qsort ?
 
-extern LcsRuntimeMap runtimeMap;
+extern LcsEventMap eventMap;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -93,23 +93,23 @@ namespace {
     printf( "Add to MEM Event Map: %d : %d \n", eventId, portId );
     #endif
 
-    if ( searchEvent( eventId, portId ) >= 0 )            return ( ALL_OK );
-    if ( runtimeMap.eventMap.hwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
+    if ( searchEvent( eventId, portId ) >= 0 )    return ( ALL_OK );
+    if ( eventMap.hwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
 
-    uint16_t index = runtimeMap.eventMap.hwm;
+    uint16_t index = eventMap.hwm;
 
-    if ( runtimeMap.eventMap.hwm > 0 ) {
+    if ( eventMap.hwm > 0 ) {
 
-      while (( index > 0 ) && ( compareEventEntry( &runtimeMap.eventMap.map[ index - 1 ], eventId, portId ) > 0 )) {
+      while (( index > 0 ) && ( compareEventEntry( &eventMap.map[ index - 1 ], eventId, portId ) > 0 )) {
 
-        runtimeMap.eventMap.map[ index ] = runtimeMap.eventMap.map[ index - 1 ];
+        eventMap.map[ index ] = eventMap.map[ index - 1 ];
         index --;
       }
     }
 
-    runtimeMap.eventMap.map[ index ].eventId = eventId;
-    runtimeMap.eventMap.map[ index ].portId  = portId;
-    runtimeMap.eventMap.hwm++;
+    eventMap.map[ index ].eventId = eventId;
+    eventMap.map[ index ].portId  = portId;
+    eventMap.hwm++;
 
     return ( ALL_OK );
   }
@@ -128,10 +128,10 @@ namespace {
 
     if ( index >= 0 ) {
 
-      runtimeMap.eventMap.hwm--;
+      eventMap.hwm--;
 
-      for ( uint16_t i = index; i < runtimeMap.eventMap.hwm; i++ )
-        runtimeMap.eventMap.map[ i ] = runtimeMap.eventMap.map[ i + 1 ];
+      for ( uint16_t i = index; i < eventMap.hwm; i++ )
+        eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
     return ( ALL_OK );
@@ -217,7 +217,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
 
   int   res   = -1;
   int   low   = 0;
-  int   high  = runtimeMap.eventMap.hwm - 1;
+  int   high  = eventMap.hwm - 1;
 
   if ( portId == NIL_PORT_ID ) {
 
@@ -225,9 +225,9 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
 
       int mid = low + ( high - low + 1 ) / 2;
 
-      if      ( runtimeMap.eventMap.map[ mid ].eventId < eventId ) low  = mid + 1;
-      else if ( runtimeMap.eventMap.map[ mid ].eventId > eventId ) high = mid - 1;
-      else if ( runtimeMap.eventMap.map[ mid ].eventId == eventId ) {
+      if      ( eventMap.map[ mid ].eventId < eventId ) low  = mid + 1;
+      else if ( eventMap.map[ mid ].eventId > eventId ) high = mid - 1;
+      else if ( eventMap.map[ mid ].eventId == eventId ) {
 
         res   = mid;
         high  = mid - 1;
@@ -239,7 +239,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
     while ( low <= high ) {
 
       int mid = low + ( high - low ) / 2;
-      int tst = compareEventEntry( &runtimeMap.eventMap.map[ mid ], eventId, portId );
+      int tst = compareEventEntry( &eventMap.map[ mid ], eventId, portId );
 
       if      ( tst < 0 ) low   = mid + 1;
       else if ( tst > 0 ) high  = mid - 1;
@@ -269,7 +269,7 @@ uint8_t syncNVMEventMap( ) {
   // ??? simply write back the event map... sort it first, just to be sure ?
   // ?? make sure that we only have used entries below HWM before using sort up to the HWM!!!!
 
-  qsort( &runtimeMap.eventMap.map, MAX_EVENT_MAP_ENTRIES, sizeof( LcsEventMapEntry ), compareEventEntry );
+  qsort( &eventMap.map, MAX_EVENT_MAP_ENTRIES, sizeof( LcsEventMapEntry ), compareEventEntry );
 
   // update HWM , flags 
 
@@ -287,10 +287,10 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId ) {
   printf( "Get Emap Entry: %d\n", index );
   #endif
 
-  if ( index <  runtimeMap.eventMap.hwm ) {
+  if ( index <  eventMap.hwm ) {
 
-    *evId = runtimeMap.eventMap.map[ index ].eventId;
-    *pId  = runtimeMap.eventMap.map[ index ].portId;
+    *evId = eventMap.map[ index ].eventId;
+    *pId  = eventMap.map[ index ].portId;
     return ( ALL_OK );
   }
   else return ( ERR_INVALID_EVENT_MAP_INDEX );

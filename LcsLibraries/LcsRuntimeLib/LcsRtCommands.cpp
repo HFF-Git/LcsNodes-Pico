@@ -29,11 +29,15 @@
 #include "pico/stdlib.h"
 
 //------------------------------------------------------------------------------------------------------------
-//
+// External data structures.
 //
 //------------------------------------------------------------------------------------------------------------
-extern  LcsRuntimeMap   runtimeMap;
-extern  LcsCallbackMap  callbackMap;
+extern LcsCdcDesc         cdcMap;
+extern LcsNodeMap         nodeMap;
+extern LcsPortMap         portMap;
+extern LcsEventMap        eventMap;
+extern LcsUserMap         userMap;
+extern  LcsCallbackMap    callbackMap;
 
 //------------------------------------------------------------------------------------------------------------
 // Local declarations.
@@ -100,7 +104,7 @@ namespace {
   void dumpNodeMap( ) {
 
     printf( "MEM Node Map:" );
-    dumpMemData((uint8_t *) &runtimeMap.nodeMap, sizeof( LcsNodeMap ));
+    dumpMemData((uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     printf( "\n" );
   }
 
@@ -108,14 +112,14 @@ namespace {
 
     printf( "MEM Port Map: ( Entry Size: %d)\n", sizeof( LcsPortMapEntry ));
 
-    dumpMemData((uint8_t *) &runtimeMap.portMap, sizeof( LcsPortMap ));
+    dumpMemData((uint8_t *) &portMap, sizeof( LcsPortMap ));
     printf( "\n" );
   }
 
   void dumpEventMap( ) {
 
-    printf( "MEM Event Map (hwm: %d\n):", runtimeMap.eventMap.hwm );
-    dumpMemData((uint8_t *) &runtimeMap.eventMap, sizeof( LcsEventMap ));
+    printf( "MEM Event Map (hwm: %d\n):", eventMap.hwm );
+    dumpMemData((uint8_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
   }
 
@@ -144,12 +148,10 @@ namespace {
 
     printf( "LCS Node: \"" );
     for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ )
-      if ( runtimeMap.nodeMap.name[ i ] != 0 ) printf( "%c", runtimeMap.nodeMap.name[ i ] );
+      if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
     printf( "\"\n" );
 
-    printf( "Lcb Library Version: %d.%d\n",
-            runtimeMap.nodeMap.nodeMajorVersion,
-            runtimeMap. nodeMap.nodeMinorVersion );
+    printf( "Lcb Library Version: %d.%d\n", nodeMap.nodeVersion >> 8, nodeMap.nodeVersion & 0xFF );
   }
 
   void dumpConfigDesc( ) {
@@ -175,31 +177,18 @@ namespace {
   void dumpNvmNodeArea( ) {
 
     printf( "NVM Area Dump:\n" );
-    dumpNvmData( 0, sizeof( LcsRuntimeMap ));
+    dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsPortMap ) + sizeof( LcsEventMap ));
     printf( "\n" );
   }
 
   void dumpNvmUserArea( ) {
 
     printf( "NVM Area Dump:\n" );
-    dumpNvmData( 0, sizeof( LcsRuntimeMap ));  // ??? fix ...
+    dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
     printf( "\n" );
   }
 
 }; // namespace
-
-
-//------------------------------------------------------------------------------------------------------------
-// "setupSerialCommand" initializes the Arduino serial interface.
-//
-// ??? replaced by ??? USB ?
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupSerialCommand( ) {
-
-//  Serial.begin( 115200 );
-//  Serial.flush( );
-  return ( ALL_OK );
-}
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -649,8 +638,18 @@ void listDrvHelpCommand( ) {
   printf( "<#w board pad arg1 [ arg2 .. arg8 ] > - write data to board n\n" );
 }
 
+
 //------------------------------------------------------------------------------------------------------------
-// "handleNodeSerialCommand" reads characters from the console. The command line syntax is modelled after the
+// "setupSerialCommand" initializes the serial interface. We use the PICO USB as console IO.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupSerialCommand( ) {
+
+  return ( CDC::configureConsoleIO( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "handleSerialCommand" reads characters from the console. The command line syntax is modelled after the
 // original DCC++ work. First character is a command, the rest are arguments. A command is bracketed by "<" 
 // and ">". Once we encounter a closing ">" sign, the first character in the bracketed string is used to 
 // branch to the appropriate command handler. The command interface routine only handles the LCS commands, 
@@ -661,7 +660,7 @@ void listDrvHelpCommand( ) {
 // when there is a valid "<...>" sequence assembled, the command handler is invoked. 
 //
 //------------------------------------------------------------------------------------------------------------
-void handleNodeSerialCommand( ) {
+uint8_t handleSerialCommand( ) {
 
   char c;
 
@@ -728,4 +727,6 @@ void handleNodeSerialCommand( ) {
       default: if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) strncat( commandBuf, &c, 1 );
     }
   }
+
+  return( ALL_OK );
 }

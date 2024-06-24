@@ -39,6 +39,7 @@
 
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
+#include "tusb_config.h"
 #include "hardware/regs/usb.h"
 #include "hardware/regs/rosc.h"
 #include "hardware/regs/addressmap.h"
@@ -583,6 +584,7 @@ uint32_t CDC::createUid( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t CDC::configureConsoleIO( ) {
 
+  stdio_init_all( );
   return( ALL_OK );
 }
   
@@ -593,6 +595,8 @@ char CDC::getConsoleChar( ) {
 }
 
 bool CDC::isConsoleConnected( ) {
+
+  return( stdio_usb_connected( ));
 
 /* to research first ... check USB register
 
@@ -1018,9 +1022,9 @@ uint8_t CDC::configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorre
 
   if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
-  const uint32_t sysClock = 125000000L;
-
-  uint32_t clkDiv = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
+  uint32_t sysClock = getCpuFrequency( );
+  uint32_t clkDiv   = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
+  
   if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
   pwm -> pwmPin  = pwmPin;

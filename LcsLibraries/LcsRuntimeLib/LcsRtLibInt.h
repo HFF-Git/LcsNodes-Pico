@@ -50,15 +50,28 @@
 #define   DEBUG_ATTRIBUTES  1
 #define   DEBUG_EVENTS      1
 
-
-//----------------------------------------------------------------------------------------------------------
-// Common constants to define limits for names, attributes and so on. Our current approaxch is to build the
-// various data structures with fixed sizes described by these constants.
+//------------------------------------------------------------------------------------------------------------
+// The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
+// data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas
+// initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from memory
+// to NVM so that it is the initial value on the next restart. All data is stored in controller native 
+// endianess. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
+//
+// The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
+// offset 0x100 and the eventMap at offset 0x1000. The system area is 8 Kbytes. The optional user map is
+// all the remaining bytes in the NVM and starts at 0x2000 then. All access routines are by default accessing
+// the user area. A user can also access the system are but needs to set the access parameter explicitly in
+// the calling routine. Note that dangerous things can be done when modifying the systen area.
+//
+// In general each of the runtime areas could have also been designed in a way that they are dynmically 
+// configurable in size. For example, a port map could be up to 15 ports but also less. The current 
+// implementation does however use fixed sizes. Why ? It turns out that the memory requirements are well
+//  within the capabilities of the NVM chips and also the PICO memory size. It is not worth the complexity.
 //
 //----------------------------------------------------------------------------------------------------------
 const uint16_t  MAX_ATTR_MAP_ENTRIES          = 64;
 const uint16_t  MAX_PORT_MAP_ENTRIES          = 15;
-const uint16_t  MAX_EVENT_MAP_ENTRIES         = 1024;
+const uint16_t  MAX_EVENT_MAP_ENTRIES         = 1022;
 const uint16_t  MAX_TASK_MAP_ENTRIES          = 16;
 
 const uint16_t  MAX_NODE_NAME_SIZE            = 16;
@@ -67,25 +80,33 @@ const uint16_t  MAX_COMMAND_LINE_SIZE         = 256;
 const uint16_t  MAX_LCS_MSG_SIZE              = 8;
 
 const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES     = 8;
-
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES   = 8;
-
 const uint16_t  EVENT_DELAY_TICK_MILLIS       = 32;
 
+const uint16_t  NVM_NODE_MAP_START            = 0;
+const uint16_t  NVM_PORT_MAP_START            = 0x100;
+const uint16_t  NVM_EVENT_MAP_START           = 0x1000;
+const uint16_t  NVM_USER_MAP_START            = 0x2000;
+
 
 //----------------------------------------------------------------------------------------------------------
-// The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
-// offset 0x100 and the eventMap at offset 0x1000. The system area is 8 Kbytes. The optional user map is
-// all the remaining bytes in the NVM and starts at 0x2000 then. All access routines are by default accessing
-// the user area. A user can also access the system are but needs to set the access parameter explicitly in
-// the calling routine. Note that dangerous things can be done when modifying the systen area.
+// The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
+// locations for the magic words. If found, the area was configured before. It would be quite unlikely
+// that a random NVM content has these two words at the right spot.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t NVM_NODE_MAP_START             = 0;
-const uint16_t NVM_PORT_MAP_START             = 0x100;
-const uint16_t NVM_EVENT_MAP_START            = 0x1000;
-const uint16_t NVM_USER_MAP_START             = 0x2000;
+const uint16_t MWORD_1 = 0x010b;
+const uint16_t MWORD_2 = 0x0a02;
 
+//----------------------------------------------------------------------------------------------------------
+// The NVM chio family. Currently we use I2C non-volatile Rams ICs from MicroChip.
+//
+//----------------------------------------------------------------------------------------------------------
+enum NvmChipFamily : uint16_t {
+
+    NVM_CHIP_FAM_NIL        = 0,
+    NVM_CHIP_FAM_MICROCHIP  = 1
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
@@ -123,14 +144,14 @@ enum MsgPriority : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// "LcsBus" is the CAN bus interface. The two key routines are the send and receive routines.
+// "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
 
   public:
 
-    uint8_t   init( uint16_t canId, uint8_t pinRx, uint8_t pinTx, uint8_t fMode = CAN_BUS_LIB_PICO_PIO_500K );
+    uint8_t   init( uint16_t canId, uint8_t pinRx, uint8_t pinTx, uint8_t fMode = CAN_BUS_LIB_PICO_PIO_125K );
 
     uint8_t   sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
     uint8_t   receiveLcsMsg( uint8_t *msg );
@@ -140,88 +161,6 @@ struct LcsMsgBusCAN {
     uint16_t  canId = 0;
 };
 
-
-//------------------------------------------------------------------------------------------------------------
-// The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, there are
-// two data areas which are stored in the node NVM and shadowed by a memory copy. Upon reset or power up
-// the memory areas are copied form their NVM counter parts. Data that needs to be changed permanently is
-// flushed from memory to NVM so that it is the initial value on the next restart. All data is stored in
-// controller native endianess. Only the messages exchanged via the LcsMsgBus are transmitted in big endian
-// order.
-//
-// The runtime area is a fixed size structure with a few sub areas. The first structure in any NVM is a
-// board descriptor, which gives basic information on the board type and the NVM type. This information is
-// key to correctly ddress the NVM. Before reading this area, we just use a generic attempt to read this
-// subarea.
-//
-// The LCS runtime will check at startup time that the firmwware's board type expectation matches what
-// is sored in the NVM on the board. Naturally, the NVM needs to get that data once when the board initially
-// configured with this infomration.
-//
-// The next sub area is the HW descriptor area. We maintain a set of fixed identifiers for HW resources.
-// For example, there are GPIO pins D0 to D15 or ADC pins ADC0 to ADC4. These resource IDs will be set
-// with real HW pins and some flags according to the schematics of the Board.
-//
-// Further sub areas are the node map, the port map and the event map round up the runtime maps. The Node Map
-// contains node global data and attributes. he port map contains a  set of port map entries, each describing
-// a port. A port has a type, a name and like the node a set of attributes. It contains the event to port
-// mapping for incoming events.
-//
-// The entire runtime area is shadowed by a memory area of the same type. At system startup or reset the
-// runtime NVM area is copied to the memory area. During operation, some runtime values may change. They
-// can only update memory or both memory and NVM.
-//
-// In genereal each of the runtime areas could be designed in a way that they are dynmically configurable
-// in size. For example, a port map could be up to 15 ports but also less. The current implementation does
-// however use fixed sizes. Why ? It turns out that the memory requirements are well within the capabilties
-// of the NVM chips and also the PICO memory size.
-//
-// The remainder of the NVM is user defined. It is just the rest of the NVM storage. A firmware can only
-// access the User NVM area through dedicated runtime library routines. Likewise, a firmware programmer can
-// only access the runtime area through the nodeXXX runtime access access routines.
-//
-//------------------------------------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------------------------------------
-// The board descriptor sub area. Every LCS hardware board has a unique controller, type and version. The
-// data can be found in the first locations of the NVM chip on the board. The same structure is also used
-// for an extension board NVM, although not all fields are used. The area is bracketed by two "magic" words,
-// which are just constants to check that indeed the area is a descriptor area. The constants are choosen so
-// that it is quite unlikely to find two such words in a new NVM.
-//
-// The board controller contains 4 NVM slots, which means we can have up to four NVM chips. The current chip
-// family is the AA24XXX family if I2C NVM chips, which a capacity of 4K up to 64K. The chips sizes can be
-// mixed. When the controller starts up, it will just attemot to read this structure form the first NVM
-// locations. The size of the chip does not matter at startup, we only read this structure. When the board
-// descritor has reasonabe valus, the rest can be read safely.
-//
-// The total size if this structure is 64bytes. We will pad it to this size.
-//
-//------------------------------------------------------------------------------------------------------------
-
-
-struct LcsBoardDesc {
-
-  uint16_t magicWord1;
-
-  uint16_t ControllerFamily;
-  uint16_t BoardType;
-  uint16_t BoardVersion;
-
-  uint16_t nvmChipFamily;
-  uint16_t nvmChipI2CAdrRoot;
-  uint16_t nvmMemSize0;
-  uint16_t nvmMemSize1;
-  uint16_t nvmMemSize2;
-  uint16_t nvmMemSize3;
-  uint32_t totalNvmSize;
-
-  uint16_t reserved[ 19 ]; // for new items, it is under construction ...
-
-
-};
-
-
 //----------------------------------------------------------------------------------------------------------
 // Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
 // pin configuration data. When used by the schematic, the configuration process will set this field with
@@ -229,110 +168,103 @@ struct LcsBoardDesc {
 //
 // ??? not clear what else should be in here....
 // ??? currently, the CDC config data is set directly by the application. One day, we may store this data
-// in this descriptor. So far, this is more of a place holder.
+// in the descriptor. So far, this is more of a place holder.
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcDesc {
 
   uint16_t          flags;
   CDC::CdcPinConfig cfg;
-
 };
 
-
 //----------------------------------------------------------------------------------------------------------
-// The node map
-
-// contains items such as the node UID, the node ID, and so on. There is also the node name
-// and type. Finally the node map is the place to store the node attributes. The structure can directly be
-// read from NVM into a memory structure of the same type.
+// The node map. At the first locations of the NVM area is the nodeMap, which is read in at controller 
+// reset. It contains among other data the NVM description. This description is essential to configure the 
+// NVM.  
 //
+// 
 //----------------------------------------------------------------------------------------------------------
-const uint16_t MWORD_1 = 0x010b;
-const uint16_t MWORD_2 = 0x0a02;
-
 struct LcsNodeMap {
 
-  uint16_t magicWord1;
+  uint16_t  magicWord1                      = MWORD_1;
 
-  uint16_t  options                     = 0;
-  uint16_t  flags                       = 0;
-  uint32_t  uid                         = 0L;
-  uint16_t  id                          = NIL_NODE_ID;
-  uint16_t  type                        = NIL_NODE_TYPE;
-  uint16_t  restartCnt                  = 0;
-  uint16_t  nodeMajorVersion            = 0;
-  uint16_t  nodeMinorVersion            = 0;
+  uint16_t  controllerFamily;
+  uint16_t  boardType                       = BT_NIL;
+  uint16_t  boardVersion                    = 0;
 
-  uint16_t ControllerFamily;
-  uint16_t BoardType;
-  uint16_t BoardVersion;
+  uint16_t  nvmChipFamily                   = NVM_CHIP_FAM_MICROCHIP;
+  uint16_t  nvmChipI2CAdrRoot               = 0x50;
+  uint16_t  nvmMemSize0                     = 0;
+  uint16_t  nvmMemSize1                     = 0;
+  uint16_t  nvmMemSize2                     = 0;
+  uint16_t  nvmMemSize3                     = 0;
+  uint32_t  totalNvmSize                    = 0;
 
-  uint16_t nvmChipFamily;
-  uint16_t nvmChipI2CAdrRoot;
-  uint16_t nvmMemSize0;
-  uint16_t nvmMemSize1;
-  uint16_t nvmMemSize2;
-  uint16_t nvmMemSize3;
-  uint32_t totalNvmSize;
+  uint16_t  nodeVersion                     = 0;
+  uint16_t  nodePatchLevel                  = 0;
 
+  uint16_t  options                         = 0;
+  uint16_t  flags                           = 0;
+  uint32_t  uid                             = 0L;
+  uint16_t  id                              = NIL_NODE_ID;
+  uint16_t  type                            = NIL_NODE_TYPE;
+  uint16_t  restartCnt                      = 0;
+  
+  char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
+  uint16_t  map[ MAX_ATTR_MAP_ENTRIES ]     = { 0 };
 
-  char      name[ MAX_NODE_NAME_SIZE ]  = { 0 };
-  uint16_t  map[ MAX_ATTR_MAP_ENTRIES ] = { 0 };
-
-  uint16_t magicWord2;
+  uint16_t magicWord2                       = MWORD_2;
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The port map contains an array of ports, each descriobed by a port map entry. Besides the port flags,
+// The port map contains an array of ports, each described by a port map entry. Besides the port flags,
 // name and type and there are the port attributes. The portMap entry also contains the fields that deal
 // with the actual event received. There are fields for the sending node, the event and its action. An
-// event can also be invoked with a delay time.
+// event can also be invoked with a delay time. The are fifteen entries in the port map. The portMap starts
+//  at NVM offset 0x1000.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-  uint16_t  flags                         = 0;
-  uint16_t  type                          = 0;
+  uint16_t  flags                           = 0;
+  uint16_t  type                            = 0;
 
-  uint16_t  nodeId                        = NIL_NODE_ID;
-  uint16_t  eventId                       = NIL_EVENT_ID;
-  uint16_t  eventValue                    = 0;
-  uint16_t  eventAction                   = PEA_EVENT_IDLE;
-  uint16_t  eventDelayTime                = 0;
-  uint32_t  eventTimeStamp                = 0L;
+  uint16_t  nodeId                          = NIL_NODE_ID;
+  uint16_t  eventId                         = NIL_EVENT_ID;
+  uint16_t  eventValue                      = 0;
+  uint16_t  eventAction                     = PEA_EVENT_IDLE;
+  uint16_t  eventDelayTime                  = 0;
+  uint32_t  eventTimeStamp                  = 0L;
 
-  char      name[ MAX_PORT_NAME_SIZE ]    = { 0 };
-  uint16_t  map[ MAX_ATTR_MAP_ENTRIES ]   = { 0 };
+  char      name[ MAX_PORT_NAME_SIZE  ]     = { 0 };
+  uint16_t  map[ MAX_ATTR_MAP_ENTRIES ]     = { 0 };
 };
 
-//----------------------------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------------------------
 struct LcsPortMap {
 
-  uint16_t        flags;
-  uint16_t        size;
+  uint16_t        flags                     = 0;
+  uint16_t        size                      = MAX_PORT_MAP_ENTRIES;
   LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------------------------
 // The event map entry contains the mapping from eventId to portId. Every port interested in a certain event
 // will have an entry in the event map. It is a sorted table of event and port pairs. This table is searched
-// for an incoming event to find the ports that are interested in the event.
+// for an incoming event to find the ports that are interested in the event. The high water mark defines the
+// actual number of entries used.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsEventMapEntry {
 
-  uint16_t eventId  = NIL_EVENT_ID;
-  uint16_t portId   = NIL_PORT_ID;
+  uint16_t eventId                        = NIL_EVENT_ID;
+  uint16_t portId                         = NIL_PORT_ID;
 };
 
 struct LcsEventMap {
 
-  uint16_t            flags;
-  uint16_t            size;
-  uint16_t            hwm;
+  uint16_t            flags               = 0;
+  uint16_t            size                = MAX_EVENT_MAP_ENTRIES;
+  uint16_t            hwm                 = 0;
+  uint16_t            reserved            = 0;
   LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
 };
 
@@ -341,32 +273,15 @@ struct LcsEventMap {
 // of this area. The usage and meaning is entirely up to the firmware programmer. The LCS runtime will
 // however offer routines to access this area as the only way to get to it.
 //
-// ??? what else to store here ?
-//----------------------------------------------------------------------------------------------------------
+// ??? A firmware should only access the User NVM area through dedicated runtime library routines. Likewise,
+//  a firmware programmer can only access the runtime area through the nodeXXX runtime access access routines.
+//
+//------------------------------------------------------------------------------------------------------------
 struct LcsUserMap {
 
-  uint16_t  flags;
-  uint16_t  size;
-  uint32_t  ofs;
-};
-
-//----------------------------------------------------------------------------------------------------------
-// The LCS runtime structure contains the runtime data found in the NVM. All values and fields are aligned
-// to be on a 16-bit or 32-bit basis to avoid any alignment issues. The data is stored in the endianess of
-// the controller used. This is not an issues as the data is created on the same controller. Only LCS
-// messages insist on the big endian format regardless of the controller endianess. The runtime map is
-// read in two parts. The first just gets the board section and validates that the runtime map makes sense.
-// Next, all other parts can be read in one swoop. Easy and simple.
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsRuntimeMap {
-
-  LcsBoardDesc      board;
-  LcsCdcDesc        cdcMap;
-  LcsNodeMap        nodeMap;
-  LcsPortMap        portMap;
-  LcsEventMap       eventMap;
-  LcsUserMap        userMap;
+  uint16_t  flags                         = 0;
+  uint16_t  size                          = 0;
+  uint32_t  ofs                           = NVM_USER_MAP_START;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -571,6 +486,7 @@ uint8_t       getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId );
 void          handleMsgLcsMgt( uint8_t *msg );
 void          handleMsgEvent( uint8_t *msg );
 
-void          handleNodeSerialCommand( );
+uint8_t       setupSerialCommand( );
+uint8_t       handleSerialCommand( );
 
 #endif

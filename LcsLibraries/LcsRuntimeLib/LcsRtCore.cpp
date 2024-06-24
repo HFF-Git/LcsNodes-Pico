@@ -26,7 +26,7 @@
 
 
 //------------------------------------------------------------------------------------------------------------
-// The global structures declaration. There is first of all the "runtime map" which holds all non-volatile
+// The global structures declaration. There is first of all the "runtime maps" which holds all non-volatile
 // node and port data from which the volatile copies are built. The "callback map" holds all registered
 // callback function pointers. The "task map" holds all registered periodc task function pointers. The "driver
 // map" holds the configured driver for an extension board, if there is any configured.
@@ -35,7 +35,12 @@
 // the overall node state, which holds the current state of the node.
 //
 //------------------------------------------------------------------------------------------------------------
-LcsRuntimeMap             runtimeMap;
+LcsCdcDesc                cdcMap;
+LcsNodeMap                nodeMap;
+LcsPortMap                portMap;
+LcsEventMap               eventMap;
+LcsUserMap                userMap;
+
 LcsCallbackMap            callbackMap;
 LcsTaskMap                taskMap;
 LcsPendingReqMap          pendingReqMap;
@@ -293,7 +298,7 @@ uint8_t resetNode( ) {
 
   if ( callbackMap.map[ 0 ].initCallback != nullptr ) {
 
-    rStat = callbackMap.map[ 0 ].initCallback( runtimeMap.nodeMap.id, 0, 0 );
+    rStat = callbackMap.map[ 0 ].initCallback( nodeMap.id, 0, 0 );
   }
 
   if ( rStat == ALL_OK ) {
@@ -326,7 +331,7 @@ uint8_t resetPort( uint8_t portId ) {
                         sizeof( LcsPortMapEntry ));
   */
   if ( callbackMap.map[ portId ].initCallback != nullptr )
-    return ( callbackMap.map[ portId ].initCallback( runtimeMap.nodeMap.id, portId, 0 ));
+    return ( callbackMap.map[ portId ].initCallback( nodeMap.id, portId, 0 ));
   else return ( ALL_OK );
 
 }
@@ -344,7 +349,7 @@ void handleNodePortEvents( ) {
 
   for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i ++ ) {
 
-    LcsPortMapEntry *pPtr = & runtimeMap.portMap.map[ i ];
+    LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
     if (( pPtr -> flags & PF_PORT_ENABLED                 ) &&
         ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED  ) &&
@@ -404,9 +409,9 @@ void handleMsgRepNid( uint8_t *msg ) {
                       ((uint32_t) msg[5] << 8 ) +
                       msg[6];
 
-  if ( nodeUID == runtimeMap.nodeMap.uid ) {
+  if ( nodeUID == nodeMap.uid ) {
 
-    if ( runtimeMap.nodeMap.id != nodeId ) nodeControl( nodeId, NPC_SET_NODE_ID, nodeId );
+    if ( nodeMap.id != nodeId ) nodeControl( nodeId, NPC_SET_NODE_ID, nodeId );
     nodeState = NS_OPERATE;
   }
 }
@@ -472,7 +477,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         }
         else if (( nodeId != NIL_NODE_ID ) && ( portId == NIL_PORT_ID )) {
 
-          if ( nodeId == runtimeMap.nodeMap.id ) {
+          if ( nodeId == nodeMap.id ) {
 
 
             // ??? fix
@@ -483,7 +488,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         }
         else if (( nodeId != NIL_NODE_ID ) && ( portId != NIL_PORT_ID )) {
 
-          if ( nodeId == runtimeMap.nodeMap.id ) {
+          if ( nodeId == nodeMap.id ) {
 
             uint8_t rStat = resetPort( msg[ 3 ] );
 
@@ -500,11 +505,11 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         uint32_t nodeUID  = ((uint32_t) msg[3] << 24 ) + ((uint32_t) msg[4] << 16 ) +
                             ((uint32_t) msg[5] << 8 ) + msg[6];
 
-        if ( nodeUID == runtimeMap.nodeMap.uid ) {
+        if ( nodeUID == nodeMap.uid ) {
 
           if ( nodeState == NS_CONFIG ) {
 
-            if ( nodeId != runtimeMap.nodeMap.id ) runtimeMap.nodeMap.id = nodeId;
+            if ( nodeId != nodeMap.id ) nodeMap.id = nodeId;
             sendAck( nodeId );
           }
           else sendErr( nodeId, ERR_NODE_NOT_CONFIG_STATE, 0, 0 );
@@ -523,7 +528,7 @@ void handleMsgQryNode( uint8_t *msg ) {
   uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
   uint8_t  portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
 
-  if ( nodeId == runtimeMap.nodeMap.id ) {
+  if ( nodeId == nodeMap.id ) {
 
     uint8_t   item  = msg[3];
     uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
@@ -566,7 +571,7 @@ void handleMsgReqNode( uint8_t *msg ) {
 
   uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
   uint8_t  portId  = msg[2] & 0x0F;
-  if ( nodeId == runtimeMap.nodeMap.id ) {
+  if ( nodeId == nodeMap.id ) {
 
     uint8_t   item  = msg[3];
     uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
@@ -606,9 +611,9 @@ void handleMsgEvent( uint8_t *msg ) {
       case LCS_OP_EVT:      eventAction = PEA_EVENT_EVT;  break;
     }
 
-    while (( index < runtimeMap.eventMap.hwm ) && ( runtimeMap.eventMap.map[ index ].eventId == eventId )) {
+    while (( index < eventMap.hwm ) && ( eventMap.map[ index ].eventId == eventId )) {
 
-      LcsPortMapEntry *pPtr = &runtimeMap.portMap.map[ index ];   // ???? --------
+      LcsPortMapEntry *pPtr = &portMap.map[ index ];   // ???? --------
 
       if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
           ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   ) &&
@@ -649,27 +654,27 @@ void handleMsgDccMgt( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-  if ( runtimeMap.nodeMap.options & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
+  if ( nodeMap.options & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
 
     if ( callbackMap.map[ 0 ].initCallback != nullptr )
-      callbackMap.map[ 0 ].initCallback( runtimeMap.nodeMap.id, 0, 0 );
+      callbackMap.map[ 0 ].initCallback( nodeMap.id, 0, 0 );
   }
 
-  if ( runtimeMap.nodeMap.options & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
+  if ( nodeMap.options & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
 
     for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
       if ( callbackMap.map[ i ].initCallback != nullptr )
-        callbackMap.map[ i ].initCallback( runtimeMap.nodeMap.id, i, 0 );
+        callbackMap.map[ i ].initCallback( nodeMap.id, i, 0 );
 
-      runtimeMap.portMap.map[ i - 1 ].flags |= PF_PORT_ENABLED;
-      runtimeMap.portMap.map[ i - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
+      portMap.map[ i - 1 ].flags |= PF_PORT_ENABLED;
+      portMap.map[ i - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
     }
   }
 
-  if ( ! ( runtimeMap.nodeMap.options & NOPT_SKIP_NODE_ID_CONFIG )) {
+  if ( ! ( nodeMap.options & NOPT_SKIP_NODE_ID_CONFIG )) {
 
-    sendReqNodeId( runtimeMap.nodeMap.id, runtimeMap.nodeMap.uid, 0 );
+    sendReqNodeId( nodeMap.id, nodeMap.uid, 0 );
     timerVal  = CDC::getMillis( );
     nodeState = NS_REGISTER;
 
@@ -706,7 +711,7 @@ void handleNodeStateRegister( ) {
 
         if (( CDC::getMillis( ) - timerVal ) > NODE_SETUP_RETRY_TIMER_VAL_MS ) {
 
-          sendReqNodeId( runtimeMap.nodeMap.id, runtimeMap.nodeMap.uid, 0 );
+          sendReqNodeId( nodeMap.id, nodeMap.uid, 0 );
           timerVal = CDC::getMillis( );
         }
       }
@@ -834,10 +839,10 @@ void handleNodeStateOperations( ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// "execRuntime" is the main routine of the node activity processing. It is the method called after all 
+// "startRuntime" is the main routine of the node activity processing. It is the method called after all 
 // setup is done. Running in a loop, the primary function is to handle the activities according to the node 
-// state. The run loop also processes the serial commands, periodic tasks and events. Note that this design
-// will make the "loop" routine the last to call in a node firmware. It will not return.
+// state. The run loop also processes the serial commands, periodic tasks and events. Note that this function
+// will not return.
 //
 //------------------------------------------------------------------------------------------------------------
 void startRuntime( ) {
@@ -861,6 +866,6 @@ void startRuntime( ) {
       handleNodePortEvents( );
     }
 
-    handleNodeSerialCommand( );
+    handleSerialCommand( );
   }
 }

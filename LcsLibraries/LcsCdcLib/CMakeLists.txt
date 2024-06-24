@@ -21,6 +21,7 @@ add_library( ${PROJECT_NAME} STATIC
     LcsCdcLib.cpp
 ) 
 
+target_include_directories( ${PROJECT_NAME} PRIVATE ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include)
 target_include_directories( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 

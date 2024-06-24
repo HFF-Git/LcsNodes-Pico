@@ -25,14 +25,12 @@
 #ifndef LCS_RT_LIB_h
 #define LCS_RT_LIB_h
 
-#include <stdint.h>
-#include <inttypes.h>
-
 //------------------------------------------------------------------------------------------------------------
 // Include files.
 //
 //------------------------------------------------------------------------------------------------------------
-// #include "arduino.h"  // ??? will go away ...
+#include <stdint.h>
+#include <inttypes.h>
 
 //------------------------------------------------------------------------------------------------------------
 // All LCS Library definitions are in a separate name space "LCS".

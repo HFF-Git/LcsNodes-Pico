@@ -84,7 +84,7 @@ void setupConfigInfo( ) {
 //----------------------------------------------------------------------------------------------------------
 void initCdcLib( ) {
 
-  CDC::sleepMillis( 20000 );
+  CDC::sleepMillis( 2000 );
 
   printf( "Test LCS Controller dependent code library\n" );
 
@@ -109,6 +109,8 @@ void testConsoleIO ( ) {
   CDC::sleepMillis( 1000 );
 
   printf( "Test Console IO..\n" );
+  printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+
   printf( "->" );
 
   while ( true ) {
@@ -119,7 +121,9 @@ void testConsoleIO ( ) {
       if ( c == 'q' ) break;
       
       printf( "%c\n", c );
-      printf( "->" );
+      
+       printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+       printf( "->" );
     }
   }
 
@@ -161,13 +165,13 @@ void testLeds( ) {
   while ( true ) {
 
     CDC::writeDio( cfg.READY_LED_PIN, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
 
     CDC::writeDio( cfg.READY_LED_PIN, false );
     CDC::writeDio( cfg.ACTIVE_LED_PIN, false );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
   }
 }
 
@@ -192,7 +196,7 @@ void testDioInput( ) {
 
   while ( true ) {
 
-    sleep_ms( 1000 );
+    CDC::sleepMillis( 1000 );
     CDC::toggleDio( cfg.ACTIVE_LED_PIN );
 
     printf( "Econ Dio In 0: %d\n", CDC::readDio( cfg.DIO_PIN_0 ));
@@ -236,24 +240,24 @@ void testDioOutput( ) {
     CDC::writeDio( cfg.DIO_PIN_5, false );
     CDC::writeDio( cfg.DIO_PIN_6, false );
     CDC::writeDio( cfg.DIO_PIN_7, false );
-    sleep_ms( 1000 );
+    CDC::sleepMillis( 1000 );
 
     CDC::writeDio( cfg.DIO_PIN_0, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_1, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_2, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_3, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_4, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_5, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_6, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.DIO_PIN_7, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
   }
 }
 
@@ -288,35 +292,35 @@ void testDioOutputPair( ) {
     CDC::writeDio( cfg.DIO_PIN_5, false );
     CDC::writeDio( cfg.DIO_PIN_6, false );
     CDC::writeDio( cfg.DIO_PIN_7, false );
-    sleep_ms( 1000 );
+    CDC::sleepMillis( 1000 );
 
     CDC::writeDioPair( cfg.DIO_PIN_0, true, cfg.DIO_PIN_1, false );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_0, false, cfg.DIO_PIN_1, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_0, true, cfg.DIO_PIN_1, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
 
     CDC::writeDioPair( cfg.DIO_PIN_2, true, cfg.DIO_PIN_3, false );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_2, false, cfg.DIO_PIN_3, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_2, true, cfg.DIO_PIN_3, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
 
     CDC::writeDioPair( cfg.DIO_PIN_4, true, cfg.DIO_PIN_5, false );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_4, false, cfg.DIO_PIN_5, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_4, true, cfg.DIO_PIN_5, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
 
     CDC::writeDioPair( cfg.DIO_PIN_6, true, cfg.DIO_PIN_7, false );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_6, false, cfg.DIO_PIN_7, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
     CDC::writeDioPair( cfg.DIO_PIN_6, true, cfg.DIO_PIN_7, true );
-    sleep_ms( 500 );
+    CDC::sleepMillis( 500 );
   }
 }
 
@@ -339,11 +343,11 @@ void testAdcBlockingRead( ) {
 
     val = CDC::readAdc( cfg.ADC_PIN_0 );
     printf( "ADC -> (%d:%d:%d)\n", cfg.ADC_PIN_0, val, val * digitToVolt );
-    sleep_ms( 1000 );
+    CDC::sleepMillis( 1000 );
 
     val = CDC::readAdc( cfg.ADC_PIN_1 );
     printf( "ADC -> (%d:%d:%d)\n", cfg.ADC_PIN_1, val, val * digitToVolt );
-    sleep_ms( 1000 );
+    CDC::sleepMillis( 1000 );
   }
 }
 
@@ -402,15 +406,15 @@ void testPWMFixed( ) {
 
     CDC::writePwm( cfg.DIO_PIN_6, 127 );
     CDC::writePwm( cfg.DIO_PIN_7, 63 );
-    sleep_ms( 2000 );
+    CDC::sleepMillis( 2000 );
 
     CDC::writePwm( cfg.DIO_PIN_6, 192 );
     CDC::writePwm( cfg.DIO_PIN_7, 127 );
-    sleep_ms( 2000 );
+    CDC::sleepMillis( 2000 );
 
     CDC::writePwm( cfg.DIO_PIN_6, 63 );
     CDC::writePwm( cfg.DIO_PIN_7, 192 );
-    sleep_ms( 2000 );
+    CDC::sleepMillis( 2000 );
   }
 }
 
@@ -441,7 +445,7 @@ void testPWMWithAnalogInput( ) {
 
     CDC::writePwm( cfg.DIO_PIN_6, dutyCycle );
     CDC::writePwm( cfg.DIO_PIN_7, dutyCycle );
-    sleep_ms( 100 );
+    CDC::sleepMillis( 100 );
   }
 }
 
@@ -452,12 +456,12 @@ void testPWMWithAnalogInput( ) {
 void testUIDGen( ) {
 
   printf( "UID generation test\n" );
-  sleep_ms( 1000 );
+  CDC::sleepMillis( 1000 );
 
   for ( int i = 0; i < 20; i++ ) {
 
     printf( "UID -> %d\n ", CDC::createUid( ));
-    sleep_ms( 100 );
+    CDC::sleepMillis( 100 );
   }
 }
 
@@ -513,10 +517,10 @@ void testCases( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    stdio_init_all( );
+  CDC::configureConsoleIO( );
 
-    fprintf( stdout, "LCS CDC Library Test Program...\n\n" );      
+  fprintf( stdout, "LCS CDC Library Test Program...\n\n" );      
    
-    testCases( );
-    return( 0 );
+  testCases( );
+  return( 0 );
 }

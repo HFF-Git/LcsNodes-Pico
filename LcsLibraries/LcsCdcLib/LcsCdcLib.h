@@ -47,8 +47,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include <pico/stdio.h>
-#include <pico/stdlib.h>
+// #include <pico/stdio.h>
+// #include <pico/stdlib.h>
 
 //------------------------------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.

@@ -32,7 +32,7 @@
 // External declaration to global structures.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LcsRuntimeMap        runtimeMap;
+extern LcsNodeMap           nodeMap;
 extern LcsCallbackMap       callbackMapNew;
 extern LcsTaskMap           taskMap;
 extern LcsMsgBusCAN         *msgBus;
@@ -133,7 +133,7 @@ uint8_t setupMsgBus( ) {
         // ??? fix with new init methods...
 
         msgBus = new LcsMsgBusCAN( );
-        rStat = (( LcsMsgBusCAN *) msgBus ) -> init( runtimeMap.nodeMap.id, canBusRxPin, canBusTxPin, canBusCtrlMode );
+        rStat = (( LcsMsgBusCAN *) msgBus ) -> init( nodeMap.id, canBusRxPin, canBusTxPin, canBusCtrlMode );
 
       } break;
 
