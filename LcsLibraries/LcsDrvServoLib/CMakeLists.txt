@@ -1,5 +1,12 @@
-# This is the CMAKE file for the hardware layer library
-
+# ------------------------------------------------------------------------------------------------------------
+#  LCS - LcsNodes cmake file at the LcsDrvServoLib directory level
+#
+#  Copyright (C) 2024 - 2024  Helmut Fieres
+# ------------------------------------------------------------------------------------------------------------
+#
+# 
+#
+# ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.19 )
 
 project( LcsDrvServoLib C CXX ASM )

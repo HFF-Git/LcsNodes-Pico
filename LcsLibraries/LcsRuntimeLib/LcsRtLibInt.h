@@ -481,7 +481,8 @@ const uint8_t MAX_BOARD_ID = 4;
 
 
 //------------------------------------------------------------------------------------------------------------
-// Each extension board will have a NVM to store the board configuration data.
+// Each extension board will have a NVM to store the board configuration data. Sikilar to the node map of the
+// cntroller board, this exetension board will have a data structure that is read at initialization time. 
 //
 //
 //
@@ -494,8 +495,6 @@ struct LcsDrvBoardDesc {
   uint16_t  magicWord;
   uint16_t  boardType;
   uint32_t  boardUID;
-
-  uint16_t  descHeaderSize;
 
   uint16_t  numOfChips;
   uint16_t  chipTabEntrySize;
@@ -519,7 +518,7 @@ struct LcsDrvBoardDesc {
 // REWORK !!!!!!
 //
 //----------------------------------------------------------------------------------------------------------
-struct LcsDrvEntry {
+struct LcsDrv {
 
   public:
 
@@ -548,7 +547,7 @@ struct LcsDrvMap {
   uint16_t          size;
   uint16_t          *hwm = nullptr;
 
-  LcsDrvEntry       *map[ 4 ];  // fix ....
+  LcsDrv            *map[ 4 ];  // fix ....
 
   void reset( ) { }
 

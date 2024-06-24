@@ -1,4 +1,12 @@
-# This is the CMAKE file at the LcsCdcLib-Test directory level
+# ------------------------------------------------------------------------------------------------------------
+#  LCS - LcsNodes cmake file at the LcsCdcLib-Test directory level
+#
+#  Copyright (C) 2024 - 2024  Helmut Fieres
+# ------------------------------------------------------------------------------------------------------------
+#
+# 
+#
+# ------------------------------------------------------------------------------------------------------------# This is the CMAKE file at the LcsCdcLib-Test directory level
 
 cmake_minimum_required( VERSION 3.29 )
 
