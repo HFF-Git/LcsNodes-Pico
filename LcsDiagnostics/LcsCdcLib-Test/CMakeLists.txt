@@ -7,7 +7,6 @@
 # 
 #
 # ------------------------------------------------------------------------------------------------------------# This is the CMAKE file at the LcsCdcLib-Test directory level
-
 cmake_minimum_required( VERSION 3.29 )
 
 project( LcsCdcLib-Test C CXX ASM )
@@ -27,14 +26,17 @@ if ( TARGET tinyusb_device )
     pico_enable_stdio_uart( ${PROJECT_NAME} 0 )
 
     # Add a custom command to run a shell script. We would like to move the uf2 file to a dedicated directory.
-    # The script is executed after the build proccess.
+    # The script is executed after the build proccess. The target direvtory is "bin" a child at the overall
+    # project level.
+
     add_custom_command(
      TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E echo "Running shell script..."
-    
-        # under construction.
-    
+        COMMAND ${CMAKE_COMMAND} -E echo "Move target to bin directory"
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/../bin
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.uf2
+        ${CMAKE_BINARY_DIR}/../bin/${PROJECT_NAME}.uf2
     )
 
 elseif ( PICO_ON_DEVICE ) 
