@@ -99,6 +99,9 @@ namespace {
 }; // namespace
 
 
+// ??? check for timeouts on pending replies ...
+
+
 //------------------------------------------------------------------------------------------------------------
 // "setupMsgBus" is called during node initialization to setup the LCS message bus interface. Right now,
 // only the CAN bus is suported. We first create the CANBus object and then call its initialization routine.

@@ -67,6 +67,8 @@ namespace {
     return (( val >= lower ) && ( val <= upper ));
   }
 
+  // ??? better safeguard portID and indieces ???
+
   //----------------------------------------------------------------------------------------------------------
   // "readAttrMem" gets a value from the node or port attribute map in MEM. As an internal function, we expect
   // a valid portId and item argument.
@@ -109,8 +111,9 @@ namespace {
 
     if ( portId == NIL_PORT_ID ) {
 
-      uint16_t ofs  = index * sizeof( uint16_t );
+      uint16_t ofs  = offsetof( LcsNodeMap, map ) + ( index * sizeof( uint16_t ));
       uint8_t rStat = nvmGetWord( ofs, &nodeMap.map[ index ], false );
+      
       if ( rStat == ALL_OK ) *arg = nodeMap.map[ index ];
       return ( rStat );
     }

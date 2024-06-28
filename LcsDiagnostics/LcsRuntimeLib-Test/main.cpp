@@ -1,8 +1,10 @@
 // program app1 
 
+/*
 #include <stdio.h>
 #include <pico/stdio.h>
 #include <pico/stdlib.h>
+*/
 
 #include "../LcsCdcLib/LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
@@ -63,9 +65,9 @@ void setupConfigInfo( ) {
 // Init the CDC and Runtime library...
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t initRuntimeLib( ) {
+uint8_t initLcsRuntime( ) {
 
-  sleep_ms( 2000 );
+  CDC::sleepMillis( 2000 );
 
   printf( "Test LCS Runtime library\n" );
 
@@ -88,7 +90,21 @@ uint8_t initRuntimeLib( ) {
 // 
 //
 //----------------------------------------------------------------------------------------------------------
+uint8_t registerCallbacks( ) {
 
+
+  return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t startLcsRuntime( ) {
+
+
+  return( ALL_OK );
+}
 
 
 
@@ -98,9 +114,8 @@ uint8_t initRuntimeLib( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    stdio_init_all( );
-
-    initRuntimeLib( );
-    
+    initLcsRuntime( );
+    registerCallbacks( );
+    startLcsRuntime( );
     return( 0 );
 }
