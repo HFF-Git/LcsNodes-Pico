@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------------------------------------
-#  LCS - LcsNodes cmake file at the LcsCdcLib-Test directory level
+#  LCS - Basic Throttle cmake file at the LcsBasicThrottle directory level
 #
 #  Copyright (C) 2024 - 2024  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
@@ -9,17 +9,17 @@
 # ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
-project( LcsCdcLib-Test C CXX ASM )
+project( LcsBasicThrottle C CXX ASM )
 
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsCdcLib pico_stdlib ) 
+    include_directories( LcsRuntimeLib LcsCdcLib pico_stdlib ) 
 
     add_executable( ${PROJECT_NAME} main.cpp )
-    target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
+    target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )

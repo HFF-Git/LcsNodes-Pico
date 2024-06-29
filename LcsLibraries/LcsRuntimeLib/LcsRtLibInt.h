@@ -33,7 +33,7 @@
 #include <cstring>
 
 #include "LcsRuntimeLib.h"
-#include "../LcsCdcLib/LcsCdcLib.h"
+#include "LcsCdcLib.h"
 
 // ??? this should go to CDC ?
 #define lowByte(w) ((uint8_t) ((w) & 0xff))

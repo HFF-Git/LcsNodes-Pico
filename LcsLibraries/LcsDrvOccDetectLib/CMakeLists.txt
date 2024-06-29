@@ -26,6 +26,8 @@ target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 
 # list the library dependencies. This is primarily the PICO standard and dedicated hardware libraries.
 target_link_libraries( ${PROJECT_NAME} 
+    LcsRuntimeLib 
+    LcsCdcLib 
     pico_stdlib 
     )
 

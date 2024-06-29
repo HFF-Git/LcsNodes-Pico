@@ -1,4 +1,32 @@
-// program app1 
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS - Diesel Throttle
+//
+//------------------------------------------------------------------------------------------------------------
+// This source file contains ...
+//
+//
+// ??? both throttle could share a throttle lib with common code...
+//
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS - Basic Throttle Code - Raspberry PI Pico Implementation
+// Copyright (C) 2022 - 2024 Helmut Fieres
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// http://www.gnu.org/licenses
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
+//------------------------------------------------------------------------------------------------------------
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
@@ -61,10 +89,6 @@ void setupConfigInfo( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-  CDC::sleepMillis( 2000 );
-
-  printf( "Test LCS Runtime library\n" );
-
   setupConfigInfo( );
  
   uint8_t rStat = CDC::init( &cfg );
@@ -73,6 +97,10 @@ uint8_t initLcsRuntime( ) {
 
 
   }
+
+
+  printf( "LCS Diesel Throttle\n" );
+
   
   if ( rStat != 0 )  printf( "Err code: %d\n", rStat );
   else printf( "OK\n" );

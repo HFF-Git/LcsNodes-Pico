@@ -1,15 +1,15 @@
 # ------------------------------------------------------------------------------------------------------------
-#  LCS - LcsNodes cmake file at the LcsCdcLib-Test directory level
+#  LCS - DCC Monitor cmake file at the LcsDccMonitor directory level
 #
 #  Copyright (C) 2024 - 2024  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
 #
 # 
 #
-# ------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------# This is the CMAKE file at the LcsCdcLib-Test directory level
 cmake_minimum_required( VERSION 3.29 )
 
-project( LcsCdcLib-Test C CXX ASM )
+project( LcsDccMonitor C CXX ASM )
 
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 )

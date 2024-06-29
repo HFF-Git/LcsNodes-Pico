@@ -1,5 +1,12 @@
-# This is the CMAKE file at the App1 directory level
-
+# ------------------------------------------------------------------------------------------------------------
+#  LCS - I2C Scanner cmake file at the LcsI2CScanner directory level
+#
+#  Copyright (C) 2024 - 2024  Helmut Fieres
+# ------------------------------------------------------------------------------------------------------------
+#
+# 
+#
+# ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
 project( LcsI2CScanner-Test C CXX ASM )

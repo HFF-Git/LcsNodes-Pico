@@ -30,7 +30,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 
-#include "../LcsCdcLib/LcsCdcLib.h"
+#include "LcsCdcLib.h"
 
 //----------------------------------------------------------------------------------------------------------
 // Setup the config data. We first get the defaults for the controller and then set the board specific pin
