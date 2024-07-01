@@ -489,4 +489,6 @@ void          handleMsgEvent( uint8_t *msg );
 uint8_t       setupSerialCommand( );
 uint8_t       handleSerialCommand( );
 
+uint8_t       nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin, uint8_t i2cAdrRoot );
+
 #endif

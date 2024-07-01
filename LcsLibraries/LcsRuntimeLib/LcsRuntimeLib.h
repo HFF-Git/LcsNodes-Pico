@@ -531,14 +531,18 @@ namespace LCS {
     ERR_NOT_IMPLEMENTED                 = 1,
     ERR_NOT_SUPPORTED                   = 2,
 
-    ERR_SETUP_CDC                       = 10,
-    ERR_CREATE_LCS_OBJ                  = 11,
-    ERR_INVALID_CONFIG_DESC             = 12,
-    ERR_NVM_SETUP                       = 13,
+    ERR_CDC_SETUP                       = 10,
+    ERR_NVM_SETUP                       = 11,
+    ERR_CAN_SETUP                       = 12,
+    ERR_NVM_NODE_MAP_CORRUPT            = 13,
+
+    
+
     ERR_NVM_SIZE_EXCEEDED               = 14,
     ERR_MEM_SIZE_EXCEEDED               = 15,
+
     ERR_NVM_OP_FAILED                   = 16,
-    ERR_SETUP_CAN_BUS                   = 17,
+    
     ERR_NODE_NOT_OPS_STATE              = 18,
     ERR_NODE_NOT_CONFIG_STATE           = 19,
     ERR_NODE_OUTSTANDING_REQ_LIMIT      = 20,

@@ -84,10 +84,11 @@ namespace {
   const uint16_t  M24C04_PAGE_SIZE        = 8;
   const uint32_t  M24C04_MAX_SIZE         = 512;
 
+  const uint8_t   I2C_ADR_ROOT            = 0b1010000;
   const uint8_t   FIRST_CHIP_I2C_ADR      = 0b1010000;
 
-  const uint32_t NVM_SYS_MAP_SIZE         = 0x2000;
-  const uint32_t NVM_MAX_MAP_SIZE         = 0x40000;
+  const uint32_t  NVM_SYS_MAP_SIZE         = 0x2000;
+  const uint32_t  NVM_MAX_MAP_SIZE         = 0x40000;
 
   //----------------------------------------------------------------------------------------------------------
   // We maintain a table of NVM chip descriptors. The table entry contains the NVM object allocated and the
@@ -114,6 +115,7 @@ namespace {
   uint32_t    nvmUserMapSize                  = 0;
   uint8_t     nvmSclPin                       = CDC::UNDEFINED_PIN;
   uint8_t     nvmSdaPin                       = CDC::UNDEFINED_PIN;
+
   NvmTabEntry nvmTab[ MAX_NVM_CHIPS ];
 
   //----------------------------------------------------------------------------------------------------------
@@ -152,12 +154,51 @@ namespace {
   }
 
   //----------------------------------------------------------------------------------------------------------
-  // Among other data, the node map contains the data for the NVM subsystem. This is primaily the number and
-  // size of the chips on the NVM I2C bus. We just read in the node map and do basic consistency checking.
-  // Note that we do not know any thing about the actual NVM chip installation. But in any case each chip
-  // would have a node map, so we just read.
+  // "buildDefaultNodeMap" build a rudimentary nodeMap. This function is used when we find a corrupted or
+  // invald nodeMap to get us past the first steps of build a valid NVM storage and reasonable values for
+  // the fields in the map. Note that we always expect a minimum chip sizeof 8K, which is the case for the
+  // default 16K chip used in the controller boards.
   //
-  // The first chip adress is "1010" and the adress bits "000".
+  //----------------------------------------------------------------------------------------------------------
+  void buildDefaultNodeMap( LcsNodeMap *nMap ) {
+
+    nMap -> magicWord1                       = MWORD_1;
+
+    nMap -> controllerFamily                 = NVM_CHIP_FAM_NIL;
+    nMap ->  boardType                       = BT_NIL;
+    nMap ->  boardVersion                    = 0;
+
+    nMap ->  nvmChipFamily                   = NVM_CHIP_FAM_MICROCHIP;
+    nMap ->  nvmChipI2CAdrRoot               = I2C_ADR_ROOT;
+    nMap ->  nvmMemSize0                     = NVM_SYS_MAP_SIZE;
+    nMap ->  nvmMemSize1                     = 0;
+    nMap ->  nvmMemSize2                     = 0;
+    nMap ->  nvmMemSize3                     = 0;
+    nMap ->  totalNvmSize                    = NVM_SYS_MAP_SIZE;
+
+    nMap ->  nodeVersion                     = 0;
+    nMap ->  nodePatchLevel                  = 0;
+
+    nMap ->  options                         = 0;
+    nMap ->  flags                           = 0;
+    nMap ->  uid                             = CDC::createUid( );
+    nMap ->  id                              = NIL_NODE_ID;
+    nMap ->  type                            = NIL_NODE_TYPE;
+    nMap ->  restartCnt                      = 0;
+  
+    memset( &nMap -> name, 0, MAX_NODE_NAME_SIZE );
+    memset( &nMap -> map, 0, MAX_ATTR_MAP_ENTRIES * sizeof(uint16_t));
+
+    nMap ->  magicWord2                       = MWORD_2;
+
+  }
+
+  //----------------------------------------------------------------------------------------------------------
+  // Among other data, the node map contains the data for the NVM subsystem. This is primaily the number and
+  // size of the chips on the NVM I2C bus. We just read in the node map and do very basic consistency check.
+  // At least the two magic words must match. Note that so far we do not know any thing about the actual NVM 
+  // chip installation. But in any case the first chip would have a node map, so we just read it. The first 
+  // chip adress is "1010" and the adress bits are "000".
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t readInitialNodeMap( LcsNodeMap *nodeMap ) {
@@ -172,18 +213,21 @@ namespace {
       CDC::i2cRead( nvmSclPin, FIRST_CHIP_I2C_ADR, (uint8_t *) nodeMap, sizeof( LcsNodeMap ));
     }
 
-    // sanity check what we have ....
+    if (( nodeMap -> magicWord1 == MWORD_1 ) && ( nodeMap -> magicWord2 == MWORD_2 )) {
 
-
-    return ( ALL_OK );
+      return( ERR_NVM_NODE_MAP_CORRUPT );
+    }
+  else return ( ALL_OK );
   }
 
   //----------------------------------------------------------------------------------------------------------
-  // When we have found a valid nodeMap descriptor, we need to set up the local NVM chip table. For each chip
-  // in the nodeMap, an entry is properly initialized. Each chip then has a size and the address range, which
-  // are absolute offsets over the entire set of chips.
+  // When we have found a reasonable nodeMap. Next, we will set up the local NVM chip table. For each chip
+  // specified by the size fields in the nodeMap, an entry is properly initialized in teh NVM table. Each 
+  // chip is assigned a size and the address range, which are absolute offsets over the entire set of chips.
   //
-  // ??? we insist on at least 8K NVM.
+  // Note that we can easily address the NVM chips by using the I2C root address and the address value of 
+  // the individual chip. We can only do so muach to ensure that the sizes configured for the chip are valid
+  // and matcbh the chip. Low level configuration is not for the faint of heart :-).
   //----------------------------------------------------------------------------------------------------------
   uint8_t buildNvmTab( LcsNodeMap *nodeMap ) {
 
@@ -264,12 +308,12 @@ namespace {
   // address.
   //
   //----------------------------------------------------------------------------------------------------------
-  NvmTabEntry *selectNvmChip( uint32_t adr ) {
+  NvmTabEntry *selectNvmChip( uint32_t ofs ) {
 
     for ( int i = 0; i < MAX_NVM_CHIPS; i++ ) {
 
       NvmTabEntry *ptr = &nvmTab[ i ];
-      if (( ptr != nullptr ) && ( ptr -> startAdr <= adr ) && ( ptr -> endAdr <= adr )) return ( ptr );
+      if (( ptr != nullptr ) && ( ptr -> startAdr <= ofs ) && ( ptr -> endAdr <= ofs )) return ( ptr );
     }
 
     return ( nullptr );
@@ -303,27 +347,31 @@ namespace {
 // but not for gneral operations.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin ) {
+uint8_t nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin, uint8_t i2cRootAdr ) {
 
   uint8_t       rStat = ALL_OK;
-  LcsNodeMap    nodeMap;
+  LcsNodeMap    nodeMap; // ??? this is not the final node map ?
 
   #if DEBUG_NVM == 1
-  printf( "nvmInitSubSys: SCL: %d, SDA: %d\n", sclPin, sdaPin );
+  printf( "nvmInitSubSys: SCL: %d, SDA: %d, I2C Root:0x%x\n", sclPin, sdaPin, i2cRootAdr );
   #endif
 
   rStat = CDC::configureI2C( sclPin, sdaPin );
   if ( rStat == ALL_OK ) {
 
-    nvmSclPin = sclPin;
-    nvmSdaPin = sdaPin;
+    nvmSclPin     = sclPin;
+    nvmSdaPin     = sdaPin;
   }
   else CDC::fatalError( 1 );
 
-  rStat = readInitialNodeMap(  &nodeMap );
+  rStat = readInitialNodeMap( &nodeMap );
   if ( rStat != ALL_OK ) {
 
-    // ??? if not a valid nodeMap, make a minimum one with an (k bytes area...
+    #if DEBUG_NVM == 1
+    printf( "initial nodeMap invalid, build a default map\n", rStat );
+    #endif
+
+    buildDefaultNodeMap( &nodeMap );
   }
 
   rStat = buildNvmTab( &nodeMap );
@@ -346,8 +394,6 @@ bool nvmGetBytesFromPage( uint32_t ofs, uint8_t *buf, uint32_t len ) {
   NvmTabEntry *nvm = selectNvmChip( ofs );
 
   if ( nvm == nullptr ) return ( 99 );
-
-  // ??? compute the chip relative offset ...
 
   uint8_t i2cAdr = 0;
   uint32_t chipOfs = nvm -> startAdr - ofs;
@@ -394,8 +440,6 @@ bool nvmPutBytesInPage( uint32_t ofs, uint8_t *buf, uint32_t len ) {
   NvmTabEntry *nvm = selectNvmChip( ofs );
 
   if ( nvm == nullptr ) return ( 99 );
-
-  // ??? compute the chip reölative offset ...
 
   uint8_t i2cAdr = 0;
   uint32_t chipOfs = nvm -> startAdr - ofs;

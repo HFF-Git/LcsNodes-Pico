@@ -140,7 +140,7 @@ uint8_t setupMsgBus( ) {
 
       } break;
 
-    default: rStat = ERR_SETUP_CAN_BUS;
+    default: rStat = ERR_CAN_SETUP;
   }
 
   if ( rStat != ALL_OK ) {
@@ -149,7 +149,7 @@ uint8_t setupMsgBus( ) {
     printf( "setup CAN Bus failed: %d\n", rStat );
     #endif
 
-    return ( ERR_SETUP_CAN_BUS );
+    return ( ERR_CAN_SETUP );
   }
   else {
 

@@ -176,6 +176,19 @@ void testLeds( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
+// Test Fatal Error LED.
+//
+//----------------------------------------------------------------------------------------------------------
+void testFatalErr( ) {
+
+  printf( "Fatal Error Test\n" );
+
+  CDC::fatalError( 4 );
+}
+
+
+
+//----------------------------------------------------------------------------------------------------------
 // Set the DIO pins to input, pullup and read the values. Use a litte cable to set the voltage on the
 // extension connector.
 //
@@ -495,7 +508,8 @@ void testCases( ) {
 
   initCdcLib( );
 
-  testConsoleIO( );
+  testFatalErr( );
+  // testConsoleIO( );
   // testPfail( );
   // testLeds( );
   // testDioInput( );

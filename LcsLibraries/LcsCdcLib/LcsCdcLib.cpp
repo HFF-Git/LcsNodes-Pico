@@ -486,7 +486,7 @@ uint8_t CDC::init( CDC::CdcPinConfig *ci ) {
 void CDC::fatalError( uint8_t n ) {
 
   const uint8_t   ledPin      = 25;
-  const uint32_t  longPulse   = 1000;
+  const uint32_t  longPulse   = 2000;
   const uint32_t  shortPulse  = 500;
 
   n = n % 8;
@@ -597,19 +597,6 @@ char CDC::getConsoleChar( ) {
 bool CDC::isConsoleConnected( ) {
 
   return( stdio_usb_connected( ));
-
-/* to research first ... check USB register
-
-rp2040 usb peripheral has a status register called SIE_STATUS. Bits 16 and 4 show the CONNECTED and SUSPENDED 
-status. If CONNECTED ==1 and SUSPENDED ==0, the interface is active and writing to it will not block.
-
-  SIE_STATUS=const(0x50110000+0x50)
-  CONNECTED=const(1<<16)
-  SUSPENDED=const(1<<4)
-  if (machine.mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED:
-    print('....,')
-*/
-  return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
