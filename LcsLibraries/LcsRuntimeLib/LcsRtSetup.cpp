@@ -395,7 +395,7 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
   if ( rStat == ALL_OK ) rStat = invokeInitCallbacks( );
 
   // ??? anything else ? Setting the final nodeState ?
-  f ( rStat == ALL_OK ) ;
+  if ( rStat == ALL_OK ) ;
 
   #if DEBUG_CONFIG == 1
   printf( "init LCS runtime, status: %d \n", rStat ) ;
