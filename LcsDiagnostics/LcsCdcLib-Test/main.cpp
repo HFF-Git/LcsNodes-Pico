@@ -508,8 +508,8 @@ void testCases( ) {
 
   initCdcLib( );
 
-  testFatalErr( );
-  // testConsoleIO( );
+  // testFatalErr( );
+  testConsoleIO( );
   // testPfail( );
   // testLeds( );
   // testDioInput( );

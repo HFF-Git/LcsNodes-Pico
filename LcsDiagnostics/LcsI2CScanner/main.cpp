@@ -24,133 +24,99 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-
-#include "../LcsCdcLib/LcsCdcLib.h"
+#include "LcsCdcLib.h"
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values.
+// The default CDC configuration data.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig cfg;
-
-void setupConfigInfo( ) {
-
-  cfg = CDC::getConfigDefault( );
-
-  //--------------------------------------------------------------------------------------------------------
-  // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  cfg.ADC_PIN_0             = 26;
-  cfg.ADC_PIN_1             = 27;
-
-  cfg.PWM_PIN_0             = 20;
-  cfg.PWM_PIN_1             = 21;
-
-  cfg.PFAIL_PIN             = 7;
-  cfg.EXT_INT_PIN           = 22;
-  cfg.READY_LED_PIN         = 14;
-  cfg.ACTIVE_LED_PIN        = 15;
-
-  cfg.DIO_PIN_0             = 9;
-  cfg.DIO_PIN_1             = 8;
-  cfg.DIO_PIN_2             = 10;
-  cfg.DIO_PIN_3             = 11;
-  cfg.DIO_PIN_4             = 21;
-  cfg.DIO_PIN_5             = 20;
-  cfg.DIO_PIN_6             = 19;
-  cfg.DIO_PIN_7             = 18;
-
-  cfg.NVM_I2C_SCL_PIN       = 17;
-  cfg.NVM_I2C_SDA_PIN       = 16;
-  cfg.NVM_I2C_ADR_ROOT      = 0x50;
-
-  cfg.EXT_I2C_SCL_PIN       = 3;
-  cfg. EXT_I2C_SDA_PIN      = 2;
-  cfg.EXT_I2C_ADR_ROOT      = 0x50;
-
-  CDC::printConfigInfo( &cfg );
-}
+CDC::CdcPinConfig cfg = CDC::getConfigDefault( );
 
 //----------------------------------------------------------------------------------------------------------
-// Init the library...
+// Init the CDC library.
 //
 //----------------------------------------------------------------------------------------------------------
-void initCdcLib( ) {
+uint8_t initCdcLib( ) {
 
   CDC::sleepMillis( 2000 );
+  CDC::configureConsoleIO( );
 
-  printf( "Test LCS Controller dependent code library\n" );
+  cfg.NVM_I2C_SCL_PIN = 3;
+  cfg.NVM_I2C_SDA_PIN = 2;
 
-  setupConfigInfo( );
- 
-  int rStat = CDC::init( &cfg );
-  
-  CDC::printConfigInfo( &cfg );
+  cfg.EXT_I2C_SCL_PIN = 17;
+  cfg.EXT_I2C_SDA_PIN = 16;
 
-  if ( rStat != 0 ) printf( "Err code: %d\n", rStat );
-  else printf( "OK\n" );
+  return( CDC::init( &cfg ));
 }
 
-
-#if 0
-// ??? see what the PICO SDK has as an example program ...
-//------------------------------------------------------------------------------------------------------------
-// The i2c_scanner uses the return value of the "Write.endTransmisstion" method to see if a device did 
-// acknowledge to the i2cAdr.
+//----------------------------------------------------------------------------------------------------------
+// "scanI2CBus" is the loop through all possible I2C adresses in an I2C bus. If a valid one is found, the 
+// adress is printed.
 //
-//------------------------------------------------------------------------------------------------------------
-void loop( ) {
+//----------------------------------------------------------------------------------------------------------
+void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
 
-  uint8_t error     = 0;
+  uint8_t rStat     = 0;
   uint8_t i2cAdr    = 0;
   uint8_t nDevices  = 0;
+  uint8_t buf       = 0;
 
-  Serial.println( "Scanning..." );
+  printf( "Scanning for I2C Bus, sclPin: %d, sdaPin: %d\n", sclPin, sdaPin );
 
   for ( i2cAdr = 1; i2cAdr < 127; i2cAdr++ ) {
 
-    Wire.beginTransmission( i2cAdr );
-    error = Wire.endTransmission( );
+    rStat = CDC::i2cRead( sclPin, i2cAdr, &buf, 1 );
 
-    if ( error == 0 ) {
+    if ( rStat == 0 ) {
 
-      Serial.print("I2C device found at i2cAdr 0x");
+      printf( "I2C device found at i2cAdr 0x%x\n", i2cAdr );
 
-      if ( i2cAdr < 16 ) Serial.print( "0" );
-      Serial.print( i2cAdr, HEX );
-      Serial.println( );
-
-      nDevices++;
-    }
-    else if ( error == 4 ) {
-
-      Serial.print( "Unknown error at i2cAdr 0x" );
-      if ( i2cAdr < 16 ) Serial.print( "0" );
-      Serial.print( i2cAdr, HEX );
-      Serial.println( );
     }
   }
 
-  if ( nDevices == 0 )  Serial.println( "No I2C devices found" );
-  else                  Serial.println( "done" );
-
-  delay( 5000 );
-} 
-
-#endif
-
+  if ( nDevices == 0 )  printf( "No I2C devices found\n" );
+  else                  printf( "Scan done\n" );
+}
 
 //----------------------------------------------------------------------------------------------------------
-// Here we go ...
+// Main. After we initialized the CDC layer, there is a loop which alternatively checks for the NVM or EXT
+// I2C bus.
 //
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-  CDC::configureConsoleIO( );
+  uint8_t rStat = initCdcLib( ); 
 
-  fprintf( stdout, "I2C Scanner...\n\n" );      
-   
+  if ( rStat != 0 ) {
+    
+    printf( "Init CDC Library, Err code: %d\n", rStat );
+    return( -1 );
+  }
+
+  int scanCount = 0;
+  
+  while( true ) {
+
+    printf( "Scanning (%d) ... \n", scanCount );
+
+    if ( cfg.NVM_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) {
+
+      printf( "Scanning NVM I2C Bus\n" );
+      scanI2CBus(  cfg.NVM_I2C_SCL_PIN, cfg.NVM_I2C_SDA_PIN );
+      printf( "\n" );
+    }
+
+    if ( cfg.EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) {
+
+      printf( "Scanning EXT I2C Bus\n" );
+      scanI2CBus(  cfg.EXT_I2C_SCL_PIN, cfg.EXT_I2C_SDA_PIN );
+      printf( "\n" );
+    }
+
+    scanCount++;
+    CDC::sleepMillis( 5000 );
+  }
+  
   return( 0 );
 }

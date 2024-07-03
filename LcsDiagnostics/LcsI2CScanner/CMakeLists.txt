@@ -9,7 +9,7 @@
 # ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
-project( LcsI2CScanner-Test C CXX ASM )
+project( LcsI2CScanner C CXX ASM )
 
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 )
