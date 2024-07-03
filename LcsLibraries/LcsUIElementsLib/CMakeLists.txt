@@ -16,8 +16,14 @@ set( CMAKE_CXX_STANDARD 17 )
 
 # add the hw library files
 add_library( ${PROJECT_NAME} STATIC 
-    
-# to do ...
+
+    LcsUIElements.h
+    LcsUIElements.cpp
+    LcsUIButton.cpp
+    LcsUIDisplay.cpp
+    LcsUIEncoder.cpp
+    LcsUILed.cpp
+    LcsUIScreen.cpp
 ) 
 
 target_include_directories( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )

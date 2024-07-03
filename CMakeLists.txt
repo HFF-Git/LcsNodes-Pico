@@ -38,4 +38,6 @@ add_subdirectory(LcsLibraries/LcsDccPktFmtLib)
 add_subdirectory(LcsLibraries/LcsDrvOccDetectLib)
 add_subdirectory(LcsLibraries/LcsDrvServoLib)
 add_subdirectory(LcsLibraries/LcsRuntimeLib)
-add_subdirectory(LcsLibraries/LcsUIElementsLib)
+
+# under construction ...
+# add_subdirectory(LcsLibraries/LcsUIElementsLib)
