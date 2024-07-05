@@ -16,10 +16,10 @@ set( CMAKE_CXX_STANDARD 17 )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsCdcLib pico_stdlib ) 
+    include_directories( LcsDccPktFmtLib LcsCdcLib pico_stdlib ) 
 
     add_executable( ${PROJECT_NAME} main.cpp )
-    target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
+    target_link_libraries( ${PROJECT_NAME} LcsDccPktFmtLib LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )

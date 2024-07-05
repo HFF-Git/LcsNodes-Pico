@@ -6,7 +6,8 @@
     "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
         "dreq.h": "c",
-        "addressmap.h": "c"
+        "addressmap.h": "c",
+        "*.cpo": "c"
     },
     "spellright.language": [
         "English"
