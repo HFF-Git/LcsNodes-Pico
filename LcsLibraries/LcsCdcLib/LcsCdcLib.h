@@ -45,7 +45,7 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdint.h>
-#include <inttypes.h>
+// #include <inttypes.h>
 
 //------------------------------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.
@@ -116,6 +116,8 @@ namespace CDC {
 
   //----------------------------------------------------------------------------------------------------------
   // DIO pin related definitions. A digital pin can be an input pin, with or without pullup, or an ouput pin.
+  // DIO pinns can also be assiciated with an interrupt handler. The handler itself is mapped to an edge or
+  // level event.
   //
   //----------------------------------------------------------------------------------------------------------
   enum dioMode : uint8_t {
@@ -123,6 +125,21 @@ namespace CDC {
     IN            = 0,
     OUT           = 1,
     IN_PULLUP     = 2
+  };
+
+
+  //----------------------------------------------------------------------------------------------------------
+  // GPIO interruots are detected as level change or edge changes.
+  //
+  //----------------------------------------------------------------------------------------------------------
+  enum intEventTyp : uint8_t {
+
+    EVT_NONE    = 0,
+    EVT_LOW     = 1,
+    EVT_HIGH    = 2,
+    EVT_FALL    = 3,
+    EVT_RISE    = 4,
+    EVT_CHANGE  = 5
   };
 
   //----------------------------------------------------------------------------------------------------------
@@ -144,8 +161,7 @@ namespace CDC {
   extern "C" {
 
     typedef void ( *TimerCallback ) ( uint32_t timerVal );
-    typedef void ( *PfailCallback ) ( );
-    typedef void ( *ExtIntCallback ) ( );
+    typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
   }
 
   //----------------------------------------------------------------------------------------------------------
@@ -281,28 +297,13 @@ namespace CDC {
   uint32_t      getMillis( );
   uint32_t      getMicros( );
   void          sleepMillis( uint32_t val );
+  void          sleepMicros( uint32_t val );
 
   //----------------------------------------------------------------------------------------------------------
   // The LCS runtime needs to buid a unique ID for the node.
   //
   //----------------------------------------------------------------------------------------------------------
   uint32_t      createUid( );
-
-  //----------------------------------------------------------------------------------------------------------
-  // Powerfail management support routines.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t       configurePfail( uint8_t pFailPin, ExtIntCallback funcId = nullptr );
-  uint8_t       enablePfail( bool val );
-  void          onPfailEvent( PfailCallback functionId );
-
-  //----------------------------------------------------------------------------------------------------------
-  // External interrupt support routines.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t       configureExtInt( uint8_t extIntPin, ExtIntCallback funcId = nullptr );
-  uint8_t       enableExtInt( bool enable );
-  void          onExtIntEvent( ExtIntCallback functionId );
 
   //----------------------------------------------------------------------------------------------------------
   // Timer management routines.
@@ -328,6 +329,8 @@ namespace CDC {
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t       configureDio( uint8_t dioPin, uint8_t Mode = IN );
+  void          registerGpioCallback( uint8_t gpioPin, uint8_t event, CDC::GpioCallback func );
+  void          unregisterGpioCallback( uint8_t gpioPin );
   bool          readDio( uint8_t dioPin );
   uint8_t       writeDio( uint8_t dioPin, bool val );
   uint8_t       toggleDio( uint8_t dioPin );

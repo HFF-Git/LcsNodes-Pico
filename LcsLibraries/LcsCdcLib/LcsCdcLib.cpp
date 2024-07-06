@@ -68,6 +68,14 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+  //----------------------------------------------------------------------------------------------------------  
+  //
+  //
+  //----------------------------------------------------------------------------------------------------------
+  // ??? to set to real values.
+  const uint8_t CDC_LIB_MAJOR_VERSION = 5;
+  const uint8_t CDC_LIB_MINOR_VERSION = 1;
+
   //----------------------------------------------------------------------------------------------------------
   // Valid pin mapping for the Raspberry PI Pico board. We construct a set of bitmasks for the pin numbers.
   // Pin Numbers range from 0 to 28. The bitmasks specify wether a pin can be assigned to the hardware type
@@ -137,30 +145,20 @@ namespace {
 
   const uint32_t SPI_FREQUENCY              = 10000000L;
 
-  //--------------------------------------------------------------------------------------------------------
-  // External interrupt instance. Although all GPIO pins can raise an interrupt when configured so, the
-  // CDC lib offers one dedicated pin to the extension boards for an external interrupt capability. The
-  // instance data keeps the pin and the interrupt handler to call.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  struct ExtIntInst {
+  const uint16_t  MAX_CPU_CORE              = 2;
+  const uint16_t  MAX_INT_PIN               = 24;
 
-    bool                configured    = false;
-    uint8_t             extIntPin     = CDC::UNDEFINED_PIN;
-    CDC::ExtIntCallback callbackFunc  = nullptr;
+
+
+  enum intEventTyp : uint8_t {
+
+        LOW     = GPIO_IRQ_LEVEL_LOW,
+        HIGH    = GPIO_IRQ_LEVEL_HIGH,
+        FALL    = GPIO_IRQ_EDGE_FALL,
+        RISE    = GPIO_IRQ_EDGE_RISE,
+        CHANGE  = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL
   };
 
-  //--------------------------------------------------------------------------------------------------------
-  // Powerfail Pin instance. An LCS may feature a power fail capabilty. There is a digital pin assigned to
-  // detect a falling edge and trigger a power interrupt to the controller.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  struct PfailInst {
-
-    bool                configured    = false;
-    uint8_t             pfailPin      = CDC::UNDEFINED_PIN;
-    CDC::PfailCallback  callbackFunc  = nullptr;
-  };
 
   //----------------------------------------------------------------------------------------------------------
   // An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
@@ -248,14 +246,28 @@ namespace {
     spi_inst_t  *spiHw      = nullptr;
   };
 
+
+  //----------------------------------------------------------------------------------------------------------
+  // The interrupt table for the GPIO pin interrupts. The PICO can have only one interrupt handler. We will
+  // allocate a table where a handler can be set for each pin. When an interrupt comes in and there is a 
+  // handler configured, it will be called.
+  //
+  //----------------------------------------------------------------------------------------------------------
+  struct GpioIsrTable {
+
+    uint16_t                  numOfHandlers = 0;
+    CDC::GpioCallback         gpioIsrTable[MAX_CPU_CORE][MAX_INT_PIN ];
+  };
+
   //----------------------------------------------------------------------------------------------------------
   // Local variables. We maintain an instance variable for each of the possible HW entities, such as an I2C
   // interface or a UART. Note that not all are used at the same time. The instance variables map from the
   // simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
   //
   //----------------------------------------------------------------------------------------------------------
-  PfailInst                   pFail;
-  ExtIntInst                  extInt;
+  CDC::CdcPinConfig           cfg;
+  CDC::TimerCallback          timerCallback = nullptr;
+  GpioIsrTable                cdcIntHandlers;
   repeating_timer_t           timerData;
   AdcInst                     CdcAdc0;
   AdcInst                     CdcAdc1;
@@ -275,13 +287,6 @@ namespace {
   PwmInst                     CdcPwm3;
 
   //----------------------------------------------------------------------------------------------------------
-  //
-  //
-  //----------------------------------------------------------------------------------------------------------
-  CDC::CdcPinConfig           cfg;
-  CDC::TimerCallback          timerCallback          = nullptr;
-
-  //----------------------------------------------------------------------------------------------------------
   // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
   // for the desired purpose. For example, configuring an I2C port will check that the two GPIO pins are
   // indeed routeable to teh I2C HW block in the PICO.
@@ -295,19 +300,66 @@ namespace {
   }
 
   //----------------------------------------------------------------------------------------------------------
-  // Interrupt handlers. The hardware and low level library will call these handlers, which in turn will
-  // invoke the respective callback function if configured.
+  // Setup the ISR table. The PICO can have only one interrupt handler. When you want a handler per GPIO pin,
+  // the solution is to havae a table when you keep the handler on a per pin base.
   //
   //----------------------------------------------------------------------------------------------------------
-  void irqCallback( uint ioPin, uint32_t events ) {
+  void initIsrTable( ) {
 
-    if (( ioPin == pFail.pfailPin ) && ( pFail.configured )) {
+    for ( uint16_t i = 0; i < MAX_CPU_CORE; i++ ) {
 
-      if ( pFail.callbackFunc != nullptr ) pFail.callbackFunc( );
+      for ( uint16_t j = 0; j < MAX_INT_PIN; j++ ) {
+
+        cdcIntHandlers.gpioIsrTable[ i ][ j ] = nullptr;
+      }
     }
-    else if (( ioPin == extInt.extIntPin ) && ( extInt.configured )) {
+  }
 
-      if ( extInt.callbackFunc != nullptr ) extInt.callbackFunc( );
+
+  //----------------------------------------------------------------------------------------------------------
+  //
+  //----------------------------------------------------------------------------------------------------------
+  uint32_t mapGpioIntEvent( uint8_t event ) {
+
+    switch ( event ) {
+
+      case CDC::EVT_LOW:     return( GPIO_IRQ_LEVEL_LOW );
+      case CDC::EVT_HIGH:    return( GPIO_IRQ_LEVEL_HIGH );
+      case CDC::EVT_FALL:    return( GPIO_IRQ_EDGE_FALL );
+      case CDC::EVT_RISE:    return( GPIO_IRQ_EDGE_RISE );
+      case CDC::EVT_CHANGE:  return( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
+      default:      return( 0 );
+    }
+  }
+
+  uint8_t mapPicoGpioEvent( uint32_t event ) {
+
+    switch ( event ) {
+
+      case GPIO_IRQ_LEVEL_LOW:  return( CDC::EVT_LOW );
+      case GPIO_IRQ_LEVEL_HIGH: return( CDC::EVT_HIGH );
+      case GPIO_IRQ_EDGE_FALL:  return( CDC::EVT_FALL );
+      case GPIO_IRQ_EDGE_RISE:  return( CDC::EVT_RISE );
+      default:                  return( 0 );
+    }
+  }
+
+  //----------------------------------------------------------------------------------------------------------
+  // Interrupt handlers. The hardware and low level library will call these handlers, which in turn will
+  // invoke the respective callback function if configured. The GPIO interrupt handler manages the handler
+  // for all possible IO pins. The PICO can only have one interrupt rooutine, so we feature an array of
+  // handlers where a handler for a GPIO pin can be registered. If there is a handler set, we just invoke it.
+  // The other handlers are for the timer and the UART hardware.
+  //
+  //----------------------------------------------------------------------------------------------------------
+  void gpioCallback( uint gpioPin, uint32_t event ) {
+
+    if ( gpioPin < MAX_INT_PIN ) {
+
+      if ( cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] != nullptr ) {
+
+        cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] ( gpioPin, mapPicoGpioEvent( event ));
+      }
     }
   }
 
@@ -357,74 +409,77 @@ namespace {
 
     CDC::CdcPinConfig tmp;
 
-    tmp.CFG_STATUS                = CDC::INIT_PENDING;
+    tmp.CFG_STATUS          = CDC::INIT_PENDING;
 
-    tmp.DIO_PIN_0                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_1                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_2                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_3                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_4                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_5                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_6                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_7                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_8                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_9                 = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_10                = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_11                = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_12                = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_13                = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_14                = CDC::UNDEFINED_PIN;
-    tmp.DIO_PIN_15                = CDC::UNDEFINED_PIN;
+    tmp.READY_LED_PIN       = CDC::UNDEFINED_PIN;
+    tmp.ACTIVE_LED_PIN      = CDC::UNDEFINED_PIN;
 
-    tmp.ADC_PIN_0                 = CDC::UNDEFINED_PIN;
-    tmp.ADC_PIN_1                 = CDC::UNDEFINED_PIN;
-    tmp.ADC_PIN_2                 = CDC::UNDEFINED_PIN;
-    tmp.ADC_PIN_3                 = CDC::ILLEGAL_PIN;
+    tmp.EXT_INT_PIN         = CDC::UNDEFINED_PIN;
+    tmp.PFAIL_PIN           = CDC::UNDEFINED_PIN;
 
-    tmp.PWM_PIN_0                 = CDC::UNDEFINED_PIN;
-    tmp.PWM_PIN_1                 = CDC::UNDEFINED_PIN;
-    tmp.PWM_PIN_2                 = CDC::UNDEFINED_PIN;
-    tmp.PWM_PIN_3                 = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_0           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_1           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_2           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_3           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_4           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_5           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_6           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_7           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_8           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_9           = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_10          = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_11          = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_12          = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_13          = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_14          = CDC::UNDEFINED_PIN;
+    tmp.DIO_PIN_15          = CDC::UNDEFINED_PIN;
 
-    tmp.UART_RX_PIN_0             = CDC::UNDEFINED_PIN;
-    tmp.UART_TX_PIN_0             = CDC::UNDEFINED_PIN;
+    tmp.ADC_PIN_0           = CDC::UNDEFINED_PIN;
+    tmp.ADC_PIN_1           = CDC::UNDEFINED_PIN;
+    tmp.ADC_PIN_2           = CDC::UNDEFINED_PIN;
+    tmp.ADC_PIN_3           = CDC::ILLEGAL_PIN;
 
-    tmp.UART_RX_PIN_1             = CDC::UNDEFINED_PIN;
-    tmp.UART_TX_PIN_1             = CDC::UNDEFINED_PIN;
+    tmp.PWM_PIN_0           = CDC::UNDEFINED_PIN;
+    tmp.PWM_PIN_1           = CDC::UNDEFINED_PIN;
+    tmp.PWM_PIN_2           = CDC::UNDEFINED_PIN;
+    tmp.PWM_PIN_3           = CDC::UNDEFINED_PIN;
 
-    tmp.UART_RX_PIN_2             = CDC::UNDEFINED_PIN;
-    tmp.UART_TX_PIN_2             = CDC::UNDEFINED_PIN;
+    tmp.UART_RX_PIN_0       = CDC::UNDEFINED_PIN;
+    tmp.UART_TX_PIN_0       = CDC::UNDEFINED_PIN;
 
-    tmp.UART_RX_PIN_3             = CDC::UNDEFINED_PIN;
-    tmp.UART_TX_PIN_3             = CDC::UNDEFINED_PIN;
+    tmp.UART_RX_PIN_1       = CDC::UNDEFINED_PIN;
+    tmp.UART_TX_PIN_1       = CDC::UNDEFINED_PIN;
 
-    tmp.SPI_MOSI_PIN_0            = CDC::UNDEFINED_PIN;
-    tmp.SPI_MISO_PIN_0            = CDC::UNDEFINED_PIN;
-    tmp.SPI_SCLK_PIN_0            = CDC::UNDEFINED_PIN;
+    tmp.UART_RX_PIN_2       = CDC::UNDEFINED_PIN;
+    tmp.UART_TX_PIN_2       = CDC::UNDEFINED_PIN;
 
-    tmp.SPI_MOSI_PIN_1            = CDC::UNDEFINED_PIN;
-    tmp.SPI_MISO_PIN_1            = CDC::UNDEFINED_PIN;
-    tmp.SPI_SCLK_PIN_1            = CDC::UNDEFINED_PIN;
+    tmp.UART_RX_PIN_3       = CDC::UNDEFINED_PIN;
+    tmp.UART_TX_PIN_3       = CDC::UNDEFINED_PIN;
 
-    tmp.NVM_I2C_SCL_PIN           = CDC::UNDEFINED_PIN;
-    tmp.NVM_I2C_SDA_PIN           = CDC::UNDEFINED_PIN;
+    tmp.SPI_MOSI_PIN_0      = CDC::UNDEFINED_PIN;
+    tmp.SPI_MISO_PIN_0      = CDC::UNDEFINED_PIN;
+    tmp.SPI_SCLK_PIN_0      = CDC::UNDEFINED_PIN;
 
-    tmp.EXT_I2C_SCL_PIN           = CDC::UNDEFINED_PIN;
-    tmp.EXT_I2C_SDA_PIN           = CDC::UNDEFINED_PIN;
+    tmp.SPI_MOSI_PIN_1      = CDC::UNDEFINED_PIN;
+    tmp.SPI_MISO_PIN_1      = CDC::UNDEFINED_PIN;
+    tmp.SPI_SCLK_PIN_1      = CDC::UNDEFINED_PIN;
 
-    tmp.CAN_BUS_RX_PIN            = CDC::UNDEFINED_PIN;
-    tmp.CAN_BUS_TX_PIN            = CDC::UNDEFINED_PIN;
+    tmp.NVM_I2C_SCL_PIN     = CDC::UNDEFINED_PIN;
+    tmp.NVM_I2C_SDA_PIN     = CDC::UNDEFINED_PIN;
 
-    tmp.READY_LED_PIN             = CDC::UNDEFINED_PIN;
-    tmp.ACTIVE_LED_PIN            = CDC::UNDEFINED_PIN;
+    tmp.EXT_I2C_SCL_PIN     = CDC::UNDEFINED_PIN;
+    tmp.EXT_I2C_SDA_PIN     = CDC::UNDEFINED_PIN;
 
-    tmp.PFAIL_PIN                 = CDC::UNDEFINED_PIN;
+    tmp.CAN_BUS_RX_PIN      = CDC::UNDEFINED_PIN;
+    tmp.CAN_BUS_TX_PIN      = CDC::UNDEFINED_PIN;
 
     return ( tmp );
   }
 
   //----------------------------------------------------------------------------------------------------------
-  // Validate a configuration structure.
+  // Validate a configuration structure. This routine will do basoc checking of the pin configuration passed.
+  // The PICO is very flexible when it comes to what a pin can do. However, there are still some rules to 
+  // follow. Also, we have dedicated settibgs for at least the I2C channels and the CAN bus IO pins.
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
@@ -435,6 +490,7 @@ namespace {
   }
 
 }; // namespace
+
 
 //------------------------------------------------------------------------------------------------------------
 // "getConfigDefault" initializes a configuration structure and sets the pre-assigned values. A typical
@@ -466,6 +522,10 @@ CDC::CdcPinConfig *CDC::getConfigActual( ) {
 uint8_t CDC::init( CDC::CdcPinConfig *ci ) {
 
   cfg = *ci;
+
+  initIsrTable( );
+  configureConsoleIO( );
+
   return ( validateConfigRP20040( ci ));
 }
 
@@ -518,12 +578,11 @@ void CDC::fatalError( uint8_t n ) {
 uint16_t CDC::getFamily( ) {
 
   return ( CONTROLLER_FAMILY );
-
 }
 
 uint32_t CDC::getVersion( ) {
 
-  return ( 0 ); // for now ...
+  return ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
 }
 
 uint32_t CDC::getChipMemSize( ) {
@@ -556,6 +615,11 @@ void CDC::sleepMillis( uint32_t val ) {
   sleep_ms( val );
 }
 
+void CDC::sleepMicros( uint32_t val ) {
+
+  sleep_us( val );
+}
+
 //------------------------------------------------------------------------------------------------------------
 // "createUid" is the routine that produces a unique ID for the node. The scheme is still based on a random
 // number. This is the PICO version for creating a random number. Alternatively we could use the uinique
@@ -578,8 +642,11 @@ uint32_t CDC::createUid( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// 
-//
+// Console IO section. We set up the stdio via the USB connector. As part of the CDC init call, the configure
+// call should be done rather early, so that we can print out debug messages. In normal LCS node operation
+// there is no USB connected. Detecting a connection helps to decide whether we can report an error or need
+// to resort to a fatal error call at startup. Finally, there is a routine to get a character for the command
+// interfaces.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t CDC::configureConsoleIO( ) {
@@ -587,88 +654,16 @@ uint8_t CDC::configureConsoleIO( ) {
   stdio_init_all( );
   return( ALL_OK );
 }
-  
-char CDC::getConsoleChar( ) {
-
-  int ch = getchar_timeout_us( 0 );
-  return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
-}
 
 bool CDC::isConsoleConnected( ) {
 
   return( stdio_usb_connected( ));
 }
+  
+char CDC::getConsoleChar( ) {
 
-//------------------------------------------------------------------------------------------------------------
-// PowerFail section. Some LCS controller board has an optional powerfail detection capability. When power
-// goes away, the powerfail pin will see a pin level change and trigger an interrupt. We start with power
-// fail detection disabled. The current trigger is set to detect "edge low" condition. One thing to know
-// about the PICO is that you can only set one interrupt handler. The generic handler in this file checks
-// the pin and then invokes the correct callback. 
-// 
-// One day, we may have a case where someone else needs to register an interrupt handler. Then we need to 
-// check if it is ours and then pass on to another handler somehow...
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configurePfail( uint8_t pFailPin, PfailCallback funcId ) {
-
-  if ( configureDio( pFailPin, IN )) {
-
-    pFail.pfailPin      = pFailPin;
-    pFail.callbackFunc  = funcId;
-    pFail.configured    = true;
-    return ( ALL_OK );
-  }
-  else return ( PFAIL_PIN_ERR );
-}
-
-uint8_t CDC::enablePfail( bool enable ) {
-
-  if (( pFail.pfailPin != CDC::UNDEFINED_PIN ) && ( pFail.callbackFunc != nullptr )) {
-
-    gpio_set_irq_enabled_with_callback( pFail.pfailPin, GPIO_IRQ_EDGE_FALL, enable, irqCallback );
-    return ( ALL_OK );
-  }
-  else return ( PFAIL_PIN_ERR );
-}
-
-void CDC::onPfailEvent( PfailCallback functionId ) {
-
-  if ( pFail.configured ) pFail.callbackFunc = functionId;
-}
-
-//--------------------------------------------------------------------------------------------------------
-// External Interrupt section. The external interrupt pin is dedicated pin for receiving an external
-// signal, detecting a rising or falling edge. On the PICO pretty much every GPIO pin can do this. For
-// now, we have just one dedicated pin for this purpose. This pin will typically be mapped ot the
-// EXT_INT pin on the board connector, such that an extension board can raise an interrupt.
-//
-//--------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureExtInt( uint8_t extIntPin, ExtIntCallback funcId ) {
-
-  if ( configureDio( extIntPin, IN )) {
-
-    extInt.extIntPin    = extIntPin;
-    extInt.configured   = true;
-    extInt.callbackFunc = funcId;
-    return ( ALL_OK );
-  }
-  else return ( EXT_INT_PIN_ERR );
-}
-
-uint8_t CDC::enableExtInt( bool enable ) {
-
-  if (( extInt.extIntPin != CDC::UNDEFINED_PIN ) && ( extInt.callbackFunc != nullptr )) {
-
-    gpio_set_irq_enabled_with_callback( extInt.extIntPin, GPIO_IRQ_EDGE_FALL, enable, irqCallback );
-    return ( ALL_OK );
-  }
-  else return ( EXT_INT_PIN_ERR );
-}
-
-void CDC::onExtIntEvent( ExtIntCallback functionId ) {
-
-  if ( extInt.configured ) extInt.callbackFunc = functionId;
+  int ch = getchar_timeout_us( 0 );
+  return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -719,6 +714,11 @@ void CDC::onTimerEvent( CDC::TimerCallback functionId ) {
 // routine which write a pair of data. This is typcially used for the H-Bridge control pins, which are set at
 // the same time. 
 //
+// A GPIO pin can also have an attacjed interrupt handler. When we regsiter a handler for a pin, there are 
+// two different PICO lib routines to use. When there is no handler registered so far, we register the 
+// common callback and store the particular GPIO handler in the handler table. Otherwise, we just store the
+// handler and enable the GPIO pin for interrupts.
+//
 //------------------------------------------------------------------------------------------------------------
 uint8_t CDC::configureDio( uint8_t dioPin, uint8_t mode ) {
 
@@ -749,6 +749,32 @@ uint8_t CDC::configureDio( uint8_t dioPin, uint8_t mode ) {
   return ( ALL_OK );
 }
 
+void CDC::registerGpioCallback( uint8_t gpioPin, uint8_t event, CDC::GpioCallback func ) {
+
+  if ( gpioPin <= MAX_INT_PIN ) {
+
+    if ( cdcIntHandlers.numOfHandlers == 0 ) 
+        gpio_set_irq_enabled_with_callback( gpioPin, mapGpioIntEvent( event ), true, gpioCallback );
+    else
+        gpio_set_irq_enabled( gpioPin, mapGpioIntEvent( event ), true);
+    
+    cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ gpioPin ] = func;
+    cdcIntHandlers.numOfHandlers ++;
+  }
+}
+
+void CDC::unregisterGpioCallback( uint8_t gpioPin ) {
+
+  if ( gpioPin <= MAX_INT_PIN ) {
+
+    if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ gpioPin ] != nullptr ) {
+
+      gpio_set_irq_enabled( gpioPin, 0, false );
+      cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ gpioPin ] = nullptr;
+      cdcIntHandlers.numOfHandlers --;
+    }
+  }
+}
 bool CDC::readDio( uint8_t dioPin ) {
 
   return ( gpio_get( dioPin ));

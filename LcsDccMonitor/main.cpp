@@ -216,14 +216,11 @@ volatile uint32_t lastFallingTs  = 0;
 // ??? if this is still not really good, we need a new approach .... to be designed then ...
 //
 //------------------------------------------------------------------------------------------------------------
-void dccEdgeChange( ) {
+void dccEdgeChange( uint8_t pin, uint8_t event ) {
 
   uint32_t  edgeChangeTs  = CDC::getMicros( );
 
-  // ??? this is a small problem ... we need to know the value that was read, not another read.....
-  uint8_t   edgeVal       = CDC::readDioMask( cfg.EXT_INT_PIN );
-
-  if ( edgeVal == 1 ) {
+  if ( event == CDC::EVT_RISE ) {
 
     lastRisingTs = edgeChangeTs;
   }
@@ -272,7 +269,8 @@ void startBitDetection( ) {
   bitBufHead = 1;
   bitBufTail = 0;
 
-  CDC::configureExtInt( cfg.EXT_INT_PIN, dccEdgeChange );
+  CDC::configureDio( cfg.EXT_INT_PIN, CDC::IN );
+  CDC::registerGpioCallback( cfg.EXT_INT_PIN, CDC::EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );
@@ -282,7 +280,8 @@ void startBitDetection( ) {
 
 void stopBitDetection( ) {
 
-  CDC::configureExtInt( cfg.EXT_INT_PIN, nullptr );
+  // ??? to do ...
+  // CDC::configureExtInt( cfg.EXT_INT_PIN, nullptr );
 }
 
 //------------------------------------------------------------------------------------------------------------
