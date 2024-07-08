@@ -1,9 +1,9 @@
 #!/bin/bash
 # 
-# StartPico - a shel script to reset a PICO and start it with a screen connected
+# LoadPico - a shel script to reboot a PICO and load a new imgage
 #
-# The script will first build the USB address and try to locate the PICO. We will also deeive the
-# port number from the address. Next, the PICO is forcefully resetted and a termnal screen is 
+# The script will first build the USB address and try to locate the PICO. We will also derive the
+# port number from the address. Next, the PICO is forcefully resetted and a termnal screen is
 # to connect to the PICO.
 #
 if [ "$#" -lt 1 ]; 
@@ -65,19 +65,18 @@ port_number=$(get_port_num_by_usb_address "$1")
 if [[ -n "$port_number" ]]; then
 
     echo "Resetting the PICO at $1"
-    picotool reboot --address $port_number -F
-
-    # this seems to be a guessing game what the right time is to give the pico some time...
-    sleep 1
     
-    # simple test of the stdio file is there and a character device.
-    while [ ! -c $(build_dev_file_name "$1" ) ]; do
-        echo "Wait for the PICO at $1"
-        sleep 0.5
-    done
+    # we need to use the picotool load command
+    picotool load -v <filename> --address $port_number -f
+    
+    # picotool reboot --address $port_number -f
 
-    echo "Start Terminal for Device File Name: $(build_dev_file_name "$1" )"
-    screen $(build_dev_file_name "$1" ) 115200
+    sleep 1
+
+    # echo "Start Terminal for Device File Name: $(build_dev_file_name "$1" )"
+    # screen $(build_dev_file_name "$1" ) 115200
+    
+    echo "loaded"
    
 else
   echo "PICO not found"
