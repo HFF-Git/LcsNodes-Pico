@@ -32,16 +32,18 @@
 // External declaration to global structures.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LcsNodeMap           nodeMap;
-extern LcsCallbackMap       callbackMapNew;
-extern LcsTaskMap           taskMap;
-extern LcsMsgBusCAN         *msgBus;
+extern LCS::LcsNodeMap           nodeMap;
+extern LCS::LcsCallbackMap       callbackMapNew;
+extern LCS::LcsTaskMap           taskMap;
+extern LCS::LcsMsgBusCAN         *msgBus;
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
+
+  using namespace LCS;
 
   LcsPendingReqMap  pendingReqMap;
 
@@ -100,6 +102,12 @@ namespace {
 
 
 // ??? check for timeouts on pending replies ...
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -635,3 +643,5 @@ uint8_t sendDccErr( uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
   msgBuf[ 3 ] = arg2;
   return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
+
+}; // namespace LCS

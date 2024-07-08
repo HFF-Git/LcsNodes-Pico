@@ -24,39 +24,13 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-
-//------------------------------------------------------------------------------------------------------------
-// The global structures declaration. There is first of all the "runtime maps" which holds all non-volatile
-// node and port data from which the volatile copies are built. The "callback map" holds all registered
-// callback function pointers. The "task map" holds all registered periodc task function pointers. The "driver
-// map" holds the configured driver for an extension board, if there is any configured.
-//
-// The "nmv" and "msgBus" are the handles to the NVM hardware and the message bus interface. Finally there is
-// the overall node state, which holds the current state of the node.
-//
-//------------------------------------------------------------------------------------------------------------
-LcsCdcDesc                cdcMap;
-LcsNodeMap                nodeMap;
-LcsPortMap                portMap;
-LcsEventMap               eventMap;
-LcsUserMap                userMap;
-
-LcsCallbackMap            callbackMap;
-LcsTaskMap                taskMap;
-LcsPendingReqMap          pendingReqMap;
-LcsDrvMap                 drvMap;
-
-LcsMsgBusCAN              *msgBus       = nullptr;
-
-uint16_t                  nodeState     = 0;
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
+
+  using namespace LCS;
 
   //----------------------------------------------------------------------------------------------------------
   // During node Id allocation, the node tries in periodic intervals to obtain a node ID.
@@ -103,6 +77,38 @@ namespace {
 
 }; // namespace
 
+
+//------------------------------------------------------------------------------------------------------------
+// The global structures declaration. There is first of all the "runtime maps" which holds all non-volatile
+// node and port data from which the volatile copies are built. The "callback map" holds all registered
+// callback function pointers. The "task map" holds all registered periodc task function pointers. The "driver
+// map" holds the configured driver for an extension board, if there is any configured.
+//
+// The "nmv" and "msgBus" are the handles to the NVM hardware and the message bus interface. Finally there is
+// the overall node state, which holds the current state of the node.
+//
+//------------------------------------------------------------------------------------------------------------
+LCS::LcsCdcDesc                cdcMap;
+LCS::LcsNodeMap                nodeMap;
+LCS::LcsPortMap                portMap;
+LCS::LcsEventMap               eventMap;
+LCS::LcsUserMap                userMap;
+
+LCS::LcsCallbackMap            callbackMap;
+LCS::LcsTaskMap                taskMap;
+LCS::LcsPendingReqMap          pendingReqMap;
+LCS::LcsDrvMap                 drvMap;
+
+LCS::LcsMsgBusCAN              *msgBus       = nullptr;
+uint16_t                       nodeState     = 0;
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS { 
 
 //------------------------------------------------------------------------------------------------------------
 // General callback registration functions. They just set the function Id field. Straightforward.
@@ -191,7 +197,6 @@ uint8_t registerPeriodicTask( LcsTaskCallback task, uint32_t interval ) {
   } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 //
 //
@@ -220,7 +225,8 @@ uint8_t drvInit( uint8_t boardId, uint16_t flags ) {
   return (( drv != nullptr ) ? drv -> init( flags ) : ERR_INVALID_BOARD_ID );
 }
 
-uint8_t drvControl( uint8_t boardId, uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
+// ??? fix ....
+uint8_t drvControl( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
@@ -230,14 +236,15 @@ uint8_t drvControl( uint8_t boardId, uint8_t padId, uint8_t item, uint16_t arg1,
   return ( drv -> control( item, arg1, arg2 ));
 }
 
-uint8_t drvInfo( uint8_t boardId, uint8_t padId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+// ??? fix ....
+uint8_t drvInfo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
   LcsDrv *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
-  return ( drv -> info( padId, item, arg1, arg2 ));
+  return ( drv -> info( 0, item, arg1, arg2 ));
 }
 
 uint8_t drvRead( uint8_t boardId, uint8_t padId, uint16_t *arg ) {
@@ -335,9 +342,6 @@ uint8_t resetPort( uint8_t portId ) {
   else return ( ALL_OK );
 
 }
-
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // There is a call back that if set will be called for processing inbound port events on each loop iteration.
@@ -492,8 +496,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
             uint8_t rStat = resetPort( msg[ 3 ] );
 
-            if ( rStat == ALL_OK ) sendAck( nodeId );
-            else                   sendErr( nodeId, rStat, 0, 0 );
+            if ( rStat == ALL_OK ) LCS::sendAck( nodeId );
+            else                   LCS::sendErr( nodeId, rStat, 0, 0 );
           }
         }
 
@@ -869,3 +873,5 @@ void startRuntime( ) {
     handleSerialCommand( );
   }
 }
+
+}; // namespace

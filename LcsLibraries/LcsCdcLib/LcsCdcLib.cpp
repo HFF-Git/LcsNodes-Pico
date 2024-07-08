@@ -69,10 +69,10 @@
 namespace {
 
   //----------------------------------------------------------------------------------------------------------  
+  // The CDC Library version data.
   //
-  //
-  //----------------------------------------------------------------------------------------------------------
   // ??? to set to real values.
+  //----------------------------------------------------------------------------------------------------------
   const uint8_t CDC_LIB_MAJOR_VERSION = 5;
   const uint8_t CDC_LIB_MINOR_VERSION = 1;
 
@@ -147,18 +147,6 @@ namespace {
 
   const uint16_t  MAX_CPU_CORE              = 2;
   const uint16_t  MAX_INT_PIN               = 24;
-
-
-
-  enum intEventTyp : uint8_t {
-
-        LOW     = GPIO_IRQ_LEVEL_LOW,
-        HIGH    = GPIO_IRQ_LEVEL_HIGH,
-        FALL    = GPIO_IRQ_EDGE_FALL,
-        RISE    = GPIO_IRQ_EDGE_RISE,
-        CHANGE  = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL
-  };
-
 
   //----------------------------------------------------------------------------------------------------------
   // An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
@@ -246,7 +234,6 @@ namespace {
     spi_inst_t  *spiHw      = nullptr;
   };
 
-
   //----------------------------------------------------------------------------------------------------------
   // The interrupt table for the GPIO pin interrupts. The PICO can have only one interrupt handler. We will
   // allocate a table where a handler can be set for each pin. When an interrupt comes in and there is a 
@@ -300,6 +287,13 @@ namespace {
   }
 
   //----------------------------------------------------------------------------------------------------------
+  // When no interrupt is configured for a GPIO pin, we set the table entry to a dummy handler. This way
+  // we do not have to check for a valid procedure label when we hanbdle an interrupt.
+  //
+  //----------------------------------------------------------------------------------------------------------
+  void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
+
+  //----------------------------------------------------------------------------------------------------------
   // Setup the ISR table. The PICO can have only one interrupt handler. When you want a handler per GPIO pin,
   // the solution is to havae a table when you keep the handler on a per pin base.
   //
@@ -310,13 +304,13 @@ namespace {
 
       for ( uint16_t j = 0; j < MAX_INT_PIN; j++ ) {
 
-        cdcIntHandlers.gpioIsrTable[ i ][ j ] = nullptr;
+        cdcIntHandlers.gpioIsrTable[ i ][ j ] = dummyIsrHandler;
       }
     }
   }
 
-
   //----------------------------------------------------------------------------------------------------------
+  // The PICO uses a set of constants to describe the interrupt type. We map this to our set of types. 
   //
   //----------------------------------------------------------------------------------------------------------
   uint32_t mapGpioIntEvent( uint8_t event ) {
@@ -345,22 +339,16 @@ namespace {
   }
 
   //----------------------------------------------------------------------------------------------------------
-  // Interrupt handlers. The hardware and low level library will call these handlers, which in turn will
-  // invoke the respective callback function if configured. The GPIO interrupt handler manages the handler
-  // for all possible IO pins. The PICO can only have one interrupt rooutine, so we feature an array of
-  // handlers where a handler for a GPIO pin can be registered. If there is a handler set, we just invoke it.
-  // The other handlers are for the timer and the UART hardware.
+  // Global Interrupt handlers. The hardware and low level library will call these handlers, which in turn 
+  // will invoke the respective callback function if configured. The GPIO interrupt handler manages the 
+  // handler for all possible IO pins. The PICO can only have one interrupt rooutine, so we feature an array 
+  // of handlers where a handler for a GPIO pin can be registered. If there is a handler set, we just invoke 
+  // it. The other handlers are for the timer and the UART hardware.
   //
   //----------------------------------------------------------------------------------------------------------
   void gpioCallback( uint gpioPin, uint32_t event ) {
 
-    if ( gpioPin < MAX_INT_PIN ) {
-
-      if ( cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] != nullptr ) {
-
-        cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] ( gpioPin, mapPicoGpioEvent( event ));
-      }
-    }
+    cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] ( gpioPin, mapPicoGpioEvent( event ));
   }
 
   bool repeatingTimerAlarm( repeating_timer_t *rt ) {
@@ -749,28 +737,28 @@ uint8_t CDC::configureDio( uint8_t dioPin, uint8_t mode ) {
   return ( ALL_OK );
 }
 
-void CDC::registerGpioCallback( uint8_t gpioPin, uint8_t event, CDC::GpioCallback func ) {
+void CDC::registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func ) {
 
-  if ( gpioPin <= MAX_INT_PIN ) {
+  if ( dioPin <= MAX_INT_PIN ) {
 
     if ( cdcIntHandlers.numOfHandlers == 0 ) 
-        gpio_set_irq_enabled_with_callback( gpioPin, mapGpioIntEvent( event ), true, gpioCallback );
+        gpio_set_irq_enabled_with_callback( dioPin, mapGpioIntEvent( event ), true, gpioCallback );
     else
-        gpio_set_irq_enabled( gpioPin, mapGpioIntEvent( event ), true);
+        gpio_set_irq_enabled( dioPin, mapGpioIntEvent( event ), true);
     
-    cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ gpioPin ] = func;
+    cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = func;
     cdcIntHandlers.numOfHandlers ++;
   }
 }
 
-void CDC::unregisterGpioCallback( uint8_t gpioPin ) {
+void CDC::unregisterDioCallback( uint8_t dioPin ) {
 
-  if ( gpioPin <= MAX_INT_PIN ) {
+  if ( dioPin <= MAX_INT_PIN ) {
 
-    if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ gpioPin ] != nullptr ) {
+    if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] != nullptr ) {
 
-      gpio_set_irq_enabled( gpioPin, 0, false );
-      cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ gpioPin ] = nullptr;
+      gpio_set_irq_enabled( dioPin, 0, false );
+      cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = dummyIsrHandler;
       cdcIntHandlers.numOfHandlers --;
     }
   }

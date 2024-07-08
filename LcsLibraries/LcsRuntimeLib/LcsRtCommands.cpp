@@ -28,22 +28,26 @@
 
 #include "pico/stdlib.h"
 
-//------------------------------------------------------------------------------------------------------------
+
+ //------------------------------------------------------------------------------------------------------------
 // External data structures.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LcsCdcDesc         cdcMap;
-extern LcsNodeMap         nodeMap;
-extern LcsPortMap         portMap;
-extern LcsEventMap        eventMap;
-extern LcsUserMap         userMap;
-extern  LcsCallbackMap    callbackMap;
+extern LCS::LcsCdcDesc         cdcMap;
+extern LCS::LcsNodeMap         nodeMap;
+extern LCS::LcsPortMap         portMap;
+extern LCS::LcsEventMap        eventMap;
+extern LCS::LcsUserMap         userMap;
+extern LCS::LcsCallbackMap     callbackMap;
+
 
 //------------------------------------------------------------------------------------------------------------
 // Local declarations.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
+
+  using namespace LCS;
 
   char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
@@ -189,6 +193,14 @@ namespace {
   }
 
 }; // namespace
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -473,7 +485,7 @@ void drvResetCommand( char *s ) {
 
   if ( sscanf( s, "%hhu %hu", &boardId, &flags ) != 2 ) return;
 
-  int ret = drvReset( boardId - 1, flags );
+  int ret = 0; // fill in drvControl with a reset command ???
 
   printf( "<#s %d >", ret );
 }
@@ -730,3 +742,5 @@ uint8_t handleSerialCommand( ) {
 
   return( ALL_OK );
 }
+
+}; // namespace LCS

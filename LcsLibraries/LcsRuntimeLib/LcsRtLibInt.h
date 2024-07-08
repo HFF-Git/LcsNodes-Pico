@@ -32,8 +32,11 @@
 #include <stdio.h>
 #include <cstring>
 
-#include "LcsRuntimeLib.h"
 #include "LcsCdcLib.h"
+#include "LcsRuntimeLib.h"
+
+
+namespace LCS {
 
 // ??? this should go to CDC ?
 #define lowByte(w) ((uint8_t) ((w) & 0xff))
@@ -42,7 +45,7 @@
 
 //------------------------------------------------------------------------------------------------------------
 //
-// ??? shold they rather be just variables, we always have debugging code included...
+// ??? should they rather be just variables, we always have debugging code included...
 //------------------------------------------------------------------------------------------------------------
 #define   DEBUG_CONFIG      1
 #define   DEBUG_NVM         1
@@ -474,6 +477,7 @@ struct LcsDrvMap {
 //
 //
 //----------------------------------------------------------------------------------------------------------
+
 uint8_t       resetNode( );
 uint8_t       resetPort( uint8_t portId );
 
@@ -490,5 +494,7 @@ uint8_t       setupSerialCommand( );
 uint8_t       handleSerialCommand( );
 
 uint8_t       nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin, uint8_t i2cAdrRoot );
+
+};
 
 #endif

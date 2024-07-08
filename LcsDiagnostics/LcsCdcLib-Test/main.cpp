@@ -143,7 +143,7 @@ void pfailCallback( uint8_t pin, uint8_t event ) {
 void testPfail( ) {
 
   CDC::configureDio( cfg.PFAIL_PIN, CDC::IN );
-  CDC::registerGpioCallback( cfg.PFAIL_PIN, CDC::EVT_LOW, pfailCallback );
+  CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::EVT_LOW, pfailCallback );
   
   CDC::configureDio( cfg.READY_LED_PIN, CDC::OUT );
   CDC::writeDio( cfg.READY_LED_PIN, true );

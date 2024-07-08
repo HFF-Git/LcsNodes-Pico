@@ -270,7 +270,7 @@ void startBitDetection( ) {
   bitBufTail = 0;
 
   CDC::configureDio( cfg.EXT_INT_PIN, CDC::IN );
-  CDC::registerGpioCallback( cfg.EXT_INT_PIN, CDC::EVT_CHANGE, dccEdgeChange );
+  CDC::registerDioCallback( cfg.EXT_INT_PIN, CDC::EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );

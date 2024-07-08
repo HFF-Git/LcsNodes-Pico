@@ -7,7 +7,7 @@
 // bus, which is quite robust. We use the standard CAN bus with a maximum CAN Id of 29 bits. In our case the
 // node / port ID is used.
 //
-// On the RPICO, there is a library, "can2040", available that iplements the CAN bus protocol in software,
+// On the PICO, there is a library, "can2040", available that iplements the CAN bus protocol in software,
 // using the PICO PIO state machines. This saves us an external controller. In addition, we allow for the
 // option to run the CAN bus state machine on a separate core. This is highly recommend as the LCS Runtime
 // has a lot of other things to do. Using a queue from the PICO C++ SDK, the core running the CAN state
@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Can Bus Interface Library
-// Copyright (C) 2021 - 2024,  Helmut Fieres
+// Copyright (C) 2022 - 2024,  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -36,14 +36,18 @@
 #include "pico/stdio.h"
 #include "pico/util/queue.h"
 #include "pico/multicore.h"
-#include "hardware/regs/rosc.h"
-#include "hardware/regs/addressmap.h"
-#include "hardware/clocks.h"
-#include "hardware/gpio.h"
 
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
-#include "./Can2040Lib/can2040.h"
+
+//------------------------------------------------------------------------------------------------------------
+// The can2040 is a C library. Makr it so, otherwise the linker gets confused...
+// 
+//------------------------------------------------------------------------------------------------------------
+extern "C" {
+
+  #include "./Can2040Lib/can2040.h"
+}
 
 //------------------------------------------------------------------------------------------------------------
 // The name space for file local declarations.
@@ -107,7 +111,7 @@ namespace {
   // provided by the can2040 library.
   //
   //----------------------------------------------------------------------------------------------------------
-  static void CanBusPIOIrqHandler( ) {
+  void CanBusPIOIrqHandler( ) {
 
     can2040_pio_irq_handler( &cBus );
   }
@@ -123,7 +127,7 @@ namespace {
   // a separate core and relief the other core even further. To think about one day.
   // 
   //----------------------------------------------------------------------------------------------------------
-  static void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
+  void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
 
     if ( notify == CAN2040_NOTIFY_RX ) {
 
@@ -201,13 +205,14 @@ namespace {
 
 }; // namespace
 
+
 //------------------------------------------------------------------------------------------------------------
 // "init" is called to setup the CAN bus interface. We will first check the parameters and setup the CAN bus.
 // Next set up the interrupt handler and start the CAN bus processing. This is also the time to set the
 // initial canId.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
+uint8_t LCS::LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
 
   #if DEBUG_CAN_BUS == 1
   printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
@@ -264,7 +269,7 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
 // to just send it again. Also, how do we know that there was a timeout so that we can send it again with a
 // higher priority ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
+uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
   can2040_msg msg;
 
@@ -304,7 +309,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 // receiver callback. So, all this routine will do is work from the receiver queue.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
+uint8_t LCS::LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
   can2040_msg msg;
 

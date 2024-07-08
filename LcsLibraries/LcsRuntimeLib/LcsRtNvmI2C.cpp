@@ -49,6 +49,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+  using namespace LCS;
+
   //----------------------------------------------------------------------------------------------------------
   // Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize which is the unit
   // updated in case of a write. A write cannot across a page boundary and must be split into several writes
@@ -335,6 +337,12 @@ namespace {
 
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
+
+//------------------------------------------------------------------------------------------------------------
 // Initialize NVM. The very first thing to do when starting the node is to find the NVM data and set up the
 // NVM storage. The NVM data is part of the nodeMap, which is the first area in the storage. The setup is
 // done in a few steps. We first configure the I2C channel and then try read in the nodeMap. Also, a few
@@ -567,3 +575,5 @@ uint32_t nvmGetSize( bool userMap ) {
 
   return ( nvmMaxSize );
 }
+
+}; // namespace LCS

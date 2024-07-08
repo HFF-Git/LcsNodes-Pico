@@ -329,8 +329,8 @@ namespace CDC {
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t       configureDio( uint8_t dioPin, uint8_t Mode = IN );
-  void          registerGpioCallback( uint8_t gpioPin, uint8_t event, CDC::GpioCallback func );
-  void          unregisterGpioCallback( uint8_t gpioPin );
+  void          registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func );
+  void          unregisterDioCallback( uint8_t dioPin );
   bool          readDio( uint8_t dioPin );
   uint8_t       writeDio( uint8_t dioPin, bool val );
   uint8_t       toggleDio( uint8_t dioPin );

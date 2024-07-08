@@ -93,7 +93,7 @@ uint8_t initLcsRuntime( ) {
  
   uint8_t rStat = CDC::init( &cfg );
 
-  if ( rStat != ALL_OK ) {
+  if ( rStat != LCS::ALL_OK ) {
 
 
   }
@@ -115,7 +115,7 @@ uint8_t initLcsRuntime( ) {
 uint8_t registerCallbacks( ) {
 
 
-  return( ALL_OK );
+  return( LCS::ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ uint8_t registerCallbacks( ) {
 uint8_t startLcsRuntime( ) {
 
 
-  return( ALL_OK );
+  return( LCS::ALL_OK );
 }
 
 
