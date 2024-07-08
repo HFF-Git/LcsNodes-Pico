@@ -24,7 +24,7 @@ add_library( ${PROJECT_NAME} STATIC
 target_include_directories( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 
-# list the library dependencies. This is primarily the PICO standard and dedicated hardware libraries.
+# list the library dependencies.
 target_link_libraries( ${PROJECT_NAME} 
     pico_stdlib 
     )

@@ -9,10 +9,10 @@ set( CMAKE_CXX_STANDARD 17 )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsRuntimeLib LcsCdcLibLib ) 
+    include_directories( LcsDccPktFmtLib LcsRuntimeLib LcsCdcLib pico_stdlib ) 
 
     add_executable( ${PROJECT_NAME} main.cpp )
-    target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
+    target_link_libraries( ${PROJECT_NAME}  LcsDccPktFmtLib LcsRuntimeLib LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )
@@ -23,7 +23,7 @@ if ( TARGET tinyusb_device )
     # project level.
 
     add_custom_command(
-     TARGET ${PROJECT_NAME}
+        TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E echo "Move target to bin directory"
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/../bin

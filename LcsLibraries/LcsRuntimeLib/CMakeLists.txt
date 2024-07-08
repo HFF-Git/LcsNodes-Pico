@@ -14,9 +14,8 @@ project( LcsRuntimeLib C CXX ASM )
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 )
 
-# add the runtime library
-# we add the source files and also the source files from a third party lib that is available as only source
-# files. Not very elegant yet. But it works.
+# Add the runtime library. We add the source files and also the source files from a third party lib that is 
+# available as only source files. Not very elegant yet. But it works.
 
 add_library( ${PROJECT_NAME} STATIC    
     LcsRuntimeLib.h 
@@ -33,7 +32,7 @@ add_library( ${PROJECT_NAME} STATIC
     ./Can2040Lib/can2040.h 
     ) 
 
-# list the library dependencies. This is pirimarily the PICO standard and dedicated hardware libraries.
+# list the library dependencies. This is primarily the PICO standard and dedicated hardware libraries.
 target_link_libraries( ${PROJECT_NAME} 
 
     pico_stdlib 

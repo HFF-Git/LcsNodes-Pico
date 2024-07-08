@@ -18,7 +18,19 @@ if ( TARGET tinyusb_device )
 
     include_directories( LcsRuntimeLib LcsCdcLib pico_stdlib ) 
 
-    add_executable( ${PROJECT_NAME} main.cpp )
+    add_executable( ${PROJECT_NAME} 
+    
+        main.cpp
+        # LcsBaseStation.h
+        # LcsBsCommand.cpp
+        # LcsBsDccTrack.cpp
+        # LcsBsDictionary.cpp
+        # LcsBsLocoSession.cpp
+        # LcsBsMsgInterface.cpp 
+
+        # DccLog.h
+        # DccLog.cpp
+    )
     target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )

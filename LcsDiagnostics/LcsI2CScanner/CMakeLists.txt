@@ -30,7 +30,7 @@ if ( TARGET tinyusb_device )
     # project level.
 
     add_custom_command(
-     TARGET ${PROJECT_NAME}
+        TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E echo "Move target to bin directory"
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/../bin

@@ -134,7 +134,7 @@ void testConsoleIO ( ) {
 // test the power failure option.
 //
 //----------------------------------------------------------------------------------------------------------
-void pfailCallback( ) {
+void pfailCallback( uint8_t pin, uint8_t event ) {
 
   printf( "PFAIL..\n" );
   while ( true )  printf( "%d\n", CDC::getMillis( ));
@@ -142,12 +142,12 @@ void pfailCallback( ) {
 
 void testPfail( ) {
 
-  CDC::configurePfail( cfg.PFAIL_PIN );
-  CDC::onPfailEvent( pfailCallback );
+  CDC::configureDio( cfg.PFAIL_PIN, CDC::IN );
+  CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::EVT_LOW, pfailCallback );
+  
   CDC::configureDio( cfg.READY_LED_PIN, CDC::OUT );
   CDC::writeDio( cfg.READY_LED_PIN, true );
-  CDC::enablePfail( true );
-
+  
   printf( "testPfail -> unplug the power cord \n" );
 }
 

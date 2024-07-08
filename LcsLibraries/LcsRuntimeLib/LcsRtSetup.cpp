@@ -30,17 +30,19 @@
 // Externals.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LcsMsgBusCAN             *msgBus;
-extern LcsNodeMap               nodeMap;
-extern LcsPortMap               portMap;
-extern LcsEventMap              eventMap;
-extern LcsCallbackMap           callbackMap;
+extern LCS::LcsMsgBusCAN             *msgBus;
+extern LCS::LcsNodeMap               nodeMap;
+extern LCS::LcsPortMap               portMap;
+extern LCS::LcsEventMap              eventMap;
+extern LCS::LcsCallbackMap           callbackMap;
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLibConfig implementation file local declarations and routines.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
+
+  using namespace LCS;
 
   //----------------------------------------------------------------------------------------------------------
   // Utility routines for number range check.
@@ -62,6 +64,12 @@ namespace {
 
 }; // namespace
 
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // The very first thing to do is to setup the CDC library and setup the "active" and "ready" LED pins used by
@@ -403,3 +411,5 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 
   return ( rStat );
 }
+
+}; // namespace LCS

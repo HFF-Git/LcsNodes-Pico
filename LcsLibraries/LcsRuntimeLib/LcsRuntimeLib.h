@@ -31,6 +31,7 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
 #include <inttypes.h>
+#include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
 // All LCS Library definitions are in a separate name space "LCS".
@@ -605,9 +606,6 @@ namespace LCS {
   };
 
 
-
-
-
   //----------------------------------------------------------------------------------------------------------
   // Core library callback function signatures.
   //
@@ -631,7 +629,7 @@ namespace LCS {
   // Library functions. The main function are the initialization and start of the LCS runtime.
   // 
   //------------------------------------------------------------------------------------------------------------
-  uint8_t             initRuntime(  );
+  uint8_t             initRuntime( CDC::CdcPinConfig *cfg );
   void                startRuntime( );
 
   //----------------------------------------------------------------------------------------------------------
@@ -723,7 +721,6 @@ namespace LCS {
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t             drvInit( uint8_t boardId, uint16_t flags );
-  uint8_t             drvReset( uint8_t boardId, uint16_t flags );
   uint8_t             drvControl( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
   uint8_t             drvInfo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
   uint8_t             drvRead( uint8_t boardId, uint8_t padId, uint16_t *arg );
@@ -737,18 +734,11 @@ namespace LCS {
   //----------------------------------------------------------------------------------------------------------
   uint8_t             nvmPutWord( uint32_t ofs, uint16_t word, bool userMap = true );
   uint8_t             nvmGetWord( uint32_t ofs, uint16_t *word, bool userMap = true );
-  uint8_t             nvmPutBytes( uint16_t ofs, uint8_t *buf, uint32_t len, bool userMap = true );
-  uint8_t             nvmGetBytes( uint16_t ofs, uint8_t *buf, uint32_t len, bool userMap = true );
+  uint8_t             nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap = true );
+  uint8_t             nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap = true );
   uint8_t             nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val, bool userMap = true );
   uint32_t            nvmGetSize( bool userMap = true );
 
 }; // LCS NameSpace
-
-//------------------------------------------------------------------------------------------------------------
-// For convenience, the name space is exported. There is no need to explicitly declare it when including this
-// file.
-//
-//------------------------------------------------------------------------------------------------------------
-using namespace LCS;
 
 #endif

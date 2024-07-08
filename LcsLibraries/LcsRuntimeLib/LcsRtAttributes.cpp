@@ -39,17 +39,18 @@
 // The external global data structures defined in the "LcsRtCore" file.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LcsCdcDesc               cdcMap;
-extern LcsNodeMap               nodeMap;
-extern LcsPortMap               portMap;
-extern LcsCallbackMap           callbackMap;
-
+extern LCS::LcsCdcDesc               cdcMap;
+extern LCS::LcsNodeMap               nodeMap;
+extern LCS::LcsPortMap               portMap;
+extern LCS::LcsCallbackMap           callbackMap;
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
+
+  using namespace LCS;
 
   //----------------------------------------------------------------------------------------------------------
   // The node or port name cannot be set with a single LCS message. We will store the parts in this temporary
@@ -76,12 +77,12 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   uint8_t readAttrMem( uint8_t portId, uint8_t item, uint16_t *arg ) {
 
-    uint8_t index = item - NPI_ATTR_MEM_RANGE_START;
+    uint8_t index = item - LCS::NPI_ATTR_MEM_RANGE_START;
 
-    if ( portId == NIL_PORT_ID )  *arg = nodeMap. map[ index ];
-    else                          *arg = portMap.map[ portId - 1 ].map[ index ];
+    if ( portId == LCS::NIL_PORT_ID )  *arg = nodeMap. map[ index ];
+    else                               *arg = portMap.map[ portId - 1 ].map[ index ];
 
-    return ( ALL_OK );
+    return ( LCS::ALL_OK );
   }
   //----------------------------------------------------------------------------------------------------------
   // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an internal function, we expect
@@ -90,12 +91,12 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   uint8_t writeAttrMem( uint8_t portId, uint8_t item, uint16_t arg ) {
 
-    uint8_t index = item - NPC_ATTR_MEM_RANGE_START;
+    uint8_t index = item - LCS::NPC_ATTR_MEM_RANGE_START;
 
-    if ( portId == NIL_PORT_ID )  nodeMap.map[ index ] = arg;
-    else                          portMap.map[ portId - 1 ].map[ index ] = arg;
+    if ( portId == LCS::NIL_PORT_ID )  nodeMap.map[ index ] = arg;
+    else                               portMap.map[ portId - 1 ].map[ index ] = arg;
 
-    return ( ALL_OK );
+    return ( LCS::ALL_OK );
   }
 
   //----------------------------------------------------------------------------------------------------------
@@ -107,9 +108,9 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   uint8_t readAttrNvm( uint8_t portId, uint8_t item, uint16_t *arg ) {
 
-    uint8_t index = item - NPI_ATTR_NVM_RANGE_START;
+    uint8_t index = item -LCS:: NPI_ATTR_NVM_RANGE_START;
 
-    if ( portId == NIL_PORT_ID ) {
+    if ( portId == LCS::NIL_PORT_ID ) {
 
       uint16_t ofs  = offsetof( LcsNodeMap, map ) + ( index * sizeof( uint16_t ));
       uint8_t rStat = nvmGetWord( ofs, &nodeMap.map[ index ], false );
@@ -157,6 +158,11 @@ namespace {
 
 } // namespace
 
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // "nodeInfo" is the entry point to obtain information about the node. There is the situation that the request
@@ -490,3 +496,5 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
   }
   else return ( ERR_INVALID_ITEM_ID );
 }
+
+}; // namespace LCS
