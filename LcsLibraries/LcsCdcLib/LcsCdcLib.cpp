@@ -256,7 +256,7 @@ namespace {
   struct GpioIsrTable {
 
     uint16_t                  numOfHandlers = 0;
-    CDC::GpioCallback         gpioIsrTable[MAX_CPU_CORE][MAX_INT_PIN ];
+    CDC::GpioCallback         gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
   };
 
   //----------------------------------------------------------------------------------------------------------
