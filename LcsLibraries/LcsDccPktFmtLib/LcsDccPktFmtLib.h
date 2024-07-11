@@ -45,25 +45,6 @@
 // and CV programming packets. Additionally, each packet can be also showns in a  hex or binary format.
 //
 //------------------------------------------------------------------------------------------------------------
-/*
-struct LcsDccPacketFormatter {
-  
-  public:
-
-    static int  formatDccPacketOpsMode( char *buf, uint16_t bufLen, uint8_t *dccPacket );
-    static int  formatDccPacketSvcMode( char *buf, uint16_t bufLen, uint8_t *dccPacket );
-    static int  formatDccPacketHex( char *buf, uint16_t bufLen, uint8_t *dccPacket );
-    static int  formatDccPacketBin( char *buf, uint16_t bufLen, uint8_t *dccPacket );
-
-    static bool isIdlePacket( uint8_t *dccPacket );
-    static bool isResetPacket( uint8_t *dccPacket );
-    static bool isOpsModeLocPkt( uint8_t *dccPacket );
-    static bool isOpsModeAccPkt( uint8_t *dccPacket );
-    static bool isSvcModePacket( uint8_t *dccPacket );
-    static bool isValidDccPacket( uint8_t *dccPacket );
-};
-*/
-
 namespace LcsDccPacketFormatter {
 
     int  formatDccPacketOpsMode( char *buf, uint16_t bufLen, uint8_t *dccPacket );
@@ -77,7 +58,6 @@ namespace LcsDccPacketFormatter {
     bool isOpsModeAccPkt( uint8_t *dccPacket );
     bool isSvcModePacket( uint8_t *dccPacket );
     bool isValidDccPacket( uint8_t *dccPacket );
-
 };
 
 #endif

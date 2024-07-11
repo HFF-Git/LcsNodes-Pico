@@ -41,7 +41,7 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// The can2040 is a C library. Makr it so, otherwise the linker gets confused...
+// The can2040 is a C library. Make it so, otherwise the linker gets confused...
 // 
 //------------------------------------------------------------------------------------------------------------
 extern "C" {

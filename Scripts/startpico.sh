@@ -56,9 +56,7 @@ local tmp="$prefix$1"
 echo "$prefix""$1""1"
 }
 
-
-# rest the PICO
-#
+# reset the PICO
 #
 port_number=$(get_port_num_by_usb_address "$1")
 
