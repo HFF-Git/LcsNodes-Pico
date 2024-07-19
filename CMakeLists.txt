@@ -41,3 +41,6 @@ add_subdirectory( LcsLibraries/LcsRuntimeLib )
 
 # under construction ...
 # add_subdirectory(LcsLibraries/LcsUIElementsLib)
+# add_subdirectory(LcsLibraries/LcsLcdDisplayLib)
+# add_subdirectory(LcsLibraries/LcsOledDisplayLib)
+# 
