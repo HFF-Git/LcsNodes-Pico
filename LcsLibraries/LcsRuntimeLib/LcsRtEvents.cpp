@@ -51,6 +51,12 @@ namespace {
 
   using namespace LCS;
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // settoin of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+
   //----------------------------------------------------------------------------------------------------------
   // Utility routines for number range check.
   //

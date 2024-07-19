@@ -281,7 +281,8 @@ namespace CDC {
   CdcPinConfig  getConfigDefault( );
   CdcPinConfig  *getConfigActual( );
   void          printConfigInfo( CdcPinConfig *ci );
-
+  void          setDebugLevel( uint8_t level = 0 );
+  
   uint8_t       init( CdcPinConfig *ci );
   void          fatalError( uint8_t n );
 

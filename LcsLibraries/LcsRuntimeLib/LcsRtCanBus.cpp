@@ -55,6 +55,12 @@ extern "C" {
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // settoin of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+
   //----------------------------------------------------------------------------------------------------------
   // The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"
   // CAN bus message size. For the ennumration process, there is the time interval to collect enumeration

@@ -32,6 +32,12 @@ namespace {
 
   using namespace LCS;
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // settoin of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+
   //----------------------------------------------------------------------------------------------------------
   // During node Id allocation, the node tries in periodic intervals to obtain a node ID.
   //
@@ -595,6 +601,8 @@ void handleMsgReqNode( uint8_t *msg ) {
 // the event should result in a callback. The actual event processing is done in the port event processing
 // routine, which will manage the timely invocation of the event callbacks.
 //
+//
+// ??? what events created on this node and a port is interested ? they should also be processed ....
 //------------------------------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 

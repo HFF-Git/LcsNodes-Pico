@@ -54,12 +54,6 @@
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-#define CDC_DEBUG 1
-
-//------------------------------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
 // the core library and the firmware designers that need access to the underlying HW portion manged by this
@@ -68,6 +62,12 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // settoin of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+ 
   //----------------------------------------------------------------------------------------------------------  
   // The CDC Library version data.
   //
@@ -479,6 +479,15 @@ namespace {
 
 }; // namespace
 
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void CDC::setDebugLevel( uint8_t level ) {
+
+    debugLevel = level;
+  }
 
 //------------------------------------------------------------------------------------------------------------
 // "getConfigDefault" initializes a configuration structure and sets the pre-assigned values. A typical
@@ -1039,10 +1048,11 @@ uint8_t CDC::configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorre
   pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
   pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
 
-  #if CDC_DEBUG == 1
-  printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
-          pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
-  #endif
+  if ( debugLevel > 0 ) {
+    
+    printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
+            pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
+  }
 
   return ( ALL_OK );
 }

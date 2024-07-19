@@ -51,6 +51,12 @@ namespace {
 
   char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // settoin of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+
   //---------------------------------------------------------------------------------------------------------
   // "dumpMemData" lists the MEM data content of the storage area passed.
   //

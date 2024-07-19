@@ -52,6 +52,12 @@ namespace {
 
   using namespace LCS;
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // settoin of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+
   //----------------------------------------------------------------------------------------------------------
   // The node or port name cannot be set with a single LCS message. We will store the parts in this temporary
   // buffer and set the name when all parts are received.

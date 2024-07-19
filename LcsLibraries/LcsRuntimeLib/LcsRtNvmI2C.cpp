@@ -51,6 +51,12 @@ namespace {
 
   using namespace LCS;
 
+  //----------------------------------------------------------------------------------------------------------  
+  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+  // setting of the debiug level.
+  //---------------------------------------------------------------------------------------------------------- 
+  uint8_t debugLevel = 0;
+
   //----------------------------------------------------------------------------------------------------------
   // Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize which is the unit
   // updated in case of a write. A write cannot across a page boundary and must be split into several writes

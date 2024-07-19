@@ -53,6 +53,11 @@ namespace LCS {
 #define   DEBUG_ATTRIBUTES  1
 #define   DEBUG_EVENTS      1
 
+// ??? this should actually be a set of variables.
+// ??? each module should have a function to set the module ( file ) local debug level ...
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
 // data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas
