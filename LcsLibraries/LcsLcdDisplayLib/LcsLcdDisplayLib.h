@@ -32,13 +32,61 @@
 
 #include "LcsCdcLib.h"
 
+class LcsLcdDisplay final {
 
-//------------------------------------------------------------------------------------------------------------
-// 
-//
-//------------------------------------------------------------------------------------------------------------
+    public:
+
+    LcsLcdDisplay ( uint8_t columns, 
+                    uint8_t rows,
+                    uint8_t sclPin,
+                    uint8_t sdaPin,
+                    uint8_t i2cAdr ) noexcept;
+
+    void displayOn( ) noexcept;
+    void displayOff( ) noexcept;
+
+    void backlightOn( ) noexcept;
+    void backlightOff( ) noexcept;
+
+    void cursorOn( ) noexcept;
+    void cursorOff( ) noexcept;
+
+    void cursorBlinkOn( ) noexcept;
+    void cursorBlinkOff( ) noexcept;
+
+    void setTextLeftToRight( ) noexcept;
+    void setTextRightToLeft( ) noexcept;
+
+    void clear( ) noexcept;
+    void home( ) noexcept;
+
+    void setCursor( uint8_t row, uint8_t column ) noexcept;
+
+    void printChar( char ch ) noexcept;
+    void printString( char *str ) noexcept;
+    
+    void createCustomChar( uint8_t location, uint8_t *char_map ) noexcept;
+    void printCustomChar( uint8_t location ) noexcept;
+
+ private:
+
+    void i2cWriteByte( uint8_t val ) noexcept;
+    void pulseEnable( uint8_t val ) noexcept;
+    void sendNibble(uint8_t val) noexcept;
+    void sendByte(uint8_t val, uint8_t mode) noexcept;
+    void sendCommand( uint8_t val ) noexcept;
+    void sendChar(uint8_t val) noexcept;
+    void sendRegisterSelect( uint8_t val ) noexcept;
 
 
+    uint8_t address;
+    uint8_t columns;
+    uint8_t rows;
+    uint8_t backLight;
+    uint8_t displayFunction;
+    uint8_t displayControl;
+    uint8_t displayMode;
 
+};
 
 #endif

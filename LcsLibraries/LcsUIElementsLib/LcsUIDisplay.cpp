@@ -163,79 +163,14 @@ void  UIDisplay::processTick( ) { }
 
 #if 0
 
-// ??? currently disabled. The Arduino used to have a library already integrated... to do ...
-
-//============================================================================================================
-// UIDisplayLcdP Section.
-//============================================================================================================
-
-
-//------------------------------------------------------------------------------------------------------------
-// The display constructor for the LiquidCrystal Display with the parallel interface. We are passed the
-// columns, rows and hardware pins that control this type of display. We inherit from the UIDisplay object,
-// which defines the overall interface of our simple ASCII displays. Most of the menthods of our UIDisplayLcdP
-// object are passed directly to the LiquidCrystal object, which we also inherit after the UIDisplay class.
-// Our simple ASCII display was modelled closely after the LiquidCrystal family of libraries.
-//
-//------------------------------------------------------------------------------------------------------------
-UIDisplayLcdP::UIDisplayLcdP( uint8_t dType,
-                              uint8_t rs_pin,
-                              uint8_t en_pin,
-                              uint8_t d4_pin,
-                              uint8_t d5_pin,
-                              uint8_t d6_pin,
-                              uint8_t d7_pin,
-                              uint8_t bl_pin ) :
-
-  UIDisplay( dType ), LiquidCrystal( rs_pin, en_pin, d4_pin, d5_pin, d6_pin, d7_pin ) {
-  this -> bl_pin = bl_pin;
-
-  CDC::configureDio( bl_pin, OUTPUT );
-
-} // UIDisplayLcdP::UIDisplayLcdP
-
-//------------------------------------------------------------------------------------------------------------
-// Most of the methods to control the LCS display are just inherited. Our diplay object was modelled almost
-// one to one after the LCD displays and hence the effort is very minor. The "setCursor" and "print" method
-// are the ones we implement. In addition, the "backlight" and "noBacklight" methods are implemented if the
-// hardware implemented the backlight control pin.
-//
-//------------------------------------------------------------------------------------------------------------
-void UIDisplayLcdP::backlight( ) {
-
-  if ( bl_pin != INVALID_PIN ) CDC::writeDio( bl_pin, true );
-}
-
-void UIDisplayLcdP::noBacklight( ) {
-
-  if ( bl_pin != INVALID_PIN ) CDC::writeDio( bl_pin, false );
-}
-
-void UIDisplayLcdP::setCursor( uint8_t col, uint8_t row ) {
-
-  LiquidCrystal::setCursor((( col > maxColumns ) ? maxColumns : col ), (( row > maxColumns ) ? maxRows : row ));
-}
-
-uint8_t UIDisplayLcdP::print( const char *buf ) {
-
-  return ( LiquidCrystal::print( buf ));
-}
-
-uint8_t UIDisplayLcdP::print( char ch ) {
-
-  return ( LiquidCrystal::print( ch ));
-}
-
-void UIDisplayLcdP::clear( ) {
-
-  LiquidCrystal::setCursor( 0, 0 );
-  LiquidCrystal::clear( );
-}
-
-
 //============================================================================================================
 // UIDisplayI2C Section.
 //============================================================================================================
+
+
+// ??? currently disabled. The Arduino used to have a library already integrated... to do ...
+
+// ??? we will just call outr functions in the LcsLcdDisplay object .... 
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -278,6 +213,8 @@ void UIDisplayLcdI2C::clear( ) {
 // UIDisplayOledSSD1306 Section.
 //============================================================================================================
 
+// ??? this should become more generic ?
+// ??? UIDisplayOled ???
 
 //------------------------------------------------------------------------------------------------------------
 // Oled Version using the SSD1306 controller chip. There is no nice mapping of display function via base

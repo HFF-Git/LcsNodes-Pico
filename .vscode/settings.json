@@ -7,10 +7,13 @@
     "files.associations": {
         "dreq.h": "c",
         "addressmap.h": "c",
-        "*.cpo": "c"
+        "*.cpo": "c",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "array": "cpp"
     },
     "spellright.language": [
-        "English"
+        "en"
     ],
     "spellright.documentTypes": [
         "markdown",

@@ -29,5 +29,7 @@ target_link_libraries( ${PROJECT_NAME}
 
     LcsCdcLib 
     pico_stdlib 
+    hardware_i2c 
+    hardware_clocks
     )
 

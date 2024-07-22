@@ -352,45 +352,6 @@ struct UIDisplay : UIElements {
     void            processTick( );
 };
 
-#if 0
-
-// the Arduino had a LCD lib integrated... to fid an alternative ... to do ...
-
-//------------------------------------------------------------------------------------------------------------
-// The LCD display with a parallel interface handled by this object. Like all displays defined, this object
-// implements a simple matrix of ASCII characters. The display has a set of function to manage backlight,
-// as well as cursor and blinking options. We simply inherit these functions. They are however only an
-// option for the LCD kind of display. The backlight function is only available when there is a dedicatded
-// HW pin allocated to drive the signal at the LCD display.
-//
-//------------------------------------------------------------------------------------------------------------
-struct UIDisplayLcdP : public UIDisplay, public LiquidCrystal {
-
-  public:
-
-    UIDisplayLcdP( uint8_t dType,
-                   uint8_t rs_pin,
-                   uint8_t en_pin,
-                   uint8_t d4_pin,
-                   uint8_t d5_pin,
-                   uint8_t d6_pin,
-                   uint8_t d7_pin,
-                   uint8_t bl_pin = INVALID_PIN
-                 );
-
-    void    setCursor( uint8_t col, uint8_t row );
-    uint8_t print( const char *s );
-    uint8_t print( char ch );
-    void    clear( );
-
-    void    backlight( );
-    void    noBacklight( );
-
-  private:
-
-    uint8_t bl_pin = INVALID_PIN;
-};
-
 //------------------------------------------------------------------------------------------------------------
 // The LCD display and an I2C interface are handled by this object. Like all displays defined, this object
 // implements a simple matrix of ASCII characters. The display has a set of function to manage backlight,
@@ -398,7 +359,7 @@ struct UIDisplayLcdP : public UIDisplay, public LiquidCrystal {
 // option for the LCD kind of display.
 //
 //------------------------------------------------------------------------------------------------------------
-struct UIDisplayLcdI2C : public UIDisplay, public LiquidCrystal_I2C  {
+struct UIDisplayLcdI2C : public UIDisplay {
 
   public:
 
@@ -408,11 +369,14 @@ struct UIDisplayLcdI2C : public UIDisplay, public LiquidCrystal_I2C  {
     uint8_t print( const char *s );
     uint8_t print( char ch );
     void    clear( );
+
+  private: 
+
+  // ??? have a reference to the LCsLcdDisplayLib object .... all we use are the above functions ...
+  // LcsLcdDisplay *lcd = nullptr;
 };
 
-#endif
-
-//------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
 // The "UIDisplayOledSSD1306" manages the quite popular OLED display of 128x64 anc 128x32 displays. Although
 // the display a fully graphical, we just use them for now as an ASCII display with a small set of fonts and
 // a row by column matrix size.
@@ -436,7 +400,8 @@ struct UIDisplayOledSSD1306 : public UIDisplay {
 
   private:
 
-    SSD1306Ascii *oled = nullptr;
+    // ??? have a reference to lcsOledDisplayLib ?
+    // LcsOledDisplay *oled = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------

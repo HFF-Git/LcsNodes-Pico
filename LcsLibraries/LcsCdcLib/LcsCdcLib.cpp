@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 // This source file contains the the RP2040 controller family hardware library code. The idea of this library
 // is to shield the actual hardware of processor and board implementation from the upper layers but still keep
-// the flexibilty and performance of the underlying hardware. The library works with the concept of HW pins,
+// the flexibility and performance of the underlying hardware. The library works with the concept of HW pins,
 // which are identifiers for an HW entity. This is easy for a GPIO pin, where the mapping is directly one to
 // one. For more complex HW entries such as the I2C or UART hardware, one pin is selected as the identifer to
 // that entity. For each complex entity an instance variable is maintained where all the relevant data is kept.
