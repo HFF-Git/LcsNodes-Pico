@@ -449,6 +449,9 @@ class SSD1306Ascii {
    * @return the width of the string in pixels.
    */
   size_t strWidth(const char* str) const;
+
+
+  
   /**
    * @brief Initialize TickerState struct.
    *

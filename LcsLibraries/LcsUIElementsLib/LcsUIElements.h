@@ -160,23 +160,20 @@ typedef bool (*UIGetDataFunction) ( uint8_t hwId );
 //------------------------------------------------------------------------------------------------------------
 struct UIElements {
 
-  public:
+    public:
 
     int               getResId( );
     void              setResId( int arg );
     
-  public:
-
     static uint8_t    setup( );
     static void       tick( );
 
-  protected:
+    protected:
 
     UIElements( bool  atHead = false );
-
     virtual void      processTick( )  = 0;
 
-  private:
+    private:
 
     UIElements*       next  = nullptr;
     int               resId = 0;
@@ -191,14 +188,14 @@ struct UIElements {
 //------------------------------------------------------------------------------------------------------------
 struct UITimer : UIElements {
 
-  public:
+    public:
 
     UITimer( );
 
     void setTimer( uint32_t val );
     void attachTimer( UITimerCallBackFunction functionId );
 
-  private:
+    private:
 
     void                      processTick( );
 
@@ -214,7 +211,7 @@ struct UITimer : UIElements {
 //------------------------------------------------------------------------------------------------------------
 struct UIButton : UIElements {
 
-  public:
+    public:
 
     UIButton( uint8_t hwId, bool activeLow = false );
 
@@ -234,7 +231,7 @@ struct UIButton : UIElements {
     void                      reset( );
     void                      processTick( );
 
-  private:
+    private:
 
     uint8_t                   hwId                  = INVALID_PIN;
     uint8_t                   buttonState           = 0;
@@ -248,7 +245,7 @@ struct UIButton : UIElements {
     UIButtonCallBackFunction  duringLongPressFunc   = nullptr;
     UIGetDataFunction         getDataFunc           = nullptr;
 
-  public:
+    public:
 
     static void               setDebounceMillis( uint32_t ticks );
     static void               setClickMillis( uint32_t ticks );
@@ -261,7 +258,7 @@ struct UIButton : UIElements {
 //------------------------------------------------------------------------------------------------------------
 struct UIEncoder : UIElements {
 
-  public:
+    public:
 
     UIEncoder( uint8_t hwIdA, uint8_t hwIdB, int lower = INT_MIN, int upper = INT_MAX, bool activeLow = false );
 
@@ -279,7 +276,7 @@ struct UIEncoder : UIElements {
     uint8_t                     getHwIdA( );
     uint8_t                     getHwIdB( );
 
-  private:
+    private:
 
     uint8_t                     hwIdA               = INVALID_PIN;
     uint8_t                     hwIdB               = INVALID_PIN;
@@ -306,7 +303,7 @@ struct UIEncoder : UIElements {
 //------------------------------------------------------------------------------------------------------------
 struct UILed : UIElements {
 
-  public:
+    public:
 
     UILed( uint8_t hwId );
 
@@ -321,7 +318,7 @@ struct UILed : UIElements {
     void toggle( );
     void blink( );
 
-  private:
+    private:
 
     uint8_t             hwId         = INVALID_PIN;
     bool                ledOn         = false;
@@ -329,7 +326,7 @@ struct UILed : UIElements {
     uint32_t            lastChange    = 0;
     UISetDataFunction   setDataFunc   = nullptr;
 
-  public:
+    public:
 
     static void setBlinkIntervalMillis( uint32_t val );
 };
@@ -370,7 +367,7 @@ struct UIDisplay : UIElements {
 //------------------------------------------------------------------------------------------------------------
 struct UIDisplayLcdI2C : public UIDisplay {
 
-  public:
+    public:
 
     UIDisplayLcdI2C( uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2CAddress = 0x27 );
 
@@ -379,14 +376,13 @@ struct UIDisplayLcdI2C : public UIDisplay {
     uint8_t print( char ch );
     void    clear( );
 
-  private: 
+    private: 
 
-  LcsLcdDisplay *lcd = nullptr;
-
+    LcsLcdDisplay *lcd = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The "UIDisplayOled" manages an OLED display as a matrix of row * columns Adcii characters. Although an
+// The "UIDisplayOled" manages an OLED display as a matrix of row * columns Ascii characters. Although an
 // OLED display is fully graphical, we just use them for now as an ASCII display with a small set of fonts
 // and a row by column matrix size.
 //
@@ -407,7 +403,6 @@ struct UIDisplayOled : public UIDisplay {
     private:
 
     LcsOledDisplay *oled = nullptr;
-
 };
 
 //------------------------------------------------------------------------------------------------------------

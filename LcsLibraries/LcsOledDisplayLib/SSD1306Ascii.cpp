@@ -238,6 +238,8 @@ size_t SSD1306Ascii::strWidth(const char* str) const {
   return sw;
 }
 
+
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::tickerInit(TickerState* state, const uint8_t* font,
                               uint8_t row, bool mag2X, uint8_t bgnCol,
