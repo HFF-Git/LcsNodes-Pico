@@ -49,6 +49,9 @@ inline uint8_t readFontByte(uint8_t const *addr) { return pgm_read_byte(addr); }
 /** Fake read from flash. */
 inline uint8_t readFontByte(uint8_t const *addr) { return *addr; }
 #endif  // __AVR__
+
+
+
 //------------------------------------------------------------------------------
 // Font Indices
 /** No longer used Big Endian length field. Now indicates font type.

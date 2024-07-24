@@ -76,6 +76,8 @@
 #include <limits.h>
 
 #include "LcsCdcLib.h"
+#include "LcsLcdDisplayLib.h"
+#include "LcsOledDisplayLib.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Resources and Pins use the value of 255 to indicate an invalid number.
@@ -86,10 +88,13 @@ const uint8_t INVALID_PIN      = 255;
 
 //------------------------------------------------------------------------------------------------------------
 // There are quite a few displays to support. While the LCD displays just feature a fixed column and row size,
-// the Oled displays support a column and row size that depends on the font used. For simplicity, we will only
-// support two fixed font sizes. There is an 8x8 pixel font and a 8x16 font. The configured size is encoded
-// in column / row numbers at the end of the type of display.
+// the Oled displays support a column and row size that depends on the font used. 
+
+// For simplicity, we will only support a few fonts. There is an 8x8 pixel font and a 8x16 font. 
+// The configured size is encoded in column / row numbers at the end of the type of display.
 //
+// ??? perhaps rethink this one. We could always think in units of 8 pixels and do the math what to say for
+// row and column at caller level.
 //------------------------------------------------------------------------------------------------------------
 enum DisplayType : uint8_t {
 
@@ -97,11 +102,15 @@ enum DisplayType : uint8_t {
 
   DT_LCD_DISPLAY_16_2           = 1,
   DT_LCD_DISPLAY_20_4           = 2,
-  DT_OLED_DISPLAY_128x32_16_4   = 3,
-  DT_OLED_DISPLAY_128x32_8_2    = 4,
-  DT_OLED_DISPLAY_128x64_16_8   = 5,
-  DT_OLED_DISPLAY_128x64_16_4   = 6,
-  DT_OLED_DISPLAY_128x64_2F_4   = 7
+  DT_LCD_DISPLAY_128_32         = 3,
+  DT_LCD_DISPLAY_128_64         = 4,
+
+
+  DT_OLED_DISPLAY_128x32_16_4   = 5,
+  DT_OLED_DISPLAY_128x32_8_2    = 6,
+  DT_OLED_DISPLAY_128x64_16_8   = 7,
+  DT_OLED_DISPLAY_128x64_16_4   = 8,
+  DT_OLED_DISPLAY_128x64_2F_4   = 9   // ??? why do we need this one ?
 };
 
 
@@ -327,14 +336,14 @@ struct UILed : UIElements {
 
 //------------------------------------------------------------------------------------------------------------
 // The "UIDisplay" object is the common subset object for all displays. It implements a simple row x column
-// ASCII display. Although some display are far more capable, often this simple display type will do. All
+// ASCII display. Although some display are far more capable, this simple display type will often do. All
 // further capabilities of an actual display are not masked and can be used. However, the code is then display
 // specific.
 //
 //------------------------------------------------------------------------------------------------------------
 struct UIDisplay : UIElements {
 
-  public:
+    public:
 
     UIDisplay( uint8_t dType );
 
@@ -345,7 +354,7 @@ struct UIDisplay : UIElements {
     virtual void    clear(  )                               = 0;
     virtual void    clearLine( uint8_t row )                = 0;
 
-  protected:
+    protected:
 
     uint8_t         maxColumns = 0;
     uint8_t         maxRows    = 0;
@@ -372,24 +381,21 @@ struct UIDisplayLcdI2C : public UIDisplay {
 
   private: 
 
-  // ??? have a reference to the LCsLcdDisplayLib object .... all we use are the above functions ...
-  // LcsLcdDisplay *lcd = nullptr;
+  LcsLcdDisplay *lcd = nullptr;
+
 };
 
-//--------------------------------------------------------------------------------------------------------
-// The "UIDisplayOledSSD1306" manages the quite popular OLED display of 128x64 anc 128x32 displays. Although
-// the display a fully graphical, we just use them for now as an ASCII display with a small set of fonts and
-// a row by column matrix size.
+//------------------------------------------------------------------------------------------------------------
+// The "UIDisplayOled" manages an OLED display as a matrix of row * columns Adcii characters. Although an
+// OLED display is fully graphical, we just use them for now as an ASCII display with a small set of fonts
+// and a row by column matrix size.
 //
 //------------------------------------------------------------------------------------------------------------
-struct UIDisplayOledSSD1306 : public UIDisplay {
+struct UIDisplayOled : public UIDisplay {
 
-  public:
+    public:
 
-    UIDisplayOledSSD1306( uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2cAddress = 0x3C );
-
-    void    display( );
-    void    noDisplay( );
+    UIDisplayOled( uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2cAddress = 0x3C );
 
     void    setCursor( uint8_t col, uint8_t row );
     void    setFont( uint8_t fontId );
@@ -398,10 +404,10 @@ struct UIDisplayOledSSD1306 : public UIDisplay {
     void    clear( );
     void    clearLine( uint8_t row );
 
-  private:
+    private:
 
-    // ??? have a reference to lcsOledDisplayLib ?
-    // LcsOledDisplay *oled = nullptr;
+    LcsOledDisplay *oled = nullptr;
+
 };
 
 //------------------------------------------------------------------------------------------------------------

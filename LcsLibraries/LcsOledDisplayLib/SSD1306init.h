@@ -28,6 +28,8 @@
  */
 #ifndef SSD1306init_h
 #define SSD1306init_h
+
+
 //------------------------------------------------------------------------------
 #ifndef __AVR__
 /** Handle AVR flash addressing. */
@@ -35,6 +37,8 @@
 #else  // __AVR__
 #define MEM_TYPE __attribute__((progmem))
 #endif  // __AVR__
+
+
 //------------------------------------------------------------------------------
 /** Set Lower Column Start Address for Page Addressing Mode. */
 #define SSD1306_SETLOWCOLUMN 0x00
@@ -84,6 +88,7 @@
 #define SSD1306_DEACTIVATE_SCROLL 0x2E
 /** No Operation Command. */
 #define SSD1306_NOP 0XE3
+
 //------------------------------------------------------------------------------
 /** Set Pump voltage value: (30H~33H) 6.4, 7.4, 8.0 (POR), 9.0. */
 #define SH1106_SET_PUMP_VOLTAGE 0X30
@@ -94,6 +99,7 @@
 /** Second byte charge pump off. */
 #define SH1106_PUMP_OFF 0X8A
 //------------------------------------------------------------------------------
+
 /**
  * @struct DevType
  * @brief Device initialization structure.
@@ -121,6 +127,7 @@ struct DevType {
   const uint8_t colOffset;
 };
 
+
 // clang-format off
 //------------------------------------------------------------------------------
 /** Initialization commands for a 64x48 Micro OLED display (by r7) */
@@ -142,6 +149,7 @@ static const uint8_t MEM_TYPE MicroOLED64x48init[] = {
     SSD1306_SETVCOMDETECT, 0x40,       // vcomh regulator level
     SSD1306_DISPLAYON
 };
+
 /** Initialize a 64x48 Micro OLED display. */
 static const DevType MEM_TYPE MicroOLED64x48 = {
   MicroOLED64x48init,
@@ -150,6 +158,8 @@ static const DevType MEM_TYPE MicroOLED64x48 = {
   48,
   32
 };
+
+
 //------------------------------------------------------------------------------
 // this section is based on
 // https://github.com/olikraus/u8g2/blob/master/csrc/u8x8_d_ssd1306_96x16.c
@@ -174,6 +184,7 @@ static const uint8_t MEM_TYPE SSD1306_96x16init[] = {
     SSD1306_NORMALDISPLAY,
     SSD1306_DISPLAYON
 };
+
 /** Initialize a 96x16 SSD1306 oled display. */
 static const DevType MEM_TYPE SSD1306_96x16 = {
   SSD1306_96x16init,
@@ -182,6 +193,8 @@ static const DevType MEM_TYPE SSD1306_96x16 = {
   16,
   0
 };
+
+
 //------------------------------------------------------------------------------
 // this section is based on https://github.com/adafruit/Adafruit_SSD1306
 /** Initialization commands for a 128x32 SSD1306 oled display. */
@@ -204,6 +217,7 @@ static const uint8_t MEM_TYPE Adafruit128x32init[] = {
     SSD1306_NORMALDISPLAY,
     SSD1306_DISPLAYON
 };
+
 /** Initialize a 128x32 SSD1306 oled display. */
 static const DevType MEM_TYPE Adafruit128x32 = {
   Adafruit128x32init,
@@ -212,6 +226,8 @@ static const DevType MEM_TYPE Adafruit128x32 = {
   32,
   0
 };
+
+
 //------------------------------------------------------------------------------
 // This section is based on https://github.com/adafruit/Adafruit_SSD1306
 /** Initialization commands for a 128x64 SSD1306 oled display. */
@@ -234,6 +250,7 @@ static const uint8_t MEM_TYPE Adafruit128x64init[] = {
     SSD1306_NORMALDISPLAY,
     SSD1306_DISPLAYON
 };
+
 /** Initialize a 128x64 oled display. */
 static const DevType MEM_TYPE Adafruit128x64 = {
   Adafruit128x64init,
@@ -242,6 +259,8 @@ static const DevType MEM_TYPE Adafruit128x64 = {
   64,
   0
 };
+
+
 //------------------------------------------------------------------------------
 // This section is based on https://github.com/stanleyhuangyc/MultiLCD
 /** Initialization commands for a 128x64 SH1106 oled display. */
@@ -270,5 +289,7 @@ static const DevType MEM_TYPE SH1106_128x64 =  {
   64,
   2    // SH1106 is a 132x64 controller.  Use middle 128 columns.
 };
+
+
 // clang-format on
 #endif  // SSD1306init_h

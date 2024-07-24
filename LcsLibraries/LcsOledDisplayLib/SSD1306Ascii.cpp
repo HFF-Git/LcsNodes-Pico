@@ -41,6 +41,7 @@ uint8_t SSD1306Ascii::charWidth(uint8_t c) const {
   // Fixed width font.
   return m_magFactor * readFontByte(m_font + FONT_WIDTH);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clear() {
 #if INCLUDE_SCROLLING
@@ -49,6 +50,7 @@ void SSD1306Ascii::clear() {
 #endif  // INCLUDE_SCROLLING
   clear(0, displayWidth() - 1, 0, displayRows() - 1);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
   // Cancel skip character pixels.
@@ -66,48 +68,59 @@ void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
   }
   setCursor(c0, r0);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clearToEOL() {
   clear(m_col, displayWidth() - 1, m_row, m_row + fontRows() - 1);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::clearField(uint8_t col, uint8_t row, uint8_t n) {
   clear(col, col + fieldWidth(n) - 1, row, row + fontRows() - 1);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::displayRemap(bool mode) {
   ssd1306WriteCmd(mode ? SSD1306_SEGREMAP : SSD1306_SEGREMAP | 1);
   ssd1306WriteCmd(mode ? SSD1306_COMSCANINC : SSD1306_COMSCANDEC);
 }
+
 //------------------------------------------------------------------------------
 size_t SSD1306Ascii::fieldWidth(uint8_t n) {
   return n * (fontWidth() + letterSpacing());
 }
+
 //------------------------------------------------------------------------------
 uint8_t SSD1306Ascii::fontCharCount() const {
   return m_font ? readFontByte(m_font + FONT_CHAR_COUNT) : 0;
 }
+
 //------------------------------------------------------------------------------
 char SSD1306Ascii::fontFirstChar() const {
   return m_font ? readFontByte(m_font + FONT_FIRST_CHAR) : 0;
 }
+
 //------------------------------------------------------------------------------
 uint8_t SSD1306Ascii::fontHeight() const {
   return m_font ? m_magFactor * readFontByte(m_font + FONT_HEIGHT) : 0;
 }
+
 //------------------------------------------------------------------------------
 uint8_t SSD1306Ascii::fontRows() const {
   return m_font ? m_magFactor * ((readFontByte(m_font + FONT_HEIGHT) + 7) / 8)
                 : 0;
 }
+
 //------------------------------------------------------------------------------
 uint16_t SSD1306Ascii::fontSize() const {
   return (readFontByte(m_font) << 8) | readFontByte(m_font + 1);
 }
+
 //------------------------------------------------------------------------------
 uint8_t SSD1306Ascii::fontWidth() const {
   return m_font ? m_magFactor * readFontByte(m_font + FONT_WIDTH) : 0;
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::init(const DevType* dev) {
   m_col = 0;
@@ -127,10 +140,12 @@ void SSD1306Ascii::init(const DevType* dev) {
   }
   clear();
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::invertDisplay(bool invert) {
   ssd1306WriteCmd(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setCol(uint8_t col) {
   if (col < m_displayWidth) {
@@ -140,16 +155,19 @@ void SSD1306Ascii::setCol(uint8_t col) {
     ssd1306WriteCmd(SSD1306_SETHIGHCOLUMN | (col >> 4));
   }
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setContrast(uint8_t value) {
   ssd1306WriteCmd(SSD1306_SETCONTRAST);
   ssd1306WriteCmd(value);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setCursor(uint8_t col, uint8_t row) {
   setCol(col);
   setRow(row);
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setFont(const uint8_t* font) {
   m_font = font;
@@ -159,6 +177,7 @@ void SSD1306Ascii::setFont(const uint8_t* font) {
     m_letterSpacing = 1;
   }
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setRow(uint8_t row) {
   if (row < displayRows()) {
@@ -170,6 +189,7 @@ void SSD1306Ascii::setRow(uint8_t row) {
 #endif  // INCLUDE_SCROLLING
   }
 }
+
 #if INCLUDE_SCROLLING
 //------------------------------------------------------------------------------
 void SSD1306Ascii::setPageOffset(uint8_t page) {
@@ -182,6 +202,7 @@ void SSD1306Ascii::setStartLine(uint8_t line) {
   ssd1306WriteCmd(SSD1306_SETSTARTLINE | m_startLine);
 }
 #endif  // INCLUDE_SCROLLING
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::ssd1306WriteRam(uint8_t c) {
   if (m_col < m_displayWidth) {
@@ -189,6 +210,7 @@ void SSD1306Ascii::ssd1306WriteRam(uint8_t c) {
     m_col++;
   }
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::ssd1306WriteRamBuf(uint8_t c) {
   if (m_skip) {
@@ -198,9 +220,11 @@ void SSD1306Ascii::ssd1306WriteRamBuf(uint8_t c) {
     m_col++;
   }
 }
+
 //------------------------------------------------------------------------------
 GLCDFONTDECL(scaledNibble) = {0X00, 0X03, 0X0C, 0X0F, 0X30, 0X33, 0X3C, 0X3F,
                               0XC0, 0XC3, 0XCC, 0XCF, 0XF0, 0XF3, 0XFC, 0XFF};
+
 //------------------------------------------------------------------------------
 size_t SSD1306Ascii::strWidth(const char* str) const {
   size_t sw = 0;
@@ -213,6 +237,7 @@ size_t SSD1306Ascii::strWidth(const char* str) const {
   }
   return sw;
 }
+
 //------------------------------------------------------------------------------
 void SSD1306Ascii::tickerInit(TickerState* state, const uint8_t* font,
                               uint8_t row, bool mag2X, uint8_t bgnCol,
@@ -224,6 +249,7 @@ void SSD1306Ascii::tickerInit(TickerState* state, const uint8_t* font,
   state->endCol = endCol < m_displayWidth ? endCol : m_displayWidth - 1;
   state->nQueue = 0;
 }
+
 //------------------------------------------------------------------------------
 bool SSD1306Ascii::tickerText(TickerState* state, const char* text) {
   if (!text) {
@@ -239,6 +265,7 @@ bool SSD1306Ascii::tickerText(TickerState* state, const char* text) {
   state->queue[state->nQueue++] = text;
   return true;
 }
+
 //------------------------------------------------------------------------------
 int8_t SSD1306Ascii::tickerTick(TickerState* state) {
   if (!state->font) {
@@ -299,6 +326,7 @@ int8_t SSD1306Ascii::tickerTick(TickerState* state) {
   }
   return state->nQueue;
 }
+
 //------------------------------------------------------------------------------
 size_t SSD1306Ascii::write(uint8_t ch) {
   if (!m_font) {

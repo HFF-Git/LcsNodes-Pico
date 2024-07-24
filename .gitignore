@@ -5,3 +5,7 @@
 **/.DS_Store
 **/_.DS_Store
 **/._.DS_Store
+LcsLibraries/LcsOledDisplayLib/fonts/allFonts.h
+LcsLibraries/LcsOledDisplayLib/SSD1306Ascii.cpp
+LcsLibraries/LcsOledDisplayLib/SSD1306Ascii.h
+LcsLibraries/LcsOledDisplayLib/SSD1306init.h

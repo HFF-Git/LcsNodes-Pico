@@ -28,9 +28,18 @@
  */
 #ifndef SSD1306Ascii_h
 #define SSD1306Ascii_h
-#include "Arduino.h"
+
+
+// #include "Arduino.h"
+#include <string.h>
+
+#include "LcsCdcLib.h"
+
+
+
 #include "SSD1306init.h"
 #include "fonts/allFonts.h"
+
 //------------------------------------------------------------------------------
 /** SSD1306Ascii version */
 #define SDD1306_ASCII_VERSION 10305
@@ -45,7 +54,7 @@
  * If INCLUDE_SCROLLING is nonzero, the scroll feature will included.
  */
 #ifndef INCLUDE_SCROLLING
-#define INCLUDE_SCROLLING 1
+#define INCLUDE_SCROLLING 0
 #endif  // INCLUDE_SCROLLING
 
 /** Initial scroll mode, SCROLL_MODE_OFF,
@@ -69,7 +78,7 @@
 
 /** Use larger faster I2C code. */
 #ifndef OPTIMIZE_I2C
-#define OPTIMIZE_I2C 1
+#define OPTIMIZE_I2C 0
 #endif  // OPTIMIZE_I2C
 
 /** If MULTIPLE_I2C_PORTS is nonzero,
@@ -108,11 +117,14 @@
  * @param[in] rst Reset pin number.
  */
 inline void oledReset(uint8_t rst) {
+
+  /*
   pinMode(rst, OUTPUT);
   digitalWrite(rst, LOW);
   delay(10);
   digitalWrite(rst, HIGH);
   delay(10);
+  */
 }
 //------------------------------------------------------------------------------
 /**
@@ -140,10 +152,13 @@ struct TickerState {
  * @class SSD1306Ascii
  * @brief SSD1306 base class
  */
-class SSD1306Ascii : public Print {
- public:
-  using Print::write;
-  SSD1306Ascii() {}
+// class SSD1306Ascii : public Print {
+
+class SSD1306Ascii {
+    public:
+    // using Print::write;
+    SSD1306Ascii() {}
+
 #if INCLUDE_SCROLLING
   //----------------------------------------------------------------------------
   /**
@@ -209,6 +224,8 @@ class SSD1306Ascii : public Print {
    */
   uint8_t startLine() const { return m_startLine; }
 #endif  // INCLUDE_SCROLLING
+
+
   //----------------------------------------------------------------------------
   /**
    * @brief Determine the spacing of a character. Spacing is width + space.
@@ -451,9 +468,16 @@ class SSD1306Ascii : public Print {
    * @param[in] str Pointer to String object. Clear queue if nullptr.
    * @return false if queue is full else true.
    */
+  /*
   bool tickerText(TickerState* state, const String& str) {
     return tickerText(state, str.c_str());
   }
+  */
+  bool tickerText(TickerState* state, char *str) {
+    // return tickerText(state, str.c_str());
+    return( false );
+  }
+
   /**
    *  @brief Add text pointer to display queue.
    *

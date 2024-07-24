@@ -27,9 +27,10 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 #include "LcsCdcLib.h"
+#include "LcsOledDisplayLib.h"
 
 #include "SSD1306Ascii.h"
-#include "SSD1306AsciiWire.h"
+
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -161,60 +162,53 @@ UIDisplay::UIDisplay( uint8_t dType ) {
 //------------------------------------------------------------------------------------------------------------
 void  UIDisplay::processTick( ) { }
 
-#if 0
-
 //============================================================================================================
-// UIDisplayI2C Section.
+// UIDisplayLcdI2C Section.
 //============================================================================================================
-
-
-// ??? currently disabled. The Arduino used to have a library already integrated... to do ...
-
-// ??? we will just call outr functions in the LcsLcdDisplay object .... 
-
 
 //------------------------------------------------------------------------------------------------------------
-// LCD with an I2C interface.  Most of the methods to control the LCS display are just inherited from the
-// LiquidCrystal_I2C class. The "setCursor" method is overriden and checks the columns and row offsets first.
+// LCD with an I2C interface.
 //
 //------------------------------------------------------------------------------------------------------------
-UIDisplayLcdI2C::UIDisplayLcdI2C( uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2CAddress ) :
+UIDisplayLcdI2C::UIDisplayLcdI2C(   uint8_t dType, 
+                                    uint8_t sclPin, 
+                                    uint8_t sdaPin, 
+                                    uint8_t I2CAddress ) : UIDisplay( dType ) {
 
-  UIDisplay( dType ), LiquidCrystal_I2C( I2CAddress, maxColumns, maxRows ) {
-
-  // ??? check pins ? do we need pins when we have an I2C interface on other pins ?
-  // ??? use CDC routines...
+  lcd = new LcsLcdDisplay ( maxColumns, maxRows, sclPin, sdaPin, I2CAddress );
 }
 
 void UIDisplayLcdI2C::setCursor( uint8_t col, uint8_t row ) {
 
-  LiquidCrystal_I2C::setCursor((( col > maxColumns ) ? maxColumns : col ),
-                               (( row > maxColumns ) ? maxRows : row ));
+  lcd -> setCursor((( col > maxColumns ) ? maxColumns : col ),
+                    (( row > maxColumns ) ? maxRows : row ));
 }
 
 uint8_t UIDisplayLcdI2C::print( const char *buf ) {
 
-  return ( LiquidCrystal_I2C::print( buf ));
+    while ( *buf != 0 ) {
+
+        lcd -> printChar( *buf );
+        buf ++;
+    }
+
+  return ( 0 );
 }
 
 uint8_t UIDisplayLcdI2C::print( char ch ) {
 
-  return ( UIDisplayLcdI2C::print( ch ));
+  return ( lcd -> printChar( ch ));
 }
 
 void UIDisplayLcdI2C::clear( ) {
 
-  LiquidCrystal_I2C::setCursor( 0, 0 );
-  LiquidCrystal_I2C::clear( );
+  lcd -> setCursor( 0, 0 );
+  lcd -> clear( );
 }
- #endif
 
 //============================================================================================================
-// UIDisplayOledSSD1306 Section.
+// UIDisplayOled Section.
 //============================================================================================================
-
-// ??? this should become more generic ?
-// ??? UIDisplayOled ???
 
 //------------------------------------------------------------------------------------------------------------
 // Oled Version using the SSD1306 controller chip. There is no nice mapping of display function via base
@@ -228,29 +222,27 @@ void UIDisplayLcdI2C::clear( ) {
 //
 // ??? watch out what display HW you really have ... it may otherwise not work...
 //------------------------------------------------------------------------------------------------------------
-UIDisplayOledSSD1306::UIDisplayOledSSD1306(
-  uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2cAddress ) : UIDisplay( dType ) {
+UIDisplayOled::UIDisplayOled(   uint8_t dType, 
+                                uint8_t sclPin, 
+                                uint8_t sdaPin, 
+                                uint8_t I2cAddress ) : UIDisplay( dType ) {
 
-    uint8_t rStat = CDC::configureI2C( sclPin, sdaPin );
+    oled = new LcsOledDisplay( );
 
- // Wire.begin();
- // Wire.setClock(400000L);
+    oled -> begin( &Adafruit128x64, sclPin, sdaPin, I2cAddress );
 
-  oled = new SSD1306AsciiWire( );
-  (( SSD1306AsciiWire * ) oled ) -> begin( &Adafruit128x64, I2cAddress );
+    switch ( dType ) {
 
-  switch ( dType ) {
-
-    case DT_OLED_DISPLAY_128x32_16_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-    case DT_OLED_DISPLAY_128x32_8_2:  oled -> setFont( FontTab[ FT_8x16 ].font );   break;
-    case DT_OLED_DISPLAY_128x64_16_8: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-    case DT_OLED_DISPLAY_128x64_16_4: oled -> setFont( FontTab[ FT_8x16 ].font );   break;
-    case DT_OLED_DISPLAY_128x64_2F_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-    default:                          oled -> setFont( FontTab[ FT_DEF ].font );
-  }
+        case DT_OLED_DISPLAY_128x32_16_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
+        case DT_OLED_DISPLAY_128x32_8_2:  oled -> setFont( FontTab[ FT_8x16 ].font );   break;
+        case DT_OLED_DISPLAY_128x64_16_8: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
+        case DT_OLED_DISPLAY_128x64_16_4: oled -> setFont( FontTab[ FT_8x16 ].font );   break;
+        case DT_OLED_DISPLAY_128x64_2F_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
+        default:                          oled -> setFont( FontTab[ FT_DEF ].font );
+    }
 }
 
-void UIDisplayOledSSD1306::setCursor( uint8_t col, uint8_t row ) {
+void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
 
   uint8_t lCol = (( col > maxColumns ) ? maxColumns : col ) * oled -> fontWidth( );
   uint8_t lRow = row;
@@ -262,7 +254,7 @@ void UIDisplayOledSSD1306::setCursor( uint8_t col, uint8_t row ) {
   oled -> setCursor( lCol, lRow );
 }
 
-void UIDisplayOledSSD1306::setFont( uint8_t fontId ) {
+void UIDisplayOled::setFont( uint8_t fontId ) {
 
   switch ( fontId ) {
 
@@ -273,24 +265,30 @@ void UIDisplayOledSSD1306::setFont( uint8_t fontId ) {
   }
 }
 
-uint8_t UIDisplayOledSSD1306::print( const char *buf ) {
+uint8_t UIDisplayOled::print( const char *buf ) {
 
-  return ( oled -> print( buf ));
+    while ( *buf != 0 ) {
+
+        oled -> write( *buf );
+        buf ++;
+    }
+
+  return ( 1 );
 }
 
-uint8_t UIDisplayOledSSD1306::print( char ch ) {
+uint8_t UIDisplayOled::print( char ch ) {
 
-  return ( oled -> print( ch ));
+  return ( oled -> write( ch ));
 }
 
-void UIDisplayOledSSD1306::clear( ) {
+void UIDisplayOled::clear( ) {
 
   oled -> setCursor( 0, 0 );
   oled -> clear( );
 }
 
-void UIDisplayOledSSD1306::clearLine( uint8_t row ) {
+void UIDisplayOled::clearLine( uint8_t row ) {
 
   setCursor( 0, row );
-  for ( int i = 0; i < maxColumns; i++ ) oled -> print((char *) " " );
+  for ( int i = 0; i < maxColumns; i++ ) oled -> write( ' ' );
 }
