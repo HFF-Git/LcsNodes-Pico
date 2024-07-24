@@ -27,7 +27,8 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#include "CabHandheld.h"
+#include "LcsCdcLib.h"
+#include "LcsBasicThrottle.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Global variables.
@@ -66,7 +67,7 @@ uint8_t setupCabStack( ) {
 
   cabStack -> printCabSlots( );
 
-  return ( ALL_OK );
+  return ( LCS::ALL_OK );
 }
 
 
@@ -105,13 +106,13 @@ uint8_t CabEntry::dccSpeedAndDirectionByte( ) {
 //------------------------------------------------------------------------------------------------------------
 bool CabEntry::getDccFuncState( uint8_t fNum ) {
 
-  return (( isInRange( fNum, MIN_DCC_FUNC_ID, MAX_DCC_FUNC_ID )) ?
+  return (( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) ?
           (( dccFuncState[ fNum / 8 ] >> ( 7 - ( fNum & 0x7 )) & 0x1 )) : false );
 }
 
 void CabEntry::setDccFuncState( uint8_t fNum, bool val ) {
 
-  if ( isInRange( fNum, MIN_DCC_FUNC_ID, MAX_DCC_FUNC_ID )) {
+  if ( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) {
 
     if ( val )  dccFuncState[ fNum / 8 ] |= 1 << ( 7 - ( fNum & 0x7 ));
     else        dccFuncState[ fNum / 8 ] &= ( ~ ( 1 << ( 7 - ( fNum & 0x7 ))));
@@ -182,10 +183,10 @@ char CabEntry::getEngineTypeChar( ) {
 
   switch ( engineType ) {
 
-    case LOC_T_NIL:       return ( '-' );
-    case LOC_T_STEAM:     return ( 'S' );
-    case LOC_T_DIESEL:    return ( 'D' );
-    case LOC_T_ELECTRIC:  return ( 'E' );
+    case LCS::LOC_T_NIL:       return ( '-' );
+    case LCS::LOC_T_STEAM:     return ( 'S' );
+    case LCS::LOC_T_DIESEL:    return ( 'D' );
+    case LCS::LOC_T_ELECTRIC:  return ( 'E' );
     default:              return ( '-' );
   }
 }
@@ -263,40 +264,25 @@ uint8_t CabEntry::setDataByItem( uint8_t item, uint16_t arg ) {
 //------------------------------------------------------------------------------------------------------------
 void CabEntry::printCabEntry( ) {
 
-  INTERFACE.print( F( "Cab Id: " ));
-  INTERFACE.print( cabId );
-  INTERFACE.print( F( ", " ));
-  INTERFACE.print( getEngineTypeChar( ));
-  INTERFACE.print( F( ", sId: " ));
-  INTERFACE.print( sessionId );
-  INTERFACE.print( F( ", sState: " ));
-  INTERFACE.print( sessionState );
-  INTERFACE.print( F( ", speed: " ));
-  INTERFACE.print( speed );
-  INTERFACE.print( F( ", dir: " ));
-  INTERFACE.println( direction );
+    printf( "Cab Id: %d, %c, sId: %d, sState: %d, speed: %d, dir: %d \n", 
+    cabId, getEngineTypeChar( ), sessionId, sessionState, speed, direction );
 
-  INTERFACE.print( F( "DccFunc: " ));
-  for ( int i = 0; i < MAX_FUNC_STATE_SIZE; i++ ) {
+    printf( "DccFunc: " );
 
-    INTERFACE.print( F( " 0x" ));
-    INTERFACE.print( dccFuncState[ i ], HEX );
-    INTERFACE.print( F( " " ));
-  }
+    for ( int i = 0; i < MAX_FUNC_STATE_SIZE; i++ ) {
 
-  INTERFACE.println( );
+        printf( "0x%x ", dccFuncState[ i ] );
+    }
 
-  INTERFACE.print( F( "CabFunc Id: " ));
-  for ( int i = 0; i < MAX_CAB_FUNC_ENTRIES; i++ ) {
+    printf( "\n" );
+    printf( "CabFunc Id: " );
 
-    INTERFACE.print( i + 1 );
-    INTERFACE.print( F( ": 0x" ));
-    INTERFACE.print( cabFuncIdMap[ i ], HEX );
-    INTERFACE.print( F( " " ));
-  }
+    for ( int i = 0; i < MAX_CAB_FUNC_ENTRIES; i++ ) {
 
-  INTERFACE.println( );
-  INTERFACE.println( );
+        printf( "%d: 0x%x ", cabFuncIdMap[ i ] );
+    }
+
+    printf( "\n\n" );
 }
 
 
@@ -345,7 +331,7 @@ uint8_t CabStack::loadCabSlotsFromNVM( ) {
 
   // ??? to do ...
 
-  return( ALL_OK );
+  return( LCS::ALL_OK );
 }
 
 uint8_t CabStack::updateCabSlotInNVM( int index ) {
@@ -355,7 +341,7 @@ uint8_t CabStack::updateCabSlotInNVM( int index ) {
     // ??? to do ...
   }
 
-  return( ALL_OK );
+  return( LCS::ALL_OK );
 }
 
 uint8_t CabStack::getMaxEntries( ) {

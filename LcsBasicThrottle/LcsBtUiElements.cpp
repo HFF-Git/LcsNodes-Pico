@@ -28,7 +28,7 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#include "CabHandheld.h"
+#include "LcsBasicThrottle.h"
 
 //------------------------------------------------------------------------------------------------------------
 // File local decarations.
@@ -54,7 +54,6 @@ namespace {
 //
 //------------------------------------------------------------------------------------------------------------
 UIDisplay     *oled                       = nullptr;
-//LcsPioLib     *pio                        = nullptr;
 
 UIButton      *upButton                   = nullptr;
 UIButton      *downButton                 = nullptr;
@@ -123,7 +122,7 @@ uint8_t setupIOPins( ) {
 #error CANNOT COMPILE - specify the Atmega1284 or PICO LCS main controller board pins
   #endif
 
-  return ( ALL_OK );
+  return ( LCS::ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -134,19 +133,6 @@ uint8_t setupIOPins( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 bool getData( uint8_t hwId ) {
-
-  #if defined  ( __AVR_ATmega1284P__ )
-
-  #if 0
-  INTERFACE.print( "get data: " );
-  INTERFACE.print( hwId );
-  INTERFACE.print( " -> " );
-  INTERFACE.println( pio -> readDio( hwId ) == HIGH );
-  #endif
-
-  return ( pio -> readDio( hwId ) == HIGH );
-
-  #elif defined ( ARDUINO_ARCH_RP2040 )
 
   #if 0
   INTERFACE.print( "get data: " );
@@ -160,9 +146,6 @@ bool getData( uint8_t hwId ) {
   else
     return ( CDC::readDio( hwId ) == LOW );
 
-  #else
-#error CANNOT COMPILE - specify the Atmega1284 or PICO LCS main controller board pins
-  #endif
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -215,25 +198,12 @@ uint8_t createUIElements( ) {
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
 
-  #if defined  ( __AVR_ATmega1284P__ )
-
-  oled = new UIDisplayOledSSD1306 ( DT_OLED_DISPLAY_128x64_2F_4,
-                                    cfg.I2C_SCL_PIN_0,
-                                    cfg.I2C_SDA_PIN_0,
-                                    DISPLAY_I2C_ADR );
-
-  #elif defined ( ARDUINO_ARCH_RP2040 )
-
   oled = new UIDisplayOledSSD1306 ( DT_OLED_DISPLAY_128x64_2F_4,
                                     cfg.I2C_SCL_PIN_0,
                                     cfg.I2C_SDA_PIN_0,
                                     cfg.I2C_ADR_0 );
 
-  #else
-#error CANNOT COMPILE - specify the Atmega1284 or PICO LCS main controller board pins
-  #endif
-
-  return ( ALL_OK );
+  return ( LCS::ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------

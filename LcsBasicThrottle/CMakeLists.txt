@@ -20,15 +20,15 @@ if ( TARGET tinyusb_device )
 
     add_executable( ${PROJECT_NAME} 
     
-         main.cpp 
-        #  LcsBasicThrottle.h 
-        #  LcsBtCabStack.cpp 
-        #  LcsBtMsgInterface.cpp 
-        #  LcsBtScreens.cpp 
-        #  LcsBtUIELments.cpp 
+        main.cpp 
+        LcsBasicThrottle.h 
+       # LcsBtCabStack.cpp 
+       # LcsBtMsgInterface.cpp 
+       # LcsBtScreens.cpp 
+       # LcsBtUIElements.cpp 
     )
     
-    target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
+    target_link_libraries( ${PROJECT_NAME} LcsUIElementsLib LcsRuntimeLib LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )

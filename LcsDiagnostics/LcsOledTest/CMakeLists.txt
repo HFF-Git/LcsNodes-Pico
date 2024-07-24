@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------------------------------------
-#  LCS - I2C Scanner cmake file at the LcsI2CScanner directory level
+#  LCS - OLED Display Quick test
 #
 #  Copyright (C) 2024 - 2024  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
@@ -9,17 +9,17 @@
 # ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
-project( LcsI2CScanner C CXX ASM )
+project( LcsOledTest C CXX ASM )
 
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsCdcLib ) 
+    include_directories( LcsUIElementsLib LcsCdcLib ) 
 
     add_executable( ${PROJECT_NAME} main.cpp )
-    target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
+    target_link_libraries( ${PROJECT_NAME} LcsUIElementsLib LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )
@@ -41,7 +41,7 @@ if ( TARGET tinyusb_device )
 
 elseif ( PICO_ON_DEVICE ) 
 
-    message(WARNING "${PROJECT_NAME} not build test because tinyUSB submodule is not iniialized in the SDK")
+    message(WARNING "not build test because tinyUSB submodule is not initialized in the SDK")
 
 endif( )
     

@@ -51,6 +51,17 @@ uint8_t initCdcLib( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
+// Configure the two I2C channels.
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t configI2C( uint8_t sclPin, uint8_t sdaPin ) {
+
+  printf( "Configuring the I2C Bus, slcPin: %d, sdpaPin: %d\n", sclPin, sdaPin );
+
+  return( CDC::configureI2C( sclPin, sdaPin ));
+}
+
+//----------------------------------------------------------------------------------------------------------
 // "scanI2CBus" is the loop through all possible I2C adresses in an I2C bus. If a valid one is found, the 
 // adress is printed.
 //
@@ -71,7 +82,7 @@ void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
     if ( rStat == 0 ) {
 
       printf( "I2C device found at i2cAdr 0x%x\n", i2cAdr );
-
+      nDevices ++;
     }
   }
 
@@ -88,13 +99,27 @@ int main( ) {
 
   uint8_t rStat = initCdcLib( ); 
 
+  CDC::sleepMillis( 5000 );
+
   if ( rStat != 0 ) {
     
     printf( "Init CDC Library, Err code: %d\n", rStat );
     return( -1 );
   }
 
-  int scanCount = 0;
+  rStat = configI2C( cfg.NVM_I2C_SCL_PIN, cfg.NVM_I2C_SDA_PIN );
+  if ( rStat != CDC::ALL_OK ) {
+
+    printf( "Configuring NVM I2C, error: %d\n", rStat );
+  }
+
+  rStat = configI2C( cfg.EXT_I2C_SCL_PIN, cfg.EXT_I2C_SDA_PIN );
+  if ( rStat != CDC::ALL_OK ) {
+
+    printf( "Configuring EXT I2C, error: %d\n", rStat );
+  }
+
+  int scanCount = 0;  
   
   while( true ) {
 

@@ -45,7 +45,7 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#include "CabHandheld.h"
+#include "LcsBasicThrottle.h"
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.
@@ -323,7 +323,7 @@ uint8_t setupScreens( ) {
   setFunctionSelectScreen     -> append( setFunctionOperateScreen );
   configFunctionSelectScreen  -> append( configFunctionEditScreen );
 
-  return ( ALL_OK );
+  return ( LCS::ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -489,8 +489,8 @@ void OperateScreen::enterScreen( bool init ) {
 
   showCabData( );
 
-  encoder -> setLimits( MIN_DCC_SPEED, MAX_DCC_SPEED );
-  encoder -> setPosition( MIN_DCC_SPEED );
+  encoder -> setLimits( LCS::MIN_DCC_SPEED, LCS::MAX_DCC_SPEED );
+  encoder -> setPosition( LCS::MIN_DCC_SPEED );
 }
 
 void OperateScreen::buttonClick( UIButton *buttonObj ) {
@@ -583,7 +583,7 @@ void OperateScreen::encoderPosChange( UIEncoder *encoderObj ) {
 
 void OperateScreen::showCabData( ) {
 
-  if ( cabStack -> currentCab.getCabId( ) != NIL_CAB_ID ) {
+  if ( cabStack -> currentCab.getCabId( ) != LCS::NIL_CAB_ID ) {
 
     printFieldStr( 0, 2, FT_8x16, "Cab: %04d %c",
                    cabStack -> currentCab.getCabId( ),
@@ -734,7 +734,7 @@ void SelectCabScreen::selectButtonClick( UIButton *buttonObj ) {
 
 void SelectCabScreen::showScreenData( int index ) {
 
-  if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != NIL_CAB_ID ) {
+  if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != LCS::NIL_CAB_ID ) {
 
     printFieldStr( 0, 2, FT_8x16, "Cab: %04d", cabStack -> cabSlots[ index - 1 ].getCabId( ));
   }
@@ -776,7 +776,7 @@ void SaveCabScreen::selectButtonClick( UIButton *buttonObj ) {
 
 void SaveCabScreen::showScreenData( int index ) {
 
-  if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != NIL_CAB_ID ) {
+  if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != LCS::NIL_CAB_ID ) {
 
     printFieldStr( 0, 2, FT_8x16, "Cab: %04d", cabStack -> cabSlots[ index - 1 ].getCabId( ));
   }
@@ -891,7 +891,7 @@ void NewCabScreen::selectButtonClick( UIButton * buttonId ) {
 
   uint8_t rStat = msgBus -> requestLocoSession( currentCab );
 
-  if ( rStat == ALL_OK ) {
+  if ( rStat == LCS::ALL_OK ) {
 
     UIScreen::setCurrentScreen( operateScreen );
   }
@@ -1063,8 +1063,8 @@ ConfigFunctionEditScreen::ConfigFunctionEditScreen( UIEncoder *encoder ) : Scrol
 
 void ConfigFunctionEditScreen::enterScreen( bool init ) {
 
-  low           = MIN_DCC_FUNC_ID;
-  high          = MAX_DCC_FUNC_ID;
+  low           = LCS::MIN_DCC_FUNC_ID;
+  high          = LCS::MAX_DCC_FUNC_ID;
 
   ScrollableScreen::enterScreen( init );
   printTitle( SCR_TX_CONFIG_FUNC );

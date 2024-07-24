@@ -117,7 +117,7 @@ namespace {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-LcsOledDisplay::LcsOledDisplay( ) { }
+LcsOledDisplay::LcsOledDisplay( ) {  }
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -135,6 +135,13 @@ uint8_t LcsOledDisplay::begin(  const DevType*  dev,
     this -> i2cAdr = i2cAdr;
     this -> rstPin = rstPin;
 
+
+            CDC::sleepMillis( 2000 );
+
+    // ??? into a debug bracket ?
+    printf( "Oled Display begin: sclPin: %d, sdaPin: %d, i2cAdr: 0x%x, rstPin: %d\n ", 
+            sclPin, sdaPin, i2cAdr, rstPin );
+
     uint8_t rStat;
 
     rStat = CDC::configureI2C( sclPin, sdaPin );
@@ -149,7 +156,6 @@ uint8_t LcsOledDisplay::begin(  const DevType*  dev,
         CDC::sleepMillis( 10 );
         CDC::writeDio( rstPin, true );
         CDC::sleepMillis( 10 );
-
     }
 
     init( dev );
@@ -203,15 +209,10 @@ void LcsOledDisplay::writeDisplay( uint8_t b, uint8_t mode ) {
     buf[ 0 ] = ( mode == SSD1306_MODE_CMD ) ? 0X00 : 0X40;
     buf[ 1 ] = b;
 
-    uint8_t rStat = CDC::i2cWrite( sclPin, i2cAdr, &b, 2 );     
-    
-    /*
-        m_oledWire.beginTransmission(m_i2cAddr);
-        m_oledWire.write(mode == SSD1306_MODE_CMD ? 0X00 : 0X40);
-        m_oledWire.write(b);
-        m_oledWire.endTransmission();
-    */
+   uint8_t rStat = CDC::i2cWrite( sclPin, i2cAdr, buf, 2 );
 
+    // ??? into a debug bracket ?
+   if ( rStat != CDC::ALL_OK ) printf( "Error in writing to display: %d\n", rStat );
 }
 
   

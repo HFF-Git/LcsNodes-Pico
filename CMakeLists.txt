@@ -26,6 +26,7 @@ set( CMAKE_CXX_STANDARD 17 )
 add_subdirectory( LcsDiagnostics/LcsCdcLib-Test )
 add_subdirectory( LcsDiagnostics/LcsRuntimeLib-Test )
 add_subdirectory( LcsDiagnostics/LcsI2CScanner )
+add_subdirectory( LcsDiagnostics/LcsOledTest )
 
 add_subdirectory( LcsBaseStation )
 add_subdirectory( LcsBlockController )
@@ -38,9 +39,7 @@ add_subdirectory( LcsLibraries/LcsDccPktFmtLib )
 add_subdirectory( LcsLibraries/LcsDrvOccDetectLib )
 add_subdirectory( LcsLibraries/LcsDrvServoLib )
 add_subdirectory( LcsLibraries/LcsRuntimeLib )
-
-# under construction ...
 add_subdirectory(LcsLibraries/LcsUIElementsLib)
 add_subdirectory(LcsLibraries/LcsLcdDisplayLib)
 add_subdirectory(LcsLibraries/LcsOledDisplayLib)
-# 
+

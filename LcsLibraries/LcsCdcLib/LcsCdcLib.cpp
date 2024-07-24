@@ -141,7 +141,7 @@ namespace {
   const uint8_t  MAX_UART_BUF_SIZE          = 8;
 
   const uint32_t I2C_FREQUENCY              = 100 * 1000;
-  const uint32_t I2C_TIME_OUT_IN_MS         = 25;
+  const uint32_t I2C_TIME_OUT_IN_MS         = 250;
 
   const uint32_t SPI_FREQUENCY              = 10000000L;
 
@@ -455,8 +455,8 @@ namespace {
     tmp.NVM_I2C_SCL_PIN     = CDC::UNDEFINED_PIN;
     tmp.NVM_I2C_SDA_PIN     = CDC::UNDEFINED_PIN;
 
-    tmp.EXT_I2C_SCL_PIN     = CDC::UNDEFINED_PIN;
-    tmp.EXT_I2C_SDA_PIN     = CDC::UNDEFINED_PIN;
+    tmp.EXT_I2C_SCL_PIN     = 17;
+    tmp.EXT_I2C_SDA_PIN     = 16;
 
     tmp.CAN_BUS_RX_PIN      = CDC::UNDEFINED_PIN;
     tmp.CAN_BUS_TX_PIN      = CDC::UNDEFINED_PIN;
@@ -1102,7 +1102,6 @@ uint8_t CDC::configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
 
     i2c = &CdcI2C0;
     i2c -> i2cHw = i2c0;
-
   }
   else if ((( 1 << sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
@@ -1115,6 +1114,7 @@ uint8_t CDC::configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
   i2c -> sdaPin       = sdaPin;
   i2c -> baudRate     = baudRate;
   i2c -> timeoutValMs = I2C_TIME_OUT_IN_MS;
+  i2c -> configured   = true;
 
   i2c_init( i2c -> i2cHw, i2c -> baudRate );
   i2c_set_slave_mode( i2c -> i2cHw, false, 0 );
@@ -1139,8 +1139,12 @@ uint8_t CDC::i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len,
                                        i2cAdr,
                                        buf,
                                        len,
-                                       !stopBit,
+                                       stopBit,
                                        make_timeout_time_ms( i2c -> timeoutValMs ));
+
+  // ??? candidate for a debug level ?
+  // if ( stat == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
+  // if ( stat == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
 
   if (( stat == PICO_ERROR_GENERIC ) || ( stat == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
  
@@ -1159,8 +1163,13 @@ uint8_t CDC::i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len
                                        i2cAdr,
                                        buf,
                                        len,
-                                       !stopBit,
+                                       stopBit,
                                        make_timeout_time_ms( i2c -> timeoutValMs ));
+
+  // ??? candidate for a debug level ?
+  if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
+  if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
+  if ( ret != len ) printf( "I2C write, PICO write len error, was: %d, is: %d\n", len, ret );
 
   if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
 

@@ -197,7 +197,8 @@ uint8_t UIDisplayLcdI2C::print( const char *buf ) {
 
 uint8_t UIDisplayLcdI2C::print( char ch ) {
 
-  return ( lcd -> printChar( ch ));
+  lcd -> printChar( ch );
+  return( 0 );
 }
 
 void UIDisplayLcdI2C::clear( ) {
@@ -229,7 +230,8 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
 
     oled = new LcsOledDisplay( );
 
-    oled -> begin( &Adafruit128x64, sclPin, sdaPin, I2cAddress );
+   // oled -> begin( &Adafruit128x64, sclPin, sdaPin, I2cAddress );
+   oled -> begin( &SH1106_128x64, sclPin, sdaPin, I2cAddress );
 
     switch ( dType ) {
 

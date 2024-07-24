@@ -36,10 +36,9 @@
 #ifndef CabHandheld_h
 #define Cabhandheld_h
 
-// #include "LcsCdcLib.h"
-#include "LcsRtLib.h"
-// #include "LcsPioLib.h"
-#include "UIElements.h"
+#include "LcsCdcLib.h"
+#include "LcsRuntimeLib.h"
+#include "LcsUIElements.h"
 
 //------------------------------------------------------------------------------------------------------------
 // There are plenty of defines... some will go away after the design stabilizes....
@@ -54,26 +53,7 @@
 // to ports on the MCP23017. On the PICO, the hwIds are directly pins on the controller itself.
 //
 //-----------------------------------------------------------------------------------------------------------
-#if defined  ( __AVR_ATmega1284P__ )
-
-const uint8_t   MENU_BUTTON_ID     = 11; // PB3
-const uint8_t   SELECT_BUTTON_ID   = 10; // PB2
-const uint8_t   UP_BUTTON_ID       = 8;  // PB0
-const uint8_t   DOWN_BUTTON_ID     = 9;  // PB1
-const uint8_t   HORN_BUTTON_ID     = 2;  // PA2
-const uint8_t   BELL_BUTTON_ID     = 1;  // PA1
-const uint8_t   FWD_BUTTON_ID      = 4;  // PA4
-const uint8_t   REV_BUTTON_ID      = 3;  // PA5
-const uint8_t   F1_BUTTON_ID       = 15; // PB7
-const uint8_t   F2_BUTTON_ID       = 14; // PB6
-const uint8_t   F3_BUTTON_ID       = 13; // PB5
-const uint8_t   F4_BUTTON_ID       = 12; // PB4
-const uint8_t   ENCODER_BUTTON_ID  = 7;  // PA7
-
-const uint8_t   ENCODER_ID_A       = 6;  // PA6
-const uint8_t   ENCODER_ID_B       = 5;  // PA5
-
-#elif defined ( ARDUINO_ARCH_RP2040 )
+// ??? should go into CDC Config ?
 
 const uint8_t   MENU_BUTTON_ID     = 6; 
 const uint8_t   SELECT_BUTTON_ID   = 8; 
@@ -91,10 +71,6 @@ const uint8_t   ENCODER_BUTTON_ID  = 14;
 
 const uint8_t   ENCODER_ID_A       = 12;   
 const uint8_t   ENCODER_ID_B       = 13;  
-
-#else
-#error CANNOT COMPILE - specify the Atmega1284 or PICO LCS main controller board pins
-#endif
 
 //------------------------------------------------------------------------------------------------------------
 // Default CanBus Id. The CBUS standard defines devices that have a fixed node and also a fixed can bus id.
@@ -157,7 +133,7 @@ struct CabEntry {
 
   public:
 
-    void          reset( uint16_t cabId = NIL_CAB_ID );
+    void          reset( uint16_t cabId = LCS::NIL_CAB_ID );
 
     uint8_t       getSessionId( );
     void          setSessionId( uint8_t id );
@@ -198,11 +174,11 @@ struct CabEntry {
 
     uint16_t      flags                                         = 0;
 
-    uint8_t       sessionId                                     = NIL_LOCO_SESSION_ID;
+    uint8_t       sessionId                                     = LCS::NIL_LOCO_SESSION_ID;
     uint8_t       sessionState                                  = 0;
 
-    uint16_t      cabId                                         = NIL_CAB_ID;
-    uint8_t       engineType                                    = LOC_T_NIL;
+    uint16_t      cabId                                         = LCS::NIL_CAB_ID;
+    uint8_t       engineType                                    = LCS::LOC_T_NIL;
     uint8_t       speed                                         = 0;
     uint8_t       direction                                     = 0;
 
@@ -586,8 +562,7 @@ struct TestUIScreen : CabHandheldScreen {
 //
 // ??? only the opnes actually neded are listed here...
 //------------------------------------------------------------------------------------------------------------
-extern CDC::CdcConfigInfo     cfg;
-extern LcsCoreLib             *lcsLib;
+extern CDC::CdcPinConfig      cfg;
 extern UIDisplay              *oled;
 extern UIEncoder              *encoder;
 extern CabStack               *cabStack;

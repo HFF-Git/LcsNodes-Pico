@@ -125,12 +125,14 @@ uint8_t SSD1306Ascii::fontWidth() const {
 void SSD1306Ascii::init(const DevType* dev) {
   m_col = 0;
   m_row = 0;
+
 #ifdef __AVR__
   const uint8_t* table =
       reinterpret_cast<const uint8_t*>(pgm_read_word(&dev->initcmds));
 #else   // __AVR__
   const uint8_t* table = dev->initcmds;
 #endif  // __AVR
+
   uint8_t size = readFontByte(&dev->initSize);
   m_displayWidth = readFontByte(&dev->lcdWidth);
   m_displayHeight = readFontByte(&dev->lcdHeight);

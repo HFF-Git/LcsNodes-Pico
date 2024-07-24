@@ -9,3 +9,4 @@ LcsLibraries/LcsOledDisplayLib/fonts/allFonts.h
 LcsLibraries/LcsOledDisplayLib/SSD1306Ascii.cpp
 LcsLibraries/LcsOledDisplayLib/SSD1306Ascii.h
 LcsLibraries/LcsOledDisplayLib/SSD1306init.h
+/LcsDiagnostics/Playground
