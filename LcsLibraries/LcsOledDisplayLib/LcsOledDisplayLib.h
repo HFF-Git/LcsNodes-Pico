@@ -35,6 +35,17 @@
 
 #include "LcsCdcLib.h"
 #include "SSD1306Ascii.h"
+#include "fonts/allFonts.h"
+
+
+enum OledDevType : uint8_t {
+
+    ODT_OLED_DISPLAY_NIL            = 0,
+    ODT_OLED_DISPLAY_128x32_SSD1306 = 1,
+    ODT_OLED_DISPLAY_128x64_SSD1306 = 2,
+    ODT_OLED_DISPLAY_128x64_SH1106  = 3
+
+};
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -45,30 +56,40 @@ struct LcsOledDisplay : public SSD1306Ascii {
 
     LcsOledDisplay( );
 
-    uint8_t begin(  const DevType*  dev, 
-                    uint8_t         sclPin, 
-                    uint8_t         sdaPin, 
-                    uint8_t         i2cAddr, 
-                    uint8_t         rstPin = CDC::UNDEFINED_PIN );
+    uint8_t begin(  uint8_t     devType, 
+                    uint8_t     sclPin, 
+                    uint8_t     sdaPin, 
+                    uint8_t     i2cAddr, 
+                    uint8_t     rstPin = CDC::UNDEFINED_PIN );
 
-    /*
-    void    setCursor( uint8_t col, uint8_t row );
-    void    setFont( uint8_t fontId );
-    uint8_t print( const char *s );
-    uint8_t print( char ch );
-    void    clear( );
-    void    clearLine( uint8_t row );
-    */
 
-private:
 
-    void writeDisplay( uint8_t b, uint8_t mode );
+    void            displayOn( );
+    void            displayOff( );
+   
 
-    uint8_t i2cAdr = CDC::UNDEFINED_PIN;
-    uint8_t sclPin = CDC::UNDEFINED_PIN;
-    uint8_t sdaPin = CDC::UNDEFINED_PIN;
-    uint8_t rstPin = CDC::UNDEFINED_PIN;
+    private:
 
+    void            setupDevType( uint8_t dType );
+    void            writeDisplay( uint8_t b, uint8_t mode );
+
+    uint8_t         i2cAdr = CDC::UNDEFINED_PIN;
+    uint8_t         sclPin = CDC::UNDEFINED_PIN;
+    uint8_t         sdaPin = CDC::UNDEFINED_PIN;
+    uint8_t         rstPin = CDC::UNDEFINED_PIN;
+
+    uint8_t         m_col;                      // Cursor column.
+    uint8_t         m_row;                      // Cursor RAM row.
+    uint8_t         m_displayWidth;             // Display width.
+    uint8_t         m_displayHeight;            // Display height.
+    uint8_t         m_colOffset;                // Column offset RAM to SEG.
+    uint8_t         m_letterSpacing;            // Letter-spacing in pixels.
+                                                // INCLUDE_SCROLLING
+    uint8_t         m_skip = 0;
+    
+    uint8_t         m_invertMask = 0;           // font invert mask
+    uint8_t         m_magFactor = 1;            // Magnification factor.
+    const uint8_t   *m_font = nullptr;          // Current font.
 };
 
 

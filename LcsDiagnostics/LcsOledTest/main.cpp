@@ -75,14 +75,24 @@ int main( ) {
     while ( true ) {
 
         oled -> setCursor( 1,1 );
-        oled -> print( 'F' );
+        oled -> print( "FH" );
 
         CDC::sleepMillis( 1000 );
 
         oled -> setCursor( 1,1 );
+        oled -> print( "HF" );
+
+        CDC::sleepMillis( 1000 );
+
+        oled -> setCursor( 2,1 );
+        oled -> print( 'F' );
+
+        CDC::sleepMillis( 1000 );
+
+        oled -> setCursor( 2,1 );
         oled -> print( 'H' );
 
-         CDC::sleepMillis( 1000 );
+        CDC::sleepMillis( 1000 );
     }
 
     return( 0 );

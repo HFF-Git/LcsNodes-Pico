@@ -178,6 +178,16 @@ UIDisplayLcdI2C::UIDisplayLcdI2C(   uint8_t dType,
   lcd = new LcsLcdDisplay ( maxColumns, maxRows, sclPin, sdaPin, I2CAddress );
 }
 
+void UIDisplayLcdI2C::displayOn( ) {
+
+  lcd -> displayOn( );
+}
+
+void UIDisplayLcdI2C::displayOff( ) {
+
+  lcd -> displayOff( );
+}
+
 void UIDisplayLcdI2C::setCursor( uint8_t col, uint8_t row ) {
 
   lcd -> setCursor((( col > maxColumns ) ? maxColumns : col ),
@@ -230,8 +240,7 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
 
     oled = new LcsOledDisplay( );
 
-   // oled -> begin( &Adafruit128x64, sclPin, sdaPin, I2cAddress );
-   oled -> begin( &SH1106_128x64, sclPin, sdaPin, I2cAddress );
+   oled -> begin( ODT_OLED_DISPLAY_128x64_SH1106, sclPin, sdaPin, I2cAddress );
 
     switch ( dType ) {
 
@@ -242,6 +251,16 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
         case DT_OLED_DISPLAY_128x64_2F_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
         default:                          oled -> setFont( FontTab[ FT_DEF ].font );
     }
+}
+
+void UIDisplayOled::displayOn( ) {
+
+  oled -> displayOn( );
+}
+
+void UIDisplayOled::displayOff( ) {
+
+  oled -> displayOff( );
 }
 
 void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {

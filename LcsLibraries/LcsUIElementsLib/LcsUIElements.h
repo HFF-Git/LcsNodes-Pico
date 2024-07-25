@@ -55,17 +55,6 @@
 #ifndef UI_ELEMENTS_h
 #define UI_ELEMENTS_h
 
-/*
-//------------------------------------------------------------------------------------------------------------
-// Arduino and common include files.
-//------------------------------------------------------------------------------------------------------------
-#include <limits.h>
-#include <arduino.h>
-#include <LiquidCrystal.h>
-#include <LiquidCrystal_I2C.h>
-#include "SSD1306AsciiWire.h"
-*/
-
 //------------------------------------------------------------------------------------------------------------
 // Include files.
 //
@@ -95,6 +84,8 @@ const uint8_t INVALID_PIN      = 255;
 //
 // ??? perhaps rethink this one. We could always think in units of 8 pixels and do the math what to say for
 // row and column at caller level.
+//
+// ??? this needs to map to what we have for OLED and LCD...
 //------------------------------------------------------------------------------------------------------------
 enum DisplayType : uint8_t {
 
@@ -118,6 +109,7 @@ enum DisplayType : uint8_t {
 // OLED displays feature a set of fonts. A small set of all possible fonts is available for the OLED display.
 // The font type is meaningless for thw LCD displays, they have only one character set.
 //
+// ??? rather put in OLED display ?
 //------------------------------------------------------------------------------------------------------------
 enum FontType : uint8_t {
 
@@ -344,6 +336,8 @@ struct UIDisplay : UIElements {
 
     UIDisplay( uint8_t dType );
 
+    virtual void    displayOn( )                            = 0;
+    virtual void    displayOff( )                           = 0;
     virtual void    setCursor( uint8_t col, uint8_t row )   = 0;
     virtual void    setFont( uint8_t fontId )               = 0;
     virtual uint8_t print( const char *s )                  = 0;
@@ -371,6 +365,8 @@ struct UIDisplayLcdI2C : public UIDisplay {
 
     UIDisplayLcdI2C( uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2CAddress = 0x27 );
 
+    void    displayOn( );
+    void    displayOff( );
     void    setCursor( uint8_t col, uint8_t row );
     uint8_t print( const char *s );
     uint8_t print( char ch );
@@ -393,6 +389,8 @@ struct UIDisplayOled : public UIDisplay {
 
     UIDisplayOled( uint8_t dType, uint8_t sclPin, uint8_t sdaPin, uint8_t I2cAddress = 0x3C );
 
+    void    displayOn( );
+    void    displayOff( );
     void    setCursor( uint8_t col, uint8_t row );
     void    setFont( uint8_t fontId );
     uint8_t print( const char *s );

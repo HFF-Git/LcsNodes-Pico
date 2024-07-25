@@ -40,28 +40,11 @@
 #include "SSD1306init.h"
 #include "fonts/allFonts.h"
 
+
 //------------------------------------------------------------------------------
 /** SSD1306Ascii version */
 #define SDD1306_ASCII_VERSION 10305
-//------------------------------------------------------------------------------
-// Configuration options.
-/** Set Scrolling mode for newline.
- *
- * If INCLUDE_SCROLLING is defined to be zero, newline will not scroll
- * the display and code for scrolling will not be included.  This option
- * will save some code space and three bytes of RAM.
- *
- * If INCLUDE_SCROLLING is nonzero, the scroll feature will included.
- */
-#ifndef INCLUDE_SCROLLING
-#define INCLUDE_SCROLLING 0
-#endif  // INCLUDE_SCROLLING
 
-/** Initial scroll mode, SCROLL_MODE_OFF,
-    SCROLL_MODE_AUTO, or SCROLL_MODE_APP. */
-#ifndef INITIAL_SCROLL_MODE
-#define INITIAL_SCROLL_MODE SCROLL_MODE_OFF
-#endif  // INITIAL_SCROLL_MODE
 
 /**
  * If ENABLE_NONFONT_SPACE is nonzero, a space of width FONT_WIDTH will
@@ -71,37 +54,7 @@
 #define ENABLE_NONFONT_SPACE 1
 #endif  // ENABLE_NONFONT_SPACE
 
-/** Dimension of TickerState pointer queue */
-#ifndef TICKER_QUEUE_DIM
-#define TICKER_QUEUE_DIM 6
-#endif  // TICKER_QUEUE_DIM
 
-/** Use larger faster I2C code. */
-#ifndef OPTIMIZE_I2C
-#define OPTIMIZE_I2C 0
-#endif  // OPTIMIZE_I2C
-
-/** If MULTIPLE_I2C_PORTS is nonzero,
-    define a constructor with port selection. */
-#ifdef __AVR__
-// Save memory on AVR. Set nonzero to use alternate I2C or software I2c on AVR.
-#define MULTIPLE_I2C_PORTS 0
-#else  // __AVR__
-#define MULTIPLE_I2C_PORTS 1
-#endif  // __AVR__
-
-/** AvrI2c uses 400 kHz fast mode if AVRI2C_FASTMODE is nonzero else 100 kHz. */
-#ifndef AVRI2C_FASTMODE
-#define AVRI2C_FASTMODE 1
-#endif  // AVRI2C_FASTMODE
-//------------------------------------------------------------------------------
-// Values for setScrolMode(uint8_t mode)
-/** Newline will not scroll the display or RAM window. */
-#define SCROLL_MODE_OFF 0
-/** Newline will scroll both the display and RAM windows. */
-#define SCROLL_MODE_AUTO 1
-/** Newline scrolls the RAM window. The app scrolls the display window. */
-#define SCROLL_MODE_APP 2
 //------------------------------------------------------------------------------
 // Values for writeDisplay() mode parameter.
 /** Write to Command register. */
@@ -110,43 +63,8 @@
 #define SSD1306_MODE_RAM 1
 /** Write to display RAM with possible buffering. */
 #define SSD1306_MODE_RAM_BUF 2
-//------------------------------------------------------------------------------
-/**
- * @brief Reset the display controller.
- *
- * @param[in] rst Reset pin number.
- */
-inline void oledReset(uint8_t rst) {
 
-  /*
-  pinMode(rst, OUTPUT);
-  digitalWrite(rst, LOW);
-  delay(10);
-  digitalWrite(rst, HIGH);
-  delay(10);
-  */
-}
-//------------------------------------------------------------------------------
-/**
- * @struct TickerState
- * @brief ticker state
- */
-struct TickerState {
-  const char* queue[TICKER_QUEUE_DIM];  ///< Queue of text pointers.
-  uint8_t nQueue = 0;                   ///< Count of pointers in queue.
-  const uint8_t* font = nullptr;        ///< Font for ticker.
-  bool mag2X;                           ///< Use mag2X if true.
-  uint8_t row;                          ///< Row for ticker
-  uint8_t bgnCol;                       ///< Begin column of ticker.
-  uint8_t endCol;                       ///< End column of ticker.
-  bool init;     ///< clear and initialize display area if true.
-  uint8_t col;   ///< Column for start of displayed text.
-  uint8_t skip;  ///< Number of pixels to skip in first character.
-  /// @return Count of free queue slots.
-  uint8_t queueFree() const { return TICKER_QUEUE_DIM - nQueue; }
-  /// @return Count of used queue slots.
-  uint8_t queueUsed() const { return nQueue; }
-};
+
 //------------------------------------------------------------------------------
 /**
  * @class SSD1306Ascii
@@ -158,73 +76,6 @@ class SSD1306Ascii {
     public:
     // using Print::write;
     SSD1306Ascii() {}
-
-#if INCLUDE_SCROLLING
-  //----------------------------------------------------------------------------
-  /**
-   * @return the RAM page for top of the RAM window.
-   */
-  uint8_t pageOffset() const { return m_pageOffset; }
-  /**
-   * @return the display line for pageOffset.
-   */
-  uint8_t pageOffsetLine() const { return 8 * m_pageOffset; }
-  /**
-   * @brief Scroll the Display window.
-   *
-   * @param[in] lines Number of lines to scroll the window.
-   */
-  void scrollDisplay(int8_t lines) { setStartLine(m_startLine + lines); }
-  /**
-   * @brief Scroll the RAM window.
-   *
-   * @param[in] rows Number of rows to scroll the window.
-   */
-  void scrollMemory(int8_t rows) { setPageOffset(m_pageOffset + rows); }
-  /**
-   * @return true if the first display line is equal to the
-   *         start of the RAM window.
-   */
-  bool scrollIsSynced() const { return startLine() == pageOffsetLine(); }
-  /**
-   * @brief Set page offset.
-   *
-   * @param[in] page the RAM page for start of the RAM window
-   */
-  void setPageOffset(uint8_t page);
-  /**
-   * @brief Enable or disable scroll mode. Deprecated use setScrollMode().
-   *
-   * @param[in] enable true enable scroll on newline false disable scroll.
-   */
-  void setScroll(bool enable) __attribute__((deprecated("use setScrollMode"))) {
-    setScrollMode(enable ? SCROLL_MODE_AUTO : SCROLL_MODE_OFF);
-  }
-  /**
-   * @brief Set scroll mode.
-   *
-   * @param[in] mode One of the following.
-   *
-   * SCROLL_MODE_OFF - newline will not scroll the display or RAM window.
-   *
-   * SCROLL_MODE_AUTO - newline will scroll both the display and RAM windows.
-   *
-   * SCROLL_MODE_APP - newline scrolls the RAM window.
-   *                   The app scrolls the display window.
-   */
-  void setScrollMode(uint8_t mode) { m_scrollMode = mode; }
-  /**
-   * @brief Set the display start line register.
-   *
-   * @param[in] line RAM line to be mapped to first display line.
-   */
-  void setStartLine(uint8_t line);
-  /**
-   * @return the display startline.
-   */
-  uint8_t startLine() const { return m_startLine; }
-#endif  // INCLUDE_SCROLLING
-
 
   //----------------------------------------------------------------------------
   /**
@@ -340,7 +191,7 @@ class SSD1306Ascii {
    *
    * @param[in] dev A display initialization structure.
    */
-  void init(const DevType* dev);
+  // void init(const DevType* dev);
   /**
    * @brief Set pixel mode for for entire display.
    *
@@ -451,51 +302,6 @@ class SSD1306Ascii {
   size_t strWidth(const char* str) const;
 
 
-  
-  /**
-   * @brief Initialize TickerState struct.
-   *
-   * @param[in,out] state Ticker state.
-   * @param[in] font Font to be displayed.
-   * @param[in] row Row for ticker.
-   * @param[in] mag2X Set magFactor to two if true.
-   * @param[in] bgnCol First column of ticker. Default is zero.
-   * @param[in] endCol Last column of ticker. Default is last column of display.
-   */
-  void tickerInit(TickerState* state, const uint8_t* font, uint8_t row,
-                  bool mag2X = false, uint8_t bgnCol = 0, uint8_t endCol = 255);
-  /**
-   *  @brief Add text pointer to display queue.
-   *
-   * @param[in,out] state Ticker state.
-   * @param[in] str Pointer to String object. Clear queue if nullptr.
-   * @return false if queue is full else true.
-   */
-  /*
-  bool tickerText(TickerState* state, const String& str) {
-    return tickerText(state, str.c_str());
-  }
-  */
-  bool tickerText(TickerState* state, char *str) {
-    // return tickerText(state, str.c_str());
-    return( false );
-  }
-
-  /**
-   *  @brief Add text pointer to display queue.
-   *
-   * @param[in,out] state Ticker state.
-   * @param[in] text Pointer to C string.  Clear queue if nullptr.
-   * @return false if queue is full else true.
-   */
-  bool tickerText(TickerState* state, const char* text);
-  /**
-   * @brief Advance ticker by one pixel.
-   *
-   * @param[in,out] state Ticker state.
-   * @return Number of entries in text pointer queue or -1 if an error occurs.
-   */
-  int8_t tickerTick(TickerState* state);
   /**
    * @brief Display a character.
    *
@@ -513,11 +319,7 @@ class SSD1306Ascii {
   uint8_t m_displayHeight;  // Display height.
   uint8_t m_colOffset;      // Column offset RAM to SEG.
   uint8_t m_letterSpacing;  // Letter-spacing in pixels.
-#if INCLUDE_SCROLLING
-  uint8_t m_startLine;                         // Top line of display
-  uint8_t m_pageOffset;                        // Top page of RAM window.
-  uint8_t m_scrollMode = INITIAL_SCROLL_MODE;  // Scroll mode for newline.
-#endif                                         // INCLUDE_SCROLLING
+                                       // INCLUDE_SCROLLING
   uint8_t m_skip = 0;
   const uint8_t* m_font = nullptr;  // Current font.
   uint8_t m_invertMask = 0;         // font invert mask

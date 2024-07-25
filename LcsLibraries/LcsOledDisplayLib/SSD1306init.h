@@ -29,6 +29,8 @@
 #ifndef SSD1306init_h
 #define SSD1306init_h
 
+#if 0
+
 
 //------------------------------------------------------------------------------
 #ifndef __AVR__
@@ -105,25 +107,11 @@
  * @brief Device initialization structure.
  */
 struct DevType {
-  /**
-   * Pointer to initialization command bytes.
-   */
-  const uint8_t* initcmds;
-  /**
-   * Number of initialization bytes.
-   */
-  const uint8_t initSize;
-  /**
-   * Width of the diaplay in pixels.
-   */
-  const uint8_t lcdWidth;
-  /**
-   * Height of the display in pixels.
-   */
-  const uint8_t lcdHeight;
-  /**
-   * Column offset RAM to display.  Used to pick start column of SH1106.
-   */
+ 
+  const uint8_t *initCmdList;
+  const uint8_t initSizeBytes;
+  const uint8_t lcdWidthPixels;
+  const uint8_t lcdHeightPixels;
   const uint8_t colOffset;
 };
 
@@ -292,4 +280,7 @@ static const DevType MEM_TYPE SH1106_128x64 =  {
 
 
 // clang-format on
+
+#endif
+
 #endif  // SSD1306init_h
