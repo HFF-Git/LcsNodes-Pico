@@ -29,10 +29,6 @@
 #include "LcsCdcLib.h"
 #include "LcsOledDisplayLib.h"
 
-#include "SSD1306Ascii.h"
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // Local declarations.
 //
@@ -41,7 +37,7 @@ namespace {
 
   struct {
 
-    uint8_t       fontId;
+    uint8_t fontId;
     const uint8_t *font;
 
   } FontTab[ ] = {
@@ -240,7 +236,7 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
 
     oled = new LcsOledDisplay( );
 
-   oled -> begin( ODT_OLED_DISPLAY_128x64_SH1106, sclPin, sdaPin, I2cAddress );
+    oled -> begin( ODT_OLED_DISPLAY_128x64_SH1106, sclPin, sdaPin, I2cAddress );
 
     switch ( dType ) {
 
@@ -265,7 +261,7 @@ void UIDisplayOled::displayOff( ) {
 
 void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
 
-  uint8_t lCol = (( col > maxColumns ) ? maxColumns : col ) * oled -> fontWidth( );
+  uint8_t lCol = (( col > maxColumns ) ? maxColumns : col ) * oled -> fontWidthPixels( );
   uint8_t lRow = row;
   uint8_t fRow = oled -> fontRows( );
 
@@ -290,7 +286,7 @@ uint8_t UIDisplayOled::print( const char *buf ) {
 
     while ( *buf != 0 ) {
 
-        oled -> write( *buf );
+        oled -> writeChar( *buf );
         buf ++;
     }
 
@@ -299,7 +295,7 @@ uint8_t UIDisplayOled::print( const char *buf ) {
 
 uint8_t UIDisplayOled::print( char ch ) {
 
-  return ( oled -> write( ch ));
+  return ( oled -> writeChar( ch ));
 }
 
 void UIDisplayOled::clear( ) {
@@ -311,5 +307,5 @@ void UIDisplayOled::clear( ) {
 void UIDisplayOled::clearLine( uint8_t row ) {
 
   setCursor( 0, row );
-  for ( int i = 0; i < maxColumns; i++ ) oled -> write( ' ' );
+  for ( int i = 0; i < maxColumns; i++ ) oled -> writeChar( ' ' );
 }

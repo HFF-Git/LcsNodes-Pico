@@ -38,19 +38,10 @@
 #ifndef _allFonts_h_
 #define _allFonts_h_
 
-#ifdef __AVR__
-#include <avr/pgmspace.h>
-/** declare a font for AVR. */
-#define GLCDFONTDECL(_n) static const uint8_t __attribute__((progmem)) _n[]
-inline uint8_t readFontByte(uint8_t const *addr) { return pgm_read_byte(addr); }
-#else  // __AVR__
 /** declare a font. */
 #define GLCDFONTDECL(_n) static const uint8_t _n[]
 /** Fake read from flash. */
 inline uint8_t readFontByte(uint8_t const *addr) { return *addr; }
-#endif  // __AVR__
-
-
 
 //------------------------------------------------------------------------------
 // Font Indices

@@ -3,14 +3,16 @@
 // LCS - OLED Display Driver
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains ...
+// This source file contains the methods to support a set of OLED displays. A display is simply a matrix of
+// rows and columns, measured in 8x8 fields. The display will provide a several ASCII fonts to display. 
+// no graphics are supported. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - OLED Display Driver - Raspberry Pi PIOCO implementation
 // Copyright (C) 2024 - 2024  Helmut Fieres
 //
-// Bill Greiman wrote a version for the Arduino world. I took his files, and adapated them for my needs and 
+// Bill Greiman wrote a version for the Arduino world. I took his files, and adapted them for my needs and 
 // the PICO environment. Here is the original copyright info.
 //
 // SSD1306Ascii - Oled Library for the Arduino world.
@@ -42,6 +44,7 @@
 namespace {
 
     //--------------------------------------------------------------------------------------------------------
+    // SSD1306 commands.
     //
     //--------------------------------------------------------------------------------------------------------
     
@@ -94,7 +97,10 @@ namespace {
     /** No Operation Command. */
     #define SSD1306_NOP 0XE3
 
-    //------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------------
+    //
+    //-------------------------------------------------------------------------------------------------------
+    //
     /** Set Pump voltage value: (30H~33H) 6.4, 7.4, 8.0 (POR), 9.0. */
     #define SH1106_SET_PUMP_VOLTAGE 0X30
     /** First byte of set charge pump mode */
@@ -105,16 +111,16 @@ namespace {
     #define SH1106_PUMP_OFF 0X8A
     //------------------------------------------------------------------------------
 
-    //------------------------------------------------------------------------------
-    // Values for writeDisplay() mode parameter.
-    /** Write to Command register. */
-    #define SSD1306_MODE_CMD 0
-    /** Write one byte to display RAM. */
-    #define SSD1306_MODE_RAM 1
-    /** Write to display RAM with possible buffering. */
-    #define SSD1306_MODE_RAM_BUF 2
+    //-------------------------------------------------------------------------------------------------------
+    // The display modes when we write to the controller.
+    //
+    //-------------------------------------------------------------------------------------------------------
+    enum WriteDisplayMode : uint8_t {
 
-
+        SSD1306_MODE_CMD      = 0,
+        SSD1306_MODE_RAM      = 1,
+        SSD1306_MODE_RAM_BUF  = 2
+    };
 
     //-------------------------------------------------------------------------------------------------------
     //
@@ -128,26 +134,25 @@ namespace {
 
 
     //--------------------------------------------------------------------------------------------------------
-    //
-    //
+    // Each controller is described by a device type structure. The structure contains the width and height
+    // as well as a command list of commands to issue when teh display is initialized.
     //
     //--------------------------------------------------------------------------------------------------------
-    struct DevTypeNew {
+    struct DevType {
  
         const uint8_t *initCmdList;
-        uint8_t initSizeBytes;
-        uint8_t lcdWidthPixels;
-        uint8_t lcdHeightPixels;
-        uint8_t colOffset;
+        uint8_t       initSizeBytes;
+        uint8_t       lcdWidthPixels;
+        uint8_t       lcdHeightPixels;
+        uint8_t       colOffset;
     };
 
     //--------------------------------------------------------------------------------------------------------
-    //
-    // this section is based on https://github.com/adafruit/Adafruit_SSD1306
-    // Initialization commands for a 128x32 SSD1306 oled display. 
-    // Init sequence for Adafruit 128x32 OLED module
+    // Initialization commands for a 128x32 SSD1306 oled display. This section is based on 
+    // https://github.com/adafruit/Adafruit_SSD1306
+    // 
     //--------------------------------------------------------------------------------------------------------
-    constexpr uint8_t Adafruit128x32initNEW[ ] = {
+    constexpr uint8_t Adafruit128x32init[ ] = {
 
         SSD1306_DISPLAYOFF,
         SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80
@@ -167,22 +172,21 @@ namespace {
         SSD1306_DISPLAYON
     };
 
-    constexpr DevTypeNew  Adafruit128x32NEW = {
+    constexpr DevType  Adafruit128x32 = {
         
-        Adafruit128x32initNEW,
-        sizeof(Adafruit128x32initNEW),
+        Adafruit128x32init,
+        sizeof(Adafruit128x32init),
         128,
         32,
         0
     };
 
     //--------------------------------------------------------------------------------------------------------
-    //
-    // This section is based on https://github.com/adafruit/Adafruit_SSD1306
-    // Initialization commands for a 128x64 SSD1306 oled display.
-    // Init sequence for Adafruit 128x64 OLED module
+    // Initialization commands for a 128x64 SSD1306 oled display. This section is based on 
+    // https://github.com/adafruit/Adafruit_SSD1306
+    // 
     //--------------------------------------------------------------------------------------------------------
-    const uint8_t Adafruit128x64initNEW[] = {
+    const uint8_t Adafruit128x64init[] = {
     
         SSD1306_DISPLAYOFF,
         SSD1306_SETDISPLAYCLOCKDIV, 0x80,  // the suggested ratio 0x80
@@ -202,22 +206,22 @@ namespace {
         SSD1306_DISPLAYON
     };
 
-    constexpr DevTypeNew Adafruit128x64NEW = {
+    constexpr DevType Adafruit128x64 = {
   
-        Adafruit128x64initNEW,
-        sizeof(Adafruit128x64initNEW),
+        Adafruit128x64init,
+        sizeof(Adafruit128x64init),
         128,
         64,
         0
     };
 
     //--------------------------------------------------------------------------------------------------------
-    //
-    // This section is based on https://github.com/stanleyhuangyc/MultiLCD
-    // Initialization commands for a 128x64 SH1106 oled display. 
-     // SH1106 is a 132x64 controller.  Use middle 128 columns. ( the 2 at the end ... )
+    // Initialization commands for a 128x64 SH1106 oled display. This section is based on 
+    // https://github.com/stanleyhuangyc/MultiLCD. The SH1106 is a 132x64 controller. We use the middle 128
+    // colmuns.
+    // 
     //--------------------------------------------------------------------------------------------------------
-    const uint8_t SH1106_128x64initNEW[] = {
+    const uint8_t SH1106_128x64init[] = {
   
         SSD1306_DISPLAYOFF,
         SSD1306_SETSTARTPAGE,                  // set page zero
@@ -236,19 +240,18 @@ namespace {
         SSD1306_DISPLAYON
     };
 
-    constexpr DevTypeNew SH1106_128x64NEW =  {
+    constexpr DevType SH1106_128x64 =  {
   
-        SH1106_128x64initNEW,
-        sizeof(SH1106_128x64initNEW),
+        SH1106_128x64init,
+        sizeof(SH1106_128x64init),
         128,
         64,
         2   
     };
 
-
     //--------------------------------------------------------------------------------------------------------
-    //
-    //
+    // "setupHw" sets up our IO pins and the I2C channel. If the display has a reset input also initiaize
+    // the reset IO and issue the reset sequence.
     //
     //--------------------------------------------------------------------------------------------------------
     uint8_t setupHw( uint8_t sclPin, uint8_t sdaPin, uint8_t rstPin ) {
@@ -269,25 +272,31 @@ namespace {
             CDC::sleepMillis( 10 );
         }
 
+        if ( rStat != CDC::ALL_OK ) printf( "setupHw Error: %d\n", rStat );
+
         return( rStat );
     }
 
-    //------------------------------------------------------------------------------
-    GLCDFONTDECL(scaledNibble) = {0X00, 0X03, 0X0C, 0X0F, 0X30, 0X33, 0X3C, 0X3F,
-                              0XC0, 0XC3, 0XCC, 0XCF, 0XF0, 0XF3, 0XFC, 0XFF};
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    static const uint8_t scaledNibble[ ] = {  0X00, 0X03, 0X0C, 0X0F, 0X30, 0X33, 0X3C, 0X3F,
+                                              0XC0, 0XC3, 0XCC, 0XCF, 0XF0, 0XF3, 0XFC, 0XFF };
 
 }; // namespace
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Object constructor. Nothing to do here.
 //
 //------------------------------------------------------------------------------------------------------------
 LcsOledDisplay::LcsOledDisplay( ) {  }
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// The "begin" routine is the first method to call. It will configure the IO pins and setup the particular 
+// OLED display.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::begin(  uint8_t devType, 
@@ -302,12 +311,12 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
     this -> rstPin = rstPin;
 
     // ??? into a debug bracket ?
+    #if 0
     printf( "Oled Display begin: sclPin: %d, sdaPin: %d, i2cAdr: 0x%x, rstPin: %d\n ", 
             sclPin, sdaPin, i2cAdr, rstPin );
+    #endif
 
-    uint8_t rStat;
-
-    rStat = setupHw( sclPin, sdaPin, rstPin );
+    uint8_t rStat = setupHw( sclPin, sdaPin, rstPin );
     if ( rStat != CDC::ALL_OK ) return( rStat );
 
     setupDevType( devType );
@@ -317,35 +326,34 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// "setupDevType" will initialze the OLED display. Currently, there are three different displays supported. 
+// The Adafruit displays with a dimension fo 128x64 and 128x32 use the SSD1306 controller. There is also a 
+// 1.3" OLED display which uses the SH1106 controller type. The evice type desriptor contains the init
+// command sequence which is sent command by command.
 //
 //------------------------------------------------------------------------------------------------------------
 void LcsOledDisplay::setupDevType( uint8_t dType ) {
 
-    const DevTypeNew *dev = nullptr;
+    const DevType *dev = nullptr;
 
     switch ( dType ) {
 
-        case ODT_OLED_DISPLAY_128x32_SSD1306:   dev = &Adafruit128x32NEW;   break;
-        case ODT_OLED_DISPLAY_128x64_SSD1306:   dev = &Adafruit128x64NEW;   break;
-        case ODT_OLED_DISPLAY_128x64_SH1106:    dev = &SH1106_128x64NEW;    break;
-        default: dev = &Adafruit128x64NEW;
+        case ODT_OLED_DISPLAY_128x32_SSD1306:   dev = &Adafruit128x32;   break;
+        case ODT_OLED_DISPLAY_128x64_SSD1306:   dev = &Adafruit128x64;   break;
+        case ODT_OLED_DISPLAY_128x64_SH1106:    dev = &SH1106_128x64;    break;
+        default: dev = &Adafruit128x64;
     }
 
     m_col           = 0;
     m_row           = 0;
-    m_displayWidth  = readFontByte( &dev -> lcdWidthPixels );
-    m_displayHeight = readFontByte( &dev -> lcdHeightPixels );
-    m_colOffset     = readFontByte( &dev -> colOffset );
+    m_displayWidth  = dev -> lcdWidthPixels;
+    m_displayHeight = dev -> lcdHeightPixels;
+    m_colOffset     = dev -> colOffset;
 
-    const uint8_t* table = dev->initCmdList;
-
-    uint8_t size    = readFontByte( &dev -> initSizeBytes );
+    const uint8_t *table  = dev -> initCmdList;
+    uint8_t       size    = dev -> initSizeBytes;
     
-    for ( uint8_t i = 0; i < size; i++ ) {
-            
-        ssd1306WriteCmd( readFontByte( table + i ));
-    } 
+    for ( uint8_t i = 0; i < size; i++ ) ssd1306WriteCmd( table[ i ] );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -362,16 +370,17 @@ void LcsOledDisplay::displayOff( ) {
     ssd1306WriteCmd( SSD1306_DISPLAYOFF );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-void SSD1306Ascii::clear() {
+void LcsOledDisplay::invertDisplay(bool invert) {
 
-  clear(0, displayWidth() - 1, 0, displayRows() - 1);
+  ssd1306WriteCmd(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
 }
 
-void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
+void LcsOledDisplay::clear() {
+
+  clearRegion(0, displayWidthPixels() - 1, 0, displayRows() - 1);
+}
+
+void LcsOledDisplay::clearRegion( uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1 ) {
 
   // Cancel skip character pixels.
   m_skip = 0;
@@ -383,56 +392,69 @@ void SSD1306Ascii::clear(uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1) {
     setCursor(c0, r);
     for (uint8_t c = c0; c <= c1; c++) {
       // Insure clear() writes zero. result is (m_invertMask^m_invertMask).
-      ssd1306WriteRamBuf(m_invertMask);
+      ssd1306WriteRamBuffered( m_invertMask );
     }
   }
   setCursor(c0, r0);
 }
 
-void SSD1306Ascii::clearToEOL() {
+void LcsOledDisplay::clearToEOL() {
 
-  clear(m_col, displayWidth() - 1, m_row, m_row + fontRows() - 1);
+  clearRegion(m_col, displayWidthPixels() - 1, m_row, m_row + fontRows() - 1);
 }
 
-void SSD1306Ascii::clearField(uint8_t col, uint8_t row, uint8_t n) {
+void LcsOledDisplay::clearField(uint8_t col, uint8_t row, uint8_t n) {
   
-  clear(col, col + fieldWidth(n) - 1, row, row + fontRows() - 1);
+  clearRegion(col, col + fieldWidthPixels(n) - 1, row, row + fontRows() - 1);
+}
+
+void LcsOledDisplay::displayRemap180Degrees( bool mode ) {
+
+  ssd1306WriteCmd(mode ? SSD1306_SEGREMAP : SSD1306_SEGREMAP | 1);
+  ssd1306WriteCmd(mode ? SSD1306_COMSCANINC : SSD1306_COMSCANDEC);
 }
 
 //------------------------------------------------------------------------------------------------------------
 //
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t SSD1306Ascii::charWidth(uint8_t c) const {
+uint8_t LcsOledDisplay::charWidthPixels(uint8_t c) const {
 
   if (!m_font) {
     return 0;
   }
-  uint8_t first = readFontByte(m_font + FONT_FIRST_CHAR);
-  uint8_t count = readFontByte(m_font + FONT_CHAR_COUNT);
+  uint8_t first = m_font[ FONT_FIRST_CHAR ];
+  uint8_t count = m_font[ FONT_CHAR_COUNT ];
   if (c < first || c >= (first + count)) {
     return 0;
   }
   if (fontSize() > 1) {
     // Proportional font.
-    return m_magFactor * readFontByte(m_font + FONT_WIDTH_TABLE + c - first);
+    return m_magFactor * m_font[ FONT_WIDTH_TABLE + c - first ];
   }
   // Fixed width font.
-  return m_magFactor * readFontByte(m_font + FONT_WIDTH);
+  return m_magFactor * m_font[ FONT_WIDTH ];
 }
 
-size_t SSD1306Ascii::fieldWidth(uint8_t n) {
-  return n * (fontWidth() + letterSpacing());
+uint8_t LcsOledDisplay::charSpacingPixels( uint8_t c ) { 
+  
+  return charWidthPixels( c ) + letterSpacingPixels( ); 
 }
 
-size_t SSD1306Ascii::strWidth(const char* str) const {
+size_t LcsOledDisplay::fieldWidthPixels( uint8_t n ) const {
+
+  return n * ( fontWidthPixels( ) + letterSpacingPixels( ));
+}
+
+size_t LcsOledDisplay::strWidthPixels(const char* str) const {
+
   size_t sw = 0;
   while (*str) {
-    uint8_t cw = charWidth(*str++);
+    uint8_t cw = charWidthPixels(*str++);
     if (cw == 0) {
       return 0;
     }
-    sw += cw + letterSpacing();
+    sw += cw + letterSpacingPixels( );
   }
   return sw;
 }
@@ -441,117 +463,144 @@ size_t SSD1306Ascii::strWidth(const char* str) const {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t SSD1306Ascii::fontCharCount() const {
+uint8_t LcsOledDisplay::fontCharCount( ) const {
 
-  return m_font ? readFontByte(m_font + FONT_CHAR_COUNT) : 0;
+  return m_font ? m_font[ FONT_CHAR_COUNT ] : 0;
 }
 
-char SSD1306Ascii::fontFirstChar() const {
+char LcsOledDisplay::fontFirstChar( ) const {
 
-  return m_font ? readFontByte(m_font + FONT_FIRST_CHAR) : 0;
+  return m_font ? m_font[ FONT_FIRST_CHAR ] : 0;
 }
 
-uint8_t SSD1306Ascii::fontHeight() const {
+uint8_t LcsOledDisplay::fontHeightPixels( ) const {
 
-  return m_font ? m_magFactor * readFontByte(m_font + FONT_HEIGHT) : 0;
+  return ( m_font ? m_magFactor * m_font[ FONT_HEIGHT ] : 0 );
 }
 
-uint8_t SSD1306Ascii::fontRows() const {
+uint8_t LcsOledDisplay::fontRows( ) const {
 
-  return m_font ? m_magFactor * ((readFontByte(m_font + FONT_HEIGHT) + 7) / 8) : 0;
+  return ( m_font ? m_magFactor * (( m_font[ FONT_HEIGHT ] + 7) / 8) : 0 );
 }
 
-uint16_t SSD1306Ascii::fontSize() const {
+uint16_t LcsOledDisplay::fontSize( ) const {
 
-  return ( readFontByte(m_font) << 8 ) | readFontByte( m_font + 1 );
+  return ( m_font[ 0 ] << 8 ) | m_font[ 1 ];
 }
 
-uint8_t SSD1306Ascii::fontWidth() const {
+uint8_t LcsOledDisplay::fontWidthPixels( ) const {
 
-  return m_font ? m_magFactor * readFontByte(m_font + FONT_WIDTH) : 0;
+  return m_font ? m_magFactor * m_font[ FONT_WIDTH ] : 0;
+}
+
+const uint8_t* LcsOledDisplay::font( ) const { 
+  
+  return m_font; 
+}
+
+void LcsOledDisplay::setFont( const uint8_t* font ) {
+
+  m_font = font;
+
+  if ( font && fontSize( ) == 1 ) m_letterSpacing = 0;
+  else                            m_letterSpacing = 1;
+}
+
+void LcsOledDisplay::setFont( uint8_t fontId ) {
+
+  switch( fontId ) {
+
+    case FID_5x7:     setFont( Adafruit5x7 );     break;
+    case FID_8x8:     setFont( font8x8 );         break;
+    case FID_8x16:    setFont( ZevvPeep8x16 );    break;
+    case FID_10x16:   setFont( TimesNewRoman16 ); break;
+    default:          setFont( font8x8 );
+  }
 }
 
 //------------------------------------------------------------------------------------------------------------
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void SSD1306Ascii::invertDisplay(bool invert) {
+uint8_t LcsOledDisplay::displayHeightPixels() { return m_displayHeight; }
+ 
+uint8_t LcsOledDisplay::displayRows() { return m_displayHeight / 8; }
+  
+uint8_t LcsOledDisplay::displayWidthPixels() { return m_displayWidth; }
 
-  ssd1306WriteCmd(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
-}
+uint8_t LcsOledDisplay::col( ) const { return m_col; }
 
-void SSD1306Ascii::displayRemap(bool mode) {
-  ssd1306WriteCmd(mode ? SSD1306_SEGREMAP : SSD1306_SEGREMAP | 1);
-  ssd1306WriteCmd(mode ? SSD1306_COMSCANINC : SSD1306_COMSCANDEC);
-}
+bool LcsOledDisplay::invertMode() const { return !!m_invertMask; }
 
-void SSD1306Ascii::setContrast(uint8_t value) {
+void LcsOledDisplay::setInvertMode( bool mode ) { m_invertMask = mode ? 0XFF : 0; }
+
+
+void LcsOledDisplay::setContrast(uint8_t value) {
 
   ssd1306WriteCmd(SSD1306_SETCONTRAST);
   ssd1306WriteCmd(value);
 }
 
-void SSD1306Ascii::setCursor(uint8_t col, uint8_t row) {
+void LcsOledDisplay::setCursor( uint8_t col, uint8_t row ) {
 
-  setCol(col);
+  setColPixels( col );
   setRow(row);
 }
 
-void SSD1306Ascii::setFont(const uint8_t* font) {
-
-  m_font = font;
-  if (font && fontSize() == 1) {
-    m_letterSpacing = 0;
-  } else {
-    m_letterSpacing = 1;
-  }
-}
-
-void SSD1306Ascii::setRow(uint8_t row) {
+void LcsOledDisplay::setRow( uint8_t row ) {
 
   if ( row < displayRows( )) {
     
     m_row = row;
-    ssd1306WriteCmd(SSD1306_SETSTARTPAGE | m_row);
+    ssd1306WriteCmd( SSD1306_SETSTARTPAGE | m_row );
   }
 }
 
-void SSD1306Ascii::setCol(uint8_t col) {
+void LcsOledDisplay::setColPixels( uint8_t col ) {
 
-  if (col < m_displayWidth) {
-    m_col = col;
-    col += m_colOffset;
-    ssd1306WriteCmd(SSD1306_SETLOWCOLUMN | (col & 0XF));
-    ssd1306WriteCmd(SSD1306_SETHIGHCOLUMN | (col >> 4));
+  if ( col < m_displayWidth ) {
+
+    m_col =   col;
+    col   +=  m_colOffset;
+
+    ssd1306WriteCmd( SSD1306_SETLOWCOLUMN | (col & 0XF));
+    ssd1306WriteCmd( SSD1306_SETHIGHCOLUMN | (col >> 4));
   }
 }
 
 //------------------------------------------------------------------------------------------------------------
 //
 //
+// ??? try to truly understand all this ...
 //------------------------------------------------------------------------------------------------------------
-size_t SSD1306Ascii::write(uint8_t ch) {
+size_t LcsOledDisplay::writeChar( uint8_t ch ) {
 
-  if (!m_font) {
+  if ( !m_font ) {
+
     return 0;
   }
-  uint8_t w = readFontByte(m_font + FONT_WIDTH);
-  uint8_t h = readFontByte(m_font + FONT_HEIGHT);
-  uint8_t nr = (h + 7) / 8;
-  uint8_t first = readFontByte(m_font + FONT_FIRST_CHAR);
-  uint8_t count = readFontByte(m_font + FONT_CHAR_COUNT);
-  const uint8_t* base = m_font + FONT_WIDTH_TABLE;
+
+  uint8_t         w     = m_font[ FONT_WIDTH ];
+  uint8_t         h     = m_font[ FONT_HEIGHT ];
+  uint8_t         nr    = (h + 7) / 8;
+  uint8_t         first = m_font[ FONT_FIRST_CHAR ];
+  uint8_t         count = m_font[ FONT_CHAR_COUNT ];
+  const uint8_t   *base = m_font + FONT_WIDTH_TABLE;
 
   if (ch == '\r') {
-    setCol(0);
+
+    setColPixels( 0 );
     return 1;
   }
+
   if (ch == '\n') {
-    setCol(0);
+
+    setColPixels( 0 );
     uint8_t fr = m_magFactor * nr;
     setRow(m_row + fr);
     return 1;
   }
+
   bool nfSpace = false;
   if (first <= ch && ch < (first + count)) {
     ch -= first;
@@ -561,7 +610,8 @@ size_t SSD1306Ascii::write(uint8_t ch) {
     // Error if not in font.
     return 0;
   }
-  uint8_t s = letterSpacing();
+
+  uint8_t s = letterSpacingPixels( );
   uint8_t thieleShift = 0;
   if (nfSpace) {
     // non-font space.
@@ -574,42 +624,54 @@ size_t SSD1306Ascii::write(uint8_t ch) {
     }
     uint16_t index = 0;
     for (uint8_t i = 0; i < ch; i++) {
-      index += readFontByte(base + i);
+
+      index += base[ i ];
     }
-    w = readFontByte(base + ch);
+
+    w = base[ ch ];
     base += nr * index + count;
   }
+
   uint8_t scol = m_col;
   uint8_t srow = m_row;
   uint8_t skip = m_skip;
-  for (uint8_t r = 0; r < nr; r++) {
-    for (uint8_t m = 0; m < m_magFactor; m++) {
-      skipColumns(skip);
+  for ( uint8_t r = 0; r < nr; r++ ) {
+    for ( uint8_t m = 0; m < m_magFactor; m++ ) {
+
+      skipColumnsPixels(skip);
       if (r || m) {
         setCursor(scol, m_row + 1);
       }
       for (uint8_t c = 0; c < w; c++) {
-        uint8_t b = nfSpace ? 0 : readFontByte(base + c + r * w);
+
+        uint8_t b = nfSpace ? 0 : base[ c + r * w ];
+      
         if (thieleShift && (r + 1) == nr) {
           b >>= thieleShift;
         }
         if (m_magFactor == 2) {
           b = m ? b >> 4 : b & 0XF;
-          b = readFontByte(scaledNibble + b);
-          ssd1306WriteRamBuf(b);
+          b = scaledNibble[ b ];
+          ssd1306WriteRamBuffered(b);
         }
-        ssd1306WriteRamBuf(b);
+        ssd1306WriteRamBuffered(b);
       }
       for (uint8_t i = 0; i < s; i++) {
-        ssd1306WriteRamBuf(0);
+        ssd1306WriteRamBuffered(0);
       }
     }
   }
+
   setRow(srow);
   return 1;
 }
 
-void SSD1306Ascii::ssd1306WriteRam(uint8_t c) {
+void LcsOledDisplay::ssd1306WriteCmd( uint8_t cmdByte ) { 
+  
+  writeDisplay( cmdByte, SSD1306_MODE_CMD ); 
+}
+
+void LcsOledDisplay::ssd1306WriteRamImmediate(uint8_t c) {
 
   if (m_col < m_displayWidth) {
     writeDisplay(c ^ m_invertMask, SSD1306_MODE_RAM);
@@ -617,12 +679,15 @@ void SSD1306Ascii::ssd1306WriteRam(uint8_t c) {
   }
 }
 
-void SSD1306Ascii::ssd1306WriteRamBuf(uint8_t c) {
+void LcsOledDisplay::ssd1306WriteRamBuffered( uint8_t c ) {
 
-  if (m_skip) {
+  if ( m_skip ) {
+
     m_skip--;
-  } else if (m_col < m_displayWidth) {
-    writeDisplay(c ^ m_invertMask, SSD1306_MODE_RAM_BUF);
+  } 
+  else if (m_col < m_displayWidth) {
+    
+    writeDisplay( c ^ m_invertMask, SSD1306_MODE_RAM_BUF );
     m_col++;
   }
 }

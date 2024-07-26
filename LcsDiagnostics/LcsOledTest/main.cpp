@@ -67,6 +67,8 @@ int main( ) {
     if ( rStat != CDC::ALL_OK ) {
 
         printf( "Error in CDC init: %d\n", rStat );
+
+        CDC::sleepMillis( 5000 );
         return( -1 );
     }
 
