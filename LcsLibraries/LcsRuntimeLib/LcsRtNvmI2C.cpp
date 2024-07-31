@@ -493,13 +493,12 @@ bool nvmPutBytesInPage( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 // boundary issue, we stick to the concept to read within page boundaries as we may cross a chip boudary.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap ) {
+uint8_t nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
   #if DEBUG_NVM == 1
   printf( "nvmGetBytes: ofs: 0x%x, bufAdr: %ptr, len: %d\n", ofs, (uint32_t) buf, len );
   #endif
 
-  if ( userMap ) ofs = ofs + NVM_SYS_MAP_SIZE;
   if ( ofs + len >= nvmMaxSize - 1 ) return ( 99 );
 
   uint32_t  bytesLeft     = len;
@@ -522,13 +521,12 @@ uint8_t nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap ) {
 //
 // ??? check what we could do for wrap around of unsigned int ...
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap ) {
+uint8_t nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
   #if DEBUG_NVM == 1
-  printf( "nvmPutBytes: ofs: 0x%x, bufAdr: %ptr, len: %d, uMap: %d\n", ofs, buf, len, userMap );
+  printf( "nvmPutBytes: ofs: 0x%x, bufAdr: %ptr, len: %d, uMap: %d\n", ofs, buf, len );
   #endif
 
-  if ( userMap ) ofs = ofs + NVM_SYS_MAP_SIZE;
   if ( ofs + len >= nvmMaxSize - 1 ) return ( 99 );
 
   uint32_t  bytesLeft     = len;
@@ -548,25 +546,25 @@ uint8_t nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap ) {
 // "nvmGetWord" and "nvmPutWord" are convenience functions to read a 16-bit word, which we do a lot.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmGetWord( uint32_t ofs, uint16_t *word, bool userMap ) {
+uint8_t nvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-  return ( nvmGetBytes( ofs, (uint8_t *) word, sizeof( uint16_t ), userMap ));
+  return ( nvmGetBytes( ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
-uint8_t nvmPutWord( uint32_t ofs, uint16_t word, bool userMap ) {
+uint8_t nvmPutWord( uint32_t ofs, uint16_t word ) {
 
-  return ( nvmPutBytes( ofs, (uint8_t *) &word, sizeof( uint16_t ), userMap ));
+  return ( nvmPutBytes( ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Fill an NVM area with an initial value.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val, bool userMap ) {
+uint8_t nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val ) {
 
   for ( uint32_t i = 0; i < len; i++ ) {
 
-    uint8_t rStat = nvmPutBytes( ofs + i, (uint8_t *) &val, 1U, userMap );
+    uint8_t rStat = nvmPutBytes( ofs + i, (uint8_t *) &val, 1U );
     if ( rStat != ALL_OK ) return ( rStat );
   }
 
@@ -577,9 +575,48 @@ uint8_t nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val, bool userMap ) {
 // Getter functions.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t nvmGetSize( bool userMap ) {
+uint32_t nvmGetSize( ) {
 
   return ( nvmMaxSize );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// User Map access rourtines. They directly build on top of their coungterpart NVM access routines. All we do
+// is to adjust the offset accordingly.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t umapPutWord( uint32_t ofs, uint16_t word ) {
+
+  ofs = ofs + NVM_SYS_MAP_SIZE;
+  return( nvmPutWord( ofs, word ));
+}
+
+uint8_t umapGetWord( uint32_t ofs, uint16_t *word ) {
+
+  ofs = ofs + NVM_SYS_MAP_SIZE;
+  return( nvmGetWord( ofs, word ));
+}
+
+uint8_t umapPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
+
+  ofs = ofs + NVM_SYS_MAP_SIZE;
+  return( nvmPutBytes( ofs, buf, len ));
+}
+
+uint8_t umapGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
+
+  ofs = ofs + NVM_SYS_MAP_SIZE;
+  return( nvmGetBytes( ofs, buf, len ));
+}
+
+uint8_t umapInitArea( uint32_t ofs, uint32_t len, uint8_t val) {
+
+  ofs = ofs + NVM_SYS_MAP_SIZE;
+}
+
+uint32_t umapGetSize( ) {
+
+  return ( nvmMaxSize - NVM_SYS_MAP_SIZE );
 }
 
 }; // namespace LCS

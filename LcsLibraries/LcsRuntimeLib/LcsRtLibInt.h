@@ -171,10 +171,8 @@ struct LcsMsgBusCAN {
 
 //----------------------------------------------------------------------------------------------------------
 // Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
-// pin configuration data. When used by the schematic, the configuration process will set this field with
-// the hardware pin.
+// pin configuration data. 
 //
-// ??? not clear what else should be in here....
 // ??? currently, the CDC config data is set directly by the application. One day, we may store this data
 // in the descriptor. So far, this is more of a place holder.
 //----------------------------------------------------------------------------------------------------------
@@ -189,13 +187,13 @@ struct LcsCdcDesc {
 // reset. It contains among other data the NVM description. This description is essential to configure the 
 // NVM.  
 //
-// 
+// ??? describe the fields...
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
   uint16_t  magicWord1                      = MWORD_1;
 
-  uint16_t  controllerFamily;
+  uint16_t  controllerFamily                = CF_NIL;
   uint16_t  boardType                       = BT_NIL;
   uint16_t  boardVersion                    = 0;
 
@@ -207,14 +205,20 @@ struct LcsNodeMap {
   uint16_t  nvmMemSize3                     = 0;
   uint32_t  totalNvmSize                    = 0;
 
+  uint32_t  userMapSize                     = 0;
+  uint32_t  userMapOfs                      = NVM_USER_MAP_START;
+  
   uint16_t  nodeVersion                     = 0;
   uint16_t  nodePatchLevel                  = 0;
 
   uint16_t  options                         = 0;
   uint16_t  flags                           = 0;
+  uint16_t  type                            = NIL_NODE_TYPE;
+  uint16_t  size                            = 0;
+
+
   uint32_t  uid                             = 0L;
   uint16_t  id                              = NIL_NODE_ID;
-  uint16_t  type                            = NIL_NODE_TYPE;
   uint16_t  restartCnt                      = 0;
   
   char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
@@ -225,10 +229,10 @@ struct LcsNodeMap {
 
 //----------------------------------------------------------------------------------------------------------
 // The port map contains an array of ports, each described by a port map entry. Besides the port flags,
-// name and type and there are the port attributes. The portMap entry also contains the fields that deal
-// with the actual event received. There are fields for the sending node, the event and its action. An
-// event can also be invoked with a delay time. The are fifteen entries in the port map. The portMap starts
-//  at NVM offset 0x1000.
+// name and type there are the port attributes. The portMap entry also contains the fields that deal with
+// the actual event received. There are fields for the sending node, the event and its action. An event 
+// can also be invoked with a delay time. The are fifteen entries in the port map. The portMap starts
+// fixed at NVM offset 0x1000.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
@@ -277,22 +281,6 @@ struct LcsEventMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The user map describes the remaining area of the NVM. Most importantly there are the offset and size
-// of this area. The usage and meaning is entirely up to the firmware programmer. The LCS runtime will
-// however offer routines to access this area as the only way to get to it.
-//
-// ??? A firmware should only access the User NVM area through dedicated runtime library routines. Likewise,
-//  a firmware programmer can only access the runtime area through the nodeXXX runtime access access routines.
-//
-//------------------------------------------------------------------------------------------------------------
-struct LcsUserMap {
-
-  uint16_t  flags                         = 0;
-  uint16_t  size                          = 0;
-  uint32_t  ofs                           = NVM_USER_MAP_START;
-};
-
-//----------------------------------------------------------------------------------------------------------
 // The LCS runtime communicates back to the firmware via callbacks. There are global callbacks for message
 // receipt and events as well as callbacks for the node and ports that can be registered. Callbacks for
 // node and ports are kept in an array of callback entry structures, called the callback map. Entry zero
@@ -305,13 +293,6 @@ struct LcsCallbackMapEntry {
   LcsInitCallback     initCallback      = nullptr;
   LcsInfoItemCallback infoItemCallback  = nullptr;
   LcsCtrlItemCallback ctrlItemCallback  = nullptr;
-
-  void reset( ) {
-
-    initCallback = nullptr;
-    infoItemCallback  = nullptr;
-    ctrlItemCallback  = nullptr;
-  }
 };
 
 struct LcsCallbackMap {
@@ -326,20 +307,6 @@ struct LcsCallbackMap {
   LcsItemReqRepCallback     itemReqRepCallback                = nullptr;
 
   LcsCallbackMapEntry map[ MAX_PORT_MAP_ENTRIES + 1 ];
-
-  void reset( ) {
-
-    flags = 0;
-    size  = MAX_PORT_MAP_ENTRIES + 1;
-
-    lcsMsgCallback                    = nullptr;
-    dccMsgCallback                    = nullptr;
-    cmdLineCallback                   = nullptr;
-    portEventCallback                 = nullptr;
-    itemReqRepCallback                = nullptr;
-
-    for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) map[ i ].reset( );
-  }
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -397,8 +364,10 @@ struct LcsPendingReqMap {
 
 };
 
-const uint8_t ERR_INVALID_BOARD_ID = 255;
-
+//----------------------------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------------------------
 const uint8_t MIN_BOARD_ID = 1;
 const uint8_t MAX_BOARD_ID = 4;
 
@@ -482,6 +451,12 @@ struct LcsDrvMap {
 //
 //
 //----------------------------------------------------------------------------------------------------------
+uint8_t       nvmPutWord( uint32_t ofs, uint16_t word );
+uint8_t       nvmGetWord( uint32_t ofs, uint16_t *word );
+uint8_t       nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t       nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t       nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val );
+uint32_t      nvmGetSize( );
 
 uint8_t       resetNode( );
 uint8_t       resetPort( uint8_t portId );

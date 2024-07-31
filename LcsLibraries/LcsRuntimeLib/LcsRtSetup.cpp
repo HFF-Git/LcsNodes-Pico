@@ -164,7 +164,7 @@ uint8_t setupNodeMap( ) {
   printf( "setupNodeMap\n" );
   #endif
 
-  uint8_t rStat = nvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsPortMap ), false );
+  uint8_t rStat = nvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsPortMap ));
   if ( rStat != ALL_OK ) {
 
     
@@ -191,7 +191,7 @@ uint8_t setupPortMap( ) {
   printf( "setupPortMap\n" );
   #endif
 
-  uint8_t rStat = nvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ), false );
+  uint8_t rStat = nvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
   if ( rStat != ALL_OK ) {
 
     
@@ -225,13 +225,13 @@ uint8_t setupEventMap( ) {
   uint16_t hwm;
   uint16_t size;
 
-  uint8_t rStat = nvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ),&hwm, false );
+  uint8_t rStat = nvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ),&hwm );
   if ( rStat != ALL_OK ) {
 
     
   }
 
-  rStat = nvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, size ),&size, false );
+  rStat = nvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, size ),&size );
   if ( rStat != ALL_OK ) {
 
     
@@ -240,7 +240,7 @@ uint8_t setupEventMap( ) {
   // ??? check for a valid hwm ... then get the map
 
 
-  rStat = nvmGetBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ), false );
+  rStat = nvmGetBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
   if ( rStat != ALL_OK ) {
 
     
@@ -279,6 +279,11 @@ uint8_t setupUserMap( ) {
 
   return ( rStat );
 }
+
+
+// ??? setup callback Map ?
+
+// ??? setup task map ?
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -378,7 +383,7 @@ uint8_t invokeInitCallbacks( ) {
 // node map can be configured / corrected via teh USB console IO. This will be for example always be the case
 // when a new board is powered up.
 //
-// In teh other cases, portMap, eventMap and userMap setup follows. Now, we have the controller basic data
+// In the other cases, portMap, eventMap and userMap setup follows. Now, we have the controller basic data
 // structures in a reasonable shape. Next, the extension boards are located, and if there are any, their
 // initialization follows. Finally, all registered callbacks are invoked. 
 //
@@ -387,6 +392,11 @@ uint8_t invokeInitCallbacks( ) {
 //  console IO commands. During this time the node is in "fault" state. After configuration, simply reset
 // again and the provcess is repeated, this time hopefully with a valid nodeMap.
 //
+
+// ??? what is the sequence ? always do the init as the very first thing, then do registration, etc. 
+// and then call startruntime ?
+//
+
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 

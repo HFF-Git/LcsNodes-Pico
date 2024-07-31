@@ -37,7 +37,6 @@ extern LCS::LcsCdcDesc         cdcMap;
 extern LCS::LcsNodeMap         nodeMap;
 extern LCS::LcsPortMap         portMap;
 extern LCS::LcsEventMap        eventMap;
-extern LCS::LcsUserMap         userMap;
 extern LCS::LcsCallbackMap     callbackMap;
 
 
@@ -97,7 +96,7 @@ namespace {
 
         if ( index + i < limit ) {
 
-          nvmGetBytes( index + i, &val, sizeof( uint8_t ), false );
+          nvmGetBytes( index + i, &val, sizeof( uint8_t ));
           printf( "0x%2x ", val );
         }
       }

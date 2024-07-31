@@ -186,6 +186,9 @@ namespace LCS {
     MAX_LCS_DCC_FUNC_ID = 68
   };
 
+
+  // ??? should we rather rename the DCC loco valus to generic loco values to also cover analog engines ?
+
   //----------------------------------------------------------------------------------------------------------
   // The DCC standard defines several speed step modes. Today, 128 speed steps is the one used in all new
   // decoders. The other speed steps are mapped to the 128 value range.
@@ -201,7 +204,7 @@ namespace LCS {
   //----------------------------------------------------------------------------------------------------------
   // The DCC locomotive decoder speed. The range is defined for a 128 speed step decoder, from 0 to 127. The
   // speed of 1 represents the emergency speed stop. In normal operations, speed steos would thus go from 2
-  // to 0 and back.
+  // to 0 and back. For analog engines, we keep this scheme and map it to the respective power levels.
   //
   //----------------------------------------------------------------------------------------------------------
   enum DccLocSpeed : uint8_t {
@@ -273,6 +276,17 @@ namespace LCS {
 
   };
 
+  //------------------------------------------------------------------------------------------------------------
+  // The defined controller family. Currently there is only the raspberry pI PICO family.
+  //
+  //------------------------------------------------------------------------------------------------------------
+  enum LcsControllerFamilyType : uint16_t {
+
+    CF_NIL                = 0,
+    CD_RPICO_2040         = 1
+
+  };
+
   //----------------------------------------------------------------------------------------------------------
   // The configuration descriptor and node map have an option field. The following constants define the
   // options that can be set.
@@ -294,7 +308,7 @@ namespace LCS {
   // the info item, which specifies what data to access. The item nuber range is divided as follows:
   //
   // 0            - NIL item, not used
-  // 1    .. 63   - Node specific reserved items.
+  // 1    .. 63   - Node/Port specific reserved items.
   // 64   .. 127  - Node/Port Attributes returned from MEM
   // 128  .. 191  - Node/Port Attributes copied from NVM to MEM and then returned. Mirrors items 64 - 127.
   // 192  .. 255  - User defined items, passed to the registered callback routine.
@@ -519,8 +533,8 @@ namespace LCS {
 
   //----------------------------------------------------------------------------------------------------------
   // LCS Core Library Error codes. The status code is used as a return value from most of the library methods.
-  // The numbers are further grouped, so they can be better recognized when returned. There is also a user
-  // error base, where a node specific firmware can start allocating its own error numbers.
+  // The numbers are grouped in a LCS library portion and a user firmware portion. The LCS library portion
+  // ranges from 1 to 127, the user portion from 128 to 255. The vaue of zero is generally a "OK".
   //
   //----------------------------------------------------------------------------------------------------------
 
@@ -588,13 +602,19 @@ namespace LCS {
 
     ERR_INVALID_DRV_ITEM                = 100,
 
-    ERR_NODE_SPECIFIC_BASE              = 128
+    ERR_NODE_SPECIFIC_BASE              = 128,
+
+
+    // ??? for now .... 
+    ERR_INVALID_BOARD_ID = 255
+
+
   };
 
 
   //------------------------------------------------------------------------------------------------------------
   //
-  //
+  // ??? generic part become of node items ?
   //------------------------------------------------------------------------------------------------------------
   enum LcsNodeDriverItems {
 
@@ -686,6 +706,8 @@ namespace LCS {
   uint8_t             sendReqEstop( );
   uint8_t             sendEstop( );
 
+  // ??? rework the sendXXX routines to only have the arguments that need to be passed. I.e. nodeID is often our own nodeId.
+
   uint8_t             sendReqLoc( uint16_t locAdr, uint8_t flags  );
   uint8_t             sendRelLoc( uint8_t sId  );
   uint8_t             sendRepLoc( uint8_t sId, uint16_t locAdr, uint8_t spDir, uint8_t fn1 = 0, uint8_t fn2 = 0, uint8_t fn3 = 0 );
@@ -729,15 +751,15 @@ namespace LCS {
   uint8_t             drvWrite( uint8_t boardId, uint8_t padId, uint8_t *buf, uint8_t len );
 
   //----------------------------------------------------------------------------------------------------------
-  // The NVM interface.
+  // The User Map interface.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t             nvmPutWord( uint32_t ofs, uint16_t word, bool userMap = true );
-  uint8_t             nvmGetWord( uint32_t ofs, uint16_t *word, bool userMap = true );
-  uint8_t             nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap = true );
-  uint8_t             nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len, bool userMap = true );
-  uint8_t             nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val, bool userMap = true );
-  uint32_t            nvmGetSize( bool userMap = true );
+  uint8_t             umapPutWord( uint32_t ofs, uint16_t word );
+  uint8_t             umapGetWord( uint32_t ofs, uint16_t *word );
+  uint8_t             umapPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+  uint8_t             umapGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+  uint8_t             umapInitArea( uint32_t ofs, uint32_t len, uint8_t val);
+  uint32_t            umapGetSize( );
 
 }; // LCS NameSpace
 

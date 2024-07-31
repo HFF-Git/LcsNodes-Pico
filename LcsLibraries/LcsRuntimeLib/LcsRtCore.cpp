@@ -98,7 +98,6 @@ LCS::LcsCdcDesc                cdcMap;
 LCS::LcsNodeMap                nodeMap;
 LCS::LcsPortMap                portMap;
 LCS::LcsEventMap               eventMap;
-LCS::LcsUserMap                userMap;
 
 LCS::LcsCallbackMap            callbackMap;
 LCS::LcsTaskMap                taskMap;
@@ -348,6 +347,32 @@ uint8_t resetPort( uint8_t portId ) {
   else return ( ALL_OK );
 
 }
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void resetCallbackMap( ) {
+
+  callbackMap.flags                 = 0;
+  callbackMap.size                  = MAX_PORT_MAP_ENTRIES + 1; 
+
+  callbackMap.lcsMsgCallback        = nullptr;
+  callbackMap.dccMsgCallback        = nullptr;
+  callbackMap.cmdLineCallback       = nullptr;
+  callbackMap.portEventCallback     = nullptr;
+  callbackMap.itemReqRepCallback    = nullptr;
+
+  for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+      
+    callbackMap.map[ i ].initCallback     = nullptr;
+    callbackMap.map[ i ].infoItemCallback = nullptr;
+    callbackMap.map[ i ].ctrlItemCallback = nullptr;
+  }
+}
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // There is a call back that if set will be called for processing inbound port events on each loop iteration.
