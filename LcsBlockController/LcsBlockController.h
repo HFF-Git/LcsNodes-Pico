@@ -24,9 +24,67 @@
 #ifndef LcsBlockController_h
 #define LcsBlockController_h
 
-
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
+
+//------------------------------------------------------------------------------------------------------------
+//
+// Ideas how to use the node data:
+//
+// There is a static data portion, which describes the block. This is data is entered when teh block is configured.
+//
+//  - block ID
+//  - block length
+//  - block name
+//  - previous block(s)
+//  - next block(s)
+//
+//  - number of sections
+//  - section lengts
+//  - speed level - slow, middle, high ... 
+//  - support DCC and analog flag
+//  - max current limit
+//  - periodic time to send data
+//  - timeout values of all kinds ?
+//
+//
+// There is a dynamic data portion, which contains the data about the block current state
+//
+//  - mode ( DCC or analog or off )
+//  - actual current
+//  - section occupancy
+//  - section enter / leave timestamps
+//  - 
+//
+// ??? what is retrieved from the dynamivc data on a restart ?
+//
+// The node attributes contains data about how many blocks this node contains ( nodeId + portId -> blockId )
+// 
+// Most of the data is stored in attributes for the port.
+// 
+//
+// Finally, there are items that represent commands to the block. 
+// 
+//  - emergency stop
+//  - switch to DCC or analog mode
+//  - block on or off
+//  - signals setting
+//  - turnout setting
+//  - ...
+
+// There are predefined events tha the controller node will send.
+// 
+//  - block state change
+//  - section occupied
+//  - section entered
+//  - section left
+//  - 
+//  
+//
+//------------------------------------------------------------------------------------------------------------
+
+
+
 
 
 #endif

@@ -65,9 +65,9 @@ namespace {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-      if ( pendingReqMap.map[ i ] == NIL_NODE_ID ) {
+      if ( pendingReqMap.map[ i ].nodeId == NIL_NODE_ID ) {
 
-        pendingReqMap.map[ i ] = nodeId;
+        pendingReqMap.map[ i ].nodeId = nodeId;
         return ( ALL_OK );
       }
     }
@@ -84,7 +84,7 @@ namespace {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-      if ( pendingReqMap.map[ i ] == nodeId ) pendingReqMap.map[ i ] = NIL_NODE_ID;
+      if ( pendingReqMap.map[ i ].nodeId == nodeId ) pendingReqMap.map[ i ].nodeId = NIL_NODE_ID;
     }
 
     return ( ALL_OK );
@@ -98,7 +98,7 @@ namespace {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-      if ( pendingReqMap.map[ i ] == nodeId ) return ( true );
+      if ( pendingReqMap.map[ i ].nodeId == nodeId ) return ( true );
     }
 
     return ( false );

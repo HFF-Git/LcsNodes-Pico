@@ -353,64 +353,80 @@ struct LcsTaskMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-//
+// The pending request map keeps track of outstanding requests to another node. We add an entry when our
+// node sends a "REQ" type packet and clear the entry when the reply comes in.
 //
 //----------------------------------------------------------------------------------------------------------
-struct LcsPendingReqMap {
+struct LcsPendingReqEntry {
 
-  uint16_t flags;
-
-  uint16_t map[ MAX_PENDING_REQ_MAP_ENTRIES ];
-
+  uint16_t nodeId;
+  uint16_t timeoutTimeStamp;
 };
 
-//----------------------------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------------------------
-const uint8_t MIN_BOARD_ID = 1;
-const uint8_t MAX_BOARD_ID = 4;
+struct LcsPendingReqMap {
 
+  uint16_t            flags;
+  LcsPendingReqEntry  *hwm;
+
+
+  LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
+};
+
+
+
+
+//----------------------------------------------------------------------------------------------------------
+// LCS hardware is a controller type board and extension boards. The extension boards have a NVM chip that
+// contains all the board relevant data. At startup the runtime tries top find the extension boards and 
+// load the driver for it. In essence all that is needed is the board type and subtype. A controller board
+// can support up to four extension bards. 
+//
+//----------------------------------------------------------------------------------------------------------
+const uint8_t MIN_BOARD_ID          = 1;
+const uint8_t MAX_BOARD_ID          = 4;
+
+const uint8_t MAX_EXT_BOARDS        = 4;
+const uint8_t MAX_BOARD_NAME_SIZE   = 16;
+const uint8_t MAX_DRIVER_DATA_SIZE  = 64;
 
 //------------------------------------------------------------------------------------------------------------
-// Each extension board will have a NVM to store the board configuration data. Sikilar to the node map of the
-// cntroller board, this exetension board will have a data structure that is read at initialization time. 
+// Each extension board will have a NVM to store the board configuration data. Similar to the node map of the
+// controller board, this extension board will have a data structure that is read at initialization time. The
+// structure of this data is rather simple. We have the magic words bracketing the data, a board type and
+// subtype, a name and an area which contains driver relevant information. The driver information will tell
+// the driver what capabilities the board has. This data is entirely driver specific and the meaning is only
+// know to the driver software. At startup time, all we have to do then is locate the board type and subtype.
+// load the respective driver and let the driver code do whatever needs to be done accorindgo the data area
+// content.
 //
+// Note that the extension board NVM data is "read only". It needs to be set when there is a vanilla board
+// by a utility program or commands in the runtime lib user interface. After this setting, the data will 
+// not change again.
 //
-//
-// ??? this may be a bit tricky to read and write. We need to decide how to actually store the data on the
-// NVM. Is it little endian ? On the node NVM, this is not an issue, as this structure is rebuilt on the
-// particular node PCB board. But the extension could be connected to different controller families....
+// ??? it would be nice to have templates for a board type for configuration convenience.
 //------------------------------------------------------------------------------------------------------------
 struct LcsDrvBoardDesc {
 
-  uint16_t  magicWord;
+  uint16_t  magicWord1;
+
   uint16_t  boardType;
   uint32_t  boardUID;
 
-  uint16_t  numOfChips;
-  uint16_t  chipTabEntrySize;
+  char      extBoardName[ MAX_BOARD_NAME_SIZE ];
 
-  uint16_t  numOfEndPoints;
-  uint16_t  endPointEntrySize;
+  uint16_t  driverData[ MAX_DRIVER_DATA_SIZE ];
 
-  char      extBoardName[ 16 ];
+  uint16_t  magicWord2;
 };
 
-
-
 //----------------------------------------------------------------------------------------------------------
-// The core libary maintains a driver table. A driver is a library that manages a particular extension board.
-// During startup all extension boards will be located, if any. For each extension board the correct driver
-// will be stored in the driver map. There area at most four extension boards on a controller type board.
-//
-// ??? actually, the entry is just a refernce to the DRV object ... 
-// ??? This entry struct should be the base class of all drivers...
-//
-// REWORK !!!!!!
+// The runtime libary maintains a driver table. A driver is a library that manages a particular extension 
+// board. During startup all extension boards will be located, if any. For each board the correct driver
+// will be stored in the driver map. The driver obbject is a set of defined methods and a reference to the
+// driver data area. This is the area that was read in when we located the extension board.
 //
 //----------------------------------------------------------------------------------------------------------
-struct LcsDrv {
+struct LcsDrvEntry {
 
   public:
 
@@ -427,11 +443,13 @@ struct LcsDrv {
     LcsDrvBoardDesc *extBoard = nullptr;
 };
 
-
 //----------------------------------------------------------------------------------------------------------
+// The LCS driver map is a memory structure created at setup time. When an extension board is connected to
+// the controller board it is assigned by hardware an index number. The first board has an index of zero. 
+// 
 //
-//
-//
+// ??? when you change the order of the boards, it does not matter to the drivers, but bperhaps to the 
+// firmware on top...
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
@@ -439,12 +457,8 @@ struct LcsDrvMap {
   uint16_t          size;
   uint16_t          *hwm = nullptr;
 
-  LcsDrv            *map[ 4 ];  // fix ....
-
-  void reset( ) { }
-
+  LcsDrvEntry       *map[ MAX_EXT_BOARDS ];
 };
-
 
 //----------------------------------------------------------------------------------------------------------
 // The LCS runtime internal routines used by other files of the runtime library.

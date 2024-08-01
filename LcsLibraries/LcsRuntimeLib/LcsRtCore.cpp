@@ -207,7 +207,7 @@ uint8_t registerPeriodicTask( LcsTaskCallback task, uint32_t interval ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t registerDriver( LcsDrv *drv ) {
+uint8_t registerDriver( LcsDrvEntry *drv ) {
 
   // ??? how about we just register them as needed?
 
@@ -226,7 +226,7 @@ uint8_t drvInit( uint8_t boardId, uint16_t flags ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   return (( drv != nullptr ) ? drv -> init( flags ) : ERR_INVALID_BOARD_ID );
 }
 
@@ -235,7 +235,7 @@ uint8_t drvControl( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t arg2 
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
   return ( drv -> control( item, arg1, arg2 ));
@@ -246,7 +246,7 @@ uint8_t drvInfo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
   return ( drv -> info( 0, item, arg1, arg2 ));
@@ -256,7 +256,7 @@ uint8_t drvRead( uint8_t boardId, uint8_t padId, uint16_t *arg ) {
 
   if (  boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
   return ( drv -> read( padId, arg ));
@@ -266,7 +266,7 @@ uint8_t drvRead( uint8_t boardId, uint8_t padId, uint8_t *arg, uint8_t *len ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
   return ( drv -> read( padId, arg, len ));
@@ -276,7 +276,7 @@ uint8_t drvWrite( uint8_t boardId, uint8_t padId, uint16_t arg ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
   return ( drv -> write( padId, arg ));
@@ -286,7 +286,7 @@ uint8_t drvWrite( uint8_t boardId, uint8_t padId, uint8_t *arg, uint8_t len ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrv *drv = drvMap.map[ boardId - 1 ];
+  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
   if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
 
   return ( drv -> write( padId, arg, len ));
