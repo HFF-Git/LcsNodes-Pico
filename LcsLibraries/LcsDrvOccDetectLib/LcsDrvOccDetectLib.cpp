@@ -1,17 +1,14 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Driver Library Code for SERVO boards
+// LCS - Driver Library Code for Occuopancy Detect extension boards
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains the lower level library for all the servoe extension board. We also call this
-// library a "driver". The driver provides a set of defined interfaces to the upper level extension library.
-// Being a driver, it truly knows teh hardware underneath and maps the upper level calls to the lower level
-// hardware calls to make.
+// This source file contains the ...
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Controller Dependent Code - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2023  Helmut Fieres
+// LCS - Driver Library Code for Occuopancy Detect extension boards
+// Copyright (C) 2022 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -106,13 +103,22 @@ namespace {
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Each drivr is just a function to handle the request.
 //
 //------------------------------------------------------------------------------------------------------------
-LcsDrvOccDetect::LcsDrvOccDetect( ) {
+uint8_t LcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 
+  switch( item ) {
+
+
+    default: ;
+  }
+
+
+  return( 0 ); // ??? for now ...
 }
 
+#if 0
 //------------------------------------------------------------------------------------------------------------
 //
 //
@@ -216,30 +222,8 @@ uint8_t LcsDrvOccDetect::read( uint8_t padId, uint16_t *arg ) {
     return ( 0 );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-// ??? write the two ports
-// ??? write a port
-// ??? write a bit
-//------------------------------------------------------------------------------------------------------------
-uint8_t LcsDrvOccDetect::write( uint8_t padId, uint16_t arg ) {
 
-  // ??? update value register
-  // ?? write it out  wroteI2C ( )
-
-  return ( 0 );
-}
-
-
- uint8_t LcsDrvOccDetect::read( uint8_t padId, uint8_t *buf, uint8_t *bufLen ) {
-
-  return( 0 );
- }
- 
-  uint8_t LcsDrvOccDetect::write( uint8_t padId, uint8_t *buf, uint8_t bufLen ) {
-
-    return( 0 );
-  }
+  #endif
 
 
   

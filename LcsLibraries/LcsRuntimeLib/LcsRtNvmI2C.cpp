@@ -67,9 +67,10 @@ namespace {
   // The pageSizes on the chip are a multiple of 32bytes. For now, we use this size as the common denominator.
   // Block handling and chipSize page handling are nicely taken care of this way. The downside is however that
   // a write will update the chip page up to four times for a pageSize of 128. However, since the chips have
-  // more than a million write cycles and we rately write large chunks of data, this will hopefully not be an
+  // more than a million write cycles and we rarely write large chunks of data, this will hopefully not be an
   // issue in the near future.
   //
+  // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
   //----------------------------------------------------------------------------------------------------------
   const uint16_t  MAX_NVM_CHIPS           = 4;
   const uint16_t  BUFFER_BLOCK_SIZE       = 32;
@@ -198,7 +199,6 @@ namespace {
     memset( &nMap -> map, 0, MAX_ATTR_MAP_ENTRIES * sizeof(uint16_t));
 
     nMap ->  magicWord2                       = MWORD_2;
-
   }
 
   //----------------------------------------------------------------------------------------------------------
@@ -327,19 +327,10 @@ namespace {
     return ( nullptr );
   }
 
-
-  //----------------------------------------------------------------------------------------------------------
-  // ??? have a routine to check and compute the offset ... ?
-
-  bool buildOffset( uint32_t *ofs, uint32_t len, bool userMap ) {
-
-    if ( userMap ) *ofs = *ofs + NVM_SYS_MAP_SIZE;
-    if ( *ofs + len >= nvmMaxSize - 1 ) return ( false );
-
-    return ( true );
-  }
-
 }; // namespace
+
+
+// ??? how can we generalize the NVM routines to also cover extension boards if needed ?
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -581,7 +572,7 @@ uint32_t nvmGetSize( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// User Map access rourtines. They directly build on top of their coungterpart NVM access routines. All we do
+// User Map access routines. They directly build on top of their coungterpart NVM access routines. All we do
 // is to adjust the offset accordingly.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -607,11 +598,6 @@ uint8_t umapGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
   ofs = ofs + NVM_SYS_MAP_SIZE;
   return( nvmGetBytes( ofs, buf, len ));
-}
-
-uint8_t umapInitArea( uint32_t ofs, uint32_t len, uint8_t val) {
-
-  ofs = ofs + NVM_SYS_MAP_SIZE;
 }
 
 uint32_t umapGetSize( ) {

@@ -445,8 +445,6 @@ void broadcastLcsMsgCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void listStatusCommand( char *s ) {
 
-  /*  ??? fix when ready ....
-
     int level = 0;
 
     if ( sscanf( s, " %d", &level ) > 0 ) {
@@ -458,58 +456,31 @@ void listStatusCommand( char *s ) {
       case 2:  dumpNodeMap( );     break;
       case 3:  dumpPortMap( );     break;
       case 4:  dumpEventMap( );    break;
-      case 5:  dumpAttrMap( );     break;
       case 6:  dumpPtaskMap( );    break;
       case 7:  dumpCallbackMap( ); break;
-      case 8:  dumpNvmArea( );     break;
+    //  case 8:  dumpNvmArea( );     break;
       case 9:  dumpMemArea( );     break;
-      case 10: dumpDrvData( );     break;
+    //  case 10: dumpDrvData( );     break;
 
-      default: INTERFACE.println( F( "<Unknown help option, use '?' for help>" ));
+      default: printf( "<Unknown help option, use '?' for help>" );
     }
     } else printSummary( );
-
-  */
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "driver reset" command.
+// "driver request" command.
 //
-//    <#s board [ flags ]>
-//
-//    board - the extension board the driver handles.
-//    flags - a set of options. Tbd.
-//
-//    returns:  <#s ret>
-//
-//------------------------------------------------------------------------------------------------------------
-void drvResetCommand( char *s ) {
-
-  uint8_t  boardId = 0;
-  uint16_t flags   = 0;
-
-  if ( sscanf( s, "%hhu %hu", &boardId, &flags ) != 2 ) return;
-
-  int ret = 0; // fill in drvControl with a reset command ???
-
-  printf( "<#s %d >", ret );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "driver control" command.
-//
-//    <#c board pad item arg1 [ arg 2]>
+//    <!D board item arg1 [ arg 2]>
 //
 //    board - the extension board the driver handles.
-//    pad   - the endpoint number of an endpoint on the board. If zero, the board is the target.
-//    item  - the driver specific item to qualify the control command.
+//    item  - the driver specific item which isthe requested operation.
 //    arg1  - the first argument to the driver.
 //    arg2  - the optional second argument to the driver.
 //
-//    returns:  <#c board pad item arg1 arg 2 ret>
+//    returns:  <!D board item arg1 arg 2 ret>
 //
 //------------------------------------------------------------------------------------------------------------
-void drvControlCommand( char *s ) {
+void drvRequestCommand( char *s ) {
 
   uint8_t  boardId  = 0;
   uint8_t  item     = 0;
@@ -518,89 +489,11 @@ void drvControlCommand( char *s ) {
 
   if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
 
-  int ret = drvControl( boardId, item, arg1, arg2 );
+  int ret = drvReq( boardId, item, arg1, &arg2 );
 
   printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
 }
 
-//------------------------------------------------------------------------------------------------------------
-// "driver info" command.
-//
-//    <#i board pad item arg1-in [ arg2-in ]>
-//
-//    board - the extension board the driver handles.
-//    pad   - the endpoint number of an endpoint on the board. If zero, the board is the target.
-//    item  - the driver specific item to qualify the info command.
-//    arg1  - the first argument to the driver on input. On output a value is returned here.
-//    arg2  - the optional second argument to the driver on input. On output a value is returned here.
-//
-//    returns:  <#c board pad item arg1-out arg2-out ret>
-//
-//------------------------------------------------------------------------------------------------------------
-void drvInfoCommand( char *s ) {
-
-  uint8_t  boardId  = 0;
-  uint8_t  item     = 0;
-  uint16_t arg1     = 0;
-  uint16_t arg2     = 0;
-
-  if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 3 ) return;
-
-  int ret = drvInfo( boardId, item, &arg1, &arg2 );
-
-  printf( "<#i %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "driver read" command.
-//
-//    <#r board pad [ arg-in ]>
-//
-//    board - the extension board the driver handles.
-//    pad   - the endpoint number of an endpoint on the board. If zero, the board is the target.
-//    arg   - the first argument to the driver on input. On output a value is returned here.
-//
-//    returns:  <#r board pad item arg-out ret>
-//
-//------------------------------------------------------------------------------------------------------------
-void drvReadCommand( char *s ) {
-
-  uint8_t  boardId  = 0;
-  uint8_t  padId    = 0;
-  uint16_t arg      = 0;
-
-  if ( sscanf( s, "%hhu %hhu %hu", &boardId, &padId, &arg ) < 2 ) return;
-
-  int ret = drvRead( boardId, padId, &arg );
-
-  printf( "<#r %d %d %d %d >", boardId, padId, arg, ret );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "driver write" command.
-//
-//    <#r board pad arg1 [ arg2 ... arg8 ]>
-
-//    board - the extension board the driver handles.
-//    pad   - the endpoint number of an endpoint on the board. If zero, the board is the target.
-//    arg n - up to eight arguments to the driver.
-//
-//    returns:  <#r board pad item arg1 [ arg2 ... arg8 ] ret>
-//
-//------------------------------------------------------------------------------------------------------------
-void drvWriteCommand( char *s ) {
-
-  uint8_t  boardId  = 0;
-  uint8_t  padId    = 0;
-
-  uint8_t b[ 8 ]   = { 0 };
-  uint8_t  nBytes  = sscanf( s, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                             &boardId, &padId, b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7 );
-
-  int ret = drvWrite( boardId, padId, b, nBytes - 2 );
-
-  printf( "<#w %d %d %d >", boardId, padId, ret );
-}
 
 //------------------------------------------------------------------------------------------------------------
 // "!?" lists core library help information.
@@ -622,6 +515,7 @@ void listCoreLibHelpCommand( ) {
   printf( "<!n portId item > - list a node attribute\n" );
   printf( "<!N portId item val1 [ val2 ] > - sets a node attribute\n" );
   printf( "<!B byte1 [ byte2 ... byte8 ] > - broadcast a raw LCS message\n" );
+  printf( "<!D board item [ arg1 [ arg2 ]] > - send a request to an extension board n\n" );
 
   printf( " < !s [ level ] > - list status, default is summary\n" );
   printf( "              " " -  0 - summary\n" );
@@ -636,25 +530,6 @@ void listCoreLibHelpCommand( ) {
   printf( "              " " -  9 - MEM Area\n" );
   printf( "              " " - 10 - Driver Area\n" );
 }
-
-//------------------------------------------------------------------------------------------------------------
-// "#?" lists driver functions help information.
-//
-//    <?>
-//
-//    returns: a list of available commands for accessing an extension driver
-//
-//------------------------------------------------------------------------------------------------------------
-void listDrvHelpCommand( ) {
-
-  printf( "\nCore Library Driver Commands : \n" );
-  printf( "<#s board [ flags ] > - resets board n\n" );
-  printf( "<#c board pad item arg1 [ arg2 ] > - send control data to board n\n" );
-  printf( "<#i board pad item [ arg1 [ arg2 ]] > - request control data from board n\n" );
-  printf( "<#r board pad [ arg1 ] > - read data from board n\n" );
-  printf( "<#w board pad arg1 [ arg2 .. arg8 ] > - write data to board n\n" );
-}
-
 
 //------------------------------------------------------------------------------------------------------------
 // "setupSerialCommand" initializes the serial interface. We use the PICO USB as console IO.
@@ -672,7 +547,7 @@ uint8_t setupSerialCommand( ) {
 // branch to the appropriate command handler. The command interface routine only handles the LCS commands, 
 // which do start with a "!" after the opening bracket. Anything else is passed to a command handler callback,
 // if defined. The interface accepts more than one command, they are just a list of "<...>" characters.
-// Note that the routine is called as part of the runtime loop. Consequetntly, it cannot not block for IO. 
+// Note that the routine is called as part of the runtime loop. Consequently, it cannot not block for IO. 
 // The interface is designed in a way that it assembles the character input when there are characters. Only
 // when there is a valid "<...>" sequence assembled, the command handler is invoked. 
 //
@@ -682,7 +557,7 @@ uint8_t handleSerialCommand( ) {
   char c;
 
   while ( c = CDC::getConsoleChar( ) > 0 ) {
-   
+
     switch( c ) {
 
       case '<': commandBuf[ 0 ] = 0; break;
@@ -702,22 +577,10 @@ uint8_t handleSerialCommand( ) {
               case 'n': queryNodeCommand( commandBuf + 2 );       break;
               case 'N': controlNodeCommand( commandBuf + 2 );     break;
               case 'B': broadcastLcsMsgCommand( commandBuf + 2 ); break;
+              case 'D': drvRequestCommand( commandBuf + 2 );      break;
               case 's': listStatusCommand( commandBuf + 2 );      break;
               case '?': listCoreLibHelpCommand( );                break;
               default: printf( "<Unknown !-command, use '!?' for help>" );
-            }
-          }
-          else if ( commandBuf[ 0 ] == '#' ) {
-
-            switch ( commandBuf[ 1 ] ) {
-
-              case 's': drvResetCommand( commandBuf + 2 );    break;
-              case 'c': drvControlCommand( commandBuf + 2 );  break;
-              case 'i': drvInfoCommand( commandBuf + 2 );     break;
-              case 'r': drvReadCommand( commandBuf + 2 );     break;
-              case 'w': drvWriteCommand( commandBuf + 2 );    break;
-              case '?': listDrvHelpCommand( );                break;
-              default: printf( "<Unknown # -command, use '#?' for help>" );
             }
           }
           else if ( commandBuf[ 0 ] == '$' ) {

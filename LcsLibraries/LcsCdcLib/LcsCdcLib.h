@@ -268,7 +268,7 @@ namespace CDC {
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t       configureConsoleIO( );
-  char          getConsoleChar( );
+  char          getConsoleChar( bool echoBack = true );
   bool          isConsoleConnected( );
 
   //----------------------------------------------------------------------------------------------------------

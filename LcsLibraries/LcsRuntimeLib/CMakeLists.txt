@@ -40,6 +40,7 @@ target_link_libraries( ${PROJECT_NAME}
     hardware_sync
     hardware_regs
     LcsCdcLib
+    LcsDrvOccDetectLib
     )
 
 # this is a mess.... why do we need so many include directory specificatons ?

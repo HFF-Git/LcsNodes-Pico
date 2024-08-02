@@ -29,8 +29,6 @@
 // Include files.
 //
 //------------------------------------------------------------------------------------------------------------
-#include <stdint.h>
-#include <inttypes.h>
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -380,6 +378,8 @@ namespace LCS {
 
     // ??? also add DRV related items...
     // ??? a RESET, ...
+    // ??? add stop and enable periodic processing ?
+    
 
 
     NPC_RESET_NODE                  = 1,
@@ -643,6 +643,9 @@ namespace LCS {
     typedef void    ( *LcsPortEventCallback) ( uint16_t nodeId, uint8_t portId, uint8_t eAction, uint16_t eId, uint16_t eData );
   }
 
+
+
+
   // ??? !!!!!!! think about how to best check that the systen is ready for a particular call....
 
   //------------------------------------------------------------------------------------------------------------
@@ -742,13 +745,7 @@ namespace LCS {
   // The driver interface.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t             drvInit( uint8_t boardId, uint16_t flags );
-  uint8_t             drvControl( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-  uint8_t             drvInfo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-  uint8_t             drvRead( uint8_t boardId, uint8_t padId, uint16_t *arg );
-  uint8_t             drvWrite( uint8_t boardId, uint8_t padId, uint16_t arg );
-  uint8_t             drvRead( uint8_t boardId, uint8_t padId, uint8_t *buf, uint8_t *len );
-  uint8_t             drvWrite( uint8_t boardId, uint8_t padId, uint8_t *buf, uint8_t len );
+  uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t arg1 = 0, uint16_t *arg2 = nullptr );
 
   //----------------------------------------------------------------------------------------------------------
   // The User Map interface.

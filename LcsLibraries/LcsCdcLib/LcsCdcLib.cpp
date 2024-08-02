@@ -643,7 +643,8 @@ uint32_t CDC::createUid( ) {
 // call should be done rather early, so that we can print out debug messages. In normal LCS node operation
 // there is no USB connected. Detecting a connection helps to decide whether we can report an error or need
 // to resort to a fatal error call at startup. Finally, there is a routine to get a character for the command
-// interfaces.
+// interfaces. Since the function just reads in a character, we have to exho it back to the console ourselves
+// if desired.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t CDC::configureConsoleIO( ) {
@@ -657,10 +658,15 @@ bool CDC::isConsoleConnected( ) {
   return( stdio_usb_connected( ));
 }
   
-char CDC::getConsoleChar( ) {
+char CDC::getConsoleChar( bool echoBack ) {
 
   int ch = getchar_timeout_us( 0 );
-  return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
+
+  if ( ch == PICO_ERROR_TIMEOUT ) return( 0 );
+
+  if ( echoBack ) printf( "%c", ch );
+
+  return( ch );
 }
 
 //------------------------------------------------------------------------------------------------------------

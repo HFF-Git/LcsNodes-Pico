@@ -34,6 +34,9 @@
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
+#include "LcsDrvOccDetectLib.h"
+
+// ??? add other driver libs...
 
 
 namespace LCS {
@@ -150,6 +153,33 @@ enum MsgPriority : uint8_t {
   MSG_PRI_NORMAL      = 2,
   MSG_PRI_LOW         = 3
 };
+
+//----------------------------------------------------------------------------------------------------------
+  // The node states. The node starts in the INIT state and once all is initialized and registered ends up in
+  // the OPS or CFG mode.
+  //
+  //  NS_NIL            -
+  //  NS_FAIL           -
+  //  NS_INIT           -
+  //  NS_REGISTER       -
+  //  NS_COLLISION      -
+  //  NS_HALTED         -
+  //  NS_CONFIG         -
+  //  NS_OPERATE        -
+  //
+  //----------------------------------------------------------------------------------------------------------
+  enum LcsNodeState : uint16_t {
+
+    NS_NIL            = 0,
+    NS_FAIL           = 1,
+    NS_INIT           = 2,
+    NS_REGISTER       = 3,
+    NS_COLLISION      = 4,
+    NS_HALTED         = 5,
+    NS_CONFIG         = 6,
+    NS_OPERATE        = 7
+  };
+
 
 //------------------------------------------------------------------------------------------------------------
 // "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines.
@@ -341,15 +371,6 @@ struct LcsTaskMap {
   LcsPTaskMapEntry  *next   = nullptr;
 
   LcsPTaskMapEntry  map[ MAX_TASK_MAP_ENTRIES ];
-
-  void reset( ) {
-
-    flags = 0;
-    size  = MAX_TASK_MAP_ENTRIES;
-
-    for ( int i = 0; i < size - 1; i++ ) map[ i ].reset( );
-  }
-
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -368,11 +389,13 @@ struct LcsPendingReqMap {
   uint16_t            flags;
   LcsPendingReqEntry  *hwm;
 
-
   LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
+extern "C" {
 
+  typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );  
+} 
 
 
 //----------------------------------------------------------------------------------------------------------
@@ -388,6 +411,8 @@ const uint8_t MAX_BOARD_ID          = 4;
 const uint8_t MAX_EXT_BOARDS        = 4;
 const uint8_t MAX_BOARD_NAME_SIZE   = 16;
 const uint8_t MAX_DRIVER_DATA_SIZE  = 64;
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Each extension board will have a NVM to store the board configuration data. Similar to the node map of the
@@ -410,6 +435,7 @@ struct LcsDrvBoardDesc {
   uint16_t  magicWord1;
 
   uint16_t  boardType;
+  uint16_t  boardSubType;
   uint32_t  boardUID;
 
   char      extBoardName[ MAX_BOARD_NAME_SIZE ];
@@ -428,18 +454,8 @@ struct LcsDrvBoardDesc {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {
 
-  public:
-
-    virtual uint8_t init( uint16_t flags ) = 0;
-    virtual uint8_t control( uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 ) = 0;
-    virtual uint8_t info( uint8_t padId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr ) = 0;
-    virtual uint8_t read( uint8_t padId, uint16_t *arg ) = 0;
-    virtual uint8_t write( uint8_t padId, uint16_t arg ) = 0;
-    virtual uint8_t read( uint8_t padId, uint8_t *buf, uint8_t *bufLen ) = 0;
-    virtual uint8_t write( uint8_t padId, uint8_t *buf, uint8_t bufLen ) = 0;
-
-  private:
-
+    uint16_t        flags     = 0;   
+    LcsDrvReqFunc   drvFunc   = nullptr;
     LcsDrvBoardDesc *extBoard = nullptr;
 };
 
@@ -448,16 +464,15 @@ struct LcsDrvEntry {
 // the controller board it is assigned by hardware an index number. The first board has an index of zero. 
 // 
 //
-// ??? when you change the order of the boards, it does not matter to the drivers, but bperhaps to the 
+// ??? when you change the order of the boards, it does not matter to the drivers, but perhaps to the 
 // firmware on top...
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
   uint16_t          flags;
   uint16_t          size;
-  uint16_t          *hwm = nullptr;
-
-  LcsDrvEntry       *map[ MAX_EXT_BOARDS ];
+  
+  LcsDrvEntry       map[ MAX_EXT_BOARDS ];
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -486,6 +501,17 @@ void          handleMsgEvent( uint8_t *msg );
 
 uint8_t       setupSerialCommand( );
 uint8_t       handleSerialCommand( );
+
+void          handleNodeStateInit( );
+void          handleNodeStateFail( );
+void          handleNodeStateRegister( );
+void          handleNodeStateCollision( );
+void          handleNodeStateHalted( );
+void          handleNodeStateConfig( );
+void          handleNodeStateOperations( );
+
+void          handlePeriodicTasks( );
+void          handleNodePortEvents( );
 
 uint8_t       nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin, uint8_t i2cAdrRoot );
 

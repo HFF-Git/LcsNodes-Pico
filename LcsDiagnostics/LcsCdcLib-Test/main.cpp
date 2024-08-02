@@ -176,7 +176,7 @@ void testLeds( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Test Fatal Error LED.
+// Test Fatal Error LED. Note, we will not come back from this call.
 //
 //----------------------------------------------------------------------------------------------------------
 void testFatalErr( ) {
@@ -185,8 +185,6 @@ void testFatalErr( ) {
 
   CDC::fatalError( 4 );
 }
-
-
 
 //----------------------------------------------------------------------------------------------------------
 // Set the DIO pins to input, pullup and read the values. Use a litte cable to set the voltage on the

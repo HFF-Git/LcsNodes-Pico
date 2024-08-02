@@ -31,41 +31,19 @@
 #include "LcsRuntimeLib.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Driver items...
+// Driver items.
 //
 //------------------------------------------------------------------------------------------------------------
-enum DrvItems {
+enum LcsDrvOccDetectItems : uint8_t {
 
   
   
 };
 
-
-
 //------------------------------------------------------------------------------------------------------------
-//
+// Driver function.
 //
 //------------------------------------------------------------------------------------------------------------
-struct LcsDrvOccDetect  {
-
-  public:
-
-  LcsDrvOccDetect( );
-
-  uint8_t init( uint16_t flags );
-  uint8_t reset( uint16_t flags );
-  
-  uint8_t config( uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-  uint8_t control( uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-  uint8_t info( uint8_t padId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-  
-  uint8_t read( uint8_t padId, uint16_t *arg );
-  uint8_t write( uint8_t padId, uint16_t arg );
-  uint8_t read( uint8_t padId, uint8_t *buf, uint8_t *bufLen );
-  uint8_t write( uint8_t padId, uint8_t *buf, uint8_t bufLen );
-
-  private:
-  
-};
+uint8_t LcdDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );
 
 #endif

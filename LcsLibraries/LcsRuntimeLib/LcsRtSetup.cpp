@@ -3,10 +3,33 @@
 // Layout Control System - Runtime setup file.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file implements a part of the LcsRuntimeLib that deals with the startup and storage aspects of a node.
+// The file implements a part of the LcsRuntimeLib that deals with the setup and start sequence of a node.
+// There is a lot to do. First, we need to initialize the CDC laer, our lower layer foundation. Next the
+// NVM of the nodeMap is located and checked for validity. The nodeMap contains all the information for 
+// setting up the entire node. If this steps fails, we either need to configure the nodeMap, or we habe a
+// fata error and the node is not usable.
+// 
+// With a correct node map in place the memory structures for the node, the ports, events, callbacks and 
+// periodic tasks are created. The node is basically ready to do work.
 //
+// Next is the extension board setup. We try to locate all connected extension boards and install the 
+// corresponding driver. A driver is jst a procedure that lnows how tp talk to the particular extension 
+// board. A failure in this part of the seqeunce sequence does not necessaruly mean tha the node cannot be
+// used.
 //
+// Assuming all went fine, the runtime library is ready to accept calls for registering callbacks and a few
+// other library calls. Once all this work is done, the last call of teh node formware would be to start 
+// the runtime, which would as the very first thing invoke all registered initialization callbacks and the 
+// enter the processing loop. We will not return from that routine.
 //
+// An error in the setup sequeunce does not necessaruily mean that the node is unusable. For example, when
+// the nodeMap is not valid, the setup routine will report an error, but we can still call the runtime
+// loop. The runtime loop will handle LCS mesages and also provide the console IO, which in turn allows us
+// manually correct the node data for a sucessful restart. In a similar way, extension board errors can be
+// be addressed.
+// 
+// This file contains the library global data declartions if teh LCS lrutime library. All other files will
+// refer to them as "extern".
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -29,12 +52,17 @@
 //------------------------------------------------------------------------------------------------------------
 // Externals.
 //
+// ??? or rather declare them here ?
 //------------------------------------------------------------------------------------------------------------
-extern LCS::LcsMsgBusCAN             *msgBus;
-extern LCS::LcsNodeMap               nodeMap;
-extern LCS::LcsPortMap               portMap;
-extern LCS::LcsEventMap              eventMap;
-extern LCS::LcsCallbackMap           callbackMap;
+LCS::LcsCdcDesc              cdcMap;
+LCS::LcsMsgBusCAN            *msgBus;
+LCS::LcsNodeMap              nodeMap;
+LCS::LcsPortMap              portMap;
+LCS::LcsEventMap             eventMap;
+LCS::LcsCallbackMap          callbackMap;
+LCS::LcsTaskMap              taskMap;
+LCS::LcsDrvMap               drvMap;
+LCS::LcsNodeState            nodeState;
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLibConfig implementation file local declarations and routines.
@@ -155,7 +183,7 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Now that the nodeMap is available, let's do the reqeuired consistency checks.
+// Now that the nodeMap is available, let's do the required consistency checks.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
@@ -277,14 +305,76 @@ uint8_t setupUserMap( ) {
   printf( "setupUserMap, status: %d\n", rStat );
   #endif
 
-  return ( rStat );
+  return ( ALL_OK );
 }
 
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupCallbackMap( ) {
 
-// ??? setup callback Map ?
+   #if DEBUG_CONFIG == 1
+  printf( "setupCallbackMap\n" );
+  #endif
 
-// ??? setup task map ?
+  uint8_t rStat = ALL_OK;
 
+  callbackMap.flags                 = 0;
+  callbackMap.size                  = MAX_PORT_MAP_ENTRIES + 1; 
+
+  callbackMap.lcsMsgCallback        = nullptr;
+  callbackMap.dccMsgCallback        = nullptr;
+  callbackMap.cmdLineCallback       = nullptr;
+  callbackMap.portEventCallback     = nullptr;
+  callbackMap.itemReqRepCallback    = nullptr;
+
+  for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+      
+    callbackMap.map[ i ].initCallback     = nullptr;
+    callbackMap.map[ i ].infoItemCallback = nullptr;
+    callbackMap.map[ i ].ctrlItemCallback = nullptr;
+  }
+
+  #if DEBUG_CONFIG == 1
+  printf( "setupCallbackMap, status: %d\n", rStat );
+  #endif
+
+  return( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupTaskMap( ) {
+
+   #if DEBUG_CONFIG == 1
+  printf( "setupTaskMap\n" );
+  #endif
+
+  uint8_t rStat = ALL_OK;
+
+  taskMap.flags = 0;
+  taskMap.size  = MAX_TASK_MAP_ENTRIES;
+  taskMap.hwm   = taskMap.map;
+  taskMap.next  = taskMap.map;
+
+  for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) {
+
+    taskMap.map[ i ].task       = nullptr;
+    taskMap.map[ i ].interval   = 0;
+    taskMap.map[ i ].timeStamp  = 0;
+  }
+
+  #if DEBUG_CONFIG == 1
+  printf( "setupTaskMap, status: %d\n", rStat );
+  #endif
+
+  return( ALL_OK );
+}
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -298,7 +388,10 @@ uint8_t detectExtensionBoards( ) {
 
   uint8_t rStat = ALL_OK;
 
-  // ??? try to find extension boards ( 1 to 4 )
+  for ( int i = 0; i < MAX_BOARD_ID; i++ ) {
+
+       // ??? try to find extension boards ( 1 to 4 )
+    }
 
  #if DEBUG_CONFIG == 1
   printf( "detectExtensionBoards, status: %d\n", rStat );
@@ -307,32 +400,10 @@ uint8_t detectExtensionBoards( ) {
   return ( rStat );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
+// For all detected extension bards, we will onvoke the driver with the "SETUP" item code.
 //
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupDriverEnv( ) {
-
-  #if DEBUG_CONFIG == 1
-  printf( "setupDriverEnv\n" );
-  #endif
-
-  uint8_t rStat = ALL_OK;
-
-  // ??? init each driver
-
-  #if DEBUG_CONFIG == 1
-  printf( "setupDriverEnv, status: %d\n", rStat );
-  #endif
-
-  return ( rStat );
-}
-
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
+// ??? what to do ona failure ? We do not want to sop the entire setup sequence ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
@@ -340,11 +411,16 @@ uint8_t setupExtensionBoards( ) {
   printf( "setupExtensionBoards\n" );
   #endif
 
-  uint8_t rStat = detectExtensionBoards( );
+  uint8_t rStat = ALL_OK;
 
-  if ( rStat == ALL_OK ) {
+  for ( int i = 0; i < MAX_BOARD_ID; i++ ) {
 
-    rStat = setupDriverEnv( );
+    if ( drvMap.map[ i ].flags != 0  ) {
+
+      rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
+      
+      // ??? on an error, we just mark the extension as "error" but continue ?
+    } 
   }
 
   #if DEBUG_CONFIG == 1
@@ -355,7 +431,8 @@ uint8_t setupExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// "invokeInitCallbacks" onvoles the registered initialization callbacks for the node and the ports. The 
+// routine is called as the very first thing of the "startRuntime" call.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t invokeInitCallbacks( ) {
@@ -366,7 +443,19 @@ uint8_t invokeInitCallbacks( ) {
 
   uint8_t rStat = ALL_OK;
 
-  // ??? invoke registered user callbacks
+  if ( callbackMap.map[ 0 ].initCallback != nullptr ) {
+
+    rStat = callbackMap.map[ 0 ].initCallback( nodeMap.id, 0, 0 );
+  }
+
+  for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+    if ( callbackMap.map[ i ].initCallback != nullptr ) {
+
+      rStat = callbackMap.map[ i ].initCallback( nodeMap.id, i + 1, 0 );
+      if ( rStat != ALL_OK ) break;
+    } 
+  }
 
    #if DEBUG_CONFIG == 1
   printf( "invokeInitCallbacks, status: %d\n", rStat );
@@ -376,27 +465,34 @@ uint8_t invokeInitCallbacks( ) {
 }
 
 
+
+// ??? reset Node and resetPort should go here. What do they actually do ?
+// ??? looks like we will also just invoke the init callback...
+// ??? would a node reset clear any outstanding requests ?
+// ??? would it just drop all periodic tasks ?
+
+
+
+
 //------------------------------------------------------------------------------------------------------------
-// "initRuntime" is the routine that takes a controller board and initializes the whoe show. There is a lot
-// to do. First, the CDC layer is initualized. NVM and CanBus follow. If all is OK, we have a valid basic
-// nodeMap, we can work from. If the nodeMap read is not valid, the node enters the error state and the
-// node map can be configured / corrected via teh USB console IO. This will be for example always be the case
-// when a new board is powered up.
+// "initRuntime" is the routine that takes a controller board and initializes the whole show. It is the very
+// first thing to call in a node firmware program. There is a lot to do. First, the CDC layer is initualized.
+// NVM and CanBus follow. If all is OK, we have a valid basic nodeMap, we can work from. If the nodeMap read
+// is not valid, the node enters the error state and the node map can be configured / corrected via the USB
+//  console IO. This will be for example always be the case when a new board is powered up.
 //
-// In the other cases, portMap, eventMap and userMap setup follows. Now, we have the controller basic data
+// In the other cases, portMap, eventMap and userMap setup follow. Now, we have the controller basic data
 // structures in a reasonable shape. Next, the extension boards are located, and if there are any, their
-// initialization follows. Finally, all registered callbacks are invoked. 
+// initialization follows. We also need to set up the callback function structures. 
+// 
+// If all is sucessful, the firmware prgrammer can register callback functions and also perform LCS library 
+// calls. The overal logic of the startup routine is that if there is a fault, the follow on steps are simply 
+// skipped and the node is put into the FAIL state. Note that we still are able to access the node via the
+// USB console and one day also via certain LCS messages. The idea is to allow the correct configuration 
+// of the nodemap, so that we can restart with a correct nodeMap. 
 //
-// The overal logic of the startup provcess is that if there is a fault, the follow on steps are simply 
-// skipped. If the basic setup worked bit the nodeMap is not valid, the map can be configured via the USB
-//  console IO commands. During this time the node is in "fault" state. After configuration, simply reset
-// again and the provcess is repeated, this time hopefully with a valid nodeMap.
-//
-
-// ??? what is the sequence ? always do the init as the very first thing, then do registration, etc. 
-// and then call startruntime ?
-//
-
+// ??? how to deal with extension board errors ?
+// 
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 
@@ -406,26 +502,67 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 
   uint8_t rStat = ALL_OK;
 
-  if ( rStat == ALL_OK ) rStat = initCdcLayer( ci );
-  if ( rStat == ALL_OK ) rStat = initNvm( ci );
-  if ( rStat == ALL_OK ) rStat = initCanBus( ci );
+  if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
+  if ( rStat == ALL_OK )  rStat = initNvm( ci );
+  if ( rStat == ALL_OK )  rStat = initCanBus( ci );
 
-  if ( rStat == ALL_OK ) rStat = setupNodeMap( );
-  if ( rStat == ALL_OK ) rStat = setupPortMap( );
-  if ( rStat == ALL_OK ) rStat = setupEventMap( );
-  if ( rStat == ALL_OK ) rStat = setupUserMap( );
+  if ( rStat == ALL_OK )  rStat = setupNodeMap( );
+  if ( rStat == ALL_OK )  rStat = setupPortMap( );
+  if ( rStat == ALL_OK )  rStat = setupEventMap( );
+  if ( rStat == ALL_OK )  rStat = setupUserMap( );
+   if ( rStat == ALL_OK ) rStat = setupCallbackMap( );
+  if ( rStat == ALL_OK )  rStat = setupTaskMap( );
 
-  if ( rStat == ALL_OK ) rStat = setupExtensionBoards( );
-  if ( rStat == ALL_OK ) rStat = invokeInitCallbacks( );
-
-  // ??? anything else ? Setting the final nodeState ?
-  if ( rStat == ALL_OK ) ;
+  if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
+  if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
+ 
+  if ( rStat == ALL_OK )  nodeState = NS_INIT;
+  else                    nodeState = NS_FAIL;
 
   #if DEBUG_CONFIG == 1
   printf( "init LCS runtime, status: %d \n", rStat ) ;
   #endif
 
   return ( rStat );
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// "startRuntime" is the main routine of the node activity processing. It is the method called after all 
+// setup is done. Running in a loop, the primary function is to handle the activities according to the node 
+// state. The run loop also processes the serial commands, periodic tasks and events. Note that this function
+// will not return. When the routine is called, it will as the vrry first thing invoke all registered init
+// callback functions before entering the processing loop.
+//
+//------------------------------------------------------------------------------------------------------------
+void startRuntime( ) {
+
+  uint8_t rStat = ALL_OK;
+
+  // ??? reset calls to node and port ?
+
+  if ( rStat == ALL_OK ) rStat = invokeInitCallbacks( );
+
+  while ( true ) {
+
+    switch ( nodeState ) {
+
+      case NS_INIT:       handleNodeStateInit( );       break;
+      case NS_FAIL:       handleNodeStateFail( );       break;
+      case NS_REGISTER:   handleNodeStateRegister( );   break;
+      case NS_COLLISION:  handleNodeStateCollision( );  break;
+      case NS_HALTED:     handleNodeStateHalted( );     break;
+      case NS_CONFIG:     handleNodeStateConfig( );     break;
+      case NS_OPERATE:    handleNodeStateOperations( ); break;
+    }
+
+    if (( nodeState == NS_OPERATE ) || ( nodeState == NS_CONFIG )) {
+
+      handlePeriodicTasks( );
+      handleNodePortEvents( );
+    }
+
+    handleSerialCommand( );
+  }
 }
 
 }; // namespace LCS

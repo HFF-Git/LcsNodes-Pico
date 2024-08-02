@@ -3,7 +3,7 @@
 // Layout Control System - implementation file.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the part of the Lcs Runtime Library that implements the node event handling. At the
+// The file contains the part of the LCS Runtime Library that implements the node event handling. At the
 // heart of LCS is the concept of events. Events are broadcasted by a node and any other node that is
 // interested in it registers a callback or this event. The runtime functions provide the management of the
 // event map and the search routines.

@@ -46,32 +46,7 @@ namespace {
   uint32_t        timerVal                        = 0L;
 
 
-  //----------------------------------------------------------------------------------------------------------
-  // The node states. The node starts in the INIT state and once all is initialized and registered ends up in
-  // the OPS or CFG mode.
-  //
-  //  NS_NIL            -
-  //  NS_FAIL           -
-  //  NS_INIT           -
-  //  NS_REGISTER       -
-  //  NS_COLLISION      -
-  //  NS_HALTED         -
-  //  NS_CONFIG         -
-  //  NS_OPERATE        -
-  //
-  //----------------------------------------------------------------------------------------------------------
-  enum NodeState : uint16_t {
-
-    NS_NIL            = 0,
-    NS_FAIL           = 1,
-    NS_INIT           = 2,
-    NS_REGISTER       = 3,
-    NS_COLLISION      = 4,
-    NS_HALTED         = 5,
-    NS_CONFIG         = 6,
-    NS_OPERATE        = 7
-  };
-
+  
   //----------------------------------------------------------------------------------------------------------
   // A little helper function to check a number range.
   //
@@ -85,28 +60,19 @@ namespace {
 
 
 //------------------------------------------------------------------------------------------------------------
-// The global structures declaration. There is first of all the "runtime maps" which holds all non-volatile
-// node and port data from which the volatile copies are built. The "callback map" holds all registered
-// callback function pointers. The "task map" holds all registered periodc task function pointers. The "driver
-// map" holds the configured driver for an extension board, if there is any configured.
+// 
 //
-// The "nmv" and "msgBus" are the handles to the NVM hardware and the message bus interface. Finally there is
-// the overall node state, which holds the current state of the node.
 //
-//------------------------------------------------------------------------------------------------------------
-LCS::LcsCdcDesc                cdcMap;
-LCS::LcsNodeMap                nodeMap;
-LCS::LcsPortMap                portMap;
-LCS::LcsEventMap               eventMap;
-
-LCS::LcsCallbackMap            callbackMap;
-LCS::LcsTaskMap                taskMap;
-LCS::LcsPendingReqMap          pendingReqMap;
-LCS::LcsDrvMap                 drvMap;
-
-LCS::LcsMsgBusCAN              *msgBus       = nullptr;
-uint16_t                       nodeState     = 0;
-
+//-----------------------------------------------------------------------------------------------------------
+extern LCS::LcsNodeState         nodeState;
+extern LCS::LcsNodeMap          nodeMap;
+extern LCS::LcsPortMap          portMap;
+extern LCS::LcsEventMap         eventMap;
+extern LCS::LcsCallbackMap      callbackMap;
+extern LCS::LcsTaskMap          taskMap;
+extern LCS::LcsPendingReqMap    pendingReqMap;
+extern LCS::LcsDrvMap           drvMap;
+extern LCS::LcsMsgBusCAN        *msgBus;
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -146,7 +112,7 @@ void registerPortEventCallback( LcsPortEventCallback functionId ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Callback registration functions for node and port callbacks. They are stored in teh callback map, which
-// allows separate callbacks for individual ports and so on. Note that these callbacks need tobe registered
+// allows separate callbacks for individual ports and so on. Note that these callbacks need to be registered
 // on each startup and node reset. We will not keep the callback map across these events.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -202,95 +168,27 @@ uint8_t registerPeriodicTask( LcsTaskCallback task, uint32_t interval ) {
   } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t registerDriver( LcsDrvEntry *drv ) {
 
-  // ??? how about we just register them as needed?
 
-  return ( ALL_OK );
-}
+
 
 
 //------------------------------------------------------------------------------------------------------------
-// The high level driver functions. All they do is to locate the driver object and invoke the respective
-// method. The driver routines implement a similar "item" scheme just like nodes and ports.
+// "drvReq" is the entry point to an extension board. For each extension bord type there is driver function.
+// This function is called when we access that extension board.
 //
-// idea: why not have the same item ranges as node/port ?
-// this way we can hve a common set of items which also apply to drivers...
+//
 //------------------------------------------------------------------------------------------------------------
-uint8_t drvInit( uint8_t boardId, uint16_t flags ) {
+uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 
   if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
 
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  return (( drv != nullptr ) ? drv -> init( flags ) : ERR_INVALID_BOARD_ID );
+  return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
 }
 
-// ??? fix ....
-uint8_t drvControl( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
 
-  if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
+// ??? need a dummy driver when we cannot identify the board but still want to talkl to the NVM ?
 
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
-
-  return ( drv -> control( item, arg1, arg2 ));
-}
-
-// ??? fix ....
-uint8_t drvInfo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
-
-  if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
-
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
-
-  return ( drv -> info( 0, item, arg1, arg2 ));
-}
-
-uint8_t drvRead( uint8_t boardId, uint8_t padId, uint16_t *arg ) {
-
-  if (  boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
-
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
-
-  return ( drv -> read( padId, arg ));
-}
-
-uint8_t drvRead( uint8_t boardId, uint8_t padId, uint8_t *arg, uint8_t *len ) {
-
-  if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
-
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
-
-  return ( drv -> read( padId, arg, len ));
-}
-
-uint8_t drvWrite( uint8_t boardId, uint8_t padId, uint16_t arg ) {
-
-  if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
-
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
-
-  return ( drv -> write( padId, arg ));
-}
-
-uint8_t drvWrite( uint8_t boardId, uint8_t padId, uint8_t *arg, uint8_t len ) {
-
-  if ( boardId >= MAX_BOARD_ID ) return ( ERR_INVALID_BOARD_ID );
-
-  LcsDrvEntry *drv = drvMap.map[ boardId - 1 ];
-  if ( drv == nullptr ) return ( ERR_INVALID_BOARD_ID );
-
-  return ( drv -> write( padId, arg, len ));
-}
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -347,31 +245,6 @@ uint8_t resetPort( uint8_t portId ) {
   else return ( ALL_OK );
 
 }
-
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-void resetCallbackMap( ) {
-
-  callbackMap.flags                 = 0;
-  callbackMap.size                  = MAX_PORT_MAP_ENTRIES + 1; 
-
-  callbackMap.lcsMsgCallback        = nullptr;
-  callbackMap.dccMsgCallback        = nullptr;
-  callbackMap.cmdLineCallback       = nullptr;
-  callbackMap.portEventCallback     = nullptr;
-  callbackMap.itemReqRepCallback    = nullptr;
-
-  for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-      
-    callbackMap.map[ i ].initCallback     = nullptr;
-    callbackMap.map[ i ].infoItemCallback = nullptr;
-    callbackMap.map[ i ].ctrlItemCallback = nullptr;
-  }
-}
-
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -679,7 +552,6 @@ void handleMsgDccMgt( uint8_t *msg ) {
   if ( callbackMap.dccMsgCallback != NULL ) callbackMap.dccMsgCallback( msg );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // Node state INIT. This is the first state after the initial library setup. The init call created all memory
 // areas and initalized the data structures. After the init call, the firmeware programmer can register the
@@ -875,36 +747,5 @@ void handleNodeStateOperations( ) {
   }
 }
 
-//-----------------------------------------------------------------------------------------------------------
-// "startRuntime" is the main routine of the node activity processing. It is the method called after all 
-// setup is done. Running in a loop, the primary function is to handle the activities according to the node 
-// state. The run loop also processes the serial commands, periodic tasks and events. Note that this function
-// will not return.
-//
-//------------------------------------------------------------------------------------------------------------
-void startRuntime( ) {
-
-  while ( true ) {
-
-    switch ( nodeState ) {
-
-      case NS_INIT:       handleNodeStateInit( );       break;
-      case NS_FAIL:       handleNodeStateFail( );       break;
-      case NS_REGISTER:   handleNodeStateRegister( );   break;
-      case NS_COLLISION:  handleNodeStateCollision( );  break;
-      case NS_HALTED:     handleNodeStateHalted( );     break;
-      case NS_CONFIG:     handleNodeStateConfig( );     break;
-      case NS_OPERATE:    handleNodeStateOperations( ); break;
-    }
-
-    if (( nodeState == NS_OPERATE ) || ( nodeState == NS_CONFIG )) {
-
-      handlePeriodicTasks( );
-      handleNodePortEvents( );
-    }
-
-    handleSerialCommand( );
-  }
-}
 
 }; // namespace
