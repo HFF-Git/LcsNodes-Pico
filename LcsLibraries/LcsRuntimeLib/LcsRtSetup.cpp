@@ -130,10 +130,10 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Before we can do anything, we need access to the NVM data. The "nvmInitSubSys" will do that for us. If
-// the setup fails and we have no USB console connected, we are at the end and a fatal error will indicate
-// that something is quite wrong. If there is a console, we just report an error. The idea is that we are
-// with a concole in the position to trouble shoort and perhaps even fix the issue.
+// Before we can do anything, we need access to the NVM data of the controller board. The "nvmInitSubSys" 
+// will do that for us. If the setup fails and we have no USB console connected, we are at the end and a 
+// fatal error will indicate that something is quite wrong. If there is a console, we just report an error. 
+// The idea is that we are with a concole in the position to trouble shoort and perhaps even fix the issue.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t initNvm( CDC::CdcPinConfig *ci ) {
@@ -388,7 +388,7 @@ uint8_t detectExtensionBoards( ) {
 
   uint8_t rStat = ALL_OK;
 
-  for ( int i = 0; i < MAX_BOARD_ID; i++ ) {
+  for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
        // ??? try to find extension boards ( 1 to 4 )
     }
@@ -413,7 +413,7 @@ uint8_t setupExtensionBoards( ) {
 
   uint8_t rStat = ALL_OK;
 
-  for ( int i = 0; i < MAX_BOARD_ID; i++ ) {
+  for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
     if ( drvMap.map[ i ].flags != 0  ) {
 
@@ -445,14 +445,14 @@ uint8_t invokeInitCallbacks( ) {
 
   if ( callbackMap.map[ 0 ].initCallback != nullptr ) {
 
-    rStat = callbackMap.map[ 0 ].initCallback( nodeMap.id, 0, 0 );
+    rStat = callbackMap.map[ 0 ].initCallback( nodeMap.nodeId, 0, 0 );
   }
 
   for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
     if ( callbackMap.map[ i ].initCallback != nullptr ) {
 
-      rStat = callbackMap.map[ i ].initCallback( nodeMap.id, i + 1, 0 );
+      rStat = callbackMap.map[ i ].initCallback( nodeMap.nodeId, i + 1, 0 );
       if ( rStat != ALL_OK ) break;
     } 
   }

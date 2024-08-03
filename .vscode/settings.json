@@ -10,7 +10,13 @@
         "*.cpo": "c",
         "cstddef": "cpp",
         "cstdint": "cpp",
-        "array": "cpp"
+        "array": "cpp",
+        "compare": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "atomic": "cpp"
     },
     "spellright.language": [
         "en"

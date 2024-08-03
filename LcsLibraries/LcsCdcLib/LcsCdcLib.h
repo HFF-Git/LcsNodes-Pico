@@ -45,6 +45,7 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdint.h>
+#include <cstring>
 
 //------------------------------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.
@@ -364,8 +365,8 @@ namespace CDC {
   //
   //----------------------------------------------------------------------------------------------------------
   uint8_t       configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
-  uint8_t       i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len, bool stopBit = false );
-  uint8_t       i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len, bool stopBit = false );
+  uint8_t       i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+  uint8_t       i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 
   //----------------------------------------------------------------------------------------------------------
   // SPI management routines.

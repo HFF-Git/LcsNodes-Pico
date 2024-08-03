@@ -160,7 +160,7 @@ namespace {
       if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
     printf( "\"\n" );
 
-    printf( "Lcb Library Version: %d.%d\n", nodeMap.nodeVersion >> 8, nodeMap.nodeVersion & 0xFF );
+    printf( "Lcb Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
   }
 
   void dumpConfigDesc( ) {

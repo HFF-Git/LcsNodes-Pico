@@ -150,7 +150,7 @@ uint8_t setupMsgBus( ) {
         // ??? fix with new init methods...
 
         msgBus = new LcsMsgBusCAN( );
-        rStat = (( LcsMsgBusCAN *) msgBus ) -> init( nodeMap.id, canBusRxPin, canBusTxPin, canBusCtrlMode );
+        rStat = (( LcsMsgBusCAN *) msgBus ) -> init( nodeMap.nodeId, canBusRxPin, canBusTxPin, canBusCtrlMode );
 
       } break;
 

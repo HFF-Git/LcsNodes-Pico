@@ -29,6 +29,8 @@
 // Include files.
 //
 //------------------------------------------------------------------------------------------------------------
+#include <stdint.h>
+#include <inttypes.h>
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -275,13 +277,16 @@ namespace LCS {
   };
 
   //------------------------------------------------------------------------------------------------------------
-  // The defined controller family. Currently there is only the raspberry pI PICO family.
+  // The defined chip families. There are controller chip families such as the controller family RP2040, or 
+  // chip familes for the NVM chips used, and so on.
   //
   //------------------------------------------------------------------------------------------------------------
   enum LcsControllerFamilyType : uint16_t {
 
-    CF_NIL                = 0,
-    CD_RPICO_2040         = 1
+    CF_FAM_NIL                = 0,
+    CF_FAM_RPICO_2040         = 1,
+    CF_FAM_MICROCHIP          = 2,
+    CF_FAM_NXP                = 3
 
   };
 
@@ -299,6 +304,20 @@ namespace LCS {
     NOPT_SKIP_NODE_ID_CONFIG  = 0x0001,
     NOPT_SKIP_NODE_INIT_STEP  = 0x0002,
     NOPT_SKIP_PORT_INIT_STEP  = 0x0004
+  };
+
+  
+  //----------------------------------------------------------------------------------------------------------
+  //
+  //
+  //  NFLAGS_EXT_PRESENT  - extension boards are present.
+  //
+  //----------------------------------------------------------------------------------------------------------
+  enum NodeFlags : uint16_t {
+
+
+    NFLAGS_EXT_PRESENT        = 0x0001,
+
   };
 
   //----------------------------------------------------------------------------------------------------------
@@ -613,16 +632,23 @@ namespace LCS {
 
 
   //------------------------------------------------------------------------------------------------------------
+  // All drivers support a common set of items. The item numbers are in the range of 1 to 63. Driver spoecific
+  // items should be allocated in teh range 192 to 255.
   //
   // ??? generic part become of node items ?
   //------------------------------------------------------------------------------------------------------------
   enum LcsNodeDriverItems {
 
-    DVR_ITEM_NIL = 0,
+    DI_NIL                = 0,
+    DI_RESET              = 1,
+    DI_GET_BOARD_TYPE     = 2,
+    DI_GET_BOARD_SUBTYPE  = 3,
+    DI_GET_BOARD_NAME     = 4,
+    DI_GET_BOARD_VERSION  = 5,
 
 
 
-    DVR_ITEM_MAX = 255
+    DVR_MAX               = 255
   };
 
 
@@ -751,12 +777,12 @@ namespace LCS {
   // The User Map interface.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t             umapPutWord( uint32_t ofs, uint16_t word );
-  uint8_t             umapGetWord( uint32_t ofs, uint16_t *word );
-  uint8_t             umapPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-  uint8_t             umapGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-  uint8_t             umapInitArea( uint32_t ofs, uint32_t len, uint8_t val);
-  uint32_t            umapGetSize( );
+  uint8_t             usrNvmPutWord( uint32_t ofs, uint16_t word );
+  uint8_t             usrNvmGetWord( uint32_t ofs, uint16_t *word );
+  uint8_t             usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+  uint8_t             usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+  uint8_t             usrNvmInitArea( uint32_t ofs, uint32_t len, uint8_t val);
+  uint32_t            usrNvmGetSize( );
 
 }; // LCS NameSpace
 

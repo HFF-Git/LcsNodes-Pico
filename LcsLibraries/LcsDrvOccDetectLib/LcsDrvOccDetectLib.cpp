@@ -101,6 +101,8 @@ namespace {
 
 }; // namespace
 
+// ??? have a routine to create a default EXT structure data for configuartion purposes ?
+
 
 //------------------------------------------------------------------------------------------------------------
 // Each drivr is just a function to handle the request.

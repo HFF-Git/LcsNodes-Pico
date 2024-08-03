@@ -29,12 +29,10 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
-#include <stdio.h>
-#include <cstring>
-
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsDrvOccDetectLib.h"
+
 
 // ??? add other driver libs...
 
@@ -90,7 +88,7 @@ const uint16_t  MAX_PORT_NAME_SIZE            = 16;
 const uint16_t  MAX_COMMAND_LINE_SIZE         = 256;
 const uint16_t  MAX_LCS_MSG_SIZE              = 8;
 
-const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES     = 8;
+const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES     = 4;
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES   = 8;
 const uint16_t  EVENT_DELAY_TICK_MILLIS       = 32;
 
@@ -99,6 +97,8 @@ const uint16_t  NVM_PORT_MAP_START            = 0x100;
 const uint16_t  NVM_EVENT_MAP_START           = 0x1000;
 const uint16_t  NVM_USER_MAP_START            = 0x2000;
 
+const uint8_t   MAX_EXT_BOARDS                = 4;
+const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
 
 //----------------------------------------------------------------------------------------------------------
 // The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
@@ -108,16 +108,6 @@ const uint16_t  NVM_USER_MAP_START            = 0x2000;
 //----------------------------------------------------------------------------------------------------------
 const uint16_t MWORD_1 = 0x010b;
 const uint16_t MWORD_2 = 0x0a02;
-
-//----------------------------------------------------------------------------------------------------------
-// The NVM chio family. Currently we use I2C non-volatile Rams ICs from MicroChip.
-//
-//----------------------------------------------------------------------------------------------------------
-enum NvmChipFamily : uint16_t {
-
-    NVM_CHIP_FAM_NIL        = 0,
-    NVM_CHIP_FAM_MICROCHIP  = 1
-};
 
 //------------------------------------------------------------------------------------------------------------
 // The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
@@ -212,50 +202,6 @@ struct LcsCdcDesc {
   CDC::CdcPinConfig cfg;
 };
 
-//----------------------------------------------------------------------------------------------------------
-// The node map. At the first locations of the NVM area is the nodeMap, which is read in at controller 
-// reset. It contains among other data the NVM description. This description is essential to configure the 
-// NVM.  
-//
-// ??? describe the fields...
-//----------------------------------------------------------------------------------------------------------
-struct LcsNodeMap {
-
-  uint16_t  magicWord1                      = MWORD_1;
-
-  uint16_t  controllerFamily                = CF_NIL;
-  uint16_t  boardType                       = BT_NIL;
-  uint16_t  boardVersion                    = 0;
-
-  uint16_t  nvmChipFamily                   = NVM_CHIP_FAM_MICROCHIP;
-  uint16_t  nvmChipI2CAdrRoot               = 0x50;
-  uint16_t  nvmMemSize0                     = 0;
-  uint16_t  nvmMemSize1                     = 0;
-  uint16_t  nvmMemSize2                     = 0;
-  uint16_t  nvmMemSize3                     = 0;
-  uint32_t  totalNvmSize                    = 0;
-
-  uint32_t  userMapSize                     = 0;
-  uint32_t  userMapOfs                      = NVM_USER_MAP_START;
-  
-  uint16_t  nodeVersion                     = 0;
-  uint16_t  nodePatchLevel                  = 0;
-
-  uint16_t  options                         = 0;
-  uint16_t  flags                           = 0;
-  uint16_t  type                            = NIL_NODE_TYPE;
-  uint16_t  size                            = 0;
-
-
-  uint32_t  uid                             = 0L;
-  uint16_t  id                              = NIL_NODE_ID;
-  uint16_t  restartCnt                      = 0;
-  
-  char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
-  uint16_t  map[ MAX_ATTR_MAP_ENTRIES ]     = { 0 };
-
-  uint16_t magicWord2                       = MWORD_2;
-};
 
 //----------------------------------------------------------------------------------------------------------
 // The port map contains an array of ports, each described by a port map entry. Besides the port flags,
@@ -397,48 +343,30 @@ extern "C" {
   typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );  
 } 
 
-
-//----------------------------------------------------------------------------------------------------------
-// LCS hardware is a controller type board and extension boards. The extension boards have a NVM chip that
-// contains all the board relevant data. At startup the runtime tries top find the extension boards and 
-// load the driver for it. In essence all that is needed is the board type and subtype. A controller board
-// can support up to four extension bards. 
-//
-//----------------------------------------------------------------------------------------------------------
-const uint8_t MIN_BOARD_ID          = 1;
-const uint8_t MAX_BOARD_ID          = 4;
-
-const uint8_t MAX_EXT_BOARDS        = 4;
-const uint8_t MAX_BOARD_NAME_SIZE   = 16;
-const uint8_t MAX_DRIVER_DATA_SIZE  = 64;
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // Each extension board will have a NVM to store the board configuration data. Similar to the node map of the
 // controller board, this extension board will have a data structure that is read at initialization time. The
 // structure of this data is rather simple. We have the magic words bracketing the data, a board type and
 // subtype, a name and an area which contains driver relevant information. The driver information will tell
 // the driver what capabilities the board has. This data is entirely driver specific and the meaning is only
-// know to the driver software. At startup time, all we have to do then is locate the board type and subtype.
-// load the respective driver and let the driver code do whatever needs to be done accorindgo the data area
-// content.
+// know to the driver software. At startup time, all we have to do then is locate the board type, load the 
+// respective driver and let the driver code do whatever needs to be done accorind to the data area content.
 //
 // Note that the extension board NVM data is "read only". It needs to be set when there is a vanilla board
 // by a utility program or commands in the runtime lib user interface. After this setting, the data will 
-// not change again.
+// not change again. This does however not mean that that data once it is loaded cannot be changed during
+// oerations. For example, the driver area is also the "working area" for the driver to keep temporary
+// values. At node restart, all data is set back to the NVM data configured on the extension bard chip.
 //
-// ??? it would be nice to have templates for a board type for configuration convenience.
 //------------------------------------------------------------------------------------------------------------
 struct LcsDrvBoardDesc {
 
   uint16_t  magicWord1;
 
+  uint16_t  options;
+  uint16_t  flags;
   uint16_t  boardType;
-  uint16_t  boardSubType;
   uint32_t  boardUID;
-
-  char      extBoardName[ MAX_BOARD_NAME_SIZE ];
 
   uint16_t  driverData[ MAX_DRIVER_DATA_SIZE ];
 
@@ -475,17 +403,88 @@ struct LcsDrvMap {
   LcsDrvEntry       map[ MAX_EXT_BOARDS ];
 };
 
+
+//----------------------------------------------------------------------------------------------------------
+// The node map. At the first locations of the NVM area on the controller board NVM chip is the nodeMap, 
+// which is read in at controller  reset. It is the heart of all data on the node.
+//
+// Creating the nodeMap at controller startup is a two step process. First we read in the map, which 
+// contains fields that are set either configured opr predefiuned values. Some fields are however bound
+// to be overwritten during the startup process.
+//
+// ??? describe the fields...
+//----------------------------------------------------------------------------------------------------------
+struct LcsNodeMap {
+
+  uint16_t  magicWord1                      = MWORD_1;
+
+  uint16_t  options                         = 0;
+  uint16_t  flags                           = 0;
+  
+  uint16_t  nodeId                          = NIL_NODE_ID;
+  uint32_t  nodeUID                         = 0L;
+  uint16_t  nodeType                        = NIL_NODE_TYPE;   
+
+  uint16_t  boardType                       = BT_NIL;
+  uint16_t  controllerFamily                = CF_FAM_RPICO_2040;
+  uint16_t  nvmChipFamily                   = CF_FAM_MICROCHIP;
+  
+  uint16_t  nodeSwVersion                   = 0;
+  uint16_t  nodeSwPatchLevel                = 0;
+  uint16_t  restartCnt                      = 0;
+
+  uint16_t  nodeMapNvmOfs                   = NVM_NODE_MAP_START;
+  uint16_t  portMapNvmOfs                   = NVM_PORT_MAP_START;
+  uint16_t  eventMapNvmOfs                  = NVM_EVENT_MAP_START;
+  uint16_t  userMapNvmOfs                   = NVM_USER_MAP_START;
+  uint16_t  nvmMemSizeInBlocks              = 0;
+
+
+// ??? phase out ...
+  uint16_t  nvmChipI2CAdrRoot               = 0x50;
+  uint16_t  nvmMemSize0                     = 0;
+  uint16_t  nvmMemSize1                     = 0;
+  uint16_t  nvmMemSize2                     = 0;
+  uint16_t  nvmMemSize3                     = 0;
+  uint32_t  totalNvmSize                    = 0;
+
+  
+  char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
+  uint16_t  map[ MAX_ATTR_MAP_ENTRIES ]     = { 0 };
+
+  uint16_t  magicWord2                      = MWORD_2;
+};
+
+
+
 //----------------------------------------------------------------------------------------------------------
 // The LCS runtime internal routines used by other files of the runtime library.
 //
 //
 //----------------------------------------------------------------------------------------------------------
+
+// ??? need new function headers for runtime and extensiln NVM
+
 uint8_t       nvmPutWord( uint32_t ofs, uint16_t word );
 uint8_t       nvmGetWord( uint32_t ofs, uint16_t *word );
 uint8_t       nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t       nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t       nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val );
 uint32_t      nvmGetSize( );
+
+
+uint8_t       rtNvmPutWord( uint32_t ofs, uint16_t word );
+uint8_t       rtNvmGetWord( uint32_t ofs, uint16_t *word );
+uint8_t       rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t       rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint32_t      rtNvmGetSize( );
+
+uint8_t       extNvmPutWord( uint32_t ofs, uint16_t word );
+uint8_t       extNvmGetWord( uint32_t ofs, uint16_t *word );
+uint8_t       extNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t       extNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint32_t      extNvmGetSize( );
+
 
 uint8_t       resetNode( );
 uint8_t       resetPort( uint8_t portId );

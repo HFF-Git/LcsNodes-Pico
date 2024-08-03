@@ -220,14 +220,14 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
       case NPI_GET_NODE_UID: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. uid >> 16;
-          if ( arg2 != nullptr ) *arg2 = nodeMap. uid & 0xFFFF;
+          if ( arg1 != nullptr ) *arg1 = nodeMap.nodeUID >> 16;
+          if ( arg2 != nullptr ) *arg2 = nodeMap.nodeUID & 0xFFFF;
           return ( ALL_OK );
         }
 
       case NPI_GET_NODE_ID: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap.id;
+          if ( arg1 != nullptr ) *arg1 = nodeMap.nodeId;
           return ( ALL_OK );
         }
 
@@ -262,7 +262,7 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
       case NPI_GET_NODE_TYPE:  {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. type;
+          if ( arg1 != nullptr ) *arg1 = nodeMap. nodeType;
           return ( ALL_OK );
         }
 
@@ -408,8 +408,8 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
 
           if ( isInRangeU( val1, MIN_NODE_ID, MAX_NODE_ID )) {
 
-            nodeMap.id = val1;
-            nvmPutBytes( offsetof( LcsNodeMap, id ), (uint8_t *) &nodeMap.id, sizeof( uint16_t ));
+            nodeMap.nodeId = val1;
+            nvmPutBytes( offsetof( LcsNodeMap, nodeId ), (uint8_t *) &nodeMap.nodeId, sizeof( uint16_t ));
             return ( ALL_OK );
 
           }
@@ -458,8 +458,8 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
 
       case NPC_SET_NODE_TYPE: {
 
-          nodeMap.type = lowByte( val1 );
-          nvmPutWord( offsetof( LcsNodeMap, type ), nodeMap.type );
+          nodeMap.nodeType = lowByte( val1 );
+          nvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType );
           return ( ALL_OK );
         }
 

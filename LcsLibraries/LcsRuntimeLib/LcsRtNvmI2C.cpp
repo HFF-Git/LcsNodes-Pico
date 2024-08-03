@@ -13,9 +13,9 @@
 //
 //
 // In addition we also support the M24C04 chip, which is used on the extension boards as a configuration
-// storage.
+// storage. This chip will however be replaced by 24AA32, a 4K chip of the same chip family as the other
+// chips on the controller board.
 //
-// ??? the M24C04 chip will however go away... replaced by 24AA32.
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS Core library - Non volatile storage based on the M24LCxxx chip family
@@ -53,7 +53,7 @@ namespace {
 
   //----------------------------------------------------------------------------------------------------------  
   // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // setting of the debiug level.
+  // setting of the debug level.
   //---------------------------------------------------------------------------------------------------------- 
   uint8_t debugLevel = 0;
 
@@ -124,8 +124,15 @@ namespace {
   uint32_t    nvmUserMapSize                  = 0;
   uint8_t     nvmSclPin                       = CDC::UNDEFINED_PIN;
   uint8_t     nvmSdaPin                       = CDC::UNDEFINED_PIN;
-
   NvmTabEntry nvmTab[ MAX_NVM_CHIPS ];
+
+
+
+  // ??? what do we keep for EXT I2C channel ?
+
+
+
+
 
   //----------------------------------------------------------------------------------------------------------
   // A little help function to test whether the chip is read for the next operation. The test is to write to
@@ -173,11 +180,10 @@ namespace {
 
     nMap -> magicWord1                       = MWORD_1;
 
-    nMap -> controllerFamily                 = NVM_CHIP_FAM_NIL;
+    nMap -> controllerFamily                 = CF_FAM_NIL;
     nMap ->  boardType                       = BT_NIL;
-    nMap ->  boardVersion                    = 0;
-
-    nMap ->  nvmChipFamily                   = NVM_CHIP_FAM_MICROCHIP;
+    
+    nMap ->  nvmChipFamily                   = CF_FAM_MICROCHIP;
     nMap ->  nvmChipI2CAdrRoot               = I2C_ADR_ROOT;
     nMap ->  nvmMemSize0                     = NVM_SYS_MAP_SIZE;
     nMap ->  nvmMemSize1                     = 0;
@@ -185,14 +191,14 @@ namespace {
     nMap ->  nvmMemSize3                     = 0;
     nMap ->  totalNvmSize                    = NVM_SYS_MAP_SIZE;
 
-    nMap ->  nodeVersion                     = 0;
-    nMap ->  nodePatchLevel                  = 0;
+    nMap ->  nodeSwVersion                     = 0;
+    nMap ->  nodeSwPatchLevel                  = 0;
 
     nMap ->  options                         = 0;
     nMap ->  flags                           = 0;
-    nMap ->  uid                             = CDC::createUid( );
-    nMap ->  id                              = NIL_NODE_ID;
-    nMap ->  type                            = NIL_NODE_TYPE;
+    nMap ->  nodeUID                         = CDC::createUid( );
+    nMap ->  nodeId                          = NIL_NODE_ID;
+    nMap ->  nodeType                        = NIL_NODE_TYPE;
     nMap ->  restartCnt                      = 0;
   
     memset( &nMap -> name, 0, MAX_NODE_NAME_SIZE );
@@ -278,7 +284,7 @@ namespace {
 
     if ( nodeMap -> nvmMemSize3 > 0 ) {
 
-      nvmTab[ 3 ].i2cAdr    = nodeMap -> nvmChipI2CAdrRoot + 2;
+      nvmTab[ 3 ].i2cAdr    = nodeMap -> nvmChipI2CAdrRoot + 3;
       nvmTab[ 3 ].size      = roundNvmMaxSize( nodeMap -> nvmMemSize3 );
       nvmTab[ 3 ].startAdr  = tmpOfs;
       nvmTab[ 3 ].endAdr    = tmpOfs + nvmTab[ 3 ].size - 1;
@@ -333,11 +339,22 @@ namespace {
 // ??? how can we generalize the NVM routines to also cover extension boards if needed ?
 
 
+
+
 //------------------------------------------------------------------------------------------------------------
 //
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
+
+//------------------------------------------------------------------------------------------------------------
+// 
+// ??? need a routine to initialize the I2C channels...
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupI2CChannel( uint8_t sclPin, uint8_t sdaPin ) {
+
+  return( ALL_OK );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // Initialize NVM. The very first thing to do when starting the node is to find the NVM data and set up the
@@ -388,9 +405,12 @@ uint8_t nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin, uint8_t i2cRootAdr ) {
   return ( ALL_OK );
 }
 
+
+
 //------------------------------------------------------------------------------------------------------------
 // "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary.
 //
+// ??? make this routine to accept the I2C channel ?
 //------------------------------------------------------------------------------------------------------------
 bool nvmGetBytesFromPage( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
@@ -437,6 +457,7 @@ bool nvmGetBytesFromPage( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 //------------------------------------------------------------------------------------------------------------
 //  "nvmPutBytesInPage" transmits a set of data bytes only within the page boundary.
 //
+// ??? make this routine to accept the I2C channel ?
 //------------------------------------------------------------------------------------------------------------
 bool nvmPutBytesInPage( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
@@ -572,37 +593,98 @@ uint32_t nvmGetSize( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// User Map access routines. They directly build on top of their coungterpart NVM access routines. All we do
-// is to adjust the offset accordingly.
+// Controller Board Runtime Map access routines. 
+//
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t umapPutWord( uint32_t ofs, uint16_t word ) {
+uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-  ofs = ofs + NVM_SYS_MAP_SIZE;
+  return( ALL_OK );
+}
+
+uint8_t rtNvmGetWord( uint32_t ofs, uint16_t *word ) {
+
+  return( ALL_OK );
+}
+
+uint8_t rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
+
+  return( ALL_OK );
+}
+
+uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
+
+ 
+  return( ALL_OK );
+}
+
+uint32_t rtNvmGetSize( ) {
+
+  return ( 0 ); // for now...
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Extension Board Map access routines. 
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
+
+  return( ALL_OK );
+}
+
+uint8_t extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word ) {
+
+  return( ALL_OK );
+}
+
+uint8_t extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+
+  return( ALL_OK );
+}
+
+uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+
+ 
+  return( ALL_OK );
+}
+
+uint32_t extNvmGetSize( ) {
+
+  return ( 0 ); // for now...
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Controller Board User Map access routines. 
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
+
+  ofs = ofs + NVM_USER_MAP_START;
   return( nvmPutWord( ofs, word ));
 }
 
-uint8_t umapGetWord( uint32_t ofs, uint16_t *word ) {
+uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-  ofs = ofs + NVM_SYS_MAP_SIZE;
+  ofs = ofs + NVM_USER_MAP_START;
   return( nvmGetWord( ofs, word ));
 }
 
-uint8_t umapPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-  ofs = ofs + NVM_SYS_MAP_SIZE;
+  ofs = ofs + NVM_USER_MAP_START;
   return( nvmPutBytes( ofs, buf, len ));
 }
 
-uint8_t umapGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-  ofs = ofs + NVM_SYS_MAP_SIZE;
+  ofs = ofs + NVM_USER_MAP_START;
   return( nvmGetBytes( ofs, buf, len ));
 }
 
-uint32_t umapGetSize( ) {
+uint32_t usrNvmGetSize( ) {
 
-  return ( nvmMaxSize - NVM_SYS_MAP_SIZE );
+  return ( nvmMaxSize - NVM_USER_MAP_START );
 }
 
 }; // namespace LCS

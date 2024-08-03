@@ -1133,7 +1133,7 @@ uint8_t CDC::configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
   return ( ALL_OK );
 }
 
-uint8_t CDC::i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len, bool stopBit ) {
+uint8_t CDC::i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
   I2CInst *i2c = nullptr;
 
@@ -1157,7 +1157,7 @@ uint8_t CDC::i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len,
   return ( ALL_OK );
 }
 
-uint8_t CDC::i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint8_t len, bool stopBit ) {
+uint8_t CDC::i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
   I2CInst *i2c = nullptr;
 
