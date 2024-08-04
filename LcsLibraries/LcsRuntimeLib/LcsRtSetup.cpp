@@ -62,7 +62,7 @@ LCS::LcsEventMap             eventMap;
 LCS::LcsCallbackMap          callbackMap;
 LCS::LcsTaskMap              taskMap;
 LCS::LcsDrvMap               drvMap;
-LCS::LcsNodeState            nodeState;
+LCS::LcsNodeState            nodeState;  // ??? make part of nodeMap ?
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLibConfig implementation file local declarations and routines.
@@ -94,6 +94,53 @@ namespace {
   static uint16_t roundup( uint16_t elements, uint16_t alignSize ) {
 
     return ((( elements + alignSize - 1 ) / alignSize ) * alignSize );
+  }
+
+  //----------------------------------------------------------------------------------------------------------
+  // "buildDefaultNodeMap" build a nodeMap with default values. 
+  //
+  //----------------------------------------------------------------------------------------------------------
+  void buildDefaultNodeMap( LcsNodeMap *nMap ) {
+
+    nMap -> magicWord1                    = MWORD_1;
+    nMap ->  magicWord2                   = MWORD_2;
+
+    nMap -> options                       = 0;
+    nMap -> flags                         = 0;
+
+    nMap -> controllerFamily              = CF_FAM_NIL;
+    nMap ->  nvmChipFamily                = CF_FAM_MICROCHIP;
+    nMap ->  boardType                    = BT_NIL;
+
+    nMap ->  nodeSwVersion                = 0;
+    nMap ->  nodeSwPatchLevel             = 0;
+    nMap ->  restartCnt                   = 0;
+
+    nMap ->  nodeId                       = NIL_NODE_ID;
+    nMap ->  nodeUID                      = CDC::createUid( );
+    nMap ->  nodeType                     = NIL_NODE_TYPE;   
+
+    nMap ->  restartCnt                   = 0;
+
+    nMap -> nodeMapNvmOfs                 = NVM_NODE_MAP_START;
+    nMap -> portMapNvmOfs                 = NVM_PORT_MAP_START;
+    nMap -> eventMapNvmOfs                = NVM_EVENT_MAP_START;
+    nMap -> userMapNvmOfs                 = NVM_USER_MAP_START;
+    nMap -> nvmMemSizeInBlocks            = 0;      // ??? what is a block ? 32bytes ?
+  
+    memset( &nMap -> name, 0, MAX_NODE_NAME_SIZE );
+    memset( &nMap -> map, 0, MAX_ATTR_MAP_ENTRIES * sizeof(uint16_t));
+  }
+
+  //----------------------------------------------------------------------------------------------------------
+  //
+  //
+  //
+  //----------------------------------------------------------------------------------------------------------
+  void buildDefaultDrvMap( ) {
+
+
+
   }
 
 }; // namespace
@@ -130,19 +177,21 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Before we can do anything, we need access to the NVM data of the controller board. The "nvmInitSubSys" 
-// will do that for us. If the setup fails and we have no USB console connected, we are at the end and a 
+// Before we can do anything, we need access to the NVM data channels. 
+
+// If the setup fails and we have no USB console connected, we are at the end and a 
 // fatal error will indicate that something is quite wrong. If there is a console, we just report an error. 
 // The idea is that we are with a concole in the position to trouble shoort and perhaps even fix the issue.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t initNvm( CDC::CdcPinConfig *ci ) {
+uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 
   #if DEBUG_CONFIG == 1
   printf( "initNvm\n" );
   #endif
 
-  uint8_t rStat = nvmInitSubSys( ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> EXT_I2C_ADR_ROOT );
+  uint8_t rStat = i2cSetupChannels( ci );
+
   if ( rStat != ALL_OK ) {
 
     if ( CDC::isConsoleConnected( ))  rStat = ERR_NVM_SETUP;
@@ -183,7 +232,8 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Now that the nodeMap is available, let's do the required consistency checks.
+//This routine inizializes the nodeMap. First we read in the nodeMap from the NVM. This routine assumes that 
+// the I2C channels are initialized.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
@@ -192,7 +242,14 @@ uint8_t setupNodeMap( ) {
   printf( "setupNodeMap\n" );
   #endif
 
-  uint8_t rStat = nvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsPortMap ));
+  uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+
+   if (( nodeMap.magicWord1 == MWORD_1 ) && ( nodeMap.magicWord2 == MWORD_2 )) {
+
+    return( ERR_NVM_NODE_MAP_CORRUPT );
+   }
+
+
   if ( rStat != ALL_OK ) {
 
     
@@ -219,7 +276,11 @@ uint8_t setupPortMap( ) {
   printf( "setupPortMap\n" );
   #endif
 
-  uint8_t rStat = nvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+  uint8_t rStat;
+
+  rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+
+
   if ( rStat != ALL_OK ) {
 
     
@@ -253,13 +314,13 @@ uint8_t setupEventMap( ) {
   uint16_t hwm;
   uint16_t size;
 
-  uint8_t rStat = nvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ),&hwm );
+  uint8_t rStat = rtNvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ),&hwm );
   if ( rStat != ALL_OK ) {
 
     
   }
 
-  rStat = nvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, size ),&size );
+  rStat = rtNvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, size ),&size );
   if ( rStat != ALL_OK ) {
 
     
@@ -268,7 +329,7 @@ uint8_t setupEventMap( ) {
   // ??? check for a valid hwm ... then get the map
 
 
-  rStat = nvmGetBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
+  rStat = rtNvmGetBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
   if ( rStat != ALL_OK ) {
 
     
@@ -503,7 +564,7 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
   uint8_t rStat = ALL_OK;
 
   if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
-  if ( rStat == ALL_OK )  rStat = initNvm( ci );
+  if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
   if ( rStat == ALL_OK )  rStat = initCanBus( ci );
 
   if ( rStat == ALL_OK )  rStat = setupNodeMap( );

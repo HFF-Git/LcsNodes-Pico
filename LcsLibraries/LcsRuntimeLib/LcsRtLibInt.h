@@ -465,12 +465,8 @@ struct LcsNodeMap {
 
 // ??? need new function headers for runtime and extensiln NVM
 
-uint8_t       nvmPutWord( uint32_t ofs, uint16_t word );
-uint8_t       nvmGetWord( uint32_t ofs, uint16_t *word );
-uint8_t       nvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t       nvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t       nvmInitArea( uint32_t ofs, uint32_t len, uint8_t val );
-uint32_t      nvmGetSize( );
+uint8_t       i2cSetupChannels( CDC::CdcPinConfig *cfg );
+
 
 
 uint8_t       rtNvmPutWord( uint32_t ofs, uint16_t word );
@@ -479,10 +475,10 @@ uint8_t       rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t       rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint32_t      rtNvmGetSize( );
 
-uint8_t       extNvmPutWord( uint32_t ofs, uint16_t word );
-uint8_t       extNvmGetWord( uint32_t ofs, uint16_t *word );
-uint8_t       extNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t       extNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t       extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word );
+uint8_t       extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
+uint8_t       extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t       extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
 uint32_t      extNvmGetSize( );
 
 

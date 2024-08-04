@@ -119,7 +119,7 @@ namespace {
     if ( portId == LCS::NIL_PORT_ID ) {
 
       uint16_t ofs  = offsetof( LcsNodeMap, map ) + ( index * sizeof( uint16_t ));
-      uint8_t rStat = nvmGetWord( ofs, &nodeMap.map[ index ] );
+      uint8_t rStat = rtNvmGetWord( ofs, &nodeMap.map[ index ] );
       
       if ( rStat == ALL_OK ) *arg = nodeMap.map[ index ];
       return ( rStat );
@@ -129,7 +129,7 @@ namespace {
       uint32_t ofs  =  (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
                        offsetof( LcsPortMapEntry, map ) + ( index * sizeof( uint16_t ));
 
-      uint8_t rStat = nvmGetWord( ofs, &portMap.map[ portId - 1 ].map[ index ] );
+      uint8_t rStat = rtNvmGetWord( ofs, &portMap.map[ portId - 1 ].map[ index ] );
       if ( rStat == ALL_OK ) *arg = portMap.map[ portId - 1 ].map[ index ];
       return ( rStat );
     }
@@ -150,7 +150,7 @@ namespace {
       nodeMap.map[ index ] = arg;
 
       uint16_t ofs  = offsetof( LcsNodeMap, map ) + ( index * sizeof( uint16_t ));
-      return ( nvmPutWord( ofs, arg ));
+      return ( rtNvmPutWord( ofs, arg ));
     }
     else {
 
@@ -158,7 +158,7 @@ namespace {
 
       int16_t ofs  =  (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
                       ( offsetof( LcsPortMapEntry, map ) + ( index * sizeof( uint16_t )));
-      return ( nvmPutWord( ofs, arg ));
+      return ( rtNvmPutWord( ofs, arg ));
     }
   }
 
@@ -409,7 +409,7 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
           if ( isInRangeU( val1, MIN_NODE_ID, MAX_NODE_ID )) {
 
             nodeMap.nodeId = val1;
-            nvmPutBytes( offsetof( LcsNodeMap, nodeId ), (uint8_t *) &nodeMap.nodeId, sizeof( uint16_t ));
+            rtNvmPutBytes( offsetof( LcsNodeMap, nodeId ), (uint8_t *) &nodeMap.nodeId, sizeof( uint16_t ));
             return ( ALL_OK );
 
           }
@@ -424,7 +424,7 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
           tempName[ 3 ] = lowByte( val2 );
 
           memcpy((uint8_t *) nodeMap.name, (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
-          nvmPutBytes( offsetof( LcsNodeMap, name ), (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
+          rtNvmPutBytes( offsetof( LcsNodeMap, name ), (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
           return ( ALL_OK );
         }
 
@@ -459,7 +459,7 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
       case NPC_SET_NODE_TYPE: {
 
           nodeMap.nodeType = lowByte( val1 );
-          nvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType );
+          rtNvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType );
           return ( ALL_OK );
         }
 
@@ -472,7 +472,7 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
           uint16_t ofs = offsetof( LcsPortMap, map ) + (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
                          offsetof( LcsPortMapEntry, type );
 
-          return ( nvmPutWord( ofs= portMap.map[ portId - 1 ].type, false ));
+          return ( rtNvmPutWord( ofs= portMap.map[ portId - 1 ].type, false ));
         }
 
       case NPC_ENABLE_EVENT_PROCESSING: {
@@ -494,7 +494,7 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
           uint16_t ofs = offsetof( LcsPortMap, map ) + (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
                          offsetof( LcsPortMapEntry, eventDelayTime );
 
-          return ( nvmPutWord( ofs, val1 ));
+          return ( rtNvmPutWord( ofs, val1 ));
         }
 
       default: return ( ERR_INVALID_NODE_CTRL_ITEM );

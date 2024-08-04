@@ -96,7 +96,7 @@ namespace {
 
         if ( index + i < limit ) {
 
-          nvmGetBytes( index + i, &val, sizeof( uint8_t ));
+          rtNvmGetBytes( index + i, &val, sizeof( uint8_t ));
           printf( "0x%2x ", val );
         }
       }
