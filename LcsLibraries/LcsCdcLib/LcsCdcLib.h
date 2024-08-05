@@ -243,6 +243,9 @@ namespace CDC {
     uint8_t   EXT_I2C_SDA_PIN;
     uint8_t   EXT_I2C_ADR_ROOT;
 
+    uint32_t  NODE_NVM_SIZE;
+    uint32_t  EXT_NVM_SIZE;
+
     uint8_t   CAN_BUS_CTRL_MODE;
     uint8_t   CAN_BUS_RX_PIN;
     uint8_t   CAN_BUS_TX_PIN;

@@ -62,6 +62,9 @@ LCS::LcsEventMap             eventMap;
 LCS::LcsCallbackMap          callbackMap;
 LCS::LcsTaskMap              taskMap;
 LCS::LcsDrvMap               drvMap;
+
+// ??? have a user map still ?
+
 LCS::LcsNodeState            nodeState;  // ??? make part of nodeMap ?
 
 //------------------------------------------------------------------------------------------------------------
@@ -102,8 +105,8 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
-    nMap -> magicWord1                    = MWORD_1;
-    nMap ->  magicWord2                   = MWORD_2;
+    nMap -> magicWord1                    = NODE_MWORD_1;
+    nMap ->  magicWord2                   = NODE_MWORD_2;
 
     nMap -> options                       = 0;
     nMap -> flags                         = 0;
@@ -133,6 +136,28 @@ namespace {
   }
 
   //----------------------------------------------------------------------------------------------------------
+  // "buildDefaultPortMap" will build a port map with initial values.
+  //
+  //
+  //----------------------------------------------------------------------------------------------------------
+  void buildDefaultPortMap( LcsPortMap *pMap ) {
+
+
+
+  }
+
+  //----------------------------------------------------------------------------------------------------------
+  // "buildDefaultEventMap" will build a port map with initial values.
+  //
+  //
+  //----------------------------------------------------------------------------------------------------------
+  void buildDefaultEventMap( LcsEventMap *eMap ) {
+
+
+
+  }
+
+  //----------------------------------------------------------------------------------------------------------
   //
   //
   //
@@ -156,7 +181,7 @@ namespace LCS {
 // The very first thing to do is to setup the CDC library and setup the "active" and "ready" LED pins used by
 // the board. The pins need to to be configured. We also make a call to to initialize the CDC. Note that this
 // may have been done before, when for example the firmware programmer wants to use the HW before calling any
-// library setup code.
+// library setup code. It is no problem to call this routine several times.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
@@ -177,37 +202,42 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Before we can do anything, we need access to the NVM data channels. 
-
-// If the setup fails and we have no USB console connected, we are at the end and a 
-// fatal error will indicate that something is quite wrong. If there is a console, we just report an error. 
-// The idea is that we are with a concole in the position to trouble shoort and perhaps even fix the issue.
+// The heart of a node are the two I2C channels that provide access to the node NVM and the array of extension
+// board NVMs. Before we can do any further configuration, these channels need to work.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
+uint8_t initI2CChannels( CDC::CdcPinConfig *ci ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "initNvm\n" );
+   #if DEBUG_NVM == 1
+  printf( "initI2CChannels: nvmSCL: %d, nvmSDA: %d, nvmSCL: %d, nvmSDA: %d\n", 
+          ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN ); 
   #endif
 
-  uint8_t rStat = i2cSetupChannels( ci );
+  uint8_t rStat;
 
-  if ( rStat != ALL_OK ) {
+  if (( ci -> NVM_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> NVM_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
 
-    if ( CDC::isConsoleConnected( ))  rStat = ERR_NVM_SETUP;
-    else                              CDC::fatalError( 2 );
+    rStat = CDC::configureI2C( ci -> NVM_I2C_SCL_PIN , ci -> NVM_I2C_SDA_PIN );
   }
 
-  #if DEBUG_CONFIG == 1
-  printf( "initNvm, status: %d\n", rStat );
+  if ( rStat == ALL_OK ) {
+
+    if (( ci -> EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> EXT_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
+
+      rStat = CDC::configureI2C( ci -> EXT_I2C_SCL_PIN , ci -> EXT_I2C_SDA_PIN );
+    }
+  }
+
+  #if DEBUG_NVM == 1
+  printf( "initI2CChannels: % d\n", rStat );
   #endif
 
-  return ( rStat );
+  return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Next is CAN bus setup. The message bus is the central communication mechanism. If we can get it up early
-// we could use it not only for configurations and operations, perhaps even remote troubleshooting. TBD.
+// Next is CAN bus setup. The message bus is the central communication mechanism. If we can also get it up 
+// early we could use it not only for configurations and operations, perhaps even remote troubleshooting. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
@@ -232,8 +262,29 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//This routine inizializes the nodeMap. First we read in the nodeMap from the NVM. This routine assumes that 
-// the I2C channels are initialized.
+// The NVM library functions will work after this routine. All it does is to call teh "configNvm" routine,
+// which will set the pins and offsets for the NVM acces to work.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
+
+  #if DEBUG_CONFIG == 1
+  printf( "initNvm\n" );
+  #endif
+
+  uint8_t rStat = configNvm( ci );
+
+  #if DEBUG_CONFIG == 1
+  printf( "initNvm, status: %d\n", rStat );
+  #endif
+
+  return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
+//This routine sets up the nodeMap. It is teh first routine after all the basoc hardware settings is in place.
+// First we read in the nodeMap from the node NVM. 
+//
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
@@ -244,7 +295,7 @@ uint8_t setupNodeMap( ) {
 
   uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
 
-   if (( nodeMap.magicWord1 == MWORD_1 ) && ( nodeMap.magicWord2 == MWORD_2 )) {
+   if (( nodeMap.magicWord1 == NODE_MWORD_1 ) && ( nodeMap.magicWord2 == NODE_MWORD_2 )) {
 
     return( ERR_NVM_NODE_MAP_CORRUPT );
    }
@@ -267,7 +318,7 @@ uint8_t setupNodeMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupPortMap" will read the last version from the NVM port map data area.
+// "setupPortMap" will read the port data the NVM port map data area into the memory counterpart.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
@@ -276,17 +327,7 @@ uint8_t setupPortMap( ) {
   printf( "setupPortMap\n" );
   #endif
 
-  uint8_t rStat;
-
-  rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
-
-
-  if ( rStat != ALL_OK ) {
-
-    
-  }
-
-  // ??? anything to validate ?
+  uint8_t rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
   #if DEBUG_CONFIG == 1
   printf( "setupPortMap, status: %d\n", rStat );
@@ -297,8 +338,7 @@ uint8_t setupPortMap( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The event map stores all event/port pairs this node is interested to process. The map is a sorted map and
-// there is a high water mark, so that we do not read the large map when loading it. During setup, all the
-// entries up to the water mark are read.
+// there is a high water mark, so that we only read up to the last used entry in the map. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
@@ -314,7 +354,7 @@ uint8_t setupEventMap( ) {
   uint16_t hwm;
   uint16_t size;
 
-  uint8_t rStat = rtNvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ),&hwm );
+  uint8_t rStat = rtNvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ), &hwm );
   if ( rStat != ALL_OK ) {
 
     
@@ -359,8 +399,6 @@ uint8_t setupUserMap( ) {
   #endif
 
   uint8_t rStat = ALL_OK;
-
-  // ??? anything to validate ?
 
   #if DEBUG_CONFIG == 1
   printf( "setupUserMap, status: %d\n", rStat );
@@ -540,11 +578,13 @@ uint8_t invokeInitCallbacks( ) {
 // first thing to call in a node firmware program. There is a lot to do. First, the CDC layer is initualized.
 // NVM and CanBus follow. If all is OK, we have a valid basic nodeMap, we can work from. If the nodeMap read
 // is not valid, the node enters the error state and the node map can be configured / corrected via the USB
-//  console IO. This will be for example always be the case when a new board is powered up.
+// console IO. This will be for example always be the case when a new board is powered up.
 //
 // In the other cases, portMap, eventMap and userMap setup follow. Now, we have the controller basic data
-// structures in a reasonable shape. Next, the extension boards are located, and if there are any, their
-// initialization follows. We also need to set up the callback function structures. 
+// structures in place.
+//
+// Next, the extension boards are located, and if there are any, their initialization follows. We also need
+// to set up the callback function structures. 
 // 
 // If all is sucessful, the firmware prgrammer can register callback functions and also perform LCS library 
 // calls. The overal logic of the startup routine is that if there is a fault, the follow on steps are simply 
@@ -553,6 +593,7 @@ uint8_t invokeInitCallbacks( ) {
 // of the nodemap, so that we can restart with a correct nodeMap. 
 //
 // ??? how to deal with extension board errors ?
+// ??? nodeState should become a part of the NodeMap, it needs to survice power outages...
 // 
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
@@ -564,14 +605,20 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
   uint8_t rStat = ALL_OK;
 
   if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
-  if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
-  if ( rStat == ALL_OK )  rStat = initCanBus( ci );
+  if ( rStat == ALL_OK )  rStat = initI2CChannels( ci );
 
+  if ( ! CDC::isConsoleConnected( )) CDC::fatalError( 1 );
+
+  if ( rStat == ALL_OK )  rStat = initCanBus( ci );
+  if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
+
+   if ( ! CDC::isConsoleConnected( )) CDC::fatalError( 2 );
+ 
   if ( rStat == ALL_OK )  rStat = setupNodeMap( );
   if ( rStat == ALL_OK )  rStat = setupPortMap( );
   if ( rStat == ALL_OK )  rStat = setupEventMap( );
   if ( rStat == ALL_OK )  rStat = setupUserMap( );
-   if ( rStat == ALL_OK ) rStat = setupCallbackMap( );
+  if ( rStat == ALL_OK ) rStat = setupCallbackMap( );
   if ( rStat == ALL_OK )  rStat = setupTaskMap( );
 
   if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
@@ -579,6 +626,7 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
  
   if ( rStat == ALL_OK )  nodeState = NS_INIT;
   else                    nodeState = NS_FAIL;
+
 
   #if DEBUG_CONFIG == 1
   printf( "init LCS runtime, status: %d \n", rStat ) ;

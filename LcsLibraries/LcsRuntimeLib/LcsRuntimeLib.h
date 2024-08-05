@@ -186,9 +186,6 @@ namespace LCS {
     MAX_LCS_DCC_FUNC_ID = 68
   };
 
-
-  // ??? should we rather rename the DCC loco valus to generic loco values to also cover analog engines ?
-
   //----------------------------------------------------------------------------------------------------------
   // The DCC standard defines several speed step modes. Today, 128 speed steps is the one used in all new
   // decoders. The other speed steps are mapped to the 128 value range.
@@ -218,7 +215,7 @@ namespace LCS {
   // DCC locomotive direction.
   //
   //------------------------------------------------------------------------------------------------------------
-  enum DccLocoDirection : uint8_t {
+  enum DccLocDirection : uint8_t {
 
     DCC_DIR_LOCO_NEUTRAL  = 0,
     DCC_DIR_LOCO_FORWARD  = 1,
@@ -287,7 +284,6 @@ namespace LCS {
     CF_FAM_RPICO_2040         = 1,
     CF_FAM_MICROCHIP          = 2,
     CF_FAM_NXP                = 3
-
   };
 
   //----------------------------------------------------------------------------------------------------------
@@ -306,9 +302,8 @@ namespace LCS {
     NOPT_SKIP_PORT_INIT_STEP  = 0x0004
   };
 
-  
   //----------------------------------------------------------------------------------------------------------
-  //
+  // Node Flags.
   //
   //  NFLAGS_EXT_PRESENT  - extension boards are present.
   //
@@ -434,6 +429,10 @@ namespace LCS {
   //  PF_PORT_EVENT_DIRECTION         - if set, this is an outbound port, else an inbound port.
   //  PF_EVENT_PENDING                - an event has been received for this port and is pending.
   //
+  //
+  // ??? what exactly is an outbond port ?
+  // ??? should we have a föag for a request pending ?
+  // ??? a flag for a timed out request ? 
   //----------------------------------------------------------------------------------------------------------
   enum PortFlags : uint16_t {
 
@@ -555,10 +554,8 @@ namespace LCS {
   // The numbers are grouped in a LCS library portion and a user firmware portion. The LCS library portion
   // ranges from 1 to 127, the user portion from 128 to 255. The vaue of zero is generally a "OK".
   //
-  //----------------------------------------------------------------------------------------------------------
-
   // ??? add NVM errors, also CDC errors ?
-
+  //----------------------------------------------------------------------------------------------------------
   enum LcsErrorCodes : uint8_t {
 
     ALL_OK                              = 0,
@@ -618,22 +615,18 @@ namespace LCS {
     ERR_CAN_ID_COLLISION                = 87,
     ERR_CAN_ID_CHANGED                  = 88,
 
+ // ??? for now .... 
+    ERR_INVALID_BOARD_ID = 255,
 
     ERR_INVALID_DRV_ITEM                = 100,
 
-    ERR_NODE_SPECIFIC_BASE              = 128,
-
-
-    // ??? for now .... 
-    ERR_INVALID_BOARD_ID = 255
-
-
+    ERR_NODE_SPECIFIC_BASE              = 128
   };
 
 
   //------------------------------------------------------------------------------------------------------------
-  // All drivers support a common set of items. The item numbers are in the range of 1 to 63. Driver spoecific
-  // items should be allocated in teh range 192 to 255.
+  // All drivers support a common set of items. The item numbers are in the range of 1 to 63. Driver specific
+  // items should be allocated in the range 192 to 255.
   //
   // ??? generic part become of node items ?
   //------------------------------------------------------------------------------------------------------------
@@ -646,11 +639,8 @@ namespace LCS {
     DI_GET_BOARD_NAME     = 4,
     DI_GET_BOARD_VERSION  = 5,
 
-
-
-    DVR_MAX               = 255
+    DI_DRIVER_ITEM_BASE   = 192
   };
-
 
   //----------------------------------------------------------------------------------------------------------
   // Core library callback function signatures.

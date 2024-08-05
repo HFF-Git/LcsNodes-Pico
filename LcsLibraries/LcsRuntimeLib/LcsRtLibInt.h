@@ -103,11 +103,15 @@ const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
 //----------------------------------------------------------------------------------------------------------
 // The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
 // locations for the magic words. If found, the area was configured before. It would be quite unlikely
-// that a random NVM content has these two words at the right spot.
+// that a random NVM content has these two words at the right spot. In a similar way, we have two magic 
+// words for the NVM in an extension board. Same ide, same logic.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t MWORD_1 = 0x010b;
-const uint16_t MWORD_2 = 0x0a02;
+const uint16_t NODE_MWORD_1 = ( 'L' << 8 ) + 'C';
+const uint16_t NODE_MWORD_2 = ( 'S' << 8 ) + 'R';
+
+const uint16_t EXT_MWORD_1  = ( 'L' << 8 ) + 'C';
+const uint16_t EXT_MWORD_2  = ( 'S' << 8 ) + 'E';
 
 //------------------------------------------------------------------------------------------------------------
 // The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
@@ -416,7 +420,7 @@ struct LcsDrvMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-  uint16_t  magicWord1                      = MWORD_1;
+  uint16_t  magicWord1                      = NODE_MWORD_1;
 
   uint16_t  options                         = 0;
   uint16_t  flags                           = 0;
@@ -452,7 +456,7 @@ struct LcsNodeMap {
   char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
   uint16_t  map[ MAX_ATTR_MAP_ENTRIES ]     = { 0 };
 
-  uint16_t  magicWord2                      = MWORD_2;
+  uint16_t  magicWord2                      = NODE_MWORD_2;
 };
 
 
@@ -463,11 +467,7 @@ struct LcsNodeMap {
 //
 //----------------------------------------------------------------------------------------------------------
 
-// ??? need new function headers for runtime and extensiln NVM
-
-uint8_t       i2cSetupChannels( CDC::CdcPinConfig *cfg );
-
-
+uint8_t       configNvm( CDC::CdcPinConfig *ci );
 
 uint8_t       rtNvmPutWord( uint32_t ofs, uint16_t word );
 uint8_t       rtNvmGetWord( uint32_t ofs, uint16_t *word );
@@ -508,7 +508,6 @@ void          handleNodeStateOperations( );
 void          handlePeriodicTasks( );
 void          handleNodePortEvents( );
 
-uint8_t       nvmInitSubSys( uint8_t sclPin, uint8_t sdaPin, uint8_t i2cAdrRoot );
 
 };
 
