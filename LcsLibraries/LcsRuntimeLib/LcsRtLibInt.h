@@ -234,7 +234,10 @@ struct LcsPortMapEntry {
 struct LcsPortMap {
 
   uint16_t        flags                     = 0;
+  uint16_t        options                   = 0;
   uint16_t        size                      = MAX_PORT_MAP_ENTRIES;
+  uint16_t        reserved                  = 0;
+  
   LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
@@ -254,9 +257,10 @@ struct LcsEventMapEntry {
 struct LcsEventMap {
 
   uint16_t            flags               = 0;
+  uint16_t            options             = 0;
   uint16_t            size                = MAX_EVENT_MAP_ENTRIES;
   uint16_t            hwm                 = 0;
-  uint16_t            reserved            = 0;
+
   LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
 };
 
