@@ -41,7 +41,7 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// The can2040 is a C library. Make it so, otherwise the linker gets confused...
+// The can2040 is a C library. Make it so, otherwise the linker gets confused.
 // 
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -269,11 +269,9 @@ uint8_t LCS::LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, u
 
 //------------------------------------------------------------------------------------------------------------
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the message priority. The
-// message length is encoded in the first message byte, which represents the LCS message opCode.
+// message length is encoded in the first message byte, which represents the LCS message opCode as well as 
+// the length of the message.
 //
-// ??? Simple version for now. We just attempt to send the message. If the queue is full, it would be nice
-// to just send it again. Also, how do we know that there was a timeout so that we can send it again with a
-// higher priority ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 

@@ -128,6 +128,28 @@ namespace {
     return ( rtNvmPutWord( ofs, arg ));
   }
 
+  //----------------------------------------------------------------------------------------------------------
+  // User calllback function invocation routines.
+  //
+  //----------------------------------------------------------------------------------------------------------
+  uint8_t invokeInfoItemCallback( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+
+    if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
+
+      return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, *arg1, *arg2 ));
+    }
+    else return( ERR_INVALID_ITEM_ID );
+  }
+
+  uint8_t invokeCtrlItemCallback( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
+
+    if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
+
+      return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, arg1, arg2 ));
+    }
+    else return( ERR_INVALID_ITEM_ID );
+  }
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------
@@ -137,15 +159,9 @@ namespace {
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// "nodeInfo" is the entry point to obtain information about the node. 
-
-
-// There is the situation that the request
-// came from another node. 
-
-
-// This routine does however not distinguish between a local or remote call. The item
-// number range is divided into several ranges.
+// "nodeInfo" is the entry point to obtain information about the node. The item number range is divided into
+// several ranges. Each item is described in the include file. The portId argument will be used to either 
+// access the node or an individual port. A portId of zero referes to the node then.
 //
 //   0        -> NIL Item.
 //   1 -  63  -> Reserved items
@@ -166,11 +182,7 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
   if ( isInRangeU( item, NPI_NODE_USER_DEFINED_START, NPI_MAX_ITEMS )) {
 
-    if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
-
-      return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, *arg1, *arg2 ));
-
-    } else return ( ERR_INVALID_ITEM_ID );
+    return( invokeInfoItemCallback( portId, item, arg1, arg2 ));
   }
   else if ( isInRangeU( item, NPI_ATTR_MEM_RANGE_START, NPI_ATTR_MEM_RANGE_END )) {
 
@@ -296,9 +308,9 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "nodeControl" is the entry point to set information for the node and ports. There is the situation that the
-// request came from another node. This routine does howeber not distinguish between a local or remote call.
-// The item number range is divided into several ranges.
+// "nodeControl" is the entry point to set information for the node and ports. The item number range is 
+// divided into several ranges. Each item is described in the include file. The portId argument will be used
+// to either access the node or an individual port. A portId of zero referes to the node then.
 //
 //   0        -> NIL Item.
 //   1 - 63   -> Reserved items
@@ -317,11 +329,7 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
 
   if ( isInRangeU( item, NPC_NODE_USER_DEFINED_START, NPC_MAX_ITEMS )) {
 
-    if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
-
-      return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, val1, val2 ));
-
-    } else return ( ERR_INVALID_ITEM_ID );
+    return( invokeCtrlItemCallback( portId, item, val1, val1 ));
   }
   else if ( isInRangeU( item, NPC_ATTR_MEM_RANGE_START, NPC_ATTR_MEM_RANGE_END )) {
 

@@ -562,11 +562,11 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
   uint8_t rStat = ALL_OK;
 
   if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
-  if ( rStat != ALL_OK )  CDC::fatalErrorMsg( "CDC Setup failed", 1 );
+  if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CDC Setup failed", 1 );
     
   if ( rStat == ALL_OK )  rStat = initCanBus( ci );
   if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
-  if ( rStat != ALL_OK )  CDC::fatalErrorMsg( "CAN bus or NVM Setup failed", 2 );
+  if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CAN bus or NVM Setup failed", 2 );
 
   if ( rStat == ALL_OK )  rStat = setupNodeMap( );
   if ( rStat == ALL_OK )  rStat = setupPortMap( );
