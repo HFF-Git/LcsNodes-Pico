@@ -61,6 +61,7 @@ LCS::LcsNodeMap               nodeMap;
 LCS::LcsPortMap               portMap;
 LCS::LcsEventMap              eventMap;
 LCS::LcsCallbackMap           callbackMap;
+LCS::LcsPendingReqMap         pendingReqMap;
 LCS::LcsTaskMap               taskMap;
 LCS::LcsDrvMap                drvMap;
 
@@ -141,6 +142,8 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
   nMap -> eventMapSize                  = 0;
   nMap -> eventMapHwm                   = 0;
 
+  // ??? data for the extension boards ?
+
   nMap -> debugEnabled                  = 0;
   nMap -> debugNodeSetup                = 0;
   nMap -> debugNvmAccess                = 0;
@@ -155,7 +158,7 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// LCS name space routines.
+// The LCS name space routines declared in this file.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {

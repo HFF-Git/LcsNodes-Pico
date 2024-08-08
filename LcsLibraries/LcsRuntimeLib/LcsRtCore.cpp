@@ -30,38 +30,35 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  using namespace LCS;
+using namespace LCS;
 
-  //----------------------------------------------------------------------------------------------------------  
-  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // settoin of the debiug level.
-  //---------------------------------------------------------------------------------------------------------- 
-  uint8_t debugLevel = 0;
+//------------------------------------------------------------------------------------------------------------  
+// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+// settoin of the debiug level.
+//------------------------------------------------------------------------------------------------------------ 
+uint8_t debugLevel = 0;
 
-  //----------------------------------------------------------------------------------------------------------
-  // During node Id allocation, the node tries in periodic intervals to obtain a node ID.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
-  uint32_t        timerVal                        = 0L;
+//------------------------------------------------------------------------------------------------------------
+// During node Id allocation, the node tries in periodic intervals to obtain a node ID.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
+uint32_t        timerVal                        = 0L;
 
+//------------------------------------------------------------------------------------------------------------
+// A little helper function to check a number range.
+//
+//------------------------------------------------------------------------------------------------------------
+bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
-  
-  //----------------------------------------------------------------------------------------------------------
-  // A little helper function to check a number range.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  inline bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-  }
+  return (( val >= lower ) && ( val <= upper ));
+}
 
 }; // namespace
 
 
 //------------------------------------------------------------------------------------------------------------
-// 
-//
+// Externals.
 //
 //-----------------------------------------------------------------------------------------------------------
 extern LCS::LcsNodeMap          nodeMap;
@@ -74,8 +71,7 @@ extern LCS::LcsDrvMap           drvMap;
 extern LCS::LcsMsgBusCAN        *msgBus;
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+//  The LCS name space routines declared in this file.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS { 
@@ -167,11 +163,6 @@ uint8_t registerPeriodicTask( LcsTaskCallback task, uint32_t interval ) {
   } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
 
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // "drvReq" is the entry point to an extension board. For each extension bord type there is driver function.
 // This function is called when we access that extension board.
@@ -186,8 +177,7 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 }
 
 
-// ??? need a dummy driver when we cannot identify the board but still want to talkl to the NVM ?
-
+// ??? need a dummy driver when we cannot identify the board but still want to talk to the NVM ?
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -244,6 +234,9 @@ uint8_t resetPort( uint8_t portId ) {
   else return ( ALL_OK );
 
 }
+
+
+
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -457,7 +450,6 @@ void handleMsgRepNode( uint8_t *msg ) {
   uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
   // ??? check if this is our node...
-
   // ??? check if we have a pending request....
 
   uint8_t   portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
@@ -467,7 +459,6 @@ void handleMsgRepNode( uint8_t *msg ) {
 
   if ( callbackMap.itemReqRepCallback != nullptr )
     callbackMap.itemReqRepCallback( nodeId, portId, item, arg1, arg2 );
-
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -478,14 +469,15 @@ void handleMsgReqNode( uint8_t *msg ) {
 
   uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
   uint8_t  portId  = msg[2] & 0x0F;
+
   if ( nodeId == nodeMap.nodeId ) {
 
     uint8_t   item  = msg[3];
     uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
     uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-    uint8_t   ret   = nodeInfo( portId, item, &arg1, &arg2 );
+    uint8_t   ret   = nodeControl( portId, item, arg1, arg2 );
 
-    if ( ret == ALL_OK )  sendRepNode( nodeId, portId, item, arg1, arg2 );
+    if ( ret == ALL_OK )  sendAck( nodeId );
     else                  sendErr( nodeId, ret, 0, 0 );
   }
 }
@@ -522,7 +514,7 @@ void handleMsgEvent( uint8_t *msg ) {
 
     while (( index < nodeMap.eventMapHwm ) && ( eventMap.map[ index ].eventId == eventId )) {
 
-      LcsPortMapEntry *pPtr = &portMap.map[ index ];   // ???? --------
+      LcsPortMapEntry *pPtr = &portMap.map[ index ];
 
       if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
           ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   ) &&

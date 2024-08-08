@@ -32,10 +32,11 @@
 // External declaration to global structures.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LCS::LcsNodeMap           nodeMap;
-extern LCS::LcsCallbackMap       callbackMapNew;
-extern LCS::LcsTaskMap           taskMap;
-extern LCS::LcsMsgBusCAN         *msgBus;
+extern LCS::LcsNodeMap        nodeMap;
+extern LCS::LcsCallbackMap    callbackMap;
+extern LCS::LcsPendingReqMap  pendingReqMap;
+extern LCS::LcsTaskMap        taskMap;
+extern LCS::LcsMsgBusCAN      *msgBus;
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.
@@ -43,78 +44,76 @@ extern LCS::LcsMsgBusCAN         *msgBus;
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  using namespace LCS;
+using namespace LCS;
 
-  //----------------------------------------------------------------------------------------------------------  
-  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // settoin of the debiug level.
-  //---------------------------------------------------------------------------------------------------------- 
-  uint8_t debugLevel = 0;
+//------------------------------------------------------------------------------------------------------------  
+// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+// settoin of the debiug level.
+//------------------------------------------------------------------------------------------------------------ 
+uint8_t debugLevel = 0;
 
-  LcsPendingReqMap  pendingReqMap;
+//------------------------------------------------------------------------------------------------------------
+// There are some LCS messages that expect a reply message. The library maintains a small pending request
+// buffer. When a request type messqge is sent we add the target node to the buffer. Easy and simple. Note
+// that there can be more than one entry for the same node in the buffer. If the buffer is full, an error
+// is returned. We have too many outstanding requests then.
+//
+// Idea: scheme could be refined to have a node and a count for pending requests. Perhaps later...
+//------------------------------------------------------------------------------------------------------------
+uint8_t addToPendingReplyMap( uint16_t nodeId ) {
 
-  //----------------------------------------------------------------------------------------------------------
-  // There are some LCS messages that expect a reply message. The library maintains a small pending request
-  // buffer. When a request type messqge is sent we add the target node to the buffer. Easy and simple. Note
-  // that there can be more than one entry for the same node in the buffer. If the buffer is full, an error
-  // is returned. We have too many outstanding requests then.
-  //
-  // Idea: scheme could be refined to have a node and a count for pending requests. Perhaps later...
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t addToPendingReplyMap( uint16_t nodeId ) {
+  for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
+    if ( pendingReqMap.map[ i ].nodeId == NIL_NODE_ID ) {
 
-      if ( pendingReqMap.map[ i ].nodeId == NIL_NODE_ID ) {
-
-        pendingReqMap.map[ i ].nodeId = nodeId;
-        return ( ALL_OK );
-      }
+      pendingReqMap.map[ i ].nodeId = nodeId;
+      return ( ALL_OK );
     }
+  }
+    
+  return ( ERR_PENDING_REQ_MAP_FULL );
+}
 
-    return ( ERR_PENDING_REQ_MAP_FULL );
+//------------------------------------------------------------------------------------------------------------
+// "removeFromPendingReplyMap" removes an entry from the pending reply buffer. If the entry is not found, we
+// received a reply for a request that we do not know. Right now, we just ignore this error.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t removeFromPendingReplyMap( uint16_t nodeId ) {
+
+  for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
+
+    if ( pendingReqMap.map[ i ].nodeId == nodeId ) pendingReqMap.map[ i ].nodeId = NIL_NODE_ID;
   }
 
-  //----------------------------------------------------------------------------------------------------------
-  // "removeFromPendingReplyMap" removes an entry from the pending reply buffer. If the entry is not found, we
-  // received a reply for a request that we do not know. Right now, we just ignore this error.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t removeFromPendingReplyMap( uint16_t nodeId ) {
+  return ( ALL_OK );
+}
 
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
+//------------------------------------------------------------------------------------------------------------
+// "checkPendingReplyMap" searches the pending request buffer for a matching node.
+//
+//------------------------------------------------------------------------------------------------------------
+bool checkPendingReplyMap( uint16_t nodeId ) {
 
-      if ( pendingReqMap.map[ i ].nodeId == nodeId ) pendingReqMap.map[ i ].nodeId = NIL_NODE_ID;
-    }
+  for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-    return ( ALL_OK );
+    if ( pendingReqMap.map[ i ].nodeId == nodeId ) return ( true );
   }
 
-  //----------------------------------------------------------------------------------------------------------
-  // "checkPendingReplyMap" searches the pending request buffer for a matching node.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  bool checkPendingReplyMap( uint16_t nodeId ) {
-
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
-
-      if ( pendingReqMap.map[ i ].nodeId == nodeId ) return ( true );
-    }
-
-    return ( false );
-  }
+  return ( false );
+}
 
 }; // namespace
 
 
 // ??? check for timeouts on pending replies ...
 
+
 //------------------------------------------------------------------------------------------------------------
-//
+// The LCS name space routines declared in this file.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
-
 
 //------------------------------------------------------------------------------------------------------------
 // "setupMsgBus" is called during node initialization to setup the LCS message bus interface. Right now,

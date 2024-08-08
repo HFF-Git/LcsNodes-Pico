@@ -26,19 +26,19 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-#include "pico/stdlib.h"
-
-
- //------------------------------------------------------------------------------------------------------------
+ //-----------------------------------------------------------------------------------------------------------
 // External data structures.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LCS::LcsCdcDesc         cdcMap;
-extern LCS::LcsNodeMap         nodeMap;
-extern LCS::LcsPortMap         portMap;
-extern LCS::LcsEventMap        eventMap;
-extern LCS::LcsCallbackMap     callbackMap;
-
+extern LCS::LcsCdcDesc          cdcMap;
+extern LCS::LcsNodeMap          nodeMap;
+extern LCS::LcsNodeData         nodeData;
+extern LCS::LcsPortMap          portMap;
+extern LCS::LcsEventMap         eventMap;
+extern LCS::LcsCallbackMap      callbackMap;
+extern LCS::LcsTaskMap          taskMap;
+extern LCS::LcsPendingReqMap    pendingReqMap;
+extern LCS::LcsMsgBusCAN        *msgBus;
 
 //------------------------------------------------------------------------------------------------------------
 // Local declarations.
@@ -46,167 +46,201 @@ extern LCS::LcsCallbackMap     callbackMap;
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  using namespace LCS;
+using namespace LCS;
 
-  char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
+//------------------------------------------------------------------------------------------------------------  
+//
+//
+//------------------------------------------------------------------------------------------------------------  
+char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
-  //----------------------------------------------------------------------------------------------------------  
-  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // settoin of the debiug level.
-  //---------------------------------------------------------------------------------------------------------- 
-  uint8_t debugLevel = 0;
+//------------------------------------------------------------------------------------------------------------  
+// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+// settoin of the debiug level.
+//------------------------------------------------------------------------------------------------------------ 
+uint8_t debugLevel = 0;
 
-  //---------------------------------------------------------------------------------------------------------
-  // "dumpMemData" lists the MEM data content of the storage area passed.
-  //
-  //---------------------------------------------------------------------------------------------------------
-  void dumpMemData( uint8_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
+//------------------------------------------------------------------------------------------------------------
+// "dumpMemData" lists the MEM data content of the storage area passed. The data is listed in 16-bit 
+// quantities.
+//
+//------------------------------------------------------------------------------------------------------------
+void dumpMemData( uint8_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
 
-    uint16_t index = 0;
+  uint16_t  index   = 0;
+  uint16_t  limit   = ( len + 1 ) / 2; 
+  uint16_t  *ptr    = (uint16_t *) area;
 
-    while ( index < len ) {
+  while ( index < limit ) {
 
-      printf( "0x%4x: ", index );
+    printf( "0x%4x: ", index * sizeof( uint16_t ));
 
-      for ( int i = 0; i < itemsPerLine; i++ ) {
+    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-        if ( index + i < len ) printf( "0x%2x ", area[ index + i ] );
-      }
-
-      printf( "\n" );
-      index += itemsPerLine;
+      if ( index + i < limit ) printf( "0x%4x ", ptr[ index + i ] );
     }
+
+    index += itemsPerLine;
+    printf( "\n" );
   }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // List NVM storage data. We are passed the absolute offset into the NVM area and the length in bytes.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void dumpNvmData( uint32_t start, uint16_t len, uint8_t itemsPerLine = 8 ) {
+//------------------------------------------------------------------------------------------------------------
+// List NVM storage data. We are passed the absolute offset into the NVM area and the length in bytes.
+// The data is listed in 16-bit quantities.
+//
+//------------------------------------------------------------------------------------------------------------
+void dumpNvmData( uint32_t start, uint16_t len, uint8_t itemsPerLine = 8 ) {
 
-    uint32_t  index = start;
-    uint32_t  limit = start + len;
-    uint8_t   val   = 0;
+  uint16_t  index   = 0;
+  uint16_t  limit   = ( len + 1 ) / 2; 
+  uint16_t  val     = 0;
 
-    while ( index < limit ) {
+  while ( index < limit ) {
 
-      printf( "0x%8x: ", index );
+    printf( "0x%8x: ", index * sizeof( uint16_t ) );
 
-      for ( uint32_t i = 0; i < itemsPerLine; i++ ) {
+    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-        if ( index + i < limit ) {
+      if ( index + i < limit ) {
 
-          rtNvmGetBytes( index + i, &val, sizeof( uint8_t ));
-          printf( "0x%2x ", val );
-        }
+        rtNvmGetWord(( index + i ) * 2, &val );
+        printf( "0x%4x ", val );
       }
-
-      printf( "\n" );
-      index += itemsPerLine;
     }
-  }
 
-  //----------------------------------------------------------------------------------------------------------
-  //
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void dumpNodeMap( ) {
-
-    printf( "MEM Node Map:" );
-    dumpMemData((uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     printf( "\n" );
   }
+}
 
-  void dumpPortMap( ) {
+//------------------------------------------------------------------------------------------------------------
+// List extension board NVM storage data. We are passed the absolute offset into the NVM area and the 
+// length in bytes.
+//
+//------------------------------------------------------------------------------------------------------------
+void dumpExtNvmData( uint8_t boardId, uint32_t start, uint16_t len, uint8_t itemsPerLine = 8 ) {
 
-    printf( "MEM Port Map: ( Entry Size: %d)\n", sizeof( LcsPortMapEntry ));
+  uint16_t  index   = 0;
+  uint16_t  limit   = ( len + 1 ) / 2; 
+  uint16_t  val     = 0;
 
-    dumpMemData((uint8_t *) &portMap, sizeof( LcsPortMap ));
+  while ( index < limit ) {
+
+    printf( "0x%8x: ", index * sizeof( uint16_t ) );
+
+    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+      if ( index + i < limit ) {
+
+        extNvmGetWord( boardId, ( index + i ) * 2, &val );
+        printf( "0x%4x ", val );
+      }
+    }
+
     printf( "\n" );
   }
+}
 
-  void dumpEventMap( ) {
+//------------------------------------------------------------------------------------------------------------
+// Routines to list contents of the various memory areas.
+//
+//------------------------------------------------------------------------------------------------------------
+void dumpNodeMap( ) {
 
-    printf( "MEM Event Map (hwm: %d\n):", nodeMap.eventMapHwm );
-    dumpMemData((uint8_t *) &eventMap, sizeof( LcsEventMap ));
-    printf( "\n" );
+  printf( "MEM Node Map:" );
+  dumpMemData((uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+  printf( "\n" );
+}
+
+void dumpNodeData( ) {
+
+  printf( "MEM Node Data:" );
+  dumpMemData((uint8_t *) &nodeData.map, sizeof( LcsNodeData ));
+  printf( "\n" );
+}
+
+void dumpPortMap( ) {
+
+  printf( "MEM Port Map: ( Entry Size: %d)\n", sizeof( LcsPortMapEntry ));
+  dumpMemData((uint8_t *) &portMap, sizeof( LcsPortMap ));
+  printf( "\n" );
+}
+
+void dumpEventMap( ) {
+
+  printf( "MEM Event Map (hwm: %d\n):", nodeMap.eventMapHwm );
+  dumpMemData((uint8_t *) &eventMap, sizeof( LcsEventMap ));
+  printf( "\n" );
+}
+
+void dumpPendingReqMap( ) {
+
+  printf( "MEM Pending Req Map:\n " );
+  dumpMemData((uint8_t *) pendingReqMap.map, MAX_PENDING_REQ_MAP_ENTRIES * sizeof( LcsPendingReqEntry ));
+  printf( "\n" );
+}
+
+void dumpCallbackMap( ) {
+
+  printf( "Callback Map:\n" );
+  dumpMemData((uint8_t *) callbackMap.map, ( MAX_PORT_MAP_ENTRIES + 1 ) * sizeof( LcsCallbackMapEntry ));
+  printf( "\n" );
+}
+
+void dumpTaskMap( ) {
+
+  printf( "Task Map:\n" );
+  dumpMemData((uint8_t *) taskMap.map, MAX_TASK_MAP_ENTRIES * sizeof( LcsPTaskMapEntry ));
+  printf( "\n" );
+}
+
+void printSummary( ) {
+
+  printf( "LCS Node: \"" );
+  for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ ) {
+ 
+    if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
   }
+     
+  printf( "\"\n" );
 
-  void dumpPendingReqMap( ) {
+  printf( "LCS Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
+}
 
-    printf( "MEM Pending Req Map:\n " );
-    //dumpMemData((uint8_t *) pendingReqMap, cLibDesc.numOfPendingReq * sizeof( uint16_t ));
-    printf( "\n" );
-  }
+void dumpMemArea( ) {
 
-  void dumpCallbackMap( ) {
+  printf( "MEM Area Dump:\n" );
+  dumpNodeMap( );
+  dumpPortMap( );
+  dumpEventMap( );
+  dumpPendingReqMap( );
+  dumpTaskMap( );
+  dumpCallbackMap( );
+  printf( "\n" );
+}
 
-    printf( "Callback Map:\n" );
-    //  dumpMemData((uint8_t *) callbackMap, ( nodeMap.portMapEntries + 1 ) * sizeof( LcsCallbackMapEntry )); // fix ....
-    printf( "\n" );
-  }
+void dumpNvmArea( ) {
 
-  void dumpPtaskMap( ) {
+  printf( "NVM Area Dump:\n" );
+  dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsNodeData ) + sizeof ( LcsPortMap ) + sizeof( LcsEventMap ));
+  printf( "\n" );
+}
 
-    printf( "PTask Map:\n" );
-    //dumpMemData((uint8_t *) pTaskMap, cLibDesc.numOfPeriodicTasks * sizeof( LcsPTaskMapEntry ));
-    printf( "\n" );
-  }
+void dumpNvmUserArea( ) {
 
-  void printSummary( ) {
-
-    printf( "LCS Node: \"" );
-    for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ )
-      if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
-    printf( "\"\n" );
-
-    printf( "Lcb Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
-  }
-
-  void dumpConfigDesc( ) {
-
-    printf( "MEM Config Descriptor:" );
-    //dumpMemData((uint8_t *) &cLibDesc, sizeof( LcsCoreLibConfigDesc ));
-    printf( "\n" );
-  }
-
-  void dumpMemArea( ) {
-
-    printf( "MEM Area Dump:\n" );
-    dumpConfigDesc( );
-    dumpNodeMap( );
-    dumpPortMap( );
-    dumpEventMap( );
-    dumpPendingReqMap( );
-    dumpPtaskMap( );
-    dumpCallbackMap( );
-    printf( "\n" );
-  }
-
-  void dumpNvmNodeArea( ) {
-
-    printf( "NVM Area Dump:\n" );
-    dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsPortMap ) + sizeof( LcsEventMap ));
-    printf( "\n" );
-  }
-
-  void dumpNvmUserArea( ) {
-
-    printf( "NVM Area Dump:\n" );
-    dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
-    printf( "\n" );
-  }
+  printf( "NVM Area Dump:\n" );
+  dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
+  printf( "\n" );
+}
 
 }; // namespace
 
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// Routines in LCS name sppace.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
-
 
 //------------------------------------------------------------------------------------------------------------
 // "!c" switches the node to CFG mode. We construct the LCS_OP_CFG message payload data and invoke the msg
@@ -253,9 +287,9 @@ void switchToOperationsCommand( ) {
 void enterEventCommand( char *s ) {
 
   uint16_t  eventId = NIL_EVENT_ID;
-  uint8_t   portId  = NIL_PORT_ID;
+  uint16_t   portId = NIL_PORT_ID;
 
-  if ( sscanf( s, "%hu %hhu ", &eventId, &portId ) < 1 ) return;
+  if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
 
   int ret = nodeControl( portId, NPC_ADD_EVENT_MAP_ENTRY, eventId, portId );
   printf( "<!a %d >", ret );
@@ -276,9 +310,9 @@ void enterEventCommand( char *s ) {
 void removeEventCommand( char *s ) {
 
   uint16_t  eventId = NIL_EVENT_ID;
-  uint8_t   portId  = NIL_PORT_ID;
+  uint16_t  portId  = NIL_PORT_ID;
 
-  if ( sscanf( s, "%hu %hhu ", &eventId, &portId ) < 1 ) return;
+  if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
 
   int ret = nodeControl( portId, NPC_DEL_EVENT_MAP_ENTRY, eventId, portId );
   printf( "<!r %d >", ret );
@@ -299,9 +333,9 @@ void removeEventCommand( char *s ) {
 void findEventCommand( char *s ) {
 
   uint16_t  eventId = NIL_EVENT_ID;
-  uint8_t   portId  = NIL_PORT_ID;
+  uint16_t  portId  = NIL_PORT_ID;
 
-  if ( sscanf( s, "%hu %hhu ", &eventId, &portId ) < 1 ) return;
+  if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
 
   int ret = searchEvent( eventId, portId );
   printf( "<!f %d >", ret );
@@ -358,34 +392,35 @@ void sendEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 // "!n" handles the local node query command.
 //
-//    <!n port item>
+//    <!n port item [ val1 [ val2 ]]>
 //
 //    port      - the port. ( 0 - node, 1 .. n - port )
 //    item      - the node item to query, the result items will be listed in HEX format.
+//    val1      - the argument 1 on input.
+//    val2      - the argument 2 on input.
 //
 //    returns: <!n item val1 val2 ret>
 //
-// ?? need to also pass inbound values ?
 //------------------------------------------------------------------------------------------------------------
 void queryNodeCommand( char *s ) {
 
   uint16_t  portId  = NIL_PORT_ID;
   uint8_t   item    = 0;
-  uint16_t  val1    = 0;
-  uint16_t  val2    = 0;
+  uint16_t  arg1    = 0;
+  uint16_t  arg2    = 0;
   uint8_t   ret     = ALL_OK;
 
-  if ( sscanf( s, "%hu %hhu", &portId, &item ) != 2 ) return;
+  if ( sscanf( s, "%hu %hu %hu %hu", &portId, &item, &arg1, &arg2  ) != 2 ) return;
 
-  ret = nodeInfo( portId, item, &val1, &val2 );
+  ret = nodeInfo( portId, item, &arg1, &arg2 );
 
-  printf( "<!n %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+  printf( "<!n %d|0x%x|0x%x|%d>", item, arg1, arg2, ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "!N" handles the node control command.
 //
-//    <!N item val1 [ val2 ]>
+//    <!N item [ val1 [ val2 ]]>
 //
 //    port      - the port. ( 0 - node, 1 .. n - port )
 //    item      - the port item to control
@@ -427,7 +462,7 @@ void broadcastLcsMsgCommand( char *s ) {
 
   if ( nBytes >= 1 && nBytes <= 8 ) {
 
-    int ret = 0; // sendLcsMsg( b ); // ??? fix .... when ready ....
+    int ret = msgBus -> sendLcsMsg( b ); 
 
     printf( "<!B [ " );
     for ( int i = 0; i < 8; i++ ) printf( "0x%x ", b[ i ] );
@@ -452,13 +487,13 @@ void listStatusCommand( char *s ) {
     switch ( level ) {
 
       case 0:  printSummary( );    break;
-      case 1:  dumpConfigDesc( );  break;
-      case 2:  dumpNodeMap( );     break;
+      case 1:  dumpNodeMap( );     break;
+      case 2:  dumpNodeData( );    break;
       case 3:  dumpPortMap( );     break;
       case 4:  dumpEventMap( );    break;
-      case 6:  dumpPtaskMap( );    break;
+      case 6:  dumpTaskMap( );     break;
       case 7:  dumpCallbackMap( ); break;
-    //  case 8:  dumpNvmArea( );     break;
+      case 8:  dumpNvmArea( );     break;
       case 9:  dumpMemArea( );     break;
     //  case 10: dumpDrvData( );     break;
 
@@ -475,7 +510,7 @@ void listStatusCommand( char *s ) {
 //    board - the extension board the driver handles.
 //    item  - the driver specific item which isthe requested operation.
 //    arg1  - the first argument to the driver.
-//    arg2  - the optional second argument to the driver.
+//    arg2  - the optional second argument to the driver and also output from the driver.
 //
 //    returns:  <!D board item arg1 arg 2 ret>
 //
@@ -519,8 +554,8 @@ void listCoreLibHelpCommand( ) {
 
   printf( " < !s [ level ] > - list status, default is summary\n" );
   printf( "              " " -  0 - summary\n" );
-  printf( "              " " -  1 - Config Desc\n" );
-  printf( "              " " -  2 - Node Map\n" );
+  printf( "              " " -  1 - Node Map\n" );
+  printf( "              " " -  2 - Node Data\n" );
   printf( "              " " -  3 - Port Map\n" );
   printf( "              " " -  4 - Event Map\n" );
   printf( "              " " -  5 - Attribute Map\n" );
@@ -547,7 +582,7 @@ uint8_t setupSerialCommand( ) {
 // branch to the appropriate command handler. The command interface routine only handles the LCS commands, 
 // which do start with a "!" after the opening bracket. Anything else is passed to a command handler callback,
 // if defined. The interface accepts more than one command, they are just a list of "<...>" characters.
-// Note that the routine is called as part of the runtime loop. Consequently, it cannot not block for IO. 
+// Note that this routine is called as part of the runtime loop. Consequently, it cannot not block for IO. 
 // The interface is designed in a way that it assembles the character input when there are characters. Only
 // when there is a valid "<...>" sequence assembled, the command handler is invoked. 
 //
