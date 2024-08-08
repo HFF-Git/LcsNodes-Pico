@@ -521,7 +521,7 @@ void handleMsgEvent( uint8_t *msg ) {
       case LCS_OP_EVT:      eventAction = PEA_EVENT_EVT;  break;
     }
 
-    while (( index < eventMap.hwm ) && ( eventMap.map[ index ].eventId == eventId )) {
+    while (( index < nodeMap.eventMapHwm ) && ( eventMap.map[ index ].eventId == eventId )) {
 
       LcsPortMapEntry *pPtr = &portMap.map[ index ];   // ???? --------
 

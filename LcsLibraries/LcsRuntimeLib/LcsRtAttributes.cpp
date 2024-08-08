@@ -39,10 +39,11 @@
 // The external global data structures defined in the "LcsRtCore" file.
 //
 //------------------------------------------------------------------------------------------------------------
-extern LCS::LcsCdcDesc               cdcMap;
-extern LCS::LcsNodeMap               nodeMap;
-extern LCS::LcsPortMap               portMap;
-extern LCS::LcsCallbackMap           callbackMap;
+extern LCS::LcsCdcDesc              cdcMap;
+extern LCS::LcsNodeData             nodeData;
+extern LCS::LcsNodeMap              nodeMap;
+extern LCS::LcsPortMap              portMap;
+extern LCS::LcsCallbackMap          callbackMap;
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
@@ -74,92 +75,57 @@ namespace {
     return (( val >= lower ) && ( val <= upper ));
   }
 
-  // ??? better safeguard portID and indieces ???
-
   //----------------------------------------------------------------------------------------------------------
   // "readAttrMem" gets a value from the node or port attribute map in MEM. As an internal function, we expect
-  // a valid portId and item argument.
+  // a valid block and item argument.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t readAttrMem( uint8_t portId, uint8_t item, uint16_t *arg ) {
+  uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-    uint8_t index = item - LCS::NPI_ATTR_MEM_RANGE_START;
-
-    if ( portId == LCS::NIL_PORT_ID )  *arg = nodeMap. map[ index ];
-    else                               *arg = portMap.map[ portId - 1 ].map[ index ];
-
+    *arg = nodeData.map[ block ][ item - LCS::NPI_ATTR_MEM_RANGE_START ];
     return ( LCS::ALL_OK );
   }
+
   //----------------------------------------------------------------------------------------------------------
   // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an internal function, we expect
-  // a valid portId and item argument.
+  // a valid block and item argument.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t writeAttrMem( uint8_t portId, uint8_t item, uint16_t arg ) {
+  uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
-    uint8_t index = item - LCS::NPC_ATTR_MEM_RANGE_START;
-
-    if ( portId == LCS::NIL_PORT_ID )  nodeMap.map[ index ] = arg;
-    else                               portMap.map[ portId - 1 ].map[ index ] = arg;
-
+    nodeData.map[ block ][ item - LCS::NPC_ATTR_MEM_RANGE_START ] = arg;
     return ( LCS::ALL_OK );
   }
 
   //----------------------------------------------------------------------------------------------------------
   // "readAttrNvm" gets a value from the node or port NVM attribute map. We read the value from the respective
   // attribute map, store it in the memory counterpart and then return it. For the NVM access, the byte offset
-  // into the storage needs to be computed. As an internal function, we expect a valid portId and item
-  // argument.
+  // into the storage needs to be computed. As an internal function, we expect a valid block and item argument.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t readAttrNvm( uint8_t portId, uint8_t item, uint16_t *arg ) {
+  uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-    uint8_t index = item -LCS:: NPI_ATTR_NVM_RANGE_START;
+    uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
+    uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
+    uint8_t rStat   = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
 
-    if ( portId == LCS::NIL_PORT_ID ) {
-
-      uint16_t ofs  = offsetof( LcsNodeMap, map ) + ( index * sizeof( uint16_t ));
-      uint8_t rStat = rtNvmGetWord( ofs, &nodeMap.map[ index ] );
-      
-      if ( rStat == ALL_OK ) *arg = nodeMap.map[ index ];
-      return ( rStat );
-    }
-    else {
-
-      uint32_t ofs  =  (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
-                       offsetof( LcsPortMapEntry, map ) + ( index * sizeof( uint16_t ));
-
-      uint8_t rStat = rtNvmGetWord( ofs, &portMap.map[ portId - 1 ].map[ index ] );
-      if ( rStat == ALL_OK ) *arg = portMap.map[ portId - 1 ].map[ index ];
-      return ( rStat );
-    }
+    if ( rStat == ALL_OK ) *arg = nodeData.map[ block ][ index ];
+    return ( rStat );
   }
 
   //----------------------------------------------------------------------------------------------------------
   // "writeAttrNvm" stores an value to the node or port NVM attribute map. We first update the MEM attribute
   // map and then write the value to NVM attribute map. For the NVM access, the byte offset into the storage
-  // needs to be computed. As an internal function, we expect a valid portId and item argument.
+  // needs to be computed. As an internal function, we expect a valid block and item argument.
   //
   //----------------------------------------------------------------------------------------------------------
-  uint8_t writeAttrNvm( uint8_t portId, uint8_t item, uint16_t arg ) {
+  uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
-    uint8_t index = item - NPI_ATTR_NVM_RANGE_START;
+    uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
+    uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
 
-    if ( portId == NIL_PORT_ID ) {
-
-      nodeMap.map[ index ] = arg;
-
-      uint16_t ofs  = offsetof( LcsNodeMap, map ) + ( index * sizeof( uint16_t ));
-      return ( rtNvmPutWord( ofs, arg ));
-    }
-    else {
-
-      portMap.map[ portId - 1 ].map[ index ] = arg;
-
-      int16_t ofs  =  (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
-                      ( offsetof( LcsPortMapEntry, map ) + ( index * sizeof( uint16_t )));
-      return ( rtNvmPutWord( ofs, arg ));
-    }
+    nodeData.map[ block ][ index ] = arg;
+    return ( rtNvmPutWord( ofs, arg ));
   }
 
 } // namespace

@@ -41,6 +41,7 @@
 //
 //
 //------------------------------------------------------------------------------------------------------------
+extern LCS::LcsNodeMap  nodeMap;
 extern LCS::LcsEventMap eventMap;
 
 //------------------------------------------------------------------------------------------------------------
@@ -104,11 +105,11 @@ namespace {
     #endif
 
     if ( searchEvent( eventId, portId ) >= 0 )    return ( ALL_OK );
-    if ( eventMap.hwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
+    if ( nodeMap.eventMapHwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
 
-    uint16_t index = eventMap.hwm;
+    uint16_t index = nodeMap.eventMapHwm;
 
-    if ( eventMap.hwm > 0 ) {
+    if ( nodeMap.eventMapHwm > 0 ) {
 
       while (( index > 0 ) && ( compareEventEntry( &eventMap.map[ index - 1 ], eventId, portId ) > 0 )) {
 
@@ -119,7 +120,7 @@ namespace {
 
     eventMap.map[ index ].eventId = eventId;
     eventMap.map[ index ].portId  = portId;
-    eventMap.hwm++;
+    nodeMap.eventMapHwm++;
 
     return ( ALL_OK );
   }
@@ -138,9 +139,9 @@ namespace {
 
     if ( index >= 0 ) {
 
-      eventMap.hwm--;
+      nodeMap.eventMapHwm--;
 
-      for ( uint16_t i = index; i < eventMap.hwm; i++ )
+      for ( uint16_t i = index; i < nodeMap.eventMapHwm; i++ )
         eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
@@ -234,7 +235,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
 
   int   res   = -1;
   int   low   = 0;
-  int   high  = eventMap.hwm - 1;
+  int   high  = nodeMap.eventMapHwm - 1;
 
   if ( portId == NIL_PORT_ID ) {
 
@@ -304,7 +305,7 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId ) {
   printf( "Get Emap Entry: %d\n", index );
   #endif
 
-  if ( index <  eventMap.hwm ) {
+  if ( index <  nodeMap.eventMapHwm ) {
 
     *evId = eventMap.map[ index ].eventId;
     *pId  = eventMap.map[ index ].portId;

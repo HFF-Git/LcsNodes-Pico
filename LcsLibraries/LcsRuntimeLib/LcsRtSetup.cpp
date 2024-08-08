@@ -54,14 +54,15 @@
 //
 // ??? or rather declare them here ?
 //------------------------------------------------------------------------------------------------------------
-LCS::LcsCdcDesc              cdcMap;
-LCS::LcsMsgBusCAN            *msgBus;
-LCS::LcsNodeMap              nodeMap;
-LCS::LcsPortMap              portMap;
-LCS::LcsEventMap             eventMap;
-LCS::LcsCallbackMap          callbackMap;
-LCS::LcsTaskMap              taskMap;
-LCS::LcsDrvMap               drvMap;
+LCS::LcsCdcDesc               cdcMap;
+LCS::LcsMsgBusCAN             *msgBus;
+LCS::LcsNodeData              nodeData;
+LCS::LcsNodeMap               nodeMap;
+LCS::LcsPortMap               portMap;
+LCS::LcsEventMap              eventMap;
+LCS::LcsCallbackMap           callbackMap;
+LCS::LcsTaskMap               taskMap;
+LCS::LcsDrvMap                drvMap;
 
 // ??? have a user map still ?
 
@@ -132,7 +133,6 @@ namespace {
     nMap -> nvmMemSizeInBlocks            = 0;      // ??? what is a block ? 32bytes ?
   
     memset( &nMap -> name, 0, MAX_NODE_NAME_SIZE );
-    memset( &nMap -> map, 0, MAX_ATTR_MAP_ENTRIES * sizeof(uint16_t));
   }
 
   //----------------------------------------------------------------------------------------------------------
@@ -347,28 +347,16 @@ uint8_t setupEventMap( ) {
   printf( "setupEventMap\n" );
   #endif
 
+  // ??? check for a valid hwm ... then get the map 
   // ??? we may just want to read up to the HWM...!!!!
    // ??? the event map is expected to be sorted as we only add / remove sorted.
   // ??? only read up to the high water mark.
 
-  uint16_t hwm;
-  uint16_t size;
-
-  uint8_t rStat = rtNvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, hwm ), &hwm );
-  if ( rStat != ALL_OK ) {
-
-    
-  }
-
-  rStat = rtNvmGetWord( NVM_EVENT_MAP_START + offsetof( LcsEventMap, size ),&size );
-  if ( rStat != ALL_OK ) {
-
-    
-  }
-
-  // ??? check for a valid hwm ... then get the map
+  
 
 
+  uint8_t rStat;
+  
   rStat = rtNvmGetBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
   if ( rStat != ALL_OK ) {
 

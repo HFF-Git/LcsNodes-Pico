@@ -127,7 +127,7 @@ namespace {
 
   void dumpEventMap( ) {
 
-    printf( "MEM Event Map (hwm: %d\n):", eventMap.hwm );
+    printf( "MEM Event Map (hwm: %d\n):", nodeMap.eventMapHwm );
     dumpMemData((uint8_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
   }
