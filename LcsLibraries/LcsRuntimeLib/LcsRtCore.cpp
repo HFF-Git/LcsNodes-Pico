@@ -64,7 +64,6 @@ namespace {
 //
 //
 //-----------------------------------------------------------------------------------------------------------
-extern LCS::LcsNodeState         nodeState;
 extern LCS::LcsNodeMap          nodeMap;
 extern LCS::LcsPortMap          portMap;
 extern LCS::LcsEventMap         eventMap;
@@ -320,7 +319,7 @@ void handleMsgRepNid( uint8_t *msg ) {
   if ( nodeUID == nodeMap.nodeUID ) {
 
     if ( nodeMap.nodeId != nodeId ) nodeControl( nodeId, NPC_SET_NODE_ID, nodeId );
-    nodeState = NS_OPERATE;
+    nodeMap.nodeState = NS_OPERATE;
   }
 }
 
@@ -335,14 +334,14 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
     case LCS_OP_OPS: {
 
-        nodeState = NS_OPERATE;
+        nodeMap.nodeState = NS_OPERATE;
         if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
       } break;
 
     case LCS_OP_CFG: {
 
-        nodeState = NS_CONFIG;
+        nodeMap.nodeState = NS_CONFIG;
         if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
       } break;
@@ -350,7 +349,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     case LCS_OP_BON: {
 
         // ??? readyLed on
-        nodeState = NS_OPERATE;
+        nodeMap.nodeState = NS_OPERATE;
         if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
       } break;
@@ -358,7 +357,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     case LCS_OP_BOF: {
 
         /// ??? readyLed off
-        nodeState = NS_HALTED;
+        nodeMap.nodeState = NS_HALTED;
         if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
       } break;
@@ -366,7 +365,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     case LCS_OP_NCOL: {
 
         // ??? readyLed off
-        nodeState = NS_COLLISION;
+        nodeMap.nodeState = NS_COLLISION;
         if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
       } break;
@@ -381,7 +380,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
           // ??? FIX ...
           // setupNode( );
 
-          nodeState = NS_INIT;
+          nodeMap.nodeState = NS_INIT;
         }
         else if (( nodeId != NIL_NODE_ID ) && ( portId == NIL_PORT_ID )) {
 
@@ -391,7 +390,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
             // ??? fix
             // setupNode( );
 
-            nodeState = NS_INIT;
+            nodeMap.nodeState = NS_INIT;
           }
         }
         else if (( nodeId != NIL_NODE_ID ) && ( portId != NIL_PORT_ID )) {
@@ -415,7 +414,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         if ( nodeUID == nodeMap.nodeUID ) {
 
-          if ( nodeState == NS_CONFIG ) {
+          if ( nodeMap.nodeState == NS_CONFIG ) {
 
             if ( nodeId != nodeMap.nodeId ) nodeMap.nodeId = nodeId;
             sendAck( nodeId );
@@ -585,9 +584,9 @@ void handleNodeStateInit( ) {
 
     sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
     timerVal  = CDC::getMillis( );
-    nodeState = NS_REGISTER;
+    nodeMap.nodeState = NS_REGISTER;
 
-  } else nodeState = NS_OPERATE;
+  } else nodeMap.nodeState = NS_OPERATE;
 }
 
 //------------------------------------------------------------------------------------------------------------

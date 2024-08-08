@@ -56,6 +56,7 @@ namespace LCS {
 
 // ??? this should actually be a set of variables.
 // ??? each module should have a function to set the module ( file ) local debug level ...
+// ??? should we store them also in the nodeMap to dynamically set debug evles to be active after reset ?
 
 
 
@@ -260,13 +261,13 @@ struct LcsNodeData {
 
 //----------------------------------------------------------------------------------------------------------
 // The node map. At the first locations of the NVM area on the controller board NVM chip is the nodeMap, 
-// which is read in at controller  reset. It is the heart of all data on the node.
+// which is read in at controller reset. It is the heart of all data on the node.
 //
-// Creating the nodeMap at controller startup is a two step process. First we read in the map, which 
-// contains fields that are set either configured opr predefiuned values. Some fields are however bound
-// to be overwritten during the startup process.
+// Creating the nodeMap at controller startup is a two step process. First we read in the node map from
+// the NVM. The first check is whether the nodeMap is a valid nodeMap. We have a simple check with two
+// "magic" words that when set to the correct value indicate that this NVM area was once intialized.
 //
-// ??? describe the fields...
+// ??? have debug field to set a debug value ? When setting it, needs to be written back to NVM ?
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
@@ -274,6 +275,8 @@ struct LcsNodeMap {
 
   uint16_t  options                         = 0;
   uint16_t  flags                           = 0;
+
+  uint16_t  nodeState                       = NS_NIL;
   
   uint16_t  nodeId                          = NIL_NODE_ID;
   uint32_t  nodeUID                         = 0L;
@@ -303,22 +306,28 @@ struct LcsNodeMap {
   uint16_t  eventMapSize                    = 0;
   uint16_t  eventMapHwm                     = 0;
 
-
   char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
+
+  uint16_t  debugEnabled                    = 0;
+  uint16_t  debugNodeSetup                  = 0;
+  uint16_t  debugNvmAccess                  = 0;
+  uint16_t  debugCanBusMsg                  = 0;
+  uint16_t  debugAttrAccess                 = 0;
+  uint16_t  debugEventHandling              = 0;
   
   uint16_t  magicWord2                      = NODE_MWORD_2;
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The port map contains an array of ports, each described by a port map entry. Besides the port flags,
-// name and type there are the port attributes. The portMap entry also contains the fields that deal with
-// the actual event received. There are fields for the sending node, the event and its action. An event 
-// can also be invoked with a delay time. The are fifteen entries in the port map. The portMap starts
-// fixed at NVM offset 0x1000.
+// The port map contains an array of ports, each described by a port map entry. The portMap entry contains 
+// the fields that deal with the actual event received. There are fields for the sending node, the event 
+// and its action. An event can also be invoked with a delay time. The are fifteen entries in the port map.
+// The portMap starts fixed at NVM offset 0x1000.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
+  uint16_t  options                         = 0;
   uint16_t  flags                           = 0;
   uint16_t  type                            = 0;
 

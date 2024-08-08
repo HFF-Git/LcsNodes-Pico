@@ -315,8 +315,9 @@ namespace {
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
+// "configNvm" will setup the module local variables. We copy the I2C hardware pins and the NVM related data
+// from the CDC descriptors.
 //
-// ??? all we do here is to set the internal variables....
 //------------------------------------------------------------------------------------------------------------
 uint8_t configNvm( CDC::CdcPinConfig *ci ) {
 
@@ -324,6 +325,9 @@ uint8_t configNvm( CDC::CdcPinConfig *ci ) {
   nvmSdaPin     = ci -> NVM_I2C_SDA_PIN;
   extSclPin     = ci -> EXT_I2C_SCL_PIN;
   extSdaPin     = ci -> EXT_I2C_SDA_PIN;
+
+  // ??? check sizes ?
+  
   nodeNvmSize   = ci -> NODE_NVM_SIZE;
   extNvmSize    = ci -> EXT_NVM_SIZE;
 
@@ -331,8 +335,8 @@ uint8_t configNvm( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Controller Board Runtime Map access routines. 
-//
+// Controller Board Runtime Map access routines. There are routines for getting and setting a word as well as
+// rotutines to read and write a buffer.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
@@ -355,25 +359,15 @@ uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
   return( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
-uint8_t rtNvmClear( uint32_t ofs, uint32_t len, uint8_t val ) {
-
-  for ( uint32_t i = 0; i < len; i++ ) {
-
-    uint8_t rStat = rtNvmPutBytes( ofs + i, (uint8_t *) &val, 1U );
-    if ( rStat != ALL_OK ) return ( rStat );
-  }
-
-  return ( ALL_OK );
-}
-
 uint32_t rtNvmGetSize( ) { 
 
   return( NVM_NVM_RUNTIME_MAP_SIZE );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Extension Board Map access routines. 
-//
+// Extension Board Map access routines. These routines access the NVM on an extension board. The I2C address
+// is formed by teh chip I2C address plus the address bits of the chip to select the chip on the particular
+// extension board.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {

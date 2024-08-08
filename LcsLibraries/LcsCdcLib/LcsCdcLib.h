@@ -288,6 +288,7 @@ namespace CDC {
   
   uint8_t       init( CdcPinConfig *ci );
   void          fatalError( uint8_t n );
+  void          fatalErrorMsg( char *str, uint8_t n );
 
   //----------------------------------------------------------------------------------------------------------
   // General controller routines.

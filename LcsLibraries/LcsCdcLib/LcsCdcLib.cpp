@@ -480,11 +480,16 @@ namespace {
 }; // namespace
 
 
+
+namespace CDC {
+
+
+
 //------------------------------------------------------------------------------------------------------------
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void CDC::setDebugLevel( uint8_t level ) {
+void setDebugLevel( uint8_t level ) {
 
     debugLevel = level;
   }
@@ -495,7 +500,7 @@ void CDC::setDebugLevel( uint8_t level ) {
 // the relevant pins and values according to the actual hardware configuration.
 //
 //------------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig CDC::getConfigDefault( ) {
+CdcPinConfig getConfigDefault( ) {
 
   return ( getConfigDefaultRP2040( ));
 }
@@ -505,7 +510,7 @@ CDC::CdcPinConfig CDC::getConfigDefault( ) {
 // structuere to use. There is no need for the upper layers to keep the structure used at initialisation time.
 //
 //------------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig *CDC::getConfigActual( ) {
+CdcPinConfig *getConfigActual( ) {
 
   return ( &cfg );
 }
@@ -516,7 +521,7 @@ CDC::CdcPinConfig *CDC::getConfigActual( ) {
 // problem.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::init( CDC::CdcPinConfig *ci ) {
+uint8_t init( CdcPinConfig *ci ) {
 
   cfg = *ci;
 
@@ -540,11 +545,11 @@ uint8_t CDC::init( CDC::CdcPinConfig *ci ) {
 // obvious one is when we cannot detect the NVM and thus know nothing about the board.
 //
 //------------------------------------------------------------------------------------------------------------
-void CDC::fatalError( uint8_t n ) {
+void fatalError( uint8_t n ) {
 
   const uint8_t   ledPin      = 25;
-  const uint32_t  longPulse   = 2000;
-  const uint32_t  shortPulse  = 500;
+  const uint32_t  longPulse   = 1000;
+  const uint32_t  shortPulse  = 250;
 
   n = n % 8;
 
@@ -569,50 +574,65 @@ void CDC::fatalError( uint8_t n ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "fatalErrorMsg" will result in a fatal error, but we attempt to first write an error message to the 
+// console.
+//
+//------------------------------------------------------------------------------------------------------------
+void fatalErrorMsg( char *str, uint8_t n ) {
+
+  if ( isConsoleConnected( )) {
+
+    printf( "Fatal Error: %d: %s\n", n, str );
+  }
+
+  fatalError( n );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Processor general values required by the low level LCS core library functions.
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t CDC::getFamily( ) {
+uint16_t getFamily( ) {
 
   return ( CONTROLLER_FAMILY );
 }
 
-uint32_t CDC::getVersion( ) {
+uint32_t getVersion( ) {
 
   return ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
 }
 
-uint32_t CDC::getChipMemSize( ) {
+uint32_t getChipMemSize( ) {
 
   return ( CHIP_MEM_SIZE );
 }
 
-uint32_t CDC::getChipNvmSize( ) {
+uint32_t getChipNvmSize( ) {
 
   return ( CHIP_NVM_SIZE   );
 }
 
-uint32_t CDC::getCpuFrequency( ) {
+uint32_t getCpuFrequency( ) {
 
   return ( clock_get_hz( clk_sys ));
 }
 
-uint32_t CDC::getMillis( ) {
+uint32_t getMillis( ) {
 
   return ( to_ms_since_boot( get_absolute_time( )));
 }
 
-uint32_t CDC::getMicros( ) {
+uint32_t getMicros( ) {
 
   return ( to_us_since_boot( get_absolute_time( )));
 }
 
-void CDC::sleepMillis( uint32_t val ) {
+void sleepMillis( uint32_t val ) {
 
   sleep_ms( val );
 }
 
-void CDC::sleepMicros( uint32_t val ) {
+void sleepMicros( uint32_t val ) {
 
   sleep_us( val );
 }
@@ -623,7 +643,7 @@ void CDC::sleepMicros( uint32_t val ) {
 // flash chip ID on the board. TBD ...
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t CDC::createUid( ) {
+uint32_t createUid( ) {
 
   uint32_t rVal = 0;
 
@@ -647,18 +667,18 @@ uint32_t CDC::createUid( ) {
 // if desired.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureConsoleIO( ) {
+uint8_t configureConsoleIO( ) {
 
   stdio_init_all( );
   return( ALL_OK );
 }
 
-bool CDC::isConsoleConnected( ) {
+bool isConsoleConnected( ) {
 
   return( stdio_usb_connected( ));
 }
   
-char CDC::getConsoleChar( bool echoBack ) {
+char getConsoleChar( bool echoBack ) {
 
   int ch = getchar_timeout_us( 0 );
 
@@ -682,29 +702,29 @@ char CDC::getConsoleChar( bool echoBack ) {
 //
 // ??? would we one day need more than one timer instance ?
 //------------------------------------------------------------------------------------------------------------
-void CDC::startRepeatingTimer( uint32_t val ) {
+void startRepeatingTimer( uint32_t val ) {
 
   int64_t limit = val;
   add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &timerData );
 }
 
-void CDC::stopRepeatingTimer( ) {
+void stopRepeatingTimer( ) {
 
   cancel_repeating_timer( &timerData );
 }
 
-uint32_t CDC::getRepeatingTimerLimit( ) {
+uint32_t getRepeatingTimerLimit( ) {
 
   return ((uint32_t) ( - timerData.delay_us ));
 }
 
-void CDC::setRepeatingTimerLimit( uint32_t val ) {
+void setRepeatingTimerLimit( uint32_t val ) {
 
   int64_t limit = val;
   timerData.delay_us = ((int64_t) - limit );
 }
 
-void CDC::onTimerEvent( CDC::TimerCallback functionId ) {
+void onTimerEvent( CDC::TimerCallback functionId ) {
 
   timerCallback = functionId;
 }
@@ -723,7 +743,7 @@ void CDC::onTimerEvent( CDC::TimerCallback functionId ) {
 // handler and enable the GPIO pin for interrupts.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureDio( uint8_t dioPin, uint8_t mode ) {
+uint8_t configureDio( uint8_t dioPin, uint8_t mode ) {
 
   if ( ! validPin( dioPin, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
 
@@ -752,7 +772,7 @@ uint8_t CDC::configureDio( uint8_t dioPin, uint8_t mode ) {
   return ( ALL_OK );
 }
 
-void CDC::registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func ) {
+void registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func ) {
 
   if ( dioPin <= MAX_INT_PIN ) {
 
@@ -766,7 +786,7 @@ void CDC::registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback 
   }
 }
 
-void CDC::unregisterDioCallback( uint8_t dioPin ) {
+void unregisterDioCallback( uint8_t dioPin ) {
 
   if ( dioPin <= MAX_INT_PIN ) {
 
@@ -778,24 +798,24 @@ void CDC::unregisterDioCallback( uint8_t dioPin ) {
     }
   }
 }
-bool CDC::readDio( uint8_t dioPin ) {
+bool readDio( uint8_t dioPin ) {
 
   return ( gpio_get( dioPin ));
 }
 
-uint8_t CDC::writeDio( uint8_t dioPin, bool val ) {
+uint8_t writeDio( uint8_t dioPin, bool val ) {
 
   gpio_put( dioPin, val );
   return ( ALL_OK );
 }
 
-uint8_t CDC::toggleDio( uint8_t dioPin ) {
+uint8_t toggleDio( uint8_t dioPin ) {
 
   writeDio( dioPin, ! readDio( dioPin ));
   return ( ALL_OK );
 }
 
-uint8_t CDC::writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val2 ) {
+uint8_t writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val2 ) {
 
   uint32_t maskData = ( 1UL << dioPin1 ) | ( 1UL << dioPin2 );
   uint32_t valData  = (( val1 ) ? ( 1 << dioPin1 ) : 0 ) | (( val2 ) ? ( 1 << dioPin2 ) : 0 );
@@ -804,12 +824,12 @@ uint8_t CDC::writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val
   return ( ALL_OK );
 }
 
-uint32_t CDC::readDioMask( uint32_t dioMask ) {
+uint32_t readDioMask( uint32_t dioMask ) {
 
   return ( gpio_get_all( ) & dioMask );
 }
 
-uint8_t CDC::writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
+uint8_t writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
 
   gpio_put_masked( dioMask, dioVal );
   return ( ALL_OK );
@@ -822,7 +842,7 @@ uint8_t CDC::writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
 // ADC value scaled down to a 10-bit resolution.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureAdc( uint8_t adcPin ) {
+uint8_t configureAdc( uint8_t adcPin ) {
 
   if ( ! validPin( adcPin, VALID_ADC_PINS ))  return ( CDC::ADC_PIN_ERR );
 
@@ -852,17 +872,17 @@ uint8_t CDC::configureAdc( uint8_t adcPin ) {
   return ( ALL_OK );
 }
 
-uint16_t CDC::getAdcRefVoltage( ) {
+uint16_t getAdcRefVoltage( ) {
 
   return ( ADC_REF_VOLTAGE_MILLI_VOLT );
 }
 
-uint16_t CDC::getAdcDigitRange( ) {
+uint16_t getAdcDigitRange( ) {
 
   return ( ADC_DIGIT_RANGE );
 }
 
-uint16_t CDC::readAdc( uint8_t adcPin ) {
+uint16_t readAdc( uint8_t adcPin ) {
 
   AdcInst *tmp = nullptr;
 
@@ -890,7 +910,7 @@ uint16_t CDC::readAdc( uint8_t adcPin ) {
 // controller. Looking forward to it ...:-)
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode mode ) {
+uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode mode ) {
 
   UartInst *uart = nullptr;
 
@@ -934,16 +954,16 @@ uint8_t CDC::configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, Uar
 
     irq_set_enabled( uart -> uartIrq, true );
 
-    return ( CDC::ALL_OK );
+    return ( ALL_OK );
   }
   else if ( mode == UART_MODE_8N1_PIO ) {
 
-    return ( CDC::NOT_SUPPORTED );
+    return ( NOT_SUPPORTED );
   }
-  else return ( CDC::NOT_SUPPORTED );
+  else return ( NOT_SUPPORTED );
 }
 
-uint8_t CDC::startUartRead( uint8_t rxPin ) {
+uint8_t startUartRead( uint8_t rxPin ) {
 
   UartInst *uart = nullptr;
 
@@ -961,12 +981,12 @@ uint8_t CDC::startUartRead( uint8_t rxPin ) {
   }
   else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
 
-    return ( CDC::NOT_SUPPORTED );
+    return ( NOT_SUPPORTED );
   }
-  else return ( CDC::UART_PORT_ERR );
+  else return ( UART_PORT_ERR );
 }
 
-uint8_t CDC::stopUartRead( uint8_t rxPin ) {
+uint8_t stopUartRead( uint8_t rxPin ) {
 
   UartInst *uart = nullptr;
 
@@ -982,12 +1002,12 @@ uint8_t CDC::stopUartRead( uint8_t rxPin ) {
   }
   else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
 
-    return ( CDC::NOT_SUPPORTED );
+    return ( NOT_SUPPORTED );
   }
-  else return ( CDC::UART_PORT_ERR );
+  else return ( UART_PORT_ERR );
 }
 
-uint8_t CDC::getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
+uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 
   UartInst *uart = nullptr;
 
@@ -1026,7 +1046,7 @@ uint8_t CDC::getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 // To do .... ( there is a way via the pwm_Config CSR field... )
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
+uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
   PwmInst *pwm = nullptr;
 
@@ -1034,7 +1054,7 @@ uint8_t CDC::configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorre
   else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
   else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
   else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
-  else                                return ( CDC::PWM_PIN_ERR );
+  else                                return ( PWM_PIN_ERR );
 
   if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
@@ -1063,7 +1083,7 @@ uint8_t CDC::configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorre
   return ( ALL_OK );
 }
 
-uint8_t CDC::writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
+uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 
   PwmInst *pwm = nullptr;
 
@@ -1071,7 +1091,7 @@ uint8_t CDC::writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
   else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
   else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
   else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
-  else                                return ( CDC::PWM_PIN_ERR );
+  else                                return ( PWM_PIN_ERR );
 
   uint sliceNum = pwm_gpio_to_slice_num( pwmPin );
   uint channel  = pwm_gpio_to_channel( pwmPin );
@@ -1100,7 +1120,7 @@ uint8_t CDC::writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 // write access to an I2C element. There is a timeout to avoid waitig forever on an operation.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
+uint8_t configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
 
   I2CInst *i2c = nullptr;
 
@@ -1133,7 +1153,7 @@ uint8_t CDC::configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
   return ( ALL_OK );
 }
 
-uint8_t CDC::i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
+uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
   I2CInst *i2c = nullptr;
 
@@ -1157,7 +1177,7 @@ uint8_t CDC::i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len
   return ( ALL_OK );
 }
 
-uint8_t CDC::i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
+uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
   I2CInst *i2c = nullptr;
 
@@ -1188,7 +1208,7 @@ uint8_t CDC::i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t le
 //
 // ??? we do not take care of the chip select stuff. Expect to put a chip select / deselect around the calls?
 //------------------------------------------------------------------------------------------------------------
-uint8_t CDC::configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
+uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
 
   SPIInst *spi = nullptr;
 
@@ -1231,7 +1251,7 @@ uint8_t CDC::configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, ui
   return ( ALL_OK );
 }
 
-uint8_t  CDC::spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
+uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
   SPIInst *spi = nullptr;
 
@@ -1255,7 +1275,7 @@ uint8_t  CDC::spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
   }
 }
 
-uint8_t CDC::spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
+uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
   SPIInst *spi = nullptr;
 
@@ -1278,7 +1298,7 @@ uint8_t CDC::spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
   else return ( ALL_OK ); // ???  "error "  not active...
 }
 
-uint8_t CDC::spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
+uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 
   SPIInst *spi = nullptr;
 
@@ -1294,7 +1314,7 @@ uint8_t CDC::spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
   } else return ( ALL_OK ); // ??? fix : not active ...
 }
 
-uint8_t CDC::spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
+uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 
   SPIInst *spi = nullptr;
 
@@ -1314,7 +1334,7 @@ uint8_t CDC::spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 // Print out the Config Structure.
 //
 //------------------------------------------------------------------------------------------------------------
-void CDC::printConfigInfo( CdcPinConfig *ci ) {
+void printConfigInfo( CdcPinConfig *ci ) {
 
   printf( "CDC Pin Configuration Info ( status %d ): \n", ci -> CFG_STATUS );
 
@@ -1357,3 +1377,5 @@ void CDC::printConfigInfo( CdcPinConfig *ci ) {
   printf( "\n" );
 
 }
+
+}; // namespace CDC

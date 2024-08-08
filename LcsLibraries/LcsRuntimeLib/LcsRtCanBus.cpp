@@ -55,159 +55,159 @@ extern "C" {
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------  
-  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // settoin of the debiug level.
-  //---------------------------------------------------------------------------------------------------------- 
-  uint8_t debugLevel = 0;
+//------------------------------------------------------------------------------------------------------------  
+// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+// settoin of the debiug level.
+//------------------------------------------------------------------------------------------------------------ 
+uint8_t debugLevel = 0;
 
-  //----------------------------------------------------------------------------------------------------------
-  // The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"
-  // CAN bus message size. For the ennumration process, there is the time interval to collect enumeration
-  // responses. Finally, the CAN bus library for the RP2040 needs a static opaque structure. We also need
-  // a receiver queue for storing the received messages when they come in.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  const uint8_t   MAX_CAN_MSG_SIZE  = 8;
-  const uint8_t   RX_QUEUE_SIZE     = 4;
+//------------------------------------------------------------------------------------------------------------
+// The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"
+// CAN bus message size. For the ennumration process, there is the time interval to collect enumeration
+// responses. Finally, the CAN bus library for the RP2040 needs a static opaque structure. We also need
+// a receiver queue for storing the received messages when they come in.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint8_t   MAX_CAN_MSG_SIZE  = 8;
+const uint8_t   RX_QUEUE_SIZE     = 4;
 
-  //----------------------------------------------------------------------------------------------------------
-  // The setup and start of the CAN Bus can run on ether core 0 or core 1, depending whether a multi-core
-  // implementation is desired. The "Can2040ConfigDesc" structure holds all the necessary configuration data
-  // for the initialisation routine to use.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct Can2040ConfigDesc {
+//------------------------------------------------------------------------------------------------------------
+// The setup and start of the CAN Bus can run on ether core 0 or core 1, depending whether a multi-core
+// implementation is desired. The "Can2040ConfigDesc" structure holds all the necessary configuration data
+// for the initialisation routine to use.
+//
+//------------------------------------------------------------------------------------------------------------
+struct Can2040ConfigDesc {
 
-    uint32_t        mcPioNum;
-    uint32_t        mcSysClock;
-    uint32_t        mcBitRate;
-    uint32_t        mcRxPin;
-    uint32_t        mcTxPin;
-    can2040_rx_cb   mcRxCallback;
-    uint32_t        mcRxQueueSize;
-    bool            mcRunOnCore1;
-    bool            mcSetupOK;
-  };
+  uint32_t        mcPioNum;
+  uint32_t        mcSysClock;
+  uint32_t        mcBitRate;
+  uint32_t        mcRxPin;
+  uint32_t        mcTxPin;
+  can2040_rx_cb   mcRxCallback;
+  uint32_t        mcRxQueueSize;
+  bool            mcRunOnCore1;
+  bool            mcSetupOK;
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // File local variables and constants.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct can2040          cBus;
-  queue_t                 rxQueue;
-  Can2040ConfigDesc       cfg;
+//------------------------------------------------------------------------------------------------------------
+// File local variables and constants.
+//
+//------------------------------------------------------------------------------------------------------------
+struct can2040          cBus;
+queue_t                 rxQueue;
+Can2040ConfigDesc       cfg;
 
-  //----------------------------------------------------------------------------------------------------------
-  // The "buildMcpCanBusHeader" constructs the canId parameter for the Arduino "mcp_can" library. The canId
-  // 32-bit word encodes the canId itself, and flags such as EXT or RTR.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  inline uint32_t buildMcpCanBusHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
+//------------------------------------------------------------------------------------------------------------
+// The "buildMcpCanBusHeader" constructs the canId parameter for the Arduino "mcp_can" library. The canId
+// 32-bit word encodes the canId itself, and flags such as EXT or RTR.
+//
+//------------------------------------------------------------------------------------------------------------
+inline uint32_t buildMcpCanBusHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
 
-    uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
+  uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
 
-    if ( RTR ) header |=  0x40000000;
+  if ( RTR ) header |=  0x40000000;
 
-    return ( header );
-  }
+  return ( header );
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // The interrupt signature to register with the RP2040 fpr PIO interrupts. The interrupt handlr itself is
-  // provided by the can2040 library.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void CanBusPIOIrqHandler( ) {
+//------------------------------------------------------------------------------------------------------------
+// The interrupt signature to register with the RP2040 fpr PIO interrupts. The interrupt handlr itself is
+// provided by the can2040 library.
+//
+//------------------------------------------------------------------------------------------------------------
+void CanBusPIOIrqHandler( ) {
 
-    can2040_pio_irq_handler( &cBus );
-  }
+  can2040_pio_irq_handler( &cBus );
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // For each messages transmitted or received a callback is invoked from within the interrupt handler, so
-  // all we can do is a quick non-blocking action. The callback allows to react to a message sent, a message
-  // received and an internal buffer overflow error.
-  //
-  // The callback could be used to filter messages directly at this stage. Only messages that concern this
-  // node should be processed. Easy said, but perhaps no so easy to do. We can basically to filtering at the
-  // higher message bus level or at the lower layers. The benefit fopr doing it hee is that it would run on
-  // a separate core and relief the other core even further. To think about one day.
-  // 
-  //----------------------------------------------------------------------------------------------------------
-  void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
+//------------------------------------------------------------------------------------------------------------
+// For each messages transmitted or received a callback is invoked from within the interrupt handler, so
+// all we can do is a quick non-blocking action. The callback allows to react to a message sent, a message
+// received and an internal buffer overflow error.
+//
+// The callback could be used to filter messages directly at this stage. Only messages that concern this
+// node should be processed. Easy said, but perhaps no so easy to do. We can basically to filtering at the
+// higher message bus level or at the lower layers. The benefit fopr doing it hee is that it would run on
+// a separate core and relief the other core even further. To think about one day.
+// 
+//------------------------------------------------------------------------------------------------------------
+void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
 
-    if ( notify == CAN2040_NOTIFY_RX ) {
+  if ( notify == CAN2040_NOTIFY_RX ) {
 
-        // ??? possible filtering right here. 
-        // ??? We could also do the pending REQ / REPLY message processing here.
+      // ??? possible filtering right here. 
+      // ??? We could also do the pending REQ / REPLY message processing here.
 
-      if ( queue_try_add( &rxQueue, msg )) {
+    if ( queue_try_add( &rxQueue, msg )) {
 
-         // ??? successfully queued, remove from REQ pending list ?
-      }
-      else {
-
-        // ??? we could not add ... what to do ?
-      }
+       // ??? successfully queued, remove from REQ pending list ?
     }
-    else if ( notify == CAN2040_NOTIFY_TX ) {
+    else {
 
-      // ??? add to pending reqwuest list ?
-      // ??? transmit completed successfully
-    }
-    else if ( notify == CAN2040_NOTIFY_ERROR ) {
-
-      // ??? internal buffer overflow ... what to do ?
+      // ??? we could not add ... what to do ?
     }
   }
+  else if ( notify == CAN2040_NOTIFY_TX ) {
 
-  //----------------------------------------------------------------------------------------------------------
-  // "canBusCore" is the routine that encapsulates the can2040 setup and launch work. For the multi-core
-  // version it needs to be a routine that can be called from the current core or be launched on the other
-  // core. The routine communicates the successful setup with a boolean flag in the configuration descriptor.
-  // Note that the setup routine must be a void procedure with no parmeters. This is expected by the launch
-  // routine in the PICO C++ SDK.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void canBusCore( ) {
-
-    #if DEBUG_CAN_BUS == 1
-    printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
-            cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
-            cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
-            cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
-    #endif
-
-    queue_init( &rxQueue, sizeof( can2040_msg ), cfg.mcRxQueueSize );
-
-    can2040_setup( &cBus, cfg.mcPioNum );
-    can2040_callback_config( &cBus, cfg.mcRxCallback );
-
-    if ( cfg.mcPioNum == 0 ) {
-
-      irq_set_exclusive_handler( PIO0_IRQ_0, CanBusPIOIrqHandler );
-      irq_set_priority( PIO0_IRQ_0, 1 );
-      irq_set_enabled( PIO0_IRQ_0, true );
-    }
-    else if ( cfg.mcPioNum == 1 ) {
-
-      irq_set_exclusive_handler( PIO1_IRQ_0, CanBusPIOIrqHandler );
-      irq_set_priority( PIO1_IRQ_0, 1 );
-      irq_set_enabled( PIO1_IRQ_0, true );
-    }
-
-    can2040_start( &cBus, cfg.mcSysClock, cfg.mcBitRate, cfg.mcRxPin, cfg.mcTxPin );
-
-    cfg.mcSetupOK = true;
-
-    #if DEBUG_CAN_BUS == 1
-    printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
-    #endif
-
-    if ( cfg.mcRunOnCore1 ) {
-
-      while ( true ) tight_loop_contents( );
-    }
+    // ??? add to pending reqwuest list ?
+    // ??? transmit completed successfully
   }
+  else if ( notify == CAN2040_NOTIFY_ERROR ) {
+
+    // ??? internal buffer overflow ... what to do ?
+  }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "canBusCore" is the routine that encapsulates the can2040 setup and launch work. For the multi-core
+// version it needs to be a routine that can be called from the current core or be launched on the other
+// core. The routine communicates the successful setup with a boolean flag in the configuration descriptor.
+// Note that the setup routine must be a void procedure with no parmeters. This is expected by the launch
+// routine in the PICO C++ SDK.
+//
+//------------------------------------------------------------------------------------------------------------
+void canBusCore( ) {
+
+  #if DEBUG_CAN_BUS == 1
+  printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
+          cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
+          cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
+          cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
+  #endif
+
+  queue_init( &rxQueue, sizeof( can2040_msg ), cfg.mcRxQueueSize );
+
+  can2040_setup( &cBus, cfg.mcPioNum );
+  can2040_callback_config( &cBus, cfg.mcRxCallback );
+
+  if ( cfg.mcPioNum == 0 ) {
+
+    irq_set_exclusive_handler( PIO0_IRQ_0, CanBusPIOIrqHandler );
+    irq_set_priority( PIO0_IRQ_0, 1 );
+    irq_set_enabled( PIO0_IRQ_0, true );
+  }
+  else if ( cfg.mcPioNum == 1 ) {
+
+    irq_set_exclusive_handler( PIO1_IRQ_0, CanBusPIOIrqHandler );
+    irq_set_priority( PIO1_IRQ_0, 1 );
+    irq_set_enabled( PIO1_IRQ_0, true );
+  }
+
+  can2040_start( &cBus, cfg.mcSysClock, cfg.mcBitRate, cfg.mcRxPin, cfg.mcTxPin );
+
+  cfg.mcSetupOK = true;
+
+  #if DEBUG_CAN_BUS == 1
+  printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
+  #endif
+
+  if ( cfg.mcRunOnCore1 ) {
+
+    while ( true ) tight_loop_contents( );
+  }
+}
 
 }; // namespace
 

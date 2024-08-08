@@ -3,19 +3,19 @@
 // Layout Control System - nodeInfo and nodeControl routines.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the part of the Lcs Runtime that implements the node and port info and control access. 
-// The LCS runtime offers two routine for info and control access. Both accept an item Id as the command for
-// the routine and up to two arguments.
+// The file contains the part of the LCS Runtime that implements the node and port info and control access
+// routines. Both accept an item Id as the command and up to two arguments for the call.
 //
-// There are four main groups of item numbers. The first group is the resreved list of node and port items.
+// There are four main groups of item numbers. The first group is the reserved list of node and port items.
 // Typically these items will invoke an internal function in the runtime. The second and third group refer
 // to the node or port attributes. An attribute is simply a variable that can hold a 16-bit value. The item
-// number ranges refer to the same attributes. For example item 64 and item 128 refer to attribute 0. The
-// difference is that the second group looks at the attribute as a volatile memory value. The third item
-// group looks at an attribute as a memory and non-volatile combination. A read will first copy the non
-// volatile attribute value to memory and then return it. A write will first update the memory and then also
-// write the data to the non-volatile place. The fourth group of item numbers are entirely user defined and
-// will result in the invocation of a callback function that implements whatever is associated with the item.
+// number ranges in each group refer to the same attributes. For example item 64 and item 128 refer to 
+// attribute 0. The difference is that the second group looks at the attribute as a volatile memory value
+// while the third item group looks at an attribute as a memory and non-volatile combination. A read will 
+// first copy the non volatile attribute value to memory and then return it. A write will first update the
+//  memory and then also write the data to the non-volatile place. The fourth group of item numbers are 
+// entirely user defined and will result in the invocation of a callback function that implements whatever 
+// is associated with the item.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -40,8 +40,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 extern LCS::LcsCdcDesc              cdcMap;
-extern LCS::LcsNodeData             nodeData;
 extern LCS::LcsNodeMap              nodeMap;
+extern LCS::LcsNodeData             nodeData;
 extern LCS::LcsPortMap              portMap;
 extern LCS::LcsCallbackMap          callbackMap;
 
@@ -131,14 +131,20 @@ namespace {
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Namespace LCS routines.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// "nodeInfo" is the entry point to obtain information about the node. There is the situation that the request
-// came from another node. This routine does howeber not distinguish between a local or remote call. The item
+// "nodeInfo" is the entry point to obtain information about the node. 
+
+
+// There is the situation that the request
+// came from another node. 
+
+
+// This routine does however not distinguish between a local or remote call. The item
 // number range is divided into several ranges.
 //
 //   0        -> NIL Item.
