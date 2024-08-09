@@ -77,7 +77,8 @@ using namespace LCS;
 // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
 // settoin of the debiug level.
 //------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
+uint8_t     debugLevel    = 0;
+const char  *nodeDefName  = "Node Name";
 
 //------------------------------------------------------------------------------------------------------------
 // Utility routines for number range check.
@@ -130,17 +131,18 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
   nMap -> nodeDataOfs                   = NVM_NODE_DATA_START;
   nMap -> eventMapNvmOfs                = NVM_EVENT_MAP_START;
   nMap -> userMapNvmOfs                 = NVM_USER_MAP_START;
-
-  nMap -> nvmMemSizeInBlocks            = 0;
+  nMap -> nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
 
   nMap -> portMapOptions                = 0;
   nMap -> portMapFlags                  = 0;
-  nMap -> portMapSize                   = 0;
+  nMap -> portMapEntries                = MAX_PORT_MAP_ENTRIES;
 
   nMap -> eventMapOptions               = 0;
   nMap -> eventMapFlags                 = 0;
-  nMap -> eventMapSize                  = 0;
+  nMap -> eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
   nMap -> eventMapHwm                   = 0;
+
+  nMap -> nodeMapSize                   = sizeof( LcsNodeMap ); 
 
   // ??? data for the extension boards ?
 
@@ -151,7 +153,58 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
   nMap -> debugAttrAccess               = 0;
   nMap -> debugEventHandling            = 0;
   
-  memset( &nMap -> name, 0, MAX_NODE_NAME_SIZE );
+  memcpy( &nMap -> name, nodeDefName, strlen( nodeDefName ));
+
+  rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) nMap, sizeof( LcsNodeMap));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "buildDefaultPortMap" will initialize the portMap data structure. It is just an array of portMap entries.
+// Each port will get a default name.
+//
+//------------------------------------------------------------------------------------------------------------
+void buildDefaultPortMap( LcsPortMap *pMap ) {
+
+  uint8_t         rStat; 
+  LcsPortMapEntry pEntry;
+ 
+  pEntry.options                         = 0;
+  pEntry.flags                           = 0;
+  pEntry.type                            = 0;
+
+  pEntry.nodeId                          = NIL_NODE_ID;
+  pEntry.eventId                         = NIL_EVENT_ID;
+  pEntry.eventValue                      = 0;
+  pEntry.eventAction                     = PEA_EVENT_IDLE;
+  pEntry.eventDelayTime                  = 0;
+  pEntry.eventTimeStamp                  = 0L;
+
+  for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+    sprintf( pEntry.name, "Port: %d", i );
+  }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "buildDefaultEventMap" initializes the event map. It is just an array of eventMap entries.
+//
+//------------------------------------------------------------------------------------------------------------
+void buildDefaultEventMap( LcsEventMap *eMap ) {
+
+  for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
+
+    eMap -> map[ i ].eventId = NIL_EVENT_ID;
+    eMap -> map[ i ].portId  = NIL_PORT_ID;
+  }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "builDefaultNodeData" initializes the node data map. It is just an array of variables. We clear them out.
+//
+//------------------------------------------------------------------------------------------------------------
+void builDefaultNodeData( LcsNodeData *nData ) {
+
+  memset( nData -> map, 0, MAX_NODE_DATA_BLOCKS * MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t));
 }
 
 }; // namespace
@@ -243,10 +296,15 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//This routine sets up the nodeMap. It is the first routine after all the basoc hardware settings is in place.
-// First we read in the nodeMap from the node NVM. 
+// This routine sets up the nodeMap. It is the first routine after all the basic hardware settings is in 
+// place. First we read in the nodeMap from the node NVM. A quick check of the magic words and the the nodeMap
+// size field will tell us whether this nodeMap was initialized before. If this is not the case, we must 
+// assume a corrupt nodeMap or a new board and build the runtiome area data structures with default values.
 //
+// When we setup from scratch, the entire NVM is initialized with all data portions. The follow-on setup 
+// routines can assume a valid data structure to work from and just read the NVM as normal.
 //
+// ??? what options should we get from the user ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
 
@@ -255,22 +313,22 @@ uint8_t setupNodeMap( ) {
   #endif
 
   uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
-  if ( rStat != ALL_OK ) return( rStat );
+  if ( rStat != ALL_OK ) return( rStat );  // ??? rather fatal error ?
 
-  if (( nodeMap.magicWord1 != NODE_MWORD_1 ) || ( nodeMap.magicWord2 != NODE_MWORD_2 )) {
+  if (( nodeMap.magicWord1 != NODE_MWORD_1 ) || 
+      ( nodeMap.magicWord2 != NODE_MWORD_2 ) || 
+      ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
 
-    return( ERR_NVM_NODE_MAP_CORRUPT );
+      buildDefaultNodeMap( &nodeMap );
+      buildDefaultPortMap( &portMap );
+      buildDefaultEventMap( &eventMap );
+      builDefaultNodeData( &nodeData );
+
+      rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+      rtNvmPutBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+      rtNvmPutBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
+      rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
   }
-
-
-  if ( rStat != ALL_OK ) {
-
-    
-  }
-
-  
-  // ??? what to validate ?
-
 
   #if DEBUG_CONFIG == 1
   printf( "setupNodeMap, status: %d\n", rStat );
@@ -309,25 +367,21 @@ uint8_t setupEventMap( ) {
   printf( "setupEventMap\n" );
   #endif
 
-  // ??? check for a valid hwm ... then get the map 
-  // ??? we may just want to read up to the HWM...!!!!
-   // ??? the event map is expected to be sorted as we only add / remove sorted.
-  // ??? only read up to the high water mark.
-
-  
-
-
   uint8_t rStat;
-  
-  rStat = rtNvmGetBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
-  if ( rStat != ALL_OK ) {
 
-    
+  if ( nodeMap.eventMapHwm < MAX_EVENT_MAP_ENTRIES ) {
+
+    for ( uint16_t i = 0; i < nodeMap.eventMapHwm; i++ ) {
+
+    uint8_t rStat = rtNvmGetBytes(  NVM_EVENT_MAP_START + i * sizeof( LcsEventMapEntry), 
+                                    (uint8_t *) &eventMap.map[ i ], 
+                                    sizeof( LcsEventMapEntry ));
+    }
   }
-
-  // ??? set the HWM and SIZE from NVM in the MEM structure.
-
+  else ;
+  
   // ??? anything to validate ?
+  // ??? sort, just in case ?
 
   #if DEBUG_CONFIG == 1
   printf( "setupEventMap, status: %d\n", rStat );
@@ -336,10 +390,9 @@ uint8_t setupEventMap( ) {
   return ( rStat );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // The user map is the additional NVM storage that the chip set offers beyond the area allocatred for the 
-// system. Since we have no idea what the user is doing, we just do the basic validation checks.
+// system. Since we have no idea what the user is doing, we do nothing for now...
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
@@ -358,8 +411,8 @@ uint8_t setupUserMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// "setupCallbackMap" initalizes the callback map. We expect the user to register their callbacks between
+// the runtime init and runtime start routine.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupCallbackMap( ) {
@@ -394,8 +447,8 @@ uint8_t setupCallbackMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// "setupTaskMap" initializes the task map. A user can register routines that are executed ona periodic
+// basis.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupTaskMap( ) {
@@ -426,6 +479,10 @@ uint8_t setupTaskMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// With the node properly initialized, it is time  to see whether we connected extension boards. An extension
+// board has also a small NVM on the board that will tell use what the board type is. There can be up to four
+// boards, numbered from 0 to 3. 
+//
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -439,10 +496,23 @@ uint8_t detectExtensionBoards( ) {
 
   for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-       // ??? try to find extension boards ( 1 to 4 )
-    }
+    rStat = extNvmGetBytes( i, 0, (uint8_t *) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ));
+    if ( rStat == ALL_OK ) {
 
- #if DEBUG_CONFIG == 1
+      switch( drvMap.map[ i ].extBoard->boardType ) {
+
+          // ??? set the driver ...
+
+      }
+    }
+    else {
+      #if DEBUG_CONFIG == 1
+      printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
+      #endif
+    }
+  }
+
+  #if DEBUG_CONFIG == 1
   printf( "detectExtensionBoards, status: %d\n", rStat );
   #endif
 
@@ -450,9 +520,9 @@ uint8_t detectExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// For all detected extension bards, we will onvoke the driver with the "SETUP" item code.
+// For all detected extension bards, we will invoke the driver with the "SETUP" item code.
 //
-// ??? what to do ona failure ? We do not want to sop the entire setup sequence ?
+// ??? what to do on a failure ? We do not want to sop the entire setup sequence ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
@@ -464,7 +534,7 @@ uint8_t setupExtensionBoards( ) {
 
   for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-    if ( drvMap.map[ i ].flags != 0  ) {
+    if ( drvMap.map[ i ].extBoard -> flags != 0  ) {
 
       rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
       
@@ -480,7 +550,7 @@ uint8_t setupExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "invokeInitCallbacks" onvoles the registered initialization callbacks for the node and the ports. The 
+// "invokeInitCallbacks" invokes the registered initialization callbacks for the node and the ports. The 
 // routine is called as the very first thing of the "startRuntime" call.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -580,9 +650,15 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
   if (( rStat != ALL_OK ) && ( ! CDC::isConsoleConnected( ))) CDC::fatalError( 3 );
 
   if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
+  // ??? what to do when we have an error with the extension boards...
+
+
+
+  // ??? should we do the setup call when the runtime starts ? is it rlated to "init" callbacks ?
+  // ??? should it come before the init calls, as they may call the driver ?
+
   if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
 
-  // ??? what to do when extension board setup fails ?
  
   if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
   else                    nodeMap.nodeState = NS_FAIL;

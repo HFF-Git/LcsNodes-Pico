@@ -119,11 +119,12 @@ namespace LCS {
 const uint16_t  MAX_NODE_DATA_BLOCKS          = 16;
 const uint16_t  MAX_ATTR_MAP_ENTRIES          = 64;
 const uint16_t  MAX_PORT_MAP_ENTRIES          = 15;
-const uint16_t  MAX_EVENT_MAP_ENTRIES         = 1022;
+const uint16_t  MAX_EVENT_MAP_ENTRIES         = 1024;
 const uint16_t  MAX_TASK_MAP_ENTRIES          = 16;
 
 const uint16_t  MAX_NODE_NAME_SIZE            = 16;
 const uint16_t  MAX_PORT_NAME_SIZE            = 16;
+const uint16_t  MAX_BOARD_NAME_SIZE           = 16;
 const uint16_t  MAX_COMMAND_LINE_SIZE         = 256;
 const uint16_t  MAX_LCS_MSG_SIZE              = 8;
 
@@ -136,6 +137,7 @@ const uint16_t  NVM_PORT_MAP_START            = 0x400;
 const uint16_t  NVM_NODE_DATA_START           = 0x800;
 const uint16_t  NVM_EVENT_MAP_START           = 0x1000;
 const uint16_t  NVM_USER_MAP_START            = 0x2000;
+const uint16_t  NVM_RUNTIME_AREA_SIZE         = 0x2000;
 
 const uint8_t   MAX_EXT_BOARDS                = 4;
 const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
@@ -295,17 +297,22 @@ struct LcsNodeMap {
   uint16_t  nodeDataOfs                     = NVM_NODE_DATA_START;
   uint16_t  eventMapNvmOfs                  = NVM_EVENT_MAP_START;
   uint16_t  userMapNvmOfs                   = NVM_USER_MAP_START;
-  uint16_t  nvmMemSizeInBlocks              = 0;
+  uint32_t  nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
 
   uint16_t  portMapOptions                  = 0;
   uint16_t  portMapFlags                    = 0;
-  uint16_t  portMapSize                     = 0;
+  uint16_t  portMapEntries                  = MAX_PORT_MAP_ENTRIES;
 
   uint16_t  eventMapOptions                 = 0;
   uint16_t  eventMapFlags                   = 0;
-  uint16_t  eventMapSize                    = 0;
+  uint16_t  eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
   uint16_t  eventMapHwm                     = 0;
 
+
+  uint16_t  drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
+
+
+  uint16_t  nodeMapSize                     = sizeof( LcsNodeMap );  
   char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
 
   uint16_t  debugEnabled                    = 0;
@@ -462,22 +469,22 @@ extern "C" {
 // Note that the extension board NVM data is "read only". It needs to be set when there is a vanilla board
 // by a utility program or commands in the runtime lib user interface. After this setting, the data will 
 // not change again. This does however not mean that that data once it is loaded cannot be changed during
-// oerations. For example, the driver area is also the "working area" for the driver to keep temporary
-// values. At node restart, all data is set back to the NVM data configured on the extension bard chip.
+// operations. For example, the driver area is also the "working area" for the driver to keep temporary
+// values. At node restart, all data is set back to the NVM data configured on the extension board chip.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsDrvBoardDesc {
 
-  uint16_t  magicWord1;
+  uint16_t  magicWord1  = EXT_MWORD_1;
 
-  uint16_t  options;
-  uint16_t  flags;
-  uint16_t  boardType;
-  uint32_t  boardUID;
+  uint16_t  options                             = 0;
+  uint16_t  flags                               = 0;
+  uint16_t  boardType                           = 0;
+  
+  char      boardName[ MAX_BOARD_NAME_SIZE]     = { 0 };
+  uint16_t  driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
 
-  uint16_t  driverData[ MAX_DRIVER_DATA_SIZE ];
-
-  uint16_t  magicWord2;
+  uint16_t  magicWord2  = EXT_MWORD_2;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -489,9 +496,8 @@ struct LcsDrvBoardDesc {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {
 
-    uint16_t        flags     = 0;   
-    LcsDrvReqFunc   drvFunc   = nullptr;
-    LcsDrvBoardDesc *extBoard = nullptr;
+  LcsDrvBoardDesc   *extBoard = nullptr;
+  LcsDrvReqFunc     drvFunc   = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -504,13 +510,8 @@ struct LcsDrvEntry {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
-  uint16_t          flags;
-  uint16_t          size;
-  
   LcsDrvEntry       map[ MAX_EXT_BOARDS ];
 };
-
-
 
 //----------------------------------------------------------------------------------------------------------
 // The LCS runtime internal routines used by other files of the runtime library.
