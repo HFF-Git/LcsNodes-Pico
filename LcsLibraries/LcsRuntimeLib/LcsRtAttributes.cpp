@@ -235,7 +235,7 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
       case NPI_GET_RESTART_COUNT: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. restartCnt;
+          if ( arg1 != nullptr ) *arg1 = nodeMap. nodeRestartCnt;
           return ( ALL_OK );
         }
 

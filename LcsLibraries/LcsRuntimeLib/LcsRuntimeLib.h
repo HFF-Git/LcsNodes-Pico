@@ -350,6 +350,8 @@ namespace LCS {
     // ??? also add DRV related items...
     // ??? board info, name, version, chan info
 
+    // ??? need extension board state info...
+
 
     NPI_GET_OPTIONS                 = 1,
     NPI_GET_VERSION                 = 2,

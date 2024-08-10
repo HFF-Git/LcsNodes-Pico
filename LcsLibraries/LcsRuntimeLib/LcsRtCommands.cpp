@@ -49,7 +49,7 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------  
-//
+// The command line buffer.
 //
 //------------------------------------------------------------------------------------------------------------  
 char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
@@ -194,6 +194,14 @@ void dumpTaskMap( ) {
   printf( "\n" );
 }
 
+void dumpDrvMap( ) {
+
+  printf( "Driver Map:\n" );
+
+  // ??? get from the board....
+
+}
+
 void printSummary( ) {
 
   printf( "LCS Node: \"" );
@@ -216,6 +224,9 @@ void dumpMemArea( ) {
   dumpPendingReqMap( );
   dumpTaskMap( );
   dumpCallbackMap( );
+
+  // ??? driver data ?
+
   printf( "\n" );
 }
 
@@ -224,6 +235,14 @@ void dumpNvmArea( ) {
   printf( "NVM Area Dump:\n" );
   dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsNodeData ) + sizeof ( LcsPortMap ) + sizeof( LcsEventMap ));
   printf( "\n" );
+}
+
+void dumpNvmDrvData( ) {
+
+  printf( "Driver Map:\n" );
+
+  // ??? get from the board....
+
 }
 
 void dumpNvmUserArea( ) {
@@ -495,7 +514,7 @@ void listStatusCommand( char *s ) {
       case 7:  dumpCallbackMap( ); break;
       case 8:  dumpNvmArea( );     break;
       case 9:  dumpMemArea( );     break;
-    //  case 10: dumpDrvData( );     break;
+      case 10: dumpDrvMap( );     break;
 
       default: printf( "<Unknown help option, use '?' for help>" );
     }
@@ -574,6 +593,10 @@ uint8_t setupSerialCommand( ) {
 
   return ( CDC::configureConsoleIO( ));
 }
+
+
+// ??? need commands to manipulate the EXT board NVM...
+// ??? need commands to manipulate the NodeMap data ?
 
 //------------------------------------------------------------------------------------------------------------
 // "handleSerialCommand" reads characters from the console. The command line syntax is modelled after the

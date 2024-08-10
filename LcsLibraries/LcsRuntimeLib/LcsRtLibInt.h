@@ -274,23 +274,21 @@ struct LcsNodeData {
 struct LcsNodeMap {
 
   uint16_t  magicWord1                      = NODE_MWORD_1;
-
   uint16_t  options                         = 0;
   uint16_t  flags                           = 0;
+  uint16_t  boardType                       = BT_NIL;
+  uint16_t  boardVersion                    = 0;
+  uint16_t  controllerFamily                = CF_FAM_RPICO_2040;
+  uint16_t  nvmChipFamily                   = CF_FAM_MICROCHIP;
+  uint16_t  magicWord2                      = NODE_MWORD_2;
 
   uint16_t  nodeState                       = NS_NIL;
-  
   uint16_t  nodeId                          = NIL_NODE_ID;
   uint32_t  nodeUID                         = 0L;
   uint16_t  nodeType                        = NIL_NODE_TYPE;   
-
-  uint16_t  boardType                       = BT_NIL;
-  uint16_t  controllerFamily                = CF_FAM_RPICO_2040;
-  uint16_t  nvmChipFamily                   = CF_FAM_MICROCHIP;
-  
   uint16_t  nodeSwVersion                   = 0;
   uint16_t  nodeSwPatchLevel                = 0;
-  uint16_t  restartCnt                      = 0;
+  uint16_t  nodeRestartCnt                  = 0;
 
   uint16_t  nodeMapNvmOfs                   = NVM_NODE_MAP_START;
   uint16_t  portMapNvmOfs                   = NVM_PORT_MAP_START;
@@ -322,7 +320,7 @@ struct LcsNodeMap {
   uint16_t  debugAttrAccess                 = 0;
   uint16_t  debugEventHandling              = 0;
   
-  uint16_t  magicWord2                      = NODE_MWORD_2;
+  
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -460,38 +458,43 @@ extern "C" {
 //------------------------------------------------------------------------------------------------------------
 // Each extension board will have a NVM to store the board configuration data. Similar to the node map of the
 // controller board, this extension board will have a data structure that is read at initialization time. The
-// structure of this data is rather simple. We have the magic words bracketing the data, a board type and
-// subtype, a name and an area which contains driver relevant information. The driver information will tell
-// the driver what capabilities the board has. This data is entirely driver specific and the meaning is only
-// know to the driver software. At startup time, all we have to do then is locate the board type, load the 
-// respective driver and let the driver code do whatever needs to be done accorind to the data area content.
+// structure of this data is rather simple. We have the common 8-word header which describes the board in 
+// general an area which contains driver relevant information. The board type will tell the setup routines
+// what driver to load for the extension board. The driver data area is entirely driver specific and the 
+// meaning is only know to the driver software. At startup time, all we have to do then is locate the board 
+// type, load the  respective driver and let the driver code do whatever needs to be done accorind to the 
+// data area content.
 //
-// Note that the extension board NVM data is "read only". It needs to be set when there is a vanilla board
-// by a utility program or commands in the runtime lib user interface. After this setting, the data will 
-// not change again. This does however not mean that that data once it is loaded cannot be changed during
-// operations. For example, the driver area is also the "working area" for the driver to keep temporary
-// values. At node restart, all data is set back to the NVM data configured on the extension board chip.
+// Note that the extension board NVM data is "read only". To write to it, a jumper is set on the board. The
+// data area is configured and then the jumper should be removed. This does however not mean that that data
+// once it is loaded during setup cannot be changed during operations. For example, the driver area is the 
+// "working area" for the driver to keep temporary values. At node restart, all data is set back to the NVM
+//  data configured on the extension board chip.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsDrvBoardDesc {
 
-  uint16_t  magicWord1  = EXT_MWORD_1;
+  uint16_t  magicWord1        = EXT_MWORD_1;
+  uint16_t  options           = 0;
+  uint16_t  flags             = 0;
+  uint16_t  boardType         = BT_NIL;
+  uint16_t  boardVersion      = 0;
+  uint16_t  controllerFamily  = CF_FAM_NIL;
+  uint16_t  nvmChipFamily     = CF_FAM_MICROCHIP;
+  uint16_t  magicWord2        = EXT_MWORD_2;
 
-  uint16_t  options                             = 0;
-  uint16_t  flags                               = 0;
-  uint16_t  boardType                           = 0;
-  
-  char      boardName[ MAX_BOARD_NAME_SIZE]     = { 0 };
   uint16_t  driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
-
-  uint16_t  magicWord2  = EXT_MWORD_2;
 };
 
 //----------------------------------------------------------------------------------------------------------
 // The runtime libary maintains a driver table. A driver is a library that manages a particular extension 
 // board. During startup all extension boards will be located, if any. For each board the correct driver
 // will be stored in the driver map. The driver obbject is a set of defined methods and a reference to the
-// driver data area. This is the area that was read in when we located the extension board.
+// driver data area. This is the area that was read in when we located the extension board. 
+//
+// If the extension board descriptor is invalid, we just install a "dummy" driver, which offers the basic
+// funcions to read and modify the decriptor data. Note that the board has a jumper to enable writing to
+// the board. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {

@@ -118,13 +118,11 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
   nMap -> nodeSwVersion                 = 0;
   nMap -> nodeSwPatchLevel              = 0;
-  nMap -> restartCnt                    = 0;
+  nMap -> nodeRestartCnt                = 0;
 
   nMap -> nodeId                        = NIL_NODE_ID;
   nMap -> nodeUID                       = CDC::createUid( );
   nMap -> nodeType                      = NIL_NODE_TYPE;   
-
-  nMap -> restartCnt                    = 0;
 
   nMap -> nodeMapNvmOfs                 = NVM_NODE_MAP_START;
   nMap -> portMapNvmOfs                 = NVM_PORT_MAP_START;
@@ -205,6 +203,24 @@ void buildDefaultEventMap( LcsEventMap *eMap ) {
 void builDefaultNodeData( LcsNodeData *nData ) {
 
   memset( nData -> map, 0, MAX_NODE_DATA_BLOCKS * MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "buildDefaultExtBoardDesc" initializes the ...
+//
+//------------------------------------------------------------------------------------------------------------
+void buildDefaultExtBoardDesc( LcsDrvBoardDesc *bDesc ) {
+
+  bDesc -> magicWord1        = EXT_MWORD_1;
+  bDesc -> options           = 0;
+  bDesc -> flags             = 0;
+  bDesc -> boardType         = BT_NIL;
+  bDesc -> boardVersion      = 0;
+  bDesc -> controllerFamily  = CF_FAM_NIL;
+  bDesc -> nvmChipFamily     = CF_FAM_MICROCHIP;
+  bDesc -> magicWord2        = EXT_MWORD_2;
+
+  memset( bDesc -> driverData, 0, MAX_DRIVER_DATA_SIZE * sizeof( uint16_t ));
 }
 
 }; // namespace
@@ -520,9 +536,9 @@ uint8_t detectExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// For all detected extension bards, we will invoke the driver with the "SETUP" item code.
+// For all detected extension boards, we will invoke the driver with the "SETUP" item code.
 //
-// ??? what to do on a failure ? We do not want to sop the entire setup sequence ?
+// ??? what to do on a failure ? We do not want to stop the entire setup sequence ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
@@ -651,11 +667,6 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 
   if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
   // ??? what to do when we have an error with the extension boards...
-
-
-
-  // ??? should we do the setup call when the runtime starts ? is it rlated to "init" callbacks ?
-  // ??? should it come before the init calls, as they may call the driver ?
 
   if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
 

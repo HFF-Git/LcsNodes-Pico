@@ -176,8 +176,23 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
   return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Dummy driver. We need a default driver that would allow us to talk to an extension board when we cannot 
+// identify the correct driver.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t drvDummyDriver( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 
-// ??? need a dummy driver when we cannot identify the board but still want to talk to the NVM ?
+  switch( item ) {
+
+
+    default: ;
+  }
+
+
+  return( 0 ); // ??? for now ...
+}
+
 
 
 //------------------------------------------------------------------------------------------------------------
