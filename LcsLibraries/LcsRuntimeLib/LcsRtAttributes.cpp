@@ -384,6 +384,11 @@ uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 
           return ( removeEvent( val1, val2 & 0xFF ));
         }
 
+        case NPC_SYNC_EVENT_MAP: {
+
+            return( syncEventMap( ));
+        }
+
       case NPC_SET_NODE_ID: {
 
           if ( isInRangeU( val1, MIN_NODE_ID, MAX_NODE_ID )) {

@@ -420,6 +420,8 @@ namespace LCS {
     NPC_SET_PORT_TYPE               = 33,
     NPC_ENABLE_EVENT_PROCESSING     = 34,
     NPC_SET_EVENT_DELAY_TICKS       = 35,
+
+    NPC_SYNC_EVENT_MAP              = 36,
   };
 
   //----------------------------------------------------------------------------------------------------------

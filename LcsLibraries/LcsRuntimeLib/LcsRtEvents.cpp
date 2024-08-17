@@ -276,12 +276,12 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "syncNVMEventMap" will write back the sorted MEM event map. We only write up to the HWM mark, which points
+// "syncEventMap" will write back the sorted MEM event map. We only write up to the HWM mark, which points
 // right after the last element in the sorted MEM event map. The idea is that all adds and removes are done
 // on teh MEM event map and a SYNC control call will flush the sorted MEM event map to NVM.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t syncNVMEventMap( ) {
+uint8_t syncEventMap( ) {
 
   // ??? simply write back the event map... sort it first, just to be sure ?
   // ?? make sure that we only have used entries below HWM before using sort up to the HWM!!!!
