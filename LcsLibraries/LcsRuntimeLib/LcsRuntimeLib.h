@@ -652,7 +652,7 @@ enum LcsNodeDriverItems {
 //----------------------------------------------------------------------------------------------------------
 // Core library callback function signatures.
 //
-// ??? flags on init call back indicate wteher STARTUP, RESTE or PFAIL...
+// ??? flags on init call back indicate wether STARTUP, RESTE or PFAIL...
 // ??? do we need to pass portID for item callback ?
 // 
 //----------------------------------------------------------------------------------------------------------

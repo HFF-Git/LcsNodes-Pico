@@ -179,137 +179,137 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-  #if DEBUG_ATTRIBUTES == 1
-  printf( "nodeInfo: %d:%d", portId, item  );
-  if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
-  if ( arg2 != nullptr ) printf( ":%d\n", *arg2 ); else printf( "null" );
-  #endif
+    #if DEBUG_ATTRIBUTES == 1
+    printf( "nodeInfo: %d:%d", portId, item  );
+    if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
+    if ( arg2 != nullptr ) printf( ":%d\n", *arg2 ); else printf( "null" );
+    #endif
 
-  if ( portId > MAX_PORT_MAP_ENTRIES ) return ( ERR_INVALID_PORT_ID );
+    if ( portId > MAX_PORT_MAP_ENTRIES ) return ( ERR_INVALID_PORT_ID );
 
-  if ( isInRangeU( item, NPI_NODE_USER_DEFINED_START, NPI_MAX_ITEMS )) {
+    if ( isInRangeU( item, NPI_NODE_USER_DEFINED_START, NPI_MAX_ITEMS )) {
 
-    return( invokeInfoItemCallback( portId, item, arg1, arg2 ));
-  }
-  else if ( isInRangeU( item, NPI_ATTR_MEM_RANGE_START, NPI_ATTR_MEM_RANGE_END )) {
+        return( invokeInfoItemCallback( portId, item, arg1, arg2 ));
+    }
+    else if ( isInRangeU( item, NPI_ATTR_MEM_RANGE_START, NPI_ATTR_MEM_RANGE_END )) {
 
-    return ( readAttrMem( portId, item, arg1 ));
-  }
-  else if ( isInRangeU( item, NPI_ATTR_NVM_RANGE_START, NPI_ATTR_NVM_RANGE_END )) {
+        return ( readAttrMem( portId, item, arg1 ));
+    }
+    else if ( isInRangeU( item, NPI_ATTR_NVM_RANGE_START, NPI_ATTR_NVM_RANGE_END )) {
 
-    return ( readAttrNvm( portId, item, arg1 ));
-  }
-  else {
+        return ( readAttrNvm( portId, item, arg1 ));
+    }
+    else {
 
-    switch ( item ) {
+        switch ( item ) {
 
-      case NPI_GET_OPTIONS: {
+            case NPI_GET_OPTIONS: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. options;
-          return ( ALL_OK );
-        }
+                if ( arg1 != nullptr ) *arg1 = nodeMap. options;
+                return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_UID: {
+            case NPI_GET_NODE_UID: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap.nodeUID >> 16;
-          if ( arg2 != nullptr ) *arg2 = nodeMap.nodeUID & 0xFFFF;
-          return ( ALL_OK );
-        }
+                if ( arg1 != nullptr ) *arg1 = nodeMap.nodeUID >> 16;
+            if ( arg2 != nullptr ) *arg2 = nodeMap.nodeUID & 0xFFFF;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_ID: {
+        case NPI_GET_NODE_ID: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap.nodeId;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = nodeMap.nodeId;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_PORT_MAP_ENTRIES: {
+        case NPI_GET_PORT_MAP_ENTRIES: {
 
-          if ( arg1 != nullptr ) *arg1 = MAX_PORT_MAP_ENTRIES;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = MAX_PORT_MAP_ENTRIES;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_EVENT_MAP_ENTRIES: {
+        case NPI_GET_EVENT_MAP_ENTRIES: {
 
-          if ( arg1 != nullptr ) *arg1 = MAX_EVENT_MAP_ENTRIES;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = MAX_EVENT_MAP_ENTRIES;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_ATTR_MAP_ENTRIES: {
+        case NPI_GET_ATTR_MAP_ENTRIES: {
 
-          if ( arg1 != nullptr ) *arg1 = MAX_ATTR_MAP_ENTRIES;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = MAX_ATTR_MAP_ENTRIES;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_RESTART_COUNT: {
+        case NPI_GET_RESTART_COUNT: {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. nodeRestartCnt;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = nodeMap. nodeRestartCnt;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_EVENT_MAP_ENTRY: {
+        case NPI_GET_EVENT_MAP_ENTRY: {
 
-          return ( getMemEmapEntry( *arg1, arg1, arg2 ));
-        }
+            return ( getMemEmapEntry( *arg1, arg1, arg2 ));
+            }
 
-      case NPI_GET_NODE_TYPE:  {
+        case NPI_GET_NODE_TYPE:  {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. nodeType;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = nodeMap. nodeType;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_PORT_TYPE:  {
+        case NPI_GET_PORT_TYPE:  {
 
-          if ( arg1 != nullptr ) *arg1 = portMap.map[ portId - 1 ].type;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = portMap.map[ portId - 1 ].type;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_FLAGS:  {
+        case NPI_GET_NODE_FLAGS:  {
 
-          if ( arg1 != nullptr ) *arg1 = nodeMap. flags;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = nodeMap. flags;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_PORT_FLAGS:  {
+        case NPI_GET_PORT_FLAGS:  {
 
-          if ( arg1 != nullptr ) *arg1 = portMap.map[ portId - 1 ].flags;
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = portMap.map[ portId - 1 ].flags;
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_NAME_1: {
+        case NPI_GET_NODE_NAME_1: {
 
-          if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 0 ] << 8  ) | nodeMap.name[ 1 ] );
-          if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 2 ] << 8  ) | nodeMap.name[ 3 ] );
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 0 ] << 8  ) | nodeMap.name[ 1 ] );
+            if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 2 ] << 8  ) | nodeMap.name[ 3 ] );
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_NAME_2: {
+        case NPI_GET_NODE_NAME_2: {
 
-          if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 4 ] << 8  ) | nodeMap.name[ 5 ] );
-          if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 6 ] << 8  ) | nodeMap.name[ 7 ] );
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 4 ] << 8  ) | nodeMap.name[ 5 ] );
+            if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 6 ] << 8  ) | nodeMap.name[ 7 ] );
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_NAME_3: {
+        case NPI_GET_NODE_NAME_3: {
 
-          if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 8 ] << 8  ) | nodeMap.name[ 9 ] );
-          if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 10 ] << 8  ) | nodeMap.name[ 11 ] );
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 8 ] << 8  ) | nodeMap.name[ 9 ] );
+            if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 10 ] << 8  ) | nodeMap.name[ 11 ] );
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_NODE_NAME_4: {
+        case NPI_GET_NODE_NAME_4: {
 
-          if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 12 ] << 8  ) | nodeMap.name[ 13 ] );
-          if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 14 ] << 8  ) | nodeMap.name[ 15 ] );
-          return ( ALL_OK );
-        }
+            if ( arg1 != nullptr ) *arg1 = ((uint16_t) ( nodeMap.name[ 12 ] << 8  ) | nodeMap.name[ 13 ] );
+            if ( arg2 != nullptr ) *arg2 = ((uint16_t) ( nodeMap.name[ 14 ] << 8  ) | nodeMap.name[ 15 ] );
+            return ( ALL_OK );
+            }
 
-      case NPI_GET_EVENT_DELAY_TICKS: {
+        case NPI_GET_EVENT_DELAY_TICKS: {
 
-          if (( arg1 != nullptr ) && ( portId != NIL_PORT_ID )) *arg1 = portMap.map[ portId - 1 ].eventDelayTime;
-          return ( ALL_OK );
-        }
+            if (( arg1 != nullptr ) && ( portId != NIL_PORT_ID )) *arg1 = portMap.map[ portId - 1 ].eventDelayTime;
+            return ( ALL_OK );
+            }
 
-      default: return ( ERR_INVALID_NODE_INFO_ITEM );
+        default: return ( ERR_INVALID_NODE_INFO_ITEM );
     }
   }
 }
@@ -328,171 +328,171 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeControl( uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-  #if DEBUG_ATTRIBUTES == 1
-  printf( "nodeControl: %d:%d:%d:%d\n", portId, item, val1, val2  );
-  #endif
+    #if DEBUG_ATTRIBUTES == 1
+    printf( "nodeControl: %d:%d:%d:%d\n", portId, item, val1, val2  );
+    #endif
 
-  if ( portId > MAX_PORT_MAP_ENTRIES ) return ( ERR_INVALID_PORT_ID );
+    if ( portId > MAX_PORT_MAP_ENTRIES ) return ( ERR_INVALID_PORT_ID );
 
-  if ( isInRangeU( item, NPC_NODE_USER_DEFINED_START, NPC_MAX_ITEMS )) {
+    if ( isInRangeU( item, NPC_NODE_USER_DEFINED_START, NPC_MAX_ITEMS )) {
 
-    return( invokeCtrlItemCallback( portId, item, val1, val1 ));
-  }
-  else if ( isInRangeU( item, NPC_ATTR_MEM_RANGE_START, NPC_ATTR_MEM_RANGE_END )) {
-
-    return ( writeAttrMem( portId, item, val1 ));
-  }
-  else if ( isInRangeU( item, NPC_ATTR_NVM_RANGE_START, NPC_ATTR_NVM_RANGE_END )) {
-
-    return ( writeAttrNvm( portId, item, val1 ));
-  }
-  else if ( isInRangeU( item, NPI_NODE_MAP_RANGE_START, NPI_NODE_MAP_RANGE_END )) {
-
-    switch ( item ) {
-
-      case NPC_SET_READY_LED: {
-
-          return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, val1 ));
-        }
-
-      case NPC_SET_ACTIVITY_LED: {
-
-          return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, val1 ));
-        }
-
-      case NPC_TOGGLE_READY_LED:  {
-
-          return ( CDC::toggleDio( cdcMap.cfg.READY_LED_PIN ));
-        }
-
-      case NPC_TOGGLE_ACTIVITY_LED: {
-
-          return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
-        }
-
-      case NPC_BLINK_READY_LED:
-      case NPC_BLINK_ACTIVITY_LED: {
-
-          return ( ERR_NOT_IMPLEMENTED );
-        }
-
-      case NPC_RESET_NODE: {
-
-          return ( resetNode( ));
-        }
-
-      case NPC_ADD_EVENT_MAP_ENTRY: {
-
-          return ( addEvent( val1, val2 & 0xFF ));
-        }
-
-      case NPC_DEL_EVENT_MAP_ENTRY: {
-
-          return ( removeEvent( val1, val2 & 0xFF ));
-        }
-
-        case NPC_SYNC_EVENT_MAP: {
-
-            return( syncEventMap( ));
-        }
-
-      case NPC_SET_NODE_ID: {
-
-          if ( isInRangeU( val1, MIN_NODE_ID, MAX_NODE_ID )) {
-
-            nodeMap.nodeId = val1;
-            rtNvmPutBytes( offsetof( LcsNodeMap, nodeId ), (uint8_t *) &nodeMap.nodeId, sizeof( uint16_t ));
-            return ( ALL_OK );
-
-          }
-          else return ( ERR_INVALID_NODE_ID );
-        }
-
-      case NPC_SET_NODE_NAME_1: {
-
-          tempName[ 0 ] = highByte( val1 );
-          tempName[ 1 ] = lowByte( val1 );
-          tempName[ 2 ] = highByte( val2 );
-          tempName[ 3 ] = lowByte( val2 );
-
-          memcpy((uint8_t *) nodeMap.name, (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
-          rtNvmPutBytes( offsetof( LcsNodeMap, name ), (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
-          return ( ALL_OK );
-        }
-
-      case NPC_SET_NODE_NAME_2: {
-
-          tempName[ 4 ]   = highByte( val1 );
-          tempName[ 5 ]   = lowByte( val1 );
-          tempName[ 6 ]   = highByte( val2 );
-          tempName[ 7 ]   = lowByte( val2 );
-          return ( ALL_OK );
-        }
-
-      case NPC_SET_NODE_NAME_3: {
-
-          tempName[ 8 ]   = highByte( val1 );
-          tempName[ 9 ]   = lowByte( val1 );
-          tempName[ 10 ]  = highByte( val2 );
-          tempName[ 11 ]  = lowByte( val2 );
-          return ( ALL_OK );
-        }
-
-      case NPC_SET_NODE_NAME_4: {
-
-          memset( tempName, 0, MAX_NODE_NAME_SIZE );
-          tempName[ 12 ]  = highByte( val1 );
-          tempName[ 13 ]  = lowByte( val1 );
-          tempName[ 14 ]  = highByte( val2 );
-          tempName[ 15 ]  = lowByte( val2 );
-          return ( ALL_OK );
-        }
-
-      case NPC_SET_NODE_TYPE: {
-
-          nodeMap.nodeType = lowByte( val1 );
-          rtNvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType );
-          return ( ALL_OK );
-        }
-
-      case NPC_SET_PORT_TYPE: {
-
-          if ( ! isInRangeU( portId, 1, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
-
-          portMap.map[ portId - 1 ].type = lowByte( val1 );
-
-          uint16_t ofs = offsetof( LcsPortMap, map ) + (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
-                         offsetof( LcsPortMapEntry, type );
-
-          return ( rtNvmPutWord( ofs= portMap.map[ portId - 1 ].type, false ));
-        }
-
-      case NPC_ENABLE_EVENT_PROCESSING: {
-
-          if ( ! isInRangeU( portId, 1, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
-
-          if ( val1 ) portMap.map[ portId - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
-          else        portMap.map[ portId - 1 ].flags &= ~ PF_PORT_EVENT_HANDLING_ENABLED;
-
-          return ( ALL_OK );
-        }
-
-      case NPC_SET_EVENT_DELAY_TICKS: {
-
-          if ( ! isInRangeU( portId, 1, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
-
-          portMap.map[ portId - 1 ].eventDelayTime = val1;
-
-          uint16_t ofs = offsetof( LcsPortMap, map ) + (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
-                         offsetof( LcsPortMapEntry, eventDelayTime );
-
-          return ( rtNvmPutWord( ofs, val1 ));
-        }
-
-      default: return ( ERR_INVALID_NODE_CTRL_ITEM );
+        return( invokeCtrlItemCallback( portId, item, val1, val1 ));
     }
-  }
-  else return ( ERR_INVALID_ITEM_ID );
-}
+    else if ( isInRangeU( item, NPC_ATTR_MEM_RANGE_START, NPC_ATTR_MEM_RANGE_END )) {
+
+        return ( writeAttrMem( portId, item, val1 ));
+    }
+    else if ( isInRangeU( item, NPC_ATTR_NVM_RANGE_START, NPC_ATTR_NVM_RANGE_END )) {
+
+        return ( writeAttrNvm( portId, item, val1 ));
+    }
+    else if ( isInRangeU( item, NPI_NODE_MAP_RANGE_START, NPI_NODE_MAP_RANGE_END )) {
+
+        switch ( item ) {
+
+        case NPC_SET_READY_LED: {
+
+            return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, val1 ));
+            }
+
+        case NPC_SET_ACTIVITY_LED: {
+
+            return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, val1 ));
+            }
+
+        case NPC_TOGGLE_READY_LED:  {
+
+            return ( CDC::toggleDio( cdcMap.cfg.READY_LED_PIN ));
+            }
+
+        case NPC_TOGGLE_ACTIVITY_LED: {
+
+            return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
+            }
+
+        case NPC_BLINK_READY_LED:
+        case NPC_BLINK_ACTIVITY_LED: {
+
+            return ( ERR_NOT_IMPLEMENTED );
+            }
+
+        case NPC_RESET_NODE: {
+
+            return ( resetNode( ));
+            }
+
+        case NPC_ADD_EVENT_MAP_ENTRY: {
+
+            return ( addEvent( val1, val2 & 0xFF ));
+            }
+
+        case NPC_DEL_EVENT_MAP_ENTRY: {
+
+            return ( removeEvent( val1, val2 & 0xFF ));
+            }
+
+            case NPC_SYNC_EVENT_MAP: {
+
+                return( syncEventMap( ));
+            }
+
+        case NPC_SET_NODE_ID: {
+
+            if ( isInRangeU( val1, MIN_NODE_ID, MAX_NODE_ID )) {
+
+                nodeMap.nodeId = val1;
+                rtNvmPutBytes( offsetof( LcsNodeMap, nodeId ), (uint8_t *) &nodeMap.nodeId, sizeof( uint16_t ));
+                return ( ALL_OK );
+
+            }
+            else return ( ERR_INVALID_NODE_ID );
+            }
+
+        case NPC_SET_NODE_NAME_1: {
+
+            tempName[ 0 ] = highByte( val1 );
+            tempName[ 1 ] = lowByte( val1 );
+            tempName[ 2 ] = highByte( val2 );
+            tempName[ 3 ] = lowByte( val2 );
+
+            memcpy((uint8_t *) nodeMap.name, (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
+            rtNvmPutBytes( offsetof( LcsNodeMap, name ), (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
+            return ( ALL_OK );
+            }
+
+        case NPC_SET_NODE_NAME_2: {
+
+            tempName[ 4 ]   = highByte( val1 );
+            tempName[ 5 ]   = lowByte( val1 );
+            tempName[ 6 ]   = highByte( val2 );
+            tempName[ 7 ]   = lowByte( val2 );
+            return ( ALL_OK );
+            }
+
+        case NPC_SET_NODE_NAME_3: {
+
+            tempName[ 8 ]   = highByte( val1 );
+            tempName[ 9 ]   = lowByte( val1 );
+            tempName[ 10 ]  = highByte( val2 );
+            tempName[ 11 ]  = lowByte( val2 );
+            return ( ALL_OK );
+            }
+
+        case NPC_SET_NODE_NAME_4: {
+
+            memset( tempName, 0, MAX_NODE_NAME_SIZE );
+            tempName[ 12 ]  = highByte( val1 );
+            tempName[ 13 ]  = lowByte( val1 );
+            tempName[ 14 ]  = highByte( val2 );
+            tempName[ 15 ]  = lowByte( val2 );
+            return ( ALL_OK );
+            }
+
+        case NPC_SET_NODE_TYPE: {
+
+            nodeMap.nodeType = lowByte( val1 );
+            rtNvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType );
+            return ( ALL_OK );
+            }
+
+        case NPC_SET_PORT_TYPE: {
+
+            if ( ! isInRangeU( portId, 1, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
+
+            portMap.map[ portId - 1 ].type = lowByte( val1 );
+
+            uint16_t ofs = offsetof( LcsPortMap, map ) + (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
+                            offsetof( LcsPortMapEntry, type );
+
+            return ( rtNvmPutWord( ofs= portMap.map[ portId - 1 ].type, false ));
+            }
+
+        case NPC_ENABLE_EVENT_PROCESSING: {
+
+            if ( ! isInRangeU( portId, 1, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
+
+            if ( val1 ) portMap.map[ portId - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
+            else        portMap.map[ portId - 1 ].flags &= ~ PF_PORT_EVENT_HANDLING_ENABLED;
+
+            return ( ALL_OK );
+            }
+
+        case NPC_SET_EVENT_DELAY_TICKS: {
+
+            if ( ! isInRangeU( portId, 1, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
+
+            portMap.map[ portId - 1 ].eventDelayTime = val1;
+
+            uint16_t ofs = offsetof( LcsPortMap, map ) + (( portId - 1 ) * sizeof( LcsPortMapEntry )) +
+                            offsetof( LcsPortMapEntry, eventDelayTime );
+
+            return ( rtNvmPutWord( ofs, val1 ));
+            }
+
+        default: return ( ERR_INVALID_NODE_CTRL_ITEM );
+        }
+    }
+    else return ( ERR_INVALID_ITEM_ID );
+    }
 
 }; // namespace LCS
