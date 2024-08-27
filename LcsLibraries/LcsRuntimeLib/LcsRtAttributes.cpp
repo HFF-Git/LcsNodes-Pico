@@ -51,105 +51,112 @@ extern LCS::LcsCallbackMap          callbackMap;
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  using namespace LCS;
+    using namespace LCS;
 
-  //----------------------------------------------------------------------------------------------------------  
-  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // settoin of the debiug level.
-  //---------------------------------------------------------------------------------------------------------- 
-  uint8_t debugLevel = 0;
+    //--------------------------------------------------------------------------------------------------------  
+    // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+    // settoin of the debiug level.
+    //-------------------------------------------------------------------------------------------------------- 
+    uint8_t debugLevel = 0;
 
-  //----------------------------------------------------------------------------------------------------------
-  // The node or port name cannot be set with a single LCS message. We will store the parts in this temporary
-  // buffer and set the name when all parts are received.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  char tempName[ MAX_NODE_NAME_SIZE + 1 ] = { 0 };
+    //--------------------------------------------------------------------------------------------------------
+    // The node or port name cannot be set with a single LCS message. We will store the parts in this 
+    // temporary buffer and set the name when all parts are received.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    char tempName[ MAX_NODE_NAME_SIZE + 1 ] = { 0 };
 
-  //----------------------------------------------------------------------------------------------------------
-  // Utility routines for number range check.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  static inline bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
+    //--------------------------------------------------------------------------------------------------------
+    // Utility routines for number range check.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
-    return (( val >= lower ) && ( val <= upper ));
-  }
+        return (( val >= lower ) && ( val <= upper ));
+     }
 
-  //----------------------------------------------------------------------------------------------------------
-  // "readAttrMem" gets a value from the node or port attribute map in MEM. As an internal function, we expect
-  // a valid block and item argument.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
+    //--------------------------------------------------------------------------------------------------------
+    // "readAttrMem" gets a value from the node or port attribute map in MEM. As an internal function, we 
+    // expect a valid block and item argument.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-    *arg = nodeData.map[ block ][ item - LCS::NPI_ATTR_MEM_RANGE_START ];
-    return ( LCS::ALL_OK );
-  }
-
-  //----------------------------------------------------------------------------------------------------------
-  // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an internal function, we expect
-  // a valid block and item argument.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
-
-    nodeData.map[ block ][ item - LCS::NPC_ATTR_MEM_RANGE_START ] = arg;
-    return ( LCS::ALL_OK );
-  }
-
-  //----------------------------------------------------------------------------------------------------------
-  // "readAttrNvm" gets a value from the node or port NVM attribute map. We read the value from the respective
-  // attribute map, store it in the memory counterpart and then return it. For the NVM access, the byte offset
-  // into the storage needs to be computed. As an internal function, we expect a valid block and item argument.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
-
-    uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
-    uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
-    uint8_t rStat   = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
-
-    if ( rStat == ALL_OK ) *arg = nodeData.map[ block ][ index ];
-    return ( rStat );
-  }
-
-  //----------------------------------------------------------------------------------------------------------
-  // "writeAttrNvm" stores an value to the node or port NVM attribute map. We first update the MEM attribute
-  // map and then write the value to NVM attribute map. For the NVM access, the byte offset into the storage
-  // needs to be computed. As an internal function, we expect a valid block and item argument.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
-
-    uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
-    uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
-
-    nodeData.map[ block ][ index ] = arg;
-    return ( rtNvmPutWord( ofs, arg ));
-  }
-
-  //----------------------------------------------------------------------------------------------------------
-  // User calllback function invocation routines.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t invokeInfoItemCallback( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
-
-    if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
-
-      return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, *arg1, *arg2 ));
+        *arg = nodeData.map[ block ][ item - LCS::NPI_ATTR_MEM_RANGE_START ];
+        return ( LCS::ALL_OK );
     }
-    else return( ERR_INVALID_ITEM_ID );
-  }
 
-  uint8_t invokeCtrlItemCallback( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
+    //----------------------------------------------------------------------------------------------------------
+    // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an internal function, we 
+    // expect a valid block and item argument.
+    //
+    //----------------------------------------------------------------------------------------------------------
+    uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
-    if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
-
-      return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, arg1, arg2 ));
+        nodeData.map[ block ][ item - LCS::NPC_ATTR_MEM_RANGE_START ] = arg;
+        return ( LCS::ALL_OK );
     }
-    else return( ERR_INVALID_ITEM_ID );
-  }
 
+    //--------------------------------------------------------------------------------------------------------
+    // "readAttrNvm" gets a value from the node or port NVM attribute map. We read the value from the 
+    // respective attribute map, store it in the memory counterpart and then return it. For the NVM access, 
+    // the byte offset into the storage needs to be computed. As an internal function, we expect a valid block
+    //  and item argument.
+    //
+    //----------------------------------------------------------------------------------------------------------
+    uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
+
+        uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
+        uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
+        uint8_t rStat   = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
+
+        if ( rStat == ALL_OK ) *arg = nodeData.map[ block ][ index ];
+        return ( rStat );
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+    // "writeAttrNvm" stores an value to the node or port NVM attribute map. We first update the MEM attribute
+    // map and then write the value to NVM attribute map. For the NVM access, the byte offset into the storage
+    // needs to be computed. As an internal function, we expect a valid block and item argument.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
+
+        uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
+        uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
+
+        nodeData.map[ block ][ index ] = arg;
+        return ( rtNvmPutWord( ofs, arg ));
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+    // User calllback function invocation routines.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    uint8_t invokeInfoItemCallback( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+
+        if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
+
+            return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, *arg1, *arg2 ));
+        }
+        else return( ERR_INVALID_ITEM_ID );
+    }
+
+    uint8_t invokeCtrlItemCallback( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
+
+        if ( callbackMap.map[ portId ].ctrlItemCallback != nullptr ) {
+
+            return ( callbackMap.map[ portId ].ctrlItemCallback( portId, item, arg1, arg2 ));
+        }
+        else return( ERR_INVALID_ITEM_ID );
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //--------------------------------------------------------------------------------------------------------
+    uint8_t lowByte( uint16_t arg ) { return( arg & 0xFF ); }
+    uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
+    
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------

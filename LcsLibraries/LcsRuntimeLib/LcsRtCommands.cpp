@@ -67,22 +67,22 @@ uint8_t debugLevel = 0;
 //------------------------------------------------------------------------------------------------------------
 void dumpMemData( uint8_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
 
-  uint16_t  index   = 0;
-  uint16_t  limit   = ( len + 1 ) / 2; 
-  uint16_t  *ptr    = (uint16_t *) area;
+    uint16_t  index   = 0;
+    uint16_t  limit   = ( len + 1 ) / 2; 
+    uint16_t  *ptr    = (uint16_t *) area;
 
-  while ( index < limit ) {
+    while ( index < limit ) {
 
-    printf( "0x%4x: ", index * sizeof( uint16_t ));
+        printf( "0x%4x: ", index * sizeof( uint16_t ));
 
-    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-      if ( index + i < limit ) printf( "0x%4x ", ptr[ index + i ] );
+            if ( index + i < limit ) printf( "0x%4x ", ptr[ index + i ] );
+        }
+
+        index += itemsPerLine;
+        printf( "\n" );
     }
-
-    index += itemsPerLine;
-    printf( "\n" );
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -251,6 +251,12 @@ void dumpNvmUserArea( ) {
   dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
   printf( "\n" );
 }
+
+//------------------------------------------------------------------------------------------------------------
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t lowByte( uint16_t arg ) { return( arg & 0xFF ); }
+uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
 
 }; // namespace
 
@@ -594,7 +600,7 @@ uint8_t setupSerialCommand( ) {
   return ( CDC::configureConsoleIO( ));
 }
 
-
+// ??? need status commands for driver and extension board stuff...
 // ??? need commands to manipulate the EXT board NVM...
 // ??? need commands to manipulate the NodeMap data ?
 

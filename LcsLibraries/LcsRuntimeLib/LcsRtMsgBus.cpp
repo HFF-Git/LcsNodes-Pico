@@ -53,6 +53,12 @@ using namespace LCS;
 uint8_t debugLevel = 0;
 
 //------------------------------------------------------------------------------------------------------------
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t lowByte( uint16_t arg ) { return( arg & 0xFF ); }
+uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
+
+//------------------------------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains a small pending request
 // buffer. When a request type messqge is sent we add the target node to the buffer. Easy and simple. Note
 // that there can be more than one entry for the same node in the buffer. If the buffer is full, an error

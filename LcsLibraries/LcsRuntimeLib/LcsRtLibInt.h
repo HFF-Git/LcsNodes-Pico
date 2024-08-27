@@ -4,6 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
+// ??? add some text what thsi is, concepts...
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -39,11 +40,6 @@
 
 namespace LCS {
 
-// ??? this should go to CDC ?
-#define lowByte(w) ((uint8_t) ((w) & 0xff))
-#define highByte(w) ((uint8_t) ((w) >> 8))
-
-
 //------------------------------------------------------------------------------------------------------------
 //
 // ??? should they rather be just variables, we always have debugging code included...
@@ -68,7 +64,7 @@ namespace LCS {
 // endianess. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
 //
 // The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
-// offset 0x400, the nodeDataMap starting at offset 0x800 and the eventMap at offset 0x1000. The system area
+// offset 0x400, the attributeMap starting at offset 0x800 and the eventMap at offset 0x1000. The system area
 // is in total 8 Kbytes. The optional user map occupies all the remaining bytes in the NVM and starts at 
 // 0x2000 then. A firmware programmer can access teh system as well as the user data areas. However, note 
 // that dangerous things can be done when modifying the system area.
@@ -83,7 +79,7 @@ namespace LCS {
 //                :                                           :
 //        0x0800  :-------------------------------------------:
 //                :                                           :
-//                :       Node Data Map                       :
+//                :       Attribute Map                       :
 //                :                                           :
 //        0x1000  :-------------------------------------------:
 //                :                                           :
@@ -99,10 +95,10 @@ namespace LCS {
 //                :                                           :
 //        0xnnnn  :-------------------------------------------:
 //
-// The Node Map and Port Map do not fill the entiure alocated area. Yet. For future developments, each
-// area has some spare room. The node data map contains the attribute verialbles for the node and the 
-// ports. Each entity has 64 attributes max, the node data is 1Kbyte in total. Ny putting al attributes
-// in opne spot, access to an attribute value is easy to calculate and therefore quick.
+// The Node Map and Port Map do not fill the entire alocated area. Yet. For future developments, each
+// area has some spare room. The attribute map contains the veriables for the node and ports. Each entity
+// has 64 attributes max, the attribute map is 1Kbyte in total. By putting all attributes in one spot,
+// access to an attribute value is easy to calculate and quick.
 //
 // The event map is an area with 4byte entries. A node can keep track of up to 1024 event/port pairs.
 // The event map is a sorted map, lookup is done via a binary search. Finally, the optional user map 
@@ -206,14 +202,15 @@ enum MsgPriority : uint8_t {
   //----------------------------------------------------------------------------------------------------------
   enum LcsNodeState : uint16_t {
 
-    NS_NIL            = 0,
-    NS_FAIL           = 1,
-    NS_INIT           = 2,
-    NS_REGISTER       = 3,
-    NS_COLLISION      = 4,
-    NS_HALTED         = 5,
-    NS_CONFIG         = 6,
-    NS_OPERATE        = 7
+    NS_NIL              = 0,
+    NS_FAIL             = 1,
+    NS_PFAIL            = 2,
+    NS_INIT             = 3,
+    NS_REGISTER         = 4,
+    NS_COLLISION        = 5,
+    NS_HALTED           = 6,
+    NS_CONFIG           = 7,
+    NS_OPERATE          = 8
   };
 
 
@@ -244,7 +241,6 @@ struct LcsMsgBusCAN {
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcDesc {
 
-  uint16_t          flags;
   CDC::CdcPinConfig cfg;
 };
 
@@ -265,62 +261,63 @@ struct LcsNodeData {
 // The node map. At the first locations of the NVM area on the controller board NVM chip is the nodeMap, 
 // which is read in at controller reset. It is the heart of all data on the node.
 //
-// Creating the nodeMap at controller startup is a two step process. First we read in the node map from
-// the NVM. The first check is whether the nodeMap is a valid nodeMap. We have a simple check with two
-// "magic" words that when set to the correct value indicate that this NVM area was once intialized.
+// When bringing up a node, we read in the node map from the NVM. The first check is whether the nodeMap
+// read is a valid nodeMap. We have a simple check with two "magic" words that when set to the correct value
+// indicate that this NVM area was once intialized.
 //
-// ??? have debug field to set a debug value ? When setting it, needs to be written back to NVM ?
+// ??? comment on the fields...
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-  uint16_t  magicWord1                      = NODE_MWORD_1;
-  uint16_t  options                         = 0;
-  uint16_t  flags                           = 0;
-  uint16_t  boardType                       = BT_NIL;
-  uint16_t  boardVersion                    = 0;
-  uint16_t  controllerFamily                = CF_FAM_RPICO_2040;
-  uint16_t  nvmChipFamily                   = CF_FAM_MICROCHIP;
-  uint16_t  magicWord2                      = NODE_MWORD_2;
+    uint16_t  magicWord1                    = NODE_MWORD_1;
+    uint16_t  options                       = 0;
+    uint16_t  flags                         = 0;
+    uint16_t  boardType                     = BT_NIL;
+    uint16_t  boardVersion                  = 0;
+    uint16_t  controllerFamily              = CF_FAM_RPICO_2040;
+    uint16_t  nvmChipFamily                 = CF_FAM_MICROCHIP;
+    uint16_t  magicWord2                    = NODE_MWORD_2;
 
-  uint16_t  nodeState                       = NS_NIL;
-  uint16_t  nodeId                          = NIL_NODE_ID;
-  uint32_t  nodeUID                         = 0L;
-  uint16_t  nodeType                        = NIL_NODE_TYPE;   
-  uint16_t  nodeSwVersion                   = 0;
-  uint16_t  nodeSwPatchLevel                = 0;
-  uint16_t  nodeRestartCnt                  = 0;
+    uint16_t  nodeState                     = NS_NIL;
+    uint16_t  nodeId                        = NIL_NODE_ID;
+    uint32_t  nodeUID                       = 0L;
+    uint16_t  nodeType                      = NIL_NODE_TYPE;   
+    uint16_t  nodeSwVersion                 = 0;
+    uint16_t  nodeSwPatchLevel              = 0;
+    uint16_t  nodeRestartCnt                = 0;
+    uint32_t  nodeSystemTime                = 0;
+    uint16_t  nodeMapSize                   = sizeof( LcsNodeMap );  
+    char      name[ MAX_NODE_NAME_SIZE ]    = { 0 };
 
-  uint16_t  nodeMapNvmOfs                   = NVM_NODE_MAP_START;
-  uint16_t  portMapNvmOfs                   = NVM_PORT_MAP_START;
-  uint16_t  nodeDataOfs                     = NVM_NODE_DATA_START;
-  uint16_t  eventMapNvmOfs                  = NVM_EVENT_MAP_START;
-  uint16_t  userMapNvmOfs                   = NVM_USER_MAP_START;
-  uint32_t  nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
+    uint16_t  nodeMapNvmOfs                 = NVM_NODE_MAP_START;
+    uint16_t  portMapNvmOfs                 = NVM_PORT_MAP_START;
+    uint16_t  nodeDataOfs                   = NVM_NODE_DATA_START;
+    uint16_t  eventMapNvmOfs                = NVM_EVENT_MAP_START;
+    uint16_t  userMapNvmOfs                 = NVM_USER_MAP_START;
+    uint32_t  nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
 
-  uint16_t  portMapOptions                  = 0;
-  uint16_t  portMapFlags                    = 0;
-  uint16_t  portMapEntries                  = MAX_PORT_MAP_ENTRIES;
+    uint16_t  portMapOptions                = 0;
+    uint16_t  portMapFlags                  = 0;
+    uint16_t  portMapEntries                = MAX_PORT_MAP_ENTRIES;
+    uint16_t  portMapHwm                    = 0;
 
-  uint16_t  eventMapOptions                 = 0;
-  uint16_t  eventMapFlags                   = 0;
-  uint16_t  eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
-  uint16_t  eventMapHwm                     = 0;
+    uint16_t  eventMapOptions               = 0;
+    uint16_t  eventMapFlags                 = 0;
+    uint16_t  eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
+    uint16_t  eventMapHwm                   = 0;
 
+    uint16_t  drvMapOptions                 = 0;
+    uint16_t  drvMapFlags                   = 0;
+    uint16_t  drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t  drvMapHwm                     = 0;
 
-  uint16_t  drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
-
-
-  uint16_t  nodeMapSize                     = sizeof( LcsNodeMap );  
-  char      name[ MAX_NODE_NAME_SIZE ]      = { 0 };
-
-  uint16_t  debugEnabled                    = 0;
-  uint16_t  debugNodeSetup                  = 0;
-  uint16_t  debugNvmAccess                  = 0;
-  uint16_t  debugCanBusMsg                  = 0;
-  uint16_t  debugAttrAccess                 = 0;
-  uint16_t  debugEventHandling              = 0;
-  
-  
+    // ??? rethink ....
+    uint16_t  debugEnabled                  = 0;
+    uint16_t  debugNodeSetup                = 0;
+    uint16_t  debugNvmAccess                = 0;
+    uint16_t  debugCanBusMsg                = 0;
+    uint16_t  debugAttrAccess               = 0;
+    uint16_t  debugEventHandling            = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -332,40 +329,41 @@ struct LcsNodeMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-  uint16_t  options                         = 0;
-  uint16_t  flags                           = 0;
-  uint16_t  type                            = 0;
+    uint16_t  options                       = 0;
+    uint16_t  flags                         = 0;
+    uint16_t  type                          = 0;
 
-  uint16_t  nodeId                          = NIL_NODE_ID;
-  uint16_t  eventId                         = NIL_EVENT_ID;
-  uint16_t  eventValue                      = 0;
-  uint16_t  eventAction                     = PEA_EVENT_IDLE;
-  uint16_t  eventDelayTime                  = 0;
-  uint32_t  eventTimeStamp                  = 0L;
+    uint16_t  nodeId                        = NIL_NODE_ID; // ??? better name ...
+    uint16_t  eventId                       = NIL_EVENT_ID;
+    uint16_t  eventValue                    = 0;
+    uint16_t  eventAction                   = PEA_EVENT_IDLE;
+    uint16_t  eventDelayTime                = 0;
+    uint32_t  eventTimeStamp                = 0L;
 
-  char      name[ MAX_PORT_NAME_SIZE  ]     = { 0 };
+    char      name[ MAX_PORT_NAME_SIZE  ]   = { 0 };
 };
 
 struct LcsPortMap {
 
-  LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
+    LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------------------------
 // The event map entry contains the mapping from eventId to portId. Every port interested in a certain event
-// will have an entry in the event map. It is a sorted table of event and port pairs. This table is searched
-// for an incoming event to find the ports that are interested in the event. 
+// will have an entry in the event map. It is a sorted table of event and port pairs. A port id of zero 
+// refers to all ports with the event Id. This table is searched for an incoming event to find the ports 
+// that are interested in the event. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsEventMapEntry {
 
-  uint16_t eventId  = NIL_EVENT_ID;
-  uint16_t portId   = NIL_PORT_ID;
+    uint16_t eventId  = NIL_EVENT_ID;
+    uint16_t portId   = NIL_PORT_ID;
 };
 
 struct LcsEventMap {
 
-  LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
+    LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -378,62 +376,55 @@ struct LcsEventMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsCallbackMapEntry {
 
-  LcsInitCallback     initCallback      = nullptr;
-  LcsInfoItemCallback infoItemCallback  = nullptr;
-  LcsCtrlItemCallback ctrlItemCallback  = nullptr;
+    LcsInitCallback     initCallback      = nullptr;
+    LcsInfoItemCallback infoItemCallback  = nullptr;
+    LcsCtrlItemCallback ctrlItemCallback  = nullptr;
 };
 
 struct LcsCallbackMap {
 
-  uint16_t                  flags;
-  uint16_t                  size;
+    uint16_t                  flags;
+    uint16_t                  size;
 
-  LcsMsgCallback            lcsMsgCallback                    = nullptr;
-  LcsMsgCallback            dccMsgCallback                    = nullptr;
-  LcsCommandCallback        cmdLineCallback                   = nullptr;
-  LcsPortEventCallback      portEventCallback                 = nullptr;
-  LcsItemReqRepCallback     itemReqRepCallback                = nullptr;
+    LcsMsgCallback            lcsMsgCallback                    = nullptr;
+    LcsMsgCallback            dccMsgCallback                    = nullptr;
+    LcsCommandCallback        cmdLineCallback                   = nullptr;
+    LcsPortEventCallback      portEventCallback                 = nullptr;
+    LcsItemReqRepCallback     itemReqRepCallback                = nullptr;
 
-  LcsCallbackMapEntry map[ MAX_PORT_MAP_ENTRIES + 1 ];
+    LcsCallbackMapEntry map[ MAX_PORT_MAP_ENTRIES + 1 ];
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The core library maintains an array of periodic task items. They will be run on a repeating bases. To
-// balance the needs of other core library internal periodic tasks, such as checking for incoming messages,
-// the periodic tasks are run one at a time, round robin, with the other internal tasks interleaving. The
-// structure maintains the task procedure label, the time it ran the last time, and the interval between
-// invocations. Note that the timing is not very accurate, but is guaranteed that a task will evetntually
-// when the interval is reached.
+// The core library maintains an array of periodic task items. To balance the needs of other core library
+// internal periodic tasks, such as checking for incoming messages, the periodic tasks are run one at a 
+// time, round robin, with the other internal tasks interleaving. The structure maintains the task procedure
+// label, the time it ran the last time, and the interval between invocations. Note that the timing is not
+// very accurate, but it is guaranteed that a task will eventually run when the interval is reached.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPTaskMapEntry {
 
-  LcsTaskCallback   task          = nullptr;
-  uint32_t          timeStamp     = 0;
-  uint32_t          interval      = 0;
-
-  void reset( ) {
-
-    task      = nullptr;
-    timeStamp = 0;
-    interval  = 0;
-  }
+    LcsTaskCallback   task          = nullptr;
+    uint32_t          timeStamp     = 0;
+    uint32_t          interval      = 0;
 };
 
 struct LcsTaskMap {
 
-  uint16_t          flags;
-  uint16_t          size;
+    uint16_t          flags;
+    uint16_t          size;
 
-  LcsPTaskMapEntry  *hwm    = nullptr;
-  LcsPTaskMapEntry  *next   = nullptr;
+    LcsPTaskMapEntry  *hwm    = nullptr;
+    LcsPTaskMapEntry  *next   = nullptr;
 
-  LcsPTaskMapEntry  map[ MAX_TASK_MAP_ENTRIES ];
+    LcsPTaskMapEntry  map[ MAX_TASK_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------------------------
 // The pending request map keeps track of outstanding requests to another node. We add an entry when our
-// node sends a "REQ" type packet and clear the entry when the reply comes in.
+// node sends a "REQ" type packet and clear the entry when the reply comes in. The idea is that we only 
+// invoke the callback when we expect a reply.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
@@ -450,6 +441,10 @@ struct LcsPendingReqMap {
   LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
 extern "C" {
 
   typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );  
@@ -517,7 +512,7 @@ struct LcsDrvMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The LCS runtime internal routines used by other files of the runtime library.
+// The LCS runtime internal routine signatures used by other files of the runtime library.
 //
 //
 //----------------------------------------------------------------------------------------------------------

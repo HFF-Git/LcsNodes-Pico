@@ -542,27 +542,27 @@ uint8_t detectExtensionBoards( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupExtensionBoards\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupExtensionBoards\n" );
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+    for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-    if ( drvMap.map[ i ].extBoard -> flags != 0  ) {
+        if ( drvMap.map[ i ].extBoard -> flags != 0  ) {
 
-      rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
-      
-      // ??? on an error, we just mark the extension as "error" but continue ?
-    } 
-  }
+        rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
+        
+        // ??? on an error, we just mark the extension as "error" but continue ?
+        } 
+    }
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupExtensionBoards, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupExtensionBoards, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -572,26 +572,26 @@ uint8_t setupExtensionBoards( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t invokeInitCallbacks( ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "invokeInitCallbacks\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "invokeInitCallbacks\n" );
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES + 1; i++ ) {
+    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES + 1; i++ ) {
 
-    if ( callbackMap.map[ i ].initCallback != nullptr ) {
+        if ( callbackMap.map[ i ].initCallback != nullptr ) {
 
-      rStat = callbackMap.map[ i ].initCallback( nodeMap.nodeId, i, 0 );
-      if ( rStat != ALL_OK ) break;
-    } 
-  }
+            rStat = callbackMap.map[ i ].initCallback( nodeMap.nodeId, i, 0 );
+            if ( rStat != ALL_OK ) break;
+        } 
+    }
 
-   #if DEBUG_CONFIG == 1
-  printf( "invokeInitCallbacks, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "invokeInitCallbacks, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 
@@ -600,6 +600,8 @@ uint8_t invokeInitCallbacks( ) {
 // ??? looks like we will also just invoke the init callback...
 // ??? would a node reset clear any outstanding requests ?
 // ??? would it just drop all periodic tasks ?
+
+// ??? we need a callback for CDC power fail to do our work and to invoke any user callback....
 
 
 
@@ -644,41 +646,41 @@ uint8_t invokeInitCallbacks( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "init LCS runtime\n") ;
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "init LCS runtime\n") ;
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
-  if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CDC Setup failed", 1 );
+    if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CDC Setup failed", 1 );
+        
+    if ( rStat == ALL_OK )  rStat = initCanBus( ci );
+    if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CAN bus or NVM Setup failed", 2 );
+
+    if ( rStat == ALL_OK )  rStat = setupNodeMap( );
+    if ( rStat == ALL_OK )  rStat = setupPortMap( );
+    if ( rStat == ALL_OK )  rStat = setupEventMap( );
+    if ( rStat == ALL_OK )  rStat = setupUserMap( );
+    if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
+    if ( rStat == ALL_OK )  rStat = setupTaskMap( );
+    if (( rStat != ALL_OK ) && ( ! CDC::isConsoleConnected( ))) CDC::fatalError( 3 );
+
+    if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
+    // ??? what to do when we have an error with the extension boards...
+
+    if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
+
     
-  if ( rStat == ALL_OK )  rStat = initCanBus( ci );
-  if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
-  if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CAN bus or NVM Setup failed", 2 );
+    if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
+    else                    nodeMap.nodeState = NS_FAIL;
 
-  if ( rStat == ALL_OK )  rStat = setupNodeMap( );
-  if ( rStat == ALL_OK )  rStat = setupPortMap( );
-  if ( rStat == ALL_OK )  rStat = setupEventMap( );
-  if ( rStat == ALL_OK )  rStat = setupUserMap( );
-  if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
-  if ( rStat == ALL_OK )  rStat = setupTaskMap( );
-  if (( rStat != ALL_OK ) && ( ! CDC::isConsoleConnected( ))) CDC::fatalError( 3 );
+    #if DEBUG_CONFIG == 1
+    printf( "init LCS runtime, status: %d \n", rStat ) ;
+    #endif
 
-  if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
-  // ??? what to do when we have an error with the extension boards...
-
-  if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
-
- 
-  if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
-  else                    nodeMap.nodeState = NS_FAIL;
-
-  #if DEBUG_CONFIG == 1
-  printf( "init LCS runtime, status: %d \n", rStat ) ;
-  #endif
-
-  return ( rStat );
+    return ( rStat );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -691,33 +693,31 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 void startRuntime( ) {
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  // ??? reset calls to node and port ?
+    if ( rStat == ALL_OK ) rStat = invokeInitCallbacks( );
 
-  if ( rStat == ALL_OK ) rStat = invokeInitCallbacks( );
+    while ( true ) {
 
-  while ( true ) {
+        switch ( nodeMap.nodeState ) {
 
-    switch ( nodeMap.nodeState ) {
+        case NS_INIT:       handleNodeStateInit( );       break;
+        case NS_FAIL:       handleNodeStateFail( );       break;
+        case NS_REGISTER:   handleNodeStateRegister( );   break;
+        case NS_COLLISION:  handleNodeStateCollision( );  break;
+        case NS_HALTED:     handleNodeStateHalted( );     break;
+        case NS_CONFIG:     handleNodeStateConfig( );     break;
+        case NS_OPERATE:    handleNodeStateOperations( ); break;
+        }
 
-      case NS_INIT:       handleNodeStateInit( );       break;
-      case NS_FAIL:       handleNodeStateFail( );       break;
-      case NS_REGISTER:   handleNodeStateRegister( );   break;
-      case NS_COLLISION:  handleNodeStateCollision( );  break;
-      case NS_HALTED:     handleNodeStateHalted( );     break;
-      case NS_CONFIG:     handleNodeStateConfig( );     break;
-      case NS_OPERATE:    handleNodeStateOperations( ); break;
+        if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_CONFIG )) {
+
+            handlePeriodicTasks( );
+            handleNodePortEvents( );
+        }
+
+        handleSerialCommand( );
     }
-
-    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_CONFIG )) {
-
-      handlePeriodicTasks( );
-      handleNodePortEvents( );
-    }
-
-    handleSerialCommand( );
-  }
 }
 
 }; // namespace LCS

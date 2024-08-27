@@ -79,15 +79,15 @@ const uint8_t   RX_QUEUE_SIZE     = 4;
 //------------------------------------------------------------------------------------------------------------
 struct Can2040ConfigDesc {
 
-  uint32_t        mcPioNum;
-  uint32_t        mcSysClock;
-  uint32_t        mcBitRate;
-  uint32_t        mcRxPin;
-  uint32_t        mcTxPin;
-  can2040_rx_cb   mcRxCallback;
-  uint32_t        mcRxQueueSize;
-  bool            mcRunOnCore1;
-  bool            mcSetupOK;
+    uint32_t        mcPioNum;
+    uint32_t        mcSysClock;
+    uint32_t        mcBitRate;
+    uint32_t        mcRxPin;
+    uint32_t        mcTxPin;
+    can2040_rx_cb   mcRxCallback;
+    uint32_t        mcRxQueueSize;
+    bool            mcRunOnCore1;
+    bool            mcSetupOK;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -105,11 +105,11 @@ Can2040ConfigDesc       cfg;
 //------------------------------------------------------------------------------------------------------------
 inline uint32_t buildMcpCanBusHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
 
-  uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
+    uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
 
-  if ( RTR ) header |=  0x40000000;
+    if ( RTR ) header |=  0x40000000;
 
-  return ( header );
+    return ( header );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -135,29 +135,29 @@ void CanBusPIOIrqHandler( ) {
 //------------------------------------------------------------------------------------------------------------
 void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
 
-  if ( notify == CAN2040_NOTIFY_RX ) {
+    if ( notify == CAN2040_NOTIFY_RX ) {
 
-      // ??? possible filtering right here. 
-      // ??? We could also do the pending REQ / REPLY message processing here.
+        // ??? possible filtering right here. 
+        // ??? We could also do the pending REQ / REPLY message processing here.
 
-    if ( queue_try_add( &rxQueue, msg )) {
+        if ( queue_try_add( &rxQueue, msg )) {
 
-       // ??? successfully queued, remove from REQ pending list ?
+            // ??? successfully queued, remove from REQ pending list ?
+        }
+        else {
+
+            // ??? we could not add ... what to do ?
+        }
     }
-    else {
+    else if ( notify == CAN2040_NOTIFY_TX ) {
 
-      // ??? we could not add ... what to do ?
+        // ??? add to pending reqwuest list ?
+        // ??? transmit completed successfully
     }
-  }
-  else if ( notify == CAN2040_NOTIFY_TX ) {
+    else if ( notify == CAN2040_NOTIFY_ERROR ) {
 
-    // ??? add to pending reqwuest list ?
-    // ??? transmit completed successfully
-  }
-  else if ( notify == CAN2040_NOTIFY_ERROR ) {
-
-    // ??? internal buffer overflow ... what to do ?
-  }
+        // ??? internal buffer overflow ... what to do ?
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -170,43 +170,43 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 //------------------------------------------------------------------------------------------------------------
 void canBusCore( ) {
 
-  #if DEBUG_CAN_BUS == 1
-  printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
-          cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
-          cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
-          cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
-  #endif
+    #if DEBUG_CAN_BUS == 1
+    printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
+            cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
+            cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
+            cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
+    #endif
 
-  queue_init( &rxQueue, sizeof( can2040_msg ), cfg.mcRxQueueSize );
+    queue_init( &rxQueue, sizeof( can2040_msg ), cfg.mcRxQueueSize );
 
-  can2040_setup( &cBus, cfg.mcPioNum );
-  can2040_callback_config( &cBus, cfg.mcRxCallback );
+    can2040_setup( &cBus, cfg.mcPioNum );
+    can2040_callback_config( &cBus, cfg.mcRxCallback );
 
-  if ( cfg.mcPioNum == 0 ) {
+    if ( cfg.mcPioNum == 0 ) {
 
-    irq_set_exclusive_handler( PIO0_IRQ_0, CanBusPIOIrqHandler );
-    irq_set_priority( PIO0_IRQ_0, 1 );
-    irq_set_enabled( PIO0_IRQ_0, true );
-  }
-  else if ( cfg.mcPioNum == 1 ) {
+        irq_set_exclusive_handler( PIO0_IRQ_0, CanBusPIOIrqHandler );
+        irq_set_priority( PIO0_IRQ_0, 1 );
+        irq_set_enabled( PIO0_IRQ_0, true );
+    }
+    else if ( cfg.mcPioNum == 1 ) {
 
-    irq_set_exclusive_handler( PIO1_IRQ_0, CanBusPIOIrqHandler );
-    irq_set_priority( PIO1_IRQ_0, 1 );
-    irq_set_enabled( PIO1_IRQ_0, true );
-  }
+        irq_set_exclusive_handler( PIO1_IRQ_0, CanBusPIOIrqHandler );
+        irq_set_priority( PIO1_IRQ_0, 1 );
+        irq_set_enabled( PIO1_IRQ_0, true );
+    }
 
-  can2040_start( &cBus, cfg.mcSysClock, cfg.mcBitRate, cfg.mcRxPin, cfg.mcTxPin );
+    can2040_start( &cBus, cfg.mcSysClock, cfg.mcBitRate, cfg.mcRxPin, cfg.mcTxPin );
 
-  cfg.mcSetupOK = true;
+    cfg.mcSetupOK = true;
 
-  #if DEBUG_CAN_BUS == 1
-  printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
-  #endif
+    #if DEBUG_CAN_BUS == 1
+    printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
+    #endif
 
-  if ( cfg.mcRunOnCore1 ) {
+    if ( cfg.mcRunOnCore1 ) {
 
-    while ( true ) tight_loop_contents( );
-  }
+        while ( true ) tight_loop_contents( );
+    }
 }
 
 }; // namespace
@@ -220,51 +220,51 @@ void canBusCore( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LCS::LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
 
-  #if DEBUG_CAN_BUS == 1
-  printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
-  #endif
+    #if DEBUG_CAN_BUS == 1
+    printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
+    #endif
 
-  if (( rxPin == CDC::UNDEFINED_PIN ) || ( txPin == CDC::UNDEFINED_PIN )) return ( ERR_CAN_BUS_INIT );
+    if (( rxPin == CDC::UNDEFINED_PIN ) || ( txPin == CDC::UNDEFINED_PIN )) return ( ERR_CAN_BUS_INIT );
 
-  this -> canId = canId;
+    this -> canId = canId;
 
-  cfg.mcSetupOK       = true;
-  cfg.mcRxPin         = rxPin;
-  cfg.mcTxPin         = txPin;
-  cfg.mcRxCallback    = canBusEventCallback;
-  cfg.mcSysClock      = CDC::getCpuFrequency( );
-  cfg.mcPioNum        = 0;
-  cfg.mcRxQueueSize   = RX_QUEUE_SIZE;
+    cfg.mcSetupOK       = true;
+    cfg.mcRxPin         = rxPin;
+    cfg.mcTxPin         = txPin;
+    cfg.mcRxCallback    = canBusEventCallback;
+    cfg.mcSysClock      = CDC::getCpuFrequency( );
+    cfg.mcPioNum        = 0;
+    cfg.mcRxQueueSize   = RX_QUEUE_SIZE;
 
-  cfg.mcRunOnCore1    = (( fMode == CAN_BUS_LIB_PICO_PIO_125K_M_CORE ) ||
-                         ( fMode == CAN_BUS_LIB_PICO_PIO_250K_M_CORE ) ||
-                         ( fMode == CAN_BUS_LIB_PICO_PIO_500K_M_CORE ) ||
-                         ( fMode == CAN_BUS_LIB_PICO_PIO_1000K_M_CORE ));
+    cfg.mcRunOnCore1    = (( fMode == CAN_BUS_LIB_PICO_PIO_125K_M_CORE ) ||
+                            ( fMode == CAN_BUS_LIB_PICO_PIO_250K_M_CORE ) ||
+                            ( fMode == CAN_BUS_LIB_PICO_PIO_500K_M_CORE ) ||
+                            ( fMode == CAN_BUS_LIB_PICO_PIO_1000K_M_CORE ));
 
-  switch ( fMode ) {
+    switch ( fMode ) {
 
-    case CAN_BUS_LIB_PICO_PIO_125K:
-    case CAN_BUS_LIB_PICO_PIO_125K_M_CORE:   cfg.mcBitRate = 125000; break;
+        case CAN_BUS_LIB_PICO_PIO_125K:
+        case CAN_BUS_LIB_PICO_PIO_125K_M_CORE:   cfg.mcBitRate = 125000; break;
 
-    case CAN_BUS_LIB_PICO_PIO_250K:
-    case CAN_BUS_LIB_PICO_PIO_250K_M_CORE:   cfg.mcBitRate = 250000; break;
+        case CAN_BUS_LIB_PICO_PIO_250K:
+        case CAN_BUS_LIB_PICO_PIO_250K_M_CORE:   cfg.mcBitRate = 250000; break;
 
-    case CAN_BUS_LIB_PICO_PIO_500K:
-    case CAN_BUS_LIB_PICO_PIO_500K_M_CORE:   cfg.mcBitRate = 500000; break;
+        case CAN_BUS_LIB_PICO_PIO_500K:
+        case CAN_BUS_LIB_PICO_PIO_500K_M_CORE:   cfg.mcBitRate = 500000; break;
 
-    case CAN_BUS_LIB_PICO_PIO_1000K:
-    case CAN_BUS_LIB_PICO_PIO_1000K_M_CORE:  cfg.mcBitRate = 1000000; break;
+        case CAN_BUS_LIB_PICO_PIO_1000K:
+        case CAN_BUS_LIB_PICO_PIO_1000K_M_CORE:  cfg.mcBitRate = 1000000; break;
 
-    default: cfg.mcSetupOK = false;
-  }
+        default: cfg.mcSetupOK = false;
+    }
 
-  if ( cfg.mcSetupOK ) {
+    if ( cfg.mcSetupOK ) {
 
-    if ( cfg.mcRunOnCore1 ) multicore_launch_core1( canBusCore );
-    else canBusCore( );
-  }
+        if ( cfg.mcRunOnCore1 ) multicore_launch_core1( canBusCore );
+        else canBusCore( );
+    }
 
-  return (( cfg.mcSetupOK ) ? ALL_OK : ERR_CAN_BUS_INIT );
+    return (( cfg.mcSetupOK ) ? ALL_OK : ERR_CAN_BUS_INIT );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -275,26 +275,26 @@ uint8_t LCS::LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, u
 //------------------------------------------------------------------------------------------------------------
 uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
-  can2040_msg msg;
+    can2040_msg msg;
 
-  msg.id  = buildMcpCanBusHeader( canId, msgPri );
-  msg.dlc = ( msgBuf[ 0 ] >> 5 ) + 1;
+    msg.id  = buildMcpCanBusHeader( canId, msgPri );
+    msg.dlc = ( msgBuf[ 0 ] >> 5 ) + 1;
 
-  for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
+    for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
-  #if DEBUG_CAN_BUS == 1
-  printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
-  for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
-  printf( ")\n" );
-  #endif
+    #if DEBUG_CAN_BUS == 1
+    printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
+    for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
+    printf( ")\n" );
+    #endif
 
-  if ( can2040_transmit( &cBus, &msg ) != 0 ) {
+    if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
-    CDC::sleepMillis( 5 );
-    if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
-    else                              return ( ERR_CAN_MSG_SEND );
+        CDC::sleepMillis( 5 );
+        if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
+        else                              return ( ERR_CAN_MSG_SEND );
 
-  } else return ( ALL_OK );
+    } else return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -315,39 +315,39 @@ uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LCS::LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
-  can2040_msg msg;
+    can2040_msg msg;
 
-  if ( queue_try_remove( &rxQueue, &msg )) {
+    if ( queue_try_remove( &rxQueue, &msg )) {
 
-    #if DEBUG_CAN_BUS == 1
-    printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
-    for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );
-    printf( ")\n" );
-    #endif
+        #if DEBUG_CAN_BUS == 1
+        printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
+        for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );
+        printf( ")\n" );
+        #endif
 
-    bool      rtrFlag     = ( msg.id & 0x40000000 );
-    bool      extFlag     = ( msg.id & 0x80000000 );
-    uint16_t  remoteCanId = (( extFlag ) ? ( msg.id & 0x3FFF ) : ( msg.id & 0x7F ));
+        bool      rtrFlag     = ( msg.id & 0x40000000 );
+        bool      extFlag     = ( msg.id & 0x80000000 );
+        uint16_t  remoteCanId = (( extFlag ) ? ( msg.id & 0x3FFF ) : ( msg.id & 0x7F ));
 
-    if (( remoteCanId == canId ) && ( msg.dlc > 0 )) {
+        if (( remoteCanId == canId ) && ( msg.dlc > 0 )) {
 
-      return ( ERR_CAN_ID_COLLISION );
+        return ( ERR_CAN_ID_COLLISION );
+        }
+        else if ( rtrFlag ) {
+
+        msg.id          = canId;
+        msg.dlc         = 0;
+        msg.data32[ 0 ] = 0;
+        msg.data32[ 1 ] = 0;
+
+        can2040_transmit( &cBus, &msg );
+        return ( ERR_CAN_MSG_NO_MSG );
+        }
+        else {
+
+        memcpy( msgBuf, msg.data, msg.dlc );
+        return ( ALL_OK );
+        }
     }
-    else if ( rtrFlag ) {
-
-      msg.id          = canId;
-      msg.dlc         = 0;
-      msg.data32[ 0 ] = 0;
-      msg.data32[ 1 ] = 0;
-
-      can2040_transmit( &cBus, &msg );
-      return ( ERR_CAN_MSG_NO_MSG );
-    }
-    else {
-
-      memcpy( msgBuf, msg.data, msg.dlc );
-      return ( ALL_OK );
-    }
-  }
-  else return ( ERR_CAN_MSG_NO_MSG );
+    else return ( ERR_CAN_MSG_NO_MSG );
 }
