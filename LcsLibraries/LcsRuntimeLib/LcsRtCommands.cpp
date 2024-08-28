@@ -457,16 +457,16 @@ void queryNodeCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void controlNodeCommand( char *s ) {
 
-  uint16_t  portId  = NIL_PORT_ID;
-  uint8_t   item    = 0;
-  uint16_t  val1    = 0;
-  uint16_t  val2    = 0;
+    uint16_t  portId  = NIL_PORT_ID;
+    uint8_t   item    = 0;
+    uint16_t  val1    = 0;
+    uint16_t  val2    = 0;
 
-  if ( sscanf(  s, "%hu %hhu %hu %hu", &portId, &item, &val1, &val2 ) < 2 ) return;
+    if ( sscanf(  s, "%hu %hhu %hu %hu", &portId, &item, &val1, &val2 ) < 2 ) return;
 
-  uint8_t ret = nodeControl( portId, item, val1, val2 );
+    uint8_t ret = nodeControl( portId, item, val1, val2 );
 
-  printf( "<!N %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+    printf( "<!N %d|0x%x|0x%x|%d>", item, val1, val2, ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -481,18 +481,18 @@ void controlNodeCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void broadcastLcsMsgCommand( char *s ) {
 
-  uint8_t b[ 8 ] = { 0 };
-  uint8_t nBytes  = sscanf( s, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                            b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7 );
+    uint8_t b[ 8 ] = { 0 };
+    uint8_t nBytes  = sscanf( s, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
+                                b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7 );
 
-  if ( nBytes >= 1 && nBytes <= 8 ) {
+    if ( nBytes >= 1 && nBytes <= 8 ) {
 
-    int ret = msgBus -> sendLcsMsg( b ); 
+        int ret = msgBus -> sendLcsMsg( b ); 
 
-    printf( "<!B [ " );
-    for ( int i = 0; i < 8; i++ ) printf( "0x%x ", b[ i ] );
-    printf( "] : %d >", ret );
-  }
+        printf( "<!B [ " );
+        for ( int i = 0; i < 8; i++ ) printf( "0x%x ", b[ i ] );
+        printf( "] : %d >", ret );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -509,23 +509,31 @@ void listStatusCommand( char *s ) {
 
     if ( sscanf( s, " %d", &level ) > 0 ) {
 
-    switch ( level ) {
+        switch ( level ) {
 
-      case 0:  printSummary( );    break;
-      case 1:  dumpNodeMap( );     break;
-      case 2:  dumpNodeData( );    break;
-      case 3:  dumpPortMap( );     break;
-      case 4:  dumpEventMap( );    break;
-      case 6:  dumpTaskMap( );     break;
-      case 7:  dumpCallbackMap( ); break;
-      case 8:  dumpNvmArea( );     break;
-      case 9:  dumpMemArea( );     break;
-      case 10: dumpDrvMap( );     break;
+            case 0:  printSummary( );    break;
+            case 1:  dumpNodeMap( );     break;
+            case 2:  dumpNodeData( );    break;
+            case 3:  dumpPortMap( );     break;
+            case 4:  dumpEventMap( );    break;
+            case 6:  dumpTaskMap( );     break;
+            case 7:  dumpCallbackMap( ); break;
+            case 8:  dumpNvmArea( );     break;
+            case 9:  dumpMemArea( );     break;
+            case 10: dumpDrvMap( );     break;
 
-      default: printf( "<Unknown help option, use '?' for help>" );
-    }
-    } else printSummary( );
+            default: printf( "<Unknown help option, use '?' for help>" );
+        }
+    } 
+    else printSummary( );
 }
+
+
+// ??? need commands to write to the driver data area and flush it to the NVM ( jumper set in ... )
+// ??? is that a generic driver or just a command with appropriate data ? 
+
+// ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initia PWM values, etc.
+
 
 //------------------------------------------------------------------------------------------------------------
 // "driver request" command.
@@ -542,16 +550,16 @@ void listStatusCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void drvRequestCommand( char *s ) {
 
-  uint8_t  boardId  = 0;
-  uint8_t  item     = 0;
-  uint16_t arg1     = 0;
-  uint16_t arg2     = 0;
+    uint8_t  boardId  = 0;
+    uint8_t  item     = 0;
+    uint16_t arg1     = 0;
+    uint16_t arg2     = 0;
 
-  if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
+    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
 
-  int ret = drvReq( boardId, item, arg1, &arg2 );
+    int ret = drvReq( boardId, item, arg1, &arg2 );
 
-  printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
+    printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
 }
 
 
@@ -565,30 +573,30 @@ void drvRequestCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void listCoreLibHelpCommand( ) {
 
-  printf( "\nCommands: \n" );
-  printf( "<!c > - enter config mode\n" );
-  printf( "<!o > - enter operations mode\n" );
-  printf( "<!a eventId [ portId ] > - add an event to the event tab\n" );
-  printf( "<!r eventId [ portId ] > - remove an event from the event tab\n" );
-  printf( "<!f eventId [ portId ] > - search an event on the event tab\n" );
-  printf( "<!e mode nodeId eventId [ arg ] > - simulate sending an event ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
-  printf( "<!n portId item > - list a node attribute\n" );
-  printf( "<!N portId item val1 [ val2 ] > - sets a node attribute\n" );
-  printf( "<!B byte1 [ byte2 ... byte8 ] > - broadcast a raw LCS message\n" );
-  printf( "<!D board item [ arg1 [ arg2 ]] > - send a request to an extension board n\n" );
+    printf( "\nCommands: \n" );
+    printf( "<!c > - enter config mode\n" );
+    printf( "<!o > - enter operations mode\n" );
+    printf( "<!a eventId [ portId ] > - add an event to the event tab\n" );
+    printf( "<!r eventId [ portId ] > - remove an event from the event tab\n" );
+    printf( "<!f eventId [ portId ] > - search an event on the event tab\n" );
+    printf( "<!e mode nodeId eventId [ arg ] > - simulate sending an event ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
+    printf( "<!n portId item > - list a node attribute\n" );
+    printf( "<!N portId item val1 [ val2 ] > - sets a node attribute\n" );
+    printf( "<!B byte1 [ byte2 ... byte8 ] > - broadcast a raw LCS message\n" );
+    printf( "<!D board item [ arg1 [ arg2 ]] > - send a request to an extension board n\n" );
 
-  printf( " < !s [ level ] > - list status, default is summary\n" );
-  printf( "              " " -  0 - summary\n" );
-  printf( "              " " -  1 - Node Map\n" );
-  printf( "              " " -  2 - Node Data\n" );
-  printf( "              " " -  3 - Port Map\n" );
-  printf( "              " " -  4 - Event Map\n" );
-  printf( "              " " -  5 - Attribute Map\n" );
-  printf( "              " " -  6 - Ptask Map\n" );
-  printf( "              " " -  7 - Callback Map\n" );
-  printf( "              " " -  8 - NVM Area\n" );
-  printf( "              " " -  9 - MEM Area\n" );
-  printf( "              " " - 10 - Driver Area\n" );
+    printf( " < !s [ level ] > - list status, default is summary\n" );
+    printf( "              " " -  0 - summary\n" );
+    printf( "              " " -  1 - Node Map\n" );
+    printf( "              " " -  2 - Node Data\n" );
+    printf( "              " " -  3 - Port Map\n" );
+    printf( "              " " -  4 - Event Map\n" );
+    printf( "              " " -  5 - Attribute Map\n" );
+    printf( "              " " -  6 - Ptask Map\n" );
+    printf( "              " " -  7 - Callback Map\n" );
+    printf( "              " " -  8 - NVM Area\n" );
+    printf( "              " " -  9 - MEM Area\n" );
+    printf( "              " " - 10 - Driver Area\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -597,7 +605,7 @@ void listCoreLibHelpCommand( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
 
-  return ( CDC::configureConsoleIO( ));
+    return ( CDC::configureConsoleIO( ));
 }
 
 // ??? need status commands for driver and extension board stuff...

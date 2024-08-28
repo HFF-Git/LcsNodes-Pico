@@ -86,7 +86,7 @@ const char  *nodeDefName  = "Node Name";
 //------------------------------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
-  return (( val >= lower ) && ( val <= upper ));
+    return (( val >= lower ) && ( val <= upper ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -95,65 +95,67 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 //------------------------------------------------------------------------------------------------------------
 uint16_t roundup( uint16_t elements, uint16_t alignSize ) {
 
-  return ((( elements + alignSize - 1 ) / alignSize ) * alignSize );
+    return ((( elements + alignSize - 1 ) / alignSize ) * alignSize );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "buildDefaultNodeMap" build a nodeMap with default values. 
+// "buildDefaultNodeMap" build a nodeMap with default values and store it on the NVM.
 //
+// ??? sync with libint.h 
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
-  nMap -> magicWord1                    = NODE_MWORD_1;
-  nMap -> magicWord2                    = NODE_MWORD_2;
+    nMap -> magicWord1              = NVM_MWORD_1;
+    nMap -> magicWord2              = NVM_MWORD_2;
 
-  nMap -> options                       = 0;
-  nMap -> flags                         = 0;
+    nMap -> options                 = 0;
+    nMap -> flags                   = 0;
 
-  nMap -> nodeState                     = NS_NIL;
+    nMap -> nodeState               = NS_NIL;
 
-  nMap -> controllerFamily              = CF_FAM_NIL;
-  nMap -> nvmChipFamily                 = CF_FAM_MICROCHIP;
-  nMap -> boardType                     = BT_NIL;
+    nMap -> controllerFamily        = CF_FAM_NIL;
+    nMap -> nvmChipFamily           = CF_FAM_MICROCHIP;
+    nMap -> boardType               = BT_NIL;
 
-  nMap -> nodeSwVersion                 = 0;
-  nMap -> nodeSwPatchLevel              = 0;
-  nMap -> nodeRestartCnt                = 0;
+    nMap -> nodeSwVersion           = 0;
+    nMap -> nodeSwPatchLevel        = 0;
+    nMap -> nodeRestartCnt          = 0;
 
-  nMap -> nodeId                        = NIL_NODE_ID;
-  nMap -> nodeUID                       = CDC::createUid( );
-  nMap -> nodeType                      = NIL_NODE_TYPE;   
+    nMap -> nodeId                  = NIL_NODE_ID;
+    nMap -> nodeUID                 = CDC::createUid( );
+    nMap -> nodeType                = NIL_NODE_TYPE;   
 
-  nMap -> nodeMapNvmOfs                 = NVM_NODE_MAP_START;
-  nMap -> portMapNvmOfs                 = NVM_PORT_MAP_START;
-  nMap -> nodeDataOfs                   = NVM_NODE_DATA_START;
-  nMap -> eventMapNvmOfs                = NVM_EVENT_MAP_START;
-  nMap -> userMapNvmOfs                 = NVM_USER_MAP_START;
-  nMap -> nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
+    nMap -> nodeMapNvmOfs           = NVM_NODE_MAP_START;
+    nMap -> portMapNvmOfs           = NVM_PORT_MAP_START;
+    nMap -> nodeDataOfs             = NVM_NODE_DATA_START;
+    nMap -> eventMapNvmOfs          = NVM_EVENT_MAP_START;
+    nMap -> userMapNvmOfs           = NVM_USER_MAP_START;
+    nMap -> nvmMemSize              = NVM_RUNTIME_AREA_SIZE;
 
-  nMap -> portMapOptions                = 0;
-  nMap -> portMapFlags                  = 0;
-  nMap -> portMapEntries                = MAX_PORT_MAP_ENTRIES;
+    nMap -> portMapOptions          = 0;
+    nMap -> portMapFlags            = 0;
+    nMap -> portMapEntries          = MAX_PORT_MAP_ENTRIES;
+    nMap -> portMapHwm              = 0;
 
-  nMap -> eventMapOptions               = 0;
-  nMap -> eventMapFlags                 = 0;
-  nMap -> eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
-  nMap -> eventMapHwm                   = 0;
+    nMap -> eventMapOptions         = 0;
+    nMap -> eventMapFlags           = 0;
+    nMap -> eventMapEntries         = MAX_EVENT_MAP_ENTRIES;
+    nMap -> eventMapHwm             = 0;
 
-  nMap -> nodeMapSize                   = sizeof( LcsNodeMap ); 
+    nMap -> nodeMapSize                   = sizeof( LcsNodeMap ); 
 
   // ??? data for the extension boards ?
 
-  nMap -> debugEnabled                  = 0;
-  nMap -> debugNodeSetup                = 0;
-  nMap -> debugNvmAccess                = 0;
-  nMap -> debugCanBusMsg                = 0;
-  nMap -> debugAttrAccess               = 0;
-  nMap -> debugEventHandling            = 0;
+    nMap -> debugEnabled                  = 0;
+    nMap -> debugNodeSetup                = 0;
+    nMap -> debugNvmAccess                = 0;
+    nMap -> debugCanBusMsg                = 0;
+    nMap -> debugAttrAccess               = 0;
+    nMap -> debugEventHandling            = 0;
   
-  memcpy( &nMap -> name, nodeDefName, strlen( nodeDefName ));
+    memcpy( &nMap -> name, nodeDefName, strlen( nodeDefName ));
 
-  rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) nMap, sizeof( LcsNodeMap));
+    rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) nMap, sizeof( LcsNodeMap));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -163,24 +165,24 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultPortMap( LcsPortMap *pMap ) {
 
-  uint8_t         rStat; 
-  LcsPortMapEntry pEntry;
- 
-  pEntry.options                         = 0;
-  pEntry.flags                           = 0;
-  pEntry.type                            = 0;
+    uint8_t         rStat; 
+    LcsPortMapEntry pEntry;
+    
+    pEntry.options                         = 0;
+    pEntry.flags                           = 0;
+    pEntry.type                            = 0;
 
-  pEntry.nodeId                          = NIL_NODE_ID;
-  pEntry.eventId                         = NIL_EVENT_ID;
-  pEntry.eventValue                      = 0;
-  pEntry.eventAction                     = PEA_EVENT_IDLE;
-  pEntry.eventDelayTime                  = 0;
-  pEntry.eventTimeStamp                  = 0L;
+    pEntry.nodeId                          = NIL_NODE_ID;
+    pEntry.eventId                         = NIL_EVENT_ID;
+    pEntry.eventValue                      = 0;
+    pEntry.eventAction                     = PEA_EVENT_IDLE;
+    pEntry.eventDelayTime                  = 0;
+    pEntry.eventTimeStamp                  = 0L;
 
-  for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+    for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-    sprintf( pEntry.name, "Port: %d", i );
-  }
+        sprintf( pEntry.name, "Port: %d", i );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -189,11 +191,11 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultEventMap( LcsEventMap *eMap ) {
 
-  for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
+    for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
 
-    eMap -> map[ i ].eventId = NIL_EVENT_ID;
-    eMap -> map[ i ].portId  = NIL_PORT_ID;
-  }
+        eMap -> map[ i ].eventId = NIL_EVENT_ID;
+        eMap -> map[ i ].portId  = NIL_PORT_ID;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -202,7 +204,7 @@ void buildDefaultEventMap( LcsEventMap *eMap ) {
 //------------------------------------------------------------------------------------------------------------
 void builDefaultNodeData( LcsNodeData *nData ) {
 
-  memset( nData -> map, 0, MAX_NODE_DATA_BLOCKS * MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t));
+    memset( nData -> map, 0, MAX_NODE_DATA_BLOCKS * MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -211,16 +213,16 @@ void builDefaultNodeData( LcsNodeData *nData ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultExtBoardDesc( LcsDrvBoardDesc *bDesc ) {
 
-  bDesc -> magicWord1        = EXT_MWORD_1;
-  bDesc -> options           = 0;
-  bDesc -> flags             = 0;
-  bDesc -> boardType         = BT_NIL;
-  bDesc -> boardVersion      = 0;
-  bDesc -> controllerFamily  = CF_FAM_NIL;
-  bDesc -> nvmChipFamily     = CF_FAM_MICROCHIP;
-  bDesc -> magicWord2        = EXT_MWORD_2;
+    bDesc -> magicWord1        = NVM_MWORD_1;
+    bDesc -> options           = 0;
+    bDesc -> flags             = 0;
+    bDesc -> boardType         = BT_NIL;
+    bDesc -> boardVersion      = 0;
+    bDesc -> controllerFamily  = CF_FAM_NIL;
+    bDesc -> nvmChipFamily     = CF_FAM_MICROCHIP;
+    bDesc -> magicWord2        = NVM_MWORD_2;
 
-  memset( bDesc -> driverData, 0, MAX_DRIVER_DATA_SIZE * sizeof( uint16_t ));
+    memset( bDesc -> driverData, 0, MAX_DRIVER_DATA_SIZE * sizeof( uint16_t ));
 }
 
 }; // namespace
@@ -241,12 +243,12 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 
-  CDC::init( ci );
+    CDC::init( ci );
 
-  if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
-  if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
+    if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
+    if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -257,32 +259,32 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "initNvmChannels: nvmSCL: %d, nvmSDA: %d, nvmSCL: %d, nvmSDA: %d\n", 
-          ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN ); 
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "initNvmChannels: nvmSCL: %d, nvmSDA: %d, nvmSCL: %d, nvmSDA: %d\n", 
+            ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN ); 
+    #endif
 
-  uint8_t rStat;
+    uint8_t rStat;
 
-  if (( ci -> NVM_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> NVM_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
+    if (( ci -> NVM_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> NVM_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
 
-    rStat = CDC::configureI2C( ci -> NVM_I2C_SCL_PIN , ci -> NVM_I2C_SDA_PIN );
-    if ( rStat != ALL_OK ) return( rStat );
-  }
+        rStat = CDC::configureI2C( ci -> NVM_I2C_SCL_PIN , ci -> NVM_I2C_SDA_PIN );
+        if ( rStat != ALL_OK ) return( rStat );
+    }
 
-  if (( ci -> EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> EXT_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
+    if (( ci -> EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> EXT_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
 
-    rStat = CDC::configureI2C( ci -> EXT_I2C_SCL_PIN , ci -> EXT_I2C_SDA_PIN );
-    if ( rStat != ALL_OK ) return( rStat );
-  }
+        rStat = CDC::configureI2C( ci -> EXT_I2C_SCL_PIN , ci -> EXT_I2C_SDA_PIN );
+        if ( rStat != ALL_OK ) return( rStat );
+    }
 
-  rStat = configNvm( ci );
+    rStat = configNvm( ci );
 
-  #if DEBUG_CONFIG == 1
-  printf( "initNvmChannels, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "initNvmChannels, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -292,23 +294,23 @@ uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "initCanBus\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "initCanBus\n" );
+    #endif
 
-  msgBus = new LcsMsgBusCAN( );
+    msgBus = new LcsMsgBusCAN( );
 
-  uint8_t rStat = msgBus -> init( 0, ci -> CAN_BUS_RX_PIN, ci -> CAN_BUS_TX_PIN, ci -> CAN_BUS_CTRL_MODE );
-  if ( rStat != ALL_OK ) {
+    uint8_t rStat = msgBus -> init( 0, ci -> CAN_BUS_RX_PIN, ci -> CAN_BUS_TX_PIN, ci -> CAN_BUS_CTRL_MODE );
+    if ( rStat != ALL_OK ) {
 
-    // ??? check what to actuall return...
-  }
+        // ??? check what to actuall return...
+    }
 
-  #if DEBUG_CONFIG == 1
-  printf( "initCanBus, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "initCanBus, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -324,33 +326,33 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupNodeMap\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupNodeMap\n" );
+    #endif
 
-  uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
-  if ( rStat != ALL_OK ) return( rStat );  // ??? rather fatal error ?
+    uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    if ( rStat != ALL_OK ) return( rStat );  // ??? rather fatal error ?
 
-  if (( nodeMap.magicWord1 != NODE_MWORD_1 ) || 
-      ( nodeMap.magicWord2 != NODE_MWORD_2 ) || 
-      ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
+    if (( nodeMap.magicWord1 != NVM_MWORD_1 ) || 
+        ( nodeMap.magicWord2 != NVM_MWORD_2 ) || 
+        ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
 
-      buildDefaultNodeMap( &nodeMap );
-      buildDefaultPortMap( &portMap );
-      buildDefaultEventMap( &eventMap );
-      builDefaultNodeData( &nodeData );
+        buildDefaultNodeMap( &nodeMap );
+        buildDefaultPortMap( &portMap );
+        buildDefaultEventMap( &eventMap );
+        builDefaultNodeData( &nodeData );
 
-      rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
-      rtNvmPutBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
-      rtNvmPutBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
-      rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
-  }
+        rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+        rtNvmPutBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+        rtNvmPutBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
+        rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
+    }
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupNodeMap, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupNodeMap, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -379,31 +381,31 @@ uint8_t setupPortMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupEventMap\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupEventMap\n" );
+    #endif
 
-  uint8_t rStat;
+    uint8_t rStat;
 
-  if ( nodeMap.eventMapHwm < MAX_EVENT_MAP_ENTRIES ) {
+    if ( nodeMap.eventMapHwm < MAX_EVENT_MAP_ENTRIES ) {
 
-    for ( uint16_t i = 0; i < nodeMap.eventMapHwm; i++ ) {
+        for ( uint16_t i = 0; i < nodeMap.eventMapHwm; i++ ) {
 
-    uint8_t rStat = rtNvmGetBytes(  NVM_EVENT_MAP_START + i * sizeof( LcsEventMapEntry), 
-                                    (uint8_t *) &eventMap.map[ i ], 
-                                    sizeof( LcsEventMapEntry ));
+        uint8_t rStat = rtNvmGetBytes(  NVM_EVENT_MAP_START + i * sizeof( LcsEventMapEntry), 
+                                        (uint8_t *) &eventMap.map[ i ], 
+                                        sizeof( LcsEventMapEntry ));
+        }
     }
-  }
-  else ;
-  
-  // ??? anything to validate ?
-  // ??? sort, just in case ?
+    else ;
+    
+    // ??? anything to validate ?
+    // ??? sort, just in case ?
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupEventMap, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupEventMap, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -413,17 +415,17 @@ uint8_t setupEventMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupUserMap\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupUserMap\n" );
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupUserMap, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupUserMap, status: %d\n", rStat );
+    #endif
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -433,33 +435,33 @@ uint8_t setupUserMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupCallbackMap( ) {
 
-   #if DEBUG_CONFIG == 1
-  printf( "setupCallbackMap\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupCallbackMap\n" );
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  callbackMap.flags                 = 0;
-  callbackMap.size                  = MAX_PORT_MAP_ENTRIES + 1; 
+    callbackMap.flags                 = 0;
+    callbackMap.size                  = MAX_PORT_MAP_ENTRIES + 1; 
 
-  callbackMap.lcsMsgCallback        = nullptr;
-  callbackMap.dccMsgCallback        = nullptr;
-  callbackMap.cmdLineCallback       = nullptr;
-  callbackMap.portEventCallback     = nullptr;
-  callbackMap.itemReqRepCallback    = nullptr;
+    callbackMap.lcsMsgCallback        = nullptr;
+    callbackMap.dccMsgCallback        = nullptr;
+    callbackMap.cmdLineCallback       = nullptr;
+    callbackMap.portEventCallback     = nullptr;
+    callbackMap.itemReqRepCallback    = nullptr;
 
-  for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-      
-    callbackMap.map[ i ].initCallback     = nullptr;
-    callbackMap.map[ i ].infoItemCallback = nullptr;
-    callbackMap.map[ i ].ctrlItemCallback = nullptr;
-  }
+    for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+        
+        callbackMap.map[ i ].initCallback     = nullptr;
+        callbackMap.map[ i ].infoItemCallback = nullptr;
+        callbackMap.map[ i ].ctrlItemCallback = nullptr;
+    }
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupCallbackMap, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupCallbackMap, status: %d\n", rStat );
+    #endif
 
-  return( ALL_OK );
+    return( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -469,29 +471,29 @@ uint8_t setupCallbackMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupTaskMap( ) {
 
-   #if DEBUG_CONFIG == 1
-  printf( "setupTaskMap\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupTaskMap\n" );
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  taskMap.flags = 0;
-  taskMap.size  = MAX_TASK_MAP_ENTRIES;
-  taskMap.hwm   = taskMap.map;
-  taskMap.next  = taskMap.map;
+    taskMap.flags = 0;
+    taskMap.size  = MAX_TASK_MAP_ENTRIES;
+    taskMap.hwm   = taskMap.map;
+    taskMap.next  = taskMap.map;
 
-  for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) {
+    for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) {
 
-    taskMap.map[ i ].task       = nullptr;
-    taskMap.map[ i ].interval   = 0;
-    taskMap.map[ i ].timeStamp  = 0;
-  }
+        taskMap.map[ i ].task       = nullptr;
+        taskMap.map[ i ].interval   = 0;
+        taskMap.map[ i ].timeStamp  = 0;
+    }
 
-  #if DEBUG_CONFIG == 1
-  printf( "setupTaskMap, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "setupTaskMap, status: %d\n", rStat );
+    #endif
 
-  return( ALL_OK );
+    return( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -500,43 +502,56 @@ uint8_t setupTaskMap( ) {
 // boards, numbered from 0 to 3. 
 //
 //
+// The sequence is: detect the boards. We just try to read the NVMs on the boards. They have a fixed 
+// address. Adjust the HWN accordingly. Also prepare the header data in MEM, e.g. set the flags that we 
+// found a valid extension board. Note that we cannot manipulate the NVM, as it is read protected.
+//
+// If the header is not valid and we cannot write to the NVM, the data is considered to be currupt and
+// needs to be initialized with the jumper set.
+//
+// The driver need an item command to write an initial NVM area for their board type. This driver would 
+// however be a generic driver to write on any board. 
+// -> write header and driver data.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t detectExtensionBoards( ) {
 
-  #if DEBUG_CONFIG == 1
-  printf( "detectExtensionBoards\n" );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "detectExtensionBoards\n" );
+    #endif
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+    for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-    rStat = extNvmGetBytes( i, 0, (uint8_t *) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ));
-    if ( rStat == ALL_OK ) {
+        rStat = extNvmGetBytes( i, 0, (uint8_t *) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ));
+        if ( rStat == ALL_OK ) {
 
-      switch( drvMap.map[ i ].extBoard->boardType ) {
+            switch( drvMap.map[ i ].extBoard -> boardType ) {
 
-          // ??? set the driver ...
+                // ??? set the driver ...
 
-      }
+            }
+        }
+        else {
+
+            #if DEBUG_CONFIG == 1
+            printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
+            #endif
+        }
     }
-    else {
-      #if DEBUG_CONFIG == 1
-      printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
-      #endif
-    }
-  }
 
-  #if DEBUG_CONFIG == 1
-  printf( "detectExtensionBoards, status: %d\n", rStat );
-  #endif
+    #if DEBUG_CONFIG == 1
+    printf( "detectExtensionBoards, status: %d\n", rStat );
+    #endif
 
-  return ( rStat );
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// For all detected extension boards, we will invoke the driver with the "SETUP" item code.
+// For all detected extension boards, we will invoke the driver with the "SETUP" item code. 
+// 
+// We do this up to the HWM only. The driover setup code has access to the driver data in MEM.
 //
 // ??? what to do on a failure ? We do not want to stop the entire setup sequence ?
 //------------------------------------------------------------------------------------------------------------
@@ -552,9 +567,9 @@ uint8_t setupExtensionBoards( ) {
 
         if ( drvMap.map[ i ].extBoard -> flags != 0  ) {
 
-        rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
+            rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
         
-        // ??? on an error, we just mark the extension as "error" but continue ?
+            // ??? on an error, we just mark the extension as "error" but continue ?
         } 
     }
 
@@ -564,6 +579,12 @@ uint8_t setupExtensionBoards( ) {
 
     return ( rStat );
 }
+
+
+// ??? the INIT callbacks should have a paramater which allows to distinguish a startup, a reset or a 
+// power fail. Power fail also sets the node state to PFAIL so we know that we had a power fail.
+// Power fail will perhaps also wrote some data to nodeMap....
+
 
 //------------------------------------------------------------------------------------------------------------
 // "invokeInitCallbacks" invokes the registered initialization callbacks for the node and the ports. The 

@@ -142,14 +142,11 @@ const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
 // The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
 // locations for the magic words. If found, the area was configured before. It would be quite unlikely
 // that a random NVM content has these two words at the right spot. In a similar way, we have two magic 
-// words for the NVM in an extension board. Same ide, same logic.
+// words for the NVM in an extension board. Same idea, same logic.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t NODE_MWORD_1 = ( 'L' << 8 ) + 'C';
-const uint16_t NODE_MWORD_2 = ( 'S' << 8 ) + 'R';
-
-const uint16_t EXT_MWORD_1  = ( 'L' << 8 ) + 'C';
-const uint16_t EXT_MWORD_2  = ( 'S' << 8 ) + 'E';
+const uint16_t NVM_MWORD_1 = ( 'L' << 8 ) + 'C';
+const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + ' ';
 
 //------------------------------------------------------------------------------------------------------------
 // The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
@@ -254,7 +251,23 @@ struct LcsCdcDesc {
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeData {
 
-  uint16_t map[ MAX_PORT_MAP_ENTRIES + 1 ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
+    uint16_t map[ MAX_PORT_MAP_ENTRIES + 1 ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
+};
+
+//----------------------------------------------------------------------------------------------------------
+// The NVM chips will all start with this header. 
+//
+//----------------------------------------------------------------------------------------------------------
+struct LcsNvmHeader {
+
+    uint16_t  magicWord1                    = NVM_MWORD_1;
+    uint16_t  options                       = 0;
+    uint16_t  flags                         = 0;
+    uint16_t  boardType                     = BT_NIL;
+    uint16_t  boardVersion                  = 0;
+    uint16_t  controllerFamily              = CF_FAM_RPICO_2040;
+    uint16_t  nvmChipFamily                 = CF_FAM_MICROCHIP;
+    uint16_t  magicWord2                    = NVM_MWORD_2;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -269,47 +282,47 @@ struct LcsNodeData {
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-    uint16_t  magicWord1                    = NODE_MWORD_1;
-    uint16_t  options                       = 0;
-    uint16_t  flags                         = 0;
-    uint16_t  boardType                     = BT_NIL;
-    uint16_t  boardVersion                  = 0;
-    uint16_t  controllerFamily              = CF_FAM_RPICO_2040;
-    uint16_t  nvmChipFamily                 = CF_FAM_MICROCHIP;
-    uint16_t  magicWord2                    = NODE_MWORD_2;
+    uint16_t    magicWord1                    = NVM_MWORD_1;
+    uint16_t    options                       = 0;
+    uint16_t    flags                         = 0;
+    uint16_t    boardType                     = BT_NIL;
+    uint16_t    boardVersion                  = 0;
+    uint16_t    controllerFamily              = CF_FAM_RPICO_2040;
+    uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
+    uint16_t    magicWord2                    = NVM_MWORD_2;
 
-    uint16_t  nodeState                     = NS_NIL;
-    uint16_t  nodeId                        = NIL_NODE_ID;
-    uint32_t  nodeUID                       = 0L;
-    uint16_t  nodeType                      = NIL_NODE_TYPE;   
-    uint16_t  nodeSwVersion                 = 0;
-    uint16_t  nodeSwPatchLevel              = 0;
-    uint16_t  nodeRestartCnt                = 0;
-    uint32_t  nodeSystemTime                = 0;
-    uint16_t  nodeMapSize                   = sizeof( LcsNodeMap );  
-    char      name[ MAX_NODE_NAME_SIZE ]    = { 0 };
+    uint16_t    nodeState                     = NS_NIL;
+    uint16_t    nodeId                        = NIL_NODE_ID;
+    uint32_t    nodeUID                       = 0L;
+    uint16_t    nodeType                      = NIL_NODE_TYPE;   
+    uint16_t    nodeSwVersion                 = 0;
+    uint16_t    nodeSwPatchLevel              = 0;
+    uint16_t    nodeRestartCnt                = 0;
+    uint32_t    nodeSystemTime                = 0;
+    uint16_t    nodeMapSize                   = sizeof( LcsNodeMap );  
+    char        name[ MAX_NODE_NAME_SIZE ]    = { 0 };
 
-    uint16_t  nodeMapNvmOfs                 = NVM_NODE_MAP_START;
-    uint16_t  portMapNvmOfs                 = NVM_PORT_MAP_START;
-    uint16_t  nodeDataOfs                   = NVM_NODE_DATA_START;
-    uint16_t  eventMapNvmOfs                = NVM_EVENT_MAP_START;
-    uint16_t  userMapNvmOfs                 = NVM_USER_MAP_START;
-    uint32_t  nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
+    uint16_t    nodeMapNvmOfs                 = NVM_NODE_MAP_START;
+    uint16_t    portMapNvmOfs                 = NVM_PORT_MAP_START;
+    uint16_t    nodeDataOfs                   = NVM_NODE_DATA_START;
+    uint16_t    eventMapNvmOfs                = NVM_EVENT_MAP_START;
+    uint16_t    userMapNvmOfs                 = NVM_USER_MAP_START;
+    uint32_t    nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
 
-    uint16_t  portMapOptions                = 0;
-    uint16_t  portMapFlags                  = 0;
-    uint16_t  portMapEntries                = MAX_PORT_MAP_ENTRIES;
-    uint16_t  portMapHwm                    = 0;
+    uint16_t    portMapOptions                = 0;
+    uint16_t    portMapFlags                  = 0;
+    uint16_t    portMapEntries                = MAX_PORT_MAP_ENTRIES;
+    uint16_t    portMapHwm                    = 0;
 
-    uint16_t  eventMapOptions               = 0;
-    uint16_t  eventMapFlags                 = 0;
-    uint16_t  eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
-    uint16_t  eventMapHwm                   = 0;
+    uint16_t    eventMapOptions               = 0;
+    uint16_t    eventMapFlags                 = 0;
+    uint16_t    eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
+    uint16_t    eventMapHwm                   = 0;
 
-    uint16_t  drvMapOptions                 = 0;
-    uint16_t  drvMapFlags                   = 0;
-    uint16_t  drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
-    uint16_t  drvMapHwm                     = 0;
+    uint16_t    drvMapOptions                 = 0;
+    uint16_t    drvMapFlags                   = 0;
+    uint16_t    drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t    drvMapHwm                     = 0;
 
     // ??? rethink ....
     uint16_t  debugEnabled                  = 0;
@@ -469,16 +482,16 @@ extern "C" {
 //------------------------------------------------------------------------------------------------------------
 struct LcsDrvBoardDesc {
 
-  uint16_t  magicWord1        = EXT_MWORD_1;
-  uint16_t  options           = 0;
-  uint16_t  flags             = 0;
-  uint16_t  boardType         = BT_NIL;
-  uint16_t  boardVersion      = 0;
-  uint16_t  controllerFamily  = CF_FAM_NIL;
-  uint16_t  nvmChipFamily     = CF_FAM_MICROCHIP;
-  uint16_t  magicWord2        = EXT_MWORD_2;
-
-  uint16_t  driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
+    uint16_t    magicWord1                    = NVM_MWORD_1;
+    uint16_t    options                       = 0;
+    uint16_t    flags                         = 0;
+    uint16_t    boardType                     = BT_NIL;
+    uint16_t    boardVersion                  = 0;
+    uint16_t    controllerFamily              = CF_FAM_RPICO_2040;
+    uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
+    uint16_t    magicWord2                    = NVM_MWORD_2;
+    
+    uint16_t    driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
 };
 
 //----------------------------------------------------------------------------------------------------------

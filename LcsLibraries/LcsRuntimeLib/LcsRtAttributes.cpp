@@ -205,7 +205,7 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
             case NPI_GET_OPTIONS: {
 
-                if ( arg1 != nullptr ) *arg1 = nodeMap. options;
+                if ( arg1 != nullptr ) *arg1 = nodeMap.options;
                 return ( ALL_OK );
             }
 
@@ -265,7 +265,7 @@ uint8_t nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 )
 
         case NPI_GET_NODE_FLAGS:  {
 
-            if ( arg1 != nullptr ) *arg1 = nodeMap. flags;
+            if ( arg1 != nullptr ) *arg1 = nodeMap.flags;
             return ( ALL_OK );
             }
 

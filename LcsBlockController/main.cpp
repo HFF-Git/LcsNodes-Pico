@@ -123,6 +123,18 @@ uint8_t startLcsRuntime( ) {
 }
 
 
+// ??? need a power fail callback to store critical data.
+
+// ??? need to think about an orderly shutdown, engines will be all over the place.
+// ??? need to save block state, engine type, speed, engine Id, sessionId, etc.
+// ??? route Id ?
+
+// ??? perhaps we create session Ids for all engine found... ???
+
+
+// ??? rising edge of cutout will sync PWM drivers.... need an interrupt handler...
+
+
 
 //----------------------------------------------------------------------------------------------------------
 // 
@@ -135,3 +147,4 @@ int main( ) {
     startLcsRuntime( );
     return( 0 );
 }
+

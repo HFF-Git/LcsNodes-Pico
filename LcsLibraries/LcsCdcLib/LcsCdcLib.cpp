@@ -62,126 +62,126 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------  
-  // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-  // settoin of the debiug level.
-  //---------------------------------------------------------------------------------------------------------- 
-  uint8_t debugLevel = 0;
- 
-  //----------------------------------------------------------------------------------------------------------  
-  // The CDC Library version data.
-  //
-  // ??? to set to real values.
-  //----------------------------------------------------------------------------------------------------------
-  const uint8_t CDC_LIB_MAJOR_VERSION = 5;
-  const uint8_t CDC_LIB_MINOR_VERSION = 1;
+//------------------------------------------------------------------------------------------------------------  
+// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+// settoin of the debiug level.
+//------------------------------------------------------------------------------------------------------------ 
+uint8_t debugLevel = 0;
 
-  //----------------------------------------------------------------------------------------------------------
-  // Valid pin mapping for the Raspberry PI Pico board. We construct a set of bitmasks for the pin numbers.
-  // Pin Numbers range from 0 to 28. The bitmasks specify wether a pin can be assigned to the hardware type
-  // purpose. During configuration of a CDC function, the pins are checked against these bitmasks. All pins
-  // can be used as GPIO pins or PWM pins. All other hardware functions are bound to dedicated pins. Note
-  // that we do not check for assigning a pin to several different hardware functions. All we check is that
-  // the pin can be used for the desired purpose. A check performed by the CDC library routines is simply
-  // done through:
-  //
-  //    if (( 1 <<  pin ) & VALID_xxx )
-  //
-  //----------------------------------------------------------------------------------------------------------
-  const uint8_t  MAX_PIN_NUM          = 28;
+//------------------------------------------------------------------------------------------------------------  
+// The CDC Library version data.
+//
+// ??? to set to real values.
+//------------------------------------------------------------------------------------------------------------
+const uint8_t CDC_LIB_MAJOR_VERSION = 5;
+const uint8_t CDC_LIB_MINOR_VERSION = 1;
 
-  const uint32_t VALID_GPIO_PINS      = 0x1FFFFFFF;
-  const uint32_t VALID_PWM_PINS       = 0x1FFFFFFF;
-  const uint32_t VALID_ADC_PINS       = ( 1 << 26 ) | ( 1 << 27 ) | ( 1 << 28 );
+//------------------------------------------------------------------------------------------------------------
+// Valid pin mapping for the Raspberry PI Pico board. We construct a set of bitmasks for the pin numbers.
+// Pin Numbers range from 0 to 28. The bitmasks specify wether a pin can be assigned to the hardware type
+// purpose. During configuration of a CDC function, the pins are checked against these bitmasks. All pins
+// can be used as GPIO pins or PWM pins. All other hardware functions are bound to dedicated pins. Note
+// that we do not check for assigning a pin to several different hardware functions. All we check is that
+// the pin can be used for the desired purpose. A check performed by the CDC library routines is simply
+// done through:
+//
+//    if (( 1 <<  pin ) & VALID_xxx )
+//
+//------------------------------------------------------------------------------------------------------------
+const uint8_t  MAX_PIN_NUM          = 28;
 
-  const uint32_t VALID_I2C_0_SDA_PINS = ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 8  ) |
-                                        ( 1 << 12 ) | ( 1 << 16 ) | ( 1 << 20 );
-  const uint32_t VALID_I2C_0_SCL_PINS = ( 1 << 1  ) | ( 1 << 5  ) | ( 1 << 9  ) |
-                                        ( 1 << 13 ) | ( 1 << 17 ) | ( 1 << 21 );
+const uint32_t VALID_GPIO_PINS      = 0x1FFFFFFF;
+const uint32_t VALID_PWM_PINS       = 0x1FFFFFFF;
+const uint32_t VALID_ADC_PINS       = ( 1 << 26 ) | ( 1 << 27 ) | ( 1 << 28 );
 
-  const uint32_t VALID_I2C_1_SDA_PINS = ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 10 ) |
-                                        ( 1 << 14 ) | ( 1 << 18 ) | ( 1 << 26 );
-  const uint32_t VALID_I2C_1_SCL_PINS = ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 11 ) |
-                                        ( 1 << 15 ) | ( 1 << 19 ) | ( 1 << 27 );
+const uint32_t VALID_I2C_0_SDA_PINS = ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 8  ) |
+                                    ( 1 << 12 ) | ( 1 << 16 ) | ( 1 << 20 );
+const uint32_t VALID_I2C_0_SCL_PINS = ( 1 << 1  ) | ( 1 << 5  ) | ( 1 << 9  ) |
+                                    ( 1 << 13 ) | ( 1 << 17 ) | ( 1 << 21 );
 
-  const uint32_t VALID_UART_0_TX_PINS = ( 1 << 0  ) | ( 1 << 12 ) | ( 1 << 16 );
-  const uint32_t VALID_UART_0_RX_PINS = ( 1 << 1  ) | ( 1 << 13 ) | ( 1 << 17 );
+const uint32_t VALID_I2C_1_SDA_PINS = ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 10 ) |
+                                    ( 1 << 14 ) | ( 1 << 18 ) | ( 1 << 26 );
+const uint32_t VALID_I2C_1_SCL_PINS = ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 11 ) |
+                                    ( 1 << 15 ) | ( 1 << 19 ) | ( 1 << 27 );
 
-  const uint32_t VALID_UART_1_TX_PINS = ( 1 << 4  ) | ( 1 << 8  );
-  const uint32_t VALID_UART_1_RX_PINS = ( 1 << 5  ) | ( 1 << 9  );
+const uint32_t VALID_UART_0_TX_PINS = ( 1 << 0  ) | ( 1 << 12 ) | ( 1 << 16 );
+const uint32_t VALID_UART_0_RX_PINS = ( 1 << 1  ) | ( 1 << 13 ) | ( 1 << 17 );
 
-  const uint32_t VALID_SPI_0_SCK_PINS = ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 18 );
-  const uint32_t VALID_SPI_0_TX_PINS  = ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 19 );
-  const uint32_t VALID_SPI_0_RX_PINS  = ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 16 );
+const uint32_t VALID_UART_1_TX_PINS = ( 1 << 4  ) | ( 1 << 8  );
+const uint32_t VALID_UART_1_RX_PINS = ( 1 << 5  ) | ( 1 << 9  );
 
-  const uint32_t VALID_SPI_1_SCK_PINS = ( 1 << 10 ) | ( 1 << 14 );
-  const uint32_t VALID_SPI_1_TX_PINS  = ( 1 << 11 ) | ( 1 << 15 );
-  const uint32_t VALID_SPI_1_RX_PINS  = ( 1 << 8  ) | ( 1 << 12 );
+const uint32_t VALID_SPI_0_SCK_PINS = ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 18 );
+const uint32_t VALID_SPI_0_TX_PINS  = ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 19 );
+const uint32_t VALID_SPI_0_RX_PINS  = ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 16 );
 
-  const uint32_t VALID_I2C_0_PINS     = VALID_I2C_0_SDA_PINS | VALID_I2C_0_SCL_PINS;
-  const uint32_t VALID_I2C_1_PINS     = VALID_I2C_1_SDA_PINS | VALID_I2C_1_SCL_PINS;
+const uint32_t VALID_SPI_1_SCK_PINS = ( 1 << 10 ) | ( 1 << 14 );
+const uint32_t VALID_SPI_1_TX_PINS  = ( 1 << 11 ) | ( 1 << 15 );
+const uint32_t VALID_SPI_1_RX_PINS  = ( 1 << 8  ) | ( 1 << 12 );
 
-  const uint32_t VALID_UART_0_PINS    = VALID_UART_0_TX_PINS | VALID_UART_0_RX_PINS;
-  const uint32_t VALID_UART_1_PINS    = VALID_UART_1_TX_PINS | VALID_UART_1_RX_PINS;
+const uint32_t VALID_I2C_0_PINS     = VALID_I2C_0_SDA_PINS | VALID_I2C_0_SCL_PINS;
+const uint32_t VALID_I2C_1_PINS     = VALID_I2C_1_SDA_PINS | VALID_I2C_1_SCL_PINS;
 
-  const uint32_t VALID_SPI_0_PINS     = VALID_SPI_0_SCK_PINS | VALID_SPI_0_TX_PINS | VALID_SPI_0_RX_PINS;
-  const uint32_t VALID_SPI_1_PINS     = VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS | VALID_SPI_1_RX_PINS;
+const uint32_t VALID_UART_0_PINS    = VALID_UART_0_TX_PINS | VALID_UART_0_RX_PINS;
+const uint32_t VALID_UART_1_PINS    = VALID_UART_1_TX_PINS | VALID_UART_1_RX_PINS;
 
-  //--------------------------------------------------------------------------------------------------------
-  // Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO;
-  const uint32_t CHIP_MEM_SIZE              = 264 * 1024;
-  const uint32_t CHIP_NVM_SIZE              = 0;
+const uint32_t VALID_SPI_0_PINS     = VALID_SPI_0_SCK_PINS | VALID_SPI_0_TX_PINS | VALID_SPI_0_RX_PINS;
+const uint32_t VALID_SPI_1_PINS     = VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS | VALID_SPI_1_RX_PINS;
 
-  const uint16_t ADC_DIGIT_RANGE            = 1024;
-  const uint16_t ADC_REF_VOLTAGE_MILLI_VOLT = 3300;
+//----------------------------------------------------------------------------------------------------------
+// Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
+//
+//----------------------------------------------------------------------------------------------------------
+const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO;
+const uint32_t CHIP_MEM_SIZE              = 264 * 1024;
+const uint32_t CHIP_NVM_SIZE              = 0;
 
-  const uint8_t  MAX_UART_BUF_SIZE          = 8;
+const uint16_t ADC_DIGIT_RANGE            = 1024;
+const uint16_t ADC_REF_VOLTAGE_MILLI_VOLT = 3300;
 
-  const uint32_t I2C_FREQUENCY              = 100 * 1000;
-  const uint32_t I2C_TIME_OUT_IN_MS         = 250;
+const uint8_t  MAX_UART_BUF_SIZE          = 8;
 
-  const uint32_t SPI_FREQUENCY              = 10000000L;
+const uint32_t I2C_FREQUENCY              = 100 * 1000;
+const uint32_t I2C_TIME_OUT_IN_MS         = 250;
 
-  const uint16_t  MAX_CPU_CORE              = 2;
-  const uint16_t  MAX_INT_PIN               = 24;
+const uint32_t SPI_FREQUENCY              = 10000000L;
 
-  //----------------------------------------------------------------------------------------------------------
-  // An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
-  // instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
-  // instance.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct AdcInst {
+const uint16_t  MAX_CPU_CORE              = 2;
+const uint16_t  MAX_INT_PIN               = 24;
+
+//------------------------------------------------------------------------------------------------------------
+// An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
+// instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
+// instance.
+//
+//------------------------------------------------------------------------------------------------------------
+struct AdcInst {
 
     bool      configured  = false;
     uint8_t   adcPin      = CDC::UNDEFINED_PIN;
     uint8_t   adcNum      = 0;
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM outpüut related data is
-  // kept in this instance.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct PwmInst {
+//------------------------------------------------------------------------------------------------------------
+// A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM outpüut related data is
+// kept in this instance.
+//
+//------------------------------------------------------------------------------------------------------------
+struct PwmInst {
 
     bool      configured  = false;
     uint8_t   pwmPin      = CDC::UNDEFINED_PIN;
     uint32_t  wrap        = 0;
 
     // ??? what else to keep around ?
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two
-  // hardware based UART instances, or up to four software defined instances. The instance also keeps a small
-  // buffer where the data is read into. We also keep the PICO UART HW instance used.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct UartInst {
+//------------------------------------------------------------------------------------------------------------
+// A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two
+// hardware based UART instances, or up to four software defined instances. The instance also keeps a small
+// buffer where the data is read into. We also keep the PICO UART HW instance used.
+//
+//------------------------------------------------------------------------------------------------------------
+struct UartInst {
 
     bool              configured    = false;
     uint8_t           rxPin         = CDC::UNDEFINED_PIN;
@@ -197,14 +197,14 @@ namespace {
     volatile uint8_t  rxDataBuf[ MAX_UART_BUF_SIZE ] = { 0 };
 
     uart_inst_t       *uartHw       = nullptr;
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // The I2C instance. The PICO features two HW instances of an I2C port. The instance data contains the
-  // assigned GPIO pins, the baudrate and a timeout. We also keep the I2C HW instance used.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct I2CInst {
+//------------------------------------------------------------------------------------------------------------
+// The I2C instance. The PICO features two HW instances of an I2C port. The instance data contains the
+// assigned GPIO pins, the baudrate and a timeout. We also keep the I2C HW instance used.
+//
+//------------------------------------------------------------------------------------------------------------
+struct I2CInst {
 
     bool        configured    = false;
     uint8_t     sclPin        = CDC::UNDEFINED_PIN;
@@ -213,15 +213,15 @@ namespace {
     uint32_t    timeoutValMs  = I2C_TIME_OUT_IN_MS;
 
     i2c_inst_t  *i2cHw        = nullptr;
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // The SPI instance. The PICO features two SPI HW instances. We keep the assigned GPIO pins for the SPI
-  // iterface as well as the PICO HW instance. Since the SPI protocl explicitly sets the selected HW select
-  // pin, we remember that we are in a transaction with perhaps more than one call to the SPI routines.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct SPIInst {
+//------------------------------------------------------------------------------------------------------------
+// The SPI instance. The PICO features two SPI HW instances. We keep the assigned GPIO pins for the SPI
+// iterface as well as the PICO HW instance. Since the SPI protocl explicitly sets the selected HW select
+// pin, we remember that we are in a transaction with perhaps more than one call to the SPI routines.
+//
+//------------------------------------------------------------------------------------------------------------
+struct SPIInst {
 
     bool        configured  = false;
     bool        active      = false;
@@ -232,168 +232,168 @@ namespace {
     uint32_t    frequency   = SPI_FREQUENCY;
 
     spi_inst_t  *spiHw      = nullptr;
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // The interrupt table for the GPIO pin interrupts. The PICO can have only one interrupt handler. We will
-  // allocate a table where a handler can be set for each pin. When an interrupt comes in and there is a 
-  // handler configured, it will be called.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  struct GpioIsrTable {
+//------------------------------------------------------------------------------------------------------------
+// The interrupt table for the GPIO pin interrupts. The PICO can have only one interrupt handler. We will
+// allocate a table where a handler can be set for each pin. When an interrupt comes in and there is a 
+// handler configured, it will be called.
+//
+//------------------------------------------------------------------------------------------------------------
+struct GpioIsrTable {
 
     uint16_t                  numOfHandlers = 0;
     CDC::GpioCallback         gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // Local variables. We maintain an instance variable for each of the possible HW entities, such as an I2C
-  // interface or a UART. Note that not all are used at the same time. The instance variables map from the
-  // simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  CDC::CdcPinConfig           cfg;
-  CDC::TimerCallback          timerCallback = nullptr;
-  GpioIsrTable                cdcIntHandlers;
-  repeating_timer_t           timerData;
-  AdcInst                     CdcAdc0;
-  AdcInst                     CdcAdc1;
-  AdcInst                     CdcAdc2;
-  AdcInst                     CdcAdc3;
-  I2CInst                     CdcI2C0;
-  I2CInst                     CdcI2C1;
-  SPIInst                     CdcSPI0;
-  SPIInst                     CdcSPI1;
-  UartInst                    CdcUart0;
-  UartInst                    CdcUart1;
-  UartInst                    CdcUart2;
-  UartInst                    CdcUart3;
-  PwmInst                     CdcPwm0;
-  PwmInst                     CdcPwm1;
-  PwmInst                     CdcPwm2;
-  PwmInst                     CdcPwm3;
+//------------------------------------------------------------------------------------------------------------
+// Local variables. We maintain an instance variable for each of the possible HW entities, such as an I2C
+// interface or a UART. Note that not all are used at the same time. The instance variables map from the
+// simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
+//
+//------------------------------------------------------------------------------------------------------------
+CDC::CdcPinConfig           cfg;
+CDC::TimerCallback          timerCallback = nullptr;
+GpioIsrTable                cdcIntHandlers;
+repeating_timer_t           timerData;
+AdcInst                     CdcAdc0;
+AdcInst                     CdcAdc1;
+AdcInst                     CdcAdc2;
+AdcInst                     CdcAdc3;
+I2CInst                     CdcI2C0;
+I2CInst                     CdcI2C1;
+SPIInst                     CdcSPI0;
+SPIInst                     CdcSPI1;
+UartInst                    CdcUart0;
+UartInst                    CdcUart1;
+UartInst                    CdcUart2;
+UartInst                    CdcUart3;
+PwmInst                     CdcPwm0;
+PwmInst                     CdcPwm1;
+PwmInst                     CdcPwm2;
+PwmInst                     CdcPwm3;
 
-  //----------------------------------------------------------------------------------------------------------
-  // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
-  // for the desired purpose. For example, configuring an I2C port will check that the two GPIO pins are
-  // indeed routeable to teh I2C HW block in the PICO.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  inline bool validPin( uint8_t pin, uint32_t mask ) {
+//------------------------------------------------------------------------------------------------------------
+// "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
+// for the desired purpose. For example, configuring an I2C port will check that the two GPIO pins are
+// indeed routeable to teh I2C HW block in the PICO.
+//
+//------------------------------------------------------------------------------------------------------------
+inline bool validPin( uint8_t pin, uint32_t mask ) {
 
     if ( pin == CDC::UNDEFINED_PIN )  return ( true );
     if ( pin > MAX_PIN_NUM )          return ( false );
     return (( 1 << pin ) & mask );
-  }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // When no interrupt is configured for a GPIO pin, we set the table entry to a dummy handler. This way
-  // we do not have to check for a valid procedure label when we hanbdle an interrupt.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
+//------------------------------------------------------------------------------------------------------------
+// When no interrupt is configured for a GPIO pin, we set the table entry to a dummy handler. This way
+// we do not have to check for a valid procedure label when we hanbdle an interrupt.
+//
+//------------------------------------------------------------------------------------------------------------
+void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
 
-  //----------------------------------------------------------------------------------------------------------
-  // Setup the ISR table. The PICO can have only one interrupt handler. When you want a handler per GPIO pin,
-  // the solution is to havae a table when you keep the handler on a per pin base.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void initIsrTable( ) {
+//------------------------------------------------------------------------------------------------------------
+// Setup the ISR table. The PICO can have only one interrupt handler. When you want a handler per GPIO pin,
+// the solution is to havae a table when you keep the handler on a per pin base.
+//
+//------------------------------------------------------------------------------------------------------------
+void initIsrTable( ) {
 
     for ( uint16_t i = 0; i < MAX_CPU_CORE; i++ ) {
 
-      for ( uint16_t j = 0; j < MAX_INT_PIN; j++ ) {
+        for ( uint16_t j = 0; j < MAX_INT_PIN; j++ ) {
 
-        cdcIntHandlers.gpioIsrTable[ i ][ j ] = dummyIsrHandler;
-      }
+            cdcIntHandlers.gpioIsrTable[ i ][ j ] = dummyIsrHandler;
+        }
     }
-  }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // The PICO uses a set of constants to describe the interrupt type. We map this to our set of types. 
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint32_t mapGpioIntEvent( uint8_t event ) {
+//------------------------------------------------------------------------------------------------------------
+// The PICO uses a set of constants to describe the interrupt type. We map this to our set of types. 
+//
+//------------------------------------------------------------------------------------------------------------
+uint32_t mapGpioIntEvent( uint8_t event ) {
 
     switch ( event ) {
 
-      case CDC::EVT_LOW:     return( GPIO_IRQ_LEVEL_LOW );
-      case CDC::EVT_HIGH:    return( GPIO_IRQ_LEVEL_HIGH );
-      case CDC::EVT_FALL:    return( GPIO_IRQ_EDGE_FALL );
-      case CDC::EVT_RISE:    return( GPIO_IRQ_EDGE_RISE );
-      case CDC::EVT_CHANGE:  return( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
-      default:      return( 0 );
+        case CDC::EVT_LOW:     return( GPIO_IRQ_LEVEL_LOW );
+        case CDC::EVT_HIGH:    return( GPIO_IRQ_LEVEL_HIGH );
+        case CDC::EVT_FALL:    return( GPIO_IRQ_EDGE_FALL );
+        case CDC::EVT_RISE:    return( GPIO_IRQ_EDGE_RISE );
+        case CDC::EVT_CHANGE:  return( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
+        default:      return( 0 );
     }
-  }
+}
 
-  uint8_t mapPicoGpioEvent( uint32_t event ) {
+uint8_t mapPicoGpioEvent( uint32_t event ) {
 
     switch ( event ) {
 
-      case GPIO_IRQ_LEVEL_LOW:  return( CDC::EVT_LOW );
-      case GPIO_IRQ_LEVEL_HIGH: return( CDC::EVT_HIGH );
-      case GPIO_IRQ_EDGE_FALL:  return( CDC::EVT_FALL );
-      case GPIO_IRQ_EDGE_RISE:  return( CDC::EVT_RISE );
-      default:                  return( 0 );
+        case GPIO_IRQ_LEVEL_LOW:  return( CDC::EVT_LOW );
+        case GPIO_IRQ_LEVEL_HIGH: return( CDC::EVT_HIGH );
+        case GPIO_IRQ_EDGE_FALL:  return( CDC::EVT_FALL );
+        case GPIO_IRQ_EDGE_RISE:  return( CDC::EVT_RISE );
+        default:                  return( 0 );
     }
-  }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // Global Interrupt handlers. The hardware and low level library will call these handlers, which in turn 
-  // will invoke the respective callback function if configured. The GPIO interrupt handler manages the 
-  // handler for all possible IO pins. The PICO can only have one interrupt rooutine, so we feature an array 
-  // of handlers where a handler for a GPIO pin can be registered. If there is a handler set, we just invoke 
-  // it. The other handlers are for the timer and the UART hardware.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void gpioCallback( uint gpioPin, uint32_t event ) {
+//------------------------------------------------------------------------------------------------------------
+// Global Interrupt handlers. The hardware and low level library will call these handlers, which in turn 
+// will invoke the respective callback function if configured. The GPIO interrupt handler manages the 
+// handler for all possible IO pins. The PICO can only have one interrupt rooutine, so we feature an array 
+// of handlers where a handler for a GPIO pin can be registered. If there is a handler set, we just invoke 
+// it. The other handlers are for the timer and the UART hardware.
+//
+//------------------------------------------------------------------------------------------------------------
+void gpioCallback( uint gpioPin, uint32_t event ) {
 
     cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] ( gpioPin, mapPicoGpioEvent( event ));
-  }
+}
 
-  bool repeatingTimerAlarm( repeating_timer_t *rt ) {
+bool repeatingTimerAlarm( repeating_timer_t *rt ) {
 
     if ( timerCallback != nullptr ) timerCallback((uint32_t) ( - timerData.delay_us ));
     return ( true );
-  }
+}
 
-  void uartRxCallback0( ) {
+void uartRxCallback0( ) {
 
     while ( uart_is_readable( uart0 )) {
 
-      uint8_t ch = uart_getc( uart0 );
-      if ( CdcUart0.rxBufIndex < MAX_UART_BUF_SIZE ) CdcUart0.rxDataBuf[CdcUart0.rxBufIndex++ ] = ch;
+        uint8_t ch = uart_getc( uart0 );
+        if ( CdcUart0.rxBufIndex < MAX_UART_BUF_SIZE ) CdcUart0.rxDataBuf[CdcUart0.rxBufIndex++ ] = ch;
     }
-  }
+}
 
-  void uartRxCallback1( ) {
+void uartRxCallback1( ) {
 
     while ( uart_is_readable( uart1 )) {
 
-      uint8_t ch = uart_getc( uart1 );
-      if ( CdcUart1.rxBufIndex < MAX_UART_BUF_SIZE ) CdcUart1.rxDataBuf[ CdcUart1.rxBufIndex++ ] = ch;
+        uint8_t ch = uart_getc( uart1 );
+        if ( CdcUart1.rxBufIndex < MAX_UART_BUF_SIZE ) CdcUart1.rxDataBuf[ CdcUart1.rxBufIndex++ ] = ch;
     }
-  }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // The default configuration descriptor. The Application program fills in such a strucuture, which can be
-  // seen as the HW pin assignments for the PICO  and the particular board on which the application will be
-  // deployed. The application will simply use the field names to address the particular PICO HW function.
-  // For example, a configuration has mapped DIO_PIN_5 to GPIO pin 12, because that is where the particular
-  // board has mapped DIO_PIN_5 to the hardware line. The application will just use the DIO_PIN_5 field when
-  // talking to that GPIO pin. Whenever the board layout changes, there could be anopther PICO GPIO pin, but
-  // the name "DIO_PIN_5" for the application upper layers does not change.
-  //
-  // Note that there is a great flexibility what a PICO HW  pin can do and hence a lot of our fields are just
-  // "UNDEFINED" with no constraints. Nevertheless, there is a function which will do some plausibility checks
-  // for such a structure. Also, each configuration routine will do again a cgeck tha the GPIO pins used do
-  // indeed map to a PICO HW block for the desired purpose.
-  //
-  // The configuration structure does not replace the actual configuration calls to make to the CDC library.
-  // It is just a mapping of resreved names to actual GPIO pins.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  CDC::CdcPinConfig getConfigDefaultRP2040( ) {
+//------------------------------------------------------------------------------------------------------------
+// The default configuration descriptor. The Application program fills in such a strucuture, which can be
+// seen as the HW pin assignments for the PICO  and the particular board on which the application will be
+// deployed. The application will simply use the field names to address the particular PICO HW function.
+// For example, a configuration has mapped DIO_PIN_5 to GPIO pin 12, because that is where the particular
+// board has mapped DIO_PIN_5 to the hardware line. The application will just use the DIO_PIN_5 field when
+// talking to that GPIO pin. Whenever the board layout changes, there could be anopther PICO GPIO pin, but
+// the name "DIO_PIN_5" for the application upper layers does not change.
+//
+// Note that there is a great flexibility what a PICO HW  pin can do and hence a lot of our fields are just
+// "UNDEFINED" with no constraints. Nevertheless, there is a function which will do some plausibility checks
+// for such a structure. Also, each configuration routine will do again a cgeck tha the GPIO pins used do
+// indeed map to a PICO HW block for the desired purpose.
+//
+// The configuration structure does not replace the actual configuration calls to make to the CDC library.
+// It is just a mapping of resreved names to actual GPIO pins.
+//
+//------------------------------------------------------------------------------------------------------------
+CDC::CdcPinConfig getConfigDefaultRP2040( ) {
 
     CDC::CdcPinConfig tmp;
 
@@ -462,28 +462,29 @@ namespace {
     tmp.CAN_BUS_TX_PIN      = CDC::UNDEFINED_PIN;
 
     return ( tmp );
-  }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // Validate a configuration structure. This routine will do basoc checking of the pin configuration passed.
-  // The PICO is very flexible when it comes to what a pin can do. However, there are still some rules to 
-  // follow. Also, we have dedicated settibgs for at least the I2C channels and the CAN bus IO pins.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
+//------------------------------------------------------------------------------------------------------------
+// Validate a configuration structure. This routine will do basoc checking of the pin configuration passed.
+// The PICO is very flexible when it comes to what a pin can do. However, there are still some rules to 
+// follow. Also, we have dedicated settibgs for at least the I2C channels and the CAN bus IO pins.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
 
     // ??? a ton of "validXXX" ?
 
     return ( CDC::ALL_OK ); // for now....
-  }
+}
 
 }; // namespace
 
 
-
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
 namespace CDC {
-
-
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -492,7 +493,7 @@ namespace CDC {
 void setDebugLevel( uint8_t level ) {
 
     debugLevel = level;
-  }
+}
 
 //------------------------------------------------------------------------------------------------------------
 // "getConfigDefault" initializes a configuration structure and sets the pre-assigned values. A typical
@@ -502,7 +503,7 @@ void setDebugLevel( uint8_t level ) {
 //------------------------------------------------------------------------------------------------------------
 CdcPinConfig getConfigDefault( ) {
 
-  return ( getConfigDefaultRP2040( ));
+   return ( getConfigDefaultRP2040( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -512,7 +513,7 @@ CdcPinConfig getConfigDefault( ) {
 //------------------------------------------------------------------------------------------------------------
 CdcPinConfig *getConfigActual( ) {
 
-  return ( &cfg );
+   return ( &cfg );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -523,12 +524,12 @@ CdcPinConfig *getConfigActual( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t init( CdcPinConfig *ci ) {
 
-  cfg = *ci;
+    cfg = *ci;
 
-  initIsrTable( );
-  configureConsoleIO( );
+    initIsrTable( );
+    configureConsoleIO( );
 
-  return ( validateConfigRP20040( ci ));
+    return ( validateConfigRP20040( ci ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -547,30 +548,31 @@ uint8_t init( CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 void fatalError( uint8_t n ) {
 
-  const uint8_t   ledPin      = 25;
-  const uint32_t  longPulse   = 1000;
-  const uint32_t  shortPulse  = 250;
+    const uint8_t   ledPin      = 25;
+    const uint32_t  longPulse   = 1000;
+    const uint32_t  shortPulse  = 250;
 
-  n = n % 8;
+    n = n % 8;
 
-  gpio_init( ledPin );
-  gpio_set_dir( ledPin, GPIO_OUT );
+    gpio_init( ledPin );
+    gpio_set_dir( ledPin, GPIO_OUT );
 
-  while ( true ) {
+    while ( true ) {
 
-    gpio_put( ledPin, true );
-    sleep_ms( longPulse );
-    gpio_put( ledPin, false );
-    sleep_ms( shortPulse );
+        gpio_put( ledPin, true );
+        sleep_ms( longPulse );
+        gpio_put( ledPin, false );
+        sleep_ms( shortPulse );
 
-    for ( int i = 0; i < n; i++ ) {
+        for ( int i = 0; i < n; i++ ) {
 
-      gpio_put( ledPin, true );
-      sleep_ms( shortPulse );
-      gpio_put( ledPin, false );
-      sleep_ms( shortPulse );
+            gpio_put( ledPin, true );
+            sleep_ms( shortPulse );
+            gpio_put( ledPin, false );
+            sleep_ms( shortPulse );
+
+        }
     }
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -580,12 +582,12 @@ void fatalError( uint8_t n ) {
 //------------------------------------------------------------------------------------------------------------
 void fatalErrorMsg( char *str, uint8_t n ) {
 
-  if ( isConsoleConnected( )) {
+    if ( isConsoleConnected( )) {
 
-    printf( "Fatal Error: %d: %s\n", n, str );
-  }
+        printf( "Fatal Error: %d: %s\n", n, str );
+    }
 
-  fatalError( n );
+    fatalError( n );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -594,47 +596,47 @@ void fatalErrorMsg( char *str, uint8_t n ) {
 //------------------------------------------------------------------------------------------------------------
 uint16_t getFamily( ) {
 
-  return ( CONTROLLER_FAMILY );
+    return ( CONTROLLER_FAMILY );
 }
 
 uint32_t getVersion( ) {
 
-  return ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
+    return ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
 }
 
 uint32_t getChipMemSize( ) {
 
-  return ( CHIP_MEM_SIZE );
+    return ( CHIP_MEM_SIZE );
 }
 
 uint32_t getChipNvmSize( ) {
 
-  return ( CHIP_NVM_SIZE   );
+    return ( CHIP_NVM_SIZE   );
 }
 
 uint32_t getCpuFrequency( ) {
 
-  return ( clock_get_hz( clk_sys ));
+    return ( clock_get_hz( clk_sys ));
 }
 
 uint32_t getMillis( ) {
 
-  return ( to_ms_since_boot( get_absolute_time( )));
+    return ( to_ms_since_boot( get_absolute_time( )));
 }
 
 uint32_t getMicros( ) {
 
-  return ( to_us_since_boot( get_absolute_time( )));
+    return ( to_us_since_boot( get_absolute_time( )));
 }
 
 void sleepMillis( uint32_t val ) {
 
-  sleep_ms( val );
+    sleep_ms( val );
 }
 
 void sleepMicros( uint32_t val ) {
 
-  sleep_us( val );
+    sleep_us( val );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -645,17 +647,17 @@ void sleepMicros( uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 uint32_t createUid( ) {
 
-  uint32_t rVal = 0;
+    uint32_t rVal = 0;
 
-  volatile uint32_t *rnd_reg = (uint32_t *) ( ROSC_BASE + ROSC_RANDOMBIT_OFFSET );
+    volatile uint32_t *rnd_reg = (uint32_t *) ( ROSC_BASE + ROSC_RANDOMBIT_OFFSET );
 
-  for ( int k = 0; k < 32; k++ ) {
+    for ( int k = 0; k < 32; k++ ) {
 
-    rVal = rVal << 1;
-    rVal = rVal + ( 0x00000001 & ( *rnd_reg ));
-  }
+        rVal = rVal << 1;
+        rVal = rVal + ( 0x00000001 & ( *rnd_reg ));
+    }
 
-  return ( rVal );
+    return ( rVal );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -669,25 +671,28 @@ uint32_t createUid( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureConsoleIO( ) {
 
-  stdio_init_all( );
-  return( ALL_OK );
+    stdio_init_all( );
+    return( ALL_OK );
 }
 
 bool isConsoleConnected( ) {
 
-  return( stdio_usb_connected( ));
+    return( stdio_usb_connected( ));
 }
   
 char getConsoleChar( bool echoBack ) {
 
-  int ch = getchar_timeout_us( 0 );
+    int ch = getchar_timeout_us( 0 );
 
-  if ( ch == PICO_ERROR_TIMEOUT ) return( 0 );
+    if ( ch == PICO_ERROR_TIMEOUT ) return( 0 );
 
-  if ( echoBack ) printf( "%c", ch );
+    if ( echoBack ) printf( "%c", ch );
 
-  return( ch );
+    return( ch );
 }
+
+// ??? we have the timimng issue with a program loaded to teh pico, which will start right away. Perhaps
+// even before we have a screen... a simple read char loop that we exit when a character is hit...
 
 //------------------------------------------------------------------------------------------------------------
 // Timer section. The CDC library features one generic repeating timer with a microsecond resolution. The
