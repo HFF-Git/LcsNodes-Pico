@@ -217,14 +217,15 @@ enum MsgPriority : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
 
-  public:
+    public:
 
-    uint8_t   init( uint16_t canId, uint8_t pinRx, uint8_t pinTx, uint8_t fMode = CAN_BUS_LIB_PICO_PIO_125K );
+    uint8_t     init( uint16_t canId, uint8_t pinRx, uint8_t pinTx, uint8_t fMode = CAN_BUS_LIB_PICO_PIO_125K );
 
-    uint8_t   sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
-    uint8_t   receiveLcsMsg( uint8_t *msg );
+    uint8_t     sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
+    uint8_t     receiveLcsMsg( uint8_t *msg );
+    void        setDebugLevel( uint8_t level );
 
-  private:
+    private:
 
     uint16_t  canId = 0;
 };
@@ -324,13 +325,7 @@ struct LcsNodeMap {
     uint16_t    drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
     uint16_t    drvMapHwm                     = 0;
 
-    // ??? rethink ....
-    uint16_t  debugEnabled                  = 0;
-    uint16_t  debugNodeSetup                = 0;
-    uint16_t  debugNvmAccess                = 0;
-    uint16_t  debugCanBusMsg                = 0;
-    uint16_t  debugAttrAccess               = 0;
-    uint16_t  debugEventHandling            = 0;
+   
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -381,31 +376,22 @@ struct LcsEventMap {
 
 //----------------------------------------------------------------------------------------------------------
 // The LCS runtime communicates back to the firmware via callbacks. There are global callbacks for message
-// receipt and events as well as callbacks for the node and ports that can be registered. Callbacks for
-// node and ports are kept in an array of callback entry structures, called the callback map. Entry zero
-// is the node itself all others are one for each port. The map thus has the number of ports plus the node
-// itself.
+// receipt and events as well as callbacks for the node and ports that can be registered.
 //
 //----------------------------------------------------------------------------------------------------------
-struct LcsCallbackMapEntry {
-
-    LcsInitCallback     initCallback      = nullptr;
-    LcsInfoItemCallback infoItemCallback  = nullptr;
-    LcsCtrlItemCallback ctrlItemCallback  = nullptr;
-};
-
 struct LcsCallbackMap {
 
-    uint16_t                  flags;
-    uint16_t                  size;
+    LcsMsgCallback          lcsMsgCallback          = nullptr;
+    LcsMsgCallback          dccMsgCallback          = nullptr;
+    LcsCmdCallback          cmdLineCallback         = nullptr;
+    LcsEventCallback        eventCallback           = nullptr;
 
-    LcsMsgCallback            lcsMsgCallback                    = nullptr;
-    LcsMsgCallback            dccMsgCallback                    = nullptr;
-    LcsCommandCallback        cmdLineCallback                   = nullptr;
-    LcsPortEventCallback      portEventCallback                 = nullptr;
-    LcsItemReqRepCallback     itemReqRepCallback                = nullptr;
+    LcsInitCallback         initCallback            = nullptr;
+    LcsResetCallback        resetCallback           = nullptr;
+    LcsPfailCallback        pfailCalback            = nullptr;
 
-    LcsCallbackMapEntry map[ MAX_PORT_MAP_ENTRIES + 1 ];
+    LcsReqCallback          reqCallback             = nullptr;
+    LcsRepCallback          repCallback             = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -425,11 +411,10 @@ struct LcsPTaskMapEntry {
 
 struct LcsTaskMap {
 
-    uint16_t          flags;
-    uint16_t          size;
-
-    LcsPTaskMapEntry  *hwm    = nullptr;
-    LcsPTaskMapEntry  *next   = nullptr;
+    uint16_t          flags = 0;
+    uint16_t          size  = MAX_TASK_MAP_ENTRIES;  
+    LcsPTaskMapEntry  *hwm  = nullptr;
+    LcsPTaskMapEntry  *next = nullptr;
 
     LcsPTaskMapEntry  map[ MAX_TASK_MAP_ENTRIES ];
 };
@@ -448,10 +433,11 @@ struct LcsPendingReqEntry {
 
 struct LcsPendingReqMap {
 
-  uint16_t            flags;
-  LcsPendingReqEntry  *hwm;
+    uint16_t            flags = 0;
+    uint16_t            size  = MAX_PENDING_REQ_MAP_ENTRIES;           
+    LcsPendingReqEntry  *hwm  = nullptr;
 
-  LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
+    LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -521,7 +507,10 @@ struct LcsDrvEntry {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
-  LcsDrvEntry       map[ MAX_EXT_BOARDS ];
+    uint16_t        flags = 0;
+    uint16_t        size  = MAX_EXT_BOARD_MAP_ENTRIES;    
+
+    LcsDrvEntry     map[ MAX_EXT_BOARDS ];
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -573,7 +562,5 @@ void          handleNodePortEvents( );
 
 
 };
-
-
 
 #endif

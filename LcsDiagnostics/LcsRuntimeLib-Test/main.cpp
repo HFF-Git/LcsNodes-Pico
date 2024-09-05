@@ -80,44 +80,54 @@ uint8_t initLcsRuntime( ) {
 //
 // ??? callbacks.....
 //----------------------------------------------------------------------------------------------------------
-void lcsMsgCallback( uint8_t *msg ) {
+uint8_t lcsMsgCallback( uint8_t *msg ) {
 
+    return( 0 );
 }
 
-uint8_t lcsCommandCallback( char *cmdLine ) {
+uint8_t lcsCmdCallback( char *cmdLine ) {
+
+    return( 0 );
+}
+
+uint8_t lcsTaskCallback( ) {
+
+    return( 0 );    
+}
+
+uint8_t lcsInitCallback( uint16_t npId ) {
 
   return( 0 );
 }
 
-void lcsTaskCallback( ) {
-
-}
-
-uint8_t lcsInitCallback( uint16_t nodeId, uint8_t portId, uint16_t flags ) {
+uint8_t lcsResetCallback( uint16_t npId ) {
 
   return( 0 );
 }
 
-uint8_t lcsInfoItemCallback( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsPfailCallback( uint16_t npId ) {
 
-  return( 0 );
+    return( 0 );
 }
 
-uint8_t lcsCtrlItemCallback( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
-  
-  return( 0 );
+uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+
+    return( 0 );
 }
 
-void lcsItemReqRepCallback( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t arg2 ) {
-      
+uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+
+    return( 0 );
 }
 
-void lcsPortEventCallback( uint16_t nodeId, uint8_t portId, uint8_t eAction, uint16_t eId, uint16_t eData ) {
+uint8_t lcsEventCallback( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData ) {
 
+    return( 0 );
 }
 
-void lcsDccMsgCallback( uint8_t *msg ) {
+uint8_t lcsDccMsgCallback( uint8_t *msg ) {
 
+    return( 0 );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -132,8 +142,8 @@ uint8_t registerLcsCallbacks( ) {
   LCS::registerLcsMsgCallback( lcsMsgCallback );
   LCS::registerDccMsgCallback( lcsDccMsgCallback );
   
-  LCS::registerCommandCallback( lcsCommandCallback );
-  LCS::registerPeriodicTask( lcsTaskCallback, 1000 );
+  LCS::registerCmdCallback( lcsCmdCallback );
+  LCS::registerTaskCallback( lcsTaskCallback, 1000 );
 
   // ??? to fill in ...
 

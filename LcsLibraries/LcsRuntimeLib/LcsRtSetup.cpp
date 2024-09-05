@@ -146,12 +146,7 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
   // ??? data for the extension boards ?
 
-    nMap -> debugEnabled                  = 0;
-    nMap -> debugNodeSetup                = 0;
-    nMap -> debugNvmAccess                = 0;
-    nMap -> debugCanBusMsg                = 0;
-    nMap -> debugAttrAccess               = 0;
-    nMap -> debugEventHandling            = 0;
+   
   
     memcpy( &nMap -> name, nodeDefName, strlen( nodeDefName ));
 
@@ -441,27 +436,23 @@ uint8_t setupCallbackMap( ) {
 
     uint8_t rStat = ALL_OK;
 
-    callbackMap.flags                 = 0;
-    callbackMap.size                  = MAX_PORT_MAP_ENTRIES + 1; 
+    callbackMap.lcsMsgCallback      = nullptr;
+    callbackMap.dccMsgCallback      = nullptr;
+    callbackMap.cmdLineCallback     = nullptr;
 
-    callbackMap.lcsMsgCallback        = nullptr;
-    callbackMap.dccMsgCallback        = nullptr;
-    callbackMap.cmdLineCallback       = nullptr;
-    callbackMap.portEventCallback     = nullptr;
-    callbackMap.itemReqRepCallback    = nullptr;
+    callbackMap.initCallback        = nullptr;
+    callbackMap.resetCallback       = nullptr;
+    callbackMap.pfailCalback        = nullptr;
 
-    for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-        
-        callbackMap.map[ i ].initCallback     = nullptr;
-        callbackMap.map[ i ].infoItemCallback = nullptr;
-        callbackMap.map[ i ].ctrlItemCallback = nullptr;
-    }
+    callbackMap.eventCallback       = nullptr;
+    callbackMap.reqCallback         = nullptr;
+    callbackMap.repCallback         = nullptr;
 
     #if DEBUG_CONFIG == 1
     printf( "setupCallbackMap, status: %d\n", rStat );
     #endif
 
-    return( ALL_OK );
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -599,14 +590,18 @@ uint8_t invokeInitCallbacks( ) {
 
     uint8_t rStat = ALL_OK;
 
+    // ??? fix .....
+
+    /*
     for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES + 1; i++ ) {
 
-        if ( callbackMap.map[ i ].initCallback != nullptr ) {
+        if ( callbackMap.initCallback != nullptr ) {
 
-            rStat = callbackMap.map[ i ].initCallback( nodeMap.nodeId, i, 0 );
+            rStat = callbackMap.initCallback( nodeMap.nodeId, i, 0 );
             if ( rStat != ALL_OK ) break;
         } 
     }
+    */
 
     #if DEBUG_CONFIG == 1
     printf( "invokeInitCallbacks, status: %d\n", rStat );

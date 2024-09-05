@@ -90,55 +90,39 @@ void registerDccMsgCallback( LcsMsgCallback functionId ) {
   callbackMap.dccMsgCallback = functionId;
 }
 
-void registerCommandCallback( LcsCommandCallback functionId ) {
+void registerCmdCallback( LcsCmdCallback functionId ) {
 
   callbackMap.cmdLineCallback = functionId;
 }
 
-void registerReqRepCallback( LcsItemReqRepCallback handler ) {
+void registerEventCallback( LcsEventCallback functionId ) {
 
-  callbackMap.itemReqRepCallback = handler;
+  callbackMap.eventCallback = functionId;
 }
 
-void registerPortEventCallback( LcsPortEventCallback functionId ) {
+void registerInitCallback( LcsInitCallback functionId ) {
 
-  callbackMap.portEventCallback = functionId;
+    callbackMap.initCallback = functionId;
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Callback registration functions for node and port callbacks. They are stored in teh callback map, which
-// allows separate callbacks for individual ports and so on. Note that these callbacks need to be registered
-// on each startup and node reset. We will not keep the callback map across these events.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t registerInitCallback( uint8_t portId, LcsInitCallback handler ) {
+void registerResetCallback( LcsInitCallback functionId ) {
 
-  if ( portId <= MAX_PORT_ID ) {
-
-    callbackMap.map[ portId ].initCallback = handler;
-    return ( ALL_OK );
-
-  } else return ( ERR_INVALID_PORT_ID  );
+    callbackMap.resetCallback = functionId;
 }
 
-uint8_t registerInfoCallback( uint8_t portId, LcsInfoItemCallback handler ) {
+void registerPfailCallback( LcsInitCallback functionId ) {
 
-  if ( portId <= MAX_PORT_ID ) {
-
-    callbackMap.map[ portId ].infoItemCallback = handler;
-    return ( ALL_OK );
-
-  } else return ( ERR_INVALID_PORT_ID  );
+    callbackMap.pfailCalback = functionId;
 }
 
-uint8_t registerCtrlCallback( uint8_t portId, LcsCtrlItemCallback handler ) {
+void registerReqCallback( LcsReqCallback functionId ) {
 
-  if ( portId <= MAX_PORT_ID ) {
+    callbackMap.reqCallback = functionId;
+}
 
-    callbackMap.map[ portId ].ctrlItemCallback = handler;
-    return ( ALL_OK );
-
-  } else return ( ERR_INVALID_PORT_ID  );
+void registerRepCallback( LcsRepCallback functionId ) {
+    
+    callbackMap.repCallback = functionId;
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -147,20 +131,20 @@ uint8_t registerCtrlCallback( uint8_t portId, LcsCtrlItemCallback handler ) {
 // used, so that processing will not run through empty entries.
 //
 //-----------------------------------------------------------------------------------------------------------
-uint8_t registerPeriodicTask( LcsTaskCallback task, uint32_t interval ) {
+uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
-  LcsPTaskMapEntry *limit  = &taskMap.map[ MAX_TASK_MAP_ENTRIES ];
+    LcsPTaskMapEntry *limit  = &taskMap.map[ MAX_TASK_MAP_ENTRIES ];
 
-  if ( taskMap.hwm < limit ) {
+    if ( taskMap.hwm < limit ) {
 
-    taskMap.hwm -> task       = task;
-    taskMap.hwm -> interval   = interval;
-    taskMap.hwm -> timeStamp  = CDC::getMillis( );
-    taskMap.hwm ++;
+        taskMap.hwm -> task       = task;
+        taskMap.hwm -> interval   = interval;
+        taskMap.hwm -> timeStamp  = CDC::getMillis( );
+        taskMap.hwm ++;
 
-    return ( ALL_OK );
+        return ( ALL_OK );
 
-  } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
+    } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -171,9 +155,9 @@ uint8_t registerPeriodicTask( LcsTaskCallback task, uint32_t interval ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 
-  if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
+    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
 
-  return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
+    return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -183,17 +167,14 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvDummyDriver( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
 
-  switch( item ) {
+    switch( item ) {
 
 
-    default: ;
-  }
+        default: ;
+    }
 
-
-  return( 0 ); // ??? for now ...
+    return( 0 ); // ??? for now ...
 }
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // "resetNode" restarts a node. We first rebuild the MEM areas from their NVM counterparts. Next, the optional
@@ -206,25 +187,32 @@ uint8_t drvDummyDriver( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *
 //------------------------------------------------------------------------------------------------------------
 uint8_t resetNode( ) {
 
-  uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-  // setupNode( );
+    if ( callbackMap.resetCallback == nullptr ) {
 
-  if ( callbackMap.map[ 0 ].initCallback != nullptr ) {
-
-    rStat = callbackMap.map[ 0 ].initCallback( nodeMap.nodeId, 0, 0 );
-  }
-
-  if ( rStat == ALL_OK ) {
-
-    for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-      rStat = resetPort( i );
-      if ( rStat != ALL_OK ) break;
+        return( -1 );
     }
-  }
 
-  return ( rStat );
+    // setupNode( );
+
+    // ???? fix .....
+
+    if ( callbackMap.resetCallback != nullptr ) {
+
+        rStat = callbackMap.resetCallback(( nodeMap.nodeId << 4 ));
+    }
+
+    if ( rStat == ALL_OK ) {
+
+        for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+
+            rStat = resetPort( i );
+            if ( rStat != ALL_OK ) break;
+        }
+    }
+
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -237,22 +225,18 @@ uint8_t resetNode( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t resetPort( uint8_t portId ) {
 
-  if ( ! isInRangeU( portId, MIN_PORT_ID, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
+    if ( ! isInRangeU( portId, MIN_PORT_ID, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
 
-  /*
+    /*
     nvm -> getNvmBytes( nodeMap.portMapStart + (( portId - 1 ) * sizeof( LcsPortMapEntry )),
-                        (uint8_t *) & portMap[ portId - 1 ],
+                         (uint8_t *) & portMap[ portId - 1 ],
                         sizeof( LcsPortMapEntry ));
-  */
-  if ( callbackMap.map[ portId ].initCallback != nullptr )
-    return ( callbackMap.map[ portId ].initCallback( nodeMap.nodeId, portId, 0 ));
-  else return ( ALL_OK );
-
+    */
+  
+    if ( callbackMap.initCallback != nullptr )
+    return ( callbackMap.initCallback((( nodeMap.nodeId << 4 ) | ( portId ))));
+    else return ( ALL_OK );
 }
-
-
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // There is a call back that if set will be called for processing inbound port events on each loop iteration.
@@ -260,32 +244,30 @@ uint8_t resetPort( uint8_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodePortEvents( ) {
 
-  uint32_t ts = CDC::getMillis( );
+    if ( callbackMap.eventCallback == nullptr ) return;
 
-  for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i ++ ) {
+    uint32_t ts = CDC::getMillis( );
 
-    LcsPortMapEntry *pPtr = & portMap.map[ i ];
+    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i ++ ) {
 
-    if (( pPtr -> flags & PF_PORT_ENABLED                 ) &&
-        ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED  ) &&
-        ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION    )) &&
-        ( pPtr -> flags & PF_EVENT_PENDING               )) {
+        LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
-      if ( ts > pPtr -> eventTimeStamp ) {
+        if (( pPtr -> flags & PF_PORT_ENABLED                 ) &&
+            ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED  ) &&
+            ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION    )) &&
+            ( pPtr -> flags & PF_EVENT_PENDING               )) {
 
-        if ( callbackMap.portEventCallback != nullptr ) {
+            if ( ts > pPtr -> eventTimeStamp ) {
 
-          callbackMap.portEventCallback( pPtr -> nodeId,
-                                         i + 1,
-                                         pPtr -> eventId,
-                                         pPtr -> eventAction,
-                                         pPtr -> eventValue );
+                callbackMap.eventCallback((( pPtr -> nodeId << 4 ) | ( i + 1 )),
+                                            pPtr -> eventId,
+                                            pPtr -> eventAction,
+                                            pPtr -> eventValue );
+             }
+
+            pPtr -> flags &= ~ PF_EVENT_PENDING;
         }
-
-        pPtr -> flags &= ~ PF_EVENT_PENDING;
-      }
     }
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -298,16 +280,16 @@ void handleNodePortEvents( ) {
 //------------------------------------------------------------------------------------------------------------
 void handlePeriodicTasks( ) {
 
-  uint32_t ts = CDC::getMillis( );
+    uint32_t ts = CDC::getMillis( );
 
-  for ( LcsPTaskMapEntry *thisEntry = taskMap.map; thisEntry < taskMap.hwm; thisEntry ++ ) {
+    for ( LcsPTaskMapEntry *thisEntry = taskMap.map; thisEntry < taskMap.hwm; thisEntry ++ ) {
 
-    if (( ts - thisEntry -> timeStamp ) > thisEntry -> interval ) {
+        if (( ts - thisEntry -> timeStamp ) > thisEntry -> interval ) {
 
-      if ( thisEntry -> task != nullptr ) thisEntry -> task( );
-      thisEntry -> timeStamp = ts;
+            if ( thisEntry -> task != nullptr ) thisEntry -> task( );
+            thisEntry -> timeStamp = ts;
+        }
     }
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -318,17 +300,17 @@ void handlePeriodicTasks( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNid( uint8_t *msg ) {
 
-  uint16_t nodeId   = ( msg[1] << 8 ) + msg[2];
-  uint32_t nodeUID  = ((uint32_t) msg[3] << 24 ) +
-                      ((uint32_t) msg[4] << 16 ) +
-                      ((uint32_t) msg[5] << 8 ) +
-                      msg[6];
+    uint16_t nodeId   = ( msg[1] << 8 ) + msg[2];
+    uint32_t nodeUID  = ((uint32_t) msg[3] << 24 ) +
+                         ((uint32_t) msg[4] << 16 ) +
+                         ((uint32_t) msg[5] << 8 ) +
+                         msg[6];
 
-  if ( nodeUID == nodeMap.nodeUID ) {
+    if ( nodeUID == nodeMap.nodeUID ) {
 
-    if ( nodeMap.nodeId != nodeId ) nodeControl( nodeId, NPC_SET_NODE_ID, nodeId );
-    nodeMap.nodeState = NS_OPERATE;
-  }
+       // ????     if ( nodeMap.nodeId != nodeId ) attrSet( nodeId, NPI_NODE_ID, nodeId );
+        nodeMap.nodeState = NS_OPERATE;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -338,100 +320,100 @@ void handleMsgRepNid( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgLcsMgt( uint8_t *msg ) {
 
-  switch ( msg[ 0 ] ) {
+    switch ( msg[ 0 ] ) {
 
-    case LCS_OP_OPS: {
+        case LCS_OP_OPS: {
 
-        nodeMap.nodeState = NS_OPERATE;
-        if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
+            nodeMap.nodeState = NS_OPERATE;
+            if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
-      } break;
+        } break;
 
-    case LCS_OP_CFG: {
+        case LCS_OP_CFG: {
 
-        nodeMap.nodeState = NS_CONFIG;
-        if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
+            nodeMap.nodeState = NS_CONFIG;
+            if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
-      } break;
+        } break;
 
-    case LCS_OP_BON: {
+        case LCS_OP_BON: {
 
-        // ??? readyLed on
-        nodeMap.nodeState = NS_OPERATE;
-        if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
+            // ??? readyLed on
+            nodeMap.nodeState = NS_OPERATE;
+            if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
-      } break;
+        } break;
 
-    case LCS_OP_BOF: {
+        case LCS_OP_BOF: {
 
-        /// ??? readyLed off
-        nodeMap.nodeState = NS_HALTED;
-        if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
+            /// ??? readyLed off
+            nodeMap.nodeState = NS_HALTED;
+            if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
-      } break;
+        } break;
 
-    case LCS_OP_NCOL: {
+        case LCS_OP_NCOL: {
 
-        // ??? readyLed off
-        nodeMap.nodeState = NS_COLLISION;
-        if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
+            // ??? readyLed off
+            nodeMap.nodeState = NS_COLLISION;
+            if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
-      } break;
+        } break;
 
-    case LCS_OP_RESET: {
+        case LCS_OP_RESET: {
 
-        uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-        uint8_t  portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
+            uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
+            uint8_t  portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
 
-        if ( nodeId == NIL_NODE_ID ) {
+            if ( nodeId == NIL_NODE_ID ) {
 
-          // ??? FIX ...
-          // setupNode( );
+                // ??? FIX ...
+                // setupNode( );
 
-          nodeMap.nodeState = NS_INIT;
-        }
-        else if (( nodeId != NIL_NODE_ID ) && ( portId == NIL_PORT_ID )) {
+                nodeMap.nodeState = NS_INIT;
+            }
+            else if (( nodeId != NIL_NODE_ID ) && ( portId == NIL_PORT_ID )) {
 
-          if ( nodeId == nodeMap.nodeId ) {
+                if ( nodeId == nodeMap.nodeId ) {
 
 
-            // ??? fix
-            // setupNode( );
+                    // ??? fix
+                    // setupNode( );
 
-            nodeMap.nodeState = NS_INIT;
-          }
-        }
-        else if (( nodeId != NIL_NODE_ID ) && ( portId != NIL_PORT_ID )) {
+                    nodeMap.nodeState = NS_INIT;
+                }
+            }
+            else if (( nodeId != NIL_NODE_ID ) && ( portId != NIL_PORT_ID )) {
 
-          if ( nodeId == nodeMap.nodeId ) {
+                if ( nodeId == nodeMap.nodeId ) {
 
-            uint8_t rStat = resetPort( msg[ 3 ] );
+                    uint8_t rStat = resetPort( msg[ 3 ] );
 
-            if ( rStat == ALL_OK ) LCS::sendAck( nodeId );
-            else                   LCS::sendErr( nodeId, rStat, 0, 0 );
-          }
-        }
+                    if ( rStat == ALL_OK ) LCS::sendAck( nodeId );
+                    else                   LCS::sendErr( nodeId, rStat, 0, 0 );
+                }
+            }
 
-      } break;
+        } break;
 
-    case LCS_OP_SET_NID: {
+        case LCS_OP_SET_NID: {
 
-        uint16_t nodeId   = ( msg[1] << 8 ) + msg[2];
-        uint32_t nodeUID  = ((uint32_t) msg[3] << 24 ) + ((uint32_t) msg[4] << 16 ) +
-                            ((uint32_t) msg[5] << 8 ) + msg[6];
+            uint16_t nodeId   = ( msg[1] << 8 ) + msg[2];
+            uint32_t nodeUID  = ((uint32_t) msg[3] << 24 ) + ((uint32_t) msg[4] << 16 ) +
+                                  ((uint32_t) msg[5] << 8 ) + msg[6];
 
-        if ( nodeUID == nodeMap.nodeUID ) {
+            if ( nodeUID == nodeMap.nodeUID ) {
 
-          if ( nodeMap.nodeState == NS_CONFIG ) {
+                if ( nodeMap.nodeState == NS_CONFIG ) {
 
-            if ( nodeId != nodeMap.nodeId ) nodeMap.nodeId = nodeId;
-            sendAck( nodeId );
-          }
-          else sendErr( nodeId, ERR_NODE_NOT_CONFIG_STATE, 0, 0 );
-        }
+                    if ( nodeId != nodeMap.nodeId ) nodeMap.nodeId = nodeId;
+                    sendAck( nodeId );
+                }
+                else sendErr( nodeId, ERR_NODE_NOT_CONFIG_STATE, 0, 0 );
+            }
 
-      } break;
-  }
+        } break;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -440,19 +422,21 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgQryNode( uint8_t *msg ) {
 
-  uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-  uint8_t  portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
+    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
+    uint16_t portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
 
-  if ( nodeId == nodeMap.nodeId ) {
+    uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
-    uint8_t   item  = msg[3];
-    uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-    uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-    uint8_t   ret   = nodeInfo( item, portId, &arg1, &arg2 );
+    if ( nodeId == nodeMap.nodeId ) {
 
-    if ( ret == ALL_OK )  sendRepNode( nodeId, portId, item, arg1, arg2 );
-    else                  sendErr( nodeId, ret, 0, 0 );
-  }
+        uint8_t   item  = msg[3];
+        uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
+        uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
+        uint8_t   ret   = attrGet( npId, item, &arg1, &arg2 );
+
+        if ( ret == ALL_OK )  sendRepNode( nodeId, portId, item, arg1, arg2 );
+        else                  sendErr( nodeId, ret, 0, 0 );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -462,18 +446,20 @@ void handleMsgQryNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
 
-  uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
+    uint16_t npId = (( msg[1] << 8 ) + msg[2] );
 
-  // ??? check if this is our node...
-  // ??? check if we have a pending request....
+    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
-  uint8_t   portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
-  uint8_t   item    = msg[3];
-  uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
-  uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
+    // ??? check if this is our node...
+    // ??? check if we have a pending request....
 
-  if ( callbackMap.itemReqRepCallback != nullptr )
-    callbackMap.itemReqRepCallback( nodeId, portId, item, arg1, arg2 );
+    uint8_t   portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
+    uint8_t   item    = msg[3];
+    uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
+    uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
+
+    if ( callbackMap.repCallback != nullptr )
+        callbackMap.repCallback( npId, item, &arg1, &arg2 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -482,19 +468,19 @@ void handleMsgRepNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
-  uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-  uint8_t  portId  = msg[2] & 0x0F;
+    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
+    uint8_t  portId  = msg[2] & 0x0F;
 
-  if ( nodeId == nodeMap.nodeId ) {
+    if ( nodeId == nodeMap.nodeId ) {
 
-    uint8_t   item  = msg[3];
-    uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-    uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-    uint8_t   ret   = nodeControl( portId, item, arg1, arg2 );
+        uint8_t   item  = msg[3];
+        uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
+        uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
+        uint8_t   ret   = nodeReq( portId, item, &arg1, &arg2 );
 
-    if ( ret == ALL_OK )  sendAck( nodeId );
-    else                  sendErr( nodeId, ret, 0, 0 );
-  }
+        if ( ret == ALL_OK )  sendAck( nodeId );
+        else                  sendErr( nodeId, ret, 0, 0 );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -510,42 +496,42 @@ void handleMsgReqNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
-  uint16_t  eventId = ( msg[3] * 256 ) + msg[4];
-  int       index   = searchEvent( eventId );
+    uint16_t  eventId = ( msg[3] * 256 ) + msg[4];
+    int       index   = searchEvent( eventId );
 
-  if ( index >= 0 ) {
+    if ( index >= 0 ) {
 
-    uint8_t   opCode            = msg[0];
-    uint16_t  nodeId            = ( msg[1] * 256 ) + msg[2];
-    uint16_t  eventData         = ( msg[5] * 256 ) + msg[6];
-    uint8_t   eventAction       = PEA_EVENT_IDLE;
+        uint8_t   opCode            = msg[0];
+        uint16_t  nodeId            = ( msg[1] * 256 ) + msg[2];
+        uint16_t  eventData         = ( msg[5] * 256 ) + msg[6];
+        uint8_t   eventAction       = PEA_EVENT_IDLE;
 
-    switch ( opCode ) {
+        switch ( opCode ) {
 
-      case LCS_OP_EVT_ON:   eventAction = PEA_EVENT_ON;   break;
-      case LCS_OP_EVT_OFF:  eventAction = PEA_EVENT_OFF;  break;
-      case LCS_OP_EVT:      eventAction = PEA_EVENT_EVT;  break;
+            case LCS_OP_EVT_ON:   eventAction = PEA_EVENT_ON;   break;
+            case LCS_OP_EVT_OFF:  eventAction = PEA_EVENT_OFF;  break;
+            case LCS_OP_EVT:      eventAction = PEA_EVENT_EVT;  break;
+        }
+
+        while (( index < nodeMap.eventMapHwm ) && ( eventMap.map[ index ].eventId == eventId )) {
+
+            LcsPortMapEntry *pPtr = &portMap.map[ index ];
+
+            if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
+                ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   ) &&
+                ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION     ))) {
+
+                pPtr -> nodeId          = nodeId;
+                pPtr -> eventId         = eventId;
+                pPtr -> eventAction     = eventAction;
+                pPtr -> eventValue      = eventData;
+                pPtr -> eventTimeStamp  = CDC::getMillis( ) + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
+                pPtr -> flags           |= PF_EVENT_PENDING;
+            }
+
+            index++;
+        }
     }
-
-    while (( index < nodeMap.eventMapHwm ) && ( eventMap.map[ index ].eventId == eventId )) {
-
-      LcsPortMapEntry *pPtr = &portMap.map[ index ];
-
-      if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
-          ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   ) &&
-          ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION     ))) {
-
-        pPtr -> nodeId          = nodeId;
-        pPtr -> eventId         = eventId;
-        pPtr -> eventAction     = eventAction;
-        pPtr -> eventValue      = eventData;
-        pPtr -> eventTimeStamp  = CDC::getMillis( ) + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
-        pPtr -> flags           |= PF_EVENT_PENDING;
-      }
-
-      index++;
-    }
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -555,7 +541,7 @@ void handleMsgEvent( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgDccMgt( uint8_t *msg ) {
 
-  if ( callbackMap.dccMsgCallback != NULL ) callbackMap.dccMsgCallback( msg );
+    if ( callbackMap.dccMsgCallback != NULL ) callbackMap.dccMsgCallback( msg );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -569,31 +555,31 @@ void handleMsgDccMgt( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-  if ( nodeMap.options & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
+    if ( callbackMap.initCallback == nullptr ) return;
 
-    if ( callbackMap.map[ 0 ].initCallback != nullptr )
-      callbackMap.map[ 0 ].initCallback( nodeMap.nodeId, 0, 0 );
-  }
+    if ( nodeMap.options & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
 
-  if ( nodeMap.options & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
-
-    for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-      if ( callbackMap.map[ i ].initCallback != nullptr )
-        callbackMap.map[ i ].initCallback( nodeMap.nodeId, i, 0 );
-
-      portMap.map[ i - 1 ].flags |= PF_PORT_ENABLED;
-      portMap.map[ i - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
+        callbackMap.initCallback( nodeMap.nodeId << 4 );
     }
-  }
 
-  if ( ! ( nodeMap.options & NOPT_SKIP_NODE_ID_CONFIG )) {
+    if ( nodeMap.options & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
 
-    sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
-    timerVal  = CDC::getMillis( );
-    nodeMap.nodeState = NS_REGISTER;
+        for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
-  } else nodeMap.nodeState = NS_OPERATE;
+            callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i );
+
+            portMap.map[ i - 1 ].flags |= PF_PORT_ENABLED;
+            portMap.map[ i - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
+        }
+    }
+
+     if ( ! ( nodeMap.options & NOPT_SKIP_NODE_ID_CONFIG )) {
+
+        sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
+        timerVal  = CDC::getMillis( );
+        nodeMap.nodeState = NS_REGISTER;
+
+    } else nodeMap.nodeState = NS_OPERATE;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -615,22 +601,22 @@ void handleNodeStateFail( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateRegister( ) {
 
-  uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-  switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( msg )) {
 
-    case LCS_OP_REP_NID: handleMsgRepNid( msg );  break;
-    case LCS_OP_RESET:   handleMsgLcsMgt( msg );  break;
+        case LCS_OP_REP_NID: handleMsgRepNid( msg );  break;
+        case LCS_OP_RESET:   handleMsgLcsMgt( msg );  break;
 
-    default: {
+        default: {
 
-        if (( CDC::getMillis( ) - timerVal ) > NODE_SETUP_RETRY_TIMER_VAL_MS ) {
+            if (( CDC::getMillis( ) - timerVal ) > NODE_SETUP_RETRY_TIMER_VAL_MS ) {
 
-          sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
-          timerVal = CDC::getMillis( );
+                sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
+                timerVal = CDC::getMillis( );
+             }
         }
-      }
-  }
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -640,13 +626,13 @@ void handleNodeStateRegister( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateCollision( ) {
 
-  uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-  switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( msg )) {
 
-    case LCS_OP_RESET:
-    case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
-  }
+        case LCS_OP_RESET:
+        case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -656,13 +642,13 @@ void handleNodeStateCollision( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateHalted( ) {
 
-  uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-  switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( msg )) {
 
-    case LCS_OP_BON:
-    case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
-  }
+        case LCS_OP_BON:
+        case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -672,25 +658,24 @@ void handleNodeStateHalted( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
 
-  uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-  switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( msg )) {
 
-    case LCS_OP_OPS:
-    case LCS_OP_RESET:
-    case LCS_OP_BON:
-    case LCS_OP_BOF:
-    case LCS_OP_ACK:
-    case LCS_OP_ERR:
-    case LCS_OP_SET_NID:
-    case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
+        case LCS_OP_OPS:
+        case LCS_OP_RESET:
+        case LCS_OP_BON:
+        case LCS_OP_BOF:
+        case LCS_OP_ACK:
+        case LCS_OP_ERR:
+        case LCS_OP_SET_NID:
+        case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
 
-    case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );              break;
-    case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
-    case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
-  }
+        case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );              break;
+        case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
+        case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
+    }
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // Node State OPERATIONS. Most of the time the node state is in operations mode. We first handle the command
@@ -700,58 +685,57 @@ void handleNodeStateConfig( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateOperations( ) {
 
-  uint8_t msg [ MAX_LCS_MSG_SIZE ];
+    uint8_t msg [ MAX_LCS_MSG_SIZE ];
 
-  switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( msg )) {
 
-    case LCS_OP_CFG:
-    case LCS_OP_RESET:
-    case LCS_OP_BON:
-    case LCS_OP_BOF:
-    case LCS_OP_ACK:
-    case LCS_OP_ERR:
-    case LCS_OP_REQ_NID:
-    case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
+        case LCS_OP_CFG:
+        case LCS_OP_RESET:
+        case LCS_OP_BON:
+        case LCS_OP_BOF:
+        case LCS_OP_ACK:
+        case LCS_OP_ERR:
+        case LCS_OP_REQ_NID:
+        case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
 
-    case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );              break;
-    case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
-    case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
+        case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );              break;
+        case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
+        case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
 
-    case LCS_OP_EVT_ON:
-    case LCS_OP_EVT_OFF:
-    case LCS_OP_EVT:            handleMsgEvent( msg );                break;
+        case LCS_OP_EVT_ON:
+        case LCS_OP_EVT_OFF:
+        case LCS_OP_EVT:            handleMsgEvent( msg );                break;
 
-    case LCS_OP_REQ_LOC:
-    case LCS_OP_REL_LOC:
-    case LCS_OP_REP_LOC:
-    case LCS_OP_SET_LCON:
-    case LCS_OP_KEEP_LOC:
-    case LCS_OP_SET_LSPD:
-    case LCS_OP_SET_LMOD:
-    case LCS_OP_LOC_FON:
-    case LCS_OP_LOC_FOF:
+        case LCS_OP_REQ_LOC:
+        case LCS_OP_REL_LOC:
+        case LCS_OP_REP_LOC:
+        case LCS_OP_SET_LCON:
+        case LCS_OP_KEEP_LOC:
+        case LCS_OP_SET_LSPD:
+        case LCS_OP_SET_LMOD:
+        case LCS_OP_LOC_FON:
+        case LCS_OP_LOC_FOF:
 
-    case LCS_OP_SET_CVM:
-    case LCS_OP_REQ_CVS:
-    case LCS_OP_REP_CVS:
-    case LCS_OP_SET_CVS:
+        case LCS_OP_SET_CVM:
+        case LCS_OP_REQ_CVS:
+        case LCS_OP_REP_CVS:
+        case LCS_OP_SET_CVS:
 
-    case LCS_OP_REQ_TON:
-    case LCS_OP_REQ_TOF:
-    case LCS_OP_TON:
-    case LCS_OP_TOF:
-    case LCS_OP_REQ_ESTP:
-    case LCS_OP_ESTP:
+        case LCS_OP_REQ_TON:
+        case LCS_OP_REQ_TOF:
+        case LCS_OP_TON:
+        case LCS_OP_TOF:
+        case LCS_OP_REQ_ESTP:
+        case LCS_OP_ESTP:
 
-    case LCS_OP_SEND_DCC3:
-    case LCS_OP_SEND_DCC4:
-    case LCS_OP_SEND_DCC5:
-    case LCS_OP_SEND_DCC6:
+        case LCS_OP_SEND_DCC3:
+        case LCS_OP_SEND_DCC4:
+        case LCS_OP_SEND_DCC5:
+        case LCS_OP_SEND_DCC6:
 
-    case LCS_OP_DCC_ACK:
-    case LCS_OP_DCC_ERR:        handleMsgDccMgt( msg );               break;
-  }
+        case LCS_OP_DCC_ACK:
+        case LCS_OP_DCC_ERR:        handleMsgDccMgt( msg );               break;
+    }
 }
-
 
 }; // namespace

@@ -200,42 +200,6 @@ enum DccSpeedSteps : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The DCC locomotive decoder speed. The range is defined for a 128 speed step decoder, from 0 to 127. The
-// speed of 1 represents the emergency speed stop. In normal operations, speed steos would thus go from 2
-// to 0 and back. For analog engines, we keep this scheme and map it to the respective power levels.
-//
-//------------------------------------------------------------------------------------------------------------
-enum DccLocSpeed : uint8_t {
-
-    MIN_DCC_SPEED    = 0,
-    DCC_ESTOP_SPEED  = 1,
-    MAX_DCC_SPEED    = 127
-};
-
-//--------------------------------------------------------------------------------------------------------------
-// DCC locomotive direction.
-//
-//--------------------------------------------------------------------------------------------------------------
-enum DccLocDirection : uint8_t {
-
-    DCC_DIR_LOCO_NEUTRAL  = 0,
-    DCC_DIR_LOCO_FORWARD  = 1,
-    DCC_DIR_LOCO_REVERSE  = 2
-};
-
-//------------------------------------------------------------------------------------------------------------
-// "LocSessionModes" specify the options when creating a session for the loco. Besides creating a normal
-// session an existing session can be taken over or even shared among multiple handhelds.
-//
-//------------------------------------------------------------------------------------------------------------
-enum DccLocSessionModes : uint8_t {
-
-    LSM_NORMAL  = 1,
-    LSM_STEAL   = 2,
-    LSM_SHARED  = 3
-};
-
-//------------------------------------------------------------------------------------------------------------
 // "CvModeOptions" is used by the DCC CV variables access routines to specify the access mode. Only options
 // 0 and 1 are supported. The others are there for historic reasons, the functionlity was found in older
 // decoders and should not be supported anymore.
@@ -248,6 +212,42 @@ enum DccCvModeOptions : uint8_t {
     CVM_PAGE      = 2,
     CVM_REGISTER  = 3,
     CVM_ADR_ONLY  = 4
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The locomotive decoder speed. The range is defined for a DCC 128 speed step decoder, from 0 to 127. The
+// speed of 1 represents the emergency speed stop. In normal operations, speed steos would thus go from 2
+// to 0 and back. For analog engines, we keep this scheme and map it to the respective power levels.
+//
+//------------------------------------------------------------------------------------------------------------
+enum LocSpeed : uint8_t {
+
+    MIN_LOCO_SPEED      = 0,
+    ESTOP_LOCO_SPEED    = 1,
+    MAX_LOCO_SPEED      = 127
+};
+
+//--------------------------------------------------------------------------------------------------------------
+// Locomotive direction. 
+//
+//--------------------------------------------------------------------------------------------------------------
+enum LocoDirection : uint8_t {
+
+    LOCO_DIR_LOCO_NEUTRAL  = 0,
+    LOCO_DIR_LOCO_FORWARD  = 1,
+    LOCO_DIR_LOCO_REVERSE  = 2
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "LocSessionModes" specify the options when creating a session for the loco. Besides creating a normal
+// session an existing session can be taken over or even shared among multiple handhelds.
+//
+//------------------------------------------------------------------------------------------------------------
+enum LocoSessionModes : uint8_t {
+
+    LSM_NORMAL  = 1,
+    LSM_STEAL   = 2,
+    LSM_SHARED  = 3
 };
 
 //--------------------------------------------------------------------------------------------------------------
@@ -298,13 +298,24 @@ enum LcsControllerFamilyType : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum NodeOptions : uint16_t {
 
-    NOPT_SKIP_NODE_ID_CONFIG  = 0x0001,
-    NOPT_SKIP_NODE_INIT_STEP  = 0x0002,
-    NOPT_SKIP_PORT_INIT_STEP  = 0x0004
+    NOPT_SKIP_NODE_ID_CONFIG    = 0x0001,
+    NOPT_SKIP_NODE_INIT_STEP    = 0x0002,
+    NOPT_SKIP_PORT_INIT_STEP    = 0x0004,
+
+    // ??? add debug flags ... they survive restarts... to do ...
+
+    NOPT_DEBUG_SETUP            = 0x0000,
+    NOPT_DEBUG_NVM_ACCESS       = 0x0000,
+    NOPT_DEBUG_ATTR_ACCESS      = 0x0000,
+    NOPT_DEBUG_CAN_BUS          = 0x0000,
+    NOPT_DEBUG_EVENT_HANDLING   = 0x0000
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Node Flags.
+// Node Flags. 
+//
+// ??? Normally resetted from options when restarted. When powerfail restart, perhaps a bit different how to 
+// set them ...
 //
 //  NFLAGS_EXT_PRESENT  - extension boards are present.
 //
@@ -314,30 +325,45 @@ enum NodeFlags : uint16_t {
     NFLAGS_EXT_PRESENT        = 0x0001,
 
 };
+
+
 //------------------------------------------------------------------------------------------------------------
-// Node and port data are accessed with the nodeInfo and node control function. One of the arguments is
-// the info item, which specifies what data to access. The item nuber range is divided as follows:
+// Nodes and ports are accessed with three key routines, GET, SET and REQ. The node and port is comined into
+// the node/port Id, "npId", and an item number which indicates what opration to perform. Items range from 
+// 0 ... 255 as follows: 
 //
-//   0          - NIL item, not used
-//   1  ..  63  - Node reseved area, global items.
-//  64  .. 127  - User defined items, passed to the registered callback routine.
-// 128  .. 191  - Node/Port Attributes returned from MEM
-// 192  .. 255  - Node/Port Attributes copied from NVM to MEM and then returned. Mirrors items 128 - 191.
+//   0          -   NIL item, not used
+//   1  ..  63  -   Node reserved area, global items for GET/SET/REQ.
+//  64  .. 127  -   User defined items, passed to the registered callback routine.
+// 128  .. 191  -   Node/Port Attributes returned from MEM for GET/SET
+// 192  .. 255  -   Node/Port Attributes copied from NVM to MEM for GET, copied from MEM to NVM for SET. The
+//                  item range mirrors items 128 - 191. For exmaple, 128 and 192 refere to the same attrinute.
 //
-// Items may refer to node or port specific data. The portId specified in the call will indicate whether we
-// access the node or a port on the node. A portId of NIP-NIL means that we refer to the node itself.
+// Items may refer to node or port specific data. The npId specified in a call will indicate whether we
+// access the node or a port on the node. A portId portion of zero in the npId identifier, refer to the node
+// itself.
+//
+// GET - the get routine will use the item numbers to retrieve the data labelled by the item. This is either 
+// a value from the node or port data attribute map or a value from the node or port map. 
+//
+// SET - the set routine will use the item numbers to set the value. Note that not all items that can be 
+// read can also be written to. An attempt will result in an error return.
+//
+// REQ - the reqiuest call will tranmit the request paramaters to the node / port where a registered callback
+// will be invoked. The result is returned via the paramaters. There are items that refer to node and ports,
+// and the item range 64 .. 127 which is use defined.
 //
 // ??? note: this list is work in progress, please us always the names rather than the numbers.
 //------------------------------------------------------------------------------------------------------------
-enum NodeAndPortInfoItems : uint8_t {
+enum NodeAndPortItems : uint8_t {
 
     NPI_NIL                         = 0,
 
     NPI_NODE_MAP_RANGE_START        = 1,
     NPI_NODE_MAP_RANGE_END          = 63,
 
-    NPI_NODE_USER_DEFINED_START    = 64,
-    NPI_NODE_USER_DEFINED_END      = 127,
+    NPI_USER_RANGE_START            = 64,
+    NPI_USER_RANGE_END              = 127,
 
     NPI_ATTR_MEM_RANGE_START        = 128,
     NPI_ATTR_MEM_RANGE_END          = 191,
@@ -347,84 +373,52 @@ enum NodeAndPortInfoItems : uint8_t {
 
     NPI_MAX_ITEMS                   = 255,
 
+    NPI_OPTIONS                     = 1,
+    NPI_VERSION                     = 2,
+    NPI_FLAGS                       = 3,
+    NPI_TYPE                        = 4,
+    NPI_SUB_TYPE                    = 5,
+    NPI_NODE_ID                     = 6,
+    NPI_NODE_UID                    = 7,
 
-    // ??? also add DRV related items...
-    // ??? board info, name, version, chan info
+    NPI_PORT_MAP_ENTRIES            = 9,
+    NPI_EVENT_MAP_ENTRIES           = 10,
+    NPI_ATTR_MAP_ENTRIES            = 11,
 
-    // ??? need extension board state info...
+    NPI_RESTART_COUNT               = 12,
+    NPI_EVENT_MAP_ENTRY             = 13,
+   
+    NPI_NAME_1                      = 14,
+    NPI_NAME_2                      = 15,
+    NPI_NAME_3                      = 16,
+    NPI_NAME_4                      = 17,
+
+    NPI_EVENT_DELAY_TICKS           = 18,
+
+    NPI_RESET                       = 20,
+    NPI_SYNC                        = 21,
+    NPI_SET_NODE_ID                 = 22,
+    NPI_ADD_EVENT_MAP_ENTRY         = 23,
+    NPI_DEL_EVENT_MAP_ENTRY         = 24,
+
+    NPI_SET_READY_LED               = 30,
+    NPI_SET_ACTIVITY_LED            = 31,
+    NPI_TOGGLE_READY_LED            = 32,
+    NPI_TOGGLE_ACTIVITY_LED         = 33,
+    NPI_BLINK_READY_LED             = 34,
+    NPI_BLINK_ACTIVITY_LED          = 35,
+
+    NPI_ENABLE_EVENT_PROCESSING     = 40,
 
 
-    NPI_GET_OPTIONS                 = 1,
-    NPI_GET_VERSION                 = 2,
-    NPI_GET_NODE_FLAGS              = 3,
-    NPI_GET_NODE_TYPE               = 4,
-    NPI_GET_NODE_ID                 = 5,
-    NPI_GET_NODE_UID                = 6,
-    NPI_GET_RESTART_COUNT           = 7,
 
-    NPI_GET_PORT_MAP_ENTRIES        = 9,
-    NPI_GET_EVENT_MAP_ENTRIES       = 10,
-    NPI_GET_ATTR_MAP_ENTRIES        = 11,
-    NPI_GET_EVENT_MAP_ENTRY         = 12,
-    NPI_GET_NODE_NAME_1             = 13,
-    NPI_GET_NODE_NAME_2             = 14,
-    NPI_GET_NODE_NAME_3             = 15,
-    NPI_GET_NODE_NAME_4             = 16,
-
-    NPI_GET_PORT_FLAGS              = 32,
-    NPI_GET_PORT_TYPE               = 33,
-    NPI_GET_EVENT_DELAY_TICKS       = 34,
-};
-
-enum NodeAndPortControlItems : uint8_t {
-
-    NPC_NIL                         = 0,
-
-    NPC_NODE_MAP_RANGE_START        = 1,
-    NPC_NODE_MAP_RANGE_END          = 63,
-
-    NPC_NODE_USER_DEFINED_START    = 64,
-    NPC_NODE_USER_DEFINED_END      = 127,
-
-    NPC_ATTR_MEM_RANGE_START        = 128,
-    NPC_ATTR_MEM_RANGE_END          = 191,
-
-    NPC_ATTR_NVM_RANGE_START        = 192,
-    NPC_ATTR_NVM_RANGE_END          = 255,
-
-    NPC_MAX_ITEMS                   = 255,
 
 
     // ??? also add DRV related items...
     // ??? a RESET, ...
     // ??? add stop and enable periodic processing ?
-    
 
 
-    NPC_RESET_NODE                  = 1,
-    NPC_SYNC_NODE                   = 2,
-    NPC_SET_NODE_ID                 = 3,
-    NPC_ADD_EVENT_MAP_ENTRY         = 5,
-    NPC_DEL_EVENT_MAP_ENTRY         = 6,
-    NPC_SET_READY_LED               = 7,
-    NPC_SET_ACTIVITY_LED            = 8,
-    NPC_TOGGLE_READY_LED            = 9,
-    NPC_TOGGLE_ACTIVITY_LED         = 10,
-    NPC_BLINK_READY_LED             = 11,
-    NPC_BLINK_ACTIVITY_LED          = 12,
-    NPC_SET_NODE_FLAGS              = 13,
-    NPC_SET_NODE_TYPE               = 20,
-    NPC_SET_NODE_NAME_1             = 21,
-    NPC_SET_NODE_NAME_2             = 22,
-    NPC_SET_NODE_NAME_3             = 23,
-    NPC_SET_NODE_NAME_4             = 24,
-
-    NPC_SET_PORT_FLAGS              = 32,
-    NPC_SET_PORT_TYPE               = 33,
-    NPC_ENABLE_EVENT_PROCESSING     = 34,
-    NPC_SET_EVENT_DELAY_TICKS       = 35,
-
-    NPC_SYNC_EVENT_MAP              = 36,
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -586,7 +580,8 @@ enum LcsErrorCodes : uint8_t {
     ERR_NODE_OUTSTANDING_REQ_LIMIT      = 20,
     ERR_TASK_MAP_SIZE_EXCEEDED          = 21,
 
-    ERR_INVALID_ITEM_ID                 = 39,
+    ERR_INVALID_ITEM_ID                 = 34,
+    ERR_INVALID_ATTR_ARG                = 35,
 
     ERR_INVALID_NODE_ID                 = 30,
     ERR_INVALID_NODE_INFO_ITEM          = 31,
@@ -630,43 +625,24 @@ enum LcsErrorCodes : uint8_t {
     ERR_NODE_SPECIFIC_BASE              = 128
 };
 
-
-//------------------------------------------------------------------------------------------------------------
-// All drivers support a common set of items. The item numbers are in the range of 1 to 63. Driver specific
-// items should be allocated in the range 192 to 255.
-//
-// ??? generic part become of node items ?
-//------------------------------------------------------------------------------------------------------------
-enum LcsNodeDriverItems {
-
-    DI_NIL                = 0,
-    DI_RESET              = 1,
-    DI_GET_BOARD_TYPE     = 2,
-    DI_GET_BOARD_SUBTYPE  = 3,
-    DI_GET_BOARD_NAME     = 4,
-    DI_GET_BOARD_VERSION  = 5,
-
-    DI_DRIVER_ITEM_BASE   = 192
-};
-
 //----------------------------------------------------------------------------------------------------------
 // Core library callback function signatures.
-//
-// ??? flags on init call back indicate wether STARTUP, RESTE or PFAIL...
-// ??? do we need to pass portID for item callback ?
 // 
 //----------------------------------------------------------------------------------------------------------
 extern "C" {
 
-    typedef void    ( *LcsMsgCallback ) ( uint8_t *msg );
-    typedef uint8_t ( *LcsCommandCallback ) ( char *cmdLine );
-    typedef void    ( *LcsTaskCallback ) ( );
+    typedef uint8_t ( *LcsMsgCallback ) ( uint8_t *msg );
+    typedef uint8_t ( *LcsCmdCallback ) ( char *cmdLine );
+    typedef uint8_t ( *LcsTaskCallback ) ( void );
 
-    typedef uint8_t ( *LcsInitCallback )  ( uint16_t nodeId, uint8_t portId, uint16_t flags );
-    typedef uint8_t ( *LcsInfoItemCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
-    typedef uint8_t ( *LcsCtrlItemCallback ) ( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 );
-    typedef void    ( *LcsItemReqRepCallback ) ( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t arg2 );
-    typedef void    ( *LcsPortEventCallback) ( uint16_t nodeId, uint8_t portId, uint8_t eAction, uint16_t eId, uint16_t eData );
+    typedef uint8_t ( *LcsResetCallback ) ( uint16_t npId );
+    typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId );
+    typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId );
+
+    typedef uint8_t ( *LcsReqCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+    typedef uint8_t ( *LcsRepCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+
+    typedef uint8_t ( *LcsEventCallback) ( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData );
 }
 
 
@@ -683,8 +659,9 @@ void                startRuntime( );
 // Access the node.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t             nodeInfo( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-uint8_t             nodeControl( uint8_t portId, uint8_t item, uint16_t val1 = 0, uint16_t val2 = 0 );
+uint8_t             attrGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
+uint8_t             attrSet( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
+uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //----------------------------------------------------------------------------------------------------------
 // Register callbacks for messages and tasks.
@@ -692,15 +669,15 @@ uint8_t             nodeControl( uint8_t portId, uint8_t item, uint16_t val1 = 0
 //----------------------------------------------------------------------------------------------------------
 void                registerLcsMsgCallback( LcsMsgCallback functionId );
 void                registerDccMsgCallback( LcsMsgCallback functionId );
-void                registerCommandCallback( LcsCommandCallback functionId );
-void                registerReqRepCallback( LcsItemReqRepCallback handler );
-void                registerPortEventCallback( LcsPortEventCallback functionId );
+void                registerCmdCallback( LcsCmdCallback functionId );
+void                registerInitCallback( LcsInitCallback handler );
+void                registerResetCallback( LcsResetCallback handler );
+void                registerPfailCallback( LcsPfailCallback handler );
+void                registerEventCallback( LcsEventCallback functionId );
+void                registerReqCallback( LcsReqCallback handler );
+void                registerRepCallback( LcsRepCallback handler );
+uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
 
-uint8_t             registerInitCallback( uint8_t portId, LcsInitCallback handler );
-uint8_t             registerInfoCallback( uint8_t portId, LcsInfoItemCallback handler );
-uint8_t             registerCtrlCallback( uint8_t portId, LcsCtrlItemCallback handler );
-
-uint8_t             registerPeriodicTask( LcsTaskCallback task, uint32_t interval = 0 );
 
 //----------------------------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.

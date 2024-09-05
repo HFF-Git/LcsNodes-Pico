@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 // The "LcsMsgBusCAN" object implements the LCS message bus as a CAN bus. The CAN bus is a widely established
 // bus, which is quite robust. We use the standard CAN bus with a maximum CAN Id of 29 bits. In our case the
-// node / port ID is used.
+// 16 bit node / port ID along with a 2 bit priority field is used as the CAN address.
 //
 // On the PICO, there is a library, "can2040", available that iplements the CAN bus protocol in software,
 // using the PICO PIO state machines. This saves us an external controller. In addition, we allow for the
@@ -57,7 +57,7 @@ namespace {
 
 //------------------------------------------------------------------------------------------------------------  
 // Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-// settoin of the debiug level.
+// setting of the debug level.
 //------------------------------------------------------------------------------------------------------------ 
 uint8_t debugLevel = 0;
 
@@ -119,7 +119,7 @@ inline uint32_t buildMcpCanBusHeader( uint16_t canId, uint8_t msgPri, bool RTR =
 //------------------------------------------------------------------------------------------------------------
 void CanBusPIOIrqHandler( ) {
 
-  can2040_pio_irq_handler( &cBus );
+    can2040_pio_irq_handler( &cBus );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -170,12 +170,13 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 //------------------------------------------------------------------------------------------------------------
 void canBusCore( ) {
 
-    #if DEBUG_CAN_BUS == 1
-    printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
-            cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
-            cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
-            cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
-    #endif
+    if ( debugLevel > 0 ) {
+
+        printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
+                cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
+                cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
+                cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
+    }
 
     queue_init( &rxQueue, sizeof( can2040_msg ), cfg.mcRxQueueSize );
 
@@ -199,9 +200,10 @@ void canBusCore( ) {
 
     cfg.mcSetupOK = true;
 
-    #if DEBUG_CAN_BUS == 1
-    printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
-    #endif
+    if ( debugLevel > 0 ) {
+
+        printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
+    }
 
     if ( cfg.mcRunOnCore1 ) {
 
@@ -213,16 +215,33 @@ void canBusCore( ) {
 
 
 //------------------------------------------------------------------------------------------------------------
+// The LCS name space CanBus Object methods declared in this file.
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS { 
+
+//------------------------------------------------------------------------------------------------------------
+// Debug an trace are implemented with a conditinal statement checkiung the debugLevel. Rather than using a
+// conditional compile, the variable can be set and the debugging can be enabled without recompile.
+//
+//------------------------------------------------------------------------------------------------------------
+void LcsMsgBusCAN::setDebugLevel( uint8_t level ) {
+
+    debugLevel = level;
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "init" is called to setup the CAN bus interface. We will first check the parameters and setup the CAN bus.
 // Next set up the interrupt handler and start the CAN bus processing. This is also the time to set the
 // initial canId.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t LCS::LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
+uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
 
-    #if DEBUG_CAN_BUS == 1
-    printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
-    #endif
+    if ( debugLevel > 0 ) {
+
+        printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
+    }
 
     if (( rxPin == CDC::UNDEFINED_PIN ) || ( txPin == CDC::UNDEFINED_PIN )) return ( ERR_CAN_BUS_INIT );
 
@@ -270,10 +289,12 @@ uint8_t LCS::LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, u
 //------------------------------------------------------------------------------------------------------------
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the message priority. The
 // message length is encoded in the first message byte, which represents the LCS message opCode as well as 
-// the length of the message.
+// the length of the message. The message has a certain initial priority. When we cannot send the message 
+// rightwaway, the priority is raised. When we cannot send at the highest priority, the message send
+// failed.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
+uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     can2040_msg msg;
 
@@ -282,11 +303,12 @@ uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
-    #if DEBUG_CAN_BUS == 1
-    printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
-    for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
-    printf( ")\n" );
-    #endif
+    if ( debugLevel > 0 ) {
+
+        printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
+        for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
+        printf( ")\n" );
+    }
 
     if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
@@ -313,17 +335,18 @@ uint8_t LCS::LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 // receiver callback. So, all this routine will do is work from the receiver queue.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t LCS::LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
+uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
     can2040_msg msg;
 
     if ( queue_try_remove( &rxQueue, &msg )) {
 
-        #if DEBUG_CAN_BUS == 1
-        printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
-        for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );
-        printf( ")\n" );
-        #endif
+        if ( debugLevel > 0 ) {
+
+            printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
+            for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );
+            printf( ")\n" );
+        }
 
         bool      rtrFlag     = ( msg.id & 0x40000000 );
         bool      extFlag     = ( msg.id & 0x80000000 );
@@ -331,23 +354,25 @@ uint8_t LCS::LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
         if (( remoteCanId == canId ) && ( msg.dlc > 0 )) {
 
-        return ( ERR_CAN_ID_COLLISION );
+            return ( ERR_CAN_ID_COLLISION );
         }
         else if ( rtrFlag ) {
 
-        msg.id          = canId;
-        msg.dlc         = 0;
-        msg.data32[ 0 ] = 0;
-        msg.data32[ 1 ] = 0;
+            msg.id          = canId;
+            msg.dlc         = 0;
+            msg.data32[ 0 ] = 0;
+            msg.data32[ 1 ] = 0;
 
-        can2040_transmit( &cBus, &msg );
-        return ( ERR_CAN_MSG_NO_MSG );
+            can2040_transmit( &cBus, &msg );
+            return ( ERR_CAN_MSG_NO_MSG );
         }
         else {
 
-        memcpy( msgBuf, msg.data, msg.dlc );
-        return ( ALL_OK );
+            memcpy( msgBuf, msg.data, msg.dlc );
+            return ( ALL_OK );
         }
     }
     else return ( ERR_CAN_MSG_NO_MSG );
 }
+
+}; // namespace LCS
