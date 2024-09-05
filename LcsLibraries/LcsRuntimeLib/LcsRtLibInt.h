@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Layout Control System - Runtime Library inernals include file
+// Layout Control System - Runtime Library internals include file
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// ??? add some text what thsi is, concepts...
+// ??? add some text what this is, concepts...
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -25,7 +25,7 @@
 #define LCS_RT_LIB_INT_h
 
 //------------------------------------------------------------------------------------------------------------
-// Include files. Besides the standard C libraries, there is the external LCS runtime include file, tand he 
+// Include files. Besides the standard C libraries, there is the external LCS runtime include file, and he 
 // dependent code library include file.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -33,10 +33,7 @@
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsDrvOccDetectLib.h"
-
-
-// ??? add other driver libs...
-
+#include "LcsDrvServoLib.h"
 
 namespace LCS {
 
@@ -52,8 +49,6 @@ namespace LCS {
 
 // ??? this should actually be a set of variables.
 // ??? each module should have a function to set the module ( file ) local debug level ...
-// ??? should we store them also in the nodeMap to dynamically set debug evles to be active after reset ?
-
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -66,7 +61,7 @@ namespace LCS {
 // The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
 // offset 0x400, the attributeMap starting at offset 0x800 and the eventMap at offset 0x1000. The system area
 // is in total 8 Kbytes. The optional user map occupies all the remaining bytes in the NVM and starts at 
-// 0x2000 then. A firmware programmer can access teh system as well as the user data areas. However, note 
+// 0x2000 then. A firmware programmer can access the system as well as the user data areas. However, note 
 // that dangerous things can be done when modifying the system area.
 //
 //        0x0000  :-------------------------------------------:
@@ -93,10 +88,10 @@ namespace LCS {
 //                :                                           :
 //                :                                           :
 //                :                                           :
-//        0xnnnn  :-------------------------------------------:
+//        0xNNNN  :-------------------------------------------:
 //
-// The Node Map and Port Map do not fill the entire alocated area. Yet. For future developments, each
-// area has some spare room. The attribute map contains the veriables for the node and ports. Each entity
+// The Node Map and Port Map do not fill the entire allocated area. Yet. For future developments, each
+// area has some spare room. The attribute map contains the variables for the node and ports. Each entity
 // has 64 attributes max, the attribute map is 1Kbyte in total. By putting all attributes in one spot,
 // access to an attribute value is easy to calculate and quick.
 //
@@ -104,9 +99,9 @@ namespace LCS {
 // The event map is a sorted map, lookup is done via a binary search. Finally, the optional user map 
 // data area is just a set of bytes with a structure only know to the firmware designer.
 //
-// In general each of the runtime areas could have also been designed in a way that they are dynmically 
+// In general each of the runtime areas could have also been designed in a way that they are dynamically 
 // configurable in size. For example, a port map could be up to 15 ports but also less. The attributes of 
-// a node or port could be up to 64 atrributes or less. Considering the size and price of NVM chips, the
+// a node or port could be up to 64 attributes or less. Considering the size and price of NVM chips, the
 // current implementation uses fixed sizes for each area. It also turns out that the memory requirements
 // are well within the capabilities of the NVM chips and also the PICO memory size. It is not worth the
 // additional complexity.
@@ -150,9 +145,9 @@ const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + ' ';
 
 //------------------------------------------------------------------------------------------------------------
 // The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
-// implementation of the CAN bus. The software version could run on the same or on the seprate processor core.
-// Technically, the PICO could also run the MCP2515 via the SPI interface, but so far we just use the software
-// version and avoid the additonal controller hardware.
+// implementation of the CAN bus. The software version could run on the same or on the separate processor 
+// core. Technically, the PICO could also run the MCP2515 via the SPI interface, but so far we just use the
+// software version and avoid the additional controller hardware.
 //
 //------------------------------------------------------------------------------------------------------------
 enum CanBusControllerMode : uint8_t {
@@ -189,6 +184,7 @@ enum MsgPriority : uint8_t {
   //
   //  NS_NIL            -
   //  NS_FAIL           -
+  //  NS_PFAIL          - 
   //  NS_INIT           -
   //  NS_REGISTER       -
   //  NS_COLLISION      -
@@ -277,7 +273,7 @@ struct LcsNvmHeader {
 //
 // When bringing up a node, we read in the node map from the NVM. The first check is whether the nodeMap
 // read is a valid nodeMap. We have a simple check with two "magic" words that when set to the correct value
-// indicate that this NVM area was once intialized.
+// indicate that this NVM area was once initialized.
 //
 // ??? comment on the fields...
 //----------------------------------------------------------------------------------------------------------
@@ -325,7 +321,6 @@ struct LcsNodeMap {
     uint16_t    drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
     uint16_t    drvMapHwm                     = 0;
 
-   
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -388,7 +383,7 @@ struct LcsCallbackMap {
 
     LcsInitCallback         initCallback            = nullptr;
     LcsResetCallback        resetCallback           = nullptr;
-    LcsPfailCallback        pfailCalback            = nullptr;
+    LcsPfailCallback        pfailCallback           = nullptr;
 
     LcsReqCallback          reqCallback             = nullptr;
     LcsRepCallback          repCallback             = nullptr;
@@ -456,7 +451,7 @@ extern "C" {
 // general an area which contains driver relevant information. The board type will tell the setup routines
 // what driver to load for the extension board. The driver data area is entirely driver specific and the 
 // meaning is only know to the driver software. At startup time, all we have to do then is locate the board 
-// type, load the  respective driver and let the driver code do whatever needs to be done accorind to the 
+// type, load the  respective driver and let the driver code do whatever needs to be done according to the 
 // data area content.
 //
 // Note that the extension board NVM data is "read only". To write to it, a jumper is set on the board. The
@@ -481,13 +476,13 @@ struct LcsDrvBoardDesc {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The runtime libary maintains a driver table. A driver is a library that manages a particular extension 
+// The runtime library maintains a driver table. A driver is a library that manages a particular extension 
 // board. During startup all extension boards will be located, if any. For each board the correct driver
-// will be stored in the driver map. The driver obbject is a set of defined methods and a reference to the
+// will be stored in the driver map. The driver object is a set of defined methods and a reference to the
 // driver data area. This is the area that was read in when we located the extension board. 
 //
 // If the extension board descriptor is invalid, we just install a "dummy" driver, which offers the basic
-// funcions to read and modify the decriptor data. Note that the board has a jumper to enable writing to
+// functions to read and modify the descriptor data. Note that the board has a jumper to enable writing to
 // the board. 
 //
 //----------------------------------------------------------------------------------------------------------

@@ -33,8 +33,8 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-// settoin of the debiug level.
+// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
+// setting of the debug level.
 //------------------------------------------------------------------------------------------------------------ 
 uint8_t debugLevel = 0;
 
@@ -52,6 +52,21 @@ uint32_t        timerVal                        = 0L;
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
   return (( val >= lower ) && ( val <= upper ));
+}
+
+uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
+
+    return(( nodeId << 4 ) | ( portId & 0xF ));
+}
+
+uint16_t nodeId( uint16_t npId ) {
+
+    return( npId >> 4 );
+}
+
+uint16_t portId( uint16_t npId ) {
+
+    return( npId & 0xF );
 }
 
 }; // namespace
@@ -112,7 +127,7 @@ void registerResetCallback( LcsInitCallback functionId ) {
 
 void registerPfailCallback( LcsInitCallback functionId ) {
 
-    callbackMap.pfailCalback = functionId;
+    callbackMap.pfailCallback = functionId;
 }
 
 void registerReqCallback( LcsReqCallback functionId ) {
@@ -148,7 +163,7 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "drvReq" is the entry point to an extension board. For each extension bord type there is driver function.
+// "drvReq" is the entry point to an extension board. For each extension board type there is driver function.
 // This function is called when we access that extension board.
 //
 //
@@ -158,84 +173,6 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
     if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
 
     return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Dummy driver. We need a default driver that would allow us to talk to an extension board when we cannot 
-// identify the correct driver.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t drvDummyDriver( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
-
-    switch( item ) {
-
-
-        default: ;
-    }
-
-    return( 0 ); // ??? for now ...
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "resetNode" restarts a node. We first rebuild the MEM areas from their NVM counterparts. Next, the optional
-// init call back is invoked. Finally, all ports are resetted as well. If an error occurs, the node reports a
-// fatal error and stops.
-//
-// ??? what exactly is resetted when called ? Are all data structures re-initialized ?
-// ??? does the user need to do all the registration work ?
-// ??? we either should have a "reset" callback or a flag on the init callback to distinguish them both.
-//------------------------------------------------------------------------------------------------------------
-uint8_t resetNode( ) {
-
-    uint8_t rStat = ALL_OK;
-
-    if ( callbackMap.resetCallback == nullptr ) {
-
-        return( -1 );
-    }
-
-    // setupNode( );
-
-    // ???? fix .....
-
-    if ( callbackMap.resetCallback != nullptr ) {
-
-        rStat = callbackMap.resetCallback(( nodeMap.nodeId << 4 ));
-    }
-
-    if ( rStat == ALL_OK ) {
-
-        for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-            rStat = resetPort( i );
-            if ( rStat != ALL_OK ) break;
-        }
-    }
-
-    return ( rStat );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "resetPort" will restart an individual port. We first copy the initial state for the port from NVM and then
-// invoke the optional init callback. This function also called when we reset the entire node.
-//
-// ??? what exactly is resetted when called ? Are all data structures re-initialized ?
-// ??? does the user need to do all the registration work ?
-// ??? we either should have a "reset" callback or a flag on the init callback to distinguish them both.
-//------------------------------------------------------------------------------------------------------------
-uint8_t resetPort( uint8_t portId ) {
-
-    if ( ! isInRangeU( portId, MIN_PORT_ID, MAX_PORT_MAP_ENTRIES )) return ( ERR_INVALID_PORT_ID );
-
-    /*
-    nvm -> getNvmBytes( nodeMap.portMapStart + (( portId - 1 ) * sizeof( LcsPortMapEntry )),
-                         (uint8_t *) & portMap[ portId - 1 ],
-                        sizeof( LcsPortMapEntry ));
-    */
-  
-    if ( callbackMap.initCallback != nullptr )
-    return ( callbackMap.initCallback((( nodeMap.nodeId << 4 ) | ( portId ))));
-    else return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -259,7 +196,7 @@ void handleNodePortEvents( ) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
-                callbackMap.eventCallback((( pPtr -> nodeId << 4 ) | ( i + 1 )),
+                callbackMap.eventCallback(  buildNpId( pPtr -> nodeId, i + 1 ),
                                             pPtr -> eventId,
                                             pPtr -> eventAction,
                                             pPtr -> eventValue );
@@ -271,11 +208,11 @@ void handleNodePortEvents( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a lot
-// of periodic processing that needs to be one by any firmware implmentation. Instead of the firmware developer
-// writing its own handler, there is a crude method that just samples the timestamps and interval and triggers
-// the callback hen the interval is reached. Note that this is not very accurate from a timing perspective
-// but will do for simple periodic processing.
+// "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a 
+// lot of periodic processing that needs to be one by any firmware implementation. Instead of the firmware
+// developer writing its own handler, there is a crude method that just samples the timestamps and interval 
+// and triggers the callback then the interval is reached. Note that this is not very accurate from a timing
+// perspective but will do for simple periodic processing.
 //
 //------------------------------------------------------------------------------------------------------------
 void handlePeriodicTasks( ) {
@@ -314,7 +251,7 @@ void handleMsgRepNid( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// LCS management deals with messags concerning the general LCS management. If there is a callback defined
+// LCS management deals with messages concerning the general LCS management. If there is a callback defined
 // it will be invoked. Then the node state is changed accordingly.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -376,7 +313,6 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
                 if ( nodeId == nodeMap.nodeId ) {
 
-
                     // ??? fix
                     // setupNode( );
 
@@ -389,6 +325,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
                     uint8_t rStat = resetPort( msg[ 3 ] );
 
+                    // ??? send npId format ?
                     if ( rStat == ALL_OK ) LCS::sendAck( nodeId );
                     else                   LCS::sendErr( nodeId, rStat, 0, 0 );
                 }
@@ -416,6 +353,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     }
 }
 
+// ??? GET/SET/REQ.... changes...
+
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgQryNode" processes an incoming query message for a node item, i.e. attribute.
 //
@@ -439,6 +378,9 @@ void handleMsgQryNode( uint8_t *msg ) {
     }
 }
 
+
+// ??? GET/SET/REQ.... changes...
+
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNode" processes the answer to a previously sent node query. The incoming message will only
 // result in an action when we have an outstanding request for that node.
@@ -461,6 +403,9 @@ void handleMsgRepNode( uint8_t *msg ) {
     if ( callbackMap.repCallback != nullptr )
         callbackMap.repCallback( npId, item, &arg1, &arg2 );
 }
+
+
+// ??? GET/SET/REQ.... changes...
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgSetNode" processes an incoming set message for a node map item, i.e. attribute.
@@ -546,7 +491,7 @@ void handleMsgDccMgt( uint8_t *msg ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Node state INIT. This is the first state after the initial library setup. The init call created all memory
-// areas and initalized the data structures. After the init call, the firmeware programmer can register the
+// areas and initialized the data structures. After the init call, the firmware programmer can register the
 // necessary callback functions and do other firmware specific work. Eventually, the loop method is called.
 // We enter the loop method and the node state is INIT. If set, the node init and port init callback routines
 // will be invoked. If the nodeId validation step is set, the node will request a nodeId and enter the state
@@ -590,6 +535,16 @@ void handleNodeStateInit( ) {
 void handleNodeStateFail( ) {
 
   // ??? readyLed off. fatal error code
+
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Node State Power FAIL. This is the state after the node startup failed. 
+//
+//------------------------------------------------------------------------------------------------------------
+void handleNodeStatePfail( ) {
+
+  // ??? what to do ...
 
 }
 

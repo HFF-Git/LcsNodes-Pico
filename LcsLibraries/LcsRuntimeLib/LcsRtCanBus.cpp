@@ -7,14 +7,14 @@
 // bus, which is quite robust. We use the standard CAN bus with a maximum CAN Id of 29 bits. In our case the
 // 16 bit node / port ID along with a 2 bit priority field is used as the CAN address.
 //
-// On the PICO, there is a library, "can2040", available that iplements the CAN bus protocol in software,
+// On the PICO, there is a library, "can2040", available that implements the CAN bus protocol in software,
 // using the PICO PIO state machines. This saves us an external controller. In addition, we allow for the
 // option to run the CAN bus state machine on a separate core. This is highly recommend as the LCS Runtime
 // has a lot of other things to do. Using a queue from the PICO C++ SDK, the core running the CAN state
-// machine will just queue the received message to be pciked up by the other core when ready.
+// machine will just queue the received message to be picked up by the other core when ready.
 //
 // As a further optimization we could implement a filter that filters out nodeId specific messages not
-// itended for this node. One day....
+// intended for this node. One day....
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -56,16 +56,15 @@ extern "C" {
 namespace {
 
 //------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
+// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
 // setting of the debug level.
 //------------------------------------------------------------------------------------------------------------ 
 uint8_t debugLevel = 0;
 
 //------------------------------------------------------------------------------------------------------------
 // The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"
-// CAN bus message size. For the ennumration process, there is the time interval to collect enumeration
-// responses. Finally, the CAN bus library for the RP2040 needs a static opaque structure. We also need
-// a receiver queue for storing the received messages when they come in.
+// CAN bus message size. Finally, the CAN bus library for the RP2040 needs a static opaque structure. We also
+// need a receiver queue for storing the received messages when they come in.
 //
 //------------------------------------------------------------------------------------------------------------
 const uint8_t   MAX_CAN_MSG_SIZE  = 8;
@@ -221,7 +220,7 @@ void canBusCore( ) {
 namespace LCS { 
 
 //------------------------------------------------------------------------------------------------------------
-// Debug an trace are implemented with a conditinal statement checkiung the debugLevel. Rather than using a
+// Debug an trace are implemented with a conditional statement checking the debugLevel. Rather than using a
 // conditional compile, the variable can be set and the debugging can be enabled without recompile.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -290,7 +289,7 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the message priority. The
 // message length is encoded in the first message byte, which represents the LCS message opCode as well as 
 // the length of the message. The message has a certain initial priority. When we cannot send the message 
-// rightwaway, the priority is raised. When we cannot send at the highest priority, the message send
+// right away, the priority is raised. When we cannot send at the highest priority, the message send
 // failed.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -327,7 +326,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 // manual resolution.
 //
 // In addition to message processing, we also need to react to RTR messages. We answer such a request with
-// sending a zero length message respionse. Replying to such a message from other nodes results in a status
+// sending a zero length message response. Replying to such a message from other nodes results in a status
 // return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was actually received.
 //
 // With the "can2040" library CAN bus messages are received via a callback function. This library will store

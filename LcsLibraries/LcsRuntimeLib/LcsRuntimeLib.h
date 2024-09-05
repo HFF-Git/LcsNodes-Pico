@@ -4,8 +4,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // At the heart of layout control, LCS, is the runtime library implementing the basic functions. Please refer
-// to the document for information on concepts and implementation notes. This is the exterbal include file for
-// the firmware programmer. All external definitions of key contants and types are included here.
+// to the document for information on concepts and implementation notes. This is the external include file for
+// the firmware programmer. All external definitions of key constants and types are included here.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -66,8 +66,8 @@ enum LcsNodeTypeId : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The port Id identifies the port on a node. Port numbers start with one. The port number 0 represesents
-// the NIL port number and usually referes to the node itself. A node can have up to 15 ports.
+// The port Id identifies the port on a node. Port numbers start with one. The port number 0 represents the
+// NIL port number and usually refers to the node itself. A node can have up to 15 ports.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsPortId : uint8_t {
@@ -174,7 +174,7 @@ enum DccFuncGroupId : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// DCC decoder function mapping Ids. The LCS system defines a set of functions used by the handlhelds such
+// DCC decoder function mapping Ids. The LCS system defines a set of functions used by the handhelds such
 // as horn, lights and so on. These identifier are mapped to the DCC functions available for a given DCC
 // decoder.
 //
@@ -201,7 +201,7 @@ enum DccSpeedSteps : uint8_t {
 
 //------------------------------------------------------------------------------------------------------------
 // "CvModeOptions" is used by the DCC CV variables access routines to specify the access mode. Only options
-// 0 and 1 are supported. The others are there for historic reasons, the functionlity was found in older
+// 0 and 1 are supported. The others are there for historic reasons, the functionality was found in older
 // decoders and should not be supported anymore.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ enum DccCvModeOptions : uint8_t {
 
 //------------------------------------------------------------------------------------------------------------
 // The locomotive decoder speed. The range is defined for a DCC 128 speed step decoder, from 0 to 127. The
-// speed of 1 represents the emergency speed stop. In normal operations, speed steos would thus go from 2
+// speed of 1 represents the emergency speed stop. In normal operations, speed stops would thus go from 2
 // to 0 and back. For analog engines, we keep this scheme and map it to the respective power levels.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -276,7 +276,7 @@ enum LcsBoardSubType : uint16_t {
 
 //--------------------------------------------------------------------------------------------------------------
 // The defined chip families. There are controller chip families such as the controller family RP2040, or 
-// chip familes for the NVM chips used, and so on.
+// chip families for the NVM chips used, and so on.
 //
 //--------------------------------------------------------------------------------------------------------------
 enum LcsControllerFamilyType : uint16_t {
@@ -293,7 +293,7 @@ enum LcsControllerFamilyType : uint16_t {
 //
 //  NOPT_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
 //  NOPT_SKIP_NODE_INIT_STEP - during startup, skip the node initialization step.
-//  NOPT_SKIP_PORT_INIT_STEP - during startup, sjip the port initialization step.
+//  NOPT_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
 //
 //------------------------------------------------------------------------------------------------------------
 enum NodeOptions : uint16_t {
@@ -314,7 +314,7 @@ enum NodeOptions : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Node Flags. 
 //
-// ??? Normally resetted from options when restarted. When powerfail restart, perhaps a bit different how to 
+// ??? Normally reseted from options when restarted. When power fail restart, perhaps a bit different how to 
 // set them ...
 //
 //  NFLAGS_EXT_PRESENT  - extension boards are present.
@@ -328,8 +328,8 @@ enum NodeFlags : uint16_t {
 
 
 //------------------------------------------------------------------------------------------------------------
-// Nodes and ports are accessed with three key routines, GET, SET and REQ. The node and port is comined into
-// the node/port Id, "npId", and an item number which indicates what opration to perform. Items range from 
+// Nodes and ports are accessed with three key routines, GET, SET and REQ. The node and port is combined into
+// the node/port Id, "npId", and an item number which indicates what operation to perform. Items range from 
 // 0 ... 255 as follows: 
 //
 //   0          -   NIL item, not used
@@ -337,7 +337,7 @@ enum NodeFlags : uint16_t {
 //  64  .. 127  -   User defined items, passed to the registered callback routine.
 // 128  .. 191  -   Node/Port Attributes returned from MEM for GET/SET
 // 192  .. 255  -   Node/Port Attributes copied from NVM to MEM for GET, copied from MEM to NVM for SET. The
-//                  item range mirrors items 128 - 191. For exmaple, 128 and 192 refere to the same attrinute.
+//                  item range mirrors items 128 - 191. For example, 128 and 192 refer to the same attribute.
 //
 // Items may refer to node or port specific data. The npId specified in a call will indicate whether we
 // access the node or a port on the node. A portId portion of zero in the npId identifier, refer to the node
@@ -349,8 +349,8 @@ enum NodeFlags : uint16_t {
 // SET - the set routine will use the item numbers to set the value. Note that not all items that can be 
 // read can also be written to. An attempt will result in an error return.
 //
-// REQ - the reqiuest call will tranmit the request paramaters to the node / port where a registered callback
-// will be invoked. The result is returned via the paramaters. There are items that refer to node and ports,
+// REQ - the request call will transmit the request parameters to the node / port where a registered callback
+// will be invoked. The result is returned via the parameters. There are items that refer to node and ports,
 // and the item range 64 .. 127 which is use defined.
 //
 // ??? note: this list is work in progress, please us always the names rather than the numbers.
@@ -431,8 +431,8 @@ enum NodeAndPortItems : uint8_t {
 //  PF_EVENT_PENDING                - an event has been received for this port and is pending.
 //
 //
-// ??? what exactly is an outbond port ?
-// ??? should we have a föag for a request pending ?
+// ??? what exactly is an outbound port ?
+// ??? should we have a flag for a request pending ?
 // ??? a flag for a timed out request ? 
 //----------------------------------------------------------------------------------------------------------
 enum PortFlags : uint16_t {
@@ -451,7 +451,7 @@ enum PortFlags : uint16_t {
 //  PEA_EVENT_IDLE                - the port is idle.
 //  PEA_EVENT_ON                  - an "ON" event was received.
 //  PEA_EVENT_OFF                 - an "OFF" event was received.
-//  PEA_EVENT_EVT                 - an event wth additional arguments was received.
+//  PEA_EVENT_EVT                 - an event with additional arguments was received.
 //
 //----------------------------------------------------------------------------------------------------------
 enum PortEventAction : uint8_t {
@@ -467,9 +467,9 @@ enum PortEventAction : uint8_t {
 // NVM or both areas. For a read operation the SYNC option will first copy the NVM data to the MEM data.
 // For the write operation the SYNC option will first write to the MEM data and then update the NVM data.
 //
-//  ACC_MEM                   - the acces is memory only.
+//  ACC_MEM                   - the access is memory only.
 //  ACC_NVM                   - the access is NVM only.
-//  ACC_SYNC                  - the acces will for reads first read NVM to MEM for writes flush MEM to NVM.
+//  ACC_SYNC                  - the access will for reads first read NVM to MEM for writes flush MEM to NVM.
 //
 //----------------------------------------------------------------------------------------------------------
 enum AttrDataAccessOptions : uint8_t {
@@ -481,10 +481,10 @@ enum AttrDataAccessOptions : uint8_t {
 
 //---------------------------------------------------------------------------------------------------------
 // The opCode identifies the LCS Bus message. It is always the first data byte of the message. We encode
-// the number of payload data bytes in the first three bits of the opCode. For each message length there is
-// a maximum of 32 opCode possible. This scheme is adopted from the Merg CBUS. The constant list below is
-// organized by instruction length. The OPC  macro helps to define the opcodes. The first argument is the
-// length of the data bytes, the second the opcodeId within the group.
+// the number of payload data bytes in the first three bits of the opCode. For each message length there 
+// is a maximum of 32 opCode possible. This scheme is adopted from the MERG group CBUS. The constant list
+// below is organized by instruction length. The OPC  macro helps to define the opcodes. The first argument
+// is the length of the data bytes, the second the opcodeId within the group.
 //
 // ??? note: this list is work in progress, please us always the names rather than the numbers.
 //----------------------------------------------------------------------------------------------------------
@@ -553,7 +553,7 @@ enum LcsMsgOpCodes : uint8_t {
 //----------------------------------------------------------------------------------------------------------
 // LCS Core Library Error codes. The status code is used as a return value from most of the library methods.
 // The numbers are grouped in a LCS library portion and a user firmware portion. The LCS library portion
-// ranges from 1 to 127, the user portion from 128 to 255. The vaue of zero is generally a "OK".
+// ranges from 1 to 127, the user portion from 128 to 255. The value of zero is generally a "OK".
 //
 // ??? add NVM errors, also CDC errors ?
 //----------------------------------------------------------------------------------------------------------

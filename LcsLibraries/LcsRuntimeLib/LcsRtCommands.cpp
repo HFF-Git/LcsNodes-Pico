@@ -6,7 +6,7 @@
 // Based on the Raspberry Pi PICO controller, the LCS node has an option to accept commands and display
 // data via the USB interface. This is very handy for initial debugging and troubleshooting in the field. 
 // The command syntax is rather simple and adopted from the original DCC++ work. The key reason for adopting
-// the DCC++ command syntax that for exmaple the JMRI community built tools that accept DCC++ commands.
+// the DCC++ command syntax that for example the JMRI community built tools that accept DCC++ commands.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -259,7 +259,7 @@ uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
 
 
 //------------------------------------------------------------------------------------------------------------
-// Routines in LCS name sppace.
+// Routines in LCS name space.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
@@ -529,7 +529,7 @@ void listStatusCommand( char *s ) {
 // ??? need commands to write to the driver data area and flush it to the NVM ( jumper set in ... )
 // ??? is that a generic driver or just a command with appropriate data ? 
 
-// ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initia PWM values, etc.
+// ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initial PWM values, etc.
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -538,7 +538,7 @@ void listStatusCommand( char *s ) {
 //    <!D board item arg1 [ arg 2]>
 //
 //    board - the extension board the driver handles.
-//    item  - the driver specific item which isthe requested operation.
+//    item  - the driver specific item which is the requested operation.
 //    arg1  - the first argument to the driver.
 //    arg2  - the optional second argument to the driver and also output from the driver.
 //
@@ -589,7 +589,7 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -  3 - Port Map\n" );
     printf( "              " " -  4 - Event Map\n" );
     printf( "              " " -  5 - Attribute Map\n" );
-    printf( "              " " -  6 - Ptask Map\n" );
+    printf( "              " " -  6 - Periodic Task Map\n" );
     printf( "              " " -  7 - Callback Map\n" );
     printf( "              " " -  8 - NVM Area\n" );
     printf( "              " " -  9 - MEM Area\n" );
@@ -610,7 +610,7 @@ uint8_t setupSerialCommand( ) {
 // ??? need commands to manipulate the NodeMap data ?
 
 //------------------------------------------------------------------------------------------------------------
-// "handleSerialCommand" reads characters from the console. The command line syntax is modelled after the
+// "handleSerialCommand" reads characters from the console. The command line syntax is modeled after the
 // original DCC++ work. First character is a command, the rest are arguments. A command is bracketed by "<" 
 // and ">". Once we encounter a closing ">" sign, the first character in the bracketed string is used to 
 // branch to the appropriate command handler. The command interface routine only handles the LCS commands, 
