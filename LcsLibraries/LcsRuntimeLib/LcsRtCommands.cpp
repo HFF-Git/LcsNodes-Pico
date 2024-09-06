@@ -412,58 +412,85 @@ void sendEventCommand( char *s ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!n" handles the local node query command.
+// "!g" handles the local node or port attribute query command.
 //
-//    <!n port item [ val1 [ val2 ]]>
+//    <!g npId item [ val1 [ val2 ]]>
 //
-//    port      - the port. ( 0 - node, 1 .. n - port )
+//    npId      - the node/port Id.
 //    item      - the node item to query, the result items will be listed in HEX format.
 //    val1      - the argument 1 on input.
 //    val2      - the argument 2 on input.
 //
-//    returns: <!n item val1 val2 ret>
+//    returns: <!g item val1 val2 ret>
 //
 //------------------------------------------------------------------------------------------------------------
-void queryNodeCommand( char *s ) {
+void getNodeCommand( char *s ) {
 
-  uint16_t  portId  = NIL_PORT_ID;
+  uint16_t  npId    = 0;
   uint8_t   item    = 0;
   uint16_t  arg1    = 0;
   uint16_t  arg2    = 0;
   uint8_t   ret     = ALL_OK;
 
-  if ( sscanf( s, "%hu %hu %hu %hu", &portId, &item, &arg1, &arg2  ) != 2 ) return;
+  if ( sscanf( s, "%hu %hu %hu %hu", &npId, &item, &arg1, &arg2  ) != 2 ) return;
 
-  ret = attrGet( portId, item, &arg1, &arg2 );
+  ret = attrGet( npId, item, &arg1, &arg2 );
 
-  printf( "<!n %d|0x%x|0x%x|%d>", item, arg1, arg2, ret );
+  printf( "<!g %d|0x%x|0x%x|%d>", item, arg1, arg2, ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!N" handles the node control command.
+// "!p" handles the node or port attribute set command.
 //
-//    <!N item [ val1 [ val2 ]]>
+//    <!p npId item [ val1 [ val2 ]]>
 //
-//    port      - the port. ( 0 - node, 1 .. n - port )
+//    npId      - the node/port Id.
 //    item      - the port item to control
 //    val1      - the item value 1
 //    val2      - the item value 2 ( optional )
 //
-//    returns: <!N item val1 val2 ret>
+//    returns: <!p item val1 val2 ret>
 //
 //------------------------------------------------------------------------------------------------------------
-void controlNodeCommand( char *s ) {
+void setNodeCommand( char *s ) {
 
-    uint16_t  portId  = NIL_PORT_ID;
-    uint8_t   item    = 0;
-    uint16_t  val1    = 0;
-    uint16_t  val2    = 0;
+    uint16_t  npId  = 0;
+    uint8_t   item  = 0;
+    uint16_t  val1  = 0;
+    uint16_t  val2  = 0;
 
-    if ( sscanf(  s, "%hu %hhu %hu %hu", &portId, &item, &val1, &val2 ) < 2 ) return;
+    if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return;
 
-    uint8_t ret = nodeReq( portId, item, &val1, &val2 );
+    uint8_t ret = attrSet( npId, item, val1, val2 );
 
-    printf( "<!N %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+    printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "!r" handles the node or port request command.
+//
+//    <!r npId item [ val1 [ val2 ]]>
+//
+//    npId      - the node/port Id.
+//    item      - the port item to control
+//    val1      - the item value 1
+//    val2      - the item value 2 ( optional )
+//
+//    returns: <!r item val1 val2 ret>
+//
+//------------------------------------------------------------------------------------------------------------
+void reqNodeCommand( char *s ) {
+
+    uint16_t  npId  = NIL_PORT_ID;
+    uint8_t   item  = 0;
+    uint16_t  val1  = 0;
+    uint16_t  val2  = 0;
+
+    if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return;
+
+    uint8_t ret = nodeReq( npId, item, &val1, &val2 );
+
+    printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -490,6 +517,39 @@ void broadcastLcsMsgCommand( char *s ) {
         for ( int i = 0; i < 8; i++ ) printf( "0x%x ", b[ i ] );
         printf( "] : %d >", ret );
     }
+}
+
+
+// ??? need commands to write to the driver data area and flush it to the NVM ( jumper set in ... )
+// ??? is that a generic driver or just a command with appropriate data ? 
+// ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initial PWM values, etc.
+
+
+//------------------------------------------------------------------------------------------------------------
+// "driver request" command.
+//
+//    <!D board item arg1 [ arg 2]>
+//
+//    board - the extension board the driver handles.
+//    item  - the driver specific item which is the requested operation.
+//    arg1  - the first argument to the driver.
+//    arg2  - the optional second argument to the driver and also output from the driver.
+//
+//    returns:  <!D board item arg1 arg 2 ret>
+//
+//------------------------------------------------------------------------------------------------------------
+void drvRequestCommand( char *s ) {
+
+    uint8_t  boardId  = 0;
+    uint8_t  item     = 0;
+    uint16_t arg1     = 0;
+    uint16_t arg2     = 0;
+
+    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
+
+    int ret = drvReq( boardId, item, arg1, &arg2 );
+
+    printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -524,41 +584,6 @@ void listStatusCommand( char *s ) {
     } 
     else printSummary( );
 }
-
-
-// ??? need commands to write to the driver data area and flush it to the NVM ( jumper set in ... )
-// ??? is that a generic driver or just a command with appropriate data ? 
-
-// ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initial PWM values, etc.
-
-
-//------------------------------------------------------------------------------------------------------------
-// "driver request" command.
-//
-//    <!D board item arg1 [ arg 2]>
-//
-//    board - the extension board the driver handles.
-//    item  - the driver specific item which is the requested operation.
-//    arg1  - the first argument to the driver.
-//    arg2  - the optional second argument to the driver and also output from the driver.
-//
-//    returns:  <!D board item arg1 arg 2 ret>
-//
-//------------------------------------------------------------------------------------------------------------
-void drvRequestCommand( char *s ) {
-
-    uint8_t  boardId  = 0;
-    uint8_t  item     = 0;
-    uint16_t arg1     = 0;
-    uint16_t arg2     = 0;
-
-    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
-
-    int ret = drvReq( boardId, item, arg1, &arg2 );
-
-    printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
-}
-
 
 //------------------------------------------------------------------------------------------------------------
 // "!?" lists core library help information.
@@ -637,18 +662,24 @@ uint8_t handleSerialCommand( ) {
 
             switch ( commandBuf[ 1 ] ) {
 
-              case 'c': switchToConfigCommand( );                 break;
-              case 'o': switchToOperationsCommand( );             break;
-              case 'a': enterEventCommand( commandBuf + 2 );      break;
-              case 'r': removeEventCommand( commandBuf + 2 );     break;
-              case 'f': findEventCommand( commandBuf + 2 );       break;
-              case 'e': sendEventCommand( commandBuf + 2 );       break;
-              case 'n': queryNodeCommand( commandBuf + 2 );       break;
-              case 'N': controlNodeCommand( commandBuf + 2 );     break;
-              case 'B': broadcastLcsMsgCommand( commandBuf + 2 ); break;
-              case 'D': drvRequestCommand( commandBuf + 2 );      break;
-              case 's': listStatusCommand( commandBuf + 2 );      break;
-              case '?': listCoreLibHelpCommand( );                break;
+              case 'C': switchToConfigCommand( );                   break;
+              case 'O': switchToOperationsCommand( );               break;
+              
+              case 'a': enterEventCommand( commandBuf + 2 );        break;
+              case 'd': removeEventCommand( commandBuf + 2 );       break;
+              case 'f': findEventCommand( commandBuf + 2 );         break;
+              case 'e': sendEventCommand( commandBuf + 2 );         break;
+              
+              case 'g': getNodeCommand( commandBuf + 2 );           break;
+              case 'p': setNodeCommand( commandBuf + 2 );           break;
+              case 'r': reqNodeCommand( commandBuf + 2 );           break;
+
+
+              case 'B': broadcastLcsMsgCommand( commandBuf + 2 );   break;
+              case 'D': drvRequestCommand( commandBuf + 2 );        break;
+              case 's': listStatusCommand( commandBuf + 2 );        break;
+              case '?': listCoreLibHelpCommand( );                  break;
+
               default: printf( "<Unknown !-command, use '!?' for help>" );
             }
           }

@@ -97,7 +97,7 @@ uint8_t initLcsRuntime( ) {
   }
 
   
-  printf( "LCS BAse Station\n" );
+  printf( "LCS Base Station\n" );
 
   
   if ( rStat != 0 )  printf( "Err code: %d\n", rStat );
@@ -128,6 +128,15 @@ uint8_t startLcsRuntime( ) {
 
 
 
+// ??? we need an idea of system time like DCC. To be broadcasted periodically.
+
+
+
+
+// ??? we also need a broadcast of the layout system capabilities....
+
+
+
 //----------------------------------------------------------------------------------------------------------
 // 
 //
@@ -154,9 +163,9 @@ int main( ) {
 // primary task is to manage the DCC loco sessions, generate the DCC signals and manage the dual DCC track
 // outputs.
 //
-// Like all other LcsNodes, the bse station will provide a rich set of variable sthat can be set and queried.
+// Like all other LcsNodes, the base station will provide a rich set of variable that can be set and queried.
 // In addition, the base features a command line extension which implements the DCC++ style commands and
-// some more Basestationspecific commands. The idea for the DCC++ command syntax and commands is that these
+// some more base station specific commands. The idea for the DCC++ command syntax and commands is that these
 // command can also be submitted by a third party software ( e.g. JMRI ). An example would be the JMRI CV
 // programming tool.
 //
@@ -485,7 +494,7 @@ uint8_t setupSerialCommand( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The LCS message interface is initialzed in the LCS core library. This routine will set up the receiver
+// The LCS message interface is initialized in the LCS core library. This routine will set up the receiver
 // handler for incoming LCS message that concern the base station.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -571,7 +580,7 @@ void portEventCallback( uint16_t nodeId, uint8_t portId, uint8_t eAction, uint16
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The LCS management call back. So far, just show the incoming messsage...
+// The LCS management call back. So far, just show the incoming message...
 //
 //------------------------------------------------------------------------------------------------------------
 void busMgtCallback( uint8_t *msg ) {

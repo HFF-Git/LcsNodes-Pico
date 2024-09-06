@@ -356,7 +356,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 // ??? GET/SET/REQ.... changes...
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgQryNode" processes an incoming query message for a node item, i.e. attribute.
+// "handleMsgQryNode" processes an incoming GET message for a node or port attribute.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgQryNode( uint8_t *msg ) {
@@ -378,8 +378,28 @@ void handleMsgQryNode( uint8_t *msg ) {
     }
 }
 
+//------------------------------------------------------------------------------------------------------------
+// "handleMsgSetNode" processes an incoming SET message for a node or port attribute.
+//
+//------------------------------------------------------------------------------------------------------------
+void handleMsgSetNode( uint8_t *msg ) {
 
-// ??? GET/SET/REQ.... changes...
+    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
+    uint16_t portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
+
+    uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
+
+    if ( nodeId == nodeMap.nodeId ) {
+
+        uint8_t   item  = msg[3];
+        uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
+        uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
+        uint8_t   ret   = attrSet( npId, item, arg1, arg2 );
+
+        if ( ret == ALL_OK )  sendAck( nodeId );
+        else                  sendErr( nodeId, ret, 0, 0 );
+    }
+}
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNode" processes the answer to a previously sent node query. The incoming message will only
@@ -388,9 +408,8 @@ void handleMsgQryNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
 
-    uint16_t npId = (( msg[1] << 8 ) + msg[2] );
-
-    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
+    uint16_t npId   = (( msg[1] << 8 ) + msg[2] );
+    uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
     // ??? check if this is our node...
     // ??? check if we have a pending request....
@@ -408,23 +427,23 @@ void handleMsgRepNode( uint8_t *msg ) {
 // ??? GET/SET/REQ.... changes...
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgSetNode" processes an incoming set message for a node map item, i.e. attribute.
+// "handleMsgReqNode" processes an incoming request for a node or port.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
-    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-    uint8_t  portId  = msg[2] & 0x0F;
+    uint16_t npId   = (( msg[1] << 8 ) + msg[2] );
+    uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
     if ( nodeId == nodeMap.nodeId ) {
 
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = nodeReq( portId, item, &arg1, &arg2 );
+        uint8_t   ret   = nodeReq( npId, item, &arg1, &arg2 );
 
-        if ( ret == ALL_OK )  sendAck( nodeId );
-        else                  sendErr( nodeId, ret, 0, 0 );
+        if ( ret == ALL_OK )  sendAck( npId );
+        else                  sendErr( npId, ret, 0, 0 );
     }
 }
 
@@ -651,15 +670,16 @@ void handleNodeStateOperations( ) {
         case LCS_OP_ACK:
         case LCS_OP_ERR:
         case LCS_OP_REQ_NID:
-        case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
+        case LCS_OP_NCOL:           handleMsgLcsMgt( msg );             break;
 
-        case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );              break;
-        case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
-        case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
+        case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );            break;
+        case LCS_OP_SET_NODE:       handleMsgSetNode( msg );            break;
+        case LCS_OP_REP_NODE:       handleMsgRepNode( msg );            break;
+        case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );            break;
 
         case LCS_OP_EVT_ON:
         case LCS_OP_EVT_OFF:
-        case LCS_OP_EVT:            handleMsgEvent( msg );                break;
+        case LCS_OP_EVT:            handleMsgEvent( msg );              break;
 
         case LCS_OP_REQ_LOC:
         case LCS_OP_REL_LOC:
@@ -676,11 +696,8 @@ void handleNodeStateOperations( ) {
         case LCS_OP_REP_CVS:
         case LCS_OP_SET_CVS:
 
-        case LCS_OP_REQ_TON:
-        case LCS_OP_REQ_TOF:
         case LCS_OP_TON:
         case LCS_OP_TOF:
-        case LCS_OP_REQ_ESTP:
         case LCS_OP_ESTP:
 
         case LCS_OP_SEND_DCC3:

@@ -402,21 +402,9 @@ uint8_t sendEvent( uint16_t nodeId, uint16_t eventId, uint16_t arg ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendReqTrackOn( ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_TON };
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
-}
-
 uint8_t sendTrackOn( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_TON };
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
-}
-
-uint8_t sendReqTrackOff( ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_TOF };
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
 }
 
@@ -424,12 +412,6 @@ uint8_t sendTrackOff( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_TOF };
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
-}
-
-uint8_t sendReqEstop( ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_ESTP };
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
 uint8_t sendEstop( ) {
