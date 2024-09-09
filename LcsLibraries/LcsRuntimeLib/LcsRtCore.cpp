@@ -46,7 +46,7 @@ const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
 uint32_t        timerVal                        = 0L;
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper function to check a number range.
+// Little helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {

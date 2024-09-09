@@ -7,7 +7,7 @@
 // is to shield the actual hardware of processor and board implementation from the upper layers but still keep
 // the flexibility and performance of the underlying hardware. The library works with the concept of HW pins,
 // which are identifiers for an HW entity. This is easy for a GPIO pin, where the mapping is directly one to
-// one. For more complex HW entries such as the I2C or UART hardware, one pin is selected as the identifer to
+// one. For more complex HW entries such as the I2C or UART hardware, one pin is selected as the identifier to
 // that entity. For each complex entity an instance variable is maintained where all the relevant data is kept.
 //
 // A historic note. The original LCS code was written for Atmega and Pico. With the complete shift to PICO,
@@ -56,15 +56,15 @@
 //------------------------------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
-// the core library and the firmware designers that need access to the underlying HW portion manged by this
+// the core library and the firmware designers that need access to the underlying HW portion managed by this
 // lowest layer.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
 //------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional cimpilation, we will print debug messages based on the
-// settoin of the debiug level.
+// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
+// setting of the debug level.
 //------------------------------------------------------------------------------------------------------------ 
 uint8_t debugLevel = 0;
 
@@ -77,7 +77,7 @@ const uint8_t CDC_LIB_MAJOR_VERSION = 5;
 const uint8_t CDC_LIB_MINOR_VERSION = 1;
 
 //------------------------------------------------------------------------------------------------------------
-// Valid pin mapping for the Raspberry PI Pico board. We construct a set of bitmasks for the pin numbers.
+// Valid pin mapping for the Raspberry PI Pico board. We construct a set of bitmask for the pin numbers.
 // Pin Numbers range from 0 to 28. The bitmasks specify wether a pin can be assigned to the hardware type
 // purpose. During configuration of a CDC function, the pins are checked against these bitmasks. All pins
 // can be used as GPIO pins or PWM pins. All other hardware functions are bound to dedicated pins. Note
@@ -162,7 +162,7 @@ struct AdcInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM outpüut related data is
+// A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM output related data is
 // kept in this instance.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -217,7 +217,7 @@ struct I2CInst {
 
 //------------------------------------------------------------------------------------------------------------
 // The SPI instance. The PICO features two SPI HW instances. We keep the assigned GPIO pins for the SPI
-// iterface as well as the PICO HW instance. Since the SPI protocl explicitly sets the selected HW select
+// interface as well as the PICO HW instance. Since the SPI protocol explicitly sets the selected HW select
 // pin, we remember that we are in a transaction with perhaps more than one call to the SPI routines.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -276,10 +276,10 @@ PwmInst                     CdcPwm3;
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
 // for the desired purpose. For example, configuring an I2C port will check that the two GPIO pins are
-// indeed routeable to teh I2C HW block in the PICO.
+// indeed routable to the I2C HW block in the PICO.
 //
 //------------------------------------------------------------------------------------------------------------
-inline bool validPin( uint8_t pin, uint32_t mask ) {
+bool validPin( uint8_t pin, uint32_t mask ) {
 
     if ( pin == CDC::UNDEFINED_PIN )  return ( true );
     if ( pin > MAX_PIN_NUM )          return ( false );
@@ -288,14 +288,14 @@ inline bool validPin( uint8_t pin, uint32_t mask ) {
 
 //------------------------------------------------------------------------------------------------------------
 // When no interrupt is configured for a GPIO pin, we set the table entry to a dummy handler. This way
-// we do not have to check for a valid procedure label when we hanbdle an interrupt.
+// we do not have to check for a valid procedure label when we handle an interrupt.
 //
 //------------------------------------------------------------------------------------------------------------
 void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // Setup the ISR table. The PICO can have only one interrupt handler. When you want a handler per GPIO pin,
-// the solution is to havae a table when you keep the handler on a per pin base.
+// the solution is to have a table when you keep the handler on a per pin base.
 //
 //------------------------------------------------------------------------------------------------------------
 void initIsrTable( ) {
@@ -341,7 +341,7 @@ uint8_t mapPicoGpioEvent( uint32_t event ) {
 //------------------------------------------------------------------------------------------------------------
 // Global Interrupt handlers. The hardware and low level library will call these handlers, which in turn 
 // will invoke the respective callback function if configured. The GPIO interrupt handler manages the 
-// handler for all possible IO pins. The PICO can only have one interrupt rooutine, so we feature an array 
+// handler for all possible IO pins. The PICO can only have one interrupt routine, so we feature an array 
 // of handlers where a handler for a GPIO pin can be registered. If there is a handler set, we just invoke 
 // it. The other handlers are for the timer and the UART hardware.
 //
@@ -376,21 +376,21 @@ void uartRxCallback1( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The default configuration descriptor. The Application program fills in such a strucuture, which can be
+// The default configuration descriptor. The Application program fills in such a structure, which can be
 // seen as the HW pin assignments for the PICO  and the particular board on which the application will be
 // deployed. The application will simply use the field names to address the particular PICO HW function.
 // For example, a configuration has mapped DIO_PIN_5 to GPIO pin 12, because that is where the particular
 // board has mapped DIO_PIN_5 to the hardware line. The application will just use the DIO_PIN_5 field when
-// talking to that GPIO pin. Whenever the board layout changes, there could be anopther PICO GPIO pin, but
+// talking to that GPIO pin. Whenever the board layout changes, there could be another PICO GPIO pin, but
 // the name "DIO_PIN_5" for the application upper layers does not change.
 //
 // Note that there is a great flexibility what a PICO HW  pin can do and hence a lot of our fields are just
 // "UNDEFINED" with no constraints. Nevertheless, there is a function which will do some plausibility checks
-// for such a structure. Also, each configuration routine will do again a cgeck tha the GPIO pins used do
+// for such a structure. Also, each configuration routine will do again a check that the GPIO pins used do
 // indeed map to a PICO HW block for the desired purpose.
 //
 // The configuration structure does not replace the actual configuration calls to make to the CDC library.
-// It is just a mapping of resreved names to actual GPIO pins.
+// It is just a mapping of reserved names to actual GPIO pins.
 //
 //------------------------------------------------------------------------------------------------------------
 CDC::CdcPinConfig getConfigDefaultRP2040( ) {
@@ -465,9 +465,9 @@ CDC::CdcPinConfig getConfigDefaultRP2040( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Validate a configuration structure. This routine will do basoc checking of the pin configuration passed.
+// Validate a configuration structure. This routine will do basic checking of the pin configuration passed.
 // The PICO is very flexible when it comes to what a pin can do. However, there are still some rules to 
-// follow. Also, we have dedicated settibgs for at least the I2C channels and the CAN bus IO pins.
+// follow. Also, we have dedicated settings for at least the I2C channels and the CAN bus IO pins.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
@@ -481,13 +481,14 @@ uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Bane CDC. All routines and definitions exported are in this name space.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace CDC {
 
 //------------------------------------------------------------------------------------------------------------
-//
+// For debugging purposes. Instead of conditional compilations, the debug level will enable the printing of
+// debug and trace data.
 //
 //------------------------------------------------------------------------------------------------------------
 void setDebugLevel( uint8_t level ) {
@@ -508,7 +509,7 @@ CdcPinConfig getConfigDefault( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "getConfigActual" will return a pointer to the copy we kept when calling the init routine with the config
-// structuere to use. There is no need for the upper layers to keep the structure used at initialisation time.
+// structure to use. There is no need for the upper layers to keep the structure used at initialization time.
 //
 //------------------------------------------------------------------------------------------------------------
 CdcPinConfig *getConfigActual( ) {
@@ -517,7 +518,7 @@ CdcPinConfig *getConfigActual( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// CDC library setup. The "init" routine will ready the CDC luibary. The main task is to validate the pins and
+// CDC library setup. The "init" routine will ready the CDC library. The main task is to validate the pins and
 // values for the particular controller capabilities. The init routine can be called more than once without a
 // problem.
 //
@@ -641,7 +642,7 @@ void sleepMicros( uint32_t val ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "createUid" is the routine that produces a unique ID for the node. The scheme is still based on a random
-// number. This is the PICO version for creating a random number. Alternatively we could use the uinique
+// number. This is the PICO version for creating a random number. Alternatively we could use the unique
 // flash chip ID on the board. TBD ...
 //
 //------------------------------------------------------------------------------------------------------------
@@ -665,7 +666,7 @@ uint32_t createUid( ) {
 // call should be done rather early, so that we can print out debug messages. In normal LCS node operation
 // there is no USB connected. Detecting a connection helps to decide whether we can report an error or need
 // to resort to a fatal error call at startup. Finally, there is a routine to get a character for the command
-// interfaces. Since the function just reads in a character, we have to exho it back to the console ourselves
+// interfaces. Since the function just reads in a character, we have to exit it back to the console ourselves
 // if desired.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -680,9 +681,9 @@ bool isConsoleConnected( ) {
     return( stdio_usb_connected( ));
 }
   
-char getConsoleChar( bool echoBack ) {
+char getConsoleChar( bool echoBack, uint32_t timeoutVal ) {
 
-    int ch = getchar_timeout_us( 0 );
+    int ch = getchar_timeout_us( timeoutVal );
 
     if ( ch == PICO_ERROR_TIMEOUT ) return( 0 );
 
@@ -691,18 +692,15 @@ char getConsoleChar( bool echoBack ) {
     return( ch );
 }
 
-// ??? we have the timimng issue with a program loaded to teh pico, which will start right away. Perhaps
-// even before we have a screen... a simple read char loop that we exit when a character is hit...
-
 //------------------------------------------------------------------------------------------------------------
 // Timer section. The CDC library features one generic repeating timer with a microsecond resolution. The
-// routines start and stop the timer and allow to set a new limit. The PICO offes a high level function that
+// routines start and stop the timer and allow to set a new limit. The PICO offers a high level function that
 // schedules a repeating timer with the property of measuring the interval also from the start of the
 // callback invocation. This is exactly what we need to implement the tick interrupt for the DCC signal state
 // machine. The "setRepeatingTimerLimit" function will adjust the timer limit counter while the timer already
 // is counting toward a limit. Note that the timer option that already start the next round while the timer
 // interrupt handler executes is specified by using negative limit values. The timer functionality also
-// offers two timestamp routines to get the number of milliseconds and nunber of microseconds since system
+// offers two timestamp routines to get the number of milliseconds and number of microseconds since system
 // start.
 //
 // ??? would we one day need more than one timer instance ?
@@ -739,10 +737,10 @@ void onTimerEvent( CDC::TimerCallback functionId ) {
 // inputs, an internal pull-up resistor can be set.There are a couple of interfaces. First the single pin
 // read, write and toggle. Next are read and write mask routines which work on all IO pins at once. Note that
 // no cross checking is done if the pins are used by other CDC functions. Finally there is a convenience 
-// routine which write a pair of data. This is typcially used for the H-Bridge control pins, which are set at
+// routine which write a pair of data. This is typically used for the H-Bridge control pins, which are set at
 // the same time. 
 //
-// A GPIO pin can also have an attacjed interrupt handler. When we regsiter a handler for a pin, there are 
+// A GPIO pin can also have an attached interrupt handler. When we register a handler for a pin, there are 
 // two different PICO lib routines to use. When there is no handler registered so far, we register the 
 // common callback and store the particular GPIO handler in the handler table. Otherwise, we just store the
 // handler and enable the GPIO pin for interrupts.
@@ -906,7 +904,7 @@ uint16_t readAdc( uint8_t adcPin ) {
 // There are two general categories. The first uses the PICO built-in UART hardware blocks. The second
 // implements a software UART based on the PICO PIO blocks.
 //
-// There are three routines. The "startUartRead" will enabe the UART and start reading bytes into the local
+// There are three routines. The "startUartRead" will enable the UART and start reading bytes into the local
 // buffer. The "stopUartRead" will then finish the byte collection and disable the UART again. Finally, the
 // "getUartBuffer" routine will return the bytes received. Again, note that this is not a generic UART read
 // interface.
@@ -1037,8 +1035,8 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// PWM section. The PICO is quite flexible when it comes to PWM signals. We implement a simple PWM capabilty.
-// There is the frequency which set during confugration and there is the write operation which set the duty
+// PWM section. The PICO is quite flexible when it comes to PWM signals. We implement a simple PWM capability.
+// There is the frequency which set during configuration and there is the write operation which set the duty
 // cycle. The calculations are best described in the PICO C++ SDK. We do the setting of phase, wrap count,
 // etc. once when we configure the PWM channel. All the writePwm function then will do is to manipulate the
 // duty cycle. In other words, when we change the frequency we need to configure again.
@@ -1122,7 +1120,7 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 
 //------------------------------------------------------------------------------------------------------------
 // I2C Section. The PICO has two HW blocks for I2C interfaces. The interface implements a simple read and
-// write access to an I2C element. There is a timeout to avoid waitig forever on an operation.
+// write access to an I2C element. There is a timeout to avoid waiting forever on an operation.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
@@ -1208,7 +1206,7 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 }
 
 //------------------------------------------------------------------------------------------------------------
-// SPI interface section. The PICO features two SPI HW blocks. We implment a simple SPI interface with a
+// SPI interface section. The PICO features two SPI HW blocks. We implement a simple SPI interface with a
 // a fixed set of SPI options for frequency, bit order and mode. One day this may change.
 //
 // ??? we do not take care of the chip select stuff. Expect to put a chip select / deselect around the calls?

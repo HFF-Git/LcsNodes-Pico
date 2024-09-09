@@ -53,12 +53,6 @@ using namespace LCS;
 uint8_t debugLevel = 0;
 
 //------------------------------------------------------------------------------------------------------------
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t lowByte( uint16_t arg ) { return( arg & 0xFF ); }
-uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
-
-//------------------------------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains a small pending request
 // buffer. When a request type message is sent we add the target node to the buffer. Easy and simple. Note
 // that there can be more than one entry for the same node in the buffer. If the buffer is full, an error
@@ -109,6 +103,40 @@ bool checkPendingReplyMap( uint16_t nodeId ) {
     return ( false );
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Little helper functions.
+//
+//------------------------------------------------------------------------------------------------------------
+bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
+
+  return (( val >= lower ) && ( val <= upper ));
+}
+
+uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
+
+    return(( nodeId << 4 ) | ( portId & 0xF ));
+}
+
+uint16_t nodeId( uint16_t npId ) {
+
+    return( npId >> 4 );
+}
+
+uint16_t portId( uint16_t npId ) {
+
+    return( npId & 0xF );
+}
+
+uint8_t lowByte( uint16_t arg ) { 
+    
+    return( arg & 0xFF ); 
+}
+
+uint8_t highByte( uint16_t arg ) { 
+    
+    return( arg >> 8 ); 
+}
+
 }; // namespace
 
 
@@ -123,10 +151,9 @@ namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // "setupMsgBus" is called during node initialization to setup the LCS message bus interface. Right now,
-// only the CAN bus is supported. We first create the CANBus object and then call its initialization routine.
+// only the CAN bus is supported. We first create the CAN Bus object and then call its initialization routine.
 // The canId and nodeId are identical. We ensure through LCS configuration that the nodeIds are unique.
 //
-// ??? rework CAN BUS to a generic LCS message communication library and make CAN bus one implementation ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupMsgBus( ) {
 
@@ -176,16 +203,11 @@ uint8_t setupMsgBus( ) {
 // always return a valid message opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something
 // else happened and no further message processing is required.
 //
-// We also maintain a request / reply map.
+// We also maintain a request / reply map to keep track of outstanding requests.
 //
-// Also: maintain the request/reply map...
-//
-// ??? map the CAN BUS errors to generic communication errors ?
-// ??? how to make this a generic msgBus receive method ?
-//
-// ??? should we have a pre-filter for message ID and nodeId match ?
-// ??? this would be perhaps useful, when we run CAN bus on two cores on the pico. Then the checking would
-// run on the interrupt handler processor.
+// ??? should we have a pre-filter for message ID and nodeId match ? this would be perhaps useful, when we 
+// run CAN bus on two cores on the pico. Then the checking would run on the interrupt handler processor.
+// However, the pending request map is then accessed by two cores and we need to sync the access.
 //------------------------------------------------------------------------------------------------------------
 uint8_t receiveLcsMsg( uint8_t *msg ) {
 
@@ -206,7 +228,7 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
                 removeFromPendingReplyMap( nodeId );
                 return ( msg[ 0 ] );
             
-            } else return (  LCS_OP_NO_MSG );
+            } else return ( LCS_OP_NO_MSG );
 
         } else return ( msg[ 0 ] );
 

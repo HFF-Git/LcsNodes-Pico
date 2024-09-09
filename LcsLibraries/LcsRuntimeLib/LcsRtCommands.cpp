@@ -135,10 +135,6 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
   }
 }
 
-
-// continue from here ........
-
-
 //------------------------------------------------------------------------------------------------------------
 // Routines to list contents of the various memory areas.
 //
@@ -252,8 +248,35 @@ void dumpNvmUserArea( ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t lowByte( uint16_t arg ) { return( arg & 0xFF ); }
-uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
+bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
+
+  return (( val >= lower ) && ( val <= upper ));
+}
+
+uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
+
+    return(( nodeId << 4 ) | ( portId & 0xF ));
+}
+
+uint16_t nodeId( uint16_t npId ) {
+
+    return( npId >> 4 );
+}
+
+uint16_t portId( uint16_t npId ) {
+
+    return( npId & 0xF );
+}
+
+uint8_t lowByte( uint16_t arg ) { 
+    
+    return( arg & 0xFF ); 
+}
+
+uint8_t highByte( uint16_t arg ) { 
+    
+    return( arg >> 8 ); 
+}
 
 }; // namespace
 
@@ -265,43 +288,67 @@ uint8_t highByte( uint16_t arg ) { return( arg >> 8 ); }
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// "!c" switches the node to CFG mode. We construct the LCS_OP_CFG message payload data and invoke the msg
-// handler for switching the node mode.
+// "!c" switches a node to CFG mode. For a local command, we construct the LCS_OP_CFG message payload data 
+// and invoke the msg handler for switching the node mode. For any other node, we will just send a message
 //
-//    <!c>
+//    <!c [ npId ] >
 //
 //    returns: none
 //
 //------------------------------------------------------------------------------------------------------------
-void switchToConfigCommand( ) {
+void switchToConfigCommand( char *s ) {
 
-  uint8_t msg[ 8 ] = { LCS_OP_CFG };
-  handleMsgLcsMgt( msg );
+    uint16_t npId = 0;
+
+    if ( sscanf( s, "%hu", &npId ) < 1 ) return;
+
+    if ( npId == 0 ) {
+
+        uint8_t msg[ 8 ] = { LCS_OP_CFG };
+        handleMsgLcsMgt( msg );
+    }
+    else {
+
+        // ??? send message ... sendReqNode, bit fix it first to just accept the npId...
+        // ??? how do we deal with the ACK / ERR ?
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "!o" switches the nodes to OPS mode. We construct the LCS_OP_CFG message payload data and invoke the msg
 // handler for switching the node mode.
 //
-//    <!o>
+//    <!o [ npId ] >
 //
 //    returns: none
 //
 //------------------------------------------------------------------------------------------------------------
-void switchToOperationsCommand( ) {
+void switchToOperationsCommand( char *s ) {
 
-  uint8_t msg[ 8 ] = { LCS_OP_OPS };
-  handleMsgLcsMgt( msg );
+    uint16_t npId = 0;
+
+    if ( sscanf( s, "%hu", &npId ) < 1 ) return;
+
+    if ( npId == 0 ) {
+
+        uint8_t msg[ 8 ] = { LCS_OP_OPS };
+        handleMsgLcsMgt( msg );
+    }
+    else {
+
+        // ??? send message ... sendReqNode, bit fix it first to just accept the npId...
+        // ??? how do we deal with the ACK / ERR ?
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!a" adds an eventId / portId to the event map. If the portId is omitted, every port on the node will be
-// registered for the event.
+// "!a" adds an eventId / portId to the event map. If the npId is omitted, every port on the local node will 
+// be registered for the event. For a non-local npId we will send a message.
 //
-//    <!a eventId [ portId ]>
+//    <!a eventId [ npId ]>
 //
 //    eventId   -   the eventId.
-//    portId    -   the portId for which the event is added.
+//    npId      -   the node and port Id for which the event is added.
 //
 //    returns: <!a ret>
 //
@@ -309,12 +356,20 @@ void switchToOperationsCommand( ) {
 void enterEventCommand( char *s ) {
 
     uint16_t  eventId = NIL_EVENT_ID;
-    uint16_t   portId = NIL_PORT_ID;
+    uint16_t  npId    = NIL_PORT_ID;
 
-    if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
+    if ( sscanf( s, "%hu %hu ", &npId, &portId ) < 1 ) return;
 
-    int ret = nodeReq( portId, NPI_ADD_EVENT_MAP_ENTRY, &eventId, &portId );
-    printf( "<!a %d >", ret );
+    if ( nodeId( npId ) == 0 ) {
+
+        int ret = nodeReq( npId, NPI_ADD_EVENT_MAP_ENTRY, &eventId, &npId );
+        printf( "<!a %d >", ret );
+    }
+    else {
+
+        // send a message....
+        // ??? print a kind of status ....
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -494,7 +549,7 @@ void reqNodeCommand( char *s ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!B" broadcasts a LCS message.
+// "!B" broadcasts a LCS message. Mainly used for debugging purposes.
 //
 //    <!B byte1 [ byte2 ... byte8 ]>
 //
@@ -521,7 +576,6 @@ void broadcastLcsMsgCommand( char *s ) {
 
 
 // ??? need commands to write to the driver data area and flush it to the NVM ( jumper set in ... )
-// ??? is that a generic driver or just a command with appropriate data ? 
 // ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initial PWM values, etc.
 
 
@@ -568,16 +622,17 @@ void listStatusCommand( char *s ) {
 
         switch ( level ) {
 
-            case 0:  printSummary( );    break;
-            case 1:  dumpNodeMap( );     break;
-            case 2:  dumpNodeData( );    break;
-            case 3:  dumpPortMap( );     break;
-            case 4:  dumpEventMap( );    break;
-            case 6:  dumpTaskMap( );     break;
-            case 7:  dumpCallbackMap( ); break;
-            case 8:  dumpNvmArea( );     break;
-            case 9:  dumpMemArea( );     break;
-            case 10: dumpDrvMap( );     break;
+            case 0:  printSummary( );       break;
+            case 1:  dumpNodeMap( );        break;
+            case 2:  dumpPortMap( );        break;
+            case 3:  dumpNodeData( );       break;
+            case 4:  dumpEventMap( );       break;
+            case 5:  dumpPendingReqMap( );  break;
+            case 6:  dumpTaskMap( );        break;
+            case 7:  dumpCallbackMap( );    break;
+            case 8:  dumpNvmArea( );        break;
+            case 9:  dumpMemArea( );        break;
+            case 10: dumpDrvMap( );         break;
 
             default: printf( "<Unknown help option, use '?' for help>" );
         }
@@ -588,7 +643,7 @@ void listStatusCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 // "!?" lists core library help information.
 //
-//    <?>
+//    <!?>
 //
 //    returns: a list of available commands for the core library
 //
@@ -596,25 +651,29 @@ void listStatusCommand( char *s ) {
 void listCoreLibHelpCommand( ) {
 
     printf( "\nCommands: \n" );
-    printf( "<!c > - enter config mode\n" );
-    printf( "<!o > - enter operations mode\n" );
-    printf( "<!a eventId [ portId ] > - add an event to the event tab\n" );
-    printf( "<!r eventId [ portId ] > - remove an event from the event tab\n" );
-    printf( "<!f eventId [ portId ] > - search an event on the event tab\n" );
-    printf( "<!e mode nodeId eventId [ arg ] > - simulate sending an event ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
-    printf( "<!n portId item > - list a node attribute\n" );
-    printf( "<!N portId item val1 [ val2 ] > - sets a node attribute\n" );
+    printf( "<!c [ npId ] > - enter config mode\n" );
+    printf( "<!o [ npId ] > - enter operations mode\n" );
+
+    printf( "<!a eventId [ npId ] > - add an event to the event tab\n" );
+    printf( "<!d eventId [ npId ] > - remove an event from the event tab\n" );
+    printf( "<!f eventId [ npId ] > - search an event on the event tab\n" );
+    printf( "<!e npId eventId mode [ arg ] > - simulate sending an event ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
+    
+    printf( "<!g npId item > - gets a node attribute\n" );
+    printf( "<!p npId item val1 [ val2 ] > - puts a node attribute\n" );
+    printf( "<!r npId item val1 [ val2 ] > - request a node function\n" );
+
     printf( "<!B byte1 [ byte2 ... byte8 ] > - broadcast a raw LCS message\n" );
     printf( "<!D board item [ arg1 [ arg2 ]] > - send a request to an extension board n\n" );
 
     printf( " < !s [ level ] > - list status, default is summary\n" );
     printf( "              " " -  0 - summary\n" );
     printf( "              " " -  1 - Node Map\n" );
-    printf( "              " " -  2 - Node Data\n" );
-    printf( "              " " -  3 - Port Map\n" );
+    printf( "              " " -  2 - Port Map\n" );
+    printf( "              " " -  3 - Node Data\n" );
     printf( "              " " -  4 - Event Map\n" );
-    printf( "              " " -  5 - Attribute Map\n" );
-    printf( "              " " -  6 - Periodic Task Map\n" );
+    printf( "              " " -  5 - Pending Request Map\n" );
+    printf( "              " " -  6 - Task Map\n" );
     printf( "              " " -  7 - Callback Map\n" );
     printf( "              " " -  8 - NVM Area\n" );
     printf( "              " " -  9 - MEM Area\n" );
@@ -662,38 +721,24 @@ uint8_t handleSerialCommand( ) {
 
             switch ( commandBuf[ 1 ] ) {
 
-              case 'C': switchToConfigCommand( );                   break;
-              case 'O': switchToOperationsCommand( );               break;
+              case 'C': switchToConfigCommand( commandBuf + 2 );        break;
+              case 'O': switchToOperationsCommand( commandBuf + 2 );    break;
               
-              case 'a': enterEventCommand( commandBuf + 2 );        break;
-              case 'd': removeEventCommand( commandBuf + 2 );       break;
-              case 'f': findEventCommand( commandBuf + 2 );         break;
-              case 'e': sendEventCommand( commandBuf + 2 );         break;
+              case 'a': enterEventCommand( commandBuf + 2 );            break;
+              case 'd': removeEventCommand( commandBuf + 2 );           break;
+              case 'f': findEventCommand( commandBuf + 2 );             break;
+              case 'e': sendEventCommand( commandBuf + 2 );             break;
               
-              case 'g': getNodeCommand( commandBuf + 2 );           break;
-              case 'p': setNodeCommand( commandBuf + 2 );           break;
-              case 'r': reqNodeCommand( commandBuf + 2 );           break;
+              case 'g': getNodeCommand( commandBuf + 2 );               break;
+              case 'p': setNodeCommand( commandBuf + 2 );               break;
+              case 'r': reqNodeCommand( commandBuf + 2 );               break;
 
-
-              case 'B': broadcastLcsMsgCommand( commandBuf + 2 );   break;
-              case 'D': drvRequestCommand( commandBuf + 2 );        break;
-              case 's': listStatusCommand( commandBuf + 2 );        break;
-              case '?': listCoreLibHelpCommand( );                  break;
+              case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;
+              case 'D': drvRequestCommand( commandBuf + 2 );            break;
+              case 's': listStatusCommand( commandBuf + 2 );            break;
+              case '?': listCoreLibHelpCommand( );                      break;
 
               default: printf( "<Unknown !-command, use '!?' for help>" );
-            }
-          }
-          else if ( commandBuf[ 0 ] == '$' ) {
-
-            switch ( commandBuf[ 1 ] ) {
-
-              case 's':   break; // list content...
-              case 'r':   break; // r ofs len show an area by ofs / len
-              case 'w':   break; // w ofs data 0 ... 7 write up to eight words to memory
-              case 'c':   break; // basic consistency checks..
-              case '?':   break;
-
-              default: printf( "<Unknown $-command, use '$?' for help>" );
             }
           }
           else if ( callbackMap.cmdLineCallback != nullptr ) {
