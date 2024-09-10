@@ -711,29 +711,29 @@ char getConsoleChar( bool echoBack, uint32_t timeoutVal ) {
 //------------------------------------------------------------------------------------------------------------
 void startRepeatingTimer( uint32_t val ) {
 
-  int64_t limit = val;
-  add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &timerData );
+    int64_t limit = val;
+    add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &timerData );
 }
 
 void stopRepeatingTimer( ) {
 
-  cancel_repeating_timer( &timerData );
+    cancel_repeating_timer( &timerData );
 }
 
 uint32_t getRepeatingTimerLimit( ) {
 
-  return ((uint32_t) ( - timerData.delay_us ));
+    return ((uint32_t) ( - timerData.delay_us ));
 }
 
 void setRepeatingTimerLimit( uint32_t val ) {
 
-  int64_t limit = val;
-  timerData.delay_us = ((int64_t) - limit );
+    int64_t limit = val;
+    timerData.delay_us = ((int64_t) - limit );
 }
 
 void onTimerEvent( CDC::TimerCallback functionId ) {
 
-  timerCallback = functionId;
+    timerCallback = functionId;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -752,94 +752,95 @@ void onTimerEvent( CDC::TimerCallback functionId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureDio( uint8_t dioPin, uint8_t mode ) {
 
-  if ( ! validPin( dioPin, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( ! validPin( dioPin, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
 
-  gpio_init( dioPin );
+    gpio_init( dioPin );
 
-  switch ( mode ) {
+    switch ( mode ) {
 
-    case IN:  gpio_set_dir( dioPin, false );  break;
-    case OUT: {
+        case IN:  gpio_set_dir( dioPin, false );  break;
+        case OUT: {
 
-        gpio_set_dir( dioPin, true );
-        gpio_set_drive_strength ( dioPin, GPIO_DRIVE_STRENGTH_12MA );
+            gpio_set_dir( dioPin, true );
+            gpio_set_drive_strength ( dioPin, GPIO_DRIVE_STRENGTH_12MA );
 
-      }  break;
+        }  break;
 
-    case IN_PULLUP: {
+        case IN_PULLUP: {
 
-        gpio_set_dir( dioPin, false );
-        gpio_pull_up( dioPin );
+            gpio_set_dir( dioPin, false );
+            gpio_pull_up( dioPin );
 
-      } break;
+        } break;
 
-    default: gpio_set_dir( dioPin, false );
-  }
+        default: gpio_set_dir( dioPin, false );
+    }
 
   return ( ALL_OK );
 }
 
 void registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func ) {
 
-  if ( dioPin <= MAX_INT_PIN ) {
+    if ( dioPin <= MAX_INT_PIN ) {
 
-    if ( cdcIntHandlers.numOfHandlers == 0 ) 
-        gpio_set_irq_enabled_with_callback( dioPin, mapGpioIntEvent( event ), true, gpioCallback );
-    else
-        gpio_set_irq_enabled( dioPin, mapGpioIntEvent( event ), true);
+        if ( cdcIntHandlers.numOfHandlers == 0 ) 
+            gpio_set_irq_enabled_with_callback( dioPin, mapGpioIntEvent( event ), true, gpioCallback );
+        else
+            gpio_set_irq_enabled( dioPin, mapGpioIntEvent( event ), true);
     
-    cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = func;
-    cdcIntHandlers.numOfHandlers ++;
-  }
+        cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = func;
+        cdcIntHandlers.numOfHandlers ++;
+    }
 }
 
 void unregisterDioCallback( uint8_t dioPin ) {
 
-  if ( dioPin <= MAX_INT_PIN ) {
+    if ( dioPin <= MAX_INT_PIN ) {
 
-    if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] != nullptr ) {
+        if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] != nullptr ) {
 
-      gpio_set_irq_enabled( dioPin, 0, false );
-      cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = dummyIsrHandler;
-      cdcIntHandlers.numOfHandlers --;
+            gpio_set_irq_enabled( dioPin, 0, false );
+            cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = dummyIsrHandler;
+            cdcIntHandlers.numOfHandlers --;
+        }
     }
-  }
 }
+
 bool readDio( uint8_t dioPin ) {
 
-  return ( gpio_get( dioPin ));
+    return ( gpio_get( dioPin ));
 }
 
 uint8_t writeDio( uint8_t dioPin, bool val ) {
 
-  gpio_put( dioPin, val );
-  return ( ALL_OK );
+    gpio_put( dioPin, val );
+    return ( ALL_OK );
 }
 
 uint8_t toggleDio( uint8_t dioPin ) {
 
-  writeDio( dioPin, ! readDio( dioPin ));
-  return ( ALL_OK );
+    writeDio( dioPin, ! readDio( dioPin ));
+    return ( ALL_OK );
 }
 
 uint8_t writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val2 ) {
 
-  uint32_t maskData = ( 1UL << dioPin1 ) | ( 1UL << dioPin2 );
-  uint32_t valData  = (( val1 ) ? ( 1 << dioPin1 ) : 0 ) | (( val2 ) ? ( 1 << dioPin2 ) : 0 );
+    uint32_t maskData = ( 1UL << dioPin1 ) | ( 1UL << dioPin2 );
+    uint32_t valData  = (( val1 ) ? ( 1 << dioPin1 ) : 0 ) | (( val2 ) ? ( 1 << dioPin2 ) : 0 );
 
-  gpio_put_masked( maskData, valData );
-  return ( ALL_OK );
+    gpio_put_masked( maskData, valData );
+    return ( ALL_OK );
 }
 
 uint32_t readDioMask( uint32_t dioMask ) {
 
-  return ( gpio_get_all( ) & dioMask );
+    return ( gpio_get_all( ) & dioMask );
 }
 
 uint8_t writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
 
-  gpio_put_masked( dioMask, dioVal );
-  return ( ALL_OK );
+    gpio_put_masked( dioMask, dioVal );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -851,55 +852,55 @@ uint8_t writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t adcPin ) {
 
-  if ( ! validPin( adcPin, VALID_ADC_PINS ))  return ( CDC::ADC_PIN_ERR );
+    if ( ! validPin( adcPin, VALID_ADC_PINS ))  return ( CDC::ADC_PIN_ERR );
 
-  AdcInst *tmp = nullptr;
+    AdcInst *tmp = nullptr;
 
-  if ( adcPin == cfg.ADC_PIN_0 ) {
+    if ( adcPin == cfg.ADC_PIN_0 ) {
 
-    tmp = &CdcAdc0;
-    tmp -> adcNum = 0;
-  }
-  else if ( adcPin == cfg.ADC_PIN_1 ) {
+        tmp = &CdcAdc0;
+        tmp -> adcNum = 0;
+    }
+     else if ( adcPin == cfg.ADC_PIN_1 ) {
 
-    tmp = &CdcAdc1;
-    tmp -> adcNum = 1;
-  }
-  else if ( adcPin == cfg.ADC_PIN_2 ) {
+        tmp = &CdcAdc1;
+        tmp -> adcNum = 1;
+    }
+    else if ( adcPin == cfg.ADC_PIN_2 ) {
 
-    tmp = &CdcAdc2;
-    tmp -> adcNum = 2;
-  }
-  else return ( ADC_PIN_ERR );
+        tmp = &CdcAdc2;
+        tmp -> adcNum = 2;
+    }
+    else return ( ADC_PIN_ERR );
 
-  adc_init( );
-  adc_gpio_init( tmp -> adcPin );
-  tmp -> configured = true;
+    adc_init( );
+    adc_gpio_init( tmp -> adcPin );
+    tmp -> configured = true;
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint16_t getAdcRefVoltage( ) {
 
-  return ( ADC_REF_VOLTAGE_MILLI_VOLT );
+    return ( ADC_REF_VOLTAGE_MILLI_VOLT );
 }
 
 uint16_t getAdcDigitRange( ) {
 
-  return ( ADC_DIGIT_RANGE );
+    return ( ADC_DIGIT_RANGE );
 }
 
 uint16_t readAdc( uint8_t adcPin ) {
 
-  AdcInst *tmp = nullptr;
+    AdcInst *tmp = nullptr;
 
-  if      ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc0;
-  else if ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc1;
-  else if ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc2;
-  else return ( 0 );
+    if      ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc0;
+    else if ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc1;
+    else if ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc2;
+    else return ( 0 );
 
-  adc_select_input( tmp -> adcNum );
-  return ( adc_read( ) >> 2 );
+    adc_select_input( tmp -> adcNum );
+    return ( adc_read( ) >> 2 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -919,123 +920,123 @@ uint16_t readAdc( uint8_t adcPin ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode mode ) {
 
-  UartInst *uart = nullptr;
+    UartInst *uart = nullptr;
 
-  if ( mode == UART_MODE_8N1 ) {
+    if ( mode == UART_MODE_8N1 ) {
 
-    if (( validPin( rxPin, VALID_UART_0_RX_PINS )) && ( validPin( txPin, VALID_UART_0_TX_PINS ))) {
+        if (( validPin( rxPin, VALID_UART_0_RX_PINS )) && ( validPin( txPin, VALID_UART_0_TX_PINS ))) {
 
-      uart                = &CdcUart0;
-      uart -> uartMode    = mode;
-      uart -> rxPin       = rxPin;
-      uart -> txPin       = txPin;
-      uart -> dataBits    = 8;
-      uart -> stopBits    = 1;
-      uart -> parityMode  = UART_PARITY_NONE;
-      uart -> uartHw      = uart0;
-      uart -> uartIrq     = UART0_IRQ;
+            uart                = &CdcUart0;
+            uart -> uartMode    = mode;
+            uart -> rxPin       = rxPin;
+            uart -> txPin       = txPin;
+            uart -> dataBits    = 8;
+            uart -> stopBits    = 1;
+            uart -> parityMode  = UART_PARITY_NONE;
+            uart -> uartHw      = uart0;
+            uart -> uartIrq     = UART0_IRQ;
+        }
+        else if (( validPin( rxPin, VALID_UART_1_RX_PINS )) && ( validPin( txPin, VALID_UART_1_TX_PINS ))) {
+
+            uart                = &CdcUart1;
+            uart -> uartMode    = mode;
+            uart -> rxPin       = rxPin;
+            uart -> txPin       = txPin;
+            uart -> dataBits    = 8;
+            uart -> stopBits    = 1;
+            uart -> parityMode  = UART_PARITY_NONE;
+            uart -> uartHw      = uart1;
+            uart -> uartIrq     = UART1_IRQ;
+        }
+        else return ( UART_PORT_ERR );
+
+        uart_init( uart -> uartHw, baudRate );
+        gpio_set_function( rxPin, GPIO_FUNC_UART );
+        gpio_set_function( txPin, GPIO_FUNC_UART );
+        uart_set_hw_flow( uart -> uartHw, false, false );
+        uart_set_format( uart -> uartHw, uart -> dataBits, uart -> stopBits, uart -> parityMode );
+        uart_set_fifo_enabled( uart -> uartHw, false );
+
+        if      ( uart -> uartIrq == UART0_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback0 );
+        else if ( uart -> uartIrq == UART1_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback1 );
+
+        irq_set_enabled( uart -> uartIrq, true );
+
+        return ( ALL_OK );
     }
-    else if (( validPin( rxPin, VALID_UART_1_RX_PINS )) && ( validPin( txPin, VALID_UART_1_TX_PINS ))) {
+    else if ( mode == UART_MODE_8N1_PIO ) {
 
-      uart                = &CdcUart1;
-      uart -> uartMode    = mode;
-      uart -> rxPin       = rxPin;
-      uart -> txPin       = txPin;
-      uart -> dataBits    = 8;
-      uart -> stopBits    = 1;
-      uart -> parityMode  = UART_PARITY_NONE;
-      uart -> uartHw      = uart1;
-      uart -> uartIrq     = UART1_IRQ;
+        return ( NOT_SUPPORTED );
     }
-    else return ( UART_PORT_ERR );
-
-    uart_init( uart -> uartHw, baudRate );
-    gpio_set_function( rxPin, GPIO_FUNC_UART );
-    gpio_set_function( txPin, GPIO_FUNC_UART );
-    uart_set_hw_flow( uart -> uartHw, false, false );
-    uart_set_format( uart -> uartHw, uart -> dataBits, uart -> stopBits, uart -> parityMode );
-    uart_set_fifo_enabled( uart -> uartHw, false );
-
-    if      ( uart -> uartIrq == UART0_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback0 );
-    else if ( uart -> uartIrq == UART1_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback1 );
-
-    irq_set_enabled( uart -> uartIrq, true );
-
-    return ( ALL_OK );
-  }
-  else if ( mode == UART_MODE_8N1_PIO ) {
-
-    return ( NOT_SUPPORTED );
-  }
-  else return ( NOT_SUPPORTED );
+    else return ( NOT_SUPPORTED );
 }
 
 uint8_t startUartRead( uint8_t rxPin ) {
 
-  UartInst *uart = nullptr;
+    UartInst *uart = nullptr;
 
-  if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
-  else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
-  else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
-  else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
-  else                                return ( CDC::UART_PORT_ERR );
+    if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
+    else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
+    else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
+    else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
+    else                                return ( CDC::UART_PORT_ERR );
 
-  if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1 )) {
+    if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1 )) {
 
-    uart_set_irq_enables( uart -> uartHw, true, false );
-    uart -> rxBufIndex = 0;
-    return ( ALL_OK );
-  }
-  else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
+        uart_set_irq_enables( uart -> uartHw, true, false );
+        uart -> rxBufIndex = 0;
+        return ( ALL_OK );
+    }
+    else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
 
-    return ( NOT_SUPPORTED );
-  }
-  else return ( UART_PORT_ERR );
+        return ( NOT_SUPPORTED );
+    }
+    else return ( UART_PORT_ERR );
 }
 
 uint8_t stopUartRead( uint8_t rxPin ) {
 
-  UartInst *uart = nullptr;
+    UartInst *uart = nullptr;
 
-  if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
-  else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
-  else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
-  else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
+    if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
+    else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
+    else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
+    else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
 
-  if (( uart != nullptr ) && ( uart ->uartMode == UART_MODE_8N1 )) {
+    if (( uart != nullptr ) && ( uart ->uartMode == UART_MODE_8N1 )) {
 
-    uart_set_irq_enables( uart -> uartHw, false, false );
-    return ( ALL_OK );
-  }
-  else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
+        uart_set_irq_enables( uart -> uartHw, false, false );
+        return ( ALL_OK );
+    }
+    else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
 
-    return ( NOT_SUPPORTED );
-  }
-  else return ( UART_PORT_ERR );
+        return ( NOT_SUPPORTED );
+    }
+    else return ( UART_PORT_ERR );
 }
 
 uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 
-  UartInst *uart = nullptr;
+    UartInst *uart = nullptr;
 
-  if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
-  else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
-  else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
-  else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
-  else                                return ( 0 );
+    if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
+    else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
+    else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
+    else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
+    else                                return ( 0 );
 
-  if (( uart != nullptr ) && ( uart -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
+    if (( uart != nullptr ) && ( uart -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
 
-    uint8_t i = 0;
-    while (( i < uart -> rxBufIndex ) && ( i < bufLen )) {
+        uint8_t i = 0;
+        while (( i < uart -> rxBufIndex ) && ( i < bufLen )) {
 
-      buf[ i ] = uart -> rxDataBuf[ i ];
-      i++;
-    }
+            buf[ i ] = uart -> rxDataBuf[ i ];
+            i++;
+        }
     
-    return ( i );
-  }
-  else return ( 0 );
+        return ( i );
+    }
+    else return ( 0 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1055,71 +1056,71 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
-  PwmInst *pwm = nullptr;
+    PwmInst *pwm = nullptr;
 
-  if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
-  else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
-  else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
-  else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
-  else                                return ( PWM_PIN_ERR );
+    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
+    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
+    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
+    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
+    else                                return ( PWM_PIN_ERR );
 
-  if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
+    if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
-  uint32_t sysClock = getCpuFrequency( );
-  uint32_t clkDiv   = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
-  
-  if ( clkDiv / 16 == 0 ) clkDiv = 16;
-
-  pwm -> pwmPin  = pwmPin;
-  pwm -> wrap    = sysClock * 16 / clkDiv / pwmFreqency - 1;
-
-  pwm_config pwmConfig = pwm_get_default_config( );
-  gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
-  pwm_config_set_wrap( &pwmConfig, pwm -> wrap );
-  pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
-  pwm_config_set_output_polarity( &pwmConfig, inverted, inverted );
-  pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
-  pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
-
-  if ( debugLevel > 0 ) {
+    uint32_t sysClock = getCpuFrequency( );
+    uint32_t clkDiv   = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
     
-    printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
-            pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
-  }
+    if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
-  return ( ALL_OK );
+    pwm -> pwmPin  = pwmPin;
+    pwm -> wrap    = sysClock * 16 / clkDiv / pwmFreqency - 1;
+
+    pwm_config pwmConfig = pwm_get_default_config( );
+    gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
+    pwm_config_set_wrap( &pwmConfig, pwm -> wrap );
+    pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
+    pwm_config_set_output_polarity( &pwmConfig, inverted, inverted );
+    pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
+    pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
+
+    if ( debugLevel > 0 ) {
+    
+        printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
+                pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
+    }
+
+    return ( ALL_OK );
 }
 
 uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 
-  PwmInst *pwm = nullptr;
+    PwmInst *pwm = nullptr;
 
-  if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
-  else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
-  else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
-  else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
-  else                                return ( PWM_PIN_ERR );
+    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
+    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
+    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
+    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
+    else                                return ( PWM_PIN_ERR );
 
-  uint sliceNum = pwm_gpio_to_slice_num( pwmPin );
-  uint channel  = pwm_gpio_to_channel( pwmPin );
+    uint sliceNum = pwm_gpio_to_slice_num( pwmPin );
+    uint channel  = pwm_gpio_to_channel( pwmPin );
 
-  if ( dutyCycle == 0 ) {
+    if ( dutyCycle == 0 ) {
 
-    pwm_set_enabled( sliceNum, false );
-    writeDio( pwmPin, false );
-  }
-  else if ( dutyCycle == 255 ) {
+        pwm_set_enabled( sliceNum, false );
+        writeDio( pwmPin, false );
+    }
+    else if ( dutyCycle == 255 ) {
 
-    pwm_set_enabled( sliceNum, false );
-    writeDio( pwmPin, true );
-  }
-  else {
+        pwm_set_enabled( sliceNum, false );
+        writeDio( pwmPin, true );
+    }
+    else {
 
-    pwm_set_chan_level( sliceNum, channel, ( pwm -> wrap * dutyCycle / 256 ));
-    pwm_set_enabled( sliceNum, true );
-  }
+        pwm_set_chan_level( sliceNum, channel, ( pwm -> wrap * dutyCycle / 256 ));
+        pwm_set_enabled( sliceNum, true );
+    }
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1129,84 +1130,84 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
 
-  I2CInst *i2c = nullptr;
+    I2CInst *i2c = nullptr;
 
-  if ((( 1 << sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_0_SDA_PINS )) {
+    if ((( 1 << sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_0_SDA_PINS )) {
 
-    i2c = &CdcI2C0;
-    i2c -> i2cHw = i2c0;
-  }
-  else if ((( 1 << sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_1_SDA_PINS )) {
+        i2c = &CdcI2C0;
+        i2c -> i2cHw = i2c0;
+    }
+    else if ((( 1 << sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
-    i2c = &CdcI2C1;
-    i2c -> i2cHw = i2c1;
-  }
-  else return ( CDC::I2C_PORT_ERR );
+        i2c = &CdcI2C1;
+        i2c -> i2cHw = i2c1;
+    }
+    else return ( CDC::I2C_PORT_ERR );
 
-  i2c -> sclPin       = sclPin;
-  i2c -> sdaPin       = sdaPin;
-  i2c -> baudRate     = baudRate;
-  i2c -> timeoutValMs = I2C_TIME_OUT_IN_MS;
-  i2c -> configured   = true;
+    i2c -> sclPin       = sclPin;
+    i2c -> sdaPin       = sdaPin;
+    i2c -> baudRate     = baudRate;
+    i2c -> timeoutValMs = I2C_TIME_OUT_IN_MS;
+    i2c -> configured   = true;
 
-  i2c_init( i2c -> i2cHw, i2c -> baudRate );
-  i2c_set_slave_mode( i2c -> i2cHw, false, 0 );
-  
-  gpio_set_function( i2c -> sclPin, GPIO_FUNC_I2C );
-  gpio_set_function( i2c -> sdaPin, GPIO_FUNC_I2C);
-  gpio_pull_up( i2c -> sclPin );
-  gpio_pull_up( i2c -> sdaPin );
+    i2c_init( i2c -> i2cHw, i2c -> baudRate );
+    i2c_set_slave_mode( i2c -> i2cHw, false, 0 );
+    
+    gpio_set_function( i2c -> sclPin, GPIO_FUNC_I2C );
+    gpio_set_function( i2c -> sdaPin, GPIO_FUNC_I2C);
+    gpio_pull_up( i2c -> sclPin );
+    gpio_pull_up( i2c -> sdaPin );
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-  I2CInst *i2c = nullptr;
+    I2CInst *i2c = nullptr;
 
-  if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
-  else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
-  else return ( I2C_PORT_ERR );
+    if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
+    else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
+    else return ( I2C_PORT_ERR );
 
-  auto stat = i2c_read_blocking_until( i2c -> i2cHw,
-                                       i2cAdr,
-                                       buf,
-                                       len,
-                                       stopBit,
-                                       make_timeout_time_ms( i2c -> timeoutValMs ));
+    auto stat = i2c_read_blocking_until( i2c -> i2cHw,
+                                        i2cAdr,
+                                        buf,
+                                        len,
+                                        stopBit,
+                                        make_timeout_time_ms( i2c -> timeoutValMs ));
 
-  // ??? candidate for a debug level ?
-  // if ( stat == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
-  // if ( stat == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+    // ??? candidate for a debug level ?
+    // if ( stat == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
+    // if ( stat == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
 
-  if (( stat == PICO_ERROR_GENERIC ) || ( stat == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
- 
-  return ( ALL_OK );
+    if (( stat == PICO_ERROR_GENERIC ) || ( stat == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
+    
+    return ( ALL_OK );
 }
 
 uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-  I2CInst *i2c = nullptr;
+    I2CInst *i2c = nullptr;
 
-  if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
-  else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
-  else return ( I2C_PORT_ERR );
+    if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
+    else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
+    else return ( I2C_PORT_ERR );
 
-  auto ret = i2c_write_blocking_until( i2c -> i2cHw,
-                                       i2cAdr,
-                                       buf,
-                                       len,
-                                       stopBit,
-                                       make_timeout_time_ms( i2c -> timeoutValMs ));
+    auto ret = i2c_write_blocking_until( i2c -> i2cHw,
+                                        i2cAdr,
+                                        buf,
+                                        len,
+                                        stopBit,
+                                        make_timeout_time_ms( i2c -> timeoutValMs ));
 
-  // ??? candidate for a debug level ?
-  if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
-  if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
-  if ( ret != len ) printf( "I2C write, PICO write len error, was: %d, is: %d\n", len, ret );
+    // ??? candidate for a debug level ?
+    if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
+    if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
+    if ( ret != len ) printf( "I2C write, PICO write len error, was: %d, is: %d\n", len, ret );
 
-  if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
+    if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1217,124 +1218,124 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
 
-  SPIInst *spi = nullptr;
+    SPIInst *spi = nullptr;
 
-  if (( CdcSPI0.sclkPin == sclkPin ) &&
-      ( CdcSPI0.mosiPin == mosiPin ) &&
-      ( CdcSPI0.misoPin == misoPin )) {
+    if (( CdcSPI0.sclkPin == sclkPin ) &&
+        ( CdcSPI0.mosiPin == mosiPin ) &&
+        ( CdcSPI0.misoPin == misoPin )) {
 
-    spi = &CdcSPI0;
-    spi -> spiHw = spi0;
+        spi = &CdcSPI0;
+        spi -> spiHw = spi0;
 
-  } else if (( CdcSPI1.sclkPin == sclkPin ) &&
-             ( CdcSPI1.mosiPin == mosiPin ) &&
-             ( CdcSPI1.misoPin == misoPin ) &&
-             ( CdcSPI1.configured )) {
+    } else if (( CdcSPI1.sclkPin == sclkPin ) &&
+                ( CdcSPI1.mosiPin == mosiPin ) &&
+                ( CdcSPI1.misoPin == misoPin ) &&
+                ( CdcSPI1.configured )) {
 
-    spi = &CdcSPI1;
-    spi -> spiHw = spi1;
-  }
-  else return ( SPI_PORT_ERR );
+        spi = &CdcSPI1;
+        spi -> spiHw = spi1;
+    }
+    else return ( SPI_PORT_ERR );
 
-  spi -> mosiPin     = mosiPin;
-  spi -> misoPin     = misoPin;
-  spi -> sclkPin     = sclkPin;
-  spi -> frequency   = SPI_FREQUENCY;
-  spi -> configured  = true;
-  spi -> active      = false;
+    spi -> mosiPin     = mosiPin;
+    spi -> misoPin     = misoPin;
+    spi -> sclkPin     = sclkPin;
+    spi -> frequency   = SPI_FREQUENCY;
+    spi -> configured  = true;
+    spi -> active      = false;
 
-  spi_init( spi -> spiHw, SPI_FREQUENCY );
+    spi_init( spi -> spiHw, SPI_FREQUENCY );
 
-  spi_set_format( spi -> spiHw,     // SPI instance
-                  8,                // Number of bits per transfer
-                  SPI_CPOL_1,       // Polarity (CPOL)
-                  SPI_CPHA_1,       // Phase (CPHA)
-                  SPI_MSB_FIRST );
+    spi_set_format( spi -> spiHw,     // SPI instance
+                    8,                // Number of bits per transfer
+                    SPI_CPOL_1,       // Polarity (CPOL)
+                    SPI_CPHA_1,       // Phase (CPHA)
+                    SPI_MSB_FIRST );
 
-  gpio_set_function( sclkPin, GPIO_FUNC_SPI );
-  gpio_set_function( mosiPin, GPIO_FUNC_SPI );
-  gpio_set_function( misoPin, GPIO_FUNC_SPI );
+    gpio_set_function( sclkPin, GPIO_FUNC_SPI );
+    gpio_set_function( mosiPin, GPIO_FUNC_SPI );
+    gpio_set_function( misoPin, GPIO_FUNC_SPI );
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
-  SPIInst *spi = nullptr;
+    SPIInst *spi = nullptr;
 
-  if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-  else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
-  else return ( SPI_PORT_ERR );
+    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
+    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    else return ( SPI_PORT_ERR );
 
-  if ( spi -> active ) {
+    if ( spi -> active ) {
 
-    // ??? should we check who is active and just ignore when the same ? else "error " ?
+        // ??? should we check who is active and just ignore when the same ? else "error " ?
 
-    return ( ALL_OK );
+        return ( ALL_OK );
 
-  } else {
+    } else {
 
-    spi -> active     = true;
-    spi -> selectPin  = csPin;
+        spi -> active     = true;
+        spi -> selectPin  = csPin;
 
-    CDC::writeDio( csPin, false );
-    return ( ALL_OK );
-  }
+        CDC::writeDio( csPin, false );
+        return ( ALL_OK );
+    }
 }
 
 uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
-  SPIInst *spi = nullptr;
+    SPIInst *spi = nullptr;
 
-  if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-  else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
-  else return ( SPI_PORT_ERR );
+    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
+    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    else return ( SPI_PORT_ERR );
 
-  if ( spi -> active ) {
+    if ( spi -> active ) {
 
-    // ??? check that this is the correct pin ?
+        // ??? check that this is the correct pin ?
+        
+        CDC::writeDio( csPin, true );
     
-    CDC::writeDio( csPin, true );
- 
-    spi -> active     = false;
-    spi -> selectPin  = UNDEFINED_PIN;
-   
-    return ( ALL_OK );
+        spi -> active     = false;
+        spi -> selectPin  = UNDEFINED_PIN;
+    
+        return ( ALL_OK );
 
-  }
-  else return ( ALL_OK ); // ???  "error "  not active...
+    }
+    else return ( ALL_OK ); // ???  "error "  not active...
 }
 
 uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 
-  SPIInst *spi = nullptr;
+    SPIInst *spi = nullptr;
 
-  if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-  else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
-  else return ( SPI_PORT_ERR );
+    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
+    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    else return ( SPI_PORT_ERR );
 
-  if ( spi -> active ) {
+    if ( spi -> active ) {
 
-    int bytesRead = spi_read_blocking( spi -> spiHw, 0, buf, len );
-    return ( ALL_OK );
+        int bytesRead = spi_read_blocking( spi -> spiHw, 0, buf, len );
+        return ( ALL_OK );
 
-  } else return ( ALL_OK ); // ??? fix : not active ...
+    } else return ( ALL_OK ); // ??? fix : not active ...
 }
 
 uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 
-  SPIInst *spi = nullptr;
+    SPIInst *spi = nullptr;
 
-  if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-  else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
-  else return ( SPI_PORT_ERR );
+    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
+    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    else return ( SPI_PORT_ERR );
 
-  if ( spi -> active ) {
+    if ( spi -> active ) {
 
-    spi_write_blocking( spi -> spiHw, buf, len );
-    return ( ALL_OK );
+        spi_write_blocking( spi -> spiHw, buf, len );
+        return ( ALL_OK );
 
-  } else return ( ALL_OK ); // ??? fix : not active ...
+    } else return ( ALL_OK ); // ??? fix : not active ...
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1343,45 +1344,45 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 //------------------------------------------------------------------------------------------------------------
 void printConfigInfo( CdcPinConfig *ci ) {
 
-  printf( "CDC Pin Configuration Info ( status %d ): \n", ci -> CFG_STATUS );
+    printf( "CDC Pin Configuration Info ( status %d ): \n", ci -> CFG_STATUS );
 
-  printf( "Pfail pin: %2d, ExtInt pin: %2d \n", ci -> PFAIL_PIN, ci -> EXT_INT_PIN );
+    printf( "Pfail pin: %2d, ExtInt pin: %2d \n", ci -> PFAIL_PIN, ci -> EXT_INT_PIN );
 
-  printf( "ReadyLed pin: %2d, ActiveLed pin: %2d \n", ci -> READY_LED_PIN, ci -> ACTIVE_LED_PIN );
+    printf( "ReadyLed pin: %2d, ActiveLed pin: %2d \n", ci -> READY_LED_PIN, ci -> ACTIVE_LED_PIN );
 
-  printf( "DIO pins ( 0 .. 7 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
-          ci -> DIO_PIN_0, ci -> DIO_PIN_1, ci -> DIO_PIN_2, ci -> DIO_PIN_3,
-          ci -> DIO_PIN_4, ci -> DIO_PIN_5, ci -> DIO_PIN_6, ci -> DIO_PIN_7 );
+    printf( "DIO pins ( 0 .. 7 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
+            ci -> DIO_PIN_0, ci -> DIO_PIN_1, ci -> DIO_PIN_2, ci -> DIO_PIN_3,
+            ci -> DIO_PIN_4, ci -> DIO_PIN_5, ci -> DIO_PIN_6, ci -> DIO_PIN_7 );
 
-  printf( "DIO pins ( 8 .. 15 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
-          ci -> DIO_PIN_8, ci -> DIO_PIN_9, ci -> DIO_PIN_10, ci -> DIO_PIN_11,
-          ci -> DIO_PIN_12, ci -> DIO_PIN_13, ci -> DIO_PIN_14, ci -> DIO_PIN_15 );
+    printf( "DIO pins ( 8 .. 15 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
+            ci -> DIO_PIN_8, ci -> DIO_PIN_9, ci -> DIO_PIN_10, ci -> DIO_PIN_11,
+            ci -> DIO_PIN_12, ci -> DIO_PIN_13, ci -> DIO_PIN_14, ci -> DIO_PIN_15 );
 
-  printf( "ADC pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-          ci -> ADC_PIN_0, ci -> ADC_PIN_1, ci -> ADC_PIN_2, ci -> ADC_PIN_3 );
+    printf( "ADC pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
+            ci -> ADC_PIN_0, ci -> ADC_PIN_1, ci -> ADC_PIN_2, ci -> ADC_PIN_3 );
 
-  printf( "PWM pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-          ci -> PWM_PIN_0, ci -> PWM_PIN_1, ci -> PWM_PIN_2, ci -> PWM_PIN_3 );
+    printf( "PWM pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
+            ci -> PWM_PIN_0, ci -> PWM_PIN_1, ci -> PWM_PIN_2, ci -> PWM_PIN_3 );
 
-  printf( "UART RX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-          ci -> UART_RX_PIN_0, ci -> UART_RX_PIN_1, ci -> UART_RX_PIN_2, ci -> UART_RX_PIN_3 );
+    printf( "UART RX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
+            ci -> UART_RX_PIN_0, ci -> UART_RX_PIN_1, ci -> UART_RX_PIN_2, ci -> UART_RX_PIN_3 );
 
-  printf( "UART TX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-          ci -> UART_TX_PIN_0, ci -> UART_TX_PIN_1, ci -> UART_TX_PIN_2, ci -> UART_TX_PIN_3 );
+    printf( "UART TX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
+            ci -> UART_TX_PIN_0, ci -> UART_TX_PIN_1, ci -> UART_TX_PIN_2, ci -> UART_TX_PIN_3 );
 
-  printf( "SPI0 Pins: MOSI: %2d, MISO: %2d, SCLK: %2d \n",
-          ci -> SPI_MOSI_PIN_0, ci -> SPI_MISO_PIN_0, ci -> SPI_SCLK_PIN_0 );
+    printf( "SPI0 Pins: MOSI: %2d, MISO: %2d, SCLK: %2d \n",
+            ci -> SPI_MOSI_PIN_0, ci -> SPI_MISO_PIN_0, ci -> SPI_SCLK_PIN_0 );
 
-  printf( "SPI1 Pins: MOSI: %2d, MISO: %2d, SCLK: %2d \n",
-          ci -> SPI_MOSI_PIN_1, ci -> SPI_MISO_PIN_1, ci -> SPI_SCLK_PIN_1 );
+    printf( "SPI1 Pins: MOSI: %2d, MISO: %2d, SCLK: %2d \n",
+            ci -> SPI_MOSI_PIN_1, ci -> SPI_MISO_PIN_1, ci -> SPI_SCLK_PIN_1 );
 
-  printf( "NVM I2C Pins: SCL: %2d, SDA: %2d, I2C Root: 0x%x \n",
-          ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> NVM_I2C_ADR_ROOT );
+    printf( "NVM I2C Pins: SCL: %2d, SDA: %2d, I2C Root: 0x%x \n",
+            ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> NVM_I2C_ADR_ROOT );
 
-  printf( "EXT I2C Pins: SCL: %2d, SDA: %2d, I2C Root: 0x%x \n",
-          ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN, ci -> EXT_I2C_ADR_ROOT );
+    printf( "EXT I2C Pins: SCL: %2d, SDA: %2d, I2C Root: 0x%x \n",
+            ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN, ci -> EXT_I2C_ADR_ROOT );
 
-  printf( "\n" );
+    printf( "\n" );
 
 }
 
