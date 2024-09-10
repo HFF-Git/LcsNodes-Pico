@@ -138,6 +138,8 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 //------------------------------------------------------------------------------------------------------------
 // Routines to list contents of the various memory areas.
 //
+// ??? general_ should we rather format them ? A lot of work, but much more readable...
+// ??? downside: garbage data needs to be checked...
 //------------------------------------------------------------------------------------------------------------
 void dumpNodeMap( ) {
 
@@ -176,81 +178,79 @@ void dumpPendingReqMap( ) {
 
 void dumpCallbackMap( ) {
 
-  printf( "Callback Map: \n" );
-  dumpMemData((uint16_t *) &callbackMap, sizeof( LcsCallbackMap ));
-  printf( "\n" );
+    printf( "Callback Map: \n" );
+    dumpMemData((uint16_t *) &callbackMap, sizeof( LcsCallbackMap ));
+    printf( "\n" );
 }
 
 void dumpTaskMap( ) {
 
-  printf( "Task Map:\n" );
-  dumpMemData((uint16_t *) taskMap.map, MAX_TASK_MAP_ENTRIES * sizeof( LcsPTaskMapEntry ));
-  printf( "\n" );
+    printf( "Task Map:\n" );
+    dumpMemData((uint16_t *) taskMap.map, MAX_TASK_MAP_ENTRIES * sizeof( LcsPTaskMapEntry ));
+    printf( "\n" );
 }
 
 void dumpDrvMap( ) {
 
     printf( "Driver Map: (flags: 0x%x)(Size: %d)\n ", 0, 0 );
  
-
-  // ??? get from the board....
-
+    // ??? get from the board....
 }
 
 void printSummary( ) {
 
-  printf( "LCS Node: \"" );
-  for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ ) {
+    printf( "LCS Node: \"" );
+    for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ ) {
  
-    if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
-  }
+        if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
+    }
      
-  printf( "\"\n" );
-  printf( "LCS Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
+    printf( "\"\n" );
+    printf( "LCS Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
 }
 
 void dumpMemArea( ) {
 
-  printf( "MEM Area Dump:\n" );
-  dumpNodeMap( );
-  dumpPortMap( );
-  dumpEventMap( );
-  dumpPendingReqMap( );
-  dumpTaskMap( );
-  dumpCallbackMap( );
-  dumpDrvMap( );
-  printf( "\n" );
+    printf( "MEM Area Dump:\n" );
+    dumpNodeMap( );
+    dumpPortMap( );
+    dumpEventMap( );
+    dumpPendingReqMap( );
+    dumpTaskMap( );
+    dumpCallbackMap( );
+    dumpDrvMap( );
+    printf( "\n" );
 }
 
 void dumpNvmArea( ) {
 
-  printf( "NVM Area Dump:\n" );
-  dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsNodeData ) + sizeof ( LcsPortMap ) + sizeof( LcsEventMap ));
-  printf( "\n" );
+    printf( "NVM Area Dump:\n" );
+    dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsNodeData ) + sizeof ( LcsPortMap ) + sizeof( LcsEventMap ));
+    printf( "\n" );
 }
 
-void dumpNvmDrvData( ) {
+void dumpNvmDrvData( uint16_t boardId  ) {
 
-  printf( "NVM Driver Map(s):\n" );
+    printf( "NVM Driver Data:\n" );
 
-  // ??? get from the board....
+    // ??? get from the board....
 
 }
 
 void dumpNvmUserArea( ) {
 
-  printf( "NVM Area Dump:\n" );
-  dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
-  printf( "\n" );
+    printf( "NVM Area Dump:\n" );
+    dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
+    printf( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Little helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
-  return (( val >= lower ) && ( val <= upper ));
+    return (( val >= lower ) && ( val <= upper ));
 }
 
 uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
@@ -302,15 +302,15 @@ void switchToConfigCommand( char *s ) {
 
     if ( sscanf( s, "%hu", &npId ) < 1 ) return;
 
-    if ( npId == 0 ) {
+    if ( nodeId( npId ) == 0 ) {
 
         uint8_t msg[ 8 ] = { LCS_OP_CFG };
         handleMsgLcsMgt( msg );
     }
     else {
 
-        // ??? send message ... sendReqNode, bit fix it first to just accept the npId...
-        // ??? how do we deal with the ACK / ERR ?
+        uint8_t ret = sendCfg( npId );
+        printf( "<!o %d >", ret );
     }
 }
 
@@ -329,15 +329,15 @@ void switchToOperationsCommand( char *s ) {
 
     if ( sscanf( s, "%hu", &npId ) < 1 ) return;
 
-    if ( npId == 0 ) {
+    if ( nodeId( npId ) == 0 ) {
 
         uint8_t msg[ 8 ] = { LCS_OP_OPS };
         handleMsgLcsMgt( msg );
     }
     else {
 
-        // ??? send message ... sendReqNode, bit fix it first to just accept the npId...
-        // ??? how do we deal with the ACK / ERR ?
+        uint8_t ret = sendOps( npId );
+        printf( "<!o %d >", ret );
     }
 }
 
@@ -367,8 +367,8 @@ void enterEventCommand( char *s ) {
     }
     else {
 
-        // send a message....
-        // ??? print a kind of status ....
+        uint8_t ret = sendReqNode( npId, NPI_ADD_EVENT_MAP_ENTRY, eventId, npId );
+        printf( "<!a %d >", ret );
     }
 }
 
@@ -386,13 +386,21 @@ void enterEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void removeEventCommand( char *s ) {
 
-  uint16_t  eventId = NIL_EVENT_ID;
-  uint16_t  portId  = NIL_PORT_ID;
+    uint16_t  eventId = NIL_EVENT_ID;
+    uint16_t  npId    = 0;
 
-  if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
+    if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
 
-  int ret = nodeReq( portId, NPI_DEL_EVENT_MAP_ENTRY, &eventId, &portId );
-  printf( "<!r %d >", ret );
+    if ( nodeId( npId ) == 0 ) {
+
+        int ret = nodeReq( npId, NPI_DEL_EVENT_MAP_ENTRY, &eventId, &npId );
+        printf( "<!a %d >", ret );
+    }
+    else {
+
+        uint8_t ret = sendReqNode( npId, NPI_DEL_EVENT_MAP_ENTRY, eventId, npId );
+        printf( "<!a %d >", ret );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -409,24 +417,24 @@ void removeEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void findEventCommand( char *s ) {
 
-  uint16_t  eventId = NIL_EVENT_ID;
-  uint16_t  portId  = NIL_PORT_ID;
+    uint16_t  eventId = NIL_EVENT_ID;
+    uint16_t  portId  = NIL_PORT_ID;
 
-  if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
+    if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
 
-  int ret = searchEvent( eventId, portId );
-  printf( "<!f %d >", ret );
+    int ret = searchEvent( eventId, portId );
+    printf( "<!f %d >", ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!e" simulates receiving an event and will invoke the event processing routine for this event. This command
-// is quite helpful in testing event callbacks.
+// "!e" will send an event. We will send a message and also simulates receiving an event on the local node.
+// Sending to ourselves is also quite useful for debugging event callback handlers.
 //
-//    <!e mode nodeId eventId [ arg ] >
+//    <!e mode npId eventId [ arg ] >
 //
 //    mode      - 0 - ON, 1 - OFF, 2 - DATA
-//    node      - the sending node Id
-//    eventId   - the sending node event Id
+//    npId      - the sending node / port Id
+//    eventId   - the sending node / port Id event Id
 //    arg       - optional data argument for the event.
 //
 //    returns: none
@@ -434,40 +442,51 @@ void findEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void sendEventCommand( char *s ) {
 
-  uint8_t     msg[ 8 ];
-  uint16_t    nodeId  = NIL_NODE_ID;
-  uint16_t    eventId = NIL_EVENT_ID;
-  uint8_t     mode    = 0;
-  uint16_t    arg     = 0;
-  uint8_t     len     = 0;
+    uint8_t     msg[ 8 ];
+    uint16_t    npId    = NIL_NODE_ID;
+    uint16_t    eventId = NIL_EVENT_ID;
+    uint8_t     mode    = 0;
+    uint16_t    arg     = 0;
+    uint8_t     len     = 0;
 
-  len = sscanf( s, "%hhu %hu %hu %hu", &mode, &nodeId, &eventId, &arg );
+    len = sscanf( s, "%hhu %hu %hu %hu", &mode, &nodeId, &eventId, &arg );
 
-  if ( len < 3 ) return;
+    if ( len < 3 ) return;
 
-  msg[ 0 ] = 0;
-  msg[ 1 ] = highByte( nodeId );
-  msg[ 2 ] = lowByte( nodeId );
-  msg[ 3 ] = highByte( eventId );
-  msg[ 4 ] = lowByte( eventId );
-  msg[ 5 ] = highByte( arg );
-  msg[ 6 ] = lowByte( arg );
-  msg[ 7 ] = 0;
+    msg[ 0 ] = 0;
+    msg[ 1 ] = highByte( npId );
+    msg[ 2 ] = lowByte( npId );
+    msg[ 3 ] = highByte( eventId );
+    msg[ 4 ] = lowByte( eventId );
+    msg[ 5 ] = highByte( arg );
+    msg[ 6 ] = lowByte( arg );
+    msg[ 7 ] = 0;
 
-  if (( mode == 0 ) || ( mode == 1 )) {
+    if ( mode == 0 ) {
 
-    msg[ 0 ] = (( mode == 0 ) ? LCS_OP_EVT_ON : LCS_OP_EVT_OFF );
-    handleMsgEvent( msg );
-  }
-  else if (( mode == 2 ) && ( len == 4 )) {
+        msg[ 0 ] = LCS_OP_EVT_ON;
 
-    msg[ 0 ] = LCS_OP_EVT;
-    handleMsgEvent( msg );
-  }
+        sendEventOn( npId, eventId ); 
+        handleMsgEvent( msg );
+    }
+    else if ( mode == 0 ) {
+
+        msg[ 0 ] = LCS_OP_EVT_OFF;
+
+        sendEventOn( npId, eventId ); 
+        handleMsgEvent( msg );
+    }
+    else if ( mode == 2 ) {
+
+        msg[ 0 ] = LCS_OP_EVT;
+        sendEvent( npId, eventId, arg ); 
+        handleMsgEvent( msg );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!g" handles the local node or port attribute query command.
+// "!g" handles the node/port attribute query command. If the node is out node, we call the local access 
+// routines. Otherwise we send a message.
 //
 //    <!g npId item [ val1 [ val2 ]]>
 //
@@ -478,24 +497,34 @@ void sendEventCommand( char *s ) {
 //
 //    returns: <!g item val1 val2 ret>
 //
+//
+// ??? how is the reply displayed ?
 //------------------------------------------------------------------------------------------------------------
 void getNodeCommand( char *s ) {
 
-  uint16_t  npId    = 0;
-  uint8_t   item    = 0;
-  uint16_t  arg1    = 0;
-  uint16_t  arg2    = 0;
-  uint8_t   ret     = ALL_OK;
+    uint16_t  npId    = 0;
+    uint8_t   item    = 0;
+    uint16_t  arg1    = 0;
+    uint16_t  arg2    = 0;
+    uint8_t   ret     = ALL_OK;
 
-  if ( sscanf( s, "%hu %hu %hu %hu", &npId, &item, &arg1, &arg2  ) != 2 ) return;
+    if ( sscanf( s, "%hu %hu %hu %hu", &npId, &item, &arg1, &arg2  ) != 2 ) return;
 
-  ret = attrGet( npId, item, &arg1, &arg2 );
+    if ( nodeId( npId ) == 0 ) {
 
-  printf( "<!g %d|0x%x|0x%x|%d>", item, arg1, arg2, ret );
+        ret = nodeGet( npId, item, &arg1, &arg2 );
+        printf( "<!g %d|0x%x|0x%x|%d>", item, arg1, arg2, ret );
+    }
+    else {
+
+        ret = sendQryNode( npId, item, arg1, arg2 );
+        printf( "<!g %d >", ret );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!p" handles the node or port attribute set command.
+// "!p" handles the node or port attribute value set command. If the node is out node, we call the local 
+// access routines. Otherwise we send a message.
 //
 //    <!p npId item [ val1 [ val2 ]]>
 //
@@ -507,22 +536,31 @@ void getNodeCommand( char *s ) {
 //    returns: <!p item val1 val2 ret>
 //
 //------------------------------------------------------------------------------------------------------------
-void setNodeCommand( char *s ) {
+void putNodeCommand( char *s ) {
 
     uint16_t  npId  = 0;
     uint8_t   item  = 0;
     uint16_t  val1  = 0;
     uint16_t  val2  = 0;
+    uint8_t   ret   = ALL_OK;
 
     if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return;
 
-    uint8_t ret = attrSet( npId, item, val1, val2 );
+    if ( nodeId( npId ) == 0 ) {
+     
+        ret = nodePut( npId, item, val1, val2 );
+        printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+    }
+    else {
 
-    printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+        ret = sendSetNode( npId, item, val1, val2 );
+        printf( "<!g %d >", ret );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!r" handles the node or port request command.
+// "!r" handles the node / port request command. If the node is out node, we call the local access routines.
+// Otherwise we send a message.
 //
 //    <!r npId item [ val1 [ val2 ]]>
 //
@@ -536,20 +574,30 @@ void setNodeCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void reqNodeCommand( char *s ) {
 
-    uint16_t  npId  = NIL_PORT_ID;
+    uint16_t  npId  = 0;
     uint8_t   item  = 0;
     uint16_t  val1  = 0;
     uint16_t  val2  = 0;
+    uint8_t   ret   = ALL_OK;
 
     if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return;
 
-    uint8_t ret = nodeReq( npId, item, &val1, &val2 );
+    if ( nodeId( npId ) == 0 ) {
+     
+        ret = nodeReq( npId, item, &val1, &val2 );
+        printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+    }
+    else {
 
-    printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+        ret = sendReqNode( npId, item, val1, val2 );
+        printf( "<!g %d >", ret );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!B" broadcasts a LCS message. Mainly used for debugging purposes.
+// "!B" broadcasts a LCS message. Mainly used for debugging purposes. Although most commands in the LCS
+// console interface can also send messages to other nodes, not all messages are covered. This command sends
+// any kind of message, even undefined ones. 
 //
 //    <!B byte1 [ byte2 ... byte8 ]>
 //
@@ -574,13 +622,11 @@ void broadcastLcsMsgCommand( char *s ) {
     }
 }
 
-
-// ??? need commands to write to the driver data area and flush it to the NVM ( jumper set in ... )
-// ??? driver data ideas: chip types and I2C addresses, initial mask for OCC detect, initial PWM values, etc.
-
-
 //------------------------------------------------------------------------------------------------------------
-// "driver request" command.
+// "driver request" command. A driver is the piece of code that interfaces with an extension board. There is
+// actually only one routine for talking to an extension board. This command will call a driver with the 
+// respective arguments. Note that ITEMs which are used to set values in the extension board NVM will only
+// work when the board is write-enabled. 
 //
 //    <!D board item arg1 [ arg 2]>
 //
@@ -602,7 +648,6 @@ void drvRequestCommand( char *s ) {
     if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
 
     int ret = drvReq( boardId, item, arg1, &arg2 );
-
     printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
 }
 
@@ -632,6 +677,7 @@ void listStatusCommand( char *s ) {
             case 7:  dumpCallbackMap( );    break;
             case 8:  dumpNvmArea( );        break;
             case 9:  dumpMemArea( );        break;
+
             case 10: dumpDrvMap( );         break;
 
             default: printf( "<Unknown help option, use '?' for help>" );
@@ -641,7 +687,7 @@ void listStatusCommand( char *s ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!?" lists core library help information.
+// "!?" lists core library help information. We just list the available commands and a short description.
 //
 //    <!?>
 //
@@ -689,10 +735,6 @@ uint8_t setupSerialCommand( ) {
     return ( CDC::configureConsoleIO( ));
 }
 
-// ??? need status commands for driver and extension board stuff...
-// ??? need commands to manipulate the EXT board NVM...
-// ??? need commands to manipulate the NodeMap data ?
-
 //------------------------------------------------------------------------------------------------------------
 // "handleSerialCommand" reads characters from the console. The command line syntax is modeled after the
 // original DCC++ work. First character is a command, the rest are arguments. A command is bracketed by "<" 
@@ -704,6 +746,13 @@ uint8_t setupSerialCommand( ) {
 // The interface is designed in a way that it assembles the character input when there are characters. Only
 // when there is a valid "<...>" sequence assembled, the command handler is invoked. 
 //
+//
+// ??? what do we do about ACK and ERR return messages ? we cannot wait for an ACK / ERR to arrive, so we
+// just issue a command and return. There needs to be a callback that will just print out the return 
+// result to the console output.
+//
+// ??? next issue: what if the user also wants a callback message callback ? We would need to get in the 
+// middle and then invoke the user callback if there is any ... 
 //------------------------------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
 
@@ -730,7 +779,7 @@ uint8_t handleSerialCommand( ) {
               case 'e': sendEventCommand( commandBuf + 2 );             break;
               
               case 'g': getNodeCommand( commandBuf + 2 );               break;
-              case 'p': setNodeCommand( commandBuf + 2 );               break;
+              case 'p': putNodeCommand( commandBuf + 2 );               break;
               case 'r': reqNodeCommand( commandBuf + 2 );               break;
 
               case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;

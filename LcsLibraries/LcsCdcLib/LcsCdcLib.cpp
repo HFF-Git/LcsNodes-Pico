@@ -131,7 +131,7 @@ const uint32_t VALID_SPI_1_PINS     = VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS
 // Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO;
+const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO_2040;
 const uint32_t CHIP_MEM_SIZE              = 264 * 1024;
 const uint32_t CHIP_NVM_SIZE              = 0;
 
@@ -377,12 +377,12 @@ void uartRxCallback1( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The default configuration descriptor. The Application program fills in such a structure, which can be
-// seen as the HW pin assignments for the PICO  and the particular board on which the application will be
-// deployed. The application will simply use the field names to address the particular PICO HW function.
-// For example, a configuration has mapped DIO_PIN_5 to GPIO pin 12, because that is where the particular
-// board has mapped DIO_PIN_5 to the hardware line. The application will just use the DIO_PIN_5 field when
-// talking to that GPIO pin. Whenever the board layout changes, there could be another PICO GPIO pin, but
-// the name "DIO_PIN_5" for the application upper layers does not change.
+// seen as the HW pin assignments for the PICO controllers and the particular board on which the application
+// will be deployed. The application will simply use the field names to address the particular PICO HW
+// function. For example, a configuration has mapped DIO_PIN_5 to GPIO pin 12, because that is where the 
+// particular board has mapped DIO_PIN_5 to the hardware line. The application will just use the DIO_PIN_5 
+// field when talking to that GPIO pin. Whenever the board layout changes, there could be another PICO GPIO 
+// pin, but the name "DIO_PIN_5" for the application upper layers does not change.
 //
 // Note that there is a great flexibility what a PICO HW  pin can do and hence a lot of our fields are just
 // "UNDEFINED" with no constraints. Nevertheless, there is a function which will do some plausibility checks
@@ -398,6 +398,10 @@ CDC::CdcPinConfig getConfigDefaultRP2040( ) {
     CDC::CdcPinConfig tmp;
 
     tmp.CFG_STATUS          = CDC::INIT_PENDING;
+
+
+    // ??? controller family ?
+    // ??? what other characteristics ? ( e.g. mem size ? )
 
     tmp.READY_LED_PIN       = CDC::UNDEFINED_PIN;
     tmp.ACTIVE_LED_PIN      = CDC::UNDEFINED_PIN;

@@ -243,17 +243,40 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 // will clear the entry upon the matching receipt.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t sendReset( uint16_t nodeId, uint8_t portId, uint8_t flags ) {
+uint8_t sendCfg( uint16_t npId ) {
 
-    uint16_t tmp = (( nodeId << 4 ) | ( portId & 0x0F ));
+    // ??? add to pending reply map ?
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_RESET };
-    msgBuf[ 1 ] = highByte( tmp );
-    msgBuf[ 2 ] = lowByte( tmp );
-    msgBuf[ 3 ] = flags;
-
+    uint8_t msgBuf[ 8 ] = { LCS_OP_CFG };
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
+   
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
 }
+
+uint8_t sendOps( uint16_t npId ) {
+
+    // ??? add to pending reply map ?
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_OPS };
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
+   
+    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
+}
+
+uint8_t sendReset( uint16_t npId ) {
+
+    // ??? add to pending reply map ?
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_RESET };
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
+   
+    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
+}
+
+// ??? who would issue such a command ? what does it mean ?
 
 uint8_t sendBusOn( ) {
 
@@ -261,44 +284,48 @@ uint8_t sendBusOn( ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
+// ??? who would issue such a command ? what does it mean ?
+
 uint8_t sendBusOff( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BOF };
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
-uint8_t sendErr( uint16_t nodeId, uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
+uint8_t sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ERR };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = errCode;
     msgBuf[ 4 ] = arg1;
     msgBuf[ 5 ] = arg2;
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendPing( uint16_t nodeId ) {
+uint8_t sendPing( uint16_t npId ) {
+
+     // ??? add to pending reply map ?
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_PING };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendAck( uint16_t nodeId ) {
+uint8_t sendAck( uint16_t npId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ACK };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendReqNodeId( uint16_t nodeId, uint32_t nodeUID, uint8_t flags ) {
+uint8_t sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NID };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = ( nodeUID & 0xFF000000 ) >> 24;
     msgBuf[ 4 ] = ( nodeUID & 0x00FF0000 ) >> 16;
     msgBuf[ 5 ] = ( nodeUID & 0x0000FF00 ) >> 8;
@@ -307,11 +334,11 @@ uint8_t sendReqNodeId( uint16_t nodeId, uint32_t nodeUID, uint8_t flags ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendRepNodeId( uint16_t nodeId, uint32_t nodeUID ) {
+uint8_t sendRepNodeId( uint16_t npId, uint32_t nodeUID ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REP_NID };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = ( nodeUID & 0xFF000000 ) >> 24;
     msgBuf[ 4 ] = ( nodeUID & 0x00FF0000 ) >> 16;
     msgBuf[ 5 ] = ( nodeUID & 0x0000FF00 ) >> 8;
@@ -319,11 +346,11 @@ uint8_t sendRepNodeId( uint16_t nodeId, uint32_t nodeUID ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendSetNodeId( uint16_t nodeId, uint32_t nodeUID ) {
+uint8_t sendSetNodeId( uint16_t npId, uint32_t nodeUID ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_NID };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = ( nodeUID & 0xFF000000 ) >> 24;
     msgBuf[ 4 ] = ( nodeUID & 0x00FF0000 ) >> 16;
     msgBuf[ 5 ] = ( nodeUID & 0x0000FF00 ) >> 8;
@@ -331,11 +358,11 @@ uint8_t sendSetNodeId( uint16_t nodeId, uint32_t nodeUID ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendNodeIdCollision( uint16_t nodeId, uint32_t nodeUID ) {
+uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NCOL };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = ( nodeUID & 0xFF000000 ) >> 24;
     msgBuf[ 4 ] = ( nodeUID & 0x00FF0000 ) >> 16;
     msgBuf[ 5 ] = ( nodeUID & 0x0000FF00 ) >> 8;
@@ -343,15 +370,47 @@ uint8_t sendNodeIdCollision( uint16_t nodeId, uint32_t nodeUID ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
 }
 
-uint8_t sendQryNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 ) {
+uint8_t sendQryNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if ( addToPendingReplyMap( nodeId ) == ALL_OK ) {
-
-        uint16_t tmp = (( nodeId << 4 ) | ( portId & 0x0F ));
+    if ( addToPendingReplyMap( npId ) == ALL_OK ) {
 
         uint8_t msgBuf[ 8 ] = { LCS_OP_QRY_NODE };
-        msgBuf[ 1 ] = highByte( tmp );
-        msgBuf[ 2 ] = lowByte( tmp );
+        msgBuf[ 1 ] = highByte( npId );
+        msgBuf[ 2 ] = lowByte( npId );
+        msgBuf[ 3 ] = item;
+        msgBuf[ 4 ] = highByte( val1 );
+        msgBuf[ 5 ] = lowByte( val1 );
+        msgBuf[ 6 ] = highByte( val2 );
+        msgBuf[ 7 ] = lowByte( val2 );
+        return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_NORMAL ));
+    }
+    else return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
+}
+
+uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
+
+    if ( addToPendingReplyMap( npId ) == ALL_OK ) {
+
+        uint8_t msgBuf[ 8 ] = { LCS_OP_SET_NODE };
+        msgBuf[ 1 ] = highByte( npId );
+        msgBuf[ 2 ] = lowByte( npId );
+        msgBuf[ 3 ] = item;
+        msgBuf[ 4 ] = highByte( val1 );
+        msgBuf[ 5 ] = lowByte( val1 );
+        msgBuf[ 6 ] = highByte( val2 );
+        msgBuf[ 7 ] = lowByte( val2 );
+        return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_NORMAL ));
+    }
+    else return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
+}
+
+uint8_t sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
+
+    if ( addToPendingReplyMap( npId ) == ALL_OK ) {
+
+        uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NODE };
+        msgBuf[ 1 ] = highByte( npId );
+        msgBuf[ 2 ] = lowByte( npId );
         msgBuf[ 3 ] = item;
         msgBuf[ 4 ] = highByte( val1 );
         msgBuf[ 5 ] = lowByte( val1 );
@@ -362,13 +421,11 @@ uint8_t sendQryNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val
     else return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
 }
 
-uint8_t sendRepNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 ) {
-
-    uint16_t tmp = (( nodeId << 4 ) | ( portId & 0x0F ));
+uint8_t sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REP_NODE };
-    msgBuf[ 1 ] = highByte( tmp );
-    msgBuf[ 2 ] = lowByte( tmp );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = item;
     msgBuf[ 4 ] = highByte( val1 );
     msgBuf[ 5 ] = lowByte( val1 );
@@ -377,50 +434,38 @@ uint8_t sendRepNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendReqNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2 ) {
-
-    uint16_t tmp = (( nodeId << 4 ) | ( portId & 0x0F ));
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NODE };
-    msgBuf[ 1 ] = highByte( tmp );
-    msgBuf[ 2 ] = lowByte( tmp );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( val1 );
-    msgBuf[ 5 ] = lowByte( val1 );
-    msgBuf[ 6 ] = highByte( val2 );
-    msgBuf[ 7 ] = lowByte( val2 );
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
-}
-
-uint8_t sendEventOn( uint16_t nodeId, uint16_t eventId ) {
+uint8_t sendEventOn( uint16_t npId, uint16_t eventId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT_ON };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendEventOff( uint16_t nodeId, uint16_t eventId ) {
+uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT_OFF };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendEvent( uint16_t nodeId, uint16_t eventId, uint16_t arg ) {
+uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT };
-    msgBuf[ 1 ] = highByte( nodeId );
-    msgBuf[ 2 ] = lowByte( nodeId );
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
     msgBuf[ 5 ] = highByte( arg );
     msgBuf[ 6 ] = lowByte( arg );
+
+    // ??? also send to local ports ? 
+
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 

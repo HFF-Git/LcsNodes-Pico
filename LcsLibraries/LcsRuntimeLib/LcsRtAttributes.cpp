@@ -168,15 +168,12 @@ namespace {
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-// ??? how do we set debug levels when all this is a bunch of procedures ?
-
-
 //------------------------------------------------------------------------------------------------------------
-// "attrGet" will lookup a value from the node, port or the attribute data map. The "npId" argument contains
-// the node and port data, we will only use the portId portion.
+// "nodeGet" will lookup a value from the node, port or the attribute data map. The "npId" argument contains
+// the node and port Id, we will only use the portId portion.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t attrGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if ( debugLevel > 0 ) {
 
@@ -328,17 +325,17 @@ uint8_t attrGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            default: return ( ERR_INVALID_NODE_INFO_ITEM );
+            default: return ( ERR_INVALID_ITEM_ID );
         }
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "attrSet" will lookup a value from the node, port or the attribute data map. The "npId" argument contains
-// the node and port data, we will only use the portId portion.
+// "nodePut" will write a value to the node, port or the attribute data map. The "npId" argument contains
+// the node and port Id, we will only use the portId portion.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t attrSet( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
+uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
     if ( debugLevel > 0 ) {
 
@@ -438,14 +435,16 @@ uint8_t attrSet( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( ALL_OK );
             }
 
-            default: return ( ERR_INVALID_NODE_CTRL_ITEM );
+            default: return ( ERR_INVALID_ITEM_ID );
         }
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "nodeReq" will carry out a node or port function. A function, represented by an item, can be a node or port
+// defined item, or a user defined item. For the latter we will invoke the user defined callback, if any. 
 //
-//
+// ??? have an option to et the debug level ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
@@ -466,14 +465,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case NPI_RESET: {
 
-                if ( portId( npId ) == 0 ) {
-
-                    return ( resetNode( ));
-                }
-                else {
-
-                    // ??? port ?
-                }
+                return ( resetNode( npId ));
             }
 
             case NPI_ADD_EVENT_MAP_ENTRY: {
@@ -539,7 +531,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ERR_NOT_IMPLEMENTED );
             }
 
-            default: return ( ERR_INVALID_NODE_CTRL_ITEM );
+            default: return ( ERR_INVALID_ITEM_ID );
         }
     }
 }

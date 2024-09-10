@@ -105,13 +105,14 @@ const uint8_t UNDEFINED_PIN   = 255;
 const uint8_t ILLEGAL_PIN     = 254;
 
 //------------------------------------------------------------------------------------------------------------
-// The controller families. Currently, there is only the Raspberry PI Pico.
+// The controller families. Currently, there is only the Raspberry PI Pico models.
 //
 //------------------------------------------------------------------------------------------------------------
 enum ControllerFamily : uint8_t {
 
     CF_UNDEFINED    = 0,
-    CF_RP_PICO      = 1
+    CF_RP_PICO_2040 = 1,
+    CF_RP_PICO_2350 = 2
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -56,7 +56,7 @@ namespace LCS {
 // data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas
 // initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from memory
 // to NVM so that it is the initial value on the next restart. All data is stored in controller native 
-// endianess. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
+// endianness. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
 //
 // The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
 // offset 0x400, the attributeMap starting at offset 0x800 and the eventMap at offset 0x1000. The system area
@@ -528,9 +528,7 @@ uint8_t       extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint3
 uint8_t       extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
 uint32_t      extNvmGetSize( );
 
-
-uint8_t       resetNode( );
-uint8_t       resetPort( uint8_t portId );
+uint8_t       resetNode( uint16_t npId );
 
 uint8_t       syncEventMap( );
 uint8_t       addEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );

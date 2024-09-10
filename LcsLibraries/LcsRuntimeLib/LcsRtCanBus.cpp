@@ -73,7 +73,7 @@ const uint8_t   RX_QUEUE_SIZE     = 4;
 //------------------------------------------------------------------------------------------------------------
 // The setup and start of the CAN Bus can run on ether core 0 or core 1, depending whether a multi-core
 // implementation is desired. The "Can2040ConfigDesc" structure holds all the necessary configuration data
-// for the initialisation routine to use.
+// for the initialization routine to use.
 //
 //------------------------------------------------------------------------------------------------------------
 struct Can2040ConfigDesc {
@@ -98,11 +98,11 @@ queue_t                 rxQueue;
 Can2040ConfigDesc       cfg;
 
 //------------------------------------------------------------------------------------------------------------
-// The "buildMcpCanBusHeader" constructs the canId parameter for the Arduino "mcp_can" library. The canId
+// The "buildCanBusMsgHeader" constructs the canId parameter for the CAN Id used in the message. The canId
 // 32-bit word encodes the canId itself, and flags such as EXT or RTR.
 //
 //------------------------------------------------------------------------------------------------------------
-inline uint32_t buildMcpCanBusHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
+inline uint32_t buildCanBusMsgHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
 
     uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
 
@@ -112,7 +112,7 @@ inline uint32_t buildMcpCanBusHeader( uint16_t canId, uint8_t msgPri, bool RTR =
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The interrupt signature to register with the RP2040 fpr PIO interrupts. The interrupt handlr itself is
+// The interrupt signature to register with the RP2040 for PIO interrupts. The interrupt handler itself is
 // provided by the can2040 library.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -128,7 +128,7 @@ void CanBusPIOIrqHandler( ) {
 //
 // The callback could be used to filter messages directly at this stage. Only messages that concern this
 // node should be processed. Easy said, but perhaps no so easy to do. We can basically to filtering at the
-// higher message bus level or at the lower layers. The benefit fopr doing it hee is that it would run on
+// higher message bus level or at the lower layers. The benefit for doing it here is that it would run on
 // a separate core and relief the other core even further. To think about one day.
 // 
 //------------------------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
     }
     else if ( notify == CAN2040_NOTIFY_TX ) {
 
-        // ??? add to pending reqwuest list ?
+        // ??? add to pending request list ?
         // ??? transmit completed successfully
     }
     else if ( notify == CAN2040_NOTIFY_ERROR ) {
@@ -163,7 +163,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 // "canBusCore" is the routine that encapsulates the can2040 setup and launch work. For the multi-core
 // version it needs to be a routine that can be called from the current core or be launched on the other
 // core. The routine communicates the successful setup with a boolean flag in the configuration descriptor.
-// Note that the setup routine must be a void procedure with no parmeters. This is expected by the launch
+// Note that the setup routine must be a void procedure with no parameters. This is expected by the launch
 // routine in the PICO C++ SDK.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -297,7 +297,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     can2040_msg msg;
 
-    msg.id  = buildMcpCanBusHeader( canId, msgPri );
+    msg.id  = buildCanBusMsgHeader( canId, msgPri );
     msg.dlc = ( msgBuf[ 0 ] >> 5 ) + 1;
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];

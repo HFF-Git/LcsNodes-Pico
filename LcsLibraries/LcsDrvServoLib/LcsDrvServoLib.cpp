@@ -38,31 +38,78 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------
-  //
-  //----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+//
+//------------------------------------------------------------------------------------------------------------
 
-  const int PCA9685_SUB_ADR_1 = 2;
-  const int PCA9685_SUB_ADR_2 = 3;
-  const int PCA9685_SUB_ADR_3 = 4;
+const int PCA9685_SUB_ADR_1 = 2;
+const int PCA9685_SUB_ADR_2 = 3;
+const int PCA9685_SUB_ADR_3 = 4;
 
-  const int PCA9685_MODE_1    = 0;
+const int PCA9685_MODE_1    = 0;
 
-  const int PCA9685_PRESCALE = 0xFE;
+const int PCA9685_PRESCALE = 0xFE;
 
-  // ??? starr for the LED registers. Find the others by adding to these values. ( n * 4 )
-  const int PCA9685_LED0_ON_L_ADR = 0x6;
-  const int PCA9685_LED0_ON_H_ADR = 0x7;
-  const int PCA9685_LED0_OFF_L_ADR = 0x8;
-  const int PCA9685_LED0_OFF_H_ADR = 0x9;
+// ??? start for the LED registers. Find the others by adding to these values. ( n * 4 )
+const int PCA9685_LED0_ON_L_ADR = 0x6;
+const int PCA9685_LED0_ON_H_ADR = 0x7;
+const int PCA9685_LED0_OFF_L_ADR = 0x8;
+const int PCA9685_LED0_OFF_H_ADR = 0x9;
 
-  const int PCA9685_LED_ALL_ON_L_ADR = 0xFA;
-  const int PCA9685_LED_ALL_ON_H_ADR = 0xFB;
-  const int PCA9685_LED_ALL_OFF_L_ADR = 0xFC;
-  const int PCA9685_LED_ALL_OFF_H_ADR = 0xFD;
+const int PCA9685_LED_ALL_ON_L_ADR = 0xFA;
+const int PCA9685_LED_ALL_ON_H_ADR = 0xFB;
+const int PCA9685_LED_ALL_OFF_L_ADR = 0xFC;
+const int PCA9685_LED_ALL_OFF_H_ADR = 0xFD;
 
 
-  uint8_t i2cAdr;
+uint8_t i2cAdr;
+uint8_t sclPin;
+
+
+  bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
+
+  return (( val >= lower ) && ( val <= upper ));
+}
+
+
+
+
+  uint8_t readReg( uint8_t reg ) {
+
+    uint8_t buf[ 2 ];
+    uint8_t rStat = CDC::ALL_OK;
+    
+    rStat = CDC::i2cWrite( sclPin, i2cAdr, &reg, 1 );
+    if ( rStat == CDC::ALL_OK ) {
+
+        rStat = CDC::i2cRead( sclPin, i2cAdr, buf, 1 );
+        return( buf[ 0 ] );
+    }
+    else return( 0 );
+}
+
+uint8_t writeReg( uint8_t reg, uint8_t val ) {
+
+    uint8_t buf[ 2 ];
+    buf[ 0 ] = reg;
+    buf[ 1 ] = val;
+
+    return( CDC::i2cWrite( sclPin, i2cAdr, buf, 2 ));
+}
+
+bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
+
+    uint8_t ret = 1;
+    uint8_t tmp = 0;
+
+    while ( ret != CDC::ALL_OK ) {
+
+        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
+    }
+
+    return ( true );
+}
+
 
 
   //----------------------------------------------------------------------------------------------------------

@@ -299,37 +299,11 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_RESET: {
 
-            uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-            uint8_t  portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
+            uint16_t npId = (( msg[1] << 8 ) + msg[2] );
+            uint8_t rStat = resetNode( npId );
 
-            if ( nodeId == NIL_NODE_ID ) {
-
-                // ??? FIX ...
-                // setupNode( );
-
-                nodeMap.nodeState = NS_INIT;
-            }
-            else if (( nodeId != NIL_NODE_ID ) && ( portId == NIL_PORT_ID )) {
-
-                if ( nodeId == nodeMap.nodeId ) {
-
-                    // ??? fix
-                    // setupNode( );
-
-                    nodeMap.nodeState = NS_INIT;
-                }
-            }
-            else if (( nodeId != NIL_NODE_ID ) && ( portId != NIL_PORT_ID )) {
-
-                if ( nodeId == nodeMap.nodeId ) {
-
-                    uint8_t rStat = resetPort( msg[ 3 ] );
-
-                    // ??? send npId format ?
-                    if ( rStat == ALL_OK ) LCS::sendAck( nodeId );
-                    else                   LCS::sendErr( nodeId, rStat, 0, 0 );
-                }
-            }
+            if ( rStat == ALL_OK ) LCS::sendAck( npId );
+            else                   LCS::sendErr( npId, rStat, 0, 0 );
 
         } break;
 
@@ -361,20 +335,17 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgQryNode( uint8_t *msg ) {
 
-    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-    uint16_t portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
-
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
-    if ( nodeId == nodeMap.nodeId ) {
+    if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = attrGet( npId, item, &arg1, &arg2 );
+        uint8_t   ret   = nodeGet( npId, item, &arg1, &arg2 );
 
-        if ( ret == ALL_OK )  sendRepNode( nodeId, portId, item, arg1, arg2 );
-        else                  sendErr( nodeId, ret, 0, 0 );
+        if ( ret == ALL_OK )  sendRepNode( npId, item, arg1, arg2 );
+        else                  sendErr( npId, ret, 0, 0 );
     }
 }
 
@@ -384,20 +355,17 @@ void handleMsgQryNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgSetNode( uint8_t *msg ) {
 
-    uint16_t nodeId  = (( msg[1] << 8 ) + msg[2] ) >> 4;
-    uint16_t portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
-
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
-    if ( nodeId == nodeMap.nodeId ) {
+    if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = attrSet( npId, item, arg1, arg2 );
+        uint8_t   ret   = nodePut( npId, item, arg1, arg2 );
 
-        if ( ret == ALL_OK )  sendAck( nodeId );
-        else                  sendErr( nodeId, ret, 0, 0 );
+        if ( ret == ALL_OK )  sendAck( npId );
+        else                  sendErr( npId, ret, 0, 0 );
     }
 }
 
@@ -408,13 +376,7 @@ void handleMsgSetNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
 
-    uint16_t npId   = (( msg[1] << 8 ) + msg[2] );
-    uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
-
-    // ??? check if this is our node...
-    // ??? check if we have a pending request....
-
-    uint8_t   portId  = (( msg[1] << 8 ) + msg[2] ) & 0x0F;
+    uint16_t  npId    = (( msg[1] << 8 ) + msg[2] );
     uint8_t   item    = msg[3];
     uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
     uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
@@ -423,19 +385,15 @@ void handleMsgRepNode( uint8_t *msg ) {
         callbackMap.repCallback( npId, item, &arg1, &arg2 );
 }
 
-
-// ??? GET/SET/REQ.... changes...
-
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgReqNode" processes an incoming request for a node or port.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
-    uint16_t npId   = (( msg[1] << 8 ) + msg[2] );
-    uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
+    uint16_t  npId = (( msg[1] << 8 ) + msg[2] );
 
-    if ( nodeId == nodeMap.nodeId ) {
+    if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
@@ -455,8 +413,10 @@ void handleMsgReqNode( uint8_t *msg ) {
 // the event should result in a callback. The actual event processing is done in the port event processing
 // routine, which will manage the timely invocation of the event callbacks.
 //
+// Note that we also are called from the event sending routine because another port on our node could be 
+// interested in this event. It is up to the firmware programmer to ensure that a port does send itself an
+// event and this trigger an infinite loop.
 //
-// ??? what events created on this node and a port is interested ? they should also be processed ....
 //------------------------------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
@@ -558,8 +518,9 @@ void handleNodeStateFail( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State Power FAIL. This is the state after the node startup failed. 
+// Node State Power FAIL. This is the state after when the node starts up after a power fail.
 //
+// ??? perhaps just a section in the setup phase... 
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
 

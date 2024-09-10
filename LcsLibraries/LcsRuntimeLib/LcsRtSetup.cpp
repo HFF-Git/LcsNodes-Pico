@@ -587,24 +587,15 @@ uint8_t powerFailHandler( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "resetNode" restarts a node. We first rebuild the MEM areas from their NVM counterparts. Next, the optional
-// init call back is invoked. Finally, all ports are reseted as well. If an error occurs, the node reports a
-// fatal error and stops.
+// init call back is invoked. Finally, all ports are reseted as well. 
 //
-// ??? what exactly is reseted when called ? Are all data structures re-initialized ?
-// ??? does the user need to do all the registration work ?
-// ??? we either should have a "reset" callback or a flag on the init callback to distinguish them both.
+// ??? combine node and port reset
 //------------------------------------------------------------------------------------------------------------
-uint8_t resetNode( ) {
+uint8_t resetNode( uint16_t npId ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( callbackMap.resetCallback == nullptr ) {
-
-        return( -1 );
-    }
-
-
-    // ???? fix .....
+    // ??? load MEM from NVM....
 
     if ( callbackMap.resetCallback != nullptr ) {
 
@@ -615,8 +606,11 @@ uint8_t resetNode( ) {
 
         for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            rStat = resetPort( i );
-            if ( rStat != ALL_OK ) break;
+            // ??? get MEM from NVM
+
+            // ??? invoke callback...
+
+           
         }
     }
 

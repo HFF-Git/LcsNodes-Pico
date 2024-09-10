@@ -411,13 +411,11 @@ enum NodeAndPortItems : uint8_t {
     NPI_ENABLE_EVENT_PROCESSING     = 40,
 
 
-
-
-
+    // ??? drivers use the same item attribute concept to access the NVM data area. 
+    // ??? in addition there are items to set / get the header data, just like for the node...
+    
     // ??? also add DRV related items...
-    // ??? a RESET, ...
     // ??? add stop and enable periodic processing ?
-
 
 };
 
@@ -561,35 +559,27 @@ enum LcsErrorCodes : uint8_t {
     ALL_OK                              = 0,
     ERR_NOT_IMPLEMENTED                 = 1,
     ERR_NOT_SUPPORTED                   = 2,
+    ERR_LIB_NOT_INITIALIZED             = 3,
 
     ERR_CDC_SETUP                       = 10,
     ERR_NVM_SETUP                       = 11,
-    ERR_CAN_SETUP                       = 12,
-    ERR_NVM_NODE_MAP_CORRUPT            = 13,
+    ERR_MEM_SETUP                       = 12,
+    ERR_CAN_SETUP                       = 13,
+    ERR_NVM_NODE_MAP_CORRUPT            = 14,
+    ERR_NVM_SIZE_EXCEEDED               = 15,
+    ERR_MEM_SIZE_EXCEEDED               = 16,
+    ERR_NVM_OP_FAILED                   = 17,
 
-
-
-    ERR_NVM_SIZE_EXCEEDED               = 14,
-    ERR_MEM_SIZE_EXCEEDED               = 15,
-
-    ERR_NVM_OP_FAILED                   = 16,
-
-    ERR_NODE_NOT_OPS_STATE              = 18,
-    ERR_NODE_NOT_CONFIG_STATE           = 19,
-    ERR_NODE_OUTSTANDING_REQ_LIMIT      = 20,
-    ERR_TASK_MAP_SIZE_EXCEEDED          = 21,
-
-    ERR_INVALID_ITEM_ID                 = 34,
-    ERR_INVALID_ATTR_ARG                = 35,
+    ERR_NODE_NOT_OPS_STATE              = 20,
+    ERR_NODE_NOT_CONFIG_STATE           = 21,
+    ERR_NODE_OUTSTANDING_REQ_LIMIT      = 22,
+    ERR_TASK_MAP_SIZE_EXCEEDED          = 23,
 
     ERR_INVALID_NODE_ID                 = 30,
-    ERR_INVALID_NODE_INFO_ITEM          = 31,
-    ERR_INVALID_NODE_CTRL_ITEM          = 32,
-
-    ERR_INVALID_PORT_ID                 = 40,
-    ERR_INVALID_PORT_INFO_ITEM          = 41,
-    ERR_INVALID_PORT_CTRL_ITEM          = 42,
-
+    ERR_INVALID_PORT_ID                 = 31,
+    ERR_INVALID_ITEM_ID                 = 32,
+    ERR_INVALID_ATTR_ARG                = 33,
+   
     ERR_INVALID_EVENT_ID                = 50,
     ERR_INVALID_EVENT_MAP_INDEX         = 51,
     ERR_EVENT_MAP_FULL                  = 52,
@@ -617,7 +607,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_CAN_ID_CHANGED                  = 88,
 
     // ??? for now .... 
-    ERR_INVALID_BOARD_ID = 255,
+    ERR_INVALID_BOARD_ID                = 255,
 
     ERR_INVALID_DRV_ITEM                = 100,
 
@@ -658,8 +648,8 @@ void                startRuntime( );
 // Access the node.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t             attrGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-uint8_t             attrSet( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
+uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
+uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
 uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //----------------------------------------------------------------------------------------------------------
@@ -677,39 +667,36 @@ void                registerReqCallback( LcsReqCallback handler );
 void                registerRepCallback( LcsRepCallback handler );
 uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
 
-
 //----------------------------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t             sendReset( uint16_t nodeId, uint8_t portId, uint8_t flags );
+uint8_t             sendCfg( uint16_t npId );
+uint8_t             sendOps( uint16_t npId );
+uint8_t             sendReset( uint16_t npId );
 uint8_t             sendBusOn( );
 uint8_t             sendBusOff( );
-uint8_t             sendPing( uint16_t nodeId );
-uint8_t             sendAck( uint16_t nodeId );
-uint8_t             sendErr( uint16_t nodeId, uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
+uint8_t             sendPing( uint16_t npId );
+uint8_t             sendAck( uint16_t npId );
+uint8_t             sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
-uint8_t             sendReqNodeId( uint16_t nodeId, uint32_t nodeUID, uint8_t flags );
-uint8_t             sendRepNodeId( uint16_t nodeId, uint32_t nodeUID );
-uint8_t             sendSetNodeId( uint16_t nodeId, uint32_t nodeUID );
-uint8_t             sendNodeIdCollision( uint16_t nodeId, uint32_t nodeUID );
+uint8_t             sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags );
+uint8_t             sendRepNodeId( uint16_t npId, uint32_t nodeUID );
+uint8_t             sendSetNodeId( uint16_t npId, uint32_t nodeUID );
+uint8_t             sendNodeIdCollision( uint16_t npId, uint32_t nodeUID );
 
-uint8_t             sendQryNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
-uint8_t             sendRepNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2  );
-uint8_t             sendReqNode( uint16_t nodeId, uint8_t portId, uint8_t item, uint16_t val1, uint16_t val2  );
+uint8_t             sendQryNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
+uint8_t             sendSetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
+uint8_t             sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
+uint8_t             sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
 
-uint8_t             sendEventOn( uint16_t nodeId, uint16_t eventId );
-uint8_t             sendEventOff( uint16_t nodeId, uint16_t eventId );
-uint8_t             sendEvent( uint16_t nodeId, uint16_t eventId, uint16_t arg );
+uint8_t             sendEventOn( uint16_t npId, uint16_t eventId );
+uint8_t             sendEventOff( uint16_t npId, uint16_t eventId );
+uint8_t             sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg );
 
-uint8_t             sendReqTrackOn( );
 uint8_t             sendTrackOn( );
-uint8_t             sendReqTrackOff( );
 uint8_t             sendTrackOff( );
-uint8_t             sendReqEstop( );
 uint8_t             sendEstop( );
-
-// ??? rework the sendXXX routines to only have the arguments that need to be passed. I.e. nodeID is often our own nodeId.
 
 uint8_t             sendReqLoc( uint16_t locAdr, uint8_t flags  );
 uint8_t             sendRelLoc( uint8_t sId  );
