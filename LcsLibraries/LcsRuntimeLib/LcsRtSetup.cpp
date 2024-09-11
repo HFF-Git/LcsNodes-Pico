@@ -492,13 +492,13 @@ uint8_t detectExtensionBoards( ) {
 
                 // ??? set the driver ...
 
+                // ??? call drvInit for that driver ...
+
             }
         }
         else {
 
-            #if DEBUG_CONFIG == 1
-            printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
-            #endif
+            if ( debugLevel > 0 ) printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
         }
     }
 

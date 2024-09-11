@@ -441,7 +441,7 @@ struct LcsPendingReqMap {
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
 
-  typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );  
+  typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );  
 } 
 
 //------------------------------------------------------------------------------------------------------------

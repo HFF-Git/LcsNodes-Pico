@@ -732,7 +732,10 @@ uint8_t             sendRawMsg( uint8_t *msgBuf );
 // The driver interface.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t arg1 = 0, uint16_t *arg2 = nullptr );
+uint8_t             drvInit( uint8_t boardId );
+uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );
+uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );
+uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //----------------------------------------------------------------------------------------------------------
 // The User Map interface.

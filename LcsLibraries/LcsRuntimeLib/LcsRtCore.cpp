@@ -25,6 +25,19 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
+// External declaration to global structures defined in "LcsRtSetup".
+//
+//-----------------------------------------------------------------------------------------------------------
+extern LCS::LcsNodeMap          nodeMap;
+extern LCS::LcsPortMap          portMap;
+extern LCS::LcsEventMap         eventMap;
+extern LCS::LcsCallbackMap      callbackMap;
+extern LCS::LcsTaskMap          taskMap;
+extern LCS::LcsPendingReqMap    pendingReqMap;
+extern LCS::LcsDrvMap           drvMap;
+extern LCS::LcsMsgBusCAN        *msgBus;
+
+//------------------------------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -69,21 +82,7 @@ uint16_t portId( uint16_t npId ) {
     return( npId & 0xF );
 }
 
-}; // namespace
-
-
-//------------------------------------------------------------------------------------------------------------
-// Externals.
-//
-//-----------------------------------------------------------------------------------------------------------
-extern LCS::LcsNodeMap          nodeMap;
-extern LCS::LcsPortMap          portMap;
-extern LCS::LcsEventMap         eventMap;
-extern LCS::LcsCallbackMap      callbackMap;
-extern LCS::LcsTaskMap          taskMap;
-extern LCS::LcsPendingReqMap    pendingReqMap;
-extern LCS::LcsDrvMap           drvMap;
-extern LCS::LcsMsgBusCAN        *msgBus;
+} // namespace
 
 //------------------------------------------------------------------------------------------------------------
 //  The LCS name space routines declared in this file.
@@ -160,19 +159,6 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
         return ( ALL_OK );
 
     } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "drvReq" is the entry point to an extension board. For each extension board type there is driver function.
-// This function is called when we access that extension board.
-//
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
-
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
-
-    return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
 }
 
 //------------------------------------------------------------------------------------------------------------

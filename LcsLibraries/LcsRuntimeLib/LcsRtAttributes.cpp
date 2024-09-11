@@ -39,7 +39,7 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// The external global data structures defined in the "LcsRtCore" file.
+// External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
 extern LCS::LcsCdcDesc              cdcMap;
@@ -536,4 +536,4 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
     }
 }
 
-}; // namespace LCS
+} // namespace LCS

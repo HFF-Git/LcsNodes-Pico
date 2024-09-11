@@ -26,8 +26,8 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
- //-----------------------------------------------------------------------------------------------------------
-// External data structures.
+//-----------------------------------------------------------------------------------------------------------
+// External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
 extern LCS::LcsCdcDesc          cdcMap;
@@ -647,7 +647,7 @@ void drvRequestCommand( char *s ) {
 
     if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
 
-    int ret = drvReq( boardId, item, arg1, &arg2 );
+    int ret = drvReq( boardId, item, &arg1, &arg2 );
     printf( "<#c %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
 }
 

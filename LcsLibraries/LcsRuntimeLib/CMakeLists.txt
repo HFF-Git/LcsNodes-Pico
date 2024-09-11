@@ -28,6 +28,7 @@ add_library( ${PROJECT_NAME} STATIC
     LcsRtMsgBus.cpp 
     LcsRtNvmI2C.cpp 
     LcsRtSetup.cpp 
+    LcsRtDrvLib.cpp
     ./Can2040Lib/can2040.c 
     ./Can2040Lib/can2040.h 
     ) 

@@ -36,8 +36,8 @@
 //------------------------------------------------------------------------------------------------------------
 enum LcsDrvOccDetectItems : uint8_t {
 
-   DVR_OCC_DETECT_INIT = 1,
-   DVR_OCC_DETECT_RESET = 2,
+   DRV_OCC_DETECT_INIT = 1,
+   DRV_OCC_DETECT_RESET = 2,
    
     // ...
   
@@ -47,6 +47,10 @@ enum LcsDrvOccDetectItems : uint8_t {
 // Driver function.
 //
 //------------------------------------------------------------------------------------------------------------
+uint8_t             drvInit( uint8_t boardId );
+uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );
+uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );
+uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t arg1 = 0, uint16_t *arg2 = nullptr );
 uint8_t lcdDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );
 
 #endif

@@ -29,7 +29,7 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// External declaration to global structures.
+// External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
 extern LCS::LcsNodeMap        nodeMap;
