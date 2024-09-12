@@ -28,27 +28,28 @@
 #define LcsDvrServoLib_h
 
 #include "LcsCdcLib.h"
+#include "LcsRtLibInt.h"
+#include "LcsRuntimeLib.h"
+
+namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Driver items.
 //
 //------------------------------------------------------------------------------------------------------------
-struct LcsDrvServo  {
+enum LcsDrvServoItems : uint8_t {
 
-  public:
-
-  LcsDrvServo( );
-
-  uint8_t init( uint16_t flags );
-  uint8_t reset( uint16_t flags );
-  uint8_t config( uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-  uint8_t control( uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-  uint8_t info( uint8_t padId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-  uint8_t read( uint8_t padId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-  uint8_t write( uint8_t padId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-
-  private:
+    DRV_SERVO_xxx = IR_USER_RANGE_START + 0,
+    
   
 };
+
+//------------------------------------------------------------------------------------------------------------
+// Driver function.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t lcdDrvServo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+
+} // namespace
 
 #endif

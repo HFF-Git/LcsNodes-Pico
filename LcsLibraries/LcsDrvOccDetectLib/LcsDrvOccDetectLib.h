@@ -24,11 +24,14 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef LcsDvrServoLib_h
-#define LcsDvrServoLib_h
+#ifndef LcsDvrOccDetectLib_h
+#define LcsDvrOccDetectLib_h
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
+#include "LcsRtLibInt.h"
+
+namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // Driver items.
@@ -36,10 +39,8 @@
 //------------------------------------------------------------------------------------------------------------
 enum LcsDrvOccDetectItems : uint8_t {
 
-   DRV_OCC_DETECT_INIT = 1,
-   DRV_OCC_DETECT_RESET = 2,
-   
-    // ...
+  DRV_OCC_READ_MASK    = IR_USER_RANGE_START + 0,
+  DRV_OCC_yyy          = IR_USER_RANGE_START + 1,
   
 };
 
@@ -47,10 +48,8 @@ enum LcsDrvOccDetectItems : uint8_t {
 // Driver function.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t             drvInit( uint8_t boardId );
-uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );
-uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );
-uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t arg1 = 0, uint16_t *arg2 = nullptr );
-uint8_t lcdDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 );
+uint8_t lcdDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+
+} // namespace 
 
 #endif

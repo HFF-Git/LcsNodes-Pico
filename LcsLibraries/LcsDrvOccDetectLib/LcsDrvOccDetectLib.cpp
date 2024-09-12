@@ -53,21 +53,14 @@ uint8_t initDrv( ) {
     return ( 0 );
 }
 
-
-// ??? have a routine to create a default EXT structure data for configuration purposes ?
-
-
 //------------------------------------------------------------------------------------------------------------
 //
 // ??? use CDC....
 //------------------------------------------------------------------------------------------------------------
-
-
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
 }
-
 
 uint8_t readReg( uint8_t reg ) {
 
@@ -105,76 +98,56 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
     return ( true );
 }
 
-}; // namespace
+} // namespace
 
 
-namespace LCS { 
 
+namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // Each driver is just a function to handle the request.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t arg1, uint16_t *arg2 ) {
+uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( isInRangeU( item, 0, 0 )) {
+    switch( item ) {
 
-        // ??? what range ?
-    }
-    else {
+        case ITEM_ID_RESET: {
 
-        switch( item ) {
+            // ??? set inversion bit to one. Explain ...
+            writeReg( 4, 0xFF );
+            writeReg( 5, 0xFF );
 
-            case NPI_RESET: {
+            // ??? set pins as input
+            writeReg( 6, 0xFF );
+            writeReg( 7, 0xFF );
 
-                // ??? set inversion bit to one. Explain ...
-                writeReg( 4, 0xFF );
-                writeReg( 5, 0xFF );
+            // ??? e.g. setting the IO direction...
+            //
+            // arg1 -> pin, or a port or a two ports bit mask
+            // arg2 -> 0 = output ( PCA9555 expects a zero for output )  & ~ ( 1 << pin )
+            // arg2 -> 1 = input  ( PCA9555 expects a one for input )    | ( 1 << pin )
+            //
+            // have a 16 bit mask for the bits, write both a when we set something ?
+            // writeI2C ( config reg 1, 2 )
 
-                // ??? set pins as input
-                writeReg( 6, 0xFF );
-                writeReg( 7, 0xFF );
+            return( ALL_OK );
 
-                // ??? e.g. setting the IO direction...
-                //
-                // arg1 -> pin, or a port or a two ports bit mask
-                // arg2 -> 0 = output ( PCA9555 expects a zero for output )  & ~ ( 1 << pin )
-                // arg2 -> 1 = input  ( PCA9555 expects a one for input )    | ( 1 << pin )
-                //
-                // have a 16 bit mask for the bits, write both a when we set something ?
-                // writeI2C ( config reg 1, 2 )
+        } break;
 
-            } break;
+        case DRV_OCC_READ_MASK: {
 
-    
-            #if 0
-
-            case ....
-
-            uint8_t LcsDrvOccDetect::read( uint8_t padId, uint16_t *arg ) {
-
-            // ??? read the INPUT register...
-                // ??? read both registers and return the bit, port or all readI2C( )
-  
             uint8_t tmp1 = readReg( 0 );
             uint8_t tmp2 = readReg( 1 );
 
-            *arg = ( tmp1 << 8 ) | tmp2; 
+            *arg1 = ( tmp1 << 8 ) | tmp2; 
 
-            return ( 0 );
-}
-            #endif
+            return( ALL_OK );
 
+        } break;
 
-
-
-            default: ;
-        }
+        default: return( ERR_INVALID_DRV_ITEM );
     }
-
-
-  return( 0 ); // ??? for now ...
 }
 
-} // namespace LCS 
-  
+} // namespace

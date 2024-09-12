@@ -326,97 +326,72 @@ enum NodeFlags : uint16_t {
 
 };
 
-
 //------------------------------------------------------------------------------------------------------------
-// Nodes and ports are accessed with three key routines, GET, SET and REQ. The node and port is combined into
-// the node/port Id, "npId", and an item number which indicates what operation to perform. Items range from 
-// 0 ... 255 as follows: 
+// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. One argument is the item.
+// Items range from  0 ... 255 as follows: 
 //
 //   0          -   NIL item, not used
-//   1  ..  63  -   Node reserved area, global items for GET/SET/REQ.
-//  64  .. 127  -   User defined items, passed to the registered callback routine.
-// 128  .. 191  -   Node/Port Attributes returned from MEM for GET/SET
-// 192  .. 255  -   Node/Port Attributes copied from NVM to MEM for GET, copied from MEM to NVM for SET. The
-//                  item range mirrors items 128 - 191. For example, 128 and 192 refer to the same attribute.
+//   1  ..  63  -   Node / port / driver reserved area, global items for GET/SET/REQ.
+//  64  .. 127  -   User defined items, specific meaning.
+// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET
+// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
+//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
+//                  attribute. Note that for a SET on a driver the HW needs to be enabled.
 //
-// Items may refer to node or port specific data. The npId specified in a call will indicate whether we
-// access the node or a port on the node. A portId portion of zero in the npId identifier, refer to the node
-// itself.
-//
-// GET - the get routine will use the item numbers to retrieve the data labelled by the item. This is either 
-// a value from the node or port data attribute map or a value from the node or port map. 
+// GET - the get routine will use the item numbers to retrieve the data labelled by the item. 
 //
 // SET - the set routine will use the item numbers to set the value. Note that not all items that can be 
 // read can also be written to. An attempt will result in an error return.
 //
-// REQ - the request call will transmit the request parameters to the node / port where a registered callback
-// will be invoked. The result is returned via the parameters. There are items that refer to node and ports,
-// and the item range 64 .. 127 which is use defined.
+// REQ - the request call will transmit the request parameters to the node / port / driver where a registered 
+// callback or the driver entry point will be invoked. The result is returned via the parameters.
 //
-// ??? note: this list is work in progress, please us always the names rather than the numbers.
+// The following declarations does just list the item numbers defined. The ranges are defined in the internal
+// include file. The ranges as well as the reserved items should not be tampered with.
 //------------------------------------------------------------------------------------------------------------
-enum NodeAndPortItems : uint8_t {
+enum Items : uint8_t {
 
-    NPI_NIL                         = 0,
+    ITEM_ID_OPTIONS                     = 1,
+    ITEM_ID_VERSION                     = 2,
+    ITEM_ID_FLAGS                       = 3,
+    ITEM_ID_TYPE                        = 4,
+    ITEM_ID_SUB_TYPE                    = 5,
+    ITEM_ID_CONTROLLER_FAMILY           = 6,
+    ITEM_ID_NVM_CHIP_FAMILY             = 7,
 
-    NPI_NODE_MAP_RANGE_START        = 1,
-    NPI_NODE_MAP_RANGE_END          = 63,
+    ITEM_ID_NODE_ID                     = 10,
+    ITEM_ID_NODE_UID                    = 11,
 
-    NPI_USER_RANGE_START            = 64,
-    NPI_USER_RANGE_END              = 127,
+    ITEM_ID_PORT_MAP_ENTRIES            = 12,
+    ITEM_ID_EVENT_MAP_ENTRIES           = 13,
+    ITEM_ID_ATTR_MAP_ENTRIES            = 14,
 
-    NPI_ATTR_MEM_RANGE_START        = 128,
-    NPI_ATTR_MEM_RANGE_END          = 191,
-
-    NPI_ATTR_NVM_RANGE_START        = 192,
-    NPI_ATTR_NVM_RANGE_END          = 255,
-
-    NPI_MAX_ITEMS                   = 255,
-
-    NPI_OPTIONS                     = 1,
-    NPI_VERSION                     = 2,
-    NPI_FLAGS                       = 3,
-    NPI_TYPE                        = 4,
-    NPI_SUB_TYPE                    = 5,
-    NPI_NODE_ID                     = 6,
-    NPI_NODE_UID                    = 7,
-
-    NPI_PORT_MAP_ENTRIES            = 9,
-    NPI_EVENT_MAP_ENTRIES           = 10,
-    NPI_ATTR_MAP_ENTRIES            = 11,
-
-    NPI_RESTART_COUNT               = 12,
-    NPI_EVENT_MAP_ENTRY             = 13,
+    ITEM_ID_RESTART_COUNT               = 15,
+    ITEM_ID_EVENT_MAP_ENTRY             = 16,
    
-    NPI_NAME_1                      = 14,
-    NPI_NAME_2                      = 15,
-    NPI_NAME_3                      = 16,
-    NPI_NAME_4                      = 17,
+    ITEM_ID_NAME_1                      = 17,
+    ITEM_ID_NAME_2                      = 18,
+    ITEM_ID_NAME_3                      = 19,
+    ITEM_ID_NAME_4                      = 20,
 
-    NPI_EVENT_DELAY_TICKS           = 18,
+    ITEM_ID_EVENT_DELAY_TICKS           = 21,
 
-    NPI_RESET                       = 20,
-    NPI_SYNC                        = 21,
-    NPI_SET_NODE_ID                 = 22,
-    NPI_ADD_EVENT_MAP_ENTRY         = 23,
-    NPI_DEL_EVENT_MAP_ENTRY         = 24,
+    ITEM_ID_RESET                       = 22,
+    ITEM_ID_SYNC                        = 23,
+    ITEM_ID_SET_NODE_ID                 = 24,
+    ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
+    ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
 
-    NPI_SET_READY_LED               = 30,
-    NPI_SET_ACTIVITY_LED            = 31,
-    NPI_TOGGLE_READY_LED            = 32,
-    NPI_TOGGLE_ACTIVITY_LED         = 33,
-    NPI_BLINK_READY_LED             = 34,
-    NPI_BLINK_ACTIVITY_LED          = 35,
+    ITEM_ID_SET_READY_LED               = 30,
+    ITEM_ID_SET_ACTIVITY_LED            = 31,
+    ITEM_ID_TOGGLE_READY_LED            = 32,
+    ITEM_ID_TOGGLE_ACTIVITY_LED         = 33,
+    ITEM_ID_BLINK_READY_LED             = 34,
+    ITEM_ID_BLINK_ACTIVITY_LED          = 35,
 
-    NPI_ENABLE_EVENT_PROCESSING     = 40,
-
-
-    // ??? drivers use the same item attribute concept to access the NVM data area. 
-    // ??? in addition there are items to set / get the header data, just like for the node...
+    ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
     
-    // ??? also add DRV related items...
     // ??? add stop and enable periodic processing ?
-
 };
 
 //----------------------------------------------------------------------------------------------------------

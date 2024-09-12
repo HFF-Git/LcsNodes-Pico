@@ -362,12 +362,12 @@ void enterEventCommand( char *s ) {
 
     if ( nodeId( npId ) == 0 ) {
 
-        int ret = nodeReq( npId, NPI_ADD_EVENT_MAP_ENTRY, &eventId, &npId );
+        int ret = nodeReq( npId, ITEM_ID_ADD_EVENT_MAP_ENTRY, &eventId, &npId );
         printf( "<!a %d >", ret );
     }
     else {
 
-        uint8_t ret = sendReqNode( npId, NPI_ADD_EVENT_MAP_ENTRY, eventId, npId );
+        uint8_t ret = sendReqNode( npId,ITEM_ID_ADD_EVENT_MAP_ENTRY, eventId, npId );
         printf( "<!a %d >", ret );
     }
 }
@@ -393,12 +393,12 @@ void removeEventCommand( char *s ) {
 
     if ( nodeId( npId ) == 0 ) {
 
-        int ret = nodeReq( npId, NPI_DEL_EVENT_MAP_ENTRY, &eventId, &npId );
+        int ret = nodeReq( npId, ITEM_ID_DEL_EVENT_MAP_ENTRY, &eventId, &npId );
         printf( "<!a %d >", ret );
     }
     else {
 
-        uint8_t ret = sendReqNode( npId, NPI_DEL_EVENT_MAP_ENTRY, eventId, npId );
+        uint8_t ret = sendReqNode( npId,ITEM_ID_DEL_EVENT_MAP_ENTRY, eventId, npId );
         printf( "<!a %d >", ret );
     }
 }

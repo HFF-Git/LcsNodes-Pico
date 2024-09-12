@@ -32,8 +32,6 @@
 #include <stdint.h>
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
-#include "LcsDrvOccDetectLib.h"
-#include "LcsDrvServoLib.h"
 
 namespace LCS {
 
@@ -49,7 +47,6 @@ namespace LCS {
 
 // ??? this should actually be a set of variables.
 // ??? each module should have a function to set the module ( file ) local debug level ...
-
 
 //------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
@@ -206,6 +203,45 @@ enum MsgPriority : uint8_t {
     NS_OPERATE          = 8
   };
 
+//------------------------------------------------------------------------------------------------------------
+// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. One argument is the item.
+// Items range from  0 ... 255 as follows: 
+//
+//   0          -   NIL item, not used
+//   1  ..  63  -   Node / port / driver reserved area, global items for GET/SET/REQ.
+//  64  .. 127  -   User defined items, specific meaning.
+// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET
+// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
+//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
+//                  attribute. Note that for a SET on a driver the HW needs to be enabled.
+//
+// GET - the get routine will use the item numbers to retrieve the data labelled by the item. 
+//
+// SET - the set routine will use the item numbers to set the value. Note that not all items that can be 
+// read can also be written to. An attempt will result in an error return.
+//
+// REQ - the request call will transmit the request parameters to the node / port / driver where a registered 
+// callback or the driver entry point will be invoked. The result is returned via the parameters.
+//
+//------------------------------------------------------------------------------------------------------------
+enum ItemRanges : uint8_t {
+
+    IR_NIL                      = 0,
+
+    IR_LIB_MAP_RANGE_START      = 1,
+    IR_LIB_MAP_RANGE_END        = 63,
+
+    IR_USER_RANGE_START         = 64,
+    IR_USER_RANGE_END           = 127,
+
+    IR_ATTR_MEM_RANGE_START     = 128,
+    IR_ATTR_MEM_RANGE_END       = 191,
+
+    IR_ATTR_NVM_RANGE_START     = 192,
+    IR_ATTR_NVM_RANGE_END       = 255,
+
+    IR_MAX_ITEMS                = 255
+};
 
 //------------------------------------------------------------------------------------------------------------
 // "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines.
@@ -554,6 +590,6 @@ void          handlePeriodicTasks( );
 void          handleNodePortEvents( );
 
 
-};
+} // namespace LCS
 
 #endif

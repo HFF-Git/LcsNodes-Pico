@@ -100,7 +100,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        *arg = nodeData.map[ block ][ item - LCS::NPI_ATTR_MEM_RANGE_START ];
+        *arg = nodeData.map[ block ][ item - LCS::IR_ATTR_MEM_RANGE_START ];
         return ( LCS::ALL_OK );
     }
 
@@ -111,7 +111,7 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        nodeData.map[ block ][ item - LCS::NPI_ATTR_MEM_RANGE_START ] = arg;
+        nodeData.map[ block ][ item - LCS::IR_ATTR_MEM_RANGE_START ] = arg;
         return ( LCS::ALL_OK );
     }
 
@@ -123,7 +123,7 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
+        uint16_t index  = item - LCS:: IR_ATTR_NVM_RANGE_START;
         uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
         uint8_t  rStat  = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
 
@@ -139,7 +139,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        uint16_t index  = item - LCS:: NPI_ATTR_NVM_RANGE_START;
+        uint16_t index  = item - LCS:: IR_ATTR_NVM_RANGE_START;
         uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
 
         nodeData.map[ block ][ index ] = arg;
@@ -182,11 +182,11 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-    if ( isInRangeU( item, NPI_ATTR_MEM_RANGE_START, NPI_ATTR_MEM_RANGE_END )) {
+    if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
         return ( readAttrMem( portId( npId ), item, arg1 ));
     }
-    else if ( isInRangeU( item, NPI_ATTR_NVM_RANGE_START, NPI_ATTR_NVM_RANGE_END )) {
+    else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
 
         return ( readAttrNvm( portId( npId ), item, arg1 ));
     }
@@ -194,7 +194,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
         switch ( item ) {
 
-            case NPI_OPTIONS: {
+            case ITEM_ID_OPTIONS: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
 
@@ -202,7 +202,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NODE_UID: {
+            case ITEM_ID_NODE_UID: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG );
@@ -212,7 +212,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NODE_ID: {
+            case ITEM_ID_NODE_ID: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
@@ -220,7 +220,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_PORT_MAP_ENTRIES: {
+            case ITEM_ID_PORT_MAP_ENTRIES: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
@@ -228,7 +228,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_EVENT_MAP_ENTRIES: {
+            case ITEM_ID_EVENT_MAP_ENTRIES: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
@@ -236,7 +236,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_ATTR_MAP_ENTRIES: {
+            case ITEM_ID_ATTR_MAP_ENTRIES: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 
@@ -244,7 +244,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_RESTART_COUNT: {
+            case ITEM_ID_RESTART_COUNT: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
@@ -252,12 +252,12 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_EVENT_MAP_ENTRY: {
+            case ITEM_ID_EVENT_MAP_ENTRY: {
 
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
             }
 
-            case NPI_TYPE: {
+            case ITEM_ID_TYPE: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
@@ -267,7 +267,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_FLAGS: {
+            case ITEM_ID_FLAGS: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
@@ -277,7 +277,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NAME_1: {
+            case ITEM_ID_NAME_1: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
@@ -287,7 +287,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NAME_2: {
+            case ITEM_ID_NAME_2: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
@@ -297,7 +297,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NAME_3: {
+            case ITEM_ID_NAME_3: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
@@ -307,7 +307,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NAME_4: {
+            case ITEM_ID_NAME_4: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
@@ -317,7 +317,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_EVENT_DELAY_TICKS: {
+            case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
               
@@ -342,11 +342,11 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
         printf( "attrSet: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
     }
 
-   if ( isInRangeU( item, NPI_ATTR_MEM_RANGE_START, NPI_ATTR_MEM_RANGE_END )) {
+   if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
         return ( writeAttrMem( portId( npId ), item, val1 ));
     }
-    else if ( isInRangeU( item, NPI_ATTR_NVM_RANGE_START, NPI_ATTR_NVM_RANGE_END )) {
+    else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
 
         return ( writeAttrNvm( portId( npId ), item, val1 ));
     }
@@ -355,7 +355,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
         switch ( item ) {
 
 
-            case NPI_TYPE: {
+            case ITEM_ID_TYPE: {
 
                 if (( npId & 0xF ) == 0 ) {
 
@@ -374,7 +374,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 }
             }
 
-            case NPI_EVENT_DELAY_TICKS: {
+            case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 portMap.map[ portId( npId ) - 1 ].eventDelayTime = val1;
 
@@ -385,7 +385,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( rtNvmPutWord( ofs, val1 ));
             }
             
-            case NPI_NAME_1: {
+            case ITEM_ID_NAME_1: {
 
                 tempName[ 0 ] = highByte( val1 );
                 tempName[ 1 ] = lowByte( val1 );
@@ -407,7 +407,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 }
             }
 
-            case NPI_NAME_2: {
+            case ITEM_ID_NAME_2: {
 
                 tempName[ 4 ]   = highByte( val1 );
                 tempName[ 5 ]   = lowByte( val1 );
@@ -416,7 +416,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NAME_3: {
+            case ITEM_ID_NAME_3: {
 
                 tempName[ 8 ]   = highByte( val1 );
                 tempName[ 9 ]   = lowByte( val1 );
@@ -425,7 +425,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_NAME_4: {
+            case ITEM_ID_NAME_4: {
 
                 memset( tempName, 0, MAX_NODE_NAME_SIZE );
                 tempName[ 12 ]  = highByte( val1 );
@@ -455,7 +455,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-     if ( isInRangeU( item, NPI_USER_RANGE_START, NPI_USER_RANGE_END )) {
+     if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         return( invokeUserItemCallback( npId, item, arg1, arg2 ));
     }
@@ -463,29 +463,29 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
         switch ( item ) {
 
-            case NPI_RESET: {
+            case ITEM_ID_RESET: {
 
                 return ( resetNode( npId ));
             }
 
-            case NPI_ADD_EVENT_MAP_ENTRY: {
+            case ITEM_ID_ADD_EVENT_MAP_ENTRY: {
 
                 return ( addEvent( *arg1, *arg2 & 0xFF ));
             }
 
-            case NPI_DEL_EVENT_MAP_ENTRY: {
+            case ITEM_ID_DEL_EVENT_MAP_ENTRY: {
 
                 return ( removeEvent( *arg1, *arg2 & 0xFF ));
             }
 
 
-            case NPI_SYNC: {
+            case ITEM_ID_SYNC: {
 
                 // ??? options what t sync ?
                 return( syncEventMap( ));
             }
 
-            case NPI_NODE_ID: {
+            case ITEM_ID_NODE_ID: {
 
                 if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
 
@@ -497,7 +497,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 else return ( ERR_INVALID_NODE_ID );
             }
 
-            case NPI_ENABLE_EVENT_PROCESSING: {
+            case ITEM_ID_ENABLE_EVENT_PROCESSING: {
 
                 if ( *arg1 )    portMap.map[ portId( npId ) - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
                 else            portMap.map[ portId( npId ) - 1 ].flags &= ~ PF_PORT_EVENT_HANDLING_ENABLED;
@@ -505,28 +505,28 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case NPI_SET_READY_LED: {
+            case ITEM_ID_SET_READY_LED: {
 
                 return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, *arg1 ));
             }
 
-            case NPI_SET_ACTIVITY_LED: {
+            case ITEM_ID_SET_ACTIVITY_LED: {
 
                 return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, *arg1 ));
             }
 
-            case NPI_TOGGLE_READY_LED:  {
+            case ITEM_ID_TOGGLE_READY_LED:  {
 
                 return ( CDC::toggleDio( cdcMap.cfg.READY_LED_PIN ));
             }
 
-            case NPI_TOGGLE_ACTIVITY_LED: {
+            case ITEM_ID_TOGGLE_ACTIVITY_LED: {
 
                 return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
             }
 
-            case NPI_BLINK_READY_LED:
-            case NPI_BLINK_ACTIVITY_LED: {
+            case ITEM_ID_BLINK_READY_LED:
+            case ITEM_ID_BLINK_ACTIVITY_LED: {
 
                 return ( ERR_NOT_IMPLEMENTED );
             }
