@@ -78,6 +78,11 @@ namespace {
         return( arg >> 8 ); 
     }
 
+     uint16_t nodeId( uint16_t arg ) {
+
+        return( arg >> 4 );
+    }
+
     uint16_t portId( uint16_t arg ) {
 
         return( arg & 0xF);
@@ -151,6 +156,7 @@ namespace {
     }
     
 } // namespace
+
 
 //------------------------------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
@@ -243,6 +249,9 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             }
 
             case ITEM_ID_EVENT_MAP_ENTRY: {
+
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
+                if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG );
 
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
             }
@@ -359,7 +368,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, type );
 
-                    return ( rtNvmPutWord( ofs= portMap.map[ portId( npId ) - 1 ].type, false ));
+                    return ( rtNvmPutWord( ofs, portMap.map[ portId( npId ) - 1 ].type ));
                 }
             }
 
