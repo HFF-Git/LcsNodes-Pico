@@ -117,15 +117,17 @@ uint16_t portId( uint16_t npId ) {
 void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
     nMap -> magicWord1              = NVM_MWORD_1;
-    nMap -> options                 = 0;
-    nMap -> flags                   = 0;
     nMap -> boardType               = BT_NIL;
     nMap -> boardVersion            = 0;
     nMap -> controllerFamily        = CF_FAM_RPICO_2040;
     nMap -> nvmChipFamily           = CF_FAM_MICROCHIP;
+    nMap -> reserved1               = 0;
+    nMap -> reserved2               = 0;
     nMap -> magicWord2              = NVM_MWORD_2;
 
     nMap -> nodeState               = NS_NIL;
+    nMap -> nodeOptions             = 0;
+    nMap -> nodeFlags               = 0;
     nMap -> nodeId                  = NIL_NODE_ID;
     nMap -> nodeUID                 = CDC::createUid( );
     nMap -> nodeType                = NIL_NODE_TYPE;   
@@ -177,7 +179,7 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
     pEntry.flags                           = 0;
     pEntry.type                            = 0;
 
-    pEntry.nodeId                          = NIL_NODE_ID;
+    pEntry.eventNodeId                     = NIL_NODE_ID;
     pEntry.eventId                         = NIL_EVENT_ID;
     pEntry.eventValue                      = 0;
     pEntry.eventAction                     = PEA_EVENT_IDLE;
@@ -219,12 +221,12 @@ void buildDefaultNodeData( LcsNodeData *nData ) {
 void buildDefaultExtBoardDesc( LcsDrvBoardDesc *bDesc ) {
 
     bDesc -> magicWord1        = NVM_MWORD_1;
-    bDesc -> options           = 0;
-    bDesc -> flags             = 0;
     bDesc -> boardType         = BT_NIL;
     bDesc -> boardVersion      = 0;
     bDesc -> controllerFamily  = CF_FAM_NIL;
     bDesc -> nvmChipFamily     = CF_FAM_MICROCHIP;
+    bDesc -> reserved1         = 0;
+    bDesc -> reserved2         = 0;
     bDesc -> magicWord2        = NVM_MWORD_2;
 
     memset( bDesc -> driverData, 0, MAX_DRIVER_DATA_SIZE * sizeof( uint16_t ));
@@ -521,12 +523,14 @@ uint8_t setupExtensionBoards( ) {
 
     for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
+        /*
         if ( drvMap.map[ i ].extBoard -> flags != 0  ) {
 
             rStat = drvMap.map[ i ].drvFunc( i, 0, 0, nullptr );  // for now ...
         
             // ??? on an error, we just mark the extension as "error" but continue ?
-        } 
+        }
+        */ 
     }
 
     if ( debugLevel > 0 ) printf( "setupExtensionBoards, status: %d\n", rStat );

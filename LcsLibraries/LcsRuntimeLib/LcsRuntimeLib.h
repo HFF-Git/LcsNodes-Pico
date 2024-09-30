@@ -3,9 +3,10 @@
 // Layout Control System - Runtime Library include file
 //
 //------------------------------------------------------------------------------------------------------------
-// At the heart of layout control, LCS, is the runtime library implementing the basic functions. Please refer
-// to the document for information on concepts and implementation notes. This is the external include file for
-// the firmware programmer. All external definitions of key constants and types are included here.
+// At the heart of the layout control system, LCS, is the runtime library implementing the basic functions. 
+// Please refer to the document for information on concepts and implementation notes. This is the external 
+// include file for the firmware programmer. All external definitions of key constants and types are 
+// included here.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -34,7 +35,8 @@
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
-// All LCS Library definitions are in a separate name space "LCS".
+// All LCS Library definitions are in a name space "LCS". You can prefix each constant, type or function 
+// with the "LCS::" prefix, or declare using the namespace in your code. 
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
@@ -55,7 +57,7 @@ enum LcsNodeId : uint16_t {
 
 //-----------------------------------------------------------------------------------------------------------
 // A node type can be assigned to a node. NodeId types start with one. The nodeType of zero represents the
-// NIL node type. A node type is arbitrarily defied by the firmware programmer.
+// NIL node type. A node type is arbitrarily defined by the firmware programmer.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsNodeTypeId : uint8_t {
@@ -66,8 +68,8 @@ enum LcsNodeTypeId : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The port Id identifies the port on a node. Port numbers start with one. The port number 0 represents the
-// NIL port number and usually refers to the node itself. A node can have up to 15 ports.
+// The port Id identifies the port on a node. Port numbers start with one. The port number zero represents 
+// the NIL port number and usually refers to the node itself. A node can have up to 15 ports.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsPortId : uint8_t {
@@ -90,9 +92,8 @@ enum LcsPortId : uint8_t {
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Events are just numbers assigned to an event by a configuration tool. Event id numbers start with one, 
-// the 0 number represents the NIL event number. The maximum event id number is 65535. Perhaps a configuration
-// tool will assign number ranges to group event types.
+// Events are just numbers assigned to an event by a configuration tool. Event id numbers start with one. 
+// The  event number zero represents the NIL event number. The maximum event id number is 65535. 
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsEventId : uint16_t {
@@ -116,8 +117,9 @@ enum DccLocoType : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The base station maintains the locomotive sessions. Session Ids start with 1, up to 255 simultaneous
-// sessions are supported.
+// The base station maintains the locomotive sessions. A session is assigned by the base station and commands
+// for the locomotive use this session number. Session Ids start with 1, up to 255 simultaneous sessions are
+//  supported.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccSessionId : uint8_t {
@@ -130,7 +132,9 @@ enum DccSessionId : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 // The cabId is the locomotive number or address. For DCC type locomotives, there is a short and long address
 // for a decoder. The short address ranges from 1 .. 127, the long address from 1 .. to 10239. However, most 
-// base stations support just up to 9999 locomotives IDs and we do too.
+// base stations support just up to 9999 locomotives IDs and so do we. Analog engines do not really have a 
+// cabId. When an analog engines is introduced to the system by telling the base station about the engine and
+// lo cation, the base station assign a cabId. Refer to the book for the details.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccCabId : uint16_t {
@@ -141,7 +145,7 @@ enum DccCabId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A DCC decoder has configuration variables, called CVs. CVs are numbered starting with 1, the maximum
+// A DCC decoder features configuration variables, called CVs. CVs are numbered starting with 1, the maximum
 // number is 1024.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -164,7 +168,7 @@ enum DccFuncId : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// DCC decoder functions are grouped in ten groups, labelled from 1 to 10 according to the DCC standard.
+// According to the DCC standard, DCC decoder functions are grouped in ten groups, labelled from 1 to 10 .
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccFuncGroupId : uint8_t {
@@ -175,28 +179,18 @@ enum DccFuncGroupId : uint8_t {
 
 //------------------------------------------------------------------------------------------------------------
 // DCC decoder function mapping Ids. The LCS system defines a set of functions used by the handhelds such
-// as horn, lights and so on. These identifier are mapped to the DCC functions available for a given DCC
-// decoder.
+// as horn, lights and so on. These identifiers are standardized for our handhelds and mapped to the DCC 
+// function. 
 //
-// ??? define our standard available function IDs here..... we may not need 69 slots.
 //------------------------------------------------------------------------------------------------------------
 enum LcsDccFuncId : uint8_t {
 
     NIL_LCS_DCC_FUNC_ID = 0,
     MIN_LCS_DCC_FUNC_ID = 1,
+
+    // ??? function IDs go here...
+
     MAX_LCS_DCC_FUNC_ID = 68
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The DCC standard defines several speed step modes. Today, 128 speed steps is the one used in all new
-// decoders. The other speed steps are mapped to the 128 value range.
-//
-//------------------------------------------------------------------------------------------------------------
-enum DccSpeedSteps : uint8_t {
-
-    DCC_SPEED_STEPS_14    = 1,
-    DCC_SPEED_STEPS_28    = 2,
-    DCC_SPEED_STEPS_128   = 3
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -212,6 +206,18 @@ enum DccCvModeOptions : uint8_t {
     CVM_PAGE      = 2,
     CVM_REGISTER  = 3,
     CVM_ADR_ONLY  = 4
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The DCC standard defines several speed step modes. Today, the 28 speed step option is the one used in all
+// new decoders. The other speed steps are mapped to the 128 value range.
+//
+//------------------------------------------------------------------------------------------------------------
+enum DccSpeedSteps : uint8_t {
+
+    DCC_SPEED_STEPS_14    = 1,
+    DCC_SPEED_STEPS_28    = 2,
+    DCC_SPEED_STEPS_128   = 3
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -251,8 +257,9 @@ enum LocoSessionModes : uint8_t {
 };
 
 //--------------------------------------------------------------------------------------------------------------
-// The defined board types and sub types. When the runtime is initialized, the firmware will pass the type
-// and subtype to specify what board it expects.
+// The defined board types. When the runtime is initialized, the firmware will pass the type to specify what 
+// board it expects. This value is compared to what is actually stored in the NVM of the main controller board. 
+// If they don't match, it is considered an error and the NVM needs to be configured to support the firmware. 
 //
 //--------------------------------------------------------------------------------------------------------------
 enum LcsBoardType : uint16_t {
@@ -268,12 +275,6 @@ enum LcsBoardType : uint16_t {
     BT_EXT_GPIO           = 13
 };
 
-enum LcsBoardSubType : uint16_t {
-
-    BT_ST_NIL             = 0
-
-};
-
 //--------------------------------------------------------------------------------------------------------------
 // The defined chip families. There are controller chip families such as the controller family RP2040, or 
 // chip families for the NVM chips used, and so on.
@@ -283,8 +284,9 @@ enum LcsControllerFamilyType : uint16_t {
 
     CF_FAM_NIL                = 0,
     CF_FAM_RPICO_2040         = 1,
-    CF_FAM_MICROCHIP          = 2,
-    CF_FAM_NXP                = 3
+    CF_FAM_RPICO_2350         = 2,
+    CF_FAM_MICROCHIP          = 3,
+    CF_FAM_NXP                = 4
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -312,31 +314,20 @@ enum NodeOptions : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Node Flags. 
-//
-// ??? Normally reseted from options when restarted. When power fail restart, perhaps a bit different how to 
-// set them ...
+// Node Flags. Flags are initialized at library startup and represent library state information.
 //
 //  NFLAGS_EXT_PRESENT  - extension boards are present.
 //
+// 
 //------------------------------------------------------------------------------------------------------------
 enum NodeFlags : uint16_t {
 
-    NFLAGS_EXT_PRESENT        = 0x0001,
+    NFLAGS_EXT_PRESENT          = 0x0001,
 
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. One argument is the item.
-// Items range from  0 ... 255 as follows: 
-//
-//   0          -   NIL item, not used
-//   1  ..  63  -   Node / port / driver reserved area, global items for GET/SET/REQ.
-//  64  .. 127  -   User defined items, specific meaning.
-// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET
-// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
-//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
-//                  attribute. Note that for a SET on a driver the HW needs to be enabled.
+// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. 
 //
 // GET - the get routine will use the item numbers to retrieve the data labelled by the item. 
 //
@@ -346,8 +337,19 @@ enum NodeFlags : uint16_t {
 // REQ - the request call will transmit the request parameters to the node / port / driver where a registered 
 // callback or the driver entry point will be invoked. The result is returned via the parameters.
 //
+// One argument is the item. Items range from  0 ... 255 and are defined as follows: 
+//
+//   0          -   NIL item, not used
+//   1  ..  63  -   Node / port / driver reserved area items, global items for GET/SET/REQ requests.
+//  64  .. 127  -   User defined items, specific meaning, accessed via the REQ routine.
+// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET.
+// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
+//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
+//                  attribute. Note that for a SET on a driver the HW needs to be enabled. 
+//
 // The following declarations does just list the item numbers defined. The ranges are defined in the internal
-// include file. The ranges as well as the reserved items should not be tampered with.
+// include file. The ranges as well as the reserved items defined here should not be tampered with.
+//
 //------------------------------------------------------------------------------------------------------------
 enum Items : uint8_t {
 
@@ -417,9 +419,9 @@ enum PortFlags : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The port event action. When an event is received, it will be of the type shown below. There is a port
-// specific time delay configured between the actual receipt of an event message and the invocation of the
-// event callback.
+// The port event action. When an event is received, it will be of the type shown below. There is an 
+// optional port specific time delay configured between the actual receipt of an event message and the 
+// invocation of the event callback.
 //
 //  PEA_EVENT_IDLE                - the port is idle.
 //  PEA_EVENT_ON                  - an "ON" event was received.
@@ -435,29 +437,11 @@ enum PortEventAction : uint8_t {
     PEA_EVENT_EVT     = 3
 };
 
-//----------------------------------------------------------------------------------------------------------
-// The "mode" parameter in the attribute map access routines define whether the access concerns the MEM or
-// NVM or both areas. For a read operation the SYNC option will first copy the NVM data to the MEM data.
-// For the write operation the SYNC option will first write to the MEM data and then update the NVM data.
-//
-//  ACC_MEM                   - the access is memory only.
-//  ACC_NVM                   - the access is NVM only.
-//  ACC_SYNC                  - the access will for reads first read NVM to MEM for writes flush MEM to NVM.
-//
-//----------------------------------------------------------------------------------------------------------
-enum AttrDataAccessOptions : uint8_t {
-
-    ACC_MEM   = 0,
-    ACC_NVM   = 1,
-    ACC_SYNC  = 2
-};
-
 //---------------------------------------------------------------------------------------------------------
-// The opCode identifies the LCS Bus message. It is always the first data byte of the message. We encode
-// the number of payload data bytes in the first three bits of the opCode. For each message length there 
-// is a maximum of 32 opCode possible. This scheme is adopted from the MERG group CBUS. The constant list
-// below is organized by instruction length. The OPC  macro helps to define the opcodes. The first argument
-// is the length of the data bytes, the second the opcodeId within the group.
+// The message operation code identifies the LCS bus message. It is always the first data byte of the 
+// message. We encode the number of payload data bytes in the first three bits of the opCode. For each 
+// message length there is a maximum of 32 opCode possible. The OPC  macro helps to define the opcodes. 
+// The first argument is the length of the data bytes, the second the opcodeId within the group.
 //
 // ??? note: this list is work in progress, please us always the names rather than the numbers.
 //----------------------------------------------------------------------------------------------------------
@@ -525,7 +509,7 @@ enum LcsMsgOpCodes : uint8_t {
 //----------------------------------------------------------------------------------------------------------
 // LCS Core Library Error codes. The status code is used as a return value from most of the library methods.
 // The numbers are grouped in a LCS library portion and a user firmware portion. The LCS library portion
-// ranges from 1 to 127, the user portion from 128 to 255. The value of zero is generally a "OK".
+// ranges from 1 to 127, the user portion from 128 to 255. The value of zero is generally an "OK".
 //
 // ??? add NVM errors, also CDC errors ?
 //----------------------------------------------------------------------------------------------------------
@@ -590,7 +574,8 @@ enum LcsErrorCodes : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// Core library callback function signatures.
+// Core library callback function signatures. Callbacks are registered by the firmware at setup time and
+// invoked as the communication back to the firmware layer.
 // 
 //----------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -609,18 +594,19 @@ extern "C" {
     typedef uint8_t ( *LcsEventCallback) ( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData );
 }
 
-
-// ??? !!!!!!! think about how to best check that the system is ready for a particular call....
-
 //------------------------------------------------------------------------------------------------------------
-// Library functions. The main function are the initialization and start of the LCS runtime.
+// Library functions. The main function are the initialization and start of the LCS runtime. Between "init"
+// and "start", the firmware should do its own setup and register the required callbacks. We will not return
+// from the "start" routine.
 // 
 //------------------------------------------------------------------------------------------------------------
 uint8_t             initRuntime( CDC::CdcPinConfig *cfg );
 void                startRuntime( );
 
 //----------------------------------------------------------------------------------------------------------
-// Access the node.
+// Access the node local GET/SET/REQ items. Although we pass the node/port Id, only the port Id is actually
+// used to identify whether we refer to a local port or the local node. Accessing a remote node / port is
+// implemented with the LCS library message send calls.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
@@ -704,7 +690,9 @@ uint8_t             sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 
 uint8_t             sendRawMsg( uint8_t *msgBuf );
 
 //----------------------------------------------------------------------------------------------------------
-// The driver interface.
+// The driver interface. The firmware communicated with an extension board by making calls to the driver
+// for the board. Just like for the node / port items, there are routines to GET/SET/REQ driver data and
+// functions. The init function is only called by the library at setup time.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t             drvInit( uint8_t boardId );
@@ -713,7 +701,9 @@ uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );
 uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //----------------------------------------------------------------------------------------------------------
-// The User Map interface.
+// The User Map interface. The LCS library offers a set of routines for the firmware to access the user
+// NVM area. The size is dependent on what the actual chip on the board offers. The meaning of this data
+// area is entirely firmware specific.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t             usrNvmPutWord( uint32_t ofs, uint16_t word );
