@@ -3,23 +3,12 @@
 // Layout Control System - node access routines.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the part of the LCS Runtime that implements the GET, SET and REQ access. There are three 
+// The file contains the part of the LCS Runtime that implements the GET, PUT and REQ access. There are three 
 // routines that allow to manipulate node and port data as well as issue requests to a node or port. The key
-// are the node/port ID, npID and the item number. The npId will indicate which node and port the call refers
-// to. The node portion is typically our own node Id, the port Id refers to a ports on the node, with a 
-// port Id of zero referring to the node itself.
+// are the node/port ID and the item number. The npId will indicate which node and port the call refers to.
+// The node portion is typically our own node Id, the port Id refers to a ports on the node, with a port Id 
+// of zero referring to the node itself. As explained in the include files, there are four item group. 
 //
-// Items are grouped in four subgroups. The first group, 1 - 63, will refer to node and port related data. 
-// Items 64 to 127 refer to a user defined item, which results in the invocation of a previously registered
-// callback. The interpretation is up to the firmware programmer. The sub groups 128 to 191 and 192 to 255
-// refer to the node and port attributes. There are 64 attributes, i.e. 16 bit values. Conceptually, there
-// an attribute has a memory location, corresponding to item 128 to 191 and a non-volatile location, which
-// corresponds to items 192 to 255. When the node or a port is reseted, the data in NVM is copied to MEM.
-// In addition a write using items 192 to 255 will read a value from NVM to MEM and the return it, a value
-// written to this range will first set MEM and copy to NVM. All node and port data attributes area stored 
-// in the node data map as blocks with 64 attributes each. This allows for an easy indexing.
-//
-// ??? what else to explain ?
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
@@ -59,6 +48,7 @@ namespace {
     //------------------------------------------------------------------------------------------------------------  
     // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
     // setting of the debug level.
+    //
     //------------------------------------------------------------------------------------------------------------ 
     uint8_t debugLevel = 0;
 
@@ -88,6 +78,11 @@ namespace {
         return( arg >> 8 ); 
     }
 
+     uint16_t nodeId( uint16_t arg ) {
+
+        return( arg >> 4 );
+    }
+
     uint16_t portId( uint16_t arg ) {
 
         return( arg & 0xF);
@@ -100,7 +95,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        *arg = nodeData.map[ block ][ item - LCS::IR_ATTR_MEM_RANGE_START ];
+        *arg = nodeData.map[ block ][ item - IR_ATTR_MEM_RANGE_START ];
         return ( LCS::ALL_OK );
     }
 
@@ -111,7 +106,7 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        nodeData.map[ block ][ item - LCS::IR_ATTR_MEM_RANGE_START ] = arg;
+        nodeData.map[ block ][ item - IR_ATTR_MEM_RANGE_START ] = arg;
         return ( LCS::ALL_OK );
     }
 
@@ -123,7 +118,7 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        uint16_t index  = item - LCS:: IR_ATTR_NVM_RANGE_START;
+        uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
         uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
         uint8_t  rStat  = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
 
@@ -139,7 +134,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        uint16_t index  = item - LCS:: IR_ATTR_NVM_RANGE_START;
+        uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
         uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
 
         nodeData.map[ block ][ index ] = arg;
@@ -161,6 +156,7 @@ namespace {
     }
     
 } // namespace
+
 
 //------------------------------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
@@ -198,7 +194,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
 
-                *arg1 = nodeMap.options;
+                *arg1 = nodeMap.nodeOptions;
                 return ( ALL_OK );
             }
 
@@ -253,6 +249,9 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             }
 
             case ITEM_ID_EVENT_MAP_ENTRY: {
+
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
+                if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG );
 
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
             }
@@ -354,10 +353,9 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
         switch ( item ) {
 
-
             case ITEM_ID_TYPE: {
 
-                if (( npId & 0xF ) == 0 ) {
+                if ( portId( npId ) == 0 ) {
 
                     nodeMap.nodeType = lowByte( val1 );
                     return( rtNvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType ));
@@ -370,7 +368,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, type );
 
-                    return ( rtNvmPutWord( ofs= portMap.map[ portId( npId ) - 1 ].type, false ));
+                    return ( rtNvmPutWord( ofs, portMap.map[ portId( npId ) - 1 ].type ));
                 }
             }
 
@@ -481,7 +479,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_SYNC: {
 
-                // ??? options what t sync ?
+                // ??? options what to sync ?
                 return( syncEventMap( ));
             }
 

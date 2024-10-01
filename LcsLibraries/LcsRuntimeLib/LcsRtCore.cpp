@@ -182,7 +182,7 @@ void handleNodePortEvents( ) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
-                callbackMap.eventCallback(  buildNpId( pPtr -> nodeId, i + 1 ),
+                callbackMap.eventCallback(  buildNpId( pPtr -> eventNodeId, i + 1 ),
                                             pPtr -> eventId,
                                             pPtr -> eventAction,
                                             pPtr -> eventValue );
@@ -431,7 +431,7 @@ void handleMsgEvent( uint8_t *msg ) {
                 ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   ) &&
                 ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION     ))) {
 
-                pPtr -> nodeId          = nodeId;
+                pPtr -> eventNodeId     = nodeId;
                 pPtr -> eventId         = eventId;
                 pPtr -> eventAction     = eventAction;
                 pPtr -> eventValue      = eventData;
@@ -467,12 +467,12 @@ void handleNodeStateInit( ) {
 
     if ( callbackMap.initCallback == nullptr ) return;
 
-    if ( nodeMap.options & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
+    if ( nodeMap.nodeOptions & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
 
         callbackMap.initCallback( nodeMap.nodeId << 4 );
     }
 
-    if ( nodeMap.options & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
+    if ( nodeMap.nodeOptions & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
 
         for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -483,7 +483,7 @@ void handleNodeStateInit( ) {
         }
     }
 
-     if ( ! ( nodeMap.options & NOPT_SKIP_NODE_ID_CONFIG )) {
+     if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_ID_CONFIG )) {
 
         sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
         timerVal  = CDC::getMillis( );

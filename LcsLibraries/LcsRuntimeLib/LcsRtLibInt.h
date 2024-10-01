@@ -3,8 +3,8 @@
 // Layout Control System - Runtime Library internals include file
 //
 //------------------------------------------------------------------------------------------------------------
-//
-// ??? add some text what this is, concepts...
+// The LCS library internal definitions are all grouped in this include file. A firmware write needs to only
+// include the external include file. There is nothing in here that is needed outside.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -25,7 +25,7 @@
 #define LCS_RT_LIB_INT_h
 
 //------------------------------------------------------------------------------------------------------------
-// Include files. Besides the standard C libraries, there is the external LCS runtime include file, and he 
+// Include files. Besides the standard C libraries, there is the external LCS runtime include file, and the 
 // dependent code library include file.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -50,16 +50,16 @@ namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
-// data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas
-// initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from memory
-// to NVM so that it is the initial value on the next restart. All data is stored in controller native 
+// data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas 
+// are initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from 
+// memory to NVM so that it is the initial value on the next restart. All data is stored in controller native 
 // endianness. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
 //
 // The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
 // offset 0x400, the attributeMap starting at offset 0x800 and the eventMap at offset 0x1000. The system area
 // is in total 8 Kbytes. The optional user map occupies all the remaining bytes in the NVM and starts at 
-// 0x2000 then. A firmware programmer can access the system as well as the user data areas. However, note 
-// that dangerous things can be done when modifying the system area.
+// 0x2000. A firmware programmer can access the system as well as the user data areas. However, note that 
+// dangerous things can be done when modifying the system area directly.
 //
 //        0x0000  :-------------------------------------------:
 //                :                                           :
@@ -87,21 +87,20 @@ namespace LCS {
 //                :                                           :
 //        0xNNNN  :-------------------------------------------:
 //
-// The Node Map and Port Map do not fill the entire allocated area. Yet. For future developments, each
-// area has some spare room. The attribute map contains the variables for the node and ports. Each entity
-// has 64 attributes max, the attribute map is 1Kbyte in total. By putting all attributes in one spot,
-// access to an attribute value is easy to calculate and quick.
+// The node map and port map do not fill the entire area allocated for them. Yet. For future developments,
+// each area has some spare room. The attribute map contains the variables for the node and ports. Each 
+// entity has 64 attributes max, the attribute map is 1Kbyte in total. By putting all attributes in one 
+// area, access to an attribute value is easy to calculate and quick.
 //
-// The event map is an area with 4byte entries. A node can keep track of up to 1024 event/port pairs.
+// The event map is an area with 4-byte entries. A node can keep track of up to 1024 event/port pairs.
 // The event map is a sorted map, lookup is done via a binary search. Finally, the optional user map 
 // data area is just a set of bytes with a structure only know to the firmware designer.
 //
 // In general each of the runtime areas could have also been designed in a way that they are dynamically 
 // configurable in size. For example, a port map could be up to 15 ports but also less. The attributes of 
-// a node or port could be up to 64 attributes or less. Considering the size and price of NVM chips, the
-// current implementation uses fixed sizes for each area. It also turns out that the memory requirements
-// are well within the capabilities of the NVM chips and also the PICO memory size. It is not worth the
-// additional complexity.
+// a node or port could be up to 64 attributes or less. Considering the size and price of NVM chips as well
+// as the memory size of the supported controller platforms, the current implementation uses fixed sizes 
+// for each area, avoiding configuration complexity.
 //
 //----------------------------------------------------------------------------------------------------------
 const uint16_t  MAX_NODE_DATA_BLOCKS          = 16;
@@ -110,15 +109,18 @@ const uint16_t  MAX_PORT_MAP_ENTRIES          = 15;
 const uint16_t  MAX_EVENT_MAP_ENTRIES         = 1024;
 const uint16_t  MAX_TASK_MAP_ENTRIES          = 16;
 
+const uint16_t  MAX_LCS_MSG_SIZE              = 8;
 const uint16_t  MAX_NODE_NAME_SIZE            = 16;
 const uint16_t  MAX_PORT_NAME_SIZE            = 16;
 const uint16_t  MAX_BOARD_NAME_SIZE           = 16;
 const uint16_t  MAX_COMMAND_LINE_SIZE         = 256;
-const uint16_t  MAX_LCS_MSG_SIZE              = 8;
 
 const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES     = 4;
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES   = 8;
 const uint16_t  EVENT_DELAY_TICK_MILLIS       = 32;
+
+const uint8_t   MAX_EXT_BOARDS                = 4;
+const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
 
 const uint16_t  NVM_NODE_MAP_START            = 0;
 const uint16_t  NVM_PORT_MAP_START            = 0x400;
@@ -127,22 +129,21 @@ const uint16_t  NVM_EVENT_MAP_START           = 0x1000;
 const uint16_t  NVM_USER_MAP_START            = 0x2000;
 const uint16_t  NVM_RUNTIME_AREA_SIZE         = 0x2000;
 
-const uint8_t   MAX_EXT_BOARDS                = 4;
-const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
-
 //----------------------------------------------------------------------------------------------------------
 // The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
-// locations for the magic words. If found, the area was configured before. It would be quite unlikely
+// two locations for the magic words. If found, the area was configured before. It would be quite unlikely
 // that a random NVM content has these two words at the right spot. In a similar way, we have two magic 
-// words for the NVM in an extension board. Same idea, same logic.
+// words for the NVM in an extension board. Same idea, same logic. But even if the area was configured 
+// before, it does not automatically mean that all the data is correct. Further checking will be done 
+// during startup.
 //
 //----------------------------------------------------------------------------------------------------------
 const uint16_t NVM_MWORD_1 = ( 'L' << 8 ) + 'C';
-const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + ' ';
+const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + '0';
 
 //------------------------------------------------------------------------------------------------------------
 // The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
-// implementation of the CAN bus. The software version could run on the same or on the separate processor 
+// implementation of the CAN bus. The "can2040" library could run on the same or on the separate processor 
 // core. Technically, the PICO could also run the MCP2515 via the SPI interface, but so far we just use the
 // software version and avoid the additional controller hardware.
 //
@@ -180,14 +181,14 @@ enum MsgPriority : uint8_t {
   // the OPS or CFG mode.
   //
   //  NS_NIL            -
-  //  NS_FAIL           -
-  //  NS_PFAIL          - 
-  //  NS_INIT           -
-  //  NS_REGISTER       -
-  //  NS_COLLISION      -
-  //  NS_HALTED         -
-  //  NS_CONFIG         -
-  //  NS_OPERATE        -
+  //  NS_FAIL           -   The node startup failed.
+  //  NS_PFAIL          -   The node startup detected that we come up after a power fail.
+  //  NS_INIT           -   The node entered the startup state.
+  //  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId.
+  //  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus.
+  //  NS_HALTED         -   The node was halted.
+  //  NS_CONFIG         -   The node is in configuration mode.
+  //  NS_OPERATE        -   The node is on operations mode.
   //
   //----------------------------------------------------------------------------------------------------------
   enum LcsNodeState : uint16_t {
@@ -204,16 +205,7 @@ enum MsgPriority : uint8_t {
   };
 
 //------------------------------------------------------------------------------------------------------------
-// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. One argument is the item.
-// Items range from  0 ... 255 as follows: 
-//
-//   0          -   NIL item, not used
-//   1  ..  63  -   Node / port / driver reserved area, global items for GET/SET/REQ.
-//  64  .. 127  -   User defined items, specific meaning.
-// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET
-// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
-//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
-//                  attribute. Note that for a SET on a driver the HW needs to be enabled.
+// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. 
 //
 // GET - the get routine will use the item numbers to retrieve the data labelled by the item. 
 //
@@ -222,6 +214,19 @@ enum MsgPriority : uint8_t {
 //
 // REQ - the request call will transmit the request parameters to the node / port / driver where a registered 
 // callback or the driver entry point will be invoked. The result is returned via the parameters.
+//
+// One argument is the item. Items range from  0 ... 255 and are defined as follows: 
+//
+//   0          -   NIL item, not used
+//   1  ..  63  -   Node / port / driver reserved area items, global items for GET/SET/REQ requests.
+//  64  .. 127  -   User defined items, specific meaning, accessed via the REQ routine.
+// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET.
+// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
+//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
+//                  attribute. Note that for a SET on a driver the HW needs to be enabled. 
+//
+// The items are defined in the external include file. This part here defined the boundaries for internal
+// checking.
 //
 //------------------------------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
@@ -244,7 +249,8 @@ enum ItemRanges : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines.
+// "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines. For
+// debugging purposes a debug level can be set so that diagnostic messages are displayed to the console.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
@@ -279,7 +285,7 @@ struct LcsCdcDesc {
 // the node NVM. Typical usage examples are configuration items such as a limit value. Upon power up or 
 // reset, the node data from the NVM area is copied to the MEM counterpart. Although the node and port 
 // attributes are logically part of the portMap and nodeMap, they are kept in this separate structure,
-// which then is a nice 2Kbyte block or 16 areas of 64 words each and thus are very easy to access.
+// which then is a nice 2 Kbyte block of 16 areas of 64 words each and thus are very easy to access.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeData {
@@ -288,43 +294,26 @@ struct LcsNodeData {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The NVM chips will all start with this header. 
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsNvmHeader {
-
-    uint16_t  magicWord1                    = NVM_MWORD_1;
-    uint16_t  options                       = 0;
-    uint16_t  flags                         = 0;
-    uint16_t  boardType                     = BT_NIL;
-    uint16_t  boardVersion                  = 0;
-    uint16_t  controllerFamily              = CF_FAM_RPICO_2040;
-    uint16_t  nvmChipFamily                 = CF_FAM_MICROCHIP;
-    uint16_t  magicWord2                    = NVM_MWORD_2;
-};
-
-//----------------------------------------------------------------------------------------------------------
-// The node map. At the first locations of the NVM area on the controller board NVM chip is the nodeMap, 
-// which is read in at controller reset. It is the heart of all data on the node.
-//
-// When bringing up a node, we read in the node map from the NVM. The first check is whether the nodeMap
-// read is a valid nodeMap. We have a simple check with two "magic" words that when set to the correct value
-// indicate that this NVM area was once initialized.
+// The first locations of the NVM area on the controller board NVM chip represent the nodeMap. It is the 
+// heart of all data on the node. When bringing up a node, we read in the node map from the NVM. The first 
+// check is whether the nodeMap read is a valid nodeMap. 
 //
 // ??? comment on the fields...
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
     uint16_t    magicWord1                    = NVM_MWORD_1;
-    uint16_t    options                       = 0;
-    uint16_t    flags                         = 0;
     uint16_t    boardType                     = BT_NIL;
     uint16_t    boardVersion                  = 0;
     uint16_t    controllerFamily              = CF_FAM_RPICO_2040;
     uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
+    uint16_t    reserved1                     = 0;
+    uint16_t    reserved2                     = 0;
     uint16_t    magicWord2                    = NVM_MWORD_2;
 
     uint16_t    nodeState                     = NS_NIL;
+    uint16_t    nodeOptions                   = 0;
+    uint16_t    nodeFlags                     = 0;
     uint16_t    nodeId                        = NIL_NODE_ID;
     uint32_t    nodeUID                       = 0L;
     uint16_t    nodeType                      = NIL_NODE_TYPE;   
@@ -363,7 +352,8 @@ struct LcsNodeMap {
 // The port map contains an array of ports, each described by a port map entry. The portMap entry contains 
 // the fields that deal with the actual event received. There are fields for the sending node, the event 
 // and its action. An event can also be invoked with a delay time. The are fifteen entries in the port map.
-// The portMap starts fixed at NVM offset 0x1000.
+// The portMap starts fixed at NVM offset 0x1000. Each port also has an area of attributes, which are 
+// stored in the data block area.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
@@ -372,7 +362,7 @@ struct LcsPortMapEntry {
     uint16_t  flags                         = 0;
     uint16_t  type                          = 0;
 
-    uint16_t  nodeId                        = NIL_NODE_ID; // ??? better name ...
+    uint16_t  eventNodeId                   = NIL_NODE_ID;
     uint16_t  eventId                       = NIL_EVENT_ID;
     uint16_t  eventValue                    = 0;
     uint16_t  eventAction                   = PEA_EVENT_IDLE;
@@ -453,7 +443,8 @@ struct LcsTaskMap {
 //----------------------------------------------------------------------------------------------------------
 // The pending request map keeps track of outstanding requests to another node. We add an entry when our
 // node sends a "REQ" type packet and clear the entry when the reply comes in. The idea is that we only 
-// invoke the callback when we expect a reply.
+// invoke the callback when we expect a reply. Additionally, there is a timeout value, so that we can
+// can invoke the reply callback with a timeout message if requested.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
@@ -472,7 +463,8 @@ struct LcsPendingReqMap {
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Driver functions are invoked through this routine signature. During setup, the correct driver label is
+// set in the driver map.
 //
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -481,9 +473,9 @@ extern "C" {
 } 
 
 //------------------------------------------------------------------------------------------------------------
-// Each extension board will have a NVM to store the board configuration data. Similar to the node map of the
-// controller board, this extension board will have a data structure that is read at initialization time. The
-// structure of this data is rather simple. We have the common 8-word header which describes the board in 
+// Each extension board will have a NVM to store the board configuration data. Similar to the node map of 
+// the controller board, this extension board will have a data structure that is read at initialization time. 
+// The structure of this data is rather simple. We have the common 8-word header which describes the board in 
 // general an area which contains driver relevant information. The board type will tell the setup routines
 // what driver to load for the extension board. The driver data area is entirely driver specific and the 
 // meaning is only know to the driver software. At startup time, all we have to do then is locate the board 
@@ -500,12 +492,12 @@ extern "C" {
 struct LcsDrvBoardDesc {
 
     uint16_t    magicWord1                    = NVM_MWORD_1;
-    uint16_t    options                       = 0;
-    uint16_t    flags                         = 0;
     uint16_t    boardType                     = BT_NIL;
     uint16_t    boardVersion                  = 0;
     uint16_t    controllerFamily              = CF_FAM_RPICO_2040;
     uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
+    uint16_t    reserved1                     = 0;
+    uint16_t    reserved2                     = 0;
     uint16_t    magicWord2                    = NVM_MWORD_2;
     
     uint16_t    driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
@@ -517,9 +509,9 @@ struct LcsDrvBoardDesc {
 // will be stored in the driver map. The driver object is a set of defined methods and a reference to the
 // driver data area. This is the area that was read in when we located the extension board. 
 //
-// If the extension board descriptor is invalid, we just install a "dummy" driver, which offers the basic
-// functions to read and modify the descriptor data. Note that the board has a jumper to enable writing to
-// the board. 
+// If the extension board descriptor is invalid, the driver map entry is marked as failed. We can however
+// still access the data area from configuration tools, when the jumper to enable writing to the board is
+// set.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {
@@ -531,10 +523,10 @@ struct LcsDrvEntry {
 //----------------------------------------------------------------------------------------------------------
 // The LCS driver map is a memory structure created at setup time. When an extension board is connected to
 // the controller board it is assigned by hardware an index number. The first board has an index of zero. 
+// While the drivers are set regardless of the order of the extension boards, the boardId would change
+// with the order of extension boards connected. A firmware either needs to insist on the correct order
+// or map the extension boards regardless of order.  
 // 
-//
-// ??? when you change the order of the boards, it does not matter to the drivers, but perhaps to the 
-// firmware on top...
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
@@ -545,11 +537,11 @@ struct LcsDrvMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The LCS runtime internal routine signatures used by other files of the runtime library.
+// The LCS runtime routine signatures of routines used across the different source files.
 //
 //
+// ??? keep this list short... maybe keep local to each file....
 //----------------------------------------------------------------------------------------------------------
-
 uint8_t       configNvm( CDC::CdcPinConfig *ci );
 
 uint8_t       rtNvmPutWord( uint32_t ofs, uint16_t word );
