@@ -27,7 +27,10 @@
 //------------------------------------------------------------------------------------------------------------
 // External declaration to global structures defined in "LcsRtSetup".
 //
+//
+// ??? perhaps debugMask could go into nodeMap... but what to do before nodeMap is ready ?
 //-----------------------------------------------------------------------------------------------------------
+extern uint16_t                 debugMask;
 extern LCS::LcsNodeMap          nodeMap;
 extern LCS::LcsPortMap          portMap;
 extern LCS::LcsEventMap         eventMap;
@@ -44,12 +47,6 @@ extern LCS::LcsMsgBusCAN        *msgBus;
 namespace {
 
 using namespace LCS;
-
-//------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
-//------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
 
 //------------------------------------------------------------------------------------------------------------
 // During node Id allocation, the node tries in periodic intervals to obtain a node ID.
@@ -144,6 +141,11 @@ void registerRepCallback( LcsRepCallback functionId ) {
 // pTaskMap. We only add entries, never remove them. A high water mark is used to record the highest entry
 // used, so that processing will not run through empty entries.
 //
+//
+// ??? perhaps this needs to be reworked to use HW driven timers. This would be a good choice for task that
+// think in seconds. We avoid unnecessary checking. Other tasks, such as listing to the CAN bus currently
+// run very often. The whole message bus system business would also need t be converted to interrupt driven
+// approach then ... to think about. 
 //-----------------------------------------------------------------------------------------------------------
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 

@@ -31,6 +31,7 @@
 // External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
+extern uint16_t                     debugMask;
 extern LCS::LcsCdcDesc              cdcMap;
 extern LCS::LcsNodeMap              nodeMap;
 extern LCS::LcsNodeData             nodeData;
@@ -44,13 +45,6 @@ extern LCS::LcsCallbackMap          callbackMap;
 namespace {
 
     using namespace LCS;
-
-    //------------------------------------------------------------------------------------------------------------  
-    // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-    // setting of the debug level.
-    //
-    //------------------------------------------------------------------------------------------------------------ 
-    uint8_t debugLevel = 0;
 
     //--------------------------------------------------------------------------------------------------------
     // The node or port name cannot be set with a single LCS message. We will store the parts in this 
@@ -171,7 +165,7 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & DBG_ATTRIBUTES ) {
 
         printf( "attrGet: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
@@ -336,7 +330,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if ( debugLevel > 0 ) {
+     if ( debugMask & DBG_ATTRIBUTES ) {
 
         printf( "attrSet: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
     }
@@ -446,7 +440,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & DBG_ATTRIBUTES ) {
 
         printf( "nodeReq: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );

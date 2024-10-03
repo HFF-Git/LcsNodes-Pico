@@ -49,17 +49,13 @@ extern "C" {
   #include "./Can2040Lib/can2040.h"
 }
 
+extern uint16_t debugMask;
+
 //------------------------------------------------------------------------------------------------------------
 // The name space for file local declarations.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
-
-//------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
-//------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
 
 //------------------------------------------------------------------------------------------------------------
 // The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"
@@ -169,7 +165,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 //------------------------------------------------------------------------------------------------------------
 void canBusCore( ) {
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & LCS::DBG_CAN_BUS ) {
 
         printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
                 cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
@@ -199,7 +195,7 @@ void canBusCore( ) {
 
     cfg.mcSetupOK = true;
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & LCS::DBG_CAN_BUS ) {
 
         printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
     }
@@ -220,16 +216,6 @@ void canBusCore( ) {
 namespace LCS { 
 
 //------------------------------------------------------------------------------------------------------------
-// Debug an trace are implemented with a conditional statement checking the debugLevel. Rather than using a
-// conditional compile, the variable can be set and the debugging can be enabled without recompile.
-//
-//------------------------------------------------------------------------------------------------------------
-void LcsMsgBusCAN::setDebugLevel( uint8_t level ) {
-
-    debugLevel = level;
-}
-
-//------------------------------------------------------------------------------------------------------------
 // "init" is called to setup the CAN bus interface. We will first check the parameters and setup the CAN bus.
 // Next set up the interrupt handler and start the CAN bus processing. This is also the time to set the
 // initial canId.
@@ -237,7 +223,7 @@ void LcsMsgBusCAN::setDebugLevel( uint8_t level ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & LCS::DBG_CAN_BUS ) {
 
         printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
     }
@@ -302,7 +288,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & LCS::DBG_CAN_BUS ) {
 
         printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
@@ -340,7 +326,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
     if ( queue_try_remove( &rxQueue, &msg )) {
 
-        if ( debugLevel > 0 ) {
+        if ( debugMask & LCS::DBG_CAN_BUS ) {
 
             printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
             for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );

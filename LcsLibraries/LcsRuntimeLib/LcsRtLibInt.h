@@ -36,17 +36,23 @@
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
+// The debug mask. I am still fiddling with the debugging support. The idea is to have a debug mask where
+// each major part of the library has a bit. There could also be bits reserved for the firmware. Then we
+// have control items to set these bits. Wherever debugging is needed, the bit mask will be used to determine
+// whether to print debugging data or not. From a performance perspective, the test will take just four 
+// instructions. In other words we do not take out debugging code when going into production. Never liked
+// this approach.
 //
-// ??? should they rather be just variables, we always have debugging code included...
 //------------------------------------------------------------------------------------------------------------
-#define   DEBUG_CONFIG      1
-#define   DEBUG_NVM         1
-#define   DEBUG_CAN_BUS     1
-#define   DEBUG_ATTRIBUTES  1
-#define   DEBUG_EVENTS      1
+enum DebugOtions : uint16_t {
 
-// ??? this should actually be a set of variables.
-// ??? each module should have a function to set the module ( file ) local debug level ...
+    DBG_CONFIG          = ( 1U << 0 ),
+    DBG_NVM_ACCESS      = ( 1U << 1 ),
+    DBG_CAN_BUS         = ( 1U << 2 ),
+    DBG_ATTRIBUTES      = ( 1U << 3 ),
+    DBG_EVENTS          = ( 1U << 4 ),
+    
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the

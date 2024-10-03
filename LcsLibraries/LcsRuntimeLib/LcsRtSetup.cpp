@@ -51,6 +51,17 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
+// The debug mask. I am still fiddling with the debugging support. The idea is to have a debug mask where
+// each major part of the library has a bit. There could also be bits reserved for the firmware. Then we
+// have control items to set these bits. Wherever debugging is needed, the bit mask will be used to determine
+// whether to print debugging data or not. From a performance perspective, the test will take just four 
+// instructions. In other words we do not take out debugging code when going into production. Never liked
+// this approach.
+//
+//------------------------------------------------------------------------------------------------------------
+uint16_t debugMask = 0;
+
+//------------------------------------------------------------------------------------------------------------
 // Runtime globals. This file contains the global data structure declarations. All other files in the runtime
 // library will declare them as "extern" if needed.
 //
@@ -254,6 +265,14 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 
     if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
     if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
+
+    // ??? this is a good place to deal with the console IO topic. When we have a console connected, the
+    // issue is that the system starts to run without waiting that there is actually a screen connected to
+    // the USB port and hence we may miss some output. 
+    //
+    // The idea is now to check if there is a console, if so, we enter a prompt loop and way for any input
+    // from the console. The we know that there is actually a screen connected. If there is no USB connected
+    // we just run. This would be the case when the node is just used in a layout.
 
     return ( ALL_OK );
 }

@@ -30,6 +30,7 @@
 // External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
+extern uint16_t                 debugMask;
 extern LCS::LcsCdcDesc          cdcMap;
 extern LCS::LcsNodeMap          nodeMap;
 extern LCS::LcsNodeData         nodeData;
