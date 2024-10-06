@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 // The file contains the part of the LCS Runtime that implements the GET, PUT and REQ access. There are three 
 // routines that allow to manipulate node and port data as well as issue requests to a node or port. The key
-// are the node/port ID and the item number. The npId will indicate which node and port the call refers to.
+// are the node/port ID and the item number. The "npId" will indicate which node and port the call refers to.
 // The node portion is typically our own node Id, the port Id refers to a ports on the node, with a port Id 
 // of zero referring to the node itself. As explained in the include files, there are four item group. 
 //
@@ -160,14 +160,14 @@ namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // "nodeGet" will lookup a value from the node, port or the attribute data map. The "npId" argument contains
-// the node and port Id, we will only use the portId portion.
+// the node and port Id. However, we will only use the portId portion.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( debugMask & DBG_ATTRIBUTES ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_ATTRIBUTES )) {
 
-        printf( "attrGet: 0x%x:%d", npId, item  );
+        printf( "nodeGet: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
@@ -325,14 +325,14 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "nodePut" will write a value to the node, port or the attribute data map. The "npId" argument contains
-// the node and port Id, we will only use the portId portion.
+// the node and port Id. However, we will only use the portId portion.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-     if ( debugMask & DBG_ATTRIBUTES ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_ATTRIBUTES )) {
 
-        printf( "attrSet: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
+        printf( "nodePut: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
     }
 
    if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
@@ -352,13 +352,14 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 if ( portId( npId ) == 0 ) {
 
                     nodeMap.nodeType = lowByte( val1 );
-                    return( rtNvmPutWord( offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType ));
+                    return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType ));
                 }
                 else {
 
                     portMap.map[ portId( npId ) - 1 ].type = lowByte( val1 );
 
-                    uint16_t ofs =  offsetof( LcsPortMap, map ) + 
+                    uint16_t ofs =  NVM_PORT_MAP_START +
+                                    offsetof( LcsPortMap, map ) + 
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, type );
 
@@ -370,7 +371,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 portMap.map[ portId( npId ) - 1 ].eventDelayTime = val1;
 
-                uint16_t ofs =  offsetof( LcsPortMap, map ) + 
+                uint16_t ofs =  NVM_PORT_MAP_START +
+                                offsetof( LcsPortMap, map ) + 
                                 (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                 offsetof( LcsPortMapEntry, eventDelayTime );
 
@@ -392,7 +394,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 else {
 
                     memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, (uint8_t *)tempName, MAX_PORT_NAME_SIZE );
-                    uint16_t ofs =  offsetof( LcsPortMap, map ) + 
+                    uint16_t ofs =  NVM_NODE_MAP_START +
+                                    offsetof( LcsPortMap, map ) + 
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, name );
                     return( rtNvmPutBytes( ofs, (uint8_t *)tempName, MAX_PORT_NAME_SIZE ));
@@ -436,11 +439,11 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 // "nodeReq" will carry out a node or port function. A function, represented by an item, can be a node or port
 // defined item, or a user defined item. For the latter we will invoke the user defined callback, if any. 
 //
-// ??? have an option to et the debug level ?
+// ??? have an option to set the debug level ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( debugMask & DBG_ATTRIBUTES ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_ATTRIBUTES )) {
 
         printf( "nodeReq: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
@@ -457,6 +460,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
+                // ??? pass the a debug mask argument ?
                 return ( resetNode( npId ));
             }
 
@@ -470,10 +474,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( removeEvent( *arg1, *arg2 & 0xFF ));
             }
 
-
             case ITEM_ID_SYNC: {
 
-                // ??? options what to sync ?
+                // ??? options what to sync ? For now it is only the event map...
                 return( syncEventMap( ));
             }
 
@@ -482,7 +485,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
 
                     nodeMap.nodeId = *arg1 & 0xFFF0;
-                    return( rtNvmPutBytes(  offsetof( LcsNodeMap, nodeId ), 
+                    return( rtNvmPutBytes(  NVM_NODE_MAP_START +
+                                            offsetof( LcsNodeMap, nodeId ), 
                                             (uint8_t *) &nodeMap.nodeId, 
                                             sizeof( uint16_t )));
                 }

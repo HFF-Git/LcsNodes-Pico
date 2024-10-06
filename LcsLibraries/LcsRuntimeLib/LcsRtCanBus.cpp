@@ -41,7 +41,7 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// The can2040 is a C library. Make it so, otherwise the linker gets confused.
+// The can2040 is a C library. Make it extern C, otherwise the linker gets confused.
 // 
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -49,6 +49,10 @@ extern "C" {
   #include "./Can2040Lib/can2040.h"
 }
 
+//------------------------------------------------------------------------------------------------------------
+// The debug mask. See the internal include file for details.
+// 
+//------------------------------------------------------------------------------------------------------------
 extern uint16_t debugMask;
 
 //------------------------------------------------------------------------------------------------------------
@@ -65,6 +69,7 @@ namespace {
 //------------------------------------------------------------------------------------------------------------
 const uint8_t   MAX_CAN_MSG_SIZE  = 8;
 const uint8_t   RX_QUEUE_SIZE     = 4;
+const uint8_t   TX_RETRY_TIMEOUT  = 5;
 
 //------------------------------------------------------------------------------------------------------------
 // The setup and start of the CAN Bus can run on ether core 0 or core 1, depending whether a multi-core
@@ -89,9 +94,9 @@ struct Can2040ConfigDesc {
 // File local variables and constants.
 //
 //------------------------------------------------------------------------------------------------------------
+Can2040ConfigDesc       cfg;
 struct can2040          cBus;
 queue_t                 rxQueue;
-Can2040ConfigDesc       cfg;
 
 //------------------------------------------------------------------------------------------------------------
 // The "buildCanBusMsgHeader" constructs the canId parameter for the CAN Id used in the message. The canId
@@ -132,9 +137,6 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 
     if ( notify == CAN2040_NOTIFY_RX ) {
 
-        // ??? possible filtering right here. 
-        // ??? We could also do the pending REQ / REPLY message processing here.
-
         if ( queue_try_add( &rxQueue, msg )) {
 
             // ??? successfully queued, remove from REQ pending list ?
@@ -165,7 +167,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 //------------------------------------------------------------------------------------------------------------
 void canBusCore( ) {
 
-    if ( debugMask & LCS::DBG_CAN_BUS ) {
+    if ( debugMask & ( LCS::DBG_CONFIG || LCS::DBG_CAN_BUS )) {
 
         printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
                 cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
@@ -223,7 +225,7 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
 
-    if ( debugMask & LCS::DBG_CAN_BUS ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_CAN_BUS )) {
 
         printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
     }
@@ -288,7 +290,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
-    if ( debugMask & LCS::DBG_CAN_BUS ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_CAN_BUS )) {
 
         printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
@@ -297,7 +299,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
-        CDC::sleepMillis( 5 );
+        CDC::sleepMillis( TX_RETRY_TIMEOUT );
         if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
         else                              return ( ERR_CAN_MSG_SEND );
 
@@ -306,6 +308,10 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "receiveLcsMsg" will check for a CAN Bus message and if one is available fill the passed message buffer.
+// With the "can2040" library CAN bus messages are received via a callback function. This library will store
+// each received message in the local receiver queue. This happens within the interrupt handler who calls the
+// receiver callback. So, all this routine will do is work from the receiver queue.
+//
 // Besides receiving a message, there is the handling of CAN Id collisions. When we detect a non-zero length
 // message with a Can Id that is our own, we have a collision and report an error. This could happen for
 // example when a node hardware is connected to another layout. Both nodes will then stop and wait for
@@ -315,10 +321,6 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 // sending a zero length message response. Replying to such a message from other nodes results in a status
 // return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was actually received.
 //
-// With the "can2040" library CAN bus messages are received via a callback function. This library will store
-// each received message in the local receiver queue. This happens within the interrupt handler who calls the
-// receiver callback. So, all this routine will do is work from the receiver queue.
-//
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
@@ -326,7 +328,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
     if ( queue_try_remove( &rxQueue, &msg )) {
 
-        if ( debugMask & LCS::DBG_CAN_BUS ) {
+        if ( debugMask & ( DBG_CONFIG || DBG_CAN_BUS )) {
 
             printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
             for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );

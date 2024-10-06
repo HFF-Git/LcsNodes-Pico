@@ -43,12 +43,6 @@ namespace {
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
-//------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
-
 //------------------------------------------------------------------------------------------------------------
 // Utility routines.
 //

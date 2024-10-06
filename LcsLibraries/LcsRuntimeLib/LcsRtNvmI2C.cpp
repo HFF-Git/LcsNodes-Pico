@@ -42,6 +42,8 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
+extern uint16_t debugMask;
+
 //------------------------------------------------------------------------------------------------------------
 // Local file declarations.
 //
@@ -49,12 +51,6 @@
 namespace {
 
 using namespace LCS;
-
-//------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
-//------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
 
 //------------------------------------------------------------------------------------------------------------
 // Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize which is the unit
@@ -71,33 +67,33 @@ uint8_t debugLevel = 0;
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //------------------------------------------------------------------------------------------------------------
-const uint16_t  BUFFER_BLOCK_SIZE         = 32;
+const uint16_t  BUFFER_BLOCK_SIZE           = 32;
 
-const uint16_t  M24LC32_PAGE_SIZE         = 32;
-const uint32_t  M24LC32_MAX_SIZE          = 4096;
+const uint16_t  M24LC32_PAGE_SIZE           = 32;
+const uint32_t  M24LC32_MAX_SIZE            = 4096;
 
-const uint16_t  M24LC64_PAGE_SIZE         = 32;
-const uint32_t  M24LC64_MAX_SIZE          = 8192;
+const uint16_t  M24LC64_PAGE_SIZE           = 32;
+const uint32_t  M24LC64_MAX_SIZE            = 8192;
 
-const uint16_t  M24LC128_PAGE_SIZE        = 64;
-const uint32_t  M24LC128_MAX_SIZE         = 16384;
+const uint16_t  M24LC128_PAGE_SIZE          = 64;
+const uint32_t  M24LC128_MAX_SIZE           = 16384;
 
-const uint16_t  M24LC256_PAGE_SIZE        = 64;
-const uint32_t  M24LC256_MAX_SIZE         = 32768;
+const uint16_t  M24LC256_PAGE_SIZE          = 64;
+const uint32_t  M24LC256_MAX_SIZE           = 32768;
 
-const uint16_t  M24LC512_PAGE_SIZE        = 128;
-const uint32_t  M24LC512_MAX_SIZE         = 65536;
+const uint16_t  M24LC512_PAGE_SIZE          = 128;
+const uint32_t  M24LC512_MAX_SIZE           = 65536;
 
-const uint16_t  M24C04_PAGE_SIZE          = 8;
-const uint32_t  M24C04_MAX_SIZE           = 512;
+const uint16_t  M24C04_PAGE_SIZE            = 8;
+const uint32_t  M24C04_MAX_SIZE             = 512;
 
-const uint8_t   NVM_I2C_ADR_ROOT          = 0b1010000;
-const uint8_t   EXT_I2C_ADR_ROOT          = 0b1010000;
+const uint8_t   NVM_I2C_ADR_ROOT            = 0b1010000;
+const uint8_t   EXT_I2C_ADR_ROOT            = 0b1010000;
 
-const uint32_t  NVM_NVM_RUNTIME_MAP_SIZE  = 0x2000;
+const uint32_t  NVM_NVM_RUNTIME_MAP_SIZE    = 0x2000;
 
-const uint32_t  NVM_MAX_NVM_SIZE          = 0x10000;
-const uint32_t  NVM_MAX_EXT_SIZE          = 0x1000;
+const uint32_t  NVM_MAX_NVM_SIZE            = 0x10000;
+const uint32_t  NVM_MAX_EXT_SIZE            = 0x1000;
 
 //------------------------------------------------------------------------------------------------------------
 // Module global data. A LCS node board has two NVM channels. The "NVM" channel refers to the NVM chip on
@@ -109,17 +105,17 @@ const uint32_t  NVM_MAX_EXT_SIZE          = 0x1000;
 // 64 Kbytes. All the chips are from a hardware perspective identical. When we start a node, the nodeMap 
 // structure, i.e. the first few hundred bytes, contains a field that holds the actual size configured for 
 // the chip on the particular board. The difference between the minimum size of 8Kbytes and the particular
-// maximum is considered "user NVK space" which the firmware uses as needed.
+// maximum is considered "user NVM space" which the firmware uses as needed.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t    nodeNvmSize                   = 0;
-uint32_t    extNvmSize                    = 0;
+uint32_t    nodeNvmSize                     = 0;
+uint32_t    extNvmSize                      = 0;
 
-uint8_t     nvmSclPin                     = CDC::UNDEFINED_PIN;
-uint8_t     nvmSdaPin                     = CDC::UNDEFINED_PIN;
+uint8_t     nvmSclPin                       = CDC::UNDEFINED_PIN;
+uint8_t     nvmSdaPin                       = CDC::UNDEFINED_PIN;
 
-uint8_t     extSclPin                     = CDC::UNDEFINED_PIN;
-uint8_t     extSdaPin                     = CDC::UNDEFINED_PIN;
+uint8_t     extSclPin                       = CDC::UNDEFINED_PIN;
+uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
 // A little help function to test whether the chip is read for the next operation. The test consist of 
@@ -166,14 +162,16 @@ uint16_t nvmSizeInBlocks( uint32_t nvmSize ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. 
+// "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. Although a read can 
+// cross a page boundary, we follow the same principle as we do for writes.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
 uint8_t rStat = ALL_OK;
 
-if ( debugLevel > 0 ) {     
+if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+
     printf( "nvmGetBytesFromPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, len: %d\n", sclPin, i2cAdr, ofs, len );
 }
 
@@ -204,7 +202,8 @@ if ( nvmSize == M24C04_MAX_SIZE ) {
         }
     }
 
-    if ( debugLevel > 0 ) { 
+    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+
         printf( "nvmGetBytesFromPage: %d\n", rStat );
     }
 
@@ -220,7 +219,8 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 
     uint8_t rStat = ALL_OK;
 
-    if ( debugLevel > 0 ) { 
+    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+
         printf( "nvmPutBytesInPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, len: %d\n", sclPin, i2cAdr, ofs, len );
     }
 
@@ -257,12 +257,13 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 //------------------------------------------------------------------------------------------------------------
 // "nvmGetBytes" reads a set of data bytes from the memory. Although read operations do not have a page
 // boundary issue, we stick to the concept to read within page boundaries as we may one day use more than
-// chip to build NVMs and then we cannot cross chip boundaries.
+// chip to build NVMs and then we have no problems with crossing chip boundaries.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if ( debugLevel > 0 ) { 
+    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+
         printf( "nvmGetBytes: ofs: 0x%x, bufAdr: %ptr, len: %d\n", ofs, (uint32_t) buf, len );
     }
 
@@ -290,7 +291,8 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if ( debugLevel > 0 ) { 
+    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+
         printf( "nvmPutBytes: ofs: 0x%x, bufAdr: %ptr, len: %d, uMap: %d\n", ofs, buf, len );
      }
 
@@ -321,7 +323,7 @@ namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // "configNvm" will setup the module local variables. We copy the I2C hardware pins and the NVM related data
-// from the CDC descriptors. The CDC descriptor also contains the initial sizes for the NVM chips. 
+// from the CDC descriptors. The CDC descriptor also contains the configured sizes for the NVM chips. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t configNvm( CDC::CdcPinConfig *ci ) {
@@ -342,7 +344,7 @@ uint8_t configNvm( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 // Controller Board Runtime Map access routines. The runtime map occupies the first 8 Kbytes of the main 
 // controller NVM chip. There are routines for getting and setting a word as well as routines to read and 
-// write a buffer.
+// write a buffer. All access routines are prefixed with "rt".
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
@@ -371,10 +373,11 @@ uint32_t rtNvmGetSize( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Extension Board Map access routines. These routines access the NVM on an extension board. The I2C address
-// is formed by the chip I2C address plus the address bits of the chip to select the chip on the particular
-// extension board. Similar to the runtime NVM access routines, there are routines for getting and setting a
-// word as well as routines to read and  write a buffer.
+// Extension Board Map access routines. These routines access the NVM on the extension board. The I2C address
+// is formed by the chip common I2C address plus the address bits of the chip to select the chip on the 
+// particular extension board. Similar to the runtime NVM access routines, there are routines for getting 
+// and setting a word as well as routines to read and  write a buffer. All access routines are prefixed with
+// "ext".
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
@@ -408,8 +411,9 @@ uint32_t extNvmGetSize( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Controller Board User Map access routines. The area between the main controller NVM chip runtime area and
-// the chips hardware maximum size is the memory area available for the firmware programmer. Again, there are
-// routines for getting and setting a word as well as routines to read and  write a buffer.
+// the chips hardware maximum size is the memory area available for the firmware programmer. Again, there 
+// are routines for getting and setting a word as well as routines to read and  write a buffer. All access 
+// routines are prefixed with "nvm".
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {

@@ -3,9 +3,9 @@
 // LCS - Runtime Library - Test Program
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains a simple wraper for the runtime library. The runtime library features a simple
-// command interpreter, which we wll use to test the library functions. So, all we need to do is to register
-// any callbacks, initialite the runtime and the just start it.
+// This source file contains a simple wrapper for the runtime library. The runtime library features a simple
+// command interpreter, which we will use to test the library functions. So, all we need to do is to register
+// any callbacks, initialize the runtime and the just start it.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -37,42 +37,28 @@
 CDC::CdcPinConfig cfg;
 
 //----------------------------------------------------------------------------------------------------------
-// Set up the CDC hardware data. Since we handle any board, all that needs to be configured are the two
-// LEDs, the PFAIL pin, the two I2C channels and the CAN  Bus.
+// Init the CDC and Runtime library. 
 //
 // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
 //----------------------------------------------------------------------------------------------------------
-uint8_t initCdcLib( ) {
-
-  CDC::sleepMillis( 1000 );
-
-  cfg.ADC_PIN_0             = 26;
-  cfg.ADC_PIN_1             = 27;
-
-  cfg.DIO_PIN_0             = 9;
-  cfg.DIO_PIN_1             = 8;
-  cfg.DIO_PIN_2             = 10;
-  cfg.DIO_PIN_3             = 11;
-  cfg.DIO_PIN_4             = 21;
-  cfg.DIO_PIN_5             = 20;
-  cfg.DIO_PIN_6             = 19;
-  cfg.DIO_PIN_7             = 18;
-
-  CDC::printConfigInfo( &cfg );
-
-  return( CDC::init( &cfg ));
-}
-
-//----------------------------------------------------------------------------------------------------------
-// Init the CDC and Runtime library. 
-//
-//----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-  printf( "Init LCS runtime\n" );
+    cfg.ADC_PIN_0             = 26;
+    cfg.ADC_PIN_1             = 27;
 
-  return( LCS::initRuntime( &cfg ));
-  return( 0 );
+    cfg.DIO_PIN_0             = 9;
+    cfg.DIO_PIN_1             = 8;
+    cfg.DIO_PIN_2             = 10;
+    cfg.DIO_PIN_3             = 11;
+    cfg.DIO_PIN_4             = 21;
+    cfg.DIO_PIN_5             = 20;
+    cfg.DIO_PIN_6             = 19;
+    cfg.DIO_PIN_7             = 18;
+
+    printf( "Init LCS runtime, configuration: \n" );
+    CDC::printConfigInfo( &cfg );
+
+    return( LCS::initRuntime( &cfg, LCS::NOPT_DEBUG_DURING_SETUP ));
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -137,18 +123,19 @@ uint8_t lcsDccMsgCallback( uint8_t *msg ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t registerLcsCallbacks( ) {
 
-  printf( "Registering Callbacks\n" );
+    printf( "Registering Callbacks\n" );
 
-  LCS::registerLcsMsgCallback( lcsMsgCallback );
-  LCS::registerDccMsgCallback( lcsDccMsgCallback );
-  
-  LCS::registerCmdCallback( lcsCmdCallback );
-  LCS::registerTaskCallback( lcsTaskCallback, 1000 );
-
-  // ??? to fill in ...
-
-
-  return( LCS::ALL_OK );
+    LCS::registerLcsMsgCallback( lcsMsgCallback );
+    LCS::registerDccMsgCallback( lcsDccMsgCallback );
+    LCS::registerCmdCallback( lcsCmdCallback );
+    LCS::registerTaskCallback( lcsTaskCallback, 1000 );
+    LCS::registerInitCallback( lcsInitCallback );
+    LCS::registerResetCallback( lcsResetCallback );
+    LCS::registerPfailCallback( lcsPfailCallback );
+    LCS::registerReqCallback( lcsReqCallback );
+    LCS::registerRepCallback( lcsRepCallback );
+    LCS::registerEventCallback( lcsEventCallback );
+    return( LCS::ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -157,9 +144,8 @@ uint8_t registerLcsCallbacks( ) {
 //----------------------------------------------------------------------------------------------------------
 void startLcsRuntime( ) {
 
-  printf( "Start LCS runtime\n" );
-
-  LCS::startRuntime( );
+    printf( "Start LCS runtime\n" );
+    LCS::startRuntime( );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -168,12 +154,10 @@ void startLcsRuntime( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-  uint8_t rStat = LCS::ALL_OK;
+    uint8_t rStat = LCS::ALL_OK;
 
-  rStat = initCdcLib( );
-  if ( rStat == LCS::ALL_OK ) rStat = registerLcsCallbacks( );
-  if ( rStat == LCS::ALL_OK ) rStat = initLcsRuntime( );
-  if ( rStat == LCS::ALL_OK ) startLcsRuntime( );
-
-  return( 0 );
+    if ( rStat == LCS::ALL_OK ) rStat = registerLcsCallbacks( );
+    if ( rStat == LCS::ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == LCS::ALL_OK ) startLcsRuntime( );
+    return( LCS::ALL_OK );
 }

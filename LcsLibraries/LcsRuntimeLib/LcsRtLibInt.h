@@ -41,16 +41,26 @@ namespace LCS {
 // have control items to set these bits. Wherever debugging is needed, the bit mask will be used to determine
 // whether to print debugging data or not. From a performance perspective, the test will take just four 
 // instructions. In other words we do not take out debugging code when going into production. Never liked
-// this approach.
+// this approach of conditional debug anyway.
+//
+// The usage of the debug mask is generally: 
+//
+//      if ( debugMask & ( DBG_CONFIG | DBG_xxx )) ....
+// 
+// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or disabled. This feature will 
+// also be used when we test whether we even have a console of not. If there is no console, all the prints
+// will not be executed.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DebugOtions : uint16_t {
 
     DBG_CONFIG          = ( 1U << 0 ),
-    DBG_NVM_ACCESS      = ( 1U << 1 ),
-    DBG_CAN_BUS         = ( 1U << 2 ),
-    DBG_ATTRIBUTES      = ( 1U << 3 ),
-    DBG_EVENTS          = ( 1U << 4 ),
+    DBG_SETUP           = ( 1U << 1 ),
+    DBG_NVM_ACCESS      = ( 1U << 2 ),
+    DBG_CAN_BUS         = ( 1U << 3 ),
+    DBG_MSG_BUS         = ( 1U << 4 ),
+    DBG_ATTRIBUTES      = ( 1U << 5 ),
+    DBG_EVENTS          = ( 1U << 6 ),
     
 };
 

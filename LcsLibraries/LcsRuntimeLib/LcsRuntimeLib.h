@@ -296,6 +296,7 @@ enum LcsControllerFamilyType : uint16_t {
 //  NOPT_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
 //  NOPT_SKIP_NODE_INIT_STEP - during startup, skip the node initialization step.
 //  NOPT_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
+//  NOPT_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask of nodeMap
 //
 //------------------------------------------------------------------------------------------------------------
 enum NodeOptions : uint16_t {
@@ -303,14 +304,7 @@ enum NodeOptions : uint16_t {
     NOPT_SKIP_NODE_ID_CONFIG    = 0x0001,
     NOPT_SKIP_NODE_INIT_STEP    = 0x0002,
     NOPT_SKIP_PORT_INIT_STEP    = 0x0004,
-
-    // ??? add debug flags ... they survive restarts... to do ...
-
-    NOPT_DEBUG_SETUP            = 0x0000,
-    NOPT_DEBUG_NVM_ACCESS       = 0x0000,
-    NOPT_DEBUG_ATTR_ACCESS      = 0x0000,
-    NOPT_DEBUG_CAN_BUS          = 0x0000,
-    NOPT_DEBUG_EVENT_HANDLING   = 0x0000
+    NOPT_DEBUG_DURING_SETUP     = 0x0008,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -323,7 +317,6 @@ enum NodeOptions : uint16_t {
 enum NodeFlags : uint16_t {
 
     NFLAGS_EXT_PRESENT          = 0x0001,
-
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -600,7 +593,7 @@ extern "C" {
 // from the "start" routine.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t             initRuntime( CDC::CdcPinConfig *cfg );
+uint8_t             initRuntime( CDC::CdcPinConfig *cfg, uint16_t nodeOptions = 0 );
 void                startRuntime( );
 
 //----------------------------------------------------------------------------------------------------------
@@ -646,7 +639,7 @@ uint8_t             sendRepNodeId( uint16_t npId, uint32_t nodeUID );
 uint8_t             sendSetNodeId( uint16_t npId, uint32_t nodeUID );
 uint8_t             sendNodeIdCollision( uint16_t npId, uint32_t nodeUID );
 
-uint8_t             sendQryNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
+uint8_t             sendGetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
 uint8_t             sendSetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
 uint8_t             sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
 uint8_t             sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
@@ -688,6 +681,8 @@ uint8_t             sendDccAck( );
 uint8_t             sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
 uint8_t             sendRawMsg( uint8_t *msgBuf );
+
+void                printLcsMs( uint8_t *msgBuf );
 
 //----------------------------------------------------------------------------------------------------------
 // The driver interface. The firmware communicated with an extension board by making calls to the driver

@@ -47,12 +47,6 @@ namespace {
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
-//------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
-
 //------------------------------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains a small pending request
 // buffer. When a request type message is sent we add the target node to the buffer. Easy and simple. Note
@@ -163,7 +157,8 @@ uint8_t setupMsgBus( ) {
     uint8_t     canBusTxPin     = 0;
     uint8_t     canBusRxPin     = 0;
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_MSG_BUS )) {
+
         printf( "setupMsgBus -> %d:%d:%d%d\n", nodeMap.nodeId, canBusRxPin, canBusTxPin, canBusCtrlMode );
     }
 
@@ -188,12 +183,20 @@ uint8_t setupMsgBus( ) {
 
     if ( rStat != ALL_OK ) {
 
-        if ( debugLevel > 0 ) printf( "setup CAN Bus failed: %d\n", rStat );
+        if ( debugMask & ( DBG_CONFIG || DBG_MSG_BUS )) {
+            
+            printf( "setup CAN Bus failed: %d\n", rStat );
+        }
+
         return ( ERR_CAN_SETUP );
     }
      else {
 
-        if ( debugLevel > 0 ) printf( " -> OK\n" );
+       if ( debugMask & ( DBG_CONFIG || DBG_MSG_BUS )) { 
+        
+            printf( " -> OK\n" );
+        }
+
         return ( ALL_OK );
     }
 }
@@ -216,11 +219,12 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 
     if ( rStat == ALL_OK )  {
 
-        if ( debugLevel > 0 ) printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
+        if ( debugMask & ( DBG_CONFIG || DBG_MSG_BUS )) {
+            
+             printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
+        }
 
-        if (( msg[ 0 ] == LCS_OP_REP_NODE ) ||
-            ( msg[ 0 ] == LCS_OP_ACK )      ||
-            ( msg[ 0 ] == LCS_OP_ERR )) {
+        if (( msg[ 0 ] == LCS_OP_REP_NODE ) || ( msg[ 0 ] == LCS_OP_ACK ) || ( msg[ 0 ] == LCS_OP_ERR )) {
 
              uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
@@ -234,6 +238,17 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
         } else return ( msg[ 0 ] );
 
     } else return ( LCS_OP_NO_MSG );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// A simple helper to print an LCS message.
+//
+//------------------------------------------------------------------------------------------------------------
+void printLcsMsg( uint8_t *msg ) {
+
+    printf( "LCS MSG: op: %d, data: ", msg[ 0 ] & 0x1F );
+    for ( int i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i ++ ) printf( "0x%x ", msg[ i ] ); 
+    printf( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -306,8 +321,6 @@ uint8_t sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
 
 uint8_t sendPing( uint16_t npId ) {
 
-     // ??? add to pending reply map ?
-
     uint8_t msgBuf[ 8 ] = { LCS_OP_PING };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
@@ -371,7 +384,7 @@ uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
 }
 
-uint8_t sendQryNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
+uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
     if ( addToPendingReplyMap( npId ) == ALL_OK ) {
 

@@ -58,24 +58,27 @@
 // instructions. In other words we do not take out debugging code when going into production. Never liked
 // this approach.
 //
+// ??? we do use it consistently, however, the data in it will be set in two stages. There is a first stage
+// before we have the node map read. When the node map is read, the data is overwritten by the node map 
+// debug mask.
 //------------------------------------------------------------------------------------------------------------
-uint16_t debugMask = 0;
+uint16_t                    debugMask = 0;
 
 //------------------------------------------------------------------------------------------------------------
 // Runtime globals. This file contains the global data structure declarations. All other files in the runtime
 // library will declare them as "extern" if needed.
 //
 //------------------------------------------------------------------------------------------------------------
-LCS::LcsCdcDesc               cdcMap;
-LCS::LcsMsgBusCAN             *msgBus;
-LCS::LcsNodeData              nodeData;
-LCS::LcsNodeMap               nodeMap;
-LCS::LcsPortMap               portMap;
-LCS::LcsEventMap              eventMap;
-LCS::LcsCallbackMap           callbackMap;
-LCS::LcsPendingReqMap         pendingReqMap;
-LCS::LcsTaskMap               taskMap;
-LCS::LcsDrvMap                drvMap;
+LCS::LcsCdcDesc             cdcMap;
+LCS::LcsMsgBusCAN           *msgBus;
+LCS::LcsNodeData            nodeData;
+LCS::LcsNodeMap             nodeMap;
+LCS::LcsPortMap             portMap;
+LCS::LcsEventMap            eventMap;
+LCS::LcsCallbackMap         callbackMap;
+LCS::LcsPendingReqMap       pendingReqMap;
+LCS::LcsTaskMap             taskMap;
+LCS::LcsDrvMap              drvMap;
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLibConfig implementation file local declarations and routines.
@@ -86,10 +89,9 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
+// 
+//
 //------------------------------------------------------------------------------------------------------------ 
-uint8_t     debugLevel    = 0;
 const char  *nodeDefName  = "Node Name";
 
 //------------------------------------------------------------------------------------------------------------
@@ -258,6 +260,15 @@ namespace LCS {
 // may have been done before, when for example the firmware programmer wants to use the HW before calling any
 // library setup code. It is no problem to call the CDC init routine several times.
 //
+// There is one more small issue. When the PICO gets a new firmware or just resets, the USB line is lost
+// and restarted. The connected terminal window closed and does not automatically restart. When we bring up
+// a new terminal for the PICO, many print lines may have already been printed. This is really ugly when you
+// debug the start up sequence. Here is the idea for now: 
+//
+// When there is a console connected, i.e. we have an USB connected, we print a prompt and wait for the user
+// ( you ) to enter a "r" for "run". Then we start the show. When we do not have a console, we will disable
+// debug messages too.
+// 
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 
@@ -266,13 +277,20 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
     if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
     if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
 
-    // ??? this is a good place to deal with the console IO topic. When we have a console connected, the
-    // issue is that the system starts to run without waiting that there is actually a screen connected to
-    // the USB port and hence we may miss some output. 
-    //
-    // The idea is now to check if there is a console, if so, we enter a prompt loop and way for any input
-    // from the console. The we know that there is actually a screen connected. If there is no USB connected
-    // we just run. This would be the case when the node is just used in a layout.
+    if ( CDC::isConsoleConnected( )) {
+
+        while ( true ) {
+
+            printf( ">" );
+            if( CDC::getConsoleChar( ) == 'r' ) break;
+        }
+
+        printf( "Have screen, starting ...  \n ");
+    }
+    else {
+
+        debugMask &= ~ DBG_CONFIG;
+    }
 
     return ( ALL_OK );
 }
@@ -285,7 +303,8 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 
-    if ( debugLevel > 0 ) {
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) { 
+
         printf( "initNvmChannels: nvmSCL: %d, nvmSDA: %d, nvmSCL: %d, nvmSDA: %d\n", 
                 ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN ); 
     }
@@ -306,7 +325,7 @@ uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 
     rStat = configNvm( ci );
 
-    if ( debugLevel > 0 ) printf( "initNvmChannels, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "initNvmChannels, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -317,7 +336,7 @@ uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 
-    if ( debugLevel > 0 ) printf( "initCanBus\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "initCanBus\n" );
     
     msgBus = new LcsMsgBusCAN( );
 
@@ -327,7 +346,7 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
         // ??? check what to actual return...
     }
 
-    if ( debugLevel > 0 ) printf( "initCanBus, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "initCanBus, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -344,7 +363,7 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
 
-    if ( debugLevel > 0 ) printf( "setupNodeMap\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupNodeMap\n" );
 
     uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );  // ??? rather fatal error ?
@@ -364,7 +383,7 @@ uint8_t setupNodeMap( ) {
         rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
     }
 
-    if ( debugLevel > 0 ) printf( "setupNodeMap, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupNodeMap, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -374,11 +393,11 @@ uint8_t setupNodeMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
 
-    if ( debugLevel > 0 ) printf( "setupPortMap\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupPortMap\n" );
 
     uint8_t rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
-    if ( debugLevel > 0 ) printf( "setupPortMap, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupPortMap, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -389,7 +408,7 @@ uint8_t setupPortMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
 
-    if ( debugLevel > 0 ) printf( "setupEventMap\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupEventMap\n" );
    
     uint8_t rStat;
 
@@ -407,7 +426,7 @@ uint8_t setupEventMap( ) {
     // ??? anything to validate ?
     // ??? sort, just in case ?
 
-    if ( debugLevel > 0 ) printf( "setupEventMap, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupEventMap, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -418,11 +437,11 @@ uint8_t setupEventMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
 
-    if ( debugLevel > 0 ) printf( "setupUserMap\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupUserMap\n" );
 
     uint8_t rStat = ALL_OK;
 
-    if ( debugLevel > 0 ) printf( "setupUserMap, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupUserMap, status: %d\n", rStat );
     return ( ALL_OK );
 }
 
@@ -433,7 +452,7 @@ uint8_t setupUserMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupCallbackMap( ) {
 
-    if ( debugLevel > 0 ) printf( "setupCallbackMap\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupCallbackMap\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -449,7 +468,7 @@ uint8_t setupCallbackMap( ) {
     callbackMap.reqCallback         = nullptr;
     callbackMap.repCallback         = nullptr;
 
-    if ( debugLevel > 0 ) printf( "setupCallbackMap, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupCallbackMap, status: %d\n", rStat );
     return( rStat );
 }
 
@@ -460,7 +479,7 @@ uint8_t setupCallbackMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupTaskMap( ) {
 
-    if ( debugLevel > 0 ) printf( "setupTaskMap\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupTaskMap\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -476,7 +495,7 @@ uint8_t setupTaskMap( ) {
         taskMap.map[ i ].timeStamp  = 0;
     }
 
-    if ( debugLevel > 0 ) printf( "setupTaskMap, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupTaskMap, status: %d\n", rStat );
     return( ALL_OK );
 }
 
@@ -500,7 +519,7 @@ uint8_t setupTaskMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t detectExtensionBoards( ) {
 
-    if ( debugLevel > 0 ) printf( "detectExtensionBoards\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "detectExtensionBoards\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -519,11 +538,14 @@ uint8_t detectExtensionBoards( ) {
         }
         else {
 
-            if ( debugLevel > 0 ) printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
+            if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) { 
+                
+                printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
+            }
         }
     }
 
-    if ( debugLevel > 0 ) printf( "detectExtensionBoards, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "detectExtensionBoards, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -536,7 +558,7 @@ uint8_t detectExtensionBoards( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
-    if ( debugLevel > 0 ) printf( "setupExtensionBoards\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupExtensionBoards\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -552,7 +574,7 @@ uint8_t setupExtensionBoards( ) {
         */ 
     }
 
-    if ( debugLevel > 0 ) printf( "setupExtensionBoards, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupExtensionBoards, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -563,7 +585,7 @@ uint8_t setupExtensionBoards( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t invokeInitCallbacks( ) {
 
-    if ( debugLevel > 0 ) printf( "invokeInitCallbacks\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "invokeInitCallbacks\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -578,7 +600,7 @@ uint8_t invokeInitCallbacks( ) {
         } 
     }
 
-    if ( debugLevel > 0 ) printf( "invokeInitCallbacks, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "invokeInitCallbacks, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -590,7 +612,7 @@ uint8_t invokeInitCallbacks( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t powerFailHandler( ) {
 
-    if ( debugLevel > 0 ) printf( "powerFailHandler\n" );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "powerFailHandler\n" );
     
     uint8_t rStat = ALL_OK;
 
@@ -604,7 +626,7 @@ uint8_t powerFailHandler( ) {
 
     nodeMap.nodeState = NS_PFAIL;
 
-    if ( debugLevel > 0 ) printf( "invokeInitCallbacks, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "invokeInitCallbacks, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -709,9 +731,14 @@ uint8_t resetPort( uint8_t portId ) {
 //
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
+uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
 
-    if ( debugLevel > 0 ) printf( "init LCS runtime\n") ;
+    if ( nodeOptions & NOPT_DEBUG_DURING_SETUP ) {
+
+        debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS;
+    }
+
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "init LCS runtime\n") ;
 
     uint8_t rStat = ALL_OK;
 
@@ -728,18 +755,19 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci ) {
     if ( rStat == ALL_OK )  rStat = setupUserMap( );
     if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
     if ( rStat == ALL_OK )  rStat = setupTaskMap( );
-    if (( rStat != ALL_OK ) && ( ! CDC::isConsoleConnected( ))) CDC::fatalError( 3 );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3 );
 
     if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
-    // ??? what to do when we have an error with the extension boards...
-
     if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
 
+    // ??? should we have a fatal error when we do not find extension or when the setup has an error ?
     
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;
 
-    if ( debugLevel > 0 ) printf( "init LCS runtime, status: %d \n", rStat );
+    if ( rStat == ALL_OK )  CDC::writeDio( ci -> READY_LED_PIN, true );
+
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "init LCS runtime, status: %d \n", rStat );
     return ( rStat );
 }
 

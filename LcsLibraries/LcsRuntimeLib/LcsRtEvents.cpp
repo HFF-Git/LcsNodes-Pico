@@ -53,12 +53,6 @@ namespace {
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------------------------------------  
-// Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
-//------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
-
 //------------------------------------------------------------------------------------------------------------
 // Utility routines for number range check.
 //
@@ -101,7 +95,10 @@ int compareEventEntry( const LcsEventMapEntry *arg1, const LcsEventMapEntry *arg
 //------------------------------------------------------------------------------------------------------------
 uint8_t addToMemEventMap( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugLevel > 0 ) printf( "Add to MEM Event Map: %d : %d \n", eventId, portId );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+
+        printf( "Add to MEM Event Map: %d : %d \n", eventId, portId );
+    }
 
     if ( searchEvent( eventId, portId ) >= 0 )    return ( ALL_OK );
     if ( nodeMap.eventMapHwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
@@ -130,7 +127,10 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t removeFromMemEventMap( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugLevel > 0 ) printf( "Remove from MEM Event Map: %d : %d \n", eventId, portId );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) { 
+        
+        printf( "Remove from MEM Event Map: %d : %d \n", eventId, portId );
+    }
 
     int index = searchEvent( eventId, portId );
 
@@ -160,7 +160,10 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugLevel > 0 ) printf( "Add Event: %d : %d\n", eventId, portId );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+        
+        printf( "Add Event: %d : %d\n", eventId, portId );
+    }
 
     int rStat = ALL_OK;
 
@@ -190,7 +193,10 @@ uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugLevel > 0 ) printf( "Remove Event: %d : %d\n", eventId, portId );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+        
+        printf( "Remove Event: %d : %d\n", eventId, portId );
+    }
 
     int rStat = ALL_OK;
 
@@ -221,7 +227,10 @@ uint8_t removeEvent( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 int searchEvent( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugLevel > 0 ) printf( "Search Event: %d : %d", eventId, portId );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+        
+        printf( "Search Event: %d : %d", eventId, portId );
+    }
     
     int   res   = -1;
     int   low   = 0;
@@ -259,7 +268,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
         }
     }
 
-    if ( debugLevel > 0 ) printf( "-> %d\n", res );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) printf( "-> %d\n", res );
     return ( res );
 }
 
@@ -271,7 +280,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
 
-    if ( debugLevel > 0 ) printf( "sync EventMap \n" );  
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) printf( "sync EventMap \n" );  
 
     // update HWM , flags 
 
@@ -285,7 +294,10 @@ uint8_t syncEventMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId ) {
 
-    if ( debugLevel > 0 ) printf( "Get Emap Entry: %d\n", index );
+    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+        
+        printf( "Get Emap Entry: %d\n", index );
+    }
   
     if ( index <  nodeMap.eventMapHwm ) {
 

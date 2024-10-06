@@ -3,10 +3,10 @@
 // LCS Runtime - command line interface.
 //
 //------------------------------------------------------------------------------------------------------------
-// Based on the Raspberry Pi PICO controller, the LCS node has an option to accept commands and display
-// data via the USB interface. This is very handy for initial debugging and troubleshooting in the field. 
-// The command syntax is rather simple and adopted from the original DCC++ work. The key reason for adopting
-// the DCC++ command syntax that for example the JMRI community built tools that accept DCC++ commands.
+// Based on the Raspberry Pi PICO controller USB interface, the LCS node has an option to accept commands and
+// display data. This is very handy for initial debugging and troubleshooting in the field. The command syntax
+// is rather simple and adopted from the original DCC++ work. The key reason for adopting the DCC++ command 
+// syntax that for example the JMRI community built tools that accept DCC++ commands.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -56,7 +56,7 @@ using namespace LCS;
 char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
 //------------------------------------------------------------------------------------------------------------
-// "dumpMemData" lists the MEM data content of the storage area passed. The data is listed in 16-bit 
+// "dumpMemData" lists the memory data content of the storage area passed. The data is listed in 16-bit 
 // quantities.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -81,31 +81,33 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// List NVM storage data. We are passed the absolute offset into the NVM area and the length in bytes.
+// List NVM storage data. We are passed the absolute byte offset into the NVM area and the length in bytes.
 // The data is listed in 16-bit quantities.
 //
 //------------------------------------------------------------------------------------------------------------
 void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
-  uint32_t  index   = 0;
-  uint32_t  limit   = ( len + 1 ) / 2; 
-  uint16_t  val     = 0;
+    uint32_t  limit = start + len;
+    uint16_t  val   = 0;
 
-  while ( index < limit ) {
+    while ( start < limit ) {
 
-    printf( "0x%8x: ", index * sizeof( uint16_t ) );
+        printf( "0x%8x: ", start );
 
-    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-      if ( index + i < limit ) {
+            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
 
-        rtNvmGetWord(( index + i ) * 2, &val );
-        printf( "0x%4x ", val );
-      }
+        if ( ofs < limit ) {
+
+                rtNvmGetWord( ofs, &val );
+                printf( "0x%4x ", val );
+            }
+        }
+
+        start = start + itemsPerLine * sizeof(uint16_t);
+        printf( "\n" );
     }
-
-    printf( "\n" );
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -115,32 +117,33 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 //------------------------------------------------------------------------------------------------------------
 void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
-  uint32_t  index   = 0;
-  uint32_t  limit   = ( len + 1 ) / 2; 
-  uint16_t  val     = 0;
+    uint32_t  limit = start + len;
+    uint16_t  val   = 0;
 
-  while ( index < limit ) {
+    while ( start < limit ) {
 
-    printf( "0x%8x: ", index * sizeof( uint16_t ) );
+        printf( "0x%8x: ", start );
 
-    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-      if ( index + i < limit ) {
+            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
 
-        extNvmGetWord( boardId, ( index + i ) * 2, &val );
-        printf( "0x%4x ", val );
-      }
+        if ( ofs < limit ) {
+
+                extNvmGetWord( boardId, ofs, &val );
+                printf( "0x%4x ", val );
+            }
+        }
+
+        start = start + itemsPerLine * sizeof(uint16_t);
+        printf( "\n" );
     }
-
-    printf( "\n" );
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Routines to list contents of the various memory areas.
+// Routines to list contents of the various memory areas. Right now, we just dump out hex data. It would be 
+// nice to show formatted data. Perhaps one day...
 //
-// ??? general_ should we rather format them ? A lot of work, but much more readable...
-// ??? downside: garbage data needs to be checked...
 //------------------------------------------------------------------------------------------------------------
 void dumpNodeMap( ) {
 
@@ -165,12 +168,16 @@ void dumpNodeData( ) {
 
 void dumpEventMap( ) {
 
+    // ??? print only up to the HWM mark ?
+
     printf( "MEM Event Map (Hwm: %d\n):", nodeMap.eventMapHwm );
     dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
 void dumpPendingReqMap( ) {
+
+     // ??? print only up to the HWM mark ?
 
     printf( "MEM Pending Req Map: (flags: 0x%x)(Hwm: %d)\n ", pendingReqMap.flags, 0 );
     dumpMemData((uint16_t *) pendingReqMap.map, MAX_PENDING_REQ_MAP_ENTRIES * sizeof( LcsPendingReqEntry ));
@@ -186,7 +193,9 @@ void dumpCallbackMap( ) {
 
 void dumpTaskMap( ) {
 
-    printf( "Task Map:\n" );
+    // ??? print only up to the HWM mark ?
+
+    printf( "Task Map: (flags: 0x%x)(Hwm: %d)\n ", taskMap.flags, 0 );
     dumpMemData((uint16_t *) taskMap.map, MAX_TASK_MAP_ENTRIES * sizeof( LcsPTaskMapEntry ));
     printf( "\n" );
 }
@@ -223,25 +232,24 @@ void dumpMemArea( ) {
     printf( "\n" );
 }
 
-void dumpNvmArea( ) {
+void dumpNvmRuntimeArea( ) {
 
-    printf( "NVM Area Dump:\n" );
-    dumpNvmData( 0, sizeof( LcsNodeMap ) + sizeof( LcsNodeData ) + sizeof ( LcsPortMap ) + sizeof( LcsEventMap ));
+    printf( "NVM Runtime Area Dump:\n" );
+    dumpNvmData( 0, NVM_RUNTIME_AREA_SIZE );
     printf( "\n" );
 }
 
 void dumpNvmDrvData( uint16_t boardId  ) {
 
     printf( "NVM Driver Data:\n" );
-
-    // ??? get from the board....
-
+    dumpExtNvmData( boardId, 0, extNvmGetSize( ));
+    printf( "\n" );
 }
 
 void dumpNvmUserArea( ) {
 
     printf( "NVM Area Dump:\n" );
-    dumpNvmData( NVM_USER_MAP_START, 0x100 );  // ??? fix ...
+    dumpNvmData( NVM_USER_MAP_START, usrNvmGetSize( ));
     printf( "\n" );
 }
 
@@ -518,7 +526,7 @@ void getNodeCommand( char *s ) {
     }
     else {
 
-        ret = sendQryNode( npId, item, arg1, arg2 );
+        ret = sendGetNode( npId, item, arg1, arg2 );
         printf( "<!g %d >", ret );
     }
 }
@@ -668,18 +676,18 @@ void listStatusCommand( char *s ) {
 
         switch ( level ) {
 
-            case 0:  printSummary( );       break;
-            case 1:  dumpNodeMap( );        break;
-            case 2:  dumpPortMap( );        break;
-            case 3:  dumpNodeData( );       break;
-            case 4:  dumpEventMap( );       break;
-            case 5:  dumpPendingReqMap( );  break;
-            case 6:  dumpTaskMap( );        break;
-            case 7:  dumpCallbackMap( );    break;
-            case 8:  dumpNvmArea( );        break;
-            case 9:  dumpMemArea( );        break;
+            case 0:  printSummary( );           break;
+            case 1:  dumpNodeMap( );            break;
+            case 2:  dumpPortMap( );            break;
+            case 3:  dumpNodeData( );           break;
+            case 4:  dumpEventMap( );           break;
+            case 5:  dumpPendingReqMap( );      break;
+            case 6:  dumpTaskMap( );            break;
+            case 7:  dumpCallbackMap( );        break;
+            case 8:  dumpNvmRuntimeArea( );     break;
+            case 9:  dumpMemArea( );            break;
 
-            case 10: dumpDrvMap( );         break;
+            case 10: dumpDrvMap( );             break;
 
             default: printf( "<Unknown help option, use '?' for help>" );
         }
