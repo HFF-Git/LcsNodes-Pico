@@ -441,19 +441,19 @@ struct LcsCallbackMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsPTaskMapEntry {
 
-    LcsTaskCallback   task          = nullptr;
-    uint32_t          timeStamp     = 0;
-    uint32_t          interval      = 0;
+    LcsTaskCallback     task          = nullptr;
+    uint32_t            timeStamp     = 0;
+    uint32_t            interval      = 0;
 };
 
 struct LcsTaskMap {
 
-    uint16_t          flags = 0;
-    uint16_t          size  = MAX_TASK_MAP_ENTRIES;  
-    LcsPTaskMapEntry  *hwm  = nullptr;
-    LcsPTaskMapEntry  *next = nullptr;
+    uint16_t            options = 0;   
+    uint16_t            flags   = 0;
+    uint16_t            size    = MAX_TASK_MAP_ENTRIES;  
+    uint16_t            hwm     = 0;
 
-    LcsPTaskMapEntry  map[ MAX_TASK_MAP_ENTRIES ];
+    LcsPTaskMapEntry    map[ MAX_TASK_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -465,15 +465,16 @@ struct LcsTaskMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
 
-  uint16_t nodeId;
-  uint16_t timeoutTimeStamp;
+  uint16_t  npId;
+  uint32_t  reqTimedOutTs;
 };
 
 struct LcsPendingReqMap {
 
-    uint16_t            flags = 0;
-    uint16_t            size  = MAX_PENDING_REQ_MAP_ENTRIES;           
-    LcsPendingReqEntry  *hwm  = nullptr;
+    uint16_t            options = 0;  
+    uint16_t            flags   = 0;
+    uint16_t            size    = MAX_PENDING_REQ_MAP_ENTRIES;           
+    uint16_t            hwm     = 0;
 
     LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
@@ -546,8 +547,9 @@ struct LcsDrvEntry {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
-    uint16_t        flags = 0;
-    uint16_t        size  = MAX_EXT_BOARD_MAP_ENTRIES;    
+    uint16_t        options = 0;
+    uint16_t        flags   = 0;
+    uint16_t        size    = MAX_EXT_BOARD_MAP_ENTRIES;    
 
     LcsDrvEntry     map[ MAX_EXT_BOARDS ];
 };

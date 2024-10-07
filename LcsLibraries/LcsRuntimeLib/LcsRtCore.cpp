@@ -149,13 +149,11 @@ void registerRepCallback( LcsRepCallback functionId ) {
 //-----------------------------------------------------------------------------------------------------------
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
-    LcsPTaskMapEntry *limit  = &taskMap.map[ MAX_TASK_MAP_ENTRIES ];
+    if ( taskMap.hwm < MAX_TASK_MAP_ENTRIES ) {
 
-    if ( taskMap.hwm < limit ) {
-
-        taskMap.hwm -> task       = task;
-        taskMap.hwm -> interval   = interval;
-        taskMap.hwm -> timeStamp  = CDC::getMillis( );
+        taskMap.map[ taskMap.hwm ].task       = task;
+        taskMap.map[ taskMap.hwm ].interval   = interval;
+        taskMap.map[ taskMap.hwm ].timeStamp  = CDC::getMillis( );
         taskMap.hwm ++;
 
         return ( ALL_OK );
@@ -207,7 +205,9 @@ void handlePeriodicTasks( ) {
 
     uint32_t ts = CDC::getMillis( );
 
-    for ( LcsPTaskMapEntry *thisEntry = taskMap.map; thisEntry < taskMap.hwm; thisEntry ++ ) {
+    for ( int i = 0; i < taskMap.hwm; i++ ) {
+
+        LcsPTaskMapEntry *thisEntry = &taskMap.map[ i ];
 
         if (( ts - thisEntry -> timeStamp ) > thisEntry -> interval ) {
 

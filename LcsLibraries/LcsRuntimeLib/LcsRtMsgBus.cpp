@@ -49,19 +49,20 @@ using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains a small pending request
-// buffer. When a request type message is sent we add the target node to the buffer. Easy and simple. Note
-// that there can be more than one entry for the same node in the buffer. If the buffer is full, an error
-// is returned. We have too many outstanding requests then.
+// buffer. When a request type message is sent we add the target node and a timer value to the buffer. Easy 
+// and simple. Note that there can be more than one entry for the same node / port combination in the buffer.
+// If the buffer is full, an error is returned. We have too many outstanding requests then.
 //
 // Idea: scheme could be refined to have a node and a count for pending requests. Perhaps later...
 //------------------------------------------------------------------------------------------------------------
-uint8_t addToPendingReplyMap( uint16_t nodeId ) {
+uint8_t addToPendingReqMap( uint16_t npId ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-        if ( pendingReqMap.map[ i ].nodeId == NIL_NODE_ID ) {
+        if ( pendingReqMap.map[ i ].npId == 0 ) {
 
-            pendingReqMap.map[ i ].nodeId = nodeId;
+            pendingReqMap.map[ i ].npId = npId;
+            pendingReqMap.map[ i ].reqTimedOutTs = CDC::getMillis( ) + 5000; /// ??? fix ... an argument ? to send ?
             return ( ALL_OK );
         }
     }
@@ -70,30 +71,30 @@ uint8_t addToPendingReplyMap( uint16_t nodeId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "removeFromPendingReplyMap" removes an entry from the pending reply buffer. If the entry is not found, we
+// "removeFromPendingReqMap" removes an entry from the pending reply buffer. If the entry is not found, we
 // received a reply for a request that we do not know. Right now, we just ignore this error.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t removeFromPendingReplyMap( uint16_t nodeId ) {
+uint8_t removeFromPendingReqMap( uint16_t npId ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-        if ( pendingReqMap.map[ i ].nodeId == nodeId ) pendingReqMap.map[ i ].nodeId = NIL_NODE_ID;
+        if ( pendingReqMap.map[ i ].npId == npId ) pendingReqMap.map[ i ].npId = NIL_NODE_ID;
     }
 
     return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "checkPendingReplyMap" searches the pending request buffer for a matching node.
+// "checkPendingReqMap" searches the pending request buffer for a matching node.
 //
 //------------------------------------------------------------------------------------------------------------
-bool checkPendingReplyMap( uint16_t nodeId ) {
+bool searchPendingReqMap( uint16_t npId ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-        if ( pendingReqMap.map[ i ].nodeId == nodeId ) return ( true );
-     }
+        if ( pendingReqMap.map[ i ].npId == npId ) return ( true );
+    }
 
     return ( false );
 }
@@ -133,9 +134,6 @@ uint8_t highByte( uint16_t arg ) {
 }
 
 }; // namespace
-
-
-// ??? check for timeouts on pending replies ...
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -228,9 +226,9 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 
              uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
-            if ( checkPendingReplyMap( nodeId )) {
+            if ( searchPendingReqMap( nodeId )) {
 
-                removeFromPendingReplyMap( nodeId );
+                removeFromPendingReqMap( nodeId );
                 return ( msg[ 0 ] );
             
             } else return ( LCS_OP_NO_MSG );
@@ -250,6 +248,28 @@ void printLcsMsg( uint8_t *msg ) {
     for ( int i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i ++ ) printf( "0x%x ", msg[ i ] ); 
     printf( "\n" );
 }
+
+//------------------------------------------------------------------------------------------------------------
+// "processPendingReqMapTimeouts" is part of the periodic processing of the node. It will check wether any
+// requests waiting for a reply have timed out.
+//
+//------------------------------------------------------------------------------------------------------------
+void processPendingReqMapTimeouts( ) {
+
+    uint32_t ts = CDC::getMillis( );
+
+    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
+
+        if ( pendingReqMap.map[ i ].reqTimedOutTs < ts ) {
+
+            // ??? we timed out ... what to do ?
+        }
+    }
+}
+
+
+// ??? how about a sendTimedRequest which will add to pending map ?
+
 
 //------------------------------------------------------------------------------------------------------------
 // LCB message send routines. They all follow the same pattern. There is a method for each message opcode,
@@ -386,7 +406,7 @@ uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
 
 uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if ( addToPendingReplyMap( npId ) == ALL_OK ) {
+    if ( addToPendingReqMap( npId ) == ALL_OK ) {
 
         uint8_t msgBuf[ 8 ] = { LCS_OP_QRY_NODE };
         msgBuf[ 1 ] = highByte( npId );
@@ -403,7 +423,7 @@ uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
 uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if ( addToPendingReplyMap( npId ) == ALL_OK ) {
+    if ( addToPendingReqMap( npId ) == ALL_OK ) {
 
         uint8_t msgBuf[ 8 ] = { LCS_OP_SET_NODE };
         msgBuf[ 1 ] = highByte( npId );
@@ -420,7 +440,7 @@ uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
 uint8_t sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if ( addToPendingReplyMap( npId ) == ALL_OK ) {
+    if ( addToPendingReqMap( npId ) == ALL_OK ) {
 
         uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NODE };
         msgBuf[ 1 ] = highByte( npId );

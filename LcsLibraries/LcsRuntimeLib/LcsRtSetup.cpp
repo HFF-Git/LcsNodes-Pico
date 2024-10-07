@@ -412,7 +412,7 @@ uint8_t setupEventMap( ) {
    
     uint8_t rStat;
 
-    if ( nodeMap.eventMapHwm < MAX_EVENT_MAP_ENTRIES ) {
+    if ( nodeMap.eventMapHwm <= MAX_EVENT_MAP_ENTRIES ) {
 
         for ( uint16_t i = 0; i < nodeMap.eventMapHwm; i++ ) {
 
@@ -485,8 +485,7 @@ uint8_t setupTaskMap( ) {
 
     taskMap.flags = 0;
     taskMap.size  = MAX_TASK_MAP_ENTRIES;
-    taskMap.hwm   = taskMap.map;
-    taskMap.next  = taskMap.map;
+    taskMap.hwm   = 0;
 
     for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) {
 
@@ -528,15 +527,16 @@ uint8_t detectExtensionBoards( ) {
         rStat = extNvmGetBytes( i, 0, (uint8_t *) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ));
         if ( rStat == ALL_OK ) {
 
-            switch( drvMap.map[ i ].extBoard -> boardType ) {
+            // just mark the slot that we read something ...
 
-                // ??? set the driver ...
-
-                // ??? call drvInit for that driver ...
-
+             if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) { 
+                
+                printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
             }
         }
         else {
+
+            // ??? just set flags that this slot is not valid.
 
             if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) { 
                 
@@ -564,6 +564,13 @@ uint8_t setupExtensionBoards( ) {
 
     for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
+        // ??? if a valid slot, validate the data read.
+        // ??? load the driver...
+
+        // ??? for a valid slot with invalid data
+        // ??? mark as error
+
+
         /*
         if ( drvMap.map[ i ].extBoard -> flags != 0  ) {
 
@@ -574,7 +581,11 @@ uint8_t setupExtensionBoards( ) {
         */ 
     }
 
-    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupExtensionBoards, status: %d\n", rStat );
+    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) {
+        
+        printf( "setupExtensionBoards, status: %d\n", rStat );
+    }
+
     return ( rStat );
 }
 
@@ -582,6 +593,8 @@ uint8_t setupExtensionBoards( ) {
 // "invokeInitCallbacks" invokes the registered initialization callbacks for the node and the ports. The 
 // routine is called as the very first thing of the "startRuntime" call.
 //
+//
+// ??? also for drivers ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t invokeInitCallbacks( ) {
 
