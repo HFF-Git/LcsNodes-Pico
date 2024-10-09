@@ -498,9 +498,15 @@ uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
     msgBuf[ 5 ] = highByte( arg );
     msgBuf[ 6 ] = lowByte( arg );
 
-    // ??? also send to local ports ? 
+    if ( nodeId( npId ) == nodeMap.nodeId ) {
 
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+        handleMsgEvent( msgBuf );
+        return( ALL_OK );
+    } 
+    else {
+
+        return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+    }
 }
 
 uint8_t sendTrackOn( ) {

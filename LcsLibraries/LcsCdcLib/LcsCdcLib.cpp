@@ -201,7 +201,7 @@ struct UartInst {
 
 //------------------------------------------------------------------------------------------------------------
 // The I2C instance. The PICO features two HW instances of an I2C port. The instance data contains the
-// assigned GPIO pins, the baudrate and a timeout. We also keep the I2C HW instance used.
+// assigned GPIO pins, the baud rate and a timeout. We also keep the I2C HW instance used.
 //
 //------------------------------------------------------------------------------------------------------------
 struct I2CInst {
@@ -1043,7 +1043,7 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 // PWM section. The PICO is quite flexible when it comes to PWM signals. We implement a simple PWM capability.
 // There is the frequency which set during configuration and there is the write operation which set the duty
 // cycle. The calculations are best described in the PICO C++ SDK. We do the setting of phase, wrap count,
-// etc. once when we configure the PWM channel. All the writePwm function then will do is to manipulate the
+// etc. once when we configure the PWM channel. All the "writePwm" function then will do is to manipulate the
 // duty cycle. In other words, when we change the frequency we need to configure again.
 //
 // There is one small issue left. Channel come in pairs. For some reason there is no call to individually 

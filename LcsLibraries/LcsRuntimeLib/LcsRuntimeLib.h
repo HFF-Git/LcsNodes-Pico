@@ -283,8 +283,7 @@ enum LcsBoardType : uint16_t {
 enum LcsControllerFamilyType : uint16_t {
 
     CF_FAM_NIL                = 0,
-    CF_FAM_RPICO_2040         = 1,
-    CF_FAM_RPICO_2350         = 2,
+    CF_FAM_RPICO              = 1,
     CF_FAM_MICROCHIP          = 3,
     CF_FAM_NXP                = 4
 };

@@ -29,8 +29,10 @@ add_library( ${PROJECT_NAME} STATIC
     LcsRtNvmI2C.cpp 
     LcsRtSetup.cpp 
     LcsRtDrvLib.cpp
-    ./Can2040Lib/can2040.c 
-    ./Can2040Lib/can2040.h 
+    Can2040Lib/can2040.c 
+    Can2040Lib/can2040.h 
+
+
     ) 
 
 # list the library dependencies. This is primarily the PICO standard and dedicated hardware libraries.

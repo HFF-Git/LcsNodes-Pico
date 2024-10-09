@@ -3,8 +3,8 @@
 // Layout Control System - runtime core.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the runtime core. It contains the library internal global variables and the routines
-// to handle messages.
+// The file contains the runtime core. The core implements the node state machine that reacts to messages
+// and advances according to state. The routines are called from the runtime loop in the setup file.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -27,10 +27,9 @@
 //------------------------------------------------------------------------------------------------------------
 // External declaration to global structures defined in "LcsRtSetup".
 //
-//
-// ??? perhaps debugMask could go into nodeMap... but what to do before nodeMap is ready ?
 //-----------------------------------------------------------------------------------------------------------
 extern uint16_t                 debugMask;
+extern LCS::LcsCdcDesc          cdcMap;
 extern LCS::LcsNodeMap          nodeMap;
 extern LCS::LcsPortMap          portMap;
 extern LCS::LcsEventMap         eventMap;
@@ -162,7 +161,9 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// There is a call back that if set will be called for processing inbound port events on each loop iteration.
+// "handleNodePortEvents" will be called for processing inbound port events on each loop iteration. Note that
+// it does not matter where the events came from, i.e. whether another node sends an event or the event was
+// created by a firmware call on this node.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodePortEvents( ) {
@@ -233,7 +234,7 @@ void handleMsgRepNid( uint8_t *msg ) {
 
     if ( nodeUID == nodeMap.nodeUID ) {
 
-       // ????     if ( nodeMap.nodeId != nodeId ) attrSet( nodeId, NPI_NODE_ID, nodeId );
+        if ( nodeMap.nodeId != nodeId ) nodeMap.nodeId = nodeId;
         nodeMap.nodeState = NS_OPERATE;
     }
 }
@@ -263,7 +264,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_BON: {
 
-            // ??? readyLed on
+            CDC::writeDio( cdcMap.cfg.READY_LED_PIN, true );
             nodeMap.nodeState = NS_OPERATE;
             if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
@@ -271,7 +272,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_BOF: {
 
-            /// ??? readyLed off
+            CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false );
             nodeMap.nodeState = NS_HALTED;
             if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
@@ -279,7 +280,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_NCOL: {
 
-            // ??? readyLed off
+            CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false );
             nodeMap.nodeState = NS_COLLISION;
             if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
@@ -314,8 +315,6 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         } break;
     }
 }
-
-// ??? GET/SET/REQ.... changes...
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgQryNode" processes an incoming GET message for a node or port attribute.

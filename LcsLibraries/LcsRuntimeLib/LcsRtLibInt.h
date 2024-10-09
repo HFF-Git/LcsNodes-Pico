@@ -321,7 +321,7 @@ struct LcsNodeMap {
     uint16_t    magicWord1                    = NVM_MWORD_1;
     uint16_t    boardType                     = BT_NIL;
     uint16_t    boardVersion                  = 0;
-    uint16_t    controllerFamily              = CF_FAM_RPICO_2040;
+    uint16_t    controllerFamily              = CF_FAM_RPICO;
     uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
     uint16_t    reserved1                     = 0;
     uint16_t    reserved2                     = 0;
@@ -511,7 +511,7 @@ struct LcsDrvBoardDesc {
     uint16_t    magicWord1                    = NVM_MWORD_1;
     uint16_t    boardType                     = BT_NIL;
     uint16_t    boardVersion                  = 0;
-    uint16_t    controllerFamily              = CF_FAM_RPICO_2040;
+    uint16_t    controllerFamily              = CF_FAM_RPICO;
     uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
     uint16_t    reserved1                     = 0;
     uint16_t    reserved2                     = 0;
