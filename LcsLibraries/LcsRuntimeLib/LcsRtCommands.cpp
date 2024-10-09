@@ -639,12 +639,65 @@ void broadcastLcsMsgCommand( char *s ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!D" sends a request to a driver. A driver is the piece of code that interfaces with an extension board. 
-// There is actually only one routine for talking to an extension board. This command will call a driver with 
-// the  respective arguments. Note that ITEMs which are used to set values in the extension board NVM will 
-// only work when the board is write-enabled. 
+// "!D" sends a GET request to a driver. The commands will typically work on the MEM image of the driver data. 
+// We will use the same idea of item ranges for MEM and NVM, except that the NVM range will work only if the 
+// extension board is write-enabled.
 //
-//    <!D board item arg1 [ arg 2]>
+//    <!G board item >
+//
+//    board - the extension board the driver handles.
+//    item  - the driver specific item which is the requested operation.
+//    arg1  - the first argument to the driver.
+//    arg2  - the optional second argument to the driver and also output from the driver.
+//
+//    returns:  <!D board item arg ret>
+//
+//------------------------------------------------------------------------------------------------------------
+void drvGetCommand( char *s ) {
+
+    uint8_t  boardId  = 0;
+    uint8_t  item     = 0;
+    uint16_t arg      = 0;
+    uint8_t  rStat    = 0;
+
+    if ( sscanf( s, "%hhu %hhu", &boardId, &item ) < 2 ) return;
+
+    rStat = drvGet( boardId, item, &arg );
+                                  
+    printf( "<!D %d %d %d %d >", boardId, item, arg, rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "!M" sends a PUT request to a driver. The commands will typically work on the MEM image of the driver data. 
+// We will use the same idea of item ranges for MEM and NVM, except that the NVM range will work only if the 
+// extension board is write-enabled.
+//
+//    <!M board item arg1 >
+//
+//    board - the extension board the driver handles.
+//    item  - the driver specific item which is the requested operation.
+//    arg   - the data argument to the driver.
+//
+//    returns:  <!M board item arg ret>
+//
+//------------------------------------------------------------------------------------------------------------
+void drvPutCommand( char *s ) {
+    uint8_t  boardId  = 0;
+    uint8_t  item     = 0;
+    uint16_t arg      = 0;
+    uint8_t  rStat    = 0;
+
+    if ( sscanf( s, "%hhu %hhu %hu", &boardId, &item, &arg ) < 3 ) return;
+
+    rStat = drvPut( boardId, item, arg );
+
+    printf( "<!D %d %d %d %d >", boardId, item, arg, rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "!R" sends a REQ request to a driver.
+//
+//    <!R board item arg1 [ arg 2]>
 //
 //    board - the extension board the driver handles.
 //    item  - the driver specific item which is the requested operation.
@@ -654,17 +707,19 @@ void broadcastLcsMsgCommand( char *s ) {
 //    returns:  <!D board item arg1 arg 2 ret>
 //
 //------------------------------------------------------------------------------------------------------------
-void drvRequestCommand( char *s ) {
+void drvReqCommand( char *s ) {
 
     uint8_t  boardId  = 0;
     uint8_t  item     = 0;
     uint16_t arg1     = 0;
     uint16_t arg2     = 0;
+    uint8_t  rStat    = 0;
 
     if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
 
-    int ret = drvReq( boardId, item, &arg1, &arg2 );
-    printf( "<!D %d %d %d %d %d >", boardId, item, arg1, arg2, ret );
+    rStat = drvReq( boardId, item, &arg1, &arg2 );
+
+    printf( "<!D %d %d %d %d %d >", boardId, item, arg1, arg2, rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -725,8 +780,11 @@ void listCoreLibHelpCommand( ) {
     printf( "<!r npId item val1 [ val2 ] > - request a node function\n" );
 
     printf( "<!B byte1 [ byte2 ... byte8 ] > - broadcast a raw LCS message\n" );
-    printf( "<!D board item [ arg1 [ arg2 ]] > - send a request to an extension board n\n" );
 
+    printf( "<!G board item > - send a GET request to an extension board n\n" );
+    printf( "<!P board item arg > - send a PUT request to an extension board n\n" );
+    printf( "<!R board item [ arg1 [ arg2 ]] > - send a REQ request to an extension board n\n" );
+   
     printf( " < !s [ level ] > - list status, default is summary\n" );
     printf( "              " " -  0  - summary\n" );
     printf( "              " " -  1  - Node Map\n" );
@@ -778,24 +836,28 @@ uint8_t handleSerialCommand( ) {
 
             switch ( commandBuf[ 1 ] ) {
 
-              case 'C': switchToConfigCommand( commandBuf + 2 );        break;
-              case 'O': switchToOperationsCommand( commandBuf + 2 );    break;
-              
-              case 'a': enterEventCommand( commandBuf + 2 );            break;
-              case 'd': removeEventCommand( commandBuf + 2 );           break;
-              case 'f': findEventCommand( commandBuf + 2 );             break;
-              case 'e': sendEventCommand( commandBuf + 2 );             break;
-              
-              case 'g': getNodeCommand( commandBuf + 2 );               break;
-              case 'p': putNodeCommand( commandBuf + 2 );               break;
-              case 'r': reqNodeCommand( commandBuf + 2 );               break;
+                case 'C': switchToConfigCommand( commandBuf + 2 );        break;
+                case 'O': switchToOperationsCommand( commandBuf + 2 );    break;
+                
+                case 'a': enterEventCommand( commandBuf + 2 );            break;
+                case 'd': removeEventCommand( commandBuf + 2 );           break;
+                case 'f': findEventCommand( commandBuf + 2 );             break;
+                case 'e': sendEventCommand( commandBuf + 2 );             break;
+                
+                case 'g': getNodeCommand( commandBuf + 2 );               break;
+                case 'p': putNodeCommand( commandBuf + 2 );               break;
+                case 'r': reqNodeCommand( commandBuf + 2 );               break;
 
-              case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;
-              case 'D': drvRequestCommand( commandBuf + 2 );            break;
-              case 's': listStatusCommand( commandBuf + 2 );            break;
-              case '?': listCoreLibHelpCommand( );                      break;
+                case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;
 
-              default: printf( "<Unknown !-command, use '!?' for help>" );
+                case 'G': drvGetCommand( commandBuf + 2 );                break;
+                case 'P': drvPutCommand( commandBuf + 2 );                break;
+                case 'R': drvReqCommand( commandBuf + 2 );                break;
+
+                case 's': listStatusCommand( commandBuf + 2 );            break;
+                case '?': listCoreLibHelpCommand( );                      break;
+
+                default: printf( "<Unknown !-command, use '!?' for help>" );
             }
           }
           else if ( callbackMap.cmdLineCallback != nullptr ) {

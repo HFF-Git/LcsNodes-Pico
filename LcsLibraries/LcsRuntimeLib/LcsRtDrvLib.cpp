@@ -71,33 +71,23 @@ uint8_t highByte( uint16_t arg ) {
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// "drvInit" is the library internal routine called to setup an extension board when the board is detected
-// and the driver identified and loaded.
-// 
-//------------------------------------------------------------------------------------------------------------
-uint8_t drvInit( uint8_t boardId ) {
-
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
-
-    // ??? locate the driver data
-    // ??? invoke the driver
-
-    return( ALL_OK );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "drvGet" returns a value from the driver data array. Note that this is the MEM portion. 
+// "drvGet" returns a value from the driver data array. 
 //
-// ??? which item range to use ?
+// ??? a similar logic as we have for node/port attributes ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
 
     if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
 
-    if ( isInRangeU( item, 0, 63 )) {
+    if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
-        *arg = drvMap.map -> extBoard-> driverData[ item ];
+        *arg = drvMap.map -> extBoard -> driverData[ item ];
         return( ALL_OK );
+    }
+    else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
+
+       if ( extNvmGetWord( boardId, 0, arg ) != ALL_OK ) return( 0 ); // ??? fix
+       return( ALL_OK );
     }
     else return( ERR_INVALID_ITEM_ID ); 
 }
@@ -112,10 +102,15 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 
     if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
 
-    if ( isInRangeU( item, 0, 63 )) {
+     if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
         drvMap.map -> extBoard-> driverData[ item ] = arg;
         return( ALL_OK );
+    }
+    else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
+
+       if ( extNvmPutWord( boardId, 0, arg ) != ALL_OK ) return( 0 ); // ??? fix
+       return( ALL_OK );
     }
     else return( ERR_INVALID_ITEM_ID ); 
 }
@@ -127,8 +122,15 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
-    return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
+     if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
+
+
+    // ??? if there is no driver we only accept very few items.
+
+    if ( drvMap.map[ boardId - 1 ].drvFunc != nullptr ) {
+
+        return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
+    }
 }
 
 } // namespace LCS

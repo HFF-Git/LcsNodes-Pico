@@ -560,6 +560,8 @@ enum LcsErrorCodes : uint8_t {
     // ??? for now .... 
     ERR_INVALID_BOARD_ID                = 255,
 
+    ERR_EXT_BOARD_NOT_VALID             = 254,
+
     ERR_INVALID_DRV_ITEM                = 100,
 
     ERR_NODE_SPECIFIC_BASE              = 128
