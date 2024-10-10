@@ -122,15 +122,13 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-     if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
-
-
-    // ??? if there is no driver we only accept very few items.
+    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
 
     if ( drvMap.map[ boardId - 1 ].drvFunc != nullptr ) {
 
         return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
     }
+    else return( ERR_EXT_BOARD_NOT_VALID );
 }
 
 } // namespace LCS

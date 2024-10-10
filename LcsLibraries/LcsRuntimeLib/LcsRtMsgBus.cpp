@@ -408,7 +408,7 @@ uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
     if ( addToPendingReqMap( npId ) == ALL_OK ) {
 
-        uint8_t msgBuf[ 8 ] = { LCS_OP_QRY_NODE };
+        uint8_t msgBuf[ 8 ] = { LCS_OP_GET_NODE };
         msgBuf[ 1 ] = highByte( npId );
         msgBuf[ 2 ] = lowByte( npId );
         msgBuf[ 3 ] = item;
@@ -425,7 +425,7 @@ uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
     if ( addToPendingReqMap( npId ) == ALL_OK ) {
 
-        uint8_t msgBuf[ 8 ] = { LCS_OP_SET_NODE };
+        uint8_t msgBuf[ 8 ] = { LCS_OP_PUT_NODE };
         msgBuf[ 1 ] = highByte( npId );
         msgBuf[ 2 ] = lowByte( npId );
         msgBuf[ 3 ] = item;

@@ -3,11 +3,12 @@
 // Layout Control System - node access routines.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the part of the LCS Runtime that implements the GET, PUT and REQ access. There are three 
-// routines that allow to manipulate node and port data as well as issue requests to a node or port. The key
-// are the node/port ID and the item number. The "npId" will indicate which node and port the call refers to.
-// The node portion is typically our own node Id, the port Id refers to a ports on the node, with a port Id 
-// of zero referring to the node itself. As explained in the include files, there are four item group. 
+// The file contains the LCS runtime routines that implement node access. There are three routines that allow
+// to manipulate node and port data as well as issue requests to a node or port. The key are the node/port ID
+// and the item number. The "npId" will indicate which node and port the call refers to. The node portion is 
+// typically our own node Id, the port Id refers to a ports on the node, with a port Id of zero referring to
+// the node itself. Any node can access another node. In this case request comes via a message and the 
+// message handler will call the local routines in this file. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -84,7 +85,8 @@ namespace {
 
     //--------------------------------------------------------------------------------------------------------
     // "readAttrMem" gets a value from the node or port attribute map in MEM. As an internal function, we 
-    // expect a valid block and item argument.
+    // expect a valid block and item argument. The "block" argument will refer to the node and port data
+    // attributes. Block 0 is the node, all others the port. 
     //
     //--------------------------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
@@ -95,7 +97,8 @@ namespace {
 
     //----------------------------------------------------------------------------------------------------------
     // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an internal function, we 
-    // expect a valid block and item argument.
+    // expect a valid block and item argument. The "block" argument will refer to the node and port data
+    // attributes. Block 0 is the node, all others the port. 
     //
     //----------------------------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
@@ -105,7 +108,7 @@ namespace {
     }
 
     //--------------------------------------------------------------------------------------------------------
-    // "readAttrNvm" gets an attribute from the NVM storage. We read the value and store it in the memory 
+    // "readAttrNvm" gets an attribute from the NVM storage. We read the value from NVM, store it in the MEM 
     // counterpart and then return it. For the NVM access, the byte offset into the storage needs to be 
     // computed. As an internal function, we expect a valid block and item argument.
     //
@@ -113,7 +116,7 @@ namespace {
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
         uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
-        uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
+        uint16_t ofs    = (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
         uint8_t  rStat  = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
 
         *arg = (( rStat == ALL_OK ) ? nodeData.map[ block ][ index ] : 0 );
@@ -129,14 +132,14 @@ namespace {
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
         uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
-        uint16_t ofs    = ( block * MAX_ATTR_MAP_ENTRIES ) + ( index  * sizeof( uint16_t ));
+        uint16_t ofs    = (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
         nodeData.map[ block ][ index ] = arg;
         return ( rtNvmPutWord( ofs, arg ));
     }
 
     //--------------------------------------------------------------------------------------------------------
-    // User callback function invocation routines. Items 64 to 127 are user defined items. We will simply
+    // User callback function invocation routine. Items 64 to 127 are user defined items. We will simply
     // invoke a previously registered callback passing the arguments.
     //
     //--------------------------------------------------------------------------------------------------------
@@ -160,7 +163,7 @@ namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // "nodeGet" will lookup a value from the node, port or the attribute data map. The "npId" argument contains
-// the node and port Id. However, we will only use the portId portion.
+// the node and port Id. However, we will only use the portId portion, which represents the block index.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -192,6 +195,16 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
+            case ITEM_ID_FLAGS: {
+
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
+
+                if ( portId( npId ) == 0 )   *arg1 = nodeMap.nodeFlags;
+                else                         *arg1 = portMap.map[ portId( npId ) - 1 ].flags;
+
+                return ( ALL_OK );
+            }
+
             case ITEM_ID_NODE_UID: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
@@ -214,7 +227,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = MAX_PORT_MAP_ENTRIES;
+                *arg1 = nodeMap.portMapEntries;
                 return ( ALL_OK );
             }
 
@@ -222,7 +235,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = MAX_EVENT_MAP_ENTRIES;
+                *arg1 = nodeMap.eventMapEntries;
                 return ( ALL_OK );
             }
 
@@ -242,7 +255,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_EVENT_MAP_ENTRY: {
+            case ITEM_ID_GET_EVENT_MAP_ENTRY: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG );
@@ -260,23 +273,24 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_FLAGS: {
-
-                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
-
-                if ( portId( npId ) == 0 )   *arg1 = nodeMap. portMapFlags;
-                else                         *arg1 = portMap.map[ portId( npId ) - 1 ].flags;
-
-                return ( ALL_OK );
-            }
-
             case ITEM_ID_NAME_1: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
+
+                if ( portId( npId ) == 0 ) {
                 
-                *arg1 = ((uint16_t) ( nodeMap.name[ 0 ] << 8  ) | nodeMap.name[ 1 ] );
-                *arg2 = ((uint16_t) ( nodeMap.name[ 2 ] << 8  ) | nodeMap.name[ 3 ] );
+                    *arg1 = ((uint16_t) ( nodeMap.name[ 0 ] << 8  ) | nodeMap.name[ 1 ] );
+                    *arg2 = ((uint16_t) ( nodeMap.name[ 2 ] << 8  ) | nodeMap.name[ 3 ] );
+                }
+                else {
+
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+
+                    *arg1 = ((uint16_t) ( pEntry -> name[ 0 ] << 8  ) | pEntry -> name[ 1 ] );
+                    *arg2 = ((uint16_t) ( pEntry -> name[ 2 ] << 8  ) | pEntry -> name[ 3 ] );
+                }
+
                 return ( ALL_OK );
             }
 
@@ -285,8 +299,19 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = ((uint16_t) ( nodeMap.name[ 4 ] << 8  ) | nodeMap.name[ 5 ] );
-                *arg2 = ((uint16_t) ( nodeMap.name[ 6 ] << 8  ) | nodeMap.name[ 7 ] );
+                if ( portId( npId ) == 0 ) {
+                
+                    *arg1 = ((uint16_t) ( nodeMap.name[ 4 ] << 8  ) | nodeMap.name[ 5 ] );
+                    *arg2 = ((uint16_t) ( nodeMap.name[ 6 ] << 8  ) | nodeMap.name[ 7 ] );
+                }
+                else {
+
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+
+                    *arg1 = ((uint16_t) ( pEntry -> name[ 4 ] << 8  ) | pEntry -> name[ 5 ] );
+                    *arg2 = ((uint16_t) ( pEntry -> name[ 6 ] << 8  ) | pEntry -> name[ 7 ] );
+                }
+
                 return ( ALL_OK );
             }
 
@@ -295,8 +320,19 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = ((uint16_t) ( nodeMap.name[ 8 ] << 8  ) | nodeMap.name[ 9 ] );
-                *arg2 = ((uint16_t) ( nodeMap.name[ 10 ] << 8  ) | nodeMap.name[ 11 ] );
+                if ( portId( npId ) == 0 ) {
+                
+                    *arg1 = ((uint16_t) ( nodeMap.name[ 8 ] << 8  ) | nodeMap.name[ 9 ] );
+                    *arg2 = ((uint16_t) ( nodeMap.name[ 10 ] << 8  ) | nodeMap.name[ 11 ] );
+                }
+                else {
+
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+
+                    *arg1 = ((uint16_t) ( pEntry -> name[ 8 ] << 8  ) | pEntry -> name[ 9 ] );
+                    *arg2 = ((uint16_t) ( pEntry -> name[ 10 ] << 8  ) | pEntry -> name[ 11 ] );
+                }
+
                 return ( ALL_OK );
             }
 
@@ -305,8 +341,19 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = ((uint16_t) ( nodeMap.name[ 12 ] << 8  ) | nodeMap.name[ 13 ] );
-                *arg2 = ((uint16_t) ( nodeMap.name[ 14 ] << 8  ) | nodeMap.name[ 15 ] );
+                if ( portId( npId ) == 0 ) {
+                
+                    *arg1 = ((uint16_t) ( nodeMap.name[ 12 ] << 8  ) | nodeMap.name[ 13 ] );
+                    *arg2 = ((uint16_t) ( nodeMap.name[ 14 ] << 8  ) | nodeMap.name[ 15 ] );
+                }
+                else {
+
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+
+                    *arg1 = ((uint16_t) ( pEntry -> name[ 12 ] << 8  ) | pEntry -> name[ 13 ] );
+                    *arg2 = ((uint16_t) ( pEntry -> name[ 14 ] << 8  ) | pEntry -> name[ 15 ] );
+                }
+
                 return ( ALL_OK );
             }
 
@@ -389,12 +436,14 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 if ( portId( npId ) == 0 ) {
 
                     memcpy((uint8_t *) nodeMap.name, (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
-                    return( rtNvmPutBytes( offsetof( LcsNodeMap, name ), (uint8_t *)tempName, MAX_NODE_NAME_SIZE ));
+                    return( rtNvmPutBytes(  NVM_NODE_MAP_START + offsetof( LcsNodeMap, name ), 
+                                            (uint8_t *)tempName, 
+                                            MAX_NODE_NAME_SIZE ));
                 }
                 else {
 
                     memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, (uint8_t *)tempName, MAX_PORT_NAME_SIZE );
-                    uint16_t ofs =  NVM_NODE_MAP_START +
+                    uint16_t ofs =  NVM_PORT_MAP_START +
                                     offsetof( LcsPortMap, map ) + 
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, name );
@@ -460,23 +509,24 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                // ??? pass the a debug mask argument ?
+                debugMask = *arg1;
                 return ( resetNode( npId ));
             }
 
             case ITEM_ID_ADD_EVENT_MAP_ENTRY: {
 
-                return ( addEvent( *arg1, *arg2 & 0xFF ));
+                return ( addEvent( *arg1, *arg2 ));
             }
 
             case ITEM_ID_DEL_EVENT_MAP_ENTRY: {
 
-                return ( removeEvent( *arg1, *arg2 & 0xFF ));
+                return ( removeEvent( *arg1, *arg2 ));
             }
 
             case ITEM_ID_SYNC: {
 
                 // ??? options what to sync ? For now it is only the event map...
+                // ??? use arg 1 as an option number... ?
                 return( syncEventMap( ));
             }
 
@@ -484,7 +534,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
 
-                    nodeMap.nodeId = *arg1 & 0xFFF0;
+                    nodeMap.nodeId = nodeId( *arg1 );
                     return( rtNvmPutBytes(  NVM_NODE_MAP_START +
                                             offsetof( LcsNodeMap, nodeId ), 
                                             (uint8_t *) &nodeMap.nodeId, 

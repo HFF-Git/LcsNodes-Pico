@@ -4,9 +4,10 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // Based on the Raspberry Pi PICO controller USB interface, the LCS node has an option to accept commands and
-// display data. This is very handy for initial debugging and troubleshooting in the field. The command syntax
-// is rather simple and adopted from the original DCC++ work. The key reason for adopting the DCC++ command 
-// syntax that for example the JMRI community built tools that accept DCC++ commands.
+// display data. This interface is used for manual node and extension board configuration as well as debug
+// and troubleshooting. The command syntax is rather simple and adopted from the original DCC++ work. The key
+// reason for adopting the DCC++ command syntax that for example the JMRI community built tools that accept 
+// DCC++ commands.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -41,7 +42,6 @@ extern LCS::LcsTaskMap          taskMap;
 extern LCS::LcsPendingReqMap    pendingReqMap;
 extern LCS::LcsDrvMap           drvMap;
 extern LCS::LcsMsgBusCAN        *msgBus;
-
 
 //------------------------------------------------------------------------------------------------------------
 // Local declarations.
@@ -100,14 +100,14 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
             uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
 
-        if ( ofs < limit ) {
+            if ( ofs < limit ) {
 
                 rtNvmGetWord( ofs, &val );
                 printf( "0x%4x ", val );
             }
         }
 
-        start = start + itemsPerLine * sizeof(uint16_t);
+        start = start + ( itemsPerLine * sizeof(uint16_t));
         printf( "\n" );
     }
 }
@@ -130,7 +130,7 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 
             uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
 
-        if ( ofs < limit ) {
+            if ( ofs < limit ) {
 
                 extNvmGetWord( boardId, ofs, &val );
                 printf( "0x%4x ", val );
@@ -156,9 +156,7 @@ void dumpNodeMap( ) {
 
 void dumpPortMap( ) {
 
-     printf( "MEM Port Map (Options: 0x%x, Flags: 0x%x, Size: %d, Hwm: %d\n):", 
-            nodeMap.portMapOptions, nodeMap.portMapFlags, nodeMap.portMapEntries, nodeMap.portMapHwm );
-    
+    printf( "MEM Port Map (Size: %d, Hwm: %d\n):", nodeMap.portMapEntries, nodeMap.portMapHwm );
     dumpMemData((uint16_t *) &portMap.map, sizeof( LcsPortMap ));
     printf( "\n" );
 }
@@ -172,18 +170,14 @@ void dumpNodeData( ) {
 
 void dumpEventMap( ) {
 
-    printf( "MEM Event Map (Options: 0x%x, Flags: 0x%x, Size: %d, Hwm: %d\n):", 
-            nodeMap.eventMapOptions, nodeMap.eventMapFlags, nodeMap.eventMapEntries, nodeMap.eventMapHwm );
-
+    printf( "MEM Event Map (Size: %d, Hwm: %d\n):", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
     dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
 void dumpPendingReqMap( ) {
 
-    printf( "MEM Pending Req Map: (Options: 0x%x, Flags: 0x%x, Size: %d, Hwm: %d)\n ", 
-            pendingReqMap.options, pendingReqMap.flags, pendingReqMap.size, pendingReqMap.hwm );
-
+    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d)\n ", pendingReqMap.size, pendingReqMap.hwm );
     dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
     printf( "\n" );
 }
@@ -197,18 +191,14 @@ void dumpCallbackMap( ) {
 
 void dumpTaskMap( ) {
 
-    printf( "Task Map: (Options: 0x%x, Flags: 0x%x, Size: %d, Hwm: %d )\n ", 
-            taskMap.options, taskMap.flags, taskMap.size, taskMap.hwm );
-
+    printf( "Task Map: (Size: %d, Hwm: %d )\n ", taskMap.size, taskMap.hwm );
     dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
     printf( "\n" );
 }
 
 void dumpDrvMap( ) {
 
-    printf( "Driver Map: (Options: 0x%x, Flags: 0x%x, Size: %d) \n ",
-            drvMap.options, drvMap.flags, drvMap.size );
-
+    printf( "Driver Map: (Size: %d) \n ", drvMap.size );
     dumpMemData((uint16_t *) &drvMap, sizeof( LcsDrvMap ));
     printf( "\n" );
 }
@@ -303,8 +293,9 @@ uint8_t highByte( uint16_t arg ) {
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// "!c" switches a node to CFG mode. For a local command, we construct the LCS_OP_CFG message payload data 
-// and invoke the msg handler for switching the node mode. For any other node, we will just send a message.
+// "!c" switches a node to CFG mode. For a local node command, we construct the LCS_OP_CFG message payload
+// data and invoke the msg handler for switching the node mode. For any other node, we will just send a LCS 
+// message.
 //
 //    <!c [ npId ] >
 //
@@ -325,13 +316,14 @@ void switchToConfigCommand( char *s ) {
     else {
 
         uint8_t ret = sendCfg( npId );
-        printf( "<!c %d >", ret );
+        printf( "<!c %d>", ret );
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!o" switches the nodes to OPS mode. We construct the LCS_OP_CFG message payload data and invoke the msg
-// handler for switching the node mode. For any other node, we will just send a message.
+// "!o" switches the nodes to OPS mode. For a local node command, we construct the LCS_OP_OPS message payload
+// data and invoke the msg handler for switching the node mode. For any other node, we will just send a LCS 
+// message.
 //
 //    <!o [ npId ] >
 //
@@ -352,18 +344,19 @@ void switchToOperationsCommand( char *s ) {
     else {
 
         uint8_t ret = sendOps( npId );
-        printf( "<!o %d >", ret );
+        printf( "<!o %d>", ret );
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "!a" adds an eventId / portId to the event map. If the npId is omitted, every port on the local node will 
-// be registered for the event. For a non-local npId we will send a message.
+// "!a" adds an eventId / portId to the event map. If the portId is omitted, every port of the node will be 
+// registered for the event. For a non-local npId we will send a message.
 //
-//    <!a npId eventId [ portId ]>
+//      <!a npId eventId [ portId ]>
 //
-//    eventId   -   the eventId.
-//    npId      -   the node and port Id for which the event is added.
+//      npId      - the node and port Id for which the event is added.
+//      eventId   - the eventId.
+//      portId    - the port number.
 //
 //    returns: <!a ret>
 //
@@ -379,12 +372,12 @@ void enterEventCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         int ret = nodeReq( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, &eventId, &portId );
-        printf( "<!a %d >", ret );
+        printf( "<!a %d>", ret );
     }
     else {
 
-        uint8_t ret = sendReqNode( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, eventId, npId );
-        printf( "<!a %d >", ret );
+        uint8_t ret = sendReqNode( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, eventId, portId );
+        printf( "<!a %d>", ret );
     }
 }
 
@@ -392,12 +385,13 @@ void enterEventCommand( char *s ) {
 // "!r"  removes a eventId / portId combination from the event map. If the portId is omitted, all eventMap
 // entries with the eventId are removed.
 //
-//    <!r npId eventId [ portId ]>
+//      <!r npId eventId [ portId ]>
 //
-//    eventId   -   the eventId.
-//    portId    -   the portId for which the event is removed.
+//      npId      - the node and port Id for which the event is added.
+//      eventId   - the eventId.
+//      portId    - the port number.
 //
-//    returns: <!r ret>
+//      returns: <!r ret>
 //
 //------------------------------------------------------------------------------------------------------------
 void removeEventCommand( char *s ) {
@@ -411,36 +405,37 @@ void removeEventCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         int ret = nodeReq( npId, ITEM_ID_DEL_EVENT_MAP_ENTRY, &eventId, &portId );
-        printf( "<!r %d >", ret );
+        printf( "<!r %d>", ret );
     }
     else {
 
         uint8_t ret = sendReqNode( nodeMap.nodeId, ITEM_ID_DEL_EVENT_MAP_ENTRY, eventId, portId );
-        printf( "<!r %d >", ret );
+        printf( "<!r %d>", ret );
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "!f" searches the event map for the eventId / portId combination and returns the index if found. If the
-// portId is omitted, the first event map entry with the matching eventId is returned.
+// portId is omitted, the first event map entry with the matching eventId is returned. This is a local 
+// command and cannot be called from a remote node.
 //
-//    <!f eventId [ portId ]>
+//      <!f eventId [ portId ]>
 //
-//    eventId   -   the eventId.
-//    portId    -   the portId for which the event is removed.
+//      eventId   - the eventId.
+//      portId    - the port number.
 //
-//    returns: <!r ret> where "ret" is either the index of the event map entry or -1.
+//      returns: <!r ret> where "ret" is either the index of the event map entry or -1.
 //
 //------------------------------------------------------------------------------------------------------------
 void findEventCommand( char *s ) {
 
-    uint16_t  eventId = NIL_EVENT_ID;
-    uint16_t  portId  = NIL_PORT_ID;
+    uint16_t  eventId   = NIL_EVENT_ID;
+    uint16_t  portId    = NIL_PORT_ID;
 
     if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return;
 
     int ret = searchEvent( eventId, portId );
-    printf( "<!f %d >", ret );
+    printf( "<!f %d>", ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -529,12 +524,12 @@ void getNodeCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         ret = nodeGet( npId, item, &arg1, &arg2 );
-        printf( "<!g %d|0x%x|0x%x|%d>", item, arg1, arg2, ret );
+        printf( "<!g %d 0x%x 0x%x %d>", item, arg1, arg2, ret );
     }
     else {
 
         ret = sendGetNode( npId, item, arg1, arg2 );
-        printf( "<!g %d >", ret );
+        printf( "<!g %d>", ret );
     }
 }
 
@@ -565,12 +560,12 @@ void putNodeCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
      
         ret = nodePut( npId, item, val1, val2 );
-        printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+        printf( "<!p %d 0x%x 0x%x %d>", item, val1, val2, ret );
     }
     else {
 
         ret = sendSetNode( npId, item, val1, val2 );
-        printf( "<!g %d >", ret );
+        printf( "<!p %d>", ret );
     }
 }
 
@@ -601,12 +596,12 @@ void reqNodeCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
      
         ret = nodeReq( npId, item, &val1, &val2 );
-        printf( "<!r %d|0x%x|0x%x|%d>", item, val1, val2, ret );
+        printf( "<!r %d 0x%x 0x%x %d>", item, val1, val2, ret );
     }
     else {
 
         ret = sendReqNode( npId, item, val1, val2 );
-        printf( "<!g %d >", ret );
+        printf( "<!r %d>", ret );
     }
 }
 
@@ -634,7 +629,7 @@ void broadcastLcsMsgCommand( char *s ) {
 
         printf( "<!B [ " );
         for ( int i = 0; i < 8; i++ ) printf( "0x%x ", b[ i ] );
-        printf( "] : %d >", ret );
+        printf( "] : %d>", ret );
     }
 }
 
@@ -650,7 +645,7 @@ void broadcastLcsMsgCommand( char *s ) {
 //    arg1  - the first argument to the driver.
 //    arg2  - the optional second argument to the driver and also output from the driver.
 //
-//    returns:  <!D board item arg ret>
+//    returns:  <!G board item arg ret>
 //
 //------------------------------------------------------------------------------------------------------------
 void drvGetCommand( char *s ) {
@@ -664,7 +659,7 @@ void drvGetCommand( char *s ) {
 
     rStat = drvGet( boardId, item, &arg );
                                   
-    printf( "<!D %d %d %d %d >", boardId, item, arg, rStat );
+    printf( "<!G %d %d %d %d>", boardId, item, arg, rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -691,20 +686,20 @@ void drvPutCommand( char *s ) {
 
     rStat = drvPut( boardId, item, arg );
 
-    printf( "<!D %d %d %d %d >", boardId, item, arg, rStat );
+    printf( "<!M %d %d %d %d>", boardId, item, arg, rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "!R" sends a REQ request to a driver.
 //
-//    <!R board item arg1 [ arg 2]>
+//    <!R board item arg1 [ arg 2 ]>
 //
 //    board - the extension board the driver handles.
 //    item  - the driver specific item which is the requested operation.
 //    arg1  - the first argument to the driver.
 //    arg2  - the optional second argument to the driver and also output from the driver.
 //
-//    returns:  <!D board item arg1 arg 2 ret>
+//    returns:  <!D board item arg1 arg2 ret>
 //
 //------------------------------------------------------------------------------------------------------------
 void drvReqCommand( char *s ) {
@@ -715,11 +710,11 @@ void drvReqCommand( char *s ) {
     uint16_t arg2     = 0;
     uint8_t  rStat    = 0;
 
-    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 4 ) return;
+    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 3 ) return;
 
     rStat = drvReq( boardId, item, &arg1, &arg2 );
 
-    printf( "<!D %d %d %d %d %d >", boardId, item, arg1, arg2, rStat );
+    printf( "<!R %d %d %d %d %d>", boardId, item, arg1, arg2, rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -770,10 +765,10 @@ void listCoreLibHelpCommand( ) {
     printf( "<!c [ npId ] > - enter config mode\n" );
     printf( "<!o [ npId ] > - enter operations mode\n" );
 
-    printf( "<!a eventId [ npId ] > - add an event to the event tab\n" );
-    printf( "<!d eventId [ npId ] > - remove an event from the event tab\n" );
-    printf( "<!f eventId [ npId ] > - search an event on the event tab\n" );
+    printf( "<!a npId eventId [ npId ] > - add an event to the event tab\n" );
+    printf( "<!d npId eventId [ npId ] > - remove an event from the event tab\n" );
     printf( "<!e npId eventId mode [ arg ] > - simulate sending an event ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
+    printf( "<!f eventId [ npId ] > - search an event on the event tab\n" );
     
     printf( "<!g npId item > - gets a node attribute\n" );
     printf( "<!p npId item val1 [ val2 ] > - puts a node attribute\n" );
@@ -800,7 +795,8 @@ void listCoreLibHelpCommand( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupSerialCommand" initializes the serial interface. We use the PICO USB as console IO.
+// "setupSerialCommand" initializes the serial interface. We use the PICO USB as console IO. The CDC lib
+// contains functions for reading and writing to the console.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
@@ -811,68 +807,69 @@ uint8_t setupSerialCommand( ) {
 //------------------------------------------------------------------------------------------------------------
 // "handleSerialCommand" reads characters from the console. The command line syntax is modeled after the
 // original DCC++ work. First character is a command, the rest are arguments. A command is bracketed by "<" 
-// and ">". Once we encounter a closing ">" sign, the first character in the bracketed string is used to 
+// and ">". Once we encounter a closing ">" sign, the first characters in the bracketed string is used to 
 // branch to the appropriate command handler. The command interface routine only handles the LCS commands, 
-// which do start with a "!" after the opening bracket. Anything else is passed to a command handler callback,
-// if defined. The interface accepts more than one command, they are just a list of "<...>" characters.
-// Note that this routine is called as part of the runtime loop. Consequently, it cannot not block for IO. 
-// The interface is designed in a way that it assembles the character input when there are characters. Only
-// when there is a valid "<...>" sequence assembled, the command handler is invoked. 
+// which do start with a "!" followed by the command character after the opening bracket. Anything else is 
+// passed to a command handler callback, if defined. The interface accepts more than one command, they are 
+// just a list of "<...>" characters. Note that this routine is called as part of the runtime loop. 
+// Consequently, it cannot not block for IO. The interface is designed in a way that it assembles the 
+// character input when there are characters. Only when a valid "<...>" sequence assembled, the command 
+// handler is invoked. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
 
-  char c;
+    char c;
 
-  while ( c = CDC::getConsoleChar( ) > 0 ) {
+    while ( c = CDC::getConsoleChar( ) > 0 ) {
 
-    switch( c ) {
+        switch( c ) {
 
-      case '<': commandBuf[ 0 ] = 0; break;
+            case '<': commandBuf[ 0 ] = 0; break;
 
-      case '>': {
+            case '>': {
 
-          if ( commandBuf[ 0 ] == '!' ) {
+                if ( commandBuf[ 0 ] == '!' ) {
 
-            switch ( commandBuf[ 1 ] ) {
+                    switch ( commandBuf[ 1 ] ) {
 
-                case 'C': switchToConfigCommand( commandBuf + 2 );        break;
-                case 'O': switchToOperationsCommand( commandBuf + 2 );    break;
-                
-                case 'a': enterEventCommand( commandBuf + 2 );            break;
-                case 'd': removeEventCommand( commandBuf + 2 );           break;
-                case 'f': findEventCommand( commandBuf + 2 );             break;
-                case 'e': sendEventCommand( commandBuf + 2 );             break;
-                
-                case 'g': getNodeCommand( commandBuf + 2 );               break;
-                case 'p': putNodeCommand( commandBuf + 2 );               break;
-                case 'r': reqNodeCommand( commandBuf + 2 );               break;
+                        case 'C': switchToConfigCommand( commandBuf + 2 );        break;
+                        case 'O': switchToOperationsCommand( commandBuf + 2 );    break;
+                        
+                        case 'a': enterEventCommand( commandBuf + 2 );            break;
+                        case 'd': removeEventCommand( commandBuf + 2 );           break;
+                        case 'f': findEventCommand( commandBuf + 2 );             break;
+                        case 'e': sendEventCommand( commandBuf + 2 );             break;
+                        
+                        case 'g': getNodeCommand( commandBuf + 2 );               break;
+                        case 'p': putNodeCommand( commandBuf + 2 );               break;
+                        case 'r': reqNodeCommand( commandBuf + 2 );               break;
 
-                case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;
+                        case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;
 
-                case 'G': drvGetCommand( commandBuf + 2 );                break;
-                case 'P': drvPutCommand( commandBuf + 2 );                break;
-                case 'R': drvReqCommand( commandBuf + 2 );                break;
+                        case 'G': drvGetCommand( commandBuf + 2 );                break;
+                        case 'P': drvPutCommand( commandBuf + 2 );                break;
+                        case 'R': drvReqCommand( commandBuf + 2 );                break;
 
-                case 's': listStatusCommand( commandBuf + 2 );            break;
-                case '?': listCoreLibHelpCommand( );                      break;
+                        case 's': listStatusCommand( commandBuf + 2 );            break;
+                        case '?': listCoreLibHelpCommand( );                      break;
 
-                default: printf( "<Unknown !-command, use '!?' for help>" );
-            }
-          }
-          else if ( callbackMap.cmdLineCallback != nullptr ) {
+                        default: printf( "<Unknown !-command, use '!?' for help>" );
+                    }
+                }
+                else if ( callbackMap.cmdLineCallback != nullptr ) {
 
-            callbackMap.cmdLineCallback( commandBuf );
-          }
-          else printf( "<Unknown command, use '?' for help>" );
+                    callbackMap.cmdLineCallback( commandBuf );
+                }
+                else printf( "<Unknown command, use '?' for help>" );
 
-        } break;
+            } break;
 
-      default: if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) strncat( commandBuf, &c, 1 );
+            default: if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) strncat( commandBuf, &c, 1 );
+        }
     }
-  }
 
-  return( ALL_OK );
+    return( ALL_OK );
 }
 
 }; // namespace LCS

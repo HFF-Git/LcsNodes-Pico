@@ -166,15 +166,15 @@ const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + '0';
 //------------------------------------------------------------------------------------------------------------
 enum CanBusControllerMode : uint8_t {
 
-  CAN_BUS_LIB_PICO_PIO_125K               = 1,
-  CAN_BUS_LIB_PICO_PIO_250K               = 2,
-  CAN_BUS_LIB_PICO_PIO_500K               = 3,
-  CAN_BUS_LIB_PICO_PIO_1000K              = 4,
+    CAN_BUS_LIB_PICO_PIO_125K               = 1,
+    CAN_BUS_LIB_PICO_PIO_250K               = 2,
+    CAN_BUS_LIB_PICO_PIO_500K               = 3,
+    CAN_BUS_LIB_PICO_PIO_1000K              = 4,
 
-  CAN_BUS_LIB_PICO_PIO_125K_M_CORE        = 11,
-  CAN_BUS_LIB_PICO_PIO_250K_M_CORE        = 12,
-  CAN_BUS_LIB_PICO_PIO_500K_M_CORE        = 13,
-  CAN_BUS_LIB_PICO_PIO_1000K_M_CORE       = 14,
+    CAN_BUS_LIB_PICO_PIO_125K_M_CORE        = 11,
+    CAN_BUS_LIB_PICO_PIO_250K_M_CORE        = 12,
+    CAN_BUS_LIB_PICO_PIO_500K_M_CORE        = 13,
+    CAN_BUS_LIB_PICO_PIO_1000K_M_CORE       = 14,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -186,29 +186,29 @@ enum CanBusControllerMode : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum MsgPriority : uint8_t {
 
-  MSG_PRI_VERY_HIGH   = 0,
-  MSG_PRI_HIGH        = 1,
-  MSG_PRI_NORMAL      = 2,
-  MSG_PRI_LOW         = 3
+    MSG_PRI_VERY_HIGH   = 0,
+    MSG_PRI_HIGH        = 1,
+    MSG_PRI_NORMAL      = 2,
+    MSG_PRI_LOW         = 3
 };
 
 //----------------------------------------------------------------------------------------------------------
-  // The node states. The node starts in the INIT state and once all is initialized and registered ends up in
-  // the OPS or CFG mode.
-  //
-  //  NS_NIL            -
-  //  NS_FAIL           -   The node startup failed.
-  //  NS_PFAIL          -   The node startup detected that we come up after a power fail.
-  //  NS_INIT           -   The node entered the startup state.
-  //  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId.
-  //  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus.
-  //  NS_HALTED         -   The node was halted.
-  //  NS_CONFIG         -   The node is in configuration mode.
-  //  NS_OPERATE        -   The node is on operations mode.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  enum LcsNodeState : uint16_t {
-
+// The node states. The node starts in the INIT state and once all is initialized and registered ends up in
+// the OPS or CFG mode.
+//
+//  NS_NIL            -
+//  NS_FAIL           -   The node startup failed.
+//  NS_PFAIL          -   The node startup detected that we come up after a power fail.
+//  NS_INIT           -   The node entered the startup state.
+//  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId.
+//  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus.
+//  NS_HALTED         -   The node was halted.
+//  NS_CONFIG         -   The node is in configuration mode.
+//  NS_OPERATE        -   The node is on operations mode.
+//
+//----------------------------------------------------------------------------------------------------------
+enum LcsNodeState : uint16_t {
+    
     NS_NIL              = 0,
     NS_FAIL             = 1,
     NS_PFAIL            = 2,
@@ -218,7 +218,7 @@ enum MsgPriority : uint8_t {
     NS_HALTED           = 6,
     NS_CONFIG           = 7,
     NS_OPERATE          = 8
-  };
+};
 
 //------------------------------------------------------------------------------------------------------------
 // Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. 
@@ -293,7 +293,7 @@ struct LcsMsgBusCAN {
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcDesc {
 
-  CDC::CdcPinConfig cfg;
+    CDC::CdcPinConfig cfg;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -347,21 +347,14 @@ struct LcsNodeMap {
     uint16_t    userMapNvmOfs                 = NVM_USER_MAP_START;
     uint32_t    nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
 
-    uint16_t    portMapOptions                = 0;
-    uint16_t    portMapFlags                  = 0;
     uint16_t    portMapEntries                = MAX_PORT_MAP_ENTRIES;
     uint16_t    portMapHwm                    = 0;
 
-    uint16_t    eventMapOptions               = 0;
-    uint16_t    eventMapFlags                 = 0;
     uint16_t    eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
     uint16_t    eventMapHwm                   = 0;
 
-    uint16_t    drvMapOptions                 = 0;
-    uint16_t    drvMapFlags                   = 0;
     uint16_t    drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
     uint16_t    drvMapHwm                     = 0;
-
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -448,8 +441,6 @@ struct LcsPTaskMapEntry {
 
 struct LcsTaskMap {
 
-    uint16_t            options = 0;   
-    uint16_t            flags   = 0;
     uint16_t            size    = MAX_TASK_MAP_ENTRIES;  
     uint16_t            hwm     = 0;
 
@@ -465,14 +456,12 @@ struct LcsTaskMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
 
-  uint16_t  npId;
-  uint32_t  reqTimedOutTs;
+    uint16_t  npId;
+    uint32_t  reqTimedOutTs;
 };
 
 struct LcsPendingReqMap {
 
-    uint16_t            options = 0;  
-    uint16_t            flags   = 0;
     uint16_t            size    = MAX_PENDING_REQ_MAP_ENTRIES;           
     uint16_t            hwm     = 0;
 
@@ -486,7 +475,7 @@ struct LcsPendingReqMap {
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
 
-  typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );  
+    typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );  
 } 
 
 //------------------------------------------------------------------------------------------------------------
@@ -533,8 +522,8 @@ struct LcsDrvBoardDesc {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {
 
-  LcsDrvBoardDesc   *extBoard = nullptr;
-  LcsDrvReqFunc     drvFunc   = nullptr;
+    LcsDrvBoardDesc   *extBoard = nullptr;
+    LcsDrvReqFunc     drvFunc   = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -547,10 +536,7 @@ struct LcsDrvEntry {
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
 
-    uint16_t        options = 0;
-    uint16_t        flags   = 0;
-    uint16_t        size    = MAX_EXT_BOARD_MAP_ENTRIES;    
-
+    uint16_t        size = MAX_EXT_BOARD_MAP_ENTRIES;    
     LcsDrvEntry     map[ MAX_EXT_BOARDS ];
 };
 

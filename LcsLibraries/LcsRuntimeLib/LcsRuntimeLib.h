@@ -346,23 +346,21 @@ enum NodeFlags : uint16_t {
 enum Items : uint8_t {
 
     ITEM_ID_OPTIONS                     = 1,
-    ITEM_ID_VERSION                     = 2,
-    ITEM_ID_FLAGS                       = 3,
-    ITEM_ID_TYPE                        = 4,
-    ITEM_ID_SUB_TYPE                    = 5,
-    ITEM_ID_CONTROLLER_FAMILY           = 6,
-    ITEM_ID_NVM_CHIP_FAMILY             = 7,
+    ITEM_ID_FLAGS                       = 2,
+    ITEM_ID_VERSION                     = 4,
+    ITEM_ID_TYPE                        = 5,
+    ITEM_ID_SUB_TYPE                    = 6,
+    ITEM_ID_CONTROLLER_FAMILY           = 7,
+    ITEM_ID_NVM_CHIP_FAMILY             = 8,
 
     ITEM_ID_NODE_ID                     = 10,
     ITEM_ID_NODE_UID                    = 11,
+    ITEM_ID_RESTART_COUNT               = 15,
 
     ITEM_ID_PORT_MAP_ENTRIES            = 12,
     ITEM_ID_EVENT_MAP_ENTRIES           = 13,
     ITEM_ID_ATTR_MAP_ENTRIES            = 14,
 
-    ITEM_ID_RESTART_COUNT               = 15,
-    ITEM_ID_EVENT_MAP_ENTRY             = 16,
-   
     ITEM_ID_NAME_1                      = 17,
     ITEM_ID_NAME_2                      = 18,
     ITEM_ID_NAME_3                      = 19,
@@ -375,6 +373,7 @@ enum Items : uint8_t {
     ITEM_ID_SET_NODE_ID                 = 24,
     ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
     ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
+    ITEM_ID_GET_EVENT_MAP_ENTRY         = 27,
 
     ITEM_ID_SET_READY_LED               = 30,
     ITEM_ID_SET_ACTIVITY_LED            = 31,
@@ -394,20 +393,15 @@ enum Items : uint8_t {
 //
 //  PF_PORT_ENABLED                 - the port is initialized and active
 //  PF_PORT_EVENT_HANDLING_ENABLED  - the port has event handling enabled
-//  PF_PORT_EVENT_DIRECTION         - if set, this is an outbound port, else an inbound port.
 //  PF_EVENT_PENDING                - an event has been received for this port and is pending.
 //
-//
-// ??? what exactly is an outbound port ?
-// ??? should we have a flag for a request pending ?
 // ??? a flag for a timed out request ? 
 //----------------------------------------------------------------------------------------------------------
 enum PortFlags : uint16_t {
 
     PF_PORT_ENABLED                 = 0x8000,
     PF_PORT_EVENT_HANDLING_ENABLED  = 0x4000,
-    PF_PORT_EVENT_DIRECTION         = 0x2000,
-    PF_EVENT_PENDING                = 0x1000
+    PF_EVENT_PENDING                = 0x2000
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -490,8 +484,8 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_REQ_NID          = OPC( 7, 1 ),
     LCS_OP_REP_NID          = OPC( 7, 2 ),
     LCS_OP_SET_NID          = OPC( 7, 3 ),
-    LCS_OP_QRY_NODE         = OPC( 7, 4 ),
-    LCS_OP_SET_NODE         = OPC( 7, 5 ),
+    LCS_OP_GET_NODE         = OPC( 7, 4 ),
+    LCS_OP_PUT_NODE         = OPC( 7, 5 ),
     LCS_OP_REQ_NODE         = OPC( 7, 6 ),
     LCS_OP_REP_NODE         = OPC( 7, 7 ),
     LCS_OP_REP_LOC          = OPC( 7, 8 ),
@@ -516,6 +510,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_NVM_SETUP                       = 11,
     ERR_MEM_SETUP                       = 12,
     ERR_CAN_SETUP                       = 13,
+
     ERR_NVM_NODE_MAP_CORRUPT            = 14,
     ERR_NVM_SIZE_EXCEEDED               = 15,
     ERR_MEM_SIZE_EXCEEDED               = 16,
@@ -529,9 +524,11 @@ enum LcsErrorCodes : uint8_t {
     ERR_INVALID_NODE_ID                 = 30,
     ERR_INVALID_PORT_ID                 = 31,
     ERR_INVALID_ITEM_ID                 = 32,
-    ERR_INVALID_ATTR_ARG                = 33,
-   
-    ERR_INVALID_EVENT_ID                = 50,
+    ERR_INVALID_EVENT_ID                = 33,
+    ERR_INVALID_BOARD_ID                = 34,
+    ERR_INVALID_DRV_ITEM                = 35,
+    ERR_INVALID_ATTR_ARG                = 36,
+
     ERR_INVALID_EVENT_MAP_INDEX         = 51,
     ERR_EVENT_MAP_FULL                  = 52,
     ERR_PENDING_REQ_MAP_FULL            = 53,
@@ -557,12 +554,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_CAN_ID_COLLISION                = 87,
     ERR_CAN_ID_CHANGED                  = 88,
 
-    // ??? for now .... 
-    ERR_INVALID_BOARD_ID                = 255,
-
     ERR_EXT_BOARD_NOT_VALID             = 254,
-
-    ERR_INVALID_DRV_ITEM                = 100,
 
     ERR_NODE_SPECIFIC_BASE              = 128
 };

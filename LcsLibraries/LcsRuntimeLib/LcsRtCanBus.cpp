@@ -13,9 +13,6 @@
 // has a lot of other things to do. Using a queue from the PICO C++ SDK, the core running the CAN state
 // machine will just queue the received message to be picked up by the other core when ready.
 //
-// As a further optimization we could implement a filter that filters out nodeId specific messages not
-// intended for this node. One day....
-//
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Can Bus Interface Library
@@ -46,7 +43,7 @@
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
 
-  #include "./Can2040Lib/can2040.h"
+    #include "./Can2040Lib/can2040.h"
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -99,8 +96,8 @@ struct can2040          cBus;
 queue_t                 rxQueue;
 
 //------------------------------------------------------------------------------------------------------------
-// The "buildCanBusMsgHeader" constructs the canId parameter for the CAN Id used in the message. The canId
-// 32-bit word encodes the canId itself, and flags such as EXT or RTR.
+// The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes the canId itself and
+// flags such as EXT or RTR.
 //
 //------------------------------------------------------------------------------------------------------------
 inline uint32_t buildCanBusMsgHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
@@ -123,32 +120,27 @@ void CanBusPIOIrqHandler( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// For each messages transmitted or received a callback is invoked from within the interrupt handler, so
+// For each messages transmitted or received this callback is invoked from within the interrupt handler, so
 // all we can do is a quick non-blocking action. The callback allows to react to a message sent, a message
 // received and an internal buffer overflow error.
 //
 // The callback could be used to filter messages directly at this stage. Only messages that concern this
 // node should be processed. Easy said, but perhaps no so easy to do. We can basically to filtering at the
-// higher message bus level or at the lower layers. The benefit for doing it here is that it would run on
-// a separate core and relief the other core even further. To think about one day.
+// higher message bus level or at the lower layers. The benefit for doing it here is that when we run at the
+// other core, the main core is relieved even further. To think about one day.
 // 
 //------------------------------------------------------------------------------------------------------------
 void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
 
     if ( notify == CAN2040_NOTIFY_RX ) {
 
-        if ( queue_try_add( &rxQueue, msg )) {
-
-            // ??? successfully queued, remove from REQ pending list ?
-        }
-        else {
+        if ( ! queue_try_add( &rxQueue, msg )) {
 
             // ??? we could not add ... what to do ?
         }
     }
     else if ( notify == CAN2040_NOTIFY_TX ) {
 
-        // ??? add to pending request list ?
         // ??? transmit completed successfully
     }
     else if ( notify == CAN2040_NOTIFY_ERROR ) {
@@ -197,7 +189,7 @@ void canBusCore( ) {
 
     cfg.mcSetupOK = true;
 
-    if ( debugMask & LCS::DBG_CAN_BUS ) {
+    if ( debugMask & ( LCS::DBG_CONFIG | LCS::DBG_CAN_BUS )) {
 
         printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
     }
@@ -242,7 +234,7 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
     cfg.mcPioNum        = 0;
     cfg.mcRxQueueSize   = RX_QUEUE_SIZE;
 
-    cfg.mcRunOnCore1    = (( fMode == CAN_BUS_LIB_PICO_PIO_125K_M_CORE ) ||
+    cfg.mcRunOnCore1    =  (( fMode == CAN_BUS_LIB_PICO_PIO_125K_M_CORE ) ||
                             ( fMode == CAN_BUS_LIB_PICO_PIO_250K_M_CORE ) ||
                             ( fMode == CAN_BUS_LIB_PICO_PIO_500K_M_CORE ) ||
                             ( fMode == CAN_BUS_LIB_PICO_PIO_1000K_M_CORE ));
@@ -300,6 +292,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
     if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
         CDC::sleepMillis( TX_RETRY_TIMEOUT );
+
         if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
         else                              return ( ERR_CAN_MSG_SEND );
 
@@ -308,9 +301,8 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "receiveLcsMsg" will check for a CAN Bus message and if one is available fill the passed message buffer.
-// With the "can2040" library CAN bus messages are received via a callback function. This library will store
-// each received message in the local receiver queue. This happens within the interrupt handler who calls the
-// receiver callback. So, all this routine will do is work from the receiver queue.
+// With the "can2040" library CAN bus messages are received via a callback function, which will store the 
+// each received message in the local receiver queue. 
 //
 // Besides receiving a message, there is the handling of CAN Id collisions. When we detect a non-zero length
 // message with a Can Id that is our own, we have a collision and report an error. This could happen for
@@ -319,7 +311,8 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 //
 // In addition to message processing, we also need to react to RTR messages. We answer such a request with
 // sending a zero length message response. Replying to such a message from other nodes results in a status
-// return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was actually received.
+// return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was actually received. This is also the 
+// case when the message queue is empty.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {

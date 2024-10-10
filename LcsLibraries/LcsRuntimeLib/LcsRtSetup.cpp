@@ -155,18 +155,12 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
     nMap -> userMapNvmOfs           = NVM_USER_MAP_START;
     nMap -> nvmMemSize              = NVM_RUNTIME_AREA_SIZE;
 
-    nMap -> portMapOptions          = 0;
-    nMap -> portMapFlags            = 0;
     nMap -> portMapEntries          = MAX_PORT_MAP_ENTRIES;
     nMap -> portMapHwm              = 0;
 
-    nMap -> eventMapOptions         = 0;
-    nMap -> eventMapFlags           = 0;
     nMap -> eventMapEntries         = MAX_EVENT_MAP_ENTRIES;
     nMap -> eventMapHwm             = 0;
 
-    nMap -> drvMapOptions           = 0;
-    nMap -> drvMapFlags             = 0;
     nMap -> drvMapEntries           = MAX_EXT_BOARD_MAP_ENTRIES;
     nMap -> drvMapHwm               = 0;
 }
@@ -270,9 +264,7 @@ void buildDefaultBoardDesc( LcsDrvBoardDesc *bDesc ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultDrvMap( LcsDrvMap *drv ) {
 
-    drv -> options  = 0;
-    drv -> flags    = 0;
-    drv -> size     = MAX_EXT_BOARD_MAP_ENTRIES;    
+    drv -> size = MAX_EXT_BOARD_MAP_ENTRIES;    
 
     for ( uint16_t i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i ++ ) {
 
@@ -535,7 +527,6 @@ uint8_t setupTaskMap( ) {
 
     uint8_t rStat = ALL_OK;
 
-    taskMap.flags = 0;
     taskMap.size  = MAX_TASK_MAP_ENTRIES;
     taskMap.hwm   = 0;
 

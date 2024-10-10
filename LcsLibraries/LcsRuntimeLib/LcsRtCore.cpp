@@ -3,7 +3,7 @@
 // Layout Control System - runtime core.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the runtime core. The core implements the node state machine that reacts to messages
+// The file contains the runtime core routines. They implement the node state machine that reacts to messages
 // and advances according to state. The routines are called from the runtime loop in the setup file.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -48,16 +48,12 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
-// During node Id allocation, the node tries in periodic intervals to obtain a node ID.
+// Local constants and helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
 const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
 uint32_t        timerVal                        = 0L;
 
-//------------------------------------------------------------------------------------------------------------
-// Little helper functions.
-//
-//------------------------------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
   return (( val >= lower ) && ( val <= upper ));
@@ -140,11 +136,7 @@ void registerRepCallback( LcsRepCallback functionId ) {
 // pTaskMap. We only add entries, never remove them. A high water mark is used to record the highest entry
 // used, so that processing will not run through empty entries.
 //
-//
-// ??? perhaps this needs to be reworked to use HW driven timers. This would be a good choice for task that
-// think in seconds. We avoid unnecessary checking. Other tasks, such as listing to the CAN bus currently
-// run very often. The whole message bus system business would also need t be converted to interrupt driven
-// approach then ... to think about. 
+// ??? perhaps this needs to be reworked to use HW driven timers. 
 //-----------------------------------------------------------------------------------------------------------
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
@@ -154,7 +146,6 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
         taskMap.map[ taskMap.hwm ].interval   = interval;
         taskMap.map[ taskMap.hwm ].timeStamp  = CDC::getMillis( );
         taskMap.hwm ++;
-
         return ( ALL_OK );
 
     } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
@@ -163,7 +154,7 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 //------------------------------------------------------------------------------------------------------------
 // "handleNodePortEvents" will be called for processing inbound port events on each loop iteration. Note that
 // it does not matter where the events came from, i.e. whether another node sends an event or the event was
-// created by a firmware call on this node.
+// created by a firmware call on this node. The event callback can be delayed with a timer value.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodePortEvents( ) {
@@ -178,8 +169,7 @@ void handleNodePortEvents( ) {
 
         if (( pPtr -> flags & PF_PORT_ENABLED                 ) &&
             ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED  ) &&
-            ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION    )) &&
-            ( pPtr -> flags & PF_EVENT_PENDING               )) {
+            ( pPtr -> flags & PF_EVENT_PENDING                )) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
@@ -187,12 +177,22 @@ void handleNodePortEvents( ) {
                                             pPtr -> eventId,
                                             pPtr -> eventAction,
                                             pPtr -> eventValue );
-             }
+            }
 
             pPtr -> flags &= ~ PF_EVENT_PENDING;
         }
     }
 }
+
+
+
+
+
+// ???? continue from here......
+
+
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a 
@@ -317,10 +317,10 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgQryNode" processes an incoming GET message for a node or port attribute.
+// "handleMsgGetNode" processes an incoming GET message for a node or port attribute.
 //
 //------------------------------------------------------------------------------------------------------------
-void handleMsgQryNode( uint8_t *msg ) {
+void handleMsgGetNode( uint8_t *msg ) {
 
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
@@ -337,10 +337,10 @@ void handleMsgQryNode( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgSetNode" processes an incoming SET message for a node or port attribute.
+// "handleMsgPutNode" processes an incoming PUT message for a node or port attribute.
 //
 //------------------------------------------------------------------------------------------------------------
-void handleMsgSetNode( uint8_t *msg ) {
+void handleMsgPutNode( uint8_t *msg ) {
 
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
@@ -429,8 +429,7 @@ void handleMsgEvent( uint8_t *msg ) {
             LcsPortMapEntry *pPtr = &portMap.map[ index ];
 
             if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
-                ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   ) &&
-                ( pPtr -> flags & ( ~ PF_PORT_EVENT_DIRECTION     ))) {
+                ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   )) {
 
                 pPtr -> eventNodeId     = nodeId;
                 pPtr -> eventId         = eventId;
@@ -593,7 +592,7 @@ void handleNodeStateConfig( ) {
         case LCS_OP_SET_NID:
         case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
 
-        case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );              break;
+        case LCS_OP_GET_NODE:       handleMsgGetNode( msg );              break;
         case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
         case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
     }
@@ -620,8 +619,8 @@ void handleNodeStateOperations( ) {
         case LCS_OP_REQ_NID:
         case LCS_OP_NCOL:           handleMsgLcsMgt( msg );             break;
 
-        case LCS_OP_QRY_NODE:       handleMsgQryNode( msg );            break;
-        case LCS_OP_SET_NODE:       handleMsgSetNode( msg );            break;
+        case LCS_OP_GET_NODE:       handleMsgGetNode( msg );            break;
+        case LCS_OP_PUT_NODE:       handleMsgPutNode( msg );            break;
         case LCS_OP_REP_NODE:       handleMsgRepNode( msg );            break;
         case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );            break;
 
