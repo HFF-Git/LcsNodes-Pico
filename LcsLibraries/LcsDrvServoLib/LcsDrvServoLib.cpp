@@ -3,9 +3,9 @@
 // LCS - Driver Library Code for SERVO boards
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains the lower level library for all the servoe extension board. We also call this
+// This source file contains the lower level library for all the servo extension board. We also call this
 // library a "driver". The driver provides a set of defined interfaces to the upper level extension library.
-// Being a driver, it truly knows teh hardware underneath and maps the upper level calls to the lower level
+// Being a driver, it truly knows the hardware underneath and maps the upper level calls to the lower level
 // hardware calls to make.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
   void setPwmFreq( float freq ) {
 
 
-    // some computation to end up with the preScale value dwerived from "freq"
+    // some computation to end up with the preScale value derived from "freq"
     /*
       freq *= 0.9; // overshoot correction ?
       float pp = 25000000; // 25Mhz
@@ -159,7 +159,7 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
   //----------------------------------------------------------------------------------------------------------
   //
   //----------------------------------------------------------------------------------------------------------
-  // ??? idea: set the LED duty cycle staggered in the 4096 bit window, such that not all LEDs wil draw
+  // ??? idea: set the LED duty cycle staggered in the 4096 bit window, such that not all LEDs will draw
   // current at the same time.
 
   void setPwm( uint8_t ledNum, uint16_t on, uint16_t off ) {

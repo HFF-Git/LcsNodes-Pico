@@ -1,15 +1,11 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Core library - Non volatile storage based on the M24LCxxx chip family
+// LCS Runtime library - Non volatile storage based on the M24LCxxx chip family
 //
 //------------------------------------------------------------------------------------------------------------
-// This file implements the LCS core library non-volatile memory. The hardware is the AA24xxx chip family,
+// This file implements the LCS runtime library non-volatile memory. The hardware is the AA24xxx chip family,
 // which offers an I2C protocol based chip with various capacities. They all share the same pin layout and
 // command structure.
-//
-// The chip family allows up to eight chips on the I2C address root. We will support a model if up to four
-// chips on the particular I2C bus. Each chip is an object, the class has static functions to transparently
-// select the correct chip for the I/O request.
 //
 // In addition we also support the M24C04 chip, which is used on the extension boards as a configuration
 // storage. This chip will however be replaced by 24AA32, a 4K chip of the same chip family as the other
@@ -42,6 +38,10 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
+//------------------------------------------------------------------------------------------------------------
+// Externals.
+// 
+//------------------------------------------------------------------------------------------------------------
 extern uint16_t debugMask;
 
 //------------------------------------------------------------------------------------------------------------
@@ -56,8 +56,8 @@ using namespace LCS;
 // Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize which is the unit
 // updated in case of a write. A write cannot across a page boundary and must be split into several writes
 // if necessary. Reads do not have this problem. Al chips have the same I2C address root which is "1010".
-// There are three address lines A2, A1 and A0, which are all used on all chips. Up to eight chips can
-// this be addressed on a single I2C bus.
+// There are three address lines A2, A1 and A0, which are used to select a chips. Up to eight chips can be
+// addressed on a single I2C bus.
 //
 // The pageSizes on the chip are a multiple of 32bytes. For now, we use this size as the common denominator.
 // Block handling and chipSize page handling are nicely taken care of this way. The downside is however that
@@ -90,8 +90,12 @@ const uint32_t  M24C04_MAX_SIZE             = 512;
 const uint8_t   NVM_I2C_ADR_ROOT            = 0b1010000;
 const uint8_t   EXT_I2C_ADR_ROOT            = 0b1010000;
 
-const uint32_t  NVM_NVM_RUNTIME_MAP_SIZE    = 0x2000;
-
+//------------------------------------------------------------------------------------------------------------
+// Runtime NVM sizes. The runtime map has a maximum of 8Kb. The maximum size of a NVM chip is 64Kb.  The 
+// maximum size for an extension board NVM chip is 4Kb. 
+//
+//------------------------------------------------------------------------------------------------------------
+const uint32_t  NVM_RUNTIME_MAP_SIZE        = 0x2000;
 const uint32_t  NVM_MAX_NVM_SIZE            = 0x10000;
 const uint32_t  NVM_MAX_EXT_SIZE            = 0x1000;
 
@@ -99,13 +103,15 @@ const uint32_t  NVM_MAX_EXT_SIZE            = 0x1000;
 // Module global data. A LCS node board has two NVM channels. The "NVM" channel refers to the NVM chip on
 // main controller board. The "EXT" channel is the I2C bus that reaches out the the extension boards. On
 // each extension board there is again a small NVM chip with configuration data. Besides the hardware pins
-// there are the sizes of the chips. There is no easy way to determine the size of the actual chip. By
-// convention, the NVM chip on the extension board is a fixed 4 Kbytes. The NVM chip on the main controller
-// board is at least 8Kbytes, which is the architected runtime data structures size. The maximum size is 
-// 64 Kbytes. All the chips are from a hardware perspective identical. When we start a node, the nodeMap 
-// structure, i.e. the first few hundred bytes, contains a field that holds the actual size configured for 
-// the chip on the particular board. The difference between the minimum size of 8Kbytes and the particular
-// maximum is considered "user NVM space" which the firmware uses as needed.
+// there are the sizes of the chips. 
+//
+// There is no easy way to determine the size of the actual chip. By convention, the extension board NVM 
+// chip has a fixed 4 Kbytes. The NVM chip on the main controller board is at least 8Kbytes, which is the 
+// architected runtime data structures size. The maximum size is 64 Kbytes. All the chips are from a hardware
+// perspective identical. When we start a node, the nodeMap structure, i.e. the first few hundred bytes, 
+// contains a field that holds the actual size configured for the chip on the particular board. The difference
+// between the runtime map size and the particular NVM chip maximum is considered "user NVM space" which the
+// firmware can use as needed.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t    nodeNvmSize                     = 0;
@@ -118,7 +124,7 @@ uint8_t     extSclPin                       = CDC::UNDEFINED_PIN;
 uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
-// A little help function to test whether the chip is read for the next operation. The test consist of 
+// A little helper function to test whether the chip is read for the next operation. The test consist of 
 // writing to the chip and see if this works.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -185,7 +191,7 @@ if ( nvmSize == M24C04_MAX_SIZE ) {
         if ( chipReady( sclPin, tmpAdr )) {
 
             CDC::i2cWrite( nvmSclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
-            CDC::i2cRead( nvmSclPin, tmpAdr, buf, BUFFER_BLOCK_SIZE );
+            CDC::i2cRead( nvmSclPin, tmpAdr, buf, len );
         }
     }
     else {
@@ -198,7 +204,7 @@ if ( nvmSize == M24C04_MAX_SIZE ) {
             tmp = ofs & 0xFF;
             CDC::i2cWrite( nvmSclPin, i2cAdr, &tmp, 1 );
 
-            CDC::i2cRead( nvmSclPin, i2cAdr, buf, BUFFER_BLOCK_SIZE );
+            CDC::i2cRead( nvmSclPin, i2cAdr, buf, len );
         }
     }
 
@@ -335,7 +341,7 @@ uint8_t configNvm( CDC::CdcPinConfig *ci ) {
     nodeNvmSize   = ci -> NODE_NVM_SIZE;
     extNvmSize    = ci -> EXT_NVM_SIZE;
 
-    if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_NVM_RUNTIME_MAP_SIZE;
+    if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
     if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
 
     return( ALL_OK );
@@ -369,7 +375,7 @@ uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
 uint32_t rtNvmGetSize( ) { 
 
-    return( NVM_NVM_RUNTIME_MAP_SIZE );
+    return( NVM_RUNTIME_MAP_SIZE );
 }
 
 //------------------------------------------------------------------------------------------------------------

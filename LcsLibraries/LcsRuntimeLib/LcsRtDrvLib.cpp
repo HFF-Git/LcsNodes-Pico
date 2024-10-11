@@ -29,10 +29,10 @@
 // External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
-extern uint16_t                 debugMask;
-extern LCS::LcsCdcDesc          cdcMap;
-extern LCS::LcsNodeMap          nodeMap;
-extern LCS::LcsDrvMap           drvMap;
+extern uint16_t             debugMask;
+extern LCS::LcsCdcDesc      cdcMap;
+extern LCS::LcsNodeMap      nodeMap;
+extern LCS::LcsDrvMap       drvMap;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -64,6 +64,7 @@ uint8_t highByte( uint16_t arg ) {
 
 } // namespace
 
+
 //------------------------------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
@@ -73,7 +74,6 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 // "drvGet" returns a value from the driver data array. 
 //
-// ??? a similar logic as we have for node/port attributes ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
 
@@ -96,7 +96,6 @@ uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
 // "drvPut" sets a value in the driver data array. Note that this is only the MEM portion. The NVM portion
 // is write disabled after initial configuration.
 //
-// ??? which item range to use ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 

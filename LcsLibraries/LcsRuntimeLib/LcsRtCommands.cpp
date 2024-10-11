@@ -191,7 +191,7 @@ void dumpCallbackMap( ) {
 
 void dumpTaskMap( ) {
 
-    printf( "Task Map: (Size: %d, Hwm: %d )\n ", taskMap.size, taskMap.hwm );
+    printf( "Task Map: (Size: %d, Hwm: %d )\n ", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
     dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
     printf( "\n" );
 }

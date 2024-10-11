@@ -140,12 +140,12 @@ void registerRepCallback( LcsRepCallback functionId ) {
 //-----------------------------------------------------------------------------------------------------------
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
-    if ( taskMap.hwm < MAX_TASK_MAP_ENTRIES ) {
+    if ( nodeMap.taskMapHwm < MAX_TASK_MAP_ENTRIES ) {
 
-        taskMap.map[ taskMap.hwm ].task       = task;
-        taskMap.map[ taskMap.hwm ].interval   = interval;
-        taskMap.map[ taskMap.hwm ].timeStamp  = CDC::getMillis( );
-        taskMap.hwm ++;
+        taskMap.map[ nodeMap.taskMapHwm ].task       = task;
+        taskMap.map[ nodeMap.taskMapHwm ].interval   = interval;
+        taskMap.map[ nodeMap.taskMapHwm ].timeStamp  = CDC::getMillis( );
+        nodeMap.taskMapHwm ++;
         return ( ALL_OK );
 
     } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
@@ -184,16 +184,6 @@ void handleNodePortEvents( ) {
     }
 }
 
-
-
-
-
-// ???? continue from here......
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a 
 // lot of periodic processing that needs to be one by any firmware implementation. Instead of the firmware
@@ -206,7 +196,7 @@ void handlePeriodicTasks( ) {
 
     uint32_t ts = CDC::getMillis( );
 
-    for ( int i = 0; i < taskMap.hwm; i++ ) {
+    for ( int i = 0; i < nodeMap.taskMapHwm; i++ ) {
 
         LcsPTaskMapEntry *thisEntry = &taskMap.map[ i ];
 
@@ -220,8 +210,8 @@ void handlePeriodicTasks( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our node in response to a nodeId
-// setup request. If the UID matches, the message is for our node and we update our nodeId accordingly. The
-// next node state is OPERATE.
+// setup request. If the UID matches, the message is for our node and we update our nodeId accordingly in 
+// MEM and NVM. The next node state is OPERATE.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNid( uint8_t *msg ) {
@@ -234,14 +224,20 @@ void handleMsgRepNid( uint8_t *msg ) {
 
     if ( nodeUID == nodeMap.nodeUID ) {
 
-        if ( nodeMap.nodeId != nodeId ) nodeMap.nodeId = nodeId;
+        if ( nodeMap.nodeId != nodeId ) {
+            
+            nodeMap.nodeId = nodeId;
+            uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeId );
+        }
+
         nodeMap.nodeState = NS_OPERATE;
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // LCS management deals with messages concerning the general LCS management. If there is a callback defined
-// it will be invoked. Then the node state is changed accordingly.
+// it will be invoked. Then the node state is changed accordingly. Most updates are just to the MEM nodeMap.
+// In addition, the READY and ACTIVITY LEDs are set.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgLcsMgt( uint8_t *msg ) {
@@ -281,6 +277,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_NCOL: {
 
             CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false );
+            CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true );
             nodeMap.nodeState = NS_COLLISION;
             if ( callbackMap.lcsMsgCallback != nullptr ) callbackMap.lcsMsgCallback( msg );
 
@@ -307,6 +304,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                 if ( nodeMap.nodeState == NS_CONFIG ) {
 
                     if ( nodeId != nodeMap.nodeId ) nodeMap.nodeId = nodeId;
+                    uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeId );
+
                     sendAck( nodeId );
                 }
                 else sendErr( nodeId, ERR_NODE_NOT_CONFIG_STATE, 0, 0 );
@@ -317,7 +316,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgGetNode" processes an incoming GET message for a node or port attribute.
+// "handleMsgGetNode" processes an incoming GET message for a node or port attribute. We construct the 
+// reply message with the requested data.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgGetNode( uint8_t *msg ) {
@@ -337,7 +337,8 @@ void handleMsgGetNode( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgPutNode" processes an incoming PUT message for a node or port attribute.
+// "handleMsgPutNode" processes an incoming PUT message for a node or port attribute. We update the data
+// and send a confirmation.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgPutNode( uint8_t *msg ) {
@@ -358,7 +359,10 @@ void handleMsgPutNode( uint8_t *msg ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNode" processes the answer to a previously sent node query. The incoming message will only
-// result in an action when we have an outstanding request for that node.
+// result in an action when we have an outstanding request for that node. That is, this handler will only
+// be called when the we passed the outstanding reply map check done before. All reply messages are routed
+// to this one callback. It is up to the firmware programmer to analyze for what and whom the reply really
+// is.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
@@ -368,17 +372,17 @@ void handleMsgRepNode( uint8_t *msg ) {
     uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
     uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
 
-    if ( callbackMap.repCallback != nullptr )
-        callbackMap.repCallback( npId, item, &arg1, &arg2 );
+    if ( callbackMap.repCallback != nullptr ) callbackMap.repCallback( npId, item, &arg1, &arg2 );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgReqNode" processes an incoming request for a node or port.
+// "handleMsgReqNode" processes an incoming request for a node or port. The REQ message request will result
+// in invoking the register firmware callback. We send a confirmation message.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
-    uint16_t  npId = (( msg[1] << 8 ) + msg[2] );
+    uint16_t npId = (( msg[1] << 8 ) + msg[2] );
 
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
@@ -396,13 +400,13 @@ void handleMsgReqNode( uint8_t *msg ) {
 // "handleMsgEvent" deals with the event messages for inbound ports. For all matching events in the eventMap,
 // the respective port map entry fields are set. The searchEvent function will return us the first matching
 // entry in the sorted event map, if any. From there, we just hop along the eventMap until the eventId does
-// not match any longer. All we do in this routine is to record the event data and the future timestamp when
-// the event should result in a callback. The actual event processing is done in the port event processing
-// routine, which will manage the timely invocation of the event callbacks.
+// not match any longer. All we do in this routine is to record the event data and the optional future time
+// stamp when the event should result in a callback. The actual event processing is done in the port event 
+// processing routine, which will manage the timely invocation of the event callbacks.
 //
 // Note that we also are called from the event sending routine because another port on our node could be 
 // interested in this event. It is up to the firmware programmer to ensure that a port does send itself an
-// event and this trigger an infinite loop.
+// event and may trigger an infinite loop.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
@@ -416,6 +420,7 @@ void handleMsgEvent( uint8_t *msg ) {
         uint16_t  nodeId            = ( msg[1] * 256 ) + msg[2];
         uint16_t  eventData         = ( msg[5] * 256 ) + msg[6];
         uint8_t   eventAction       = PEA_EVENT_IDLE;
+        uint32_t  ts                = CDC::getMillis( );
 
         switch ( opCode ) {
 
@@ -435,7 +440,7 @@ void handleMsgEvent( uint8_t *msg ) {
                 pPtr -> eventId         = eventId;
                 pPtr -> eventAction     = eventAction;
                 pPtr -> eventValue      = eventData;
-                pPtr -> eventTimeStamp  = CDC::getMillis( ) + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
+                pPtr -> eventTimeStamp  = ts + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
                 pPtr -> flags           |= PF_EVENT_PENDING;
             }
 
@@ -445,8 +450,9 @@ void handleMsgEvent( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// We received a DCC subsystem message. Just pass it to the call back routine. DCC messages are typically
-// handled by the base station and the cab handhelds.
+// We received a DCC subsystem message. These messages are handler solely by firmware, which is typically
+// the base station, a handheld, or a decoder alike device. All we do is to pass the message to the call 
+// back routine. One day, we could decode the message a bit more and invoke more specialized callback.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgDccMgt( uint8_t *msg ) {
@@ -455,31 +461,27 @@ void handleMsgDccMgt( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node state INIT. This is the first state after the initial library setup. The init call created all memory
-// areas and initialized the data structures. After the init call, the firmware programmer can register the
-// necessary callback functions and do other firmware specific work. Eventually, the loop method is called.
-// We enter the loop method and the node state is INIT. If set, the node init and port init callback routines
-// will be invoked. If the nodeId validation step is set, the node will request a nodeId and enter the state
-// SETUP. Otherwise the next state is OPERATE.
+// Node state INIT. This is the first state after the initial library setup. The runtime init call created
+// all memory areas and initialized the data structures. After a successful init call, the state is INIT and 
+// the firmware programmer can register the necessary callback functions and do other firmware specific work. 
+// Eventually, the runtime loop method is called. If the "init" option is set, the node init and port init 
+// callback routine will be invoked. If the nodeId validation option is set, the node will request a nodeId 
+// and enter the state SETUP. Otherwise the next state is OPERATE.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-    if ( callbackMap.initCallback == nullptr ) return;
-
     if ( nodeMap.nodeOptions & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
 
-        callbackMap.initCallback( nodeMap.nodeId << 4 );
-    }
+        if ( callbackMap.initCallback != nullptr ) callbackMap.initCallback( nodeMap.nodeId << 4 );
 
-    if ( nodeMap.nodeOptions & ( ~ NOPT_SKIP_PORT_INIT_STEP )) {
+        for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+            if ( callbackMap.initCallback != nullptr ) 
+                callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
 
-            callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i );
-
-            portMap.map[ i - 1 ].flags |= PF_PORT_ENABLED;
-            portMap.map[ i - 1 ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
+            portMap.map[ i ].flags |= PF_PORT_ENABLED;
+            portMap.map[ i ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
         }
     }
 
@@ -493,25 +495,28 @@ void handleNodeStateInit( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State FAIL. This is the state after the node startup failed. We will stay in this state with the
-// LEDs showing a fatal error.
+// Node State FAIL. This is the state after the node startup failed. 
 //
+// ??? would we ever come here ? if the INIT failed, the firmware programmer should do what ?
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
-  // ??? readyLed off. fatal error code
 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State Power FAIL. This is the state after when the node starts up after a power fail.
+// Node State Power FAIL. This is the state after when the node starts up after a power fail. We have this
+// state so that the firmware programmer can take some recovery action if desired. 
 //
-// ??? perhaps just a section in the setup phase... 
+// The "initRuntime" routine will return a PFAIL status instead of ALL_OK when we restarted after a power 
+// fail. OR we could return ALL_OK but have a flag set that we restarted from a power fail.
+//
+// The power fail callback is used to actually do the work BEFORE we have the power failure.
+//
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
 
-  // ??? what to do ...
-
+  
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -557,8 +562,8 @@ void handleNodeStateCollision( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State HALTED. The LCS communication bus was halted for all nodes. We just listen to the BON or RESET
-// message to get going again.
+// Node State HALTED. The LCS communication bus was halted for all nodes. Note that the bus is still there,
+// just not active. We just listen to the BON or RESET message to get going again.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateHalted( ) {

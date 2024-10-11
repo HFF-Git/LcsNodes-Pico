@@ -9,14 +9,15 @@
 // event map and the search routines.
 //
 // The event map can be found as a MEM and an NVM structure. During operations, the sorted MEM event map is
-// the  map to work with. Entries are sorted by eventId and as a secondary sort key the portId. New events
+// the map to work with. Entries are sorted by eventId and as a secondary sort key the portId. New events
 // can be added, old removed and the map can be searched. There is a SYNC function to write the contents
 // of the MEM event map to the NV event map. The idea is that all changes are made to the MEM version and
 // then written back in one swoop.
 //
 // On node start or reset, the NVM event map is read as part of the overall NVM read process. Since we only
-// write a sorted version to the NVM event map, we can always assume a sorted NVM version. The high water
-// mark specifies the number of entires actually used.
+// write a sorted version to the NVM event map, we can always assume a sorted NVM version, except when the
+// eventMap high water mark is not valid. In this case we read entry by entry from the NVM and add it 
+// sorted to the MEM twin. The high water mark specifies the number of entires actually used.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -282,7 +283,9 @@ uint8_t syncEventMap( ) {
 
     if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) printf( "sync EventMap \n" );  
 
-    // update HWM , flags 
+    uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_START, 
+                                    (uint8_t *) eventMap.map, 
+                                    nodeMap.eventMapHwm * sizeof( LcsEventMapEntry ));
 
     return ( ALL_OK );
 }

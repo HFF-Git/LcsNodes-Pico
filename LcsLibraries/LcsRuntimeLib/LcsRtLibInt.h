@@ -355,6 +355,9 @@ struct LcsNodeMap {
 
     uint16_t    drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
     uint16_t    drvMapHwm                     = 0;
+
+    uint16_t    taskMapEntries                = MAX_TASK_MAP_ENTRIES;
+    uint16_t    taskMapHwm                    = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -441,9 +444,6 @@ struct LcsPTaskMapEntry {
 
 struct LcsTaskMap {
 
-    uint16_t            size    = MAX_TASK_MAP_ENTRIES;  
-    uint16_t            hwm     = 0;
-
     LcsPTaskMapEntry    map[ MAX_TASK_MAP_ENTRIES ];
 };
 
@@ -457,7 +457,7 @@ struct LcsTaskMap {
 struct LcsPendingReqEntry {
 
     uint16_t  npId;
-    uint32_t  reqTimedOutTs;
+    int32_t   reqTimeoutTs;
 };
 
 struct LcsPendingReqMap {

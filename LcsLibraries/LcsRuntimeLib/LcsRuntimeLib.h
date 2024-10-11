@@ -298,11 +298,10 @@ enum LcsControllerFamilyType : uint16_t {
 //  NOPT_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask of nodeMap
 //
 //------------------------------------------------------------------------------------------------------------
-enum NodeOptions : uint16_t {
+enum LcsNodeOptions : uint16_t {
 
     NOPT_SKIP_NODE_ID_CONFIG    = 0x0001,
     NOPT_SKIP_NODE_INIT_STEP    = 0x0002,
-    NOPT_SKIP_PORT_INIT_STEP    = 0x0004,
     NOPT_DEBUG_DURING_SETUP     = 0x0008,
 };
 
@@ -313,7 +312,7 @@ enum NodeOptions : uint16_t {
 //
 // 
 //------------------------------------------------------------------------------------------------------------
-enum NodeFlags : uint16_t {
+enum LcsNodeFlags : uint16_t {
 
     NFLAGS_EXT_PRESENT          = 0x0001,
 };
@@ -343,7 +342,7 @@ enum NodeFlags : uint16_t {
 // include file. The ranges as well as the reserved items defined here should not be tampered with.
 //
 //------------------------------------------------------------------------------------------------------------
-enum Items : uint8_t {
+enum LcsItems : uint8_t {
 
     ITEM_ID_OPTIONS                     = 1,
     ITEM_ID_FLAGS                       = 2,
@@ -395,9 +394,8 @@ enum Items : uint8_t {
 //  PF_PORT_EVENT_HANDLING_ENABLED  - the port has event handling enabled
 //  PF_EVENT_PENDING                - an event has been received for this port and is pending.
 //
-// ??? a flag for a timed out request ? 
 //----------------------------------------------------------------------------------------------------------
-enum PortFlags : uint16_t {
+enum LcsPortFlags : uint16_t {
 
     PF_PORT_ENABLED                 = 0x8000,
     PF_PORT_EVENT_HANDLING_ENABLED  = 0x4000,
@@ -415,7 +413,7 @@ enum PortFlags : uint16_t {
 //  PEA_EVENT_EVT                 - an event with additional arguments was received.
 //
 //----------------------------------------------------------------------------------------------------------
-enum PortEventAction : uint8_t {
+enum LcsPortEventAction : uint8_t {
 
     PEA_EVENT_IDLE    = 0,
     PEA_EVENT_ON      = 1,
