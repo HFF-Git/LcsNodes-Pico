@@ -131,7 +131,7 @@ const uint32_t VALID_SPI_1_PINS     = VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS
 // Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO_2040;
+const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO;
 const uint32_t CHIP_MEM_SIZE              = 264 * 1024;
 const uint32_t CHIP_NVM_SIZE              = 0;
 
@@ -310,7 +310,8 @@ void initIsrTable( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The PICO uses a set of constants to describe the interrupt type. We map this to our set of types. 
+// The PICO uses a set of constants to describe the interrupt type. We map our interrupt types to the PICO
+// GPIO_IRQ_xxx types.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t mapGpioIntEvent( uint8_t event ) {
@@ -326,6 +327,10 @@ uint32_t mapGpioIntEvent( uint8_t event ) {
     }
 }
 
+//------------------------------------------------------------------------------------------------------------
+// The PICO uses a set of constants to describe the interrupt type. We map them to our types. 
+//
+//------------------------------------------------------------------------------------------------------------
 uint8_t mapPicoGpioEvent( uint32_t event ) {
 
     switch ( event ) {

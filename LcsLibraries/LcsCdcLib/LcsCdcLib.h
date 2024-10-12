@@ -111,8 +111,7 @@ const uint8_t ILLEGAL_PIN     = 254;
 enum ControllerFamily : uint8_t {
 
     CF_UNDEFINED    = 0,
-    CF_RP_PICO_2040 = 1,
-    CF_RP_PICO_2350 = 2
+    CF_RP_PICO      = 1
 };
 
 //------------------------------------------------------------------------------------------------------------
