@@ -585,7 +585,6 @@ void          handleNodeStateOperations( );
 void          handlePeriodicTasks( );
 void          handleNodePortEvents( );
 
-
 } // namespace LCS
 
 #endif

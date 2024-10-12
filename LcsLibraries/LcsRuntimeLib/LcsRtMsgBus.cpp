@@ -88,12 +88,12 @@ uint8_t highByte( uint16_t arg ) {
 // buffer. When a request type message is sent we add the target node and a timer value to the buffer. Easy 
 // and simple. Note that there can be more than one entry for the same node / port combination in the buffer.
 // If the buffer is full, an error is returned. We have too many outstanding requests then.
+// 
+// A request can also be registered with a timeout value. When the timeout expires, the caller is informed
+// that the request timed out. A timeout value of zero means that we wait indefinitely.
 //
-// ??? we need to think about how we pass a timeout value...+
-//
-// Idea: scheme could be refined to have a node and a count for pending requests. Perhaps later...
 //------------------------------------------------------------------------------------------------------------
-uint8_t addToPendingReqMap( uint16_t npId ) {
+uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
 
     uint32_t ts = CDC::getMillis( );
 
@@ -102,7 +102,7 @@ uint8_t addToPendingReqMap( uint16_t npId ) {
         if ( pendingReqMap.map[ i ].npId == 0 ) {
 
             pendingReqMap.map[ i ].npId = npId;
-            pendingReqMap.map[ i ].reqTimeoutTs = ts + DEF_REQ_TIMEOUT_VAL_MS;
+            pendingReqMap.map[ i ].reqTimeoutTs = (( timeoutVal != 0 ) ? ts + timeoutVal : timeoutVal );
             return ( ALL_OK );
         }
     }
@@ -222,7 +222,7 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
              printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
         }
 
-        if (( msg[ 0 ] == LCS_OP_REP_NODE ) || ( msg[ 0 ] == LCS_OP_ACK ) || ( msg[ 0 ] == LCS_OP_ERR )) {
+        if (( msg[ 0 ] == LCS_OP_NODE_REP ) || ( msg[ 0 ] == LCS_OP_ACK ) || ( msg[ 0 ] == LCS_OP_ERR )) {
 
              uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
@@ -260,10 +260,14 @@ void processPendingReqMapTimeouts( ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-        if ( pendingReqMap.map[ i ].reqTimeoutTs < ts ) {
+        if ( pendingReqMap.map[ i ].reqTimeoutTs != 0 ) {
+
+            if ( pendingReqMap.map[ i ].reqTimeoutTs < ts ) {
 
             // ??? we timed out ... what to do ?
-        }
+
+            }
+        } 
     }
 }
 
@@ -271,7 +275,6 @@ void processPendingReqMapTimeouts( ) {
 // Some messages are requests that expect a reply. We maintain a pending request map which keeps track of 
 // outstanding requests.
 //
-// ??? need to pass timeout to add to pending map entry ....
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout ) {
 
@@ -310,13 +313,11 @@ uint8_t sendOps( uint16_t npId ) {
 
 uint8_t sendReset( uint16_t npId ) {
 
-    // ??? add to pending reply map ?
-
     uint8_t msgBuf[ 8 ] = { LCS_OP_RESET };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
    
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_HIGH ));
+    return ( sendTimedReq( npId, msgBuf, MSG_PRI_HIGH, 0 ));
 }
 
 uint8_t sendBusOn( ) {
@@ -409,7 +410,7 @@ uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
 
 uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_GET_NODE };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = item;
@@ -422,7 +423,7 @@ uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
 uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_PUT_NODE };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_PUT };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = item;
@@ -435,7 +436,7 @@ uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
 uint8_t sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NODE };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REQ };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = item;
@@ -448,7 +449,7 @@ uint8_t sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
 
 uint8_t sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_REP_NODE };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REP };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = item;

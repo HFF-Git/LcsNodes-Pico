@@ -1,6 +1,6 @@
 #!/bin/bash
 # 
-# StartPico - a shel script to reset a PICO and start it with a screen connected
+# StartPico - a shell script to reset a PICO and start it with a screen connected
 #
 # The script will first build the USB address and try to locate the PICO. We will also deeive the
 # port number from the address. Next, the PICO is forcefully resetted and a termnal screen is 
@@ -51,9 +51,9 @@ extract_usb_address_chars() {
 #
 build_dev_file_name() {
 
-local prefix="/dev/cu.usbmodem"
-local tmp="$prefix$1"
-echo "$prefix""$1""1"
+    local prefix="/dev/cu.usbmodem"
+    local tmp="$prefix$1"
+    echo "$prefix""$1""1"
 }
 
 # reset the PICO
@@ -78,5 +78,5 @@ if [[ -n "$port_number" ]]; then
     screen $(build_dev_file_name "$1" ) 115200
    
 else
-  echo "PICO not found"
+    echo "PICO not found"
 fi

@@ -1,14 +1,14 @@
 #!/bin/bash
 # 
-# LoadPico - a shel script to reboot a PICO and load a new imgage
+# LoadPico - a shell script to reboot a PICO and load a new imgage
 #
 # The script will first build the USB address and try to locate the PICO. We will also derive the
-# port number from the address. Next, the PICO is forcefully resetted and a termnal screen is
-# to connect to the PICO.
+# port number from the address. Next, the PICO is loaded with a new image.
 #
-if [ "$#" -lt 1 ]; 
+if [ "$#" -lt 2 ]; 
 then
-	echo "Usage: startpico <usb address>"
+	echo "Usage: loadpico <filename> <usb address>"
+    echo "The file name is the UF2 file to load"
     echo "The USB address is the subset needed for the device file. ( /dev/cu.usbmodem[XXXX]1 )"
 	exit
 fi
@@ -51,25 +51,23 @@ extract_usb_address_chars() {
 #
 build_dev_file_name() {
 
-local prefix="/dev/cu.usbmodem"
-local tmp="$prefix$1"
-echo "$prefix""$1""1"
+    local prefix="/dev/cu.usbmodem"
+    local tmp="$prefix$1"
+    echo "$prefix""$1""1"
 }
 
 
-# rest the PICO
-#
+# Load the PICO with a new image
 #
 port_number=$(get_port_num_by_usb_address "$1")
 
 if [[ -n "$port_number" ]]; then
 
-    echo "Resetting the PICO at $1"
+    echo "Loading the PICO at $1 with $2"
     
     # we need to use the picotool load command
-    picotool load -v <filename> --address $port_number -f
-    
-    # picotool reboot --address $port_number -f
+    picotool load -v $2 --address $port_number -f
+    picotool reboot --address $port_number -f
 
     sleep 1
 
@@ -79,5 +77,5 @@ if [[ -n "$port_number" ]]; then
     echo "loaded"
    
 else
-  echo "PICO not found"
+    echo "PICO not found"
 fi

@@ -578,8 +578,9 @@ void handleNodeStateHalted( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State CONFIG. A node can be placed into configuration state. We first handle the command and general
-// loop callback and then just listen to messages valid for that mode and invoke the respective handler.
+// Node State CONFIG. A node can be placed into configuration state. We process any LCS message, handle the
+// periodic tasks registered and port events that may have been received. Note that we just listen to messages
+// valid for that mode and invoke the respective handler. All other messages are ignored.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
@@ -597,16 +598,19 @@ void handleNodeStateConfig( ) {
         case LCS_OP_SET_NID:
         case LCS_OP_NCOL:           handleMsgLcsMgt( msg );               break;
 
-        case LCS_OP_GET_NODE:       handleMsgGetNode( msg );              break;
-        case LCS_OP_REP_NODE:       handleMsgRepNode( msg );              break;
-        case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );              break;
+        case LCS_OP_NODE_GET:       handleMsgGetNode( msg );              break;
+        case LCS_OP_NODE_REP:       handleMsgRepNode( msg );              break;
+        case LCS_OP_NODE_REQ:       handleMsgReqNode( msg );              break;
     }
+
+    handlePeriodicTasks( );
+    handleNodePortEvents( );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State OPERATIONS. Most of the time the node state is in operations mode. We first handle the command
-// and  general loop callback and then just listen to messages valid for that mode and invoke the respective
-// handler.
+// Node State OPERATIONS. Most of the time the node state is in operations mode. We process any LCS message, 
+// handle the periodic tasks registered and port events that may have been received. Note that we just listen
+// to messages valid for that mode and invoke the respective handler. All other messages are ignored.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateOperations( ) {
@@ -624,11 +628,11 @@ void handleNodeStateOperations( ) {
         case LCS_OP_REQ_NID:
         case LCS_OP_NCOL:           handleMsgLcsMgt( msg );             break;
 
-        case LCS_OP_GET_NODE:       handleMsgGetNode( msg );            break;
-        case LCS_OP_PUT_NODE:       handleMsgPutNode( msg );            break;
-        case LCS_OP_REP_NODE:       handleMsgRepNode( msg );            break;
-        case LCS_OP_REQ_NODE:       handleMsgReqNode( msg );            break;
-
+        case LCS_OP_NODE_GET:       handleMsgGetNode( msg );            break;
+        case LCS_OP_NODE_PUT:       handleMsgPutNode( msg );            break;
+        case LCS_OP_NODE_REQ:       handleMsgReqNode( msg );            break;
+        case LCS_OP_NODE_REP:       handleMsgRepNode( msg );            break;
+        
         case LCS_OP_EVT_ON:
         case LCS_OP_EVT_OFF:
         case LCS_OP_EVT:            handleMsgEvent( msg );              break;
@@ -660,6 +664,9 @@ void handleNodeStateOperations( ) {
         case LCS_OP_DCC_ACK:
         case LCS_OP_DCC_ERR:        handleMsgDccMgt( msg );               break;
     }
+
+    handlePeriodicTasks( );
+    handleNodePortEvents( );
 }
 
 }; // namespace

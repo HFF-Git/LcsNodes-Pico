@@ -546,11 +546,14 @@ uint8_t setupTaskMap( ) {
 //------------------------------------------------------------------------------------------------------------
 // The runtime library has a set of internal periodic tasks that we will just register as part of the startup.
 //
-// ??? to do ...
 //------------------------------------------------------------------------------------------------------------
 uint8_t registerInternalTasks( ) {
 
-    return( ALL_OK );
+    uint8_t rStat = ALL_OK;
+
+    // ??? to do ...
+
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -640,8 +643,11 @@ uint8_t setupExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "invokeInitCallbacks" invokes the registered initialization callbacks for the node and the ports. The 
-// routine is called as the very first thing of the "startRuntime" call. 
+// "invokeInitCallbacks" invokes the registered initialization callback for the node and the ports. The 
+// callback is invoked for the node and then for each port. Note that we do not know how many ports are
+// actually used by the firmware. So, we just assume all are used. No harm done. An init callback will return
+// a status code. If the init callback returned an error, the sequence is aborted and we return with an 
+// error. This will then ultimately result in the node start failing.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t invokeInitCallbacks( ) {
@@ -654,7 +660,7 @@ uint8_t invokeInitCallbacks( ) {
 
         rStat = callbackMap.initCallback( buildNpId( nodeMap.nodeId, 0 ));
 
-        for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+        for ( uint8_t i = 0; i < nodeMap.portMapEntries; i++ ) {
 
             rStat = callbackMap.initCallback( buildNpId( nodeMap.nodeId, i + 1 ));
             if ( rStat != ALL_OK ) break;
@@ -694,7 +700,6 @@ uint8_t powerFailHandler( ) {
 // ??? would a node reset clear any outstanding requests ? or do we need to inform potential waiters ?
 // ??? would it just drop all periodic tasks ? who registers them again ?
 // ??? how do we make sure we only cover ports that are used ?
-// 
 // ??? or would we need to be a bit more sensible what reset mean ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t resetNode( uint16_t npId ) {
@@ -711,9 +716,6 @@ uint8_t resetNode( uint16_t npId ) {
     if ( rStat == ALL_OK ) {
 
         for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-            // ??? only ports used ... ?
-            // ??? get MEM from NVM
 
             rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, i ));
         }
@@ -736,36 +738,27 @@ uint8_t resetNode( uint16_t npId ) {
 //
 // The setup of the portMap follows. The flag field contains dynamic flags that are always reseted on node 
 // start or reset. Other fields in a map are read in from the NVM first and set to a default state this way.
-//
-
-
-// ??? mechanism to say how many ports are actually used ?
-// ??? we could set the enabled flag in the init callback. We can count the configured ports and set the HWM.
 // 
-
-
-// The eventMap is a bit special, in that it is a rather large map and potentially only a portion is used. 
-// There is an eventMao high water mark field in the nodeMap that will tell how many entries are actually 
-// used in the event map. Adding increases, deleting decreases the high water mark. Note that the eventMap
-// is a sorted map. Every time we insert or remove the eventMap is rebuilt. Instead of immediately updating
-// the NVM storage, a dedicated command will SYNC between the MEM and the NVM eventMap.
+// The eventMap initialization is a bit special, in that it is a rather large map and potentially only a 
+// portion is used. There is an eventMao high water mark field in the nodeMap that will tell how many entries
+// are actually used in the event map. Adding increases, deleting decreases the high water mark. Note that 
+// the eventMap is a sorted map. Every time we insert or remove the eventMap is rebuilt. Instead of
+// immediately updating the NVM storage, a dedicated command will SYNC between the MEM and the NVM eventMap.
 //
-// Next, we will set up the pending request, callback function and task map. They are just memory data areas
-// to be initialized. Up to here an error detected will result in a fatal error. If a console is connected
-// the error messages are listed for analysis.
+// Next, we will set up the pending request map, callback function and task map. They are just memory data 
+// areas to be initialized. Up to here an error detected will result in a fatal error. If a console is 
+// connected the error messages are listed for analysis.
 //
-// If all is OK so far, potential extension boards are located, and if there are any, their initialization
-// follows. First, we try to detect any. For all detected entries we validate the extension board NVM
-// header and set the driver for a valid header found. The driver data area is copied to its memory 
-// counter part. All drivers are ready by then.
+// If all is OK so far, extension boards are located, and if there are any, their initialization follows. 
+// First, we try to detect any. For all detected entries we validate the extension board NVM header and 
+// set the driver for a valid header found. The driver data area is copied to its memory counter part. 
+// All drivers are ready by then. 
 // 
-// If the setup was successful, the firmware programmer can register callback functions and also perform 
-// LCS library calls. The overall logic of the startup routine is that if there is a fault, the follow on
-// steps are simply skipped and the node is put into the FAIL state. Note that we still are able to access 
-// the node via the USB console and one day also via certain LCS messages. The idea is to allow the correct
+// The overall logic of the startup routine code below is that if there is a fault, the follow on steps are
+// simply  skipped and the node is put into the FAIL state. Note that we still are able to access the node
+// via the USB console and one day also via diagnostic LCS messages. The idea is to allow the correct 
 // configuration  of the nodeMap, so that we can restart with a correct nodeMap. 
 //
-// 
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
 
@@ -778,11 +771,11 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
     uint8_t rStat = ALL_OK;
 
     if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
-    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CDC Setup failed", 1 );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1 );
         
     if ( rStat == ALL_OK )  rStat = initCanBus( ci );
     if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
-    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "CAN bus or NVM Setup failed", 2 );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2 );
 
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
@@ -790,23 +783,26 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
     if ( rStat == ALL_OK )  rStat = setupUserMap( );
     if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
     if ( rStat == ALL_OK )  rStat = setupTaskMap( );
+    if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3 );
 
     if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
     if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
+    if ( rStat != ALL_OK )  printf( "Extension boards setup Setup failed, stat: %d\n", rStat );
 
-    // ??? should we have a fatal error when we do not find extension or when the setup has an error ?
-
-    // ??? register internal tasks ?
-    
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;
 
-    if ( rStat == ALL_OK )  CDC::writeDio( ci -> READY_LED_PIN, true );
+    if ( rStat == ALL_OK )  {
+        
+        CDC::writeDio( ci -> READY_LED_PIN, true );
+        CDC::writeDio( ci -> ACTIVE_LED_PIN, false );
+    }
 
     if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "init LCS runtime, status: %d \n", rStat );
     return ( rStat );
 }
+
 
 //-----------------------------------------------------------------------------------------------------------
 // "startRuntime" is the main routine of the node activity processing. It is the method called after all 
@@ -815,6 +811,16 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
 // not return. When the routine is called, it will as the very first thing invoke all registered init
 // callback functions before entering the processing loop.
 //
+// The very first thing that the routine will do is to invoke the firmware registered callbacks. Again, the
+// overall logic is to call "initRuntime", register any callbacks, do whatever firmware setup needs to be 
+// done and then call "startRuntime". The initialization callback is invoked for the node and then for each
+// port. We do not know how many ports are actually used by the firmware, so all slots are handled. The 
+// driver loaded for the discovered extension boards will all feature an init command. We call each driver
+// with this command code.
+// 
+// What follows is the node state machine loop. Each state has a handler routine. We process the state code
+// and if there is a console the console command input.
+//
 //------------------------------------------------------------------------------------------------------------
 void startRuntime( ) {
 
@@ -822,7 +828,7 @@ void startRuntime( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK ) rStat = invokeInitCallbacks( );
+    rStat = invokeInitCallbacks( );
 
     while ( true ) {
 
@@ -836,12 +842,6 @@ void startRuntime( ) {
             case NS_CONFIG:     handleNodeStateConfig( );     break;
             case NS_OPERATE:    handleNodeStateOperations( ); break;
             default: ;
-        }
-
-        if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_CONFIG )) {
-
-            handlePeriodicTasks( );
-            handleNodePortEvents( );
         }
 
         handleSerialCommand( );

@@ -482,10 +482,10 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_REQ_NID          = OPC( 7, 1 ),
     LCS_OP_REP_NID          = OPC( 7, 2 ),
     LCS_OP_SET_NID          = OPC( 7, 3 ),
-    LCS_OP_GET_NODE         = OPC( 7, 4 ),
-    LCS_OP_PUT_NODE         = OPC( 7, 5 ),
-    LCS_OP_REQ_NODE         = OPC( 7, 6 ),
-    LCS_OP_REP_NODE         = OPC( 7, 7 ),
+    LCS_OP_NODE_GET         = OPC( 7, 4 ),
+    LCS_OP_NODE_PUT         = OPC( 7, 5 ),
+    LCS_OP_NODE_REQ         = OPC( 7, 6 ),
+    LCS_OP_NODE_REP         = OPC( 7, 7 ),
     LCS_OP_REP_LOC          = OPC( 7, 8 ),
     LCS_INFO                = OPC( 7, 9 )
 };
