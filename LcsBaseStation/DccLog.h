@@ -6,15 +6,14 @@
 // DCC_LOG is a set of helper functions to understand and debug the DCC packet flow and RailCom interaction.
 // When programming a decoder, quite a few packets need to be sent, power consumption to be monitored. In
 // addition when using RailCom it would be great to see the flow of DCC packets and the resulting RailCom
-// datagrams sent by the decoder. Unfortunately, all this cannot be done with simple Debug Pringt Messages
+// datagrams sent by the decoder. Unfortunately, all this cannot be done with simple Debug Print Messages
 // for timing reasons. The DCC_LOG routines provide a simple log data array and write to this buffer. The
-// data flow to look into is bracketd by a begin and end routine. Lateron this buffer can be printed and
-// analyzed.
+// data flow to look into is bracketed by a begin and end routine.
 //
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station DCC Track implementation file
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -33,10 +32,16 @@
 #ifndef DccLog_h
 #define DccLog_h
 
-#include "arduino.h"
+//------------------------------------------------------------------------------------------------------------
+// Include files.
+//
+//------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <stdint.h>
+#include <cstring>
 
 //------------------------------------------------------------------------------------------------------------
-// DCC_LOG namespace part one. We need to declare the log engry types first, so tha they can also be used
+// DCC_LOG namespace part one. We need to declare the log entry types first, so that they can also be used
 // by the file local routines.
 //
 //------------------------------------------------------------------------------------------------------------

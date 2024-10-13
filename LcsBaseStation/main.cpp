@@ -89,14 +89,8 @@ uint8_t initLcsRuntime( ) {
 
   setupConfigInfo( );
  
-  uint8_t rStat = CDC::init( &cfg );
+  uint8_t rStat = LCS::initRuntime( &cfg, LCS::NOPT_DEBUG_DURING_SETUP );
 
-  if ( rStat != LCS::ALL_OK ) {
-
-
-  }
-
-  
   printf( "LCS Base Station\n" );
 
   
@@ -314,7 +308,6 @@ void setupConfigInfo( ) {
 // Base station global objects, we just create them. The setup will be done once all are in place.
 //
 //------------------------------------------------------------------------------------------------------------
-LcsCoreLib                    *lcsLib;
 
 LcsBaseStationCommand         serialCmd;
 LcsBaseStationDccTrack        mainTrack;
@@ -616,7 +609,7 @@ uint8_t cmdLineCallback( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 // The LCS core library ends in a loop that manages its internal workings, invoking the callbacks where
 // needed. This call back is the general loop callback. It is our chance to do our regular work such as
-// cheking on short circuit, lost sessions, etc. We will not do all the work in one swoop. There is a simple
+// checking on short circuit, lost sessions, etc. We will not do all the work in one swoop. There is a simple
 // round robin scheme so that on each callback one activity is executed.
 //
 //------------------------------------------------------------------------------------------------------------

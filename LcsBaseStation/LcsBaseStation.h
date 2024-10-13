@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -25,10 +25,8 @@
 #define LcsBaseStation_h
 
 #include "LcsCdcLib.h"
-#include "LcsCoreLib.h"
+#include "LcsRuntimeLib.h"
 #include "DccLog.h"
-
-#define INTERFACE Serial
 
 //------------------------------------------------------------------------------------------------------------
 // There are plenty of defines... some will go away after the design stabilizes....
@@ -48,28 +46,28 @@
 //------------------------------------------------------------------------------------------------------------
 enum BaseStationErrors : uint8_t {
 
-  BASE_STATION_ERR_BASE             = ERR_NODE_SPECIFIC_BASE,
+    BASE_STATION_ERR_BASE             = LCS::ERR_NODE_SPECIFIC_BASE,
 
-  ERR_NO_SVC_MODE                   = BASE_STATION_ERR_BASE + 1,
-  ERR_CV_OP_FAILED                  = BASE_STATION_ERR_BASE + 2,
+    ERR_NO_SVC_MODE                   = BASE_STATION_ERR_BASE + 1,
+    ERR_CV_OP_FAILED                  = BASE_STATION_ERR_BASE + 2,
 
-  ERR_LOCO_NOT_FOUND                = BASE_STATION_ERR_BASE + 4,
-  ERR_SESSION_NOT_FOUND             = BASE_STATION_ERR_BASE + 5,
-  ERR_LOCO_SESSION_ALLOCATE         = BASE_STATION_ERR_BASE + 6,
-  ERR_LOCO_SESSION_CANCELLED        = BASE_STATION_ERR_BASE + 7,
+    ERR_LOCO_NOT_FOUND                = BASE_STATION_ERR_BASE + 4,
+    ERR_SESSION_NOT_FOUND             = BASE_STATION_ERR_BASE + 5,
+    ERR_LOCO_SESSION_ALLOCATE         = BASE_STATION_ERR_BASE + 6,
+    ERR_LOCO_SESSION_CANCELLED        = BASE_STATION_ERR_BASE + 7,
 
-  ERR_SESSION_SETUP                 = BASE_STATION_ERR_BASE + 9,
-  ERR_MSG_INTERFACE_SETUP           = BASE_STATION_ERR_BASE + 10,
-  ERR_DCC_TRACK_CONFIG              = BASE_STATION_ERR_BASE + 11,
-  ERR_DCC_PIN_CONFIG                = BASE_STATION_ERR_BASE + 12,
+    ERR_SESSION_SETUP                 = BASE_STATION_ERR_BASE + 9,
+    ERR_MSG_INTERFACE_SETUP           = BASE_STATION_ERR_BASE + 10,
+    ERR_DCC_TRACK_CONFIG              = BASE_STATION_ERR_BASE + 11,
+    ERR_DCC_PIN_CONFIG                = BASE_STATION_ERR_BASE + 12,
 
-  ERR_NVM_HW_SETUP                  = BASE_STATION_ERR_BASE + 15,
-  ERR_PIO_HW_SETUP                  = BASE_STATION_ERR_BASE + 16
+    ERR_NVM_HW_SETUP                  = BASE_STATION_ERR_BASE + 15,
+    ERR_PIO_HW_SETUP                  = BASE_STATION_ERR_BASE + 16
 };
 
 //------------------------------------------------------------------------------------------------------------
 // DCC packet definition. A DCC packet is the payload data without the checksum. Besides the length in bytes
-// and the buffer, there is a repeat counter to specify how often this packet will be repeately transmitted
+// and the buffer, there is a repeat counter to specify how often this packet will be repeatedly transmitted
 // after the first transmission. A DCC packet is at most 15 bytes long, excluding the checksum byte. This is
 // true for XPOM and DCC-A support, otherwise it is historically a maximum of 6 bytes.
 //
@@ -78,9 +76,9 @@ const uint8_t DCC_PACKET_SIZE = 16;
 
 struct DccPacket {
 
-  uint8_t len;
-  uint8_t repeat;
-  uint8_t buf[ DCC_PACKET_SIZE ];
+    uint8_t len;
+    uint8_t repeat;
+    uint8_t buf[ DCC_PACKET_SIZE ];
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -95,16 +93,16 @@ const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 // Options to set for the DCC track. They are set when the track object is created.
 //
 //  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
-//  DT_OPT_CUTOUT              - The track is condgured to emit a cutout during the DCC packet preamble.
+//  DT_OPT_CUTOUT              - The track is configured to emit a cutout during the DCC packet preamble.
 //  DT_OPT_RAILCOM             - The track support Railcom detection.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccTrackOptions : uint16_t {
 
-  DT_OPT_DEFAULT_SETTING      = 0,
-  DT_OPT_SERVICE_MODE_TRACK   = 0x0001,
-  DT_OPT_CUTOUT               = 0x0002,
-  DT_OPT_RAILCOM              = 0x0004
+    DT_OPT_DEFAULT_SETTING      = 0,
+    DT_OPT_SERVICE_MODE_TRACK   = 0x0001,
+    DT_OPT_CUTOUT               = 0x0002,
+    DT_OPT_RAILCOM              = 0x0004
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -115,23 +113,23 @@ enum DccTrackOptions : uint16_t {
 //  DT_F_MEASUREMENT_ON       - The power measurement is enabled.
 //  DT_F_SERVICE_MODE_ON      - The track is currently in service mode, i.e. is a PROG track.
 //  DT_F_CUTOUT_MODE_ON       - The track has the cutout generation enabled.
-//  DT_F_RAILCOM_MODE_ON      - The track has the railcom detect eneabled.
+//  DT_F_RAILCOM_MODE_ON      - The track has the railcom detect enabled.
 //  DT_F_RAILCOM_MSG_PENDING  - If railcom is enabled, a received datagram is indicated.
-//  DT_F_CONFIG_ERROR         - The passed configuration desriptor has invalid options configured.
+//  DT_F_CONFIG_ERROR         - The passed configuration descriptor has invalid options configured.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccTrackFlags : uint16_t {
 
-  DT_F_DEFAULT_SETTING      = 0,
-  DT_F_POWER_ON             = 0x0001,
-  DT_F_POWER_OVERLOAD       = 0x0002,
-  DT_F_MEASUREMENT_ON       = 0x0004,
-  DT_F_SERVICE_MODE_ON      = 0x0008,
-  DT_F_CUTOUT_MODE_ON       = 0x0010,
-  DT_F_RAILCOM_MODE_ON      = 0x0020,
-  DT_F_DCC_PACKET_PENDING   = 0x0040,
-  DT_F_RAILCOM_MSG_PENDING  = 0x0080,
-  DT_F_CONFIG_ERROR         = 0x8000
+    DT_F_DEFAULT_SETTING      = 0,
+    DT_F_POWER_ON             = 0x0001,
+    DT_F_POWER_OVERLOAD       = 0x0002,
+    DT_F_MEASUREMENT_ON       = 0x0004,
+    DT_F_SERVICE_MODE_ON      = 0x0008,
+    DT_F_CUTOUT_MODE_ON       = 0x0010,
+    DT_F_RAILCOM_MODE_ON      = 0x0020,
+    DT_F_DCC_PACKET_PENDING   = 0x0040,
+    DT_F_RAILCOM_MSG_PENDING  = 0x0080,
+    DT_F_CONFIG_ERROR         = 0x8000
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -144,7 +142,7 @@ const uint8_t   SAMPLE_BUF_SIZE               = 64;
 const uint32_t  SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
 //------------------------------------------------------------------------------------------------------------
-// The RailCom buffer size. During the cutout period up to eigth bytes of raw data are sent by the decoder if
+// The RailCom buffer size. During the cutout period up to eight bytes of raw data are sent by the decoder if
 // the Railcom option is enabled.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -153,32 +151,32 @@ const uint8_t   RAILCOM_BUF_SIZE = 8;
 //------------------------------------------------------------------------------------------------------------
 // The session map options.
 //
-//  SM_KEEP_ALIVE_CHECKING  - enable keep alive checking. When ebnabled, the locomotove session need to receive
-//                            a keep alive LCS message periodcally.
+//  SM_KEEP_ALIVE_CHECKING  - enable keep alive checking. When enabled, the locomotive session need to receive
+//                            a keep alive LCS message periodically.
 //  SM_ENABLE_REFRESH       - refresh the session data. This will send the locomotive speed and direction as
-//                            well as the function flags peridiocally in a round robin processing of the
+//                            well as the function flags periodically in a round robin processing of the
 //
 //------------------------------------------------------------------------------------------------------------
 enum SessionMapOptions : uint16_t {
 
-  SM_OPT_DEFAULT_SETTING        = 0,
-  SM_OPT_KEEP_ALIVE_CHECKING    = 0x0001,
-  SM_OPT_ENABLE_REFRESH         = 0x0002
+    SM_OPT_DEFAULT_SETTING        = 0,
+    SM_OPT_KEEP_ALIVE_CHECKING    = 0x0001,
+    SM_OPT_ENABLE_REFRESH         = 0x0002
 };
 
 //------------------------------------------------------------------------------------------------------------
 // The session map flags.
 //
-//  SM_KEEP_ALIVE_CHECKING  - when set, keep alive chckeing is enabled.
+//  SM_KEEP_ALIVE_CHECKING  - when set, keep alive checking is enabled.
 //  SM_ENABLE_REFRESH       - when set, the session will be refreshed periodically.
 //  SM_DEFAULT_SETTING      - initial value setting.
 //
 //------------------------------------------------------------------------------------------------------------
 enum SessionMapFlags : uint16_t {
 
-  SM_F_DEFAULT_SETTING        = 0,
-  SM_F_KEEP_ALIVE_CHECKING    = 0x0001,
-  SM_F_ENABLE_REFRESH         = 0x0002
+    SM_F_DEFAULT_SETTING        = 0,
+    SM_F_KEEP_ALIVE_CHECKING    = 0x0001,
+    SM_F_ENABLE_REFRESH         = 0x0002
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -192,18 +190,18 @@ enum SessionMapFlags : uint16_t {
 //  SME_DEFAULT_SETTING     - initial value setting.
 //
 //
-// ??? when the base station has a config vaue of using the DCC spdir/func command, these flags need to be
-// named slightly different. Should we still have the option to enable or diable it even though the base
+// ??? when the base station has a config value of using the DCC spdir/func command, these flags need to be
+// named slightly different. Should we still have the option to enable or disable it even though the base
 // station can do it ? A decoder might not support this packet type...
 //------------------------------------------------------------------------------------------------------------
 enum SessionMapEntryFlags : uint16_t {
 
-  SME_DEFAULT_SETTING     = 0,
-  SME_ALLOCATED           = 0x0001,
-  SME_COMBINED_REFRESH    = 0x0002,
-  SME_SPDIR_ONLY_REFRESH  = 0x0004,
-  SME_DISPATCHED          = 0x0010,
-  SME_SHARED              = 0x0020
+    SME_DEFAULT_SETTING     = 0,
+    SME_ALLOCATED           = 0x0001,
+    SME_COMBINED_REFRESH    = 0x0002,
+    SME_SPDIR_ONLY_REFRESH  = 0x0004,
+    SME_DISPATCHED          = 0x0010,
+    SME_SHARED              = 0x0020
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -242,26 +240,26 @@ enum SessionMapEntryFlags : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // The base station items for portInfo and portControl calls .... tbd
 //
-// each track has a port, most vaues fgo to NVM for a clean restart / reset.
+// each track has a port, most values go to NVM for a clean restart / reset.
 //------------------------------------------------------------------------------------------------------------
 /*
 
-  enum BaseStationPortInfoItems : uint8_t {
+enum BaseStationPortInfoItems : uint8_t {
 
-  // or use GET in all constants
+    // or use GET in all constants
 
-  BS_PI_GET_INIT_CURRENT_VAL
-  BS_PI_GET_LIMIT_CURRENT_VAL
-  BS_PI_GET_MAX_CURRENT_VAL
-  BS_PI_GET_ACTUAL_CURRENT_VAL
+    BS_PI_GET_INIT_CURRENT_VAL
+    BS_PI_GET_LIMIT_CURRENT_VAL
+    BS_PI_GET_MAX_CURRENT_VAL
+    BS_PI_GET_ACTUAL_CURRENT_VAL
 
-  thresholds
+    thresholds
 
-  eventID to send for events
+    eventID to send for events
 
-  };
+};
 
-  enum BaseStationPortControlItems : uint8_t {
+enum BaseStationPortControlItems : uint8_t {
 
   // or use SET in all constants
 
@@ -274,7 +272,7 @@ enum SessionMapEntryFlags : uint16_t {
 
   eventID to send for events
 
-  };
+};
 
 */
 
@@ -286,8 +284,8 @@ enum SessionMapEntryFlags : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationSessionMapDesc {
 
-  uint16_t    options       = SM_OPT_DEFAULT_SETTING;
-  uint16_t    maxSessions   = MAX_CAB_SESSIONS;
+    uint16_t    options       = SM_OPT_DEFAULT_SETTING;
+    uint16_t    maxSessions   = MAX_CAB_SESSIONS;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -303,31 +301,31 @@ struct LcsBaseStationSessionMapDesc {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationTrackDesc {
 
-  uint16_t  options                        = SM_OPT_DEFAULT_SETTING;
+    uint16_t  options                        = SM_OPT_DEFAULT_SETTING;
 
-  uint8_t   enablePin                     = CDC::UNDEFINED_PIN;
-  uint8_t   dccSigPin1                    = CDC::UNDEFINED_PIN;
-  uint8_t   dccSigPin2                    = CDC::UNDEFINED_PIN;
-  uint8_t   sensePin                      = CDC::UNDEFINED_PIN;
-  uint8_t   uartRxPin                     = CDC::UNDEFINED_PIN;
+    uint8_t   enablePin                     = CDC::UNDEFINED_PIN;
+    uint8_t   dccSigPin1                    = CDC::UNDEFINED_PIN;
+    uint8_t   dccSigPin2                    = CDC::UNDEFINED_PIN;
+    uint8_t   sensePin                      = CDC::UNDEFINED_PIN;
+    uint8_t   uartRxPin                     = CDC::UNDEFINED_PIN;
 
-  uint16_t  initCurrentMilliAmp           = 0;
-  uint16_t  limitCurrentMilliAmp          = 0;
-  uint16_t  maxCurrentMilliAmp            = 0;
-  uint16_t  milliVoltPerAmp               = 0;
+    uint16_t  initCurrentMilliAmp           = 0;
+    uint16_t  limitCurrentMilliAmp          = 0;
+    uint16_t  maxCurrentMilliAmp            = 0;
+    uint16_t  milliVoltPerAmp               = 0;
 
-  uint16_t  startTimeThresholdMillis      = 0;
-  uint16_t  stopTimeThresholdMillis       = 0;
-  uint16_t  overloadTimeThresholdMillis   = 0;
-  uint16_t  overloadEventThreshold        = 0;
-  uint16_t  overloadRestartThreshold      = 0;
+    uint16_t  startTimeThresholdMillis      = 0;
+    uint16_t  stopTimeThresholdMillis       = 0;
+    uint16_t  overloadTimeThresholdMillis   = 0;
+    uint16_t  overloadEventThreshold        = 0;
+    uint16_t  overloadRestartThreshold      = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
 // DCC track definition. The DCC track object is responsible for managing the track power as well as building
 // and sending the DCC packet bit stream. A packet consists of the preamble bits, the postamble bit, the data
 // bytes separated with a ZERO bit and a checksum byte. Creating the DCC bit stream is done with the signal
-// generation routines. The signal state machine, running on a 29 micrsosecond tick, takes a DCC packet and
+// generation routines. The signal state machine, running on a 29 microsecond tick, takes a DCC packet and
 // gets it out to the track.
 //
 // For a base station, there will be two track objects. One is the MAIN track and the other one is the PROG
@@ -339,11 +337,11 @@ struct LcsBaseStationTrackDesc {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationDccTrack {
 
-  public:
+    public:
 
     LcsBaseStationDccTrack( );
 
-    uint8_t                     setupDccTrack( LcsBaseStationTrackDesc* trackDesc, LcsCoreLib *lcsLib );
+    uint8_t                     setupDccTrack( LcsBaseStationTrackDesc* trackDesc );
     void                        loadPacket( const uint8_t *packet, uint8_t len, uint8_t repeat = 0 );
 
     uint16_t                    getFlags( );
@@ -396,9 +394,7 @@ struct LcsBaseStationDccTrack {
     void                        printDccTrackConfig( );
     void                        printDccTrackStatus( );
 
-  private:
-
-    LcsCoreLib                  *lcsLib                       = nullptr;
+    private:
 
     uint16_t                    options                       = DT_OPT_DEFAULT_SETTING;
     volatile uint16_t           flags                         = DT_F_DEFAULT_SETTING;
@@ -455,8 +451,8 @@ struct LcsBaseStationDccTrack {
     DccPacket                   *pendingBufPtr  = nullptr;
 
     // ??? a boat load of more fields...
-    // base station capabilties according to RCN200 - 4 16 bit words
-    // sample valus per second for samples and dcc packets
+    // base station capabilities according to RCN200 - 4 16 bit words
+    // sample values per second for samples and dcc packets
 
     // buffers for POM / XPOM data
     // queue for POM / XPOM commands
@@ -469,7 +465,7 @@ struct LcsBaseStationDccTrack {
     uint8_t                     sampleBufIndex                    = 0;
     uint16_t                    sampleBuf[ SAMPLE_BUF_SIZE ]      = { 0 };
 
-  public:
+    public:
 
     static void                 startDccProcessing( );
 };
@@ -477,21 +473,21 @@ struct LcsBaseStationDccTrack {
 //------------------------------------------------------------------------------------------------------------
 // Every allocated loco session is described by the sessionMap structure. There are the engine cab Id, speed,
 // direction and function information. There is also a field that indicates when we received information for
-// this session from a cab control handheld. The function flags are stored in an array, each byte represeting
+// this session from a cab control handheld. The function flags are stored in an array, each byte representing
 // a group.
 //
 //------------------------------------------------------------------------------------------------------------
 struct SessionMapEntry {
 
   uint16_t        flags               = SME_DEFAULT_SETTING;
-  uint16_t        cabId               = NIL_CAB_ID;
+  uint16_t        cabId               = LCS::NIL_CAB_ID;
   uint8_t         speed               = 0;
   uint8_t         speedSteps          = 128;
   uint8_t         direction           = 0;
   uint8_t         engineState         = 0;
   uint8_t         nextRefreshStep     = 0;
   unsigned long   lastKeepAliveTime   = 0;
-  uint8_t         functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
+  uint8_t         functions[ LCS::MAX_DCC_FUNC_GROUP_ID ] = { 0 };
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -507,10 +503,9 @@ struct LcsBaseStationLocoSession {
 
     uint8_t setupSessionMap(
 
-      LcsBaseStationSessionMapDesc  *sessionMapDesc,
-      LcsCoreLib                    *lcsLib,
-      LcsBaseStationDccTrack        *mainTrack,
-      LcsBaseStationDccTrack        *progTrack
+        LcsBaseStationSessionMapDesc  *sessionMapDesc,
+        LcsBaseStationDccTrack        *mainTrack,
+        LcsBaseStationDccTrack        *progTrack
     );
 
     uint8_t                   requestSession( uint16_t cabId, uint8_t mode, uint8_t *sId );
@@ -553,7 +548,7 @@ struct LcsBaseStationLocoSession {
     SessionMapEntry           *lookupSessionEntry( uint16_t cabId );
     SessionMapEntry           *getSessionMapEntryPtr( uint8_t sId );
 
-  private:
+    private:
 
     uint8_t                   setThrottle( SessionMapEntry *csptr, uint8_t speed, uint8_t direction );
     uint8_t                   setDccFunctionGroup( SessionMapEntry *csPtr, uint8_t fGroup, uint8_t dccByte );
@@ -564,9 +559,8 @@ struct LcsBaseStationLocoSession {
     void                      initSessionEntry( SessionMapEntry *csPtr );
     void                      printSessionEntry( SessionMapEntry *csPtr );
 
-  private:
+    private:
 
-    LcsCoreLib                *lcsLib                 = nullptr;
     LcsBaseStationDccTrack    *mainTrack              = nullptr;
     LcsBaseStationDccTrack    *progTrack              = nullptr;
 
@@ -588,21 +582,19 @@ struct LcsBaseStationLocoSession {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationMsgInterface {
 
-  public:
+    public:
 
     LcsBaseStationMsgInterface( );
 
-    uint8_t setupLcsMsgInterface( LcsCoreLib                  *lcsLib,
-                                  LcsBaseStationLocoSession   *locoSessions,
+    uint8_t setupLcsMsgInterface( LcsBaseStationLocoSession   *locoSessions,
                                   LcsBaseStationDccTrack      *mainTrack,
                                   LcsBaseStationDccTrack      *progTrack
                                 );
 
     void handleLcsMsg( uint8_t *msg );
 
-  private:
+    private:
 
-    LcsCoreLib                  *lcsLib         = nullptr;
     LcsBaseStationLocoSession   *locoSessions   = nullptr;
     LcsBaseStationDccTrack      *mainTrack      = nullptr;
     LcsBaseStationDccTrack      *progTrack      = nullptr;
@@ -615,18 +607,17 @@ struct LcsBaseStationMsgInterface {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationCommand {
 
-  public:
+    public:
 
     LcsBaseStationCommand( );
 
-    uint8_t setupSerialCommand( LcsCoreLib                 *lcsLib,
-                                LcsBaseStationLocoSession  *locoSessions,
+    uint8_t setupSerialCommand( LcsBaseStationLocoSession  *locoSessions,
                                 LcsBaseStationDccTrack     *mainTrack,
                                 LcsBaseStationDccTrack     *progTrack );
 
     void handleSerialCommand( char *s );
 
-  private:
+    private:
 
     void openSessionCmd( char *s );
     void closeSessionCmd( char *s );
@@ -663,9 +654,8 @@ struct LcsBaseStationCommand {
 
     void printDccLogCommand( char *s ); 
 
-  private:
+    private:
 
-    LcsCoreLib                *lcsLib       = nullptr;
     LcsBaseStationLocoSession *locoSessions = nullptr;
     LcsBaseStationDccTrack    *mainTrack    = nullptr;
     LcsBaseStationDccTrack    *progTrack    = nullptr;

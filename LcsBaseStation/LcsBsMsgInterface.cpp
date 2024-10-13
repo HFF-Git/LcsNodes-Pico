@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS Base Station - LCS Msg Interface - implementation file.
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -33,26 +33,37 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------
-  // Some helper functions.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void printLcsMsg( uint8_t *msg ) {
+//------------------------------------------------------------------------------------------------------------
+// Some helper functions.
+//
+//------------------------------------------------------------------------------------------------------------
+void printLcsMsg( uint8_t *msg ) {
 
     int msgLen = (( msg[ 0 ] >> 5 ) + 1 ) % 8;
 
-    INTERFACE.print( F( "[ " ));
+    printf( "[" ); 
 
-    for ( int i = 0; i < msgLen; i++ ) {
+    for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[ i ] );
+    printf( "]" ); 
+} 
 
-      INTERFACE.print( msg[ i ], HEX );
-      INTERFACE.print( F( " " ));
-    }
+  uint8_t lowByte( uint16_t arg ) { 
+    
+    return( arg & 0xFF ); 
+}
 
-    INTERFACE.print( F( "]" ));
-  } 
+uint8_t highByte( uint16_t arg ) { 
+    
+    return( arg >> 8 ); 
+}   
   
 }; // namespace
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 //  The object constructor. Nothing really to do right now.
@@ -82,7 +93,7 @@ uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
   this -> mainTrack     = mainTrack;
   this -> progTrack     = progTrack;
 
-  return ( ALL_OK );
+  return ( LCS::ALL_OK );
 } 
 
 //------------------------------------------------------------------------------------------------------------
@@ -332,21 +343,18 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
     //--------------------------------------------------------------------------------------------------------
     // LCS_OP_REQ_ESTP request. This command is send by the client for an emergency stop of all engines. The
-    // base station will broadcast this message rightaway. We also send the LCS message LCS_OP_REQ_ESTP to all
+    // base station will broadcast this message right away. We also send the LCS message LCS_OP_REQ_ESTP to all
     // nodes on the LCS bus.
     //
     //--------------------------------------------------------------------------------------------------------
+    /* ??? we do have the request anymore, but should react to ESTP 
     case LCS_OP_REQ_ESTP: {
-
-        #if DEBUG_LMSG_INTERFACE == 1
-        INTERFACE.print( F( "LCS_OP_REQ_ESTP" ));
-        INTERFACE.println( );
-        #endif
 
         locoSessions -> emergencyStopAll( );
         lcsLib -> sendEstop( );
        
-      }  break;
+        }  break;
+      */
 
     //--------------------------------------------------------------------------------------------------------
     // LCS_OP_SET_CVM request. This command is an on the track CV programming command. The base station will
@@ -367,7 +375,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
       } break;
 
     //--------------------------------------------------------------------------------------------------------
-    // LCS_OP_SET_CVS request. This command writes a value to the CV in service mode, a seperate programming
+    // LCS_OP_SET_CVS request. This command writes a value to the CV in service mode, a separate programming
     // track. The session number is not used, any session number will do. The mode byte specifies the service
     // mode:
     //
@@ -395,7 +403,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
       } break;
 
     //--------------------------------------------------------------------------------------------------------
-    // LCS_OP_REQ_CVS requst. This command requests a CV read in service mode on the programming track. The
+    // LCS_OP_REQ_CVS request. This command requests a CV read in service mode on the programming track. The
     // session number is not used, any session number will do. The mode byte specifies the service mode:
     //
     //  0 - Direct Byte
