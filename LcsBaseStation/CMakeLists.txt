@@ -27,7 +27,6 @@ if ( TARGET tinyusb_device )
         # LcsBsDictionary.cpp
         # LcsBsLocoSession.cpp
         # LcsBsMsgInterface.cpp 
-
         # DccLog.h
         # DccLog.cpp
     )

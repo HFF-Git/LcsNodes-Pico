@@ -47,13 +47,13 @@
 //------------------------------------------------------------------------------------------------------------
 namespace DCC_LOG {
 
-  //----------------------------------------------------------------------------------------------------------
-  // Type of log entries. A log entry consist of the header byte, which contains in the first byte the
-  // 4-bit log id and the 4-bit length of the log data. A log entry can therefore record up to 16 bytes of
-  // payload.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  enum LogId : uint8_t {
+//------------------------------------------------------------------------------------------------------------
+// Type of log entries. A log entry consist of the header byte, which contains in the first byte the
+// 4-bit log id and the 4-bit length of the log data. A log entry can therefore record up to 16 bytes of
+// payload.
+//
+//------------------------------------------------------------------------------------------------------------
+enum LogId : uint8_t {
 
     LOG_NIL       = 0,
     LOG_BEGIN     = 1,
@@ -65,23 +65,23 @@ namespace DCC_LOG {
     LOG_DCC_RCM   = 7,
     LOG_VAL       = 8,
     LOG_INV       = 15
-  };
+};
 
-  //----------------------------------------------------------------------------------------------------------
-  // The external interface. Every recoding session must be bracketed by a "begin" and and an "end" call, the
-  // logging interface must be enabled in general. Listing the log entres is only possible when the log is
-  // not active, i.e. a call to "end" was issued before.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  void enableLog( bool arg );
-  void beginLog( );
-  void endLog( );
-  void printLog( );
+//------------------------------------------------------------------------------------------------------------
+// The external interface. Every recoding session must be bracketed by a "begin" and and an "end" call, the
+// logging interface must be enabled in general. Listing the log entries is only possible when the log is
+// not active, i.e. a call to "end" was issued before.
+//
+//------------------------------------------------------------------------------------------------------------
+void enableLog( bool arg );
+void beginLog( );
+void endLog( );
+void printLog( );
 
-  void        writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
-  void        writeLogId( uint8_t id );
-  void        writeLogTs( );
-  void        writeLogVal( uint8_t valId, uint16_t val );
+void        writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
+void        writeLogId( uint8_t id );
+void        writeLogTs( );
+void        writeLogVal( uint8_t valId, uint16_t val );
 };
 
 #endif

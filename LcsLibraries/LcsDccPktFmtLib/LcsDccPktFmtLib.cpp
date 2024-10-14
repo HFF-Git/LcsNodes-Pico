@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // This file contains the DCC formatter methods. The routines are used to display a DCC packet in human
-// readable format. There are methods that analzye a DCC packet for length, checksum and instruction type.
+// readable format. There are methods that analyze a DCC packet for length, checksum and instruction type.
 // The formatting routines will build a string with a binary, hexadecimal or content formatted data.
 //
 //------------------------------------------------------------------------------------------------------------

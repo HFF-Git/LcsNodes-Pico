@@ -13,7 +13,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -45,15 +45,15 @@ LcsBaseStationCommand::LcsBaseStationCommand( ) { }
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationCommand::setupSerialCommand(
 
-  LcsBaseStationLocoSession *locoSessions,
-  LcsBaseStationDccTrack    *mainTrack,
-  LcsBaseStationDccTrack    *progTrack ) {
+    LcsBaseStationLocoSession *locoSessions,
+    LcsBaseStationDccTrack    *mainTrack,
+    LcsBaseStationDccTrack    *progTrack ) {
 
-  this -> locoSessions  = locoSessions;
-  this -> mainTrack     = mainTrack;
-  this -> progTrack     = progTrack;
+    this -> locoSessions  = locoSessions;
+    this -> mainTrack     = mainTrack;
+    this -> progTrack     = progTrack;
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -65,53 +65,53 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
-  switch ( s[ 0 ] ) {
+    switch ( s[ 0 ] ) {
 
-    case 'O': openSessionCmd( s + 1 ); break;
-    case 'K': closeSessionCmd( s + 1 ); break;
+        case 'O': openSessionCmd( s + 1 ); break;
+        case 'K': closeSessionCmd( s + 1 ); break;
 
-    case 't': setThrottleCmd( s + 1 );  break;
-    case 'f': setFunctionGroupCmd( s + 1 ); break;
-    case 'v': setFunctionBitCmd( s + 1 ); break;
+        case 't': setThrottleCmd( s + 1 );  break;
+        case 'f': setFunctionGroupCmd( s + 1 ); break;
+        case 'v': setFunctionBitCmd( s + 1 ); break;
 
-    case 'R': readCVCmd( s + 1 ); break;
-    case 'W': writeCVByteCmd( s + 1 ); break;
-    case 'B': writeCVBitCmd( s + 1 ); break;
-    case 'w': writeCVByteMainCmd( s + 1 ); break;
-    case 'b': writeCVBitMainCmd(s + 1 ); break;
+        case 'R': readCVCmd( s + 1 ); break;
+        case 'W': writeCVByteCmd( s + 1 ); break;
+        case 'B': writeCVBitCmd( s + 1 ); break;
+        case 'w': writeCVByteMainCmd( s + 1 ); break;
+        case 'b': writeCVBitMainCmd(s + 1 ); break;
 
-    case 'M': writeDccPacketMainCmd( s + 1 ); break;
-    case 'P': writeDccPacketProgCmd( s + 1 ); break;
+        case 'M': writeDccPacketMainCmd( s + 1 ); break;
+        case 'P': writeDccPacketProgCmd( s + 1 ); break;
 
-    case 'C': setTrackOptionCmd( s + 1 ); break;
-    case 'Y': printDccLogCommand( s + 1 ); break;
+        case 'C': setTrackOptionCmd( s + 1 ); break;
+        case 'Y': printDccLogCommand( s + 1 ); break;
 
-    case 'X': emergencyStopCmd( ); break;
-    case '0': turnPowerOffAllCmd( ); break;
-    case '1': turnPowerOnAllCmd( ); break;
-    case '2': turnPowerOnMainCmd( ); break;
-    case '3': turnPowerOnProgCmd( ); break;
+        case 'X': emergencyStopCmd( ); break;
+        case '0': turnPowerOffAllCmd( ); break;
+        case '1': turnPowerOnAllCmd( ); break;
+        case '2': turnPowerOnMainCmd( ); break;
+        case '3': turnPowerOnProgCmd( ); break;
 
-    case 's': printStatusCmd( s + 1 ); break;
-    case 'S': printBaseStationConfigCmd( ); break;
-    case 'L': printSessionMap( ); break;
+        case 's': printStatusCmd( s + 1 ); break;
+        case 'S': printBaseStationConfigCmd( ); break;
+        case 'L': printSessionMap( ); break;
 
-    case 'a': printTrackCurrentCmd( s + 1 ); break;
+        case 'a': printTrackCurrentCmd( s + 1 ); break;
 
-    case '?': printHelpCmd( ); break;
+        case '?': printHelpCmd( ); break;
 
-    case ' ': printf( "\n" ); break;
+        case ' ': printf( "\n" ); break;
 
-    case 'e':
-    case 'E':
-    case 'D':
-    case 'T':
-    case 'Z':
-    case 'Q':
-    case 'F': printf( "<Not implemented>\n" ); break;
+        case 'e':
+        case 'E':
+        case 'D':
+        case 'T':
+        case 'Z':
+        case 'Q':
+        case 'F': printf( "<Not implemented>\n" ); break;
 
-    default: printf( "<Unknown command, use '?' for help>\n" );
-  }
+        default: printf( "<Unknown command, use '?' for help>\n" );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -333,7 +333,7 @@ void LcsBaseStationCommand::readCVCmd( char *s ) {
 
     ret = locoSessions -> readCV( cvId, 0, &val );
 
-    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 );
+    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -365,7 +365,7 @@ void LcsBaseStationCommand::writeCVByteCmd( char *s ) {
 
   ret = locoSessions -> writeCVByte( cvId, val );
 
-  printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 );
+  printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -514,7 +514,7 @@ void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
 void LcsBaseStationCommand::emergencyStopCmd( ) {
 
   locoSessions -> emergencyStopAll( );
-  printf( "<X>" ));
+  printf( "<X>" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -537,7 +537,7 @@ void LcsBaseStationCommand::turnPowerOffAllCmd( ) {
 
   mainTrack -> powerStop( );
   progTrack -> powerStop( );
-  prinft( "<p0>" );
+  printf( "<p0>" );
 }
 
 void LcsBaseStationCommand::turnPowerOnMainCmd( ) {
@@ -768,7 +768,7 @@ void LcsBaseStationCommand::printDccLogCommand( char *s ) {
             mainTrack -> getRailComMsg( buf, sizeof( buf ));
 
             printf( "RC: " );
-            for ( uint8_t i = 0; i < 8; i++ ) printf( "0x%x ", buf[ i );
+            for ( uint8_t i = 0; i < 8; i++ ) printf( "0x%x ", buf[ i ]);
 
         } break;
 

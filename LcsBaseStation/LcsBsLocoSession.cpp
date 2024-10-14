@@ -22,6 +22,9 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
+#include <mm_malloc.h>
+
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 // Loco Session implementation file - local declarations.
@@ -29,77 +32,98 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------
-  // DCC packet definitions. A DCC packet payload is at most 10 bytes long, excluding the checksum byte. This
-  // is true for XPOM support, otherwise it is according to NMRA up to 6 bytes.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  enum DccPacketDefinitions : uint8_t {
+//------------------------------------------------------------------------------------------------------------
+// DCC packet definitions. A DCC packet payload is at most 10 bytes long, excluding the checksum byte. This
+// is true for XPOM support, otherwise it is according to NMRA up to 6 bytes.
+//
+//------------------------------------------------------------------------------------------------------------
+enum DccPacketDefinitions : uint8_t {
 
     MIN_DCC_PACKET_SIZE         = 2,
     MAX_DCC_PACKET_SIZE         = 16,
     MIN_DCC_PACKET_REPEATS      = 0,
     MAX_DCC_PACKET_REPEATS      = 8
-  };
+};
 
-  //--------------------------------------------------------------------------------------------------------
-  // Utility routines for number range checks.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  inline bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-  }
-
-  inline bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
+//----------------------------------------------------------------------------------------------------------
+// Utility routines for number range checks.
+//
+//----------------------------------------------------------------------------------------------------------
+bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
-  }
+}
 
-  inline bool isInRangeU( uint32_t val, uint32_t lower, uint32_t upper ) {
+bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
-  }
+}
 
-  inline bool validCabId( uint16_t cabId ) {
+bool isInRangeU( uint32_t val, uint32_t lower, uint32_t upper ) {
+
+    return (( val >= lower ) && ( val <= upper ));
+}
+
+bool validCabId( uint16_t cabId ) {
 
     return ( isInRangeU( cabId, MIN_CAB_ID, MAX_CAB_ID ));
-  }
+}
 
-  inline bool validCvId( uint16_t cvId ) {
+bool validCvId( uint16_t cvId ) {
 
     return ( isInRangeU( cvId, MIN_DCC_CV_ID, MAX_DCC_CV_ID ));
-  }
+}
 
-  inline bool validFunctionId( uint8_t fId ) {
+bool validFunctionId( uint8_t fId ) {
 
     return ( isInRangeU( fId, MIN_DCC_FUNC_ID, MAX_DCC_FUNC_ID ));
-  }
+}
 
-  inline bool validFunctionGroupId( uint8_t fGroup ) {
+bool validFunctionGroupId( uint8_t fGroup ) {
 
     return ( isInRangeU( fGroup, MIN_DCC_FUNC_GROUP_ID , MAX_DCC_FUNC_GROUP_ID ));
-  }
+}
 
-  inline bool validDccPacketlen( uint8_t len ) {
+bool validDccPacketlen( uint8_t len ) {
 
     return ( isInRangeU( len, MIN_DCC_PACKET_SIZE, MAX_DCC_PACKET_SIZE ));
-  }
+}
 
-  inline bool validDccPacketRepeatCnt( uint8_t nRepeat ) {
+bool validDccPacketRepeatCnt( uint8_t nRepeat ) {
 
     return ( isInRangeU( nRepeat, MIN_DCC_PACKET_REPEATS, MAX_DCC_PACKET_REPEATS ));
-  }
+}
 
-  //----------------------------------------------------------------------------------------------------------
-  // DDC function flags. The DCC function flags F0 .. F68 are stored in ten groups. Group 0 contains F0 .. F4
-  // stored in DCC command byte format. Group 1 contains F5 .. F8, Group 2 contains F9 .. F12 in DCC command
-  // byte format. The remainder F13 .. F68 are stored in 8 bits groups also in DCC comand byte format. The
-  // routines support the get/set of an individual bit as well as setting an entire function group. A DCC
-  // function group is labelled starting with index 1.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  bool getDccFuncBit( uint8_t *funcFlags, uint8_t fNum ) {
+uint8_t lowByte( uint16_t arg ) { 
+    
+    return( arg & 0xFF ); 
+}
+
+uint8_t highByte( uint16_t arg ) { 
+    
+    return( arg >> 8 ); 
+}  
+
+uint8_t bitRead( uint8_t arg, uint8_t pos ) {
+
+    return ( arg >> ( pos % 8 )) & 1;
+}
+
+void bitWrite( uint8_t *arg, uint8_t pos, bool val ) {
+
+    if ( val )  *arg |= ( 1 << ( 7 - pos ));  
+    else        *arg &= ~( 1 << ( 7 - pos )); 
+}
+
+//------------------------------------------------------------------------------------------------------------
+// DDC function flags. The DCC function flags F0 .. F68 are stored in ten groups. Group 0 contains F0 .. F4
+// stored in DCC command byte format. Group 1 contains F5 .. F8, Group 2 contains F9 .. F12 in DCC command
+// byte format. The remainder F13 .. F68 are stored in 8 bits groups also in DCC command byte format. The
+// routines support the get/set of an individual bit as well as setting an entire function group. A DCC
+// function group is labelled starting with index 1.
+//
+//------------------------------------------------------------------------------------------------------------
+bool getDccFuncBit( uint8_t *funcFlags, uint8_t fNum ) {
 
     if      ( fNum == 0 )                 return ( bitRead( funcFlags[ 0 ], 4 ));
     else if ( isInRangeU( fNum, 1, 4 ))   return ( bitRead( funcFlags[ 0 ], fNum - 1 ));
@@ -107,39 +131,39 @@ namespace {
     else if ( isInRangeU( fNum, 9, 12 ))  return ( bitRead( funcFlags[ 2 ], fNum - 9 ));
     else if ( isInRangeU( fNum, 13, 68 )) {
 
-      return ( bitRead( funcFlags[ ( fNum - 13 ) / 8 + 3 ], ( fNum - 13 ) % 8 ));
-    }
+        return ( bitRead( funcFlags[ ( fNum - 13 ) / 8 + 3 ], ( fNum - 13 ) % 8 ));
+    }   
     else return false;
-  }
+}
 
-  void setDccFuncBit( uint8_t *funcFlags, uint8_t fNum, bool val ) {
+void setDccFuncBit( uint8_t *funcFlags, uint8_t fNum, bool val ) {
 
-    if      ( fNum == 0 )                 bitWrite( funcFlags[ 0 ], 4, val );
-    else if ( isInRangeU( fNum, 1, 4 ))   bitWrite( funcFlags[ 0 ], fNum - 1, val );
-    else if ( isInRangeU( fNum, 5, 8 ))   bitWrite( funcFlags[ 1 ], fNum - 5, val );
-    else if ( isInRangeU( fNum, 9, 12 ))  bitWrite( funcFlags[ 2 ], fNum - 9, val );
+    if      ( fNum == 0 )                 bitWrite( &funcFlags[ 0 ], 4, val );
+    else if ( isInRangeU( fNum, 1, 4 ))   bitWrite( &funcFlags[ 0 ], fNum - 1, val );
+    else if ( isInRangeU( fNum, 5, 8 ))   bitWrite( &funcFlags[ 1 ], fNum - 5, val );
+    else if ( isInRangeU( fNum, 9, 12 ))  bitWrite( &funcFlags[ 2 ], fNum - 9, val );
     else if ( isInRangeU( fNum, 13, 68 )) {
 
-      bitWrite( funcFlags[ ( fNum - 13 ) / 8 + 3 ], ( fNum - 13 ) % 8, val );
+        bitWrite( &funcFlags[ ( fNum - 13 ) / 8 + 3 ], ( fNum - 13 ) % 8, val );
     }
-  }
+}
 
-  void setDccFuncGroupByte( uint8_t *funcFlags, uint8_t fGroup, uint8_t dccByte ) {
+void setDccFuncGroupByte( uint8_t *funcFlags, uint8_t fGroup, uint8_t dccByte ) {
 
     if       ( fGroup == 1 )                  funcFlags[ 0 ] = dccByte & 0x1F;
     else if  ( fGroup == 2 )                  funcFlags[ 1 ] = dccByte & 0x0F;
     else if  ( fGroup == 3 )                  funcFlags[ 2 ] = dccByte & 0x0F;
     else if  ( isInRangeU( fGroup, 4, 10 ))   funcFlags[ fGroup - 1 ] = dccByte;
-  }
+}
 
-  uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
+uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
 
     if      ( isInRangeU( fNum, 0, 4 ))     return ( 1 );
     else if ( isInRangeU( fNum, 5, 8 ))     return ( 2 );
     else if ( isInRangeU( fNum, 9, 12 ))    return ( 3 );
     else if ( isInRangeU( fNum, 13, 68 ))   return (( fNum - 13 ) / 8 + 4 );
     else                                    return ( 0 );
-  }
+}
 
 }; // namespace
 
@@ -164,37 +188,34 @@ LcsBaseStationLocoSession::LcsBaseStationLocoSession( ) { }
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setupSessionMap(
 
-  LcsBaseStationSessionMapDesc  *sessionMapDesc,
-  LcsCoreLib                    *lcsLib,
-  LcsBaseStationDccTrack        *mainTrack,
-  LcsBaseStationDccTrack        *progTrack
+    LcsBaseStationSessionMapDesc  *sessionMapDesc,
+    LcsBaseStationDccTrack        *mainTrack,
+    LcsBaseStationDccTrack        *progTrack
 
-) {
+    ) {
 
-  if (( lcsLib    == nullptr                              ) ||
-      ( mainTrack == nullptr                              ) ||
-      ( progTrack == nullptr                              ) ||
-      ( sessionMapDesc -> maxSessions > MAX_CAB_SESSIONS  )) return ( ERR_SESSION_SETUP );
+    if (( mainTrack == nullptr                              ) ||
+        ( progTrack == nullptr                              ) ||
+        ( sessionMapDesc -> maxSessions > MAX_CAB_SESSIONS  )) return ( ERR_SESSION_SETUP );
 
-  this -> lcsLib        = lcsLib;
-  this -> mainTrack     = mainTrack;
-  this -> progTrack     = progTrack;
+    this -> mainTrack     = mainTrack;
+    this -> progTrack     = progTrack;
 
-  options               = sessionMapDesc -> options;
-  flags                 = SM_F_DEFAULT_SETTING;
-  sessionMap            = (SessionMapEntry *) calloc( sessionMapDesc -> maxSessions, sizeof( SessionMapEntry ));
-  lastAliveCheckTime    = millis( );
+    options               = sessionMapDesc -> options;
+    flags                 = SM_F_DEFAULT_SETTING;
+    sessionMap            = (SessionMapEntry *) calloc( sessionMapDesc -> maxSessions, sizeof( SessionMapEntry ));
+    lastAliveCheckTime    = CDC::getMillis( );
 
-  sessionMapHwm         = sessionMap;
-  sessionMapLimit       = &sessionMap[ sessionMapDesc -> maxSessions ];
-  sessionMapNextRefresh = sessionMap;
+    sessionMapHwm         = sessionMap;
+    sessionMapLimit       = &sessionMap[ sessionMapDesc -> maxSessions ];
+    sessionMapNextRefresh = sessionMap;
 
-  if ( options & SM_OPT_ENABLE_REFRESH )      flags |= SM_F_ENABLE_REFRESH;
-  if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) flags |= SM_F_KEEP_ALIVE_CHECKING;
+    if ( options & SM_OPT_ENABLE_REFRESH )      flags |= SM_F_ENABLE_REFRESH;
+    if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) flags |= SM_F_KEEP_ALIVE_CHECKING;
 
-  for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapLimit; smePtr++ ) initSessionEntry( smePtr );
+    for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapLimit; smePtr++ ) initSessionEntry( smePtr );
 
-  return ( ALL_OK );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -208,39 +229,39 @@ uint8_t LcsBaseStationLocoSession::setupSessionMap(
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::requestSession( uint16_t cabId, uint8_t mode, uint8_t *sId ) {
 
-  *sId = NIL_LOCO_SESSION_ID;
-  if ( ! validCabId( cabId )) return ( ERR_INVALID_CAB_ID );
+    *sId = NIL_LOCO_SESSION_ID;
+    if ( ! validCabId( cabId )) return ( ERR_INVALID_CAB_ID );
 
-  switch ( mode ) {
+    switch ( mode ) {
 
-    case LSM_NORMAL: {
+        case LSM_NORMAL: {
 
-        SessionMapEntry *smePtr = allocateSessionEntry( cabId );
-        if ( smePtr == nullptr ) return ( ERR_LOCO_SESSION_ALLOCATE );
+            SessionMapEntry *smePtr = allocateSessionEntry( cabId );
+            if ( smePtr == nullptr ) return ( ERR_LOCO_SESSION_ALLOCATE );
 
-        smePtr -> flags |= SME_SPDIR_ONLY_REFRESH;
+            smePtr -> flags |= SME_SPDIR_ONLY_REFRESH;
 
-        *sId = smePtr - sessionMap + 1;
-        return ( ALL_OK );
-      }
+            *sId = smePtr - sessionMap + 1;
+            return ( ALL_OK );
+        }
 
-    case LSM_STEAL: {
+        case LSM_STEAL: {
 
-        // ??? need to inform the current handheld and put the new handheld in its place.
-        return ( ERR_NOT_IMPLEMENTED );
+            // ??? need to inform the current handheld and put the new handheld in its place.
+            return ( ERR_NOT_IMPLEMENTED );
 
-      } break;
+        } break;
 
-    case LSM_SHARED: {
+        case LSM_SHARED: {
 
-        // ??? essentially, add another handheld to the session. We perhaps need a counter on how many handhelds
-        // share the session ...
-        return ( ERR_NOT_IMPLEMENTED );
+            // ??? essentially, add another handheld to the session. We perhaps need a counter on how many handhelds
+            // share the session ...
+            return ( ERR_NOT_IMPLEMENTED );
 
-      } break;
+        } break;
 
-    default: return ( ERR_NOT_IMPLEMENTED ); // ??? rather "invalid mode" ?
-  }
+        default: return ( ERR_NOT_IMPLEMENTED ); // ??? rather "invalid mode" ?
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -250,11 +271,11 @@ uint8_t LcsBaseStationLocoSession::requestSession( uint16_t cabId, uint8_t mode,
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::releaseSession( uint8_t sId ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  deallocateSessionEntry( smePtr );
-  return ( ALL_OK );
+    deallocateSessionEntry( smePtr );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -264,10 +285,10 @@ uint8_t LcsBaseStationLocoSession::releaseSession( uint8_t sId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::updateSession( uint8_t sId, uint8_t flags ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  return ( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -278,19 +299,17 @@ uint8_t LcsBaseStationLocoSession::updateSession( uint8_t sId, uint8_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::markSessionAlive( uint8_t sId ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  smePtr -> lastKeepAliveTime = millis( );
-  return ( ALL_OK );
+    smePtr -> lastKeepAliveTime = CDC::getMillis( );
+    return ( ALL_OK );
 }
 
 
 // ??? need an overall concept for periodic tasks... this function  will go into it ...
-
-// ??? separate out the acheck alive functinnality ? it is a separate task...
-
-// sessionMapNextAliveCheck var needed ...
+// ??? separate out the check alive functionality ? it is a separate task...
+// ??? sessionMapNextAliveCheck var needed ...
 
 //------------------------------------------------------------------------------------------------------------
 // "refreshActiveSessions" walks through the session map up to the high water mark and invokes the session
@@ -306,18 +325,18 @@ uint8_t LcsBaseStationLocoSession::markSessionAlive( uint8_t sId ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::refreshActiveSessions( ) {
 
-  if (( flags & SM_F_ENABLE_REFRESH ) && ( sessionMapHwm > sessionMap )) {
+    if (( flags & SM_F_ENABLE_REFRESH ) && ( sessionMapHwm > sessionMap )) {
 
-    refreshSessionEntry( sessionMapNextRefresh );
+        refreshSessionEntry( sessionMapNextRefresh );
 
-    sessionMapNextRefresh ++;
-    if ( sessionMapNextRefresh >= sessionMapHwm ) sessionMapNextRefresh = sessionMap;
-  }
+        sessionMapNextRefresh ++;
+        if ( sessionMapNextRefresh >= sessionMapHwm ) sessionMapNextRefresh = sessionMap;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "refreshSessionEntry" checks first that the session is still alive and then issues the next DCC packet for
-// refreshing the loco session. To avoid DCC bandwith issues, a loco session refresh is done in several small
+// refreshing the loco session. To avoid DCC bandwidth issues, a loco session refresh is done in several small
 // steps. There is one state for speed and direction and steps to refresh the function groups 1 to 5. If the
 // function refresh option is set, we use the DCC command that sets speed, direction and the function flags in
 // one DCC command.
@@ -338,47 +357,45 @@ void LcsBaseStationLocoSession::refreshActiveSessions( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 
-  // ??? introduce a return status ?
+    // ??? introduce a return status ?
 
-  if ( smePtr -> cabId != NIL_CAB_ID ) {
+    if ( smePtr -> cabId != NIL_CAB_ID ) {
 
-    if ( flags & SM_F_KEEP_ALIVE_CHECKING ) {
+        if ( flags & SM_F_KEEP_ALIVE_CHECKING ) {
 
-      if (( millis( ) - smePtr -> lastKeepAliveTime ) > refreshAliveTimeOutVal ) {
+            if (( CDC::getMillis( ) - smePtr -> lastKeepAliveTime ) > refreshAliveTimeOutVal ) {
 
-        #if DEBUG_CHECK_ALIVE_SESSIONS == 1
-        INTERFACE.print( F( "Session: " ));
-        INTERFACE.print( smePtr - sessionMap );
-        INTERFACE.println( F( " expired" ));
-        #endif
+                #if DEBUG_CHECK_ALIVE_SESSIONS == 1
+                printf( "Session: %d expired\n", smePtr - sessionMap );
+                #endif
 
-        deallocateSessionEntry( smePtr );
-      }
+                deallocateSessionEntry( smePtr );
+            }
+        }
+
+        // ??? separate keep alive checking and refresh options...
+
+        else {
+
+            // ??? if ( smePtr -> speed > 0 )  // only active locos are refreshed...
+
+            if ( smePtr -> nextRefreshStep == 0 ) {
+
+                setThrottle( smePtr, smePtr -> speed, smePtr -> direction );
+
+                smePtr -> nextRefreshStep = ((( smePtr -> flags & SME_COMBINED_REFRESH ) ||
+                                            ( smePtr -> flags & SME_SPDIR_ONLY_REFRESH )) ? 0 : 1 );
+            }
+            else if ( smePtr -> nextRefreshStep <= 5 ) {
+
+            uint8_t fGroup = smePtr -> nextRefreshStep;
+
+            setDccFunctionGroup( smePtr, fGroup, smePtr -> functions[ fGroup - 1 ] );
+            smePtr -> nextRefreshStep = (( smePtr -> nextRefreshStep >= 5 ) ? 0 : smePtr -> nextRefreshStep + 1 );
+         
+            }
+        }    
     }
-
-    // ??? separate keep alive checking and refresh options...
-
-    else {
-
-      // ??? if ( smePtr -> speed > 0 )  // only active locos are refreshed...
-
-
-      if ( smePtr -> nextRefreshStep == 0 ) {
-
-        setThrottle( smePtr, smePtr -> speed, smePtr -> direction );
-
-        smePtr -> nextRefreshStep = ((( smePtr -> flags & SME_COMBINED_REFRESH ) ||
-                                      ( smePtr -> flags & SME_SPDIR_ONLY_REFRESH )) ? 0 : 1 );
-      }
-      else if ( smePtr -> nextRefreshStep <= 5 ) {
-
-        uint8_t fGroup = smePtr -> nextRefreshStep;
-
-        setDccFunctionGroup( smePtr, fGroup, smePtr -> functions[ fGroup - 1 ] );
-        smePtr -> nextRefreshStep = (( smePtr -> nextRefreshStep >= 5 ) ? 0 : smePtr -> nextRefreshStep + 1 );
-      }
-    }
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -391,54 +408,54 @@ void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::emergencyStopAll( ) {
 
-  mainTrack -> loadPacket( eStopDccPacketData, 2, 4 );
+    mainTrack -> loadPacket( eStopDccPacketData, 2, 4 );
 
-  for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr++ ) {
+    for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr++ ) {
 
-    if ( smePtr -> cabId != NIL_CAB_ID ) smePtr -> speed = 1;
-  }
+        if ( smePtr -> cabId != NIL_CAB_ID ) smePtr -> speed = 1;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Getter methods for session related info. Straighforward.
+// Getter methods for session related info. Straightforward.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::getSessionIdByCabId( uint16_t cabId ) {
 
-  SessionMapEntry *smePtr = lookupSessionEntry( cabId );
-  return (( smePtr == nullptr ) ? NIL_LOCO_SESSION_ID : (( smePtr - sessionMap ) + 1 ));
-}
+    SessionMapEntry *smePtr = lookupSessionEntry( cabId );
+    return (( smePtr == nullptr ) ? NIL_LOCO_SESSION_ID : (( smePtr - sessionMap ) + 1 ));
+    }
 
 uint16_t LcsBaseStationLocoSession::getOptions( ) {
 
-  return ( options );
+    return ( options );
 }
 
 uint16_t LcsBaseStationLocoSession::getFlags( ) {
 
-  return ( flags );
+    return ( flags );
 }
 
 uint8_t LcsBaseStationLocoSession::getSessionMapHwm( ) {
 
-  return ( sessionMapHwm - sessionMap );
+    return ( sessionMapHwm - sessionMap );
 }
 
-uint32_t  LcsBaseStationLocoSession::getSessionKeepAliveInterval( ) {
+uint32_t LcsBaseStationLocoSession::getSessionKeepAliveInterval( ) {
 
-  return ( refreshAliveTimeOutVal );
+    return ( refreshAliveTimeOutVal );
 }
 
-uint8_t  LcsBaseStationLocoSession::getActiveSessions( ) {
+uint8_t LcsBaseStationLocoSession::getActiveSessions( ) {
 
-  uint8_t sessionCnt = 0;
+    uint8_t sessionCnt = 0;
 
-  for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr++ ) {
+    for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr++ ) {
 
-    if ( smePtr -> cabId != NIL_CAB_ID ) sessionCnt++;
-  }
+        if ( smePtr -> cabId != NIL_CAB_ID ) sessionCnt++;
+    }
 
-  return ( sessionCnt );
+    return ( sessionCnt );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -449,49 +466,49 @@ uint8_t  LcsBaseStationLocoSession::getActiveSessions( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setThrottle( uint8_t sId, uint8_t speed, uint8_t direction ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  return ( setThrottle( smePtr, speed, direction ));
+    return ( setThrottle( smePtr, speed, direction ));
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "setThrottle" will send a DCC packet with speed and direction for a loco. If the function refresh option
-// is enabled, the DCC command will specifiy speed, direction and functions to refresh in one packet.
+// is enabled, the DCC command will specify speed, direction and functions to refresh in one packet.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setThrottle( SessionMapEntry *smePtr, uint8_t speed, uint8_t direction ) {
 
-  byte pBuf[ MAX_DCC_PACKET_SIZE ];
-  byte pLen = 0;
+    uint8_t pBuf[ MAX_DCC_PACKET_SIZE ];
+    uint8_t pLen = 0;
 
-  smePtr -> speed      = speed & 0x7F;
-  smePtr -> direction  = direction % 2;
+    smePtr -> speed      = speed & 0x7F;
+    smePtr -> direction  = direction % 2;
 
-  if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
-  pBuf[pLen++] = lowByte( smePtr -> cabId );
+    if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
+    pBuf[pLen++] = lowByte( smePtr -> cabId );
 
-  pBuf[pLen++] = (( smePtr -> flags & SME_COMBINED_REFRESH ) ? 0x3c : 0x3F );
-  pBuf[pLen++] = (( smePtr -> speed & 0x7F ) | (( smePtr -> direction ) ? 0x80 : 0 ));
+    pBuf[pLen++] = (( smePtr -> flags & SME_COMBINED_REFRESH ) ? 0x3c : 0x3F );
+    pBuf[pLen++] = (( smePtr -> speed & 0x7F ) | (( smePtr -> direction ) ? 0x80 : 0 ));
 
-  if ( smePtr -> flags & SME_COMBINED_REFRESH ) {
+    if ( smePtr -> flags & SME_COMBINED_REFRESH ) {
 
-    pBuf[pLen++]  = ((( smePtr -> functions[0] & 0x10 ) >> 4 ) |
-                     (( smePtr -> functions[0] & 0x0F ) << 1 ) |
-                     (( smePtr -> functions[1] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( smePtr -> functions[0] & 0x10 ) >> 4 ) |
+                        (( smePtr -> functions[0] & 0x0F ) << 1 ) |
+                        (( smePtr -> functions[1] & 0x07 ) << 5 ));
 
-    pBuf[pLen++]  = ((( smePtr -> functions[1] & 0x0F ) >> 3 ) |
-                     (( smePtr -> functions[2] & 0x0F ) << 1 ) |
-                     (( smePtr -> functions[3] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( smePtr -> functions[1] & 0x0F ) >> 3 ) |
+                        (( smePtr -> functions[2] & 0x0F ) << 1 ) |
+                        (( smePtr -> functions[3] & 0x07 ) << 5 ));
 
-    pBuf[pLen++]  = ((( smePtr -> functions[3] & 0xf80 ) >> 3 ) |
-                     (( smePtr -> functions[4] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( smePtr -> functions[3] & 0xf80 ) >> 3 ) |
+                        (( smePtr -> functions[4] & 0x07 ) << 5 ));
 
-    pBuf[pLen++]  = (( smePtr -> functions[4] & 0xf80 ) >> 3 );
-  }
+        pBuf[pLen++]  = (( smePtr -> functions[4] & 0xf80 ) >> 3 );
+    }
 
-  mainTrack -> loadPacket( pBuf, pLen );
-  return ( ALL_OK );
+    mainTrack -> loadPacket( pBuf, pLen );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -503,15 +520,15 @@ uint8_t LcsBaseStationLocoSession::setThrottle( SessionMapEntry *smePtr, uint8_t
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setDccFunctionBit( uint8_t sId, uint8_t fNum, uint8_t val ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
-  setDccFuncBit( smePtr -> functions, fNum, val );
+    if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
+    setDccFuncBit( smePtr -> functions, fNum, val );
 
-  uint8_t fGroup = dccFunctionBitToGroup( fNum );
+    uint8_t fGroup = dccFunctionBitToGroup( fNum );
 
-  return ( setDccFunctionGroup( smePtr, fGroup, smePtr -> functions[ fGroup - 1 ] ));
+    return ( setDccFunctionGroup( smePtr, fGroup, smePtr -> functions[ fGroup - 1 ] ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -521,10 +538,10 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionBit( uint8_t sId, uint8_t fNum,
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( uint8_t sId, uint8_t fGroup, uint8_t dccByte ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  return ( setDccFunctionGroup( smePtr, fGroup, dccByte ));
+    return ( setDccFunctionGroup( smePtr, fGroup, dccByte ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -548,39 +565,39 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( uint8_t sId, uint8_t fGr
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr, uint8_t fGroup, uint8_t dccByte ) {
 
-  if ( ! validFunctionGroupId( fGroup )) return ( ERR_INVALID_FGROUP_ID );
-  setDccFuncGroupByte( smePtr -> functions, fGroup, dccByte );
+    if ( ! validFunctionGroupId( fGroup )) return ( ERR_INVALID_FGROUP_ID );
+    setDccFuncGroupByte( smePtr -> functions, fGroup, dccByte );
 
-  byte pBuf[ MAX_DCC_PACKET_SIZE];
-  byte pLen = 0;
+    uint8_t pBuf[ MAX_DCC_PACKET_SIZE];
+    uint8_t pLen = 0;
 
-  if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
-  pBuf[pLen++] = lowByte( smePtr -> cabId );
+    if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
+    pBuf[pLen++] = lowByte( smePtr -> cabId );
 
-  switch ( fGroup - 1 ) {
+    switch ( fGroup - 1 ) {
 
-    case 0: pBuf[pLen++] = ( smePtr -> functions[ 0 ] & 0x1F ) | 0x80; break;
-    case 1: pBuf[pLen++] = ( smePtr -> functions[ 1 ] & 0x0F ) | 0xB0; break;
-    case 2: pBuf[pLen++] = ( smePtr -> functions[ 2 ] & 0x0F ) | 0xA0; break;
+        case 0: pBuf[pLen++] = ( smePtr -> functions[ 0 ] & 0x1F ) | 0x80; break;
+        case 1: pBuf[pLen++] = ( smePtr -> functions[ 1 ] & 0x0F ) | 0xB0; break;
+        case 2: pBuf[pLen++] = ( smePtr -> functions[ 2 ] & 0x0F ) | 0xA0; break;
 
-    case 3: pBuf[pLen++] = 0xDE; pBuf[pLen++] = smePtr -> functions[ 3 ]; break;
-    case 4: pBuf[pLen++] = 0xDF; pBuf[pLen++] = smePtr -> functions[ 4 ]; break;
-    case 5: pBuf[pLen++] = 0xD8; pBuf[pLen++] = smePtr -> functions[ 5 ]; break;
-    case 6: pBuf[pLen++] = 0xD9; pBuf[pLen++] = smePtr -> functions[ 6 ]; break;
-    case 7: pBuf[pLen++] = 0xDA; pBuf[pLen++] = smePtr -> functions[ 7 ]; break;
-    case 8: pBuf[pLen++] = 0xDB; pBuf[pLen++] = smePtr -> functions[ 8 ]; break;
-    case 9: pBuf[pLen++] = 0xDC; pBuf[pLen++] = smePtr -> functions[ 9 ]; break;
-  }
+        case 3: pBuf[pLen++] = 0xDE; pBuf[pLen++] = smePtr -> functions[ 3 ]; break;
+        case 4: pBuf[pLen++] = 0xDF; pBuf[pLen++] = smePtr -> functions[ 4 ]; break;
+        case 5: pBuf[pLen++] = 0xD8; pBuf[pLen++] = smePtr -> functions[ 5 ]; break;
+        case 6: pBuf[pLen++] = 0xD9; pBuf[pLen++] = smePtr -> functions[ 6 ]; break;
+        case 7: pBuf[pLen++] = 0xDA; pBuf[pLen++] = smePtr -> functions[ 7 ]; break;
+        case 8: pBuf[pLen++] = 0xDB; pBuf[pLen++] = smePtr -> functions[ 8 ]; break;
+        case 9: pBuf[pLen++] = 0xDC; pBuf[pLen++] = smePtr -> functions[ 9 ]; break;
+    }
 
-  mainTrack -> loadPacket( pBuf, pLen, 4 );
-  return ( ALL_OK );
+    mainTrack -> loadPacket( pBuf, pLen, 4 );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "writeCVMain" writes a CV value to the decoder on the main track. CV numbers range from 1 to 1024, but are
 // encoded from 0 to 1023. The DCC standard defines various modes for retrieving CV values. This function
 // implements CV write mode mode 0 and 1, by calling the respective method. The other modes are not supported.
-// For bit mode access, the bit position and bit value are encoded in the "val" parameter with bit 3 containg
+// For bit mode access, the bit position and bit value are encoded in the "val" parameter with bit 3 containing
 // the data and bit 0 ..2 the bit offset.
 //
 //    0 Direct Byte
@@ -592,7 +609,7 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr,
 //
 // Note on the MAIN track, there is no way for the decoder to answer via a raise in power consumption. The
 // command shown here is just sent. If however RailCom is available, the decoder can answer with the CV
-// value in a follwing cutout. This is currenty not implmented.
+// value in a following cutout. This is currently not implemented.
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val ) {
 
@@ -610,23 +627,23 @@ uint8_t LcsBaseStationLocoSession::writeCVMain( uint8_t sId, uint16_t cvId, uint
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVByteMain( uint8_t sId, uint16_t cvId, uint8_t val ) {
 
-  byte      pBuf[ MAX_DCC_PACKET_SIZE ];
-  byte      pLen = 0;
+    uint8_t   pBuf[ MAX_DCC_PACKET_SIZE ];
+    uint8_t   pLen = 0;
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
-  cvId--;
+    if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
+    cvId--;
 
-  if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
-  pBuf[pLen++] = lowByte( smePtr -> cabId );
-  pBuf[pLen++] = 0xEC + ( highByte( cvId ) & 0x03 );
-  pBuf[pLen++] = lowByte( cvId );
-  pBuf[pLen++] = val;
+    if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
+    pBuf[pLen++] = lowByte( smePtr -> cabId );
+    pBuf[pLen++] = 0xEC + ( highByte( cvId ) & 0x03 );
+    pBuf[pLen++] = lowByte( cvId );
+    pBuf[pLen++] = val;
 
-  mainTrack -> loadPacket( pBuf, pLen, 4 );
-  return ( ALL_OK );
+    mainTrack -> loadPacket( pBuf, pLen, 4 );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -639,23 +656,23 @@ uint8_t LcsBaseStationLocoSession::writeCVByteMain( uint8_t sId, uint16_t cvId, 
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVBitMain( uint8_t sId, uint16_t cvId, uint8_t bitPos, uint8_t val ) {
 
-  SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
-  if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
+    SessionMapEntry *smePtr = getSessionMapEntryPtr( sId );
+    if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
-  if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
-  cvId--;
+    if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
+    cvId--;
 
-  byte pBuf[ MAX_DCC_PACKET_SIZE ];
-  byte pLen = 0;
+    uint8_t pBuf[ MAX_DCC_PACKET_SIZE ];
+    uint8_t pLen = 0;
 
-  if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
-  pBuf[pLen++] = lowByte( smePtr -> cabId );
-  pBuf[pLen++] = 0xE8 + (highByte( cvId ) & 0x03 );
-  pBuf[pLen++] = lowByte( cvId );
-  pBuf[pLen++] = 0xF0 + (( val % 2 ) << 3 ) + ( bitPos % 8 );
+    if ( smePtr -> cabId > 127 ) pBuf[pLen++] = highByte( smePtr -> cabId ) | 0xC0;
+    pBuf[pLen++] = lowByte( smePtr -> cabId );
+    pBuf[pLen++] = 0xE8 + (highByte( cvId ) & 0x03 );
+    pBuf[pLen++] = lowByte( cvId );
+    pBuf[pLen++] = 0xF0 + (( val % 2 ) << 3 ) + ( bitPos % 8 );
 
-  mainTrack -> loadPacket( pBuf, pLen, 4 );
-  return ( ALL_OK );
+    mainTrack -> loadPacket( pBuf, pLen, 4 );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -677,9 +694,9 @@ uint8_t LcsBaseStationLocoSession::writeCVBitMain( uint8_t sId, uint16_t cvId, u
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::readCV( uint16_t cvId, uint8_t mode, uint8_t *val ) {
 
-  if        ( mode == 0 )  return ( readCVByte( cvId, val ));
-  else if   ( mode == 1 )  return ( readCVBit( cvId, *val % 8, val ));
-  else                     return ( ERR_INVALID_CV_MODE );
+    if        ( mode == 0 )  return ( readCVByte( cvId, val ));
+    else if   ( mode == 1 )  return ( readCVBit( cvId, *val % 8, val ));
+    else                     return ( ERR_INVALID_CV_MODE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -696,36 +713,36 @@ uint8_t LcsBaseStationLocoSession::readCV( uint16_t cvId, uint8_t mode, uint8_t 
 //
 // ??? This command may take a long time, a lot of packets are sent. While this not an issue with the signal
 // generation, which is done via interrupt handlers, it may be an issue with any other work of the base
-// station. This code needs to be redesigned to use a kind of state machein that sends a packet at a time
+// station. This code needs to be redesigned to use a kind of state machine that sends a packet at a time
 // so other work can interleave.
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::readCVByte( uint16_t cvId, uint8_t *val ) {
 
-  if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
-  if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
-  cvId--;
+    if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
+    cvId--;
 
-  byte      pBuf[ MAX_DCC_PACKET_SIZE ];
-  uint8_t   bValue  = 0;
-  uint16_t  base    = progTrack -> decoderAckBaseline( 5 );
+    uint8_t   pBuf[ MAX_DCC_PACKET_SIZE ];
+    uint8_t   bValue  = 0;
+    uint16_t  base    = progTrack -> decoderAckBaseline( 5 );
 
-  pBuf[0]  = 0x78 + ( highByte( cvId ) & 0x03 );
-  pBuf[1]  = lowByte( cvId );
+    pBuf[0]  = 0x78 + ( highByte( cvId ) & 0x03 );
+    pBuf[1]  = lowByte( cvId );
 
-  for ( int i = 0; i < 8; i++ ) {
+    for ( int i = 0; i < 8; i++ ) {
 
-    pBuf[2] = 0xE8 + i;
+        pBuf[2] = 0xE8 + i;
+        progTrack -> loadPacket( pBuf, 3, 5 );
+        bitWrite( &bValue, i, progTrack -> decoderAckDetect( base, 9 ));
+    }
+
+    *val    = bValue;
+    pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
+    pBuf[1] = lowByte( cvId );
+    pBuf[2] = bValue;
     progTrack -> loadPacket( pBuf, 3, 5 );
-    bitWrite( bValue, i, progTrack -> decoderAckDetect( base, 9 ));
-  }
 
-  *val    = bValue;
-  pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
-  pBuf[1] = lowByte( cvId );
-  pBuf[2] = bValue;
-  progTrack -> loadPacket( pBuf, 3, 5 );
-
-  return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -742,38 +759,38 @@ uint8_t LcsBaseStationLocoSession::readCVByte( uint16_t cvId, uint8_t *val ) {
 //
 // ??? This command may take a long time, a lot of packets are sent. While this not an issue with the signal
 // generation, which is done via interrupt handlers, it may be an issue with any other work of the base
-// station. This code needs to be redesigned to use a kind of state machein that sends a packet at a time
+// station. This code needs to be redesigned to use a kind of state machine that sends a packet at a time
 // so other work can interleave.
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::readCVBit( uint16_t cvId, uint8_t bitPos, uint8_t *val ) {
 
-  if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
 
-  if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
-  cvId--;
+    if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
+    cvId--;
 
-  byte  pBuf[ MAX_DCC_PACKET_SIZE ];
-  int   base = progTrack -> decoderAckBaseline( 5 );
+    uint8_t  pBuf[ MAX_DCC_PACKET_SIZE ];
+    int   base = progTrack -> decoderAckBaseline( 5 );
 
-  pBuf[0]  = 0x78 + ( highByte( cvId ) & 0x03 );
-  pBuf[1]  = lowByte( cvId );
-  pBuf[2]  = 0xE8 + ( bitPos % 8 );
+    pBuf[0]  = 0x78 + ( highByte( cvId ) & 0x03 );
+    pBuf[1]  = lowByte( cvId );
+    pBuf[2]  = 0xE8 + ( bitPos % 8 );
 
-  progTrack -> loadPacket( pBuf, 3, 5 );
-
-  if ( ! ( progTrack -> decoderAckDetect( base, 9 ))) {
-    
-    pBuf[2] = 0xE8 + 8 + ( bitPos % 8 );
     progTrack -> loadPacket( pBuf, 3, 5 );
-  
-    if ( progTrack -> decoderAckDetect( base, 9 )) {
 
-      *val = 1;
-      return ( ALL_OK );
+    if ( ! ( progTrack -> decoderAckDetect( base, 9 ))) {
+        
+        pBuf[2] = 0xE8 + 8 + ( bitPos % 8 );
+        progTrack -> loadPacket( pBuf, 3, 5 );
+    
+        if ( progTrack -> decoderAckDetect( base, 9 )) {
+
+        *val = 1;
+        return ( ALL_OK );
+        }
+        else return ( ERR_CV_OP_FAILED );
     }
-    else return ( ERR_CV_OP_FAILED );
-  }
-  else return ( ALL_OK );
+    else return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -794,9 +811,9 @@ uint8_t LcsBaseStationLocoSession::readCVBit( uint16_t cvId, uint8_t bitPos, uin
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCV( uint16_t cvId, uint8_t mode, uint8_t val ) {
 
-  if        ( mode == 0 )  return ( writeCVByte( cvId, val ));
-  else if   ( mode == 1 )  return ( writeCVBit( cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
-  else                     return ( ERR_INVALID_CV_MODE );
+    if        ( mode == 0 )  return ( writeCVByte( cvId, val ));
+    else if   ( mode == 1 )  return ( writeCVBit( cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
+    else                     return ( ERR_INVALID_CV_MODE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -808,30 +825,30 @@ uint8_t LcsBaseStationLocoSession::writeCV( uint16_t cvId, uint8_t mode, uint8_t
 //
 // ??? This command may take a long time, a lot of packets are sent. While this not an issue with the signal
 // generation, which is done via interrupt handlers, it may be an issue with any other work of the base
-// station. This code needs to be redesigned to use a kind of state machein that sends a packet at a time
+// station. This code needs to be redesigned to use a kind of state machine that sends a packet at a time
 // so other work can interleave.
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVByte( uint16_t cvId, uint8_t val ) {
 
-  if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
 
-  if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
-  cvId--;
+    if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
+    cvId--;
 
-  byte  pBuf[ MAX_DCC_PACKET_SIZE ];
-  int   base = progTrack -> decoderAckBaseline( 5 );
+    uint8_t pBuf[ MAX_DCC_PACKET_SIZE ];
+    int     base = progTrack -> decoderAckBaseline( 5 );
 
-  pBuf[0] = 0x7C + ( highByte( cvId ) & 0x03 );
-  pBuf[1] = lowByte( cvId );
-  pBuf[2] = val;
+    pBuf[0] = 0x7C + ( highByte( cvId ) & 0x03 );
+    pBuf[1] = lowByte( cvId );
+    pBuf[2] = val;
 
-  progTrack -> loadPacket( pBuf, 3, 4 );
-  progTrack -> loadPacket( resetDccPacketData, 2, 11 );
+    progTrack -> loadPacket( pBuf, 3, 4 );
+    progTrack -> loadPacket( resetDccPacketData, 2, 11 );
 
-  pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
-  progTrack -> loadPacket( pBuf, 3, 5 );
+    pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
+    progTrack -> loadPacket( pBuf, 3, 5 );
 
-  return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -842,29 +859,29 @@ uint8_t LcsBaseStationLocoSession::writeCVByte( uint16_t cvId, uint8_t val ) {
 //
 // ??? This command may take a long time, a lot of packets are sent. While this not an issue with the signal
 // generation, which is done via interrupt handlers, it may be an issue with any other work of the base
-// station. This code needs to be redesigned to use a kind of state machein that sends a packet at a time
+// station. This code needs to be redesigned to use a kind of state machine that sends a packet at a time
 // so other work can interleave.
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val ) {
 
-  if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
-  if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
-  cvId--;
+    if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
+    cvId--;
 
-  byte  pBuf[ MAX_DCC_PACKET_SIZE ];
-  int   base = progTrack -> decoderAckBaseline( 5 );
+    uint8_t pBuf[ MAX_DCC_PACKET_SIZE ];
+    int     base = progTrack -> decoderAckBaseline( 5 );
 
-  pBuf[0] = 0x78 + ( highByte( cvId ) & 0x03 );
-  pBuf[1] = lowByte( cvId );
-  pBuf[2] = 0xF0 + (( val % 2 ) * 8 ) + ( bitPos % 8 );
+    pBuf[0] = 0x78 + ( highByte( cvId ) & 0x03 );
+    pBuf[1] = lowByte( cvId );
+    pBuf[2] = 0xF0 + (( val % 2 ) * 8 ) + ( bitPos % 8 );
 
-  progTrack -> loadPacket( pBuf, 3, 4 );
-  progTrack -> loadPacket( resetDccPacketData, 2, 11 );
+    progTrack -> loadPacket( pBuf, 3, 4 );
+    progTrack -> loadPacket( resetDccPacketData, 2, 11 );
 
-  bitClear( pBuf[2], 4 );
-  progTrack -> loadPacket( pBuf, 3, 5 );
+    bitWrite( &pBuf[2], 4, false );
+    progTrack -> loadPacket( pBuf, 3, 5 );
 
-  return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -874,11 +891,11 @@ uint8_t LcsBaseStationLocoSession::writeCVBit( uint16_t cvId, uint8_t bitPos, ui
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeDccPacketMain( uint8_t *pBuf, uint8_t pLen, uint8_t nRepeat ) {
 
-  if ( ! validDccPacketlen( pLen )) return ( ERR_INVALID_PACKET_LEN );
-  if ( ! validDccPacketRepeatCnt( nRepeat )) return ( ERR_INVALID_REPEATS );
+    if ( ! validDccPacketlen( pLen )) return ( ERR_INVALID_PACKET_LEN );
+    if ( ! validDccPacketRepeatCnt( nRepeat )) return ( ERR_INVALID_REPEATS );
 
-  mainTrack -> loadPacket( pBuf, pLen, nRepeat );
-  return ( ALL_OK );
+    mainTrack -> loadPacket( pBuf, pLen, nRepeat );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -888,11 +905,11 @@ uint8_t LcsBaseStationLocoSession::writeDccPacketMain( uint8_t *pBuf, uint8_t pL
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeDccPacketProg( uint8_t *pBuf, uint8_t pLen, uint8_t nRepeat ) {
 
-  if ( ! validDccPacketlen( pLen )) return ( ERR_INVALID_PACKET_LEN );
-  if ( ! validDccPacketRepeatCnt( nRepeat )) return ( ERR_INVALID_REPEATS );
+    if ( ! validDccPacketlen( pLen )) return ( ERR_INVALID_PACKET_LEN );
+    if ( ! validDccPacketRepeatCnt( nRepeat )) return ( ERR_INVALID_REPEATS );
 
-  progTrack -> loadPacket( pBuf, pLen, nRepeat );
-  return ( ALL_OK );
+    progTrack -> loadPacket( pBuf, pLen, nRepeat );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -904,28 +921,25 @@ uint8_t LcsBaseStationLocoSession::writeDccPacketProg( uint8_t *pBuf, uint8_t pL
 //------------------------------------------------------------------------------------------------------------
 SessionMapEntry* LcsBaseStationLocoSession::allocateSessionEntry( uint16_t cabId ) {
 
-  if ( lookupSessionEntry( cabId ) != nullptr ) return ( nullptr );
+    if ( lookupSessionEntry( cabId ) != nullptr ) return ( nullptr );
 
-  SessionMapEntry *freePtr = lookupSessionEntry( NIL_CAB_ID );
+    SessionMapEntry *freePtr = lookupSessionEntry( NIL_CAB_ID );
 
-  if (( freePtr == nullptr ) && ( sessionMapHwm < sessionMapLimit )) freePtr = sessionMapHwm ++;
+    if (( freePtr == nullptr ) && ( sessionMapHwm < sessionMapLimit )) freePtr = sessionMapHwm ++;
 
-  if ( freePtr != nullptr ) {
+    if ( freePtr != nullptr ) {
 
-    initSessionEntry( freePtr );
-    freePtr -> cabId  = cabId;
-    freePtr -> flags  |= SME_ALLOCATED;
+        initSessionEntry( freePtr );
+        freePtr -> cabId  = cabId;
+        freePtr -> flags  |= SME_ALLOCATED;
 
-    #if DEBUG_SESSION == 1
-    INTERFACE.print( F( "Allocate session entry: " ));
-    INTERFACE.print( freePtr - sessionMap + 1 );
-    INTERFACE.print( F( ", HWM: " ));
-    INTERFACE.print( sessionMapHwm - sessionMap );
-    INTERFACE.println( );
-    #endif
-  }
+        #if DEBUG_SESSION == 1
+        printf( "Allocate session entry: %d, HWM: %d\n", 
+                ( freePtr - sessionMap + 1 ), ( sessionMapHwm - sessionMap ));
+        #endif
+    }
 
-  return ( freePtr );
+    return ( freePtr );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -937,29 +951,26 @@ SessionMapEntry* LcsBaseStationLocoSession::allocateSessionEntry( uint16_t cabId
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::deallocateSessionEntry( SessionMapEntry *smePtr ) {
 
-  if (( smePtr != nullptr ) && ( smePtr >= sessionMap ) && ( smePtr < sessionMapHwm )) {
+    if (( smePtr != nullptr ) && ( smePtr >= sessionMap ) && ( smePtr < sessionMapHwm )) {
 
-    if ( smePtr == ( sessionMapHwm - 1 )) {
+        if ( smePtr == ( sessionMapHwm - 1 )) {
 
-      do {
+            do {
 
-        initSessionEntry( smePtr );
-        smePtr --;
-      }
-      while (( smePtr -> cabId == NIL_CAB_ID ) && ( smePtr >= sessionMap ));
+                initSessionEntry( smePtr );
+                smePtr --;
+            }
+            while (( smePtr -> cabId == NIL_CAB_ID ) && ( smePtr >= sessionMap ));
 
-      sessionMapHwm = smePtr + 1;
+            sessionMapHwm = smePtr + 1;
+        }
+        else initSessionEntry( smePtr );
+
+        #if DEBUG_SESSION == 1
+        printf( "Released Session, sId: %d, ,new  HWM: %d\n", 
+                ( smePtr - sessionMap + 1 ), ( sessionMapHwm - sessionMap ));
+        #endif
     }
-    else initSessionEntry( smePtr );
-
-    #if DEBUG_SESSION == 1
-    INTERFACE.print( F( "Released Session, sId: " ));
-    INTERFACE.print( smePtr - sessionMap + 1 );
-    INTERFACE.print( F( " ,new  HWM: " ));
-    INTERFACE.println( sessionMapHwm - sessionMap );
-    INTERFACE.println( );
-    #endif
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -969,15 +980,15 @@ void LcsBaseStationLocoSession::deallocateSessionEntry( SessionMapEntry *smePtr 
 //------------------------------------------------------------------------------------------------------------
 SessionMapEntry *LcsBaseStationLocoSession::lookupSessionEntry( uint16_t cabId ) {
 
-  SessionMapEntry *smePtr = sessionMap;
+    SessionMapEntry *smePtr = sessionMap;
 
-  while ( smePtr < sessionMapHwm ) {
+    while ( smePtr < sessionMapHwm ) {
 
-    if ( smePtr -> cabId == cabId ) return ( smePtr );
-    else smePtr ++;
-  }
+        if ( smePtr -> cabId == cabId ) return ( smePtr );
+        else smePtr ++;
+    }
 
-  return ( nullptr );
+    return ( nullptr );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -986,16 +997,16 @@ SessionMapEntry *LcsBaseStationLocoSession::lookupSessionEntry( uint16_t cabId )
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::initSessionEntry( SessionMapEntry *smePtr ) {
 
-  smePtr -> flags              = SME_DEFAULT_SETTING;
-  smePtr -> cabId              = NIL_CAB_ID;
-  smePtr -> speedSteps         = DCC_SPEED_STEPS_128;
-  smePtr -> speed              = 0;
-  smePtr -> direction          = 0;
-  smePtr -> engineState        = 0;
-  smePtr -> lastKeepAliveTime  = 0;
-  smePtr -> nextRefreshStep    = 0;
+    smePtr -> flags              = SME_DEFAULT_SETTING;
+    smePtr -> cabId              = NIL_CAB_ID;
+    smePtr -> speedSteps         = DCC_SPEED_STEPS_128;
+    smePtr -> speed              = 0;
+    smePtr -> direction          = 0;
+    smePtr -> engineState        = 0;
+    smePtr -> lastKeepAliveTime  = 0;
+    smePtr -> nextRefreshStep    = 0;
 
-  for ( int i = 0; i < MAX_DCC_FUNC_GROUP_ID; i++ ) smePtr -> functions[ i ] = 0;
+    for ( int i = 0; i < MAX_DCC_FUNC_GROUP_ID; i++ ) smePtr -> functions[ i ] = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1005,8 +1016,8 @@ void LcsBaseStationLocoSession::initSessionEntry( SessionMapEntry *smePtr ) {
 //------------------------------------------------------------------------------------------------------------
 SessionMapEntry *LcsBaseStationLocoSession::getSessionMapEntryPtr( uint8_t sId ) {
 
-  if ( ! isInRangeU( sId, MIN_LOCO_SESSION_ID, ( sessionMapHwm - sessionMap ))) return ( nullptr );
-  return (( sessionMap[ sId - 1 ].cabId == NIL_CAB_ID ) ? nullptr : &sessionMap[ sId - 1 ] );
+    if ( ! isInRangeU( sId, MIN_LOCO_SESSION_ID, ( sessionMapHwm - sessionMap ))) return ( nullptr );
+    return (( sessionMap[ sId - 1 ].cabId == NIL_CAB_ID ) ? nullptr : &sessionMap[ sId - 1 ] );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1015,15 +1026,9 @@ SessionMapEntry *LcsBaseStationLocoSession::getSessionMapEntryPtr( uint8_t sId )
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::printSessionMapConfig( ) {
 
-  INTERFACE.println( F( "Session Map Config " ));
-
-  INTERFACE.print( F( " Options: " ));
-  INTERFACE.println( options, HEX );
-
-  INTERFACE.print( F( " Session Map Size: " ));
-  INTERFACE.println(  sessionMapLimit - sessionMap);
-
-  INTERFACE.println( );
+    printf( "Session Map Config\n" );
+    printf( " Options: 0x%x\n", options );
+    printf( " Session Map Size: %d\n", ( sessionMapLimit - sessionMap ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1032,22 +1037,20 @@ void LcsBaseStationLocoSession::printSessionMapConfig( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::printSessionMapInfo( ) {
 
-  INTERFACE.println( F( "Session Map Info" ));
+    printf( "Session Map Info\n" );
 
-  INTERFACE.print( F( " Flags: " ));
-  INTERFACE.println( flags, HEX );
+    printf( " Flags: 0x%x\n", flags );
 
-  // ??? decode the flags ?  e.g. "[ f f f f ]"
+    // ??? decode the flags ?  e.g. "[ f f f f ]"
 
-  INTERFACE.print( F( " Session Map Hwm: " ));
-  INTERFACE.println( sessionMapHwm - sessionMap );
+    printf( " Session Map Hwm: %d\n", ( sessionMapHwm - sessionMap ));
 
-  for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr ++ ) {
+    for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr ++ ) {
 
-    if ( smePtr -> cabId != NIL_CAB_ID ) printSessionEntry( smePtr );
-  }
+        if ( smePtr -> cabId != NIL_CAB_ID ) printSessionEntry( smePtr );
+    }
 
-  INTERFACE.println( );
+     printf( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1058,28 +1061,20 @@ void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
 
   if ( smePtr != nullptr ) {
 
-    INTERFACE.print( F( " sId: " ));
-    INTERFACE.print( smePtr - sessionMap + 1 );
-    INTERFACE.print( F( ", cabId: " ));
-    INTERFACE.print( smePtr -> cabId );
-    INTERFACE.print( F( ", speed: " ));
-    INTERFACE.print( smePtr -> speed );
-    INTERFACE.print( F( " " ));
-    INTERFACE.print((( smePtr -> direction ) ? "Rev" : "Fwd" ));
-    INTERFACE.print( F( ", functions: " ));
+    printf( " sId: %d, cabId: %d, speed: %d ", ( smePtr - sessionMap + 1 ), smePtr -> cabId, smePtr -> speed );
+   
+    printf( "%s", (( smePtr -> direction ) ? "Rev" : "Fwd" ));
+    printf( ", functions: " );
 
     for ( uint8_t i = 0; i < MAX_DCC_FUNC_GROUP_ID; i++ ) {
 
-      INTERFACE.print( F( " 0x" ));
-      INTERFACE.print( smePtr -> functions[ i ], HEX );
-      INTERFACE.print( F( " " ));
+      printf( " 0x%x ", smePtr -> functions[ i ] );
     }
 
-    INTERFACE.print( F( " Flags: " ));
-    INTERFACE.print( smePtr -> flags );
+    printf( " Flags: 0x%x", ( smePtr -> flags ));
 
     // ??? decode the flags ? e.g. "[ f f f f ]"
   }
 
-  INTERFACE.println( );
+  printf( "\n" );
 }

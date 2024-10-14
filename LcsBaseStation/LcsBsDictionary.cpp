@@ -12,7 +12,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -30,39 +30,54 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
 
+using namespace LCS;
+
+//------------------------------------------------------------------------------------------------------------
+// Local declarations.
+//
+//------------------------------------------------------------------------------------------------------------
+namespace {
+
+
+}; // namespace
+
+
+//------------------------------------------------------------------------------------------------------------
+// Local declarations.
+//
+//------------------------------------------------------------------------------------------------------------
 #if 0
 
 // first ideas....
 
-struct LcsBaseStationLocoDictEntry {
+    struct LcsBaseStationLocoDictEntry {
 
-  uint16_t  flags = 0;
-  uint16_t  cabId = NIL_CAB_ID;
-  uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ];
+    uint16_t  flags = 0;
+    uint16_t  cabId = NIL_CAB_ID;
+    uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ];
 
-  // what else ? 
-  // Mapping of functions for cab handheld ? 
-  // Initial speed and direction ?
+    // what else ? 
+    // Mapping of functions for cab handheld ? 
+    // Initial speed and direction ?
 
-};
+    };
 
-struct LcsBaseStationLocoDict {
+    struct LcsBaseStationLocoDict {
 
-  public:
+        public:
 
-    uint8_t setupLocoDict( );
-    uint8_t lookupLocoDictEntry( uint16_t cabId, uint16_t *entryIndex );
-    uint8_t addLocoDictEntry(  uint16_t cabId, uint16_t flags, ... );
-    uint8_t removeLocoDictEntry(  uint16_t cabId );
-    uint8_t updateLocoDictEntry(  uint16_t cabId, uin16_t flags, ...  );
+        uint8_t setupLocoDict( );
+        uint8_t lookupLocoDictEntry( uint16_t cabId, uint16_t *entryIndex );
+        uint8_t addLocoDictEntry(  uint16_t cabId, uint16_t flags, ... );
+        uint8_t removeLocoDictEntry(  uint16_t cabId );
+        uint8_t updateLocoDictEntry(  uint16_t cabId, uin16_t flags, ...  );
 
-  private:
+        private:
 
-    uint16_t                      numfEntries;
-    LcsBaseStationLocoDictEntry   *locoDictMaxEntry  = nullptr;
-    LcsBaseStationLocoDictEntry   *locoFDictHwm      = nullptr;
-    LcsBaseStationLocoDictEntry   *locoDict          = nullPtr;
-};
-
+        uint16_t                      numfEntries;
+        LcsBaseStationLocoDictEntry   *locoDictMaxEntry  = nullptr;
+        LcsBaseStationLocoDictEntry   *locoFDictHwm      = nullptr;
+        LcsBaseStationLocoDictEntry   *locoDict          = nullPtr;
+    };
 
 #endif
