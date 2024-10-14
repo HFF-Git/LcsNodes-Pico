@@ -3,7 +3,7 @@
 // LCS - Cab Handheld Cab Stack implementation file
 //
 //------------------------------------------------------------------------------------------------------------
-// The cab stack of cab entries and the current cab are the central strucuture to manage teh engines known
+// The cab stack of cab entries and the current cab are the central structure to manage the engines known
 // to the cab handheld. Most of cab handheld functions apply to the current cab. The current cab can be
 // saved and restored form a stack of cab entries. Finally, engine descriptions can be loaded from and stored
 // to a central place such as the base station.
@@ -11,7 +11,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Stack implementation file
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -29,6 +29,9 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsBasicThrottle.h"
+#include <malloc.h>
+
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 // Global variables.
@@ -42,34 +45,34 @@ CabStack  *cabStack = nullptr;
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------
-  //
-  //
-  //----------------------------------------------------------------------------------------------------------
-  const uint8_t MAX_CAB_LIST_ENTRIES = 8;
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+const uint8_t MAX_CAB_LIST_ENTRIES = 8;
 
-  bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
+bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
-  }
+}
 
 }; // namespace
+
 
 //------------------------------------------------------------------------------------------------------------
 // "setupcabSlots" will create the local cab table and read in the entries from the NVM area.
 //
-// ??? optional: we could read from the base station any changs to the loco attributes... ?
+// ??? optional: we could read from the base station any changes to the loco attributes... ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupCabStack( ) {
 
-  cabStack = new CabStack( );
-  cabStack -> loadCabSlotsFromNVM( );
+    cabStack = new CabStack( );
+    cabStack -> loadCabSlotsFromNVM( );
 
-  cabStack -> printCabSlots( );
+    cabStack -> printCabSlots( );
 
-  return ( LCS::ALL_OK );
+    return ( LCS::ALL_OK );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------
@@ -84,21 +87,20 @@ uint8_t setupCabStack( ) {
 //------------------------------------------------------------------------------------------------------------
 void CabEntry::reset( uint16_t cabId ) {
 
-  flags             = 0;
-  this -> cabId     = cabId;
+    flags             = 0;
+    this -> cabId     = cabId;
 
-  keepAliveTimer    = 0;
+    keepAliveTimer    = 0;
 
-  for ( int i = 0; i < MAX_LOCO_NAME_SIZE; i++ )        engineName[ i ]       = 0;
-  for ( int i = 0; i < MAX_FUNC_STATE_SIZE; i++ )       dccFuncState[ i ]     = 0;
-  for ( int i = 0; i < MAX_CAB_FUNC_ENTRIES; i++ )      cabFuncIdMap[ i ]     = 0;
+    for ( int i = 0; i < MAX_LOCO_NAME_SIZE; i++ )      engineName[ i ]       = 0;
+    for ( int i = 0; i < MAX_FUNC_STATE_SIZE; i++ )     dccFuncState[ i ]     = 0;
+    for ( int i = 0; i < MAX_CAB_FUNC_ENTRIES; i++ )    cabFuncIdMap[ i ]     = 0;
 }
 
 uint8_t CabEntry::dccSpeedAndDirectionByte( ) {
 
-  return (( speed & 0x7F ) | (( direction & 0x1 ) << 7 ));
+    return (( speed & 0x7F ) | (( direction & 0x1 ) << 7 ));
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // The DCC function bitmap getter/setter functions. The function ID starts with zero to 68.
@@ -106,22 +108,22 @@ uint8_t CabEntry::dccSpeedAndDirectionByte( ) {
 //------------------------------------------------------------------------------------------------------------
 bool CabEntry::getDccFuncState( uint8_t fNum ) {
 
-  return (( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) ?
-          (( dccFuncState[ fNum / 8 ] >> ( 7 - ( fNum & 0x7 )) & 0x1 )) : false );
+    return (( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) ?
+            (( dccFuncState[ fNum / 8 ] >> ( 7 - ( fNum & 0x7 )) & 0x1 )) : false );
 }
 
 void CabEntry::setDccFuncState( uint8_t fNum, bool val ) {
 
-  if ( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) {
+    if ( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) {
 
-    if ( val )  dccFuncState[ fNum / 8 ] |= 1 << ( 7 - ( fNum & 0x7 ));
-    else        dccFuncState[ fNum / 8 ] &= ( ~ ( 1 << ( 7 - ( fNum & 0x7 ))));
-  }
+        if ( val )  dccFuncState[ fNum / 8 ] |= 1 << ( 7 - ( fNum & 0x7 ));
+        else        dccFuncState[ fNum / 8 ] &= ( ~ ( 1 << ( 7 - ( fNum & 0x7 ))));
+    }
 }
 
 void CabEntry::toggleDccFuncState( uint8_t fNum ) {
 
-  setDccFuncState( fNum, ( ! getDccFuncState( fNum )));
+    setDccFuncState( fNum, ( ! getDccFuncState( fNum )));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -131,15 +133,15 @@ void CabEntry::toggleDccFuncState( uint8_t fNum ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t CabEntry::getDccFuncIdForChFuncId( uint8_t cNum ) {
 
-  return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) : 0 );
+    return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) : 0 );
 }
 
 void CabEntry::setDccFuncIdForChFuncId( uint8_t cNum, uint8_t fNum ) {
 
-  if ( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) {
+    if ( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) {
 
-    cabFuncIdMap[ cNum - 1 ] = ( cabFuncIdMap[ cNum - 1 ] & 0xC0 ) | ( fNum & 0x3F );
-  }
+        cabFuncIdMap[ cNum - 1 ] = ( cabFuncIdMap[ cNum - 1 ] & 0xC0 ) | ( fNum & 0x3F );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -149,15 +151,15 @@ void CabEntry::setDccFuncIdForChFuncId( uint8_t cNum, uint8_t fNum ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t CabEntry::getDccFuncTypeForChFuncId( uint8_t cNum ) {
 
-  return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? ( cabFuncIdMap[ cNum - 1 ] >> 6 ) : 0 );
+    return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? ( cabFuncIdMap[ cNum - 1 ] >> 6 ) : 0 );
 }
 
 void CabEntry::setDccFuncTypeForChFuncId( uint8_t cNum, uint8_t typ ) {
 
-  if ( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) {
+    if ( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) {
 
-    cabFuncIdMap[ cNum - 1 ] = ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) | ( typ << 6 );
-  }
+        cabFuncIdMap[ cNum - 1 ] = ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) | ( typ << 6 );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -166,74 +168,74 @@ void CabEntry::setDccFuncTypeForChFuncId( uint8_t cNum, uint8_t typ ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t CabEntry::getCabId( ) {
 
-  return ( cabId );
+    return ( cabId );
 }
 
 void CabEntry::setCabId( uint16_t arg ) {
 
-  cabId = arg;
+    cabId = arg;
 }
 
 uint8_t CabEntry::getEngineType( ) {
 
-  return ( engineType );
+    return ( engineType );
 }
 
 char CabEntry::getEngineTypeChar( ) {
 
-  switch ( engineType ) {
+    switch ( engineType ) {
 
-    case LCS::LOC_T_NIL:       return ( '-' );
-    case LCS::LOC_T_STEAM:     return ( 'S' );
-    case LCS::LOC_T_DIESEL:    return ( 'D' );
-    case LCS::LOC_T_ELECTRIC:  return ( 'E' );
-    default:              return ( '-' );
-  }
+        case LCS::LOC_T_NIL:        return ( '-' );
+        case LCS::LOC_T_STEAM:      return ( 'S' );
+        case LCS::LOC_T_DIESEL:     return ( 'D' );
+        case LCS::LOC_T_ELECTRIC:   return ( 'E' );
+        default:                    return ( '-' );
+    }
 }
 
 void CabEntry::setEngineType( uint8_t type ) {
 
-  this -> engineType = type;
+    this -> engineType = type;
 }
 
 uint8_t CabEntry::getSpeed( ) {
 
-  return ( speed );
+    return ( speed );
 }
 
 void CabEntry::setSpeed( int speed ) {
 
-  this -> speed = speed;
+    this -> speed = speed;
 }
 
 uint8_t CabEntry::getDirection( ) {
 
-  return ( direction );
+    return ( direction );
 }
 
 void CabEntry::setDirection( uint8_t direction ) {
 
-  this -> direction = direction;
+    this -> direction = direction;
 }
 
 uint8_t CabEntry::getSessionId( ) {
 
-  return ( sessionId );
+    return ( sessionId );
 }
 
 void  CabEntry::setSessionId( uint8_t id ) {
 
-  sessionId = id;
+    sessionId = id;
 }
 
 uint8_t CabEntry::getSessionState( ) {
 
-  return ( sessionState );
+    return ( sessionState );
 }
 
 void  CabEntry::setSessionState( uint8_t state ) {
 
-  sessionState = state;
+    sessionState = state;
 }
 
 
@@ -244,16 +246,16 @@ void  CabEntry::setSessionState( uint8_t state ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t CabEntry::getDataByItem( uint8_t item, uint16_t *arg ) {
 
-  // ??? a big case statement to return the data by item
+    // ??? a big case statement to return the data by item
 
-  return ( 0 );
+    return ( 0 );
 }
 
 uint8_t CabEntry::setDataByItem( uint8_t item, uint16_t arg ) {
 
-  // ??? a big case statement to return the data by item
+    // ??? a big case statement to return the data by item
 
-  return ( 0 );
+    return ( 0 );
 }
 
 
@@ -300,10 +302,10 @@ void CabEntry::printCabEntry( ) {
 //------------------------------------------------------------------------------------------------------------
 CabStack::CabStack( ) {
 
-  cabSlots = (CabEntry *) calloc( MAX_CAB_LIST_ENTRIES, sizeof( CabEntry ));
-  for ( int i = 0; i < MAX_CAB_LIST_ENTRIES; i++ ) cabSlots[ i ].reset( );
+    cabSlots = (CabEntry *) calloc( MAX_CAB_LIST_ENTRIES, sizeof( CabEntry ));
+    for ( int i = 0; i < MAX_CAB_LIST_ENTRIES; i++ ) cabSlots[ i ].reset( );
 
-  currentCab.reset( );
+    currentCab.reset( );
 }
 
 void CabStack::loadCurrentCabFromSlot( int index ) {

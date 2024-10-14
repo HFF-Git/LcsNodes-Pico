@@ -17,7 +17,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Include file
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -48,12 +48,12 @@
 #define DEBUG_LCS_MSG_INTERFACE         1
 
 //------------------------------------------------------------------------------------------------------------
-// The button and switch assignments for the Cab Handheld Development Platform. On teh Atmega the HW setup
-// is a main controller board and an extension board with an MCP23017 I2C expander. The HW IDs refer
-// to ports on the MCP23017. On the PICO, the hwIds are directly pins on the controller itself.
+// The button and switch assignments for the Cab Handheld Development Platform. The current handheld is 
+// a board based on the PICO platform. All buttons, switches and encoders are directly connected to the 
+// PICO GPIO pins. A previous version connected all UI elements via an I2C chip, such as MCP23017.
 //
 //-----------------------------------------------------------------------------------------------------------
-// ??? should go into CDC Config ?
+// ??? should go into CDC Config ? or equated to cdc pin items ?
 
 const uint8_t   MENU_BUTTON_ID     = 6; 
 const uint8_t   SELECT_BUTTON_ID   = 8; 
@@ -86,35 +86,35 @@ const int       CAN_BUS_DEFAULT_ID   = 110;
 //------------------------------------------------------------------------------------------------------------
 enum DccMapFunctionId : uint8_t {
 
-  DCC_F_M_HORN         = 1,
-  DCC_F_M_BELL         = 2,
-  DCC_F_M_ENG_ON       = 3,
-  DCC_F_M_ENG_OFF      = 4,
-  DCC_F_M_F1           = 5,
-  DCC_F_M_F2           = 6,
-  DCC_F_M_F3           = 7,
-  DCC_F_M_F4           = 8,
-  DCC_F_M_F5           = 9,
-  DCC_F_M_F6           = 10,
-  DCC_F_M_F7           = 11,
-  DCC_F_M_F8           = 12,
-  DCC_F_M_ENC_BTN      = 13,
+    DCC_F_M_HORN         = 1,
+    DCC_F_M_BELL         = 2,
+    DCC_F_M_ENG_ON       = 3,
+    DCC_F_M_ENG_OFF      = 4,
+    DCC_F_M_F1           = 5,
+    DCC_F_M_F2           = 6,
+    DCC_F_M_F3           = 7,
+    DCC_F_M_F4           = 8,
+    DCC_F_M_F5           = 9,
+    DCC_F_M_F6           = 10,
+    DCC_F_M_F7           = 11,
+    DCC_F_M_F8           = 12,
+    DCC_F_M_ENC_BTN      = 13,
 
-  // ??? more to come ...
+    // ??? more to come ...
 
-  NIL_DCC_F_M          = 0,
-  MIN_DCC_F_M          = 1,
-  MAX_DCC_F_M          = 14
+    NIL_DCC_F_M          = 0,
+    MIN_DCC_F_M          = 1,
+    MAX_DCC_F_M          = 14
 };
 
 enum DccMapFunctionType : uint8_t {
 
-  DCC_F_M_T_DIS = 0,
-  DCC_F_M_T_TOG = 1,
-  DCC_F_M_T_MOM = 2,
+    DCC_F_M_T_DIS = 0,
+    DCC_F_M_T_TOG = 1,
+    DCC_F_M_T_MOM = 2,
 
-  MIN_DCC_F_M_T = 0,
-  MAX_DCC_F_M_T = 2
+    MIN_DCC_F_M_T = 0,
+    MAX_DCC_F_M_T = 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -131,7 +131,7 @@ static const int     MAX_FUNC_STATE_SIZE  = 10;
 
 struct CabEntry {
 
-  public:
+    public:
 
     void          reset( uint16_t cabId = LCS::NIL_CAB_ID );
 
@@ -170,7 +170,7 @@ struct CabEntry {
     uint8_t       dccSpeedAndDirectionByte( );
     void          printCabEntry( );
 
-  private:
+    private:
 
     uint16_t      flags                                         = 0;
 
@@ -198,7 +198,7 @@ struct CabEntry {
 //------------------------------------------------------------------------------------------------------------
 struct CabStack {
 
-  public:
+    public:
 
     CabStack( );
 
@@ -209,7 +209,7 @@ struct CabStack {
     uint8_t getMaxEntries( );
     void    printCabSlots( );
 
-  public:
+    public:
 
     CabEntry currentCab;
     CabEntry *cabSlots = nullptr;
@@ -234,14 +234,14 @@ struct CabStack {
 //                        :------:-----------------:------:
 //
 // There are methods to set these fields easy and straightforward. The top and bottom line are printed in an
-// 8x8 font, the two main lines in a 8x16 font. Note that the display object expects rows and collumns based
+// 8x8 font, the two main lines in a 8x16 font. Note that the display object expects rows and columns based
 // on an 8-pixel raster. So, a 128x64 screen has 16 columns and 8 rows. A font that takes two rows starts at
 // the lower row of the two rows it occupies.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CabHandheldScreen : UIScreen {
 
-  protected:
+    protected:
 
     void printMenuLabel( char *str );
     void printMenuLabel( uint16_t textId );
@@ -267,7 +267,7 @@ struct CabHandheldScreen : UIScreen {
 //------------------------------------------------------------------------------------------------------------
 struct CabMsgBus {
 
-  public:
+    public:
 
     uint8_t sendSpeedAndDir( CabEntry *cab );
     uint8_t sendDccFuncVal( CabEntry *cab, uint8_t dccFundId );
@@ -281,8 +281,6 @@ struct CabMsgBus {
 };
 
 
-
-
 //------------------------------------------------------------------------------------------------------------
 // The top menu screens. This is the top level screen list. They are straightforward. All we do is to show
 // the menu text and select labels. The SELECT button gets us to the child list of the menu.
@@ -290,10 +288,12 @@ struct CabMsgBus {
 //------------------------------------------------------------------------------------------------------------
 struct TopMenuItemScreen : CabHandheldScreen {
 
+    public:
+
     TopMenuItemScreen( uint8_t item );
     void enterScreen( bool init );
 
-  private:
+    private:
 
     uint16_t item = 0;
 };
@@ -307,7 +307,7 @@ struct TopMenuItemScreen : CabHandheldScreen {
 //------------------------------------------------------------------------------------------------------------
 struct ScrollableScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     ScrollableScreen( UIEncoder *encoder = nullptr );
 
@@ -318,7 +318,7 @@ struct ScrollableScreen : CabHandheldScreen {
     int           getIndex( );
     virtual void  showScreenData( int index ) = 0;
 
-  protected:
+    protected:
 
     UIEncoder *encoder    = nullptr;
     int       low         = INT_MIN;
@@ -328,13 +328,13 @@ struct ScrollableScreen : CabHandheldScreen {
 
 //------------------------------------------------------------------------------------------------------------
 // "OperateScreen" is our main screen. It has all the relevant control elements and information items that
-// are necessary to run the current loco. MOst of teh other menus will return to this screen after their
+// are necessary to run the current loco. Most of the other menus will return to this screen after their
 // work.
 //
 //------------------------------------------------------------------------------------------------------------
 struct OperateScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     void enterScreen( bool init );
 
@@ -345,7 +345,7 @@ struct OperateScreen : CabHandheldScreen {
     void encoderPosChange( UIEncoder *encoderObj );
     void showCabData( );
 
-  private:
+    private:
 
     int  functionSet = 1;
 };
@@ -357,7 +357,7 @@ struct OperateScreen : CabHandheldScreen {
 //------------------------------------------------------------------------------------------------------------
 struct EngineOnOffScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     void enterScreen( bool init );
     void upButtonClick( UIButton *buttonObj );
@@ -370,7 +370,7 @@ struct EngineOnOffScreen : CabHandheldScreen {
 //------------------------------------------------------------------------------------------------------------
 struct EngineLightsScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     void enterScreen( bool init );
     void upButtonClick( UIButton *buttonObj );
@@ -387,7 +387,7 @@ struct EngineLightsScreen : CabHandheldScreen {
 //------------------------------------------------------------------------------------------------------------
 struct SelectCabScreen : ScrollableScreen {
 
-  public:
+    public:
 
     SelectCabScreen( UIEncoder *encoder = nullptr );
 
@@ -406,7 +406,7 @@ struct SelectCabScreen : ScrollableScreen {
 //------------------------------------------------------------------------------------------------------------
 struct SaveCabScreen : ScrollableScreen {
 
-  public:
+    public:
 
     SaveCabScreen( UIEncoder *encoder = nullptr );
 
@@ -421,13 +421,13 @@ struct SaveCabScreen : ScrollableScreen {
 // toggle with the MENU button. The UP/DOWN buttons advance the current digit position. The encoder knob
 // offers a fast way to scroll a digit. The high value digit allows to set an "S" instead of the number to
 // indicate a short loco DCC address. The SELECT button completes the number entering. We make the current
-// cab this new loco. Note, that for keeping it in the stack it would need to be explictly saved.
+// cab this new loco. Note, that for keeping it in the stack it would need to be explicitly saved.
 //
 // ??? we could also get initial data from the base station if the cab is known there... tbd.
 //------------------------------------------------------------------------------------------------------------
 struct NewCabScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     NewCabScreen( UIEncoder *encoder = nullptr );
 
@@ -439,7 +439,7 @@ struct NewCabScreen : CabHandheldScreen {
     void encoderPosChange( UIEncoder *encoderObj );
     void selectButtonClick( UIButton *buttonId );
 
-  private:
+    private:
 
     uint16_t    buildCabId( );
     void        showCabId( );
@@ -461,7 +461,7 @@ struct NewCabScreen : CabHandheldScreen {
 //------------------------------------------------------------------------------------------------------------
 struct SetFunctionSelectScreen : ScrollableScreen {
 
-  public:
+    public:
 
     SetFunctionSelectScreen( UIEncoder *encoder = nullptr );
 
@@ -478,29 +478,29 @@ struct SetFunctionSelectScreen : ScrollableScreen {
 //------------------------------------------------------------------------------------------------------------
 struct SetFunctionOperateScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     void  enterScreen( bool init );
     void  menuButtonClick(  UIButton *buttonObj );
     void  upButtonClick( UIButton *buttonObj );
     void  downButtonClick( UIButton *buttonObj );
 
-  private:
+    private:
 
     int   functionId = -1;
     void  showScreenData( );
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Config function select screen. The cab handheld UI elements such as the buttons HORN, BELL and Fnn need to
-// be mapped to their DCC function code for the particular engine. This screen will select the logical
+// Config function select screen. The cab handheld UI elements such as the buttons HORN, BELL and Functions
+// need to be mapped to their DCC function code for the particular engine. This screen will select the logical
 // function to configure. On SELECT, we will enter the child screen, which will actually configure the item.
 // The MENU button click is disabled, so that we do not enter this screen over and over.
 //
 //------------------------------------------------------------------------------------------------------------
 struct ConfigFunctionSelectScreen : ScrollableScreen {
 
-  public:
+    public:
 
     ConfigFunctionSelectScreen( UIEncoder *encoder = nullptr );
 
@@ -518,7 +518,7 @@ struct ConfigFunctionSelectScreen : ScrollableScreen {
 //------------------------------------------------------------------------------------------------------------
 struct ConfigFunctionEditScreen : ScrollableScreen {
 
-  public:
+    public:
 
     ConfigFunctionEditScreen( UIEncoder *encoder = nullptr );
 
@@ -527,7 +527,7 @@ struct ConfigFunctionEditScreen : ScrollableScreen {
     void selectButtonClick( UIButton *buttonObj );
     void showScreenData( int index );
 
-  private:
+    private:
 
     uint8_t cabFuncId     = 0;
     uint8_t dccFuncId     = 0;
@@ -543,7 +543,7 @@ struct ConfigFunctionEditScreen : ScrollableScreen {
 //------------------------------------------------------------------------------------------------------------
 struct TestUIScreen : CabHandheldScreen {
 
-  public:
+    public:
 
     void enterScreen( bool init );
     void menuButtonClick( UIButton *buttonId );
@@ -560,7 +560,7 @@ struct TestUIScreen : CabHandheldScreen {
 // Variables and functions that will be used by other .cpp files are listed here as "extern". I'd rather
 // prefer this kind of global variables arrangement than to pass around many references to the objects.
 //
-// ??? only the opnes actually neded are listed here...
+// ??? only the opens actually needed are listed here...
 //------------------------------------------------------------------------------------------------------------
 extern CDC::CdcPinConfig      cfg;
 extern UIDisplay              *oled;

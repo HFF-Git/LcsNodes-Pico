@@ -7,12 +7,12 @@
 
 
 // Note that the ATmega version uses an I2C expander. The RPico version has all the UI elements directly
-// connected. We will for now just have "defines" ( sigh ) to separate them throuout the code.
+// connected. We will for now just have "defines" ( sigh ) to separate them throughout the code.
 //
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld UI elements implementation file
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -30,16 +30,19 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBasicThrottle.h"
 
+using namespace LCS;
+
+
 //------------------------------------------------------------------------------------------------------------
-// File local decarations.
+// File local declarations.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
+bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
-  }
+}
 
 };
 
@@ -73,78 +76,54 @@ UIButton      *encoderButton              = nullptr;
 
 //------------------------------------------------------------------------------------------------------------
 // Configure the IO pins for the UI Elements. Note that there are two version for now. The Atmega version uses
-// a main controller board and an extensi board. All UI Elements are connected via the I2C channel zero. The
-// extension board has an I2C Expander and all UI Elments are connected to the ports of this chip. The RPICO
-// version is a monolithic board and all UI Elments are connected to tge PICO itself. The PICO also has an
+// a main controller board and an extension board. All UI Elements are connected via the I2C channel zero. The
+// extension board has an I2C Expander and all UI Elements are connected to the ports of this chip. The RPICO
+// version is a monolithic board and all UI Elements are connected to the PICO itself. The PICO also has an
 // LcsNode NVM which is connected via I2C channel 0. The UI Display elements is connected to the I2C channel 1.
 //
 // ?? over time, the ATmega version will go away. But for now ...
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
 
-  #if defined  ( __AVR_ATmega1284P__ )
+    CDC::configureDio( UP_BUTTON_ID, CDC::IN_PULLUP );
 
-  //----------------------------------------------------------------------------------------------------------
-  // Set up the PIO. Note that the pins are used as active low pins. This means that the buttons and encoders
-  // should not be configured as active low elements. The PIO already converetd an active low into a logical
-  // HIGH when for example a button is pressed.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  pio = new LcsPioMCP23017I2C( cfg.I2C_SCL_PIN_0, cfg.I2C_SDA_PIN_0, 0x20, 0x7 );
-  for ( uint8_t i = 0; i < 16; i++ )  pio -> configureDio( i, INPUT_PULLUP, true );
+    CDC::configureDio( MENU_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( SELECT_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( UP_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( DOWN_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( HORN_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( BELL_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( FWD_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( REV_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( F1_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( F2_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( F3_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( F4_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( ENCODER_BUTTON_ID, CDC::IN_PULLUP );
 
-  #elif defined ( ARDUINO_ARCH_RP2040 )
+    CDC::configureDio( ENCODER_ID_A, CDC::IN_PULLUP );
+    CDC::configureDio( ENCODER_ID_B, CDC::IN_PULLUP );
 
-  //----------------------------------------------------------------------------------------------------------
-  // Set up the PICO pins. ( active low ? )
-  //
-  //----------------------------------------------------------------------------------------------------------
-  CDC::configureDio( UP_BUTTON_ID, CDC::IN_PULLUP );
-
-  CDC::configureDio( MENU_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( SELECT_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( UP_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( DOWN_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( HORN_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( BELL_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( FWD_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( REV_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( F1_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( F2_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( F3_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( F4_BUTTON_ID, CDC::IN_PULLUP );
-  CDC::configureDio( ENCODER_BUTTON_ID, CDC::IN_PULLUP );
-
-  CDC::configureDio( ENCODER_ID_A, CDC::IN_PULLUP );
-  CDC::configureDio( ENCODER_ID_B, CDC::IN_PULLUP );
-
-  #else
-#error CANNOT COMPILE - specify the Atmega1284 or PICO LCS main controller board pins
-  #endif
-
-  return ( LCS::ALL_OK );
+    return ( LCS::ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "getData" is the interface for the UI elements to read in the state of buttons and encoders. It uses the
 // hardware resource ID stored with an UI Element. The interpretation is up to the function. For example,
 // when we have direct pins, then it is the pin number on the controller chip, when the UI element is
-// connected via an I2C expander or a shift reghister, it is the position on the chip.
+// connected via an I2C expander or a shift register, it is the position on the chip.
 //
 //------------------------------------------------------------------------------------------------------------
 bool getData( uint8_t hwId ) {
 
-  #if 0
-  INTERFACE.print( "get data: " );
-  INTERFACE.print( hwId );
-  INTERFACE.print( " -> " );
-  INTERFACE.println( CDC::readDio( hwId ) == HIGH );
-  #endif
+    #if 0
+    printf( "Get data: %d -> %d\n", hwId, CDC::readDio( hwId ) == HIGH );
+    #endif
 
-  if (( hwId == ENCODER_ID_A ) || ( hwId == ENCODER_ID_B ))
-    return ( CDC::readDio( hwId ) == HIGH );
-  else
-    return ( CDC::readDio( hwId ) == LOW );
+    if (( hwId == ENCODER_ID_A ) || ( hwId == ENCODER_ID_B ))
+        return ( CDC::readDio( hwId ) == true );
+    else
+        return ( CDC::readDio( hwId ) == false );
 
 }
 
@@ -198,17 +177,19 @@ uint8_t createUIElements( ) {
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
 
+/*
   oled = new UIDisplayOledSSD1306 ( DT_OLED_DISPLAY_128x64_2F_4,
                                     cfg.I2C_SCL_PIN_0,
                                     cfg.I2C_SDA_PIN_0,
                                     cfg.I2C_ADR_0 );
+*/
 
-  return ( LCS::ALL_OK );
+  return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "LinkScreens" will link the button and encoder UI elements to the screen class static functions that will
-// pass the respective UI element event to teh current screen. So, for example, a button click will be passed
+// pass the respective UI element event to the current screen. So, for example, a button click will be passed
 // to the static function in the screen class, which in turn forwards it to the current screen, or handle it
 // directly. When writing a screen object, all UI elements that you want to react to need to implement the
 // handlers for the incoming events.

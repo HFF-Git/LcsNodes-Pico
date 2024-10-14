@@ -22,10 +22,10 @@ if ( TARGET tinyusb_device )
     
         main.cpp 
         LcsBasicThrottle.h 
-       # LcsBtCabStack.cpp 
-       # LcsBtMsgInterface.cpp 
-       # LcsBtScreens.cpp 
-       # LcsBtUIElements.cpp 
+        LcsBtCabStack.cpp 
+        LcsBtMsgInterface.cpp 
+        LcsBtScreens.cpp 
+        LcsBtUIElements.cpp 
     )
     
     target_link_libraries( ${PROJECT_NAME} LcsUIElementsLib LcsRuntimeLib LcsCdcLib pico_stdlib )
