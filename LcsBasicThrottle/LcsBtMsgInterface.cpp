@@ -3,9 +3,7 @@
 // LCS - Cab Handheld LCS Bus interface implementation file
 //
 //------------------------------------------------------------------------------------------------------------
-// ???
-//  - has LCS lb
-//  - has Msg Bus
+// 
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -254,4 +252,4 @@ uint8_t CabMsgBus::loadCabData( CabEntry *cab ) {
     return ( ALL_OK );
 }
 
-// ??? is there a need for an "update CAB data ". E.g. when we change a config itenm ... why not update too ?
+// ??? is there a need for an "update CAB data ". E.g. when we change a config item ... why not update too ?

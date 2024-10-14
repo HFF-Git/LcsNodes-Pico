@@ -45,7 +45,7 @@ namespace {
   const uint8_t     MAX_DCC_PACKET_SIZE = 12;
 
   //----------------------------------------------------------------------------------------------------------
-  // The string buffer needs to be large enough to accomodate the string produced. A DCC packet can be up to
+  // The string buffer needs to be large enough to accommodate the string produced. A DCC packet can be up to
   // 11 bytes long, including the checksum. We will just check that the buffer is large enough using the
   // maximum sizes possible, although the maximum size is rarely needed.
   //
@@ -62,22 +62,22 @@ namespace {
   // Some utility functions.
   //
   //----------------------------------------------------------------------------------------------------------
-  inline bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
+  bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
   }
 
-  inline uint8_t bitRead( uint8_t arg, uint8_t pos ) {
+  uint8_t bitRead( uint8_t arg, uint8_t pos ) {
 
     return ( arg >> ( pos % 8 )) & 1;
   }
 
-  inline int valueToTokenStr( const char *buf, uint8_t val, const char *trueStr, const char *falseStr ) {
+  int valueToTokenStr( const char *buf, uint8_t val, const char *trueStr, const char *falseStr ) {
 
     return ( sprintf((char *) buf, ( val ? ((char *) trueStr ) : ((char *) falseStr ))));
   } 
 
-  inline uint8_t dccPacketInstrByte( uint8_t *dccPkt ) {
+  uint8_t dccPacketInstrByte( uint8_t *dccPkt ) {
 
     if      ( isInRangeU( dccPkt[ 1 ],   1, 127 )) return ( dccPkt[ 2 ] );
     else if ( isInRangeU( dccPkt[ 1 ], 192, 231 )) return ( dccPkt[ 3 ] );
@@ -182,14 +182,14 @@ namespace {
       case 0b10010: {
 
           uint8_t consistAdr = dccPkt[dccPktLen - 1] & 0b01111111;
-          if ( consistAdr == 0 )  return ( sprintf( buf, "decactivate " ));
+          if ( consistAdr == 0 )  return ( sprintf( buf, "deactivate " ));
           else                    return ( sprintf( buf, "activate normal %d ", consistAdr ));
         }
 
       case 0b10011: {
 
           uint8_t consistAdr = dccPkt[dccPktLen - 1] & 0b01111111;
-          if ( consistAdr == 0 )  return ( sprintf( buf, "decactivate " ));
+          if ( consistAdr == 0 )  return ( sprintf( buf, "deactivate " ));
           else                    return ( sprintf( buf, "activate opposite %d ", consistAdr ));
         }
 
@@ -327,8 +327,8 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   // "decoderOtmCvProgrammingStr" implements the instruction group seven ( 1110-xxxx ) formatting for on the
   // main track programming. There is a long and a short form of this command. The short form only applies to
-  // the operations mode, only for locomotives, and only a few CVs can be accessed. Also, consist adresses are
-  // not allowed. The short formj is two bytes in length. The long form applies to both locomotives and
+  // the operations mode, only for locomotives, and only a few CVs can be accessed. Also, consist addresses
+  // are not allowed. The short form is two bytes in length. The long form applies to both locomotives and
   // accessory decoders. This form is three bytes in length.
   //
   // In addition, there is the XPOM instruction, which allows in operations mode only a quick access to the
@@ -489,7 +489,7 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   // "decoderAccessoryStr" implements the formatting of an accessory decoder command. Accessory decoders use
   // the address bytes to encoder also part of the command in the second address  uint8_t. Bit 7 selects between
-  // a simple and an extended accessroy decoder. Bit 3 is the activation bit, bit 0 the pair selection bit.
+  // a simple and an extended accessory decoder. Bit 3 is the activation bit, bit 0 the pair selection bit.
   // The function returns the number of characters in the string buffer.
   //
   //----------------------------------------------------------------------------------------------------------
@@ -514,7 +514,7 @@ namespace {
   } 
 
   //----------------------------------------------------------------------------------------------------------
-  // "decoderLocoStr" formats a DCCpacket for a loco. All we do in this function is to branch to the
+  // "decoderLocoStr" formats a DCC packet for a loco. All we do in this function is to branch to the
   // instruction group handler. The function returns the number of characters in the string buffer.
   //
   //----------------------------------------------------------------------------------------------------------
@@ -577,7 +577,7 @@ namespace {
     }
 
 
-    // ??? also, need to be able to formart the base station attrinutes, system time data etc ...
+    // ??? also, need to be able to format the base station attributes, system time data etc ...
 
 
     return ( cursor );
@@ -675,7 +675,7 @@ namespace {
 
 
 //------------------------------------------------------------------------------------------------------------
-// "isXXX" methods to analyze the DCC packet. A monitor prgram would use them to get an idea what packet is
+// "isXXX" methods to analyze the DCC packet. A monitor program would use them to get an idea what packet is
 // at hand. We analyze the overall length, the checksum, and decode the instruction  uint8_t.
 //
 //------------------------------------------------------------------------------------------------------------

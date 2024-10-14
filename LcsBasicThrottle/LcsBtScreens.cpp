@@ -940,7 +940,7 @@ int NewCabScreen::itemLimit( int index ) {
 //
 //------------------------------------------------------------------------------------------------------------
 // Set DCC function select screen. DCC has a set of 69 functions, F0 to F68. This screen selects the function
-// we want to set. UP/DOWN and the encoder knob aloow for scrolling through the list. Upon SELECT, the set
+// we want to set. UP/DOWN and the encoder knob allow for scrolling through the list. Upon SELECT, the set
 // function "operate" screen is entered.
 //
 //------------------------------------------------------------------------------------------------------------

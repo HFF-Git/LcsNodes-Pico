@@ -1087,6 +1087,7 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
     pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
 
+    // phase out, CDC should have no debug option... this is the only place...
     if ( debugLevel > 0 ) {
     
         printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",

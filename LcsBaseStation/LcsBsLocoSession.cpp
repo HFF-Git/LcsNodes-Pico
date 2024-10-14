@@ -111,8 +111,8 @@ uint8_t bitRead( uint8_t arg, uint8_t pos ) {
 
 void bitWrite( uint8_t *arg, uint8_t pos, bool val ) {
 
-    if ( val )  *arg |= ( 1 << ( 7 - pos ));  
-    else        *arg &= ~( 1 << ( 7 - pos )); 
+    if ( val )  *arg |= ( 1 << pos );  
+    else        *arg &= ~( 1 << pos ); 
 }
 
 //------------------------------------------------------------------------------------------------------------

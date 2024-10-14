@@ -31,6 +31,9 @@
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 
+
+using namespace LCS;
+
 //----------------------------------------------------------------------------------------------------------
 // Setup the config data. We first get the defaults for the controller and then set the board specific pin
 // numbers and values.
@@ -38,49 +41,64 @@
 //----------------------------------------------------------------------------------------------------------
 CDC::CdcPinConfig cfg;
 
+//----------------------------------------------------------------------------------------------------------
+// "printStatus" is a little helper function for the initialization routines protocol printing. If there is
+// a serial IO, these routines will list the success of the particular setup operation.
+//
+// ??? may be a bit of an overkill ?
+//----------------------------------------------------------------------------------------------------------
+uint8_t printStatus( uint8_t status ) {
+
+    if ( status == ALL_OK ) printf( "-> OK" );
+    else                    printf( "-> FAILED: %d\n", status );
+       
+    return ( status );
+}
 
 //----------------------------------------------------------------------------------------------------------
-//
+// Setup the config data. We first get the defaults for the controller and then set the board specific pin
+// numbers and values. Note that the ATmega version uses an I2C expander. The RPico version has all the UI
+// elements directly connected. We will for now just have defines ( sigh ) to separate them throughout the
+// code.
 //
 //
 //----------------------------------------------------------------------------------------------------------
-void setupConfigInfo( ) {
+uint8_t setupConfigInfo( CDC::CdcPinConfig *cfg ) {
 
-  cfg = CDC::getConfigDefault( );
+    printf( "Setup Config Info\n" );
 
-  //--------------------------------------------------------------------------------------------------------
-  // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  cfg.ADC_PIN_0             = 26;
-  cfg.ADC_PIN_1             = 27;
+    *cfg = CDC::getConfigDefault( );
 
-  cfg.PWM_PIN_0             = 20;
-  cfg.PWM_PIN_1             = 21;
+    cfg -> ADC_PIN_0             = 26;
+    cfg -> ADC_PIN_1             = 27;
 
-  cfg.PFAIL_PIN             = 7;
-  cfg.EXT_INT_PIN           = 22;
-  cfg.READY_LED_PIN         = 14;
-  cfg.ACTIVE_LED_PIN        = 15;
+    cfg -> PWM_PIN_0             = 20;
+    cfg -> PWM_PIN_1             = 21;
 
-  cfg.DIO_PIN_0             = 9;
-  cfg.DIO_PIN_1             = 8;
-  cfg.DIO_PIN_2             = 10;
-  cfg.DIO_PIN_3             = 11;
-  cfg.DIO_PIN_4             = 21;
-  cfg.DIO_PIN_5             = 20;
-  cfg.DIO_PIN_6             = 19;
-  cfg.DIO_PIN_7             = 18;
+    cfg -> PFAIL_PIN             = 7;
+    cfg -> EXT_INT_PIN           = 22;
+    cfg -> READY_LED_PIN         = 14;
+    cfg -> ACTIVE_LED_PIN        = 15;
 
-  cfg.NVM_I2C_SCL_PIN       = 17;
-  cfg.NVM_I2C_SDA_PIN       = 16;
-  cfg.NVM_I2C_ADR_ROOT      = 0x50;
+    cfg -> DIO_PIN_0             = 9;
+    cfg -> DIO_PIN_1             = 8;
+    cfg -> DIO_PIN_2             = 10;
+    cfg -> DIO_PIN_3             = 11;
+    cfg -> DIO_PIN_4             = 21;
+    cfg -> DIO_PIN_5             = 20;
+    cfg -> DIO_PIN_6             = 19;
+    cfg -> DIO_PIN_7             = 18;
 
-  cfg.EXT_I2C_SCL_PIN       = 3;
-  cfg. EXT_I2C_SDA_PIN      = 2;
-  cfg.EXT_I2C_ADR_ROOT      = 0x50;
+    cfg -> NVM_I2C_SCL_PIN       = 17;
+    cfg -> NVM_I2C_SDA_PIN       = 16;
+    cfg -> NVM_I2C_ADR_ROOT      = 0x50;
 
-  CDC::printConfigInfo( &cfg );
+    cfg -> EXT_I2C_SCL_PIN       = 3;
+    cfg -> EXT_I2C_SDA_PIN       = 2;
+    cfg -> EXT_I2C_ADR_ROOT      = 0x50;
+
+    CDC::printConfigInfo( cfg );
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -89,23 +107,44 @@ void setupConfigInfo( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-  setupConfigInfo( );
- 
-  uint8_t rStat = CDC::init( &cfg );
+    uint8_t rStat = ALL_OK;
 
-  if ( rStat != LCS::ALL_OK ) {
+    printf( "LCS Basic Throttle\n" );
 
+    rStat = setupConfigInfo( &cfg );
 
-  }
+    
+    if ( rStat == ALL_OK ) {
 
+        printf( "Setup Msg Bus " );
+        // rStat = printStatus( setupMsgBus( ));
+    }
 
-  printf( "LCS Diesel Throttle\n" );
+    if ( rStat == ALL_OK ) {
 
-  
-  if ( rStat != 0 )  printf( "Err code: %d\n", rStat );
-  else printf( "OK\n" );
+        printf( "Setup UI Elements " );
+        // rStat = printStatus( setupUIElements( ));
+    }
 
-  return( 0 );
+    if ( rStat == ALL_OK ) {
+
+        printf( "Setup Screens " );
+        // rStat = printStatus( setupScreens( ));
+    }
+
+    if ( rStat == ALL_OK ) {
+
+        printf( "Setup Cab Stack " );
+        // rStat = printStatus( setupCabStack ( ));
+    }
+
+    if ( rStat == ALL_OK ) {
+
+        printf( "Ready..." );
+        // UIScreen::setup( );    
+    }
+
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -115,7 +154,7 @@ uint8_t initLcsRuntime( ) {
 uint8_t registerCallbacks( ) {
 
 
-  return( LCS::ALL_OK );
+    return( LCS::ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -125,10 +164,8 @@ uint8_t registerCallbacks( ) {
 uint8_t startLcsRuntime( ) {
 
 
-  return( LCS::ALL_OK );
+    return( LCS::ALL_OK );
 }
-
-
 
 //----------------------------------------------------------------------------------------------------------
 // 
