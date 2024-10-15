@@ -3,7 +3,7 @@
 // LCS - I2C Bus Scanner
 //
 //------------------------------------------------------------------------------------------------------------
-// We need a program to see what is on the I2C bus... shold be rather standalone ?
+// We need a program to see what is on the I2C bus...
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -56,14 +56,14 @@ uint8_t initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t configI2C( uint8_t sclPin, uint8_t sdaPin ) {
 
-  printf( "Configuring the I2C Bus, slcPin: %d, sdpaPin: %d\n", sclPin, sdaPin );
+  printf( "Configuring the I2C Bus, slcPin: %d, sdaPin: %d\n", sclPin, sdaPin );
 
   return( CDC::configureI2C( sclPin, sdaPin ));
 }
 
 //----------------------------------------------------------------------------------------------------------
-// "scanI2CBus" is the loop through all possible I2C adresses in an I2C bus. If a valid one is found, the 
-// adress is printed.
+// "scanI2CBus" is the loop through all possible I2C addresses in an I2C bus. If a valid one is found, the 
+// address is printed.
 //
 //----------------------------------------------------------------------------------------------------------
 void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
@@ -108,13 +108,13 @@ int main( ) {
   }
 
   rStat = configI2C( cfg.NVM_I2C_SCL_PIN, cfg.NVM_I2C_SDA_PIN );
-  if ( rStat != CDC::ALL_OK ) {
+  if ( rStat != CDC::NO_ERR ) {
 
     printf( "Configuring NVM I2C, error: %d\n", rStat );
   }
 
   rStat = configI2C( cfg.EXT_I2C_SCL_PIN, cfg.EXT_I2C_SDA_PIN );
-  if ( rStat != CDC::ALL_OK ) {
+  if ( rStat != CDC::NO_ERR ) {
 
     printf( "Configuring EXT I2C, error: %d\n", rStat );
   }

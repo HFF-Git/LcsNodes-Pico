@@ -6,7 +6,7 @@
 // This source file contains ...
 //
 //
-// ??? both throttle could share a throttle lib with common code...
+// ??? both throttle should share a throttle lib with common code...
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -31,7 +31,6 @@
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 
-
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------------------------
@@ -42,10 +41,8 @@ using namespace LCS;
 CDC::CdcPinConfig cfg;
 
 //----------------------------------------------------------------------------------------------------------
-// "printStatus" is a little helper function for the initialization routines protocol printing. If there is
-// a serial IO, these routines will list the success of the particular setup operation.
+// "printStatus" is a little helper function for the initialization routines protocol printing. 
 //
-// ??? may be a bit of an overkill ?
 //----------------------------------------------------------------------------------------------------------
 uint8_t printStatus( uint8_t status ) {
 
@@ -57,10 +54,7 @@ uint8_t printStatus( uint8_t status ) {
 
 //----------------------------------------------------------------------------------------------------------
 // Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values. Note that the ATmega version uses an I2C expander. The RPico version has all the UI
-// elements directly connected. We will for now just have defines ( sigh ) to separate them throughout the
-// code.
-//
+// numbers and values. 
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t setupConfigInfo( CDC::CdcPinConfig *cfg ) {
@@ -109,10 +103,9 @@ uint8_t initLcsRuntime( ) {
 
     uint8_t rStat = ALL_OK;
 
-    printf( "LCS Basic Throttle\n" );
+    printf( "LCS Diesel Cab Throttle\n" );
 
     rStat = setupConfigInfo( &cfg );
-
     
     if ( rStat == ALL_OK ) {
 
@@ -154,7 +147,7 @@ uint8_t initLcsRuntime( ) {
 uint8_t registerCallbacks( ) {
 
 
-    return( LCS::ALL_OK );
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -164,7 +157,7 @@ uint8_t registerCallbacks( ) {
 uint8_t startLcsRuntime( ) {
 
 
-    return( LCS::ALL_OK );
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -173,8 +166,9 @@ uint8_t startLcsRuntime( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    initLcsRuntime( );
-    registerCallbacks( );
-    startLcsRuntime( );
-    return( 0 );
+    uint8_t rStat = ALL_OK;
+    if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = registerCallbacks( );
+    if ( rStat == ALL_OK ) rStat = startLcsRuntime( );
+    return( ALL_OK );
 }

@@ -554,7 +554,7 @@ enum LcsErrorCodes : uint8_t {
 
     ERR_EXT_BOARD_NOT_VALID             = 254,
 
-    ERR_NODE_SPECIFIC_BASE              = 128
+    ERR_USER_SPECIFIC_BASE              = 128
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -575,7 +575,7 @@ extern "C" {
     typedef uint8_t ( *LcsReqCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
     typedef uint8_t ( *LcsRepCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
 
-    typedef uint8_t ( *LcsEventCallback) ( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData );
+    typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
 
 //------------------------------------------------------------------------------------------------------------

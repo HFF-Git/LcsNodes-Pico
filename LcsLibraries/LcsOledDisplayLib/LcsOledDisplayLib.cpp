@@ -250,21 +250,21 @@ namespace {
     };
 
     //--------------------------------------------------------------------------------------------------------
-    // "setupHw" sets up our IO pins and the I2C channel. If the display has a reset input also initiaize
+    // "setupHw" sets up our IO pins and the I2C channel. If the display has a reset input we also initialize
     // the reset IO and issue the reset sequence.
     //
     //--------------------------------------------------------------------------------------------------------
     uint8_t setupHw( uint8_t sclPin, uint8_t sdaPin, uint8_t rstPin ) {
 
-        uint8_t rStat = CDC::ALL_OK;
+        uint8_t rStat = CDC::NO_ERR;
 
         rStat = CDC::configureI2C( sclPin, sdaPin );
-        if ( rStat != CDC::ALL_OK ) return( rStat );
+        if ( rStat != CDC::NO_ERR ) return( rStat );
 
         if ( rstPin != CDC::UNDEFINED_PIN ) {
 
             rStat = CDC::configureDio( rstPin, CDC::OUT );
-            if ( rStat != CDC::ALL_OK ) return( rStat );
+            if ( rStat != CDC::NO_ERR ) return( rStat );
 
             CDC::writeDio( rstPin, false );
             CDC::sleepMillis( 10 );
@@ -272,7 +272,7 @@ namespace {
             CDC::sleepMillis( 10 );
         }
 
-        if ( rStat != CDC::ALL_OK ) printf( "setupHw Error: %d\n", rStat );
+        if ( rStat != CDC::NO_ERR ) printf( "setupHw Error: %d\n", rStat );
 
         return( rStat );
     }
@@ -317,18 +317,18 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
     #endif
 
     uint8_t rStat = setupHw( sclPin, sdaPin, rstPin );
-    if ( rStat != CDC::ALL_OK ) return( rStat );
+    if ( rStat != CDC::NO_ERR ) return( rStat );
 
     setupDevType( devType );
     clear( );
     
-    return( CDC::ALL_OK );
+    return( CDC::NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupDevType" will initialze the OLED display. Currently, there are three different displays supported. 
-// The Adafruit displays with a dimension fo 128x64 and 128x32 use the SSD1306 controller. There is also a 
-// 1.3" OLED display which uses the SH1106 controller type. The evice type desriptor contains the init
+// "setupDevType" will initialize the OLED display. Currently, there are three different displays supported. 
+// The Adafruit displays with a dimension for 128x64 and 128x32 use the SSD1306 controller. There is also a 
+// 1.3" OLED display which uses the SH1106 controller type. The service type descriptor contains the init
 // command sequence which is sent command by command.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -701,5 +701,5 @@ void LcsOledDisplay::writeDisplay( uint8_t b, uint8_t mode ) {
    uint8_t rStat = CDC::i2cWrite( sclPin, i2cAdr, buf, 2 );
 
     // ??? into a debug bracket ?
-   if ( rStat != CDC::ALL_OK ) printf( "Error in writing to display: %d\n", rStat );
+   if ( rStat != CDC::NO_ERR ) printf( "Error in writing to display: %d\n", rStat );
 }
