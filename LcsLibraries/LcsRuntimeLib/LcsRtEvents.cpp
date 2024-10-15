@@ -42,9 +42,12 @@
 // External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
-extern uint16_t             debugMask;
-extern LCS::LcsNodeMap      nodeMap;
-extern LCS::LcsEventMap     eventMap;
+namespace LCS {
+
+    extern uint16_t             debugMask;
+    extern LCS::LcsNodeMap      nodeMap;
+    extern LCS::LcsEventMap     eventMap;
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.

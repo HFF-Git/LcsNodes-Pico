@@ -53,32 +53,32 @@
 #include "LcsDrvServoLib.h"
 
 //------------------------------------------------------------------------------------------------------------
-// The debug mask. The idea is to have a debug mask where each major part of the library has a bit. There 
-// could also be bits reserved for the firmware. Then we have control items to set these bits. Wherever 
-// debugging is needed, the bit mask will be used to determine whether to print debugging data or not. From
-// a performance perspective, the test will take just four ARM instructions. In other words we do not take 
-// out debugging code when going into production. Never liked this approach of conditional debug code 
-// include.
+// Runtime globals. This file contains the global data structure declarations. They are declared in the LCS
+// name space. All other files in the runtime library will declare them as "extern" if needed.
+
+// There is also the debug mask. The idea is to have a debug mask where each major part of the library has a
+// bit. There could also be bits reserved for the firmware. Then we have control items to set these bits. 
+// Wherever debugging or tracing is needed, the bit mask will be used to determine whether to print debugging
+// data or not. From a performance perspective, the test will take just a couple of ARM instructions. In other
+// words we do not take out debugging code when going into production. Never liked this approach of conditional
+// debug code via "ifdefs".
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t                    debugMask = 0;
+namespace LCS {
 
-//------------------------------------------------------------------------------------------------------------
-// Runtime globals. This file contains the global data structure declarations. All other files in the runtime
-// library will declare them as "extern" if needed.
-//
-//------------------------------------------------------------------------------------------------------------
-LCS::LcsCdcDesc             cdcMap;
-LCS::LcsMsgBusCAN           *msgBus;
-LCS::LcsNodeData            nodeData;
-LCS::LcsNodeMap             nodeMap;
-LCS::LcsPortMap             portMap;
-LCS::LcsEventMap            eventMap;
-LCS::LcsCallbackMap         callbackMap;
-LCS::LcsPendingReqMap       pendingReqMap;
-LCS::LcsTaskMap             taskMap;
-LCS::LcsDrvMap              drvMap;
-
+    uint16_t                    debugMask = 0;
+    LCS::LcsCdcDesc             cdcMap;
+    LCS::LcsMsgBusCAN           *msgBus;
+    LCS::LcsNodeData            nodeData;
+    LCS::LcsNodeMap             nodeMap;
+    LCS::LcsPortMap             portMap;
+    LCS::LcsEventMap            eventMap;
+    LCS::LcsCallbackMap         callbackMap;
+    LCS::LcsPendingReqMap       pendingReqMap;
+    LCS::LcsTaskMap             taskMap;
+    LCS::LcsDrvMap              drvMap;
+}
+    
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLibConfig implementation file local declarations and routines.
 //
@@ -124,6 +124,17 @@ uint16_t portId( uint16_t npId ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultNodeMap( LcsNodeMap *nMap ) {
+
+    // ??? try this version later... it relies on that we initialize a variable with the default values as 
+    // declared in the include file.
+    #if 0
+    LcsNodeMap tmp;
+
+    memcpy( tmp.name, nodeDefName, strlen( nodeDefName ));
+    tmp.nodeUID = CDC::createUid( );
+
+    *nMap = tmp;
+    #endif 
 
     nMap -> magicWord1              = NVM_MWORD_1;
     nMap -> boardType               = BT_NIL;
@@ -175,7 +186,7 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 void buildDefaultPortMap( LcsPortMap *pMap ) {
 
     uint8_t         rStat; 
-    LcsPortMapEntry pEntry;
+    LcsPortMapEntry pEntry;  // ??? would pEntry not already have all the default values ?
 
     pEntry.options                         = 0;
     pEntry.flags                           = 0;
@@ -200,6 +211,8 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultEventMap( LcsEventMap *eMap ) {
+
+    // ??? default values in event map entry ?
 
     for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
 
@@ -802,7 +815,6 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
     if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "init LCS runtime, status: %d \n", rStat );
     return ( rStat );
 }
-
 
 //-----------------------------------------------------------------------------------------------------------
 // "startRuntime" is the main routine of the node activity processing. It is the method called after all 

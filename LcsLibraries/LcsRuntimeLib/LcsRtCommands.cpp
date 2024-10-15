@@ -31,17 +31,21 @@
 // External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
-extern uint16_t                 debugMask;
-extern LCS::LcsCdcDesc          cdcMap;
-extern LCS::LcsNodeMap          nodeMap;
-extern LCS::LcsNodeData         nodeData;
-extern LCS::LcsPortMap          portMap;
-extern LCS::LcsEventMap         eventMap;
-extern LCS::LcsCallbackMap      callbackMap;
-extern LCS::LcsTaskMap          taskMap;
-extern LCS::LcsPendingReqMap    pendingReqMap;
-extern LCS::LcsDrvMap           drvMap;
-extern LCS::LcsMsgBusCAN        *msgBus;
+namespace LCS {
+    
+    extern uint16_t                 debugMask;
+    extern LCS::LcsCdcDesc          cdcMap;
+    extern LCS::LcsNodeMap          nodeMap;
+    extern LCS::LcsNodeData         nodeData;
+    extern LCS::LcsPortMap          portMap;
+    extern LCS::LcsEventMap         eventMap;
+    extern LCS::LcsCallbackMap      callbackMap;
+    extern LCS::LcsTaskMap          taskMap;
+    extern LCS::LcsPendingReqMap    pendingReqMap;
+    extern LCS::LcsDrvMap           drvMap;
+    extern LCS::LcsMsgBusCAN        *msgBus;
+
+};
 
 //------------------------------------------------------------------------------------------------------------
 // Local declarations.

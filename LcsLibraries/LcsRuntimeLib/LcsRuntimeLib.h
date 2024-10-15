@@ -581,7 +581,11 @@ extern "C" {
 //------------------------------------------------------------------------------------------------------------
 // Library functions. The main function are the initialization and start of the LCS runtime. Between "init"
 // and "start", the firmware should do its own setup and register the required callbacks. We will not return
-// from the "start" routine.
+// from the "start" routine. All call a plain C style library calls. Since we have only one instance of this
+// library, there is not really a need to encapsulate the internal data and function pointers in a structure
+// that is passed to each call. However, data structures are kept wherever possible local to the file and
+// only structures that are references throughout the library file set are available externally. Perhaps
+// one day, we encapsulate all data in a private structure for security reasons. To be determined.
 // 
 //------------------------------------------------------------------------------------------------------------
 uint8_t             initRuntime( CDC::CdcPinConfig *cfg, uint16_t nodeOptions = 0 );
@@ -689,7 +693,8 @@ uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1 = null
 //----------------------------------------------------------------------------------------------------------
 // The User Map interface. The LCS library offers a set of routines for the firmware to access the user
 // NVM area. The size is dependent on what the actual chip on the board offers. The meaning of this data
-// area is entirely firmware specific.
+// area is entirely firmware specific. Note that there are also routines for accessing the runtime data 
+// area as well as the individual extension board areas. They are declared in the internal include file.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t             usrNvmPutWord( uint32_t ofs, uint16_t word );
