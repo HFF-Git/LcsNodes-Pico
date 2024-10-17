@@ -36,7 +36,8 @@ using namespace LCS;
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig cfg;
+CDC::CdcPinConfig   cdcConfig;
+LCS::LcsConfig      lcsConfig;
 
 //----------------------------------------------------------------------------------------------------------
 // Init the CDC and Runtime library. We get a default CDC config structure and fill in the the additional
@@ -48,24 +49,26 @@ CDC::CdcPinConfig cfg;
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-    cfg = CDC::getConfigDefault( );
+    lcsConfig.options = LCS::NOPT_DEBUG_DURING_SETUP;
 
-    cfg.ADC_PIN_0             = 26;
-    cfg.ADC_PIN_1             = 27;
+    cdcConfig = CDC::getConfigDefault( );
 
-    cfg.DIO_PIN_0             = 9;
-    cfg.DIO_PIN_1             = 8;
-    cfg.DIO_PIN_2             = 10;
-    cfg.DIO_PIN_3             = 11;
-    cfg.DIO_PIN_4             = 21;
-    cfg.DIO_PIN_5             = 20;
-    cfg.DIO_PIN_6             = 19;
-    cfg.DIO_PIN_7             = 18;
+    cdcConfig.ADC_PIN_0             = 26;
+    cdcConfig.ADC_PIN_1             = 27;
+
+    cdcConfig.DIO_PIN_0             = 9;
+    cdcConfig.DIO_PIN_1             = 8;
+    cdcConfig.DIO_PIN_2             = 10;
+    cdcConfig.DIO_PIN_3             = 11;
+    cdcConfig.DIO_PIN_4             = 21;
+    cdcConfig.DIO_PIN_5             = 20;
+    cdcConfig.DIO_PIN_6             = 19;
+    cdcConfig.DIO_PIN_7             = 18;
 
     printf( "Init LCS runtime, configuration: \n" );
-    CDC::printConfigInfo( &cfg );
+    CDC::printConfigInfo( &cdcConfig );
 
-    return( LCS::initRuntime( &cfg, LCS::NOPT_DEBUG_DURING_SETUP ));
+    return( LCS::initRuntime( &lcsConfig, &cdcConfig ));
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -148,6 +151,7 @@ uint8_t lcsDccMsgCallback( uint8_t *msg ) {
 uint8_t registerLcsCallbacks( ) {
 
     printf( "Registering Callbacks\n" );
+
     registerLcsMsgCallback( lcsMsgCallback );
     registerDccMsgCallback( lcsDccMsgCallback );
     registerCmdCallback( lcsCmdCallback );

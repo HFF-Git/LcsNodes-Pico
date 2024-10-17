@@ -738,6 +738,19 @@ uint8_t resetNode( uint16_t npId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The LCS library has a set of configuration parameters. Currently this is only the "options" field. In the
+// future there may be more fields. This routines returns a config structure with reasonable defaults set.
+//
+//------------------------------------------------------------------------------------------------------------
+LcsConfig getConfigDefault( ) {
+
+    LcsConfig cfg;
+    cfg.options = 0;
+
+    return( cfg );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "initRuntime" is the routine that takes a controller board and initializes the whole show. It is the very
 // first thing to call in a node firmware program. There is a lot to do. First, the CDC layer is initialized.
 // NVM and CanBus follow. An error in this stage will result in a fatal error, we are not able to set up a
@@ -773,9 +786,9 @@ uint8_t resetNode( uint16_t npId ) {
 // configuration  of the nodeMap, so that we can restart with a correct nodeMap. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
+uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
-    if ( nodeOptions & NOPT_DEBUG_DURING_SETUP ) {
+    if ( lcsConfig -> options & NOPT_DEBUG_DURING_SETUP ) {
 
         debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS | DBG_SETUP;
         printf( "init LCS runtime\n") ;
@@ -783,11 +796,11 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK )  rStat = initCdcLayer( ci );
+    if ( rStat == ALL_OK )  rStat = initCdcLayer( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1 );
         
-    if ( rStat == ALL_OK )  rStat = initCanBus( ci );
-    if ( rStat == ALL_OK )  rStat = initNvmChannels( ci );
+    if ( rStat == ALL_OK )  rStat = initCanBus( cdcConfig );
+    if ( rStat == ALL_OK )  rStat = initNvmChannels( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2 );
 
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );
@@ -808,8 +821,8 @@ uint8_t initRuntime( CDC::CdcPinConfig *ci, uint16_t nodeOptions ) {
 
     if ( rStat == ALL_OK )  {
         
-        CDC::writeDio( ci -> READY_LED_PIN, true );
-        CDC::writeDio( ci -> ACTIVE_LED_PIN, false );
+        CDC::writeDio( cdcConfig -> READY_LED_PIN, true );
+        CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, false );
     }
 
     if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "init LCS runtime, status: %d \n", rStat );

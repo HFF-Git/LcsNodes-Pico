@@ -557,6 +557,41 @@ enum LcsErrorCodes : uint8_t {
     ERR_USER_SPECIFIC_BASE              = 128
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
+// implementation of the CAN bus. The "can2040" library could run on the same or on the separate processor 
+// core. Technically, the PICO could also run the MCP2515 via the SPI interface, but so far we just use the
+// software version and avoid the additional controller hardware.
+//
+//------------------------------------------------------------------------------------------------------------
+enum CanBusControllerMode : uint8_t {
+
+    CAN_BUS_LIB_PICO_PIO_125K               = 1,
+    CAN_BUS_LIB_PICO_PIO_250K               = 2,
+    CAN_BUS_LIB_PICO_PIO_500K               = 3,
+    CAN_BUS_LIB_PICO_PIO_1000K              = 4,
+
+    CAN_BUS_LIB_PICO_PIO_125K_M_CORE        = 11,
+    CAN_BUS_LIB_PICO_PIO_250K_M_CORE        = 12,
+    CAN_BUS_LIB_PICO_PIO_500K_M_CORE        = 13,
+    CAN_BUS_LIB_PICO_PIO_1000K_M_CORE       = 14,
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "MsgPriority" defines the values for the message priority. It tracks the general definition found in the
+// sendMsg routines of the LCS library. For the CAN bus, the priority is encoded in the CAN address field.
+// A CAN Id consists of the CAN Id number and the priority. Messages start out with a hard coded priority and
+// on message timeout are raised in their priority. This done transparently to the firmware programmer.
+//
+//------------------------------------------------------------------------------------------------------------
+enum MsgPriority : uint8_t {
+
+    MSG_PRI_VERY_HIGH   = 0,
+    MSG_PRI_HIGH        = 1,
+    MSG_PRI_NORMAL      = 2,
+    MSG_PRI_LOW         = 3
+};
+
 //----------------------------------------------------------------------------------------------------------
 // Core library callback function signatures. Callbacks are registered by the firmware at setup time and
 // invoked as the communication back to the firmware layer.
@@ -578,6 +613,17 @@ extern "C" {
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
 
+//----------------------------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------------------------
+struct LcsConfig {
+
+    uint16_t options  = 0;
+
+};
+
 //------------------------------------------------------------------------------------------------------------
 // Library functions. The main function are the initialization and start of the LCS runtime. Between "init"
 // and "start", the firmware should do its own setup and register the required callbacks. We will not return
@@ -588,7 +634,8 @@ extern "C" {
 // one day, we encapsulate all data in a private structure for security reasons. To be determined.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t             initRuntime( CDC::CdcPinConfig *cfg, uint16_t nodeOptions = 0 );
+LcsConfig           getConfigDefault( );
+uint8_t             initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig );
 void                startRuntime( );
 
 //----------------------------------------------------------------------------------------------------------
