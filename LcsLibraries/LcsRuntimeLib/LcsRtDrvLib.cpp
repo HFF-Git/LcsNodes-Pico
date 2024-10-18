@@ -29,11 +29,13 @@
 // External declaration to global structures defined in "LcsRtSetup".
 //
 //------------------------------------------------------------------------------------------------------------
-extern uint16_t             debugMask;
-extern LCS::LcsCdcDesc      cdcMap;
-extern LCS::LcsNodeMap      nodeMap;
-extern LCS::LcsDrvMap       drvMap;
+namespace LCS {
 
+    extern uint16_t             debugMask;
+    extern LCS::LcsCdcDesc      cdcMap;
+    extern LCS::LcsNodeMap      nodeMap;
+    extern LCS::LcsDrvMap       drvMap;
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.

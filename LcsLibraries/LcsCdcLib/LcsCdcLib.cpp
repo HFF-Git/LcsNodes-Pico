@@ -62,6 +62,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+using namespace CDC;
+
 //------------------------------------------------------------------------------------------------------------  
 // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
 // setting of the debug level.
@@ -483,7 +485,7 @@ uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
 
     // ??? a ton of "validXXX" ?
 
-    return ( CDC::ALL_OK ); // for now....
+    return ( NO_ERR ); // for now....
 }
 
 }; // namespace
@@ -682,7 +684,7 @@ uint32_t createUid( ) {
 uint8_t configureConsoleIO( ) {
 
     stdio_init_all( );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 bool isConsoleConnected( ) {
@@ -781,7 +783,7 @@ uint8_t configureDio( uint8_t dioPin, uint8_t mode ) {
         default: gpio_set_dir( dioPin, false );
     }
 
-  return ( ALL_OK );
+  return ( NO_ERR );
 }
 
 void registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func ) {
@@ -819,13 +821,13 @@ bool readDio( uint8_t dioPin ) {
 uint8_t writeDio( uint8_t dioPin, bool val ) {
 
     gpio_put( dioPin, val );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint8_t toggleDio( uint8_t dioPin ) {
 
     writeDio( dioPin, ! readDio( dioPin ));
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint8_t writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val2 ) {
@@ -834,7 +836,7 @@ uint8_t writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val2 ) {
     uint32_t valData  = (( val1 ) ? ( 1 << dioPin1 ) : 0 ) | (( val2 ) ? ( 1 << dioPin2 ) : 0 );
 
     gpio_put_masked( maskData, valData );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint32_t readDioMask( uint32_t dioMask ) {
@@ -845,7 +847,7 @@ uint32_t readDioMask( uint32_t dioMask ) {
 uint8_t writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
 
     gpio_put_masked( dioMask, dioVal );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -882,7 +884,7 @@ uint8_t configureAdc( uint8_t adcPin ) {
     adc_gpio_init( tmp -> adcPin );
     tmp -> configured = true;
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint16_t getAdcRefVoltage( ) {
@@ -967,7 +969,7 @@ uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode
 
         irq_set_enabled( uart -> uartIrq, true );
 
-        return ( ALL_OK );
+        return ( NO_ERR );
     }
     else if ( mode == UART_MODE_8N1_PIO ) {
 
@@ -990,7 +992,7 @@ uint8_t startUartRead( uint8_t rxPin ) {
 
         uart_set_irq_enables( uart -> uartHw, true, false );
         uart -> rxBufIndex = 0;
-        return ( ALL_OK );
+        return ( NO_ERR );
     }
     else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
 
@@ -1011,7 +1013,7 @@ uint8_t stopUartRead( uint8_t rxPin ) {
     if (( uart != nullptr ) && ( uart ->uartMode == UART_MODE_8N1 )) {
 
         uart_set_irq_enables( uart -> uartHw, false, false );
-        return ( ALL_OK );
+        return ( NO_ERR );
     }
     else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
 
@@ -1094,7 +1096,7 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
                 pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
     }
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
@@ -1126,7 +1128,7 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
         pwm_set_enabled( sliceNum, true );
     }
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1164,7 +1166,7 @@ uint8_t configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
     gpio_pull_up( i2c -> sclPin );
     gpio_pull_up( i2c -> sdaPin );
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
@@ -1188,7 +1190,7 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
 
     if (( stat == PICO_ERROR_GENERIC ) || ( stat == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
     
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
@@ -1213,7 +1215,7 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 
     if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1262,7 +1264,7 @@ uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_
     gpio_set_function( mosiPin, GPIO_FUNC_SPI );
     gpio_set_function( misoPin, GPIO_FUNC_SPI );
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
@@ -1277,7 +1279,7 @@ uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
         // ??? should we check who is active and just ignore when the same ? else "error " ?
 
-        return ( ALL_OK );
+        return ( NO_ERR );
 
     } else {
 
@@ -1285,7 +1287,7 @@ uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
         spi -> selectPin  = csPin;
 
         CDC::writeDio( csPin, false );
-        return ( ALL_OK );
+        return ( NO_ERR );
     }
 }
 
@@ -1306,10 +1308,10 @@ uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
         spi -> active     = false;
         spi -> selectPin  = UNDEFINED_PIN;
     
-        return ( ALL_OK );
+        return ( NO_ERR );
 
     }
-    else return ( ALL_OK ); // ???  "error "  not active...
+    else return ( NO_ERR ); // ???  "error "  not active...
 }
 
 uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
@@ -1323,9 +1325,9 @@ uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
     if ( spi -> active ) {
 
         int bytesRead = spi_read_blocking( spi -> spiHw, 0, buf, len );
-        return ( ALL_OK );
+        return ( NO_ERR );
 
-    } else return ( ALL_OK ); // ??? fix : not active ...
+    } else return ( NO_ERR ); // ??? fix : not active ...
 }
 
 uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
@@ -1339,9 +1341,9 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
     if ( spi -> active ) {
 
         spi_write_blocking( spi -> spiHw, buf, len );
-        return ( ALL_OK );
+        return ( NO_ERR );
 
-    } else return ( ALL_OK ); // ??? fix : not active ...
+    } else return ( NO_ERR ); // ??? fix : not active ...
 }
 
 //------------------------------------------------------------------------------------------------------------

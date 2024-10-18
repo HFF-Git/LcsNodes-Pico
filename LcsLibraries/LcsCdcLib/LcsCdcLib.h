@@ -55,13 +55,14 @@ namespace CDC {
 
 //------------------------------------------------------------------------------------------------------------
 // Error status codes. The errors are used when setting up the Hal library. During operation, all routines
-// validate the input for correctness. If they are not correct, the call is simply not performed.
+// validate the input for correctness. If they are not correct, the call is simply not performed and an
+// error is returned.
 //
 // ??? clean up a little ... what is really needed ?
 //------------------------------------------------------------------------------------------------------------
 enum CdcStatus : uint8_t {
 
-    ALL_OK              = 0,
+    NO_ERR              = 0,
     INIT_PENDING        = 1,
     NOT_SUPPORTED       = 2,
     NOT_IMPLEMENTED     = 3,

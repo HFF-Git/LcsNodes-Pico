@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // This source file contains a simple wrapper for the runtime library. The runtime library features a simple
-// command interpreter, which we will use to test the library functions. So, all we need to do is to register
+// command interpreter, which will be used to test the library functions. So, all we need to do is to register
 // any callbacks, initialize the runtime and the just start it.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -30,90 +30,117 @@
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 
+using namespace LCS;
+
 //----------------------------------------------------------------------------------------------------------
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig cfg;
+CDC::CdcPinConfig   cdcConfig;
+LCS::LcsConfig      lcsConfig;
 
 //----------------------------------------------------------------------------------------------------------
-// Init the CDC and Runtime library. 
+// Init the CDC and Runtime library. We get a default CDC config structure and fill in the the additional
+// pins for the main controller board we use for testing the library. The runtime initialization will 
+// enable the debugging, as we want see as much as possible what is happening. Note that for debugging 
+// the various parts of the library, the debug mask needs to be set with a LCS command. 
 //
 // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-    cfg.ADC_PIN_0             = 26;
-    cfg.ADC_PIN_1             = 27;
+    lcsConfig.options = LCS::NOPT_DEBUG_DURING_SETUP;
 
-    cfg.DIO_PIN_0             = 9;
-    cfg.DIO_PIN_1             = 8;
-    cfg.DIO_PIN_2             = 10;
-    cfg.DIO_PIN_3             = 11;
-    cfg.DIO_PIN_4             = 21;
-    cfg.DIO_PIN_5             = 20;
-    cfg.DIO_PIN_6             = 19;
-    cfg.DIO_PIN_7             = 18;
+    cdcConfig = CDC::getConfigDefault( );
+
+    cdcConfig.ADC_PIN_0             = 26;
+    cdcConfig.ADC_PIN_1             = 27;
+
+    cdcConfig.DIO_PIN_0             = 9;
+    cdcConfig.DIO_PIN_1             = 8;
+    cdcConfig.DIO_PIN_2             = 10;
+    cdcConfig.DIO_PIN_3             = 11;
+    cdcConfig.DIO_PIN_4             = 21;
+    cdcConfig.DIO_PIN_5             = 20;
+    cdcConfig.DIO_PIN_6             = 19;
+    cdcConfig.DIO_PIN_7             = 18;
 
     printf( "Init LCS runtime, configuration: \n" );
-    CDC::printConfigInfo( &cfg );
+    CDC::printConfigInfo( &cdcConfig );
 
-    return( LCS::initRuntime( &cfg, LCS::NOPT_DEBUG_DURING_SETUP ));
+    return( LCS::initRuntime( &lcsConfig, &cdcConfig ));
 }
 
 //----------------------------------------------------------------------------------------------------------
+// Callbacks. All we do is to list their invocation.
 //
-//
-// ??? callbacks.....
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
-    return( 0 );
+    printf( "MsgCallback: " );
+    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
+    printf( "\n" );
+    return( ALL_OK );
 }
 
 uint8_t lcsCmdCallback( char *cmdLine ) {
 
-    return( 0 );
+    printf( "Command Line Callback: %s\n", cmdLine );
+    return( ALL_OK );
 }
 
 uint8_t lcsTaskCallback( ) {
 
-    return( 0 );    
+    printf( "Task Callback...\n" );
+    return( ALL_OK );    
 }
 
 uint8_t lcsInitCallback( uint16_t npId ) {
 
-  return( 0 );
+    printf( "Init Callback: 0x%x\n", npId );
+    return( ALL_OK );
 }
 
 uint8_t lcsResetCallback( uint16_t npId ) {
 
-  return( 0 );
+    printf( "Reset Callback: 0x%x\n", npId );
+    return( ALL_OK );
 }
 
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
-    return( 0 );
+    printf( "Pfail Callback: 0x%x\n", npId );
+    return( ALL_OK );
 }
 
 uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    return( 0 );
+    printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
+    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
+    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+    return( ALL_OK );
 }
 
 uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    return( 0 );
+    printf( "REP callback: npId: 0x%x, item: %d", npId, item );
+    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
+    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+    return( ALL_OK );
 }
 
-uint8_t lcsEventCallback( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData ) {
+uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
 
-    return( 0 );
+    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
+    return( ALL_OK );
 }
 
 uint8_t lcsDccMsgCallback( uint8_t *msg ) {
 
-    return( 0 );
+    printf( "DCC MsgCallback: " );
+    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
+    printf( "\n" );
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -125,17 +152,17 @@ uint8_t registerLcsCallbacks( ) {
 
     printf( "Registering Callbacks\n" );
 
-    LCS::registerLcsMsgCallback( lcsMsgCallback );
-    LCS::registerDccMsgCallback( lcsDccMsgCallback );
-    LCS::registerCmdCallback( lcsCmdCallback );
-    LCS::registerTaskCallback( lcsTaskCallback, 1000 );
-    LCS::registerInitCallback( lcsInitCallback );
-    LCS::registerResetCallback( lcsResetCallback );
-    LCS::registerPfailCallback( lcsPfailCallback );
-    LCS::registerReqCallback( lcsReqCallback );
-    LCS::registerRepCallback( lcsRepCallback );
-    LCS::registerEventCallback( lcsEventCallback );
-    return( LCS::ALL_OK );
+    registerLcsMsgCallback( lcsMsgCallback );
+    registerDccMsgCallback( lcsDccMsgCallback );
+    registerCmdCallback( lcsCmdCallback );
+    registerTaskCallback( lcsTaskCallback, 1000 );
+    registerInitCallback( lcsInitCallback );
+    registerResetCallback( lcsResetCallback );
+    registerPfailCallback( lcsPfailCallback );
+    registerReqCallback( lcsReqCallback );
+    registerRepCallback( lcsRepCallback );
+    registerEventCallback( lcsEventCallback );
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -145,19 +172,19 @@ uint8_t registerLcsCallbacks( ) {
 void startLcsRuntime( ) {
 
     printf( "Start LCS runtime\n" );
-    LCS::startRuntime( );
+    startRuntime( );
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Main. Set up the hardware, register the callbacks, set up the runtime and then just start the show.
+// Main. Set up the hardware, register the callbacks and just start the show.
 //
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = LCS::ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-    if ( rStat == LCS::ALL_OK ) rStat = registerLcsCallbacks( );
-    if ( rStat == LCS::ALL_OK ) rStat = initLcsRuntime( );
-    if ( rStat == LCS::ALL_OK ) startLcsRuntime( );
-    return( LCS::ALL_OK );
+    if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
+    if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) startLcsRuntime( );
+    return( ALL_OK );
 }

@@ -22,7 +22,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
-#include <mm_malloc.h>
+#include <malloc.h>
 
 using namespace LCS;
 
@@ -742,7 +742,7 @@ uint8_t LcsBaseStationLocoSession::readCVByte( uint16_t cvId, uint8_t *val ) {
     pBuf[2] = bValue;
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -848,7 +848,7 @@ uint8_t LcsBaseStationLocoSession::writeCVByte( uint16_t cvId, uint8_t val ) {
     pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -881,7 +881,7 @@ uint8_t LcsBaseStationLocoSession::writeCVBit( uint16_t cvId, uint8_t bitPos, ui
     bitWrite( &pBuf[2], 4, false );
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //------------------------------------------------------------------------------------------------------------

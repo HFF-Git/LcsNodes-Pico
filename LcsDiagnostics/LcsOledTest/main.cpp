@@ -3,8 +3,8 @@
 // LCS - OLED - Test Program
 //
 //------------------------------------------------------------------------------------------------------------
+// A simple OLED test program for the SDD1306 library.
 // 
-//
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
@@ -61,10 +61,10 @@ uint8_t initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = CDC::ALL_OK;
+    uint8_t rStat = CDC::NO_ERR;
 
     rStat = initCdcLib( );
-    if ( rStat != CDC::ALL_OK ) {
+    if ( rStat != CDC::NO_ERR ) {
 
         printf( "Error in CDC init: %d\n", rStat );
 

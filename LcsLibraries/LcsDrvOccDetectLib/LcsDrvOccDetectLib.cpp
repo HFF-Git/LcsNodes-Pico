@@ -65,10 +65,10 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 uint8_t readReg( uint8_t reg ) {
 
     uint8_t buf[ 2 ];
-    uint8_t rStat = CDC::ALL_OK;
+    uint8_t rStat = CDC::NO_ERR;
     
     rStat = CDC::i2cWrite( sclPin, i2cAdr, &reg, 1 );
-    if ( rStat == CDC::ALL_OK ) {
+    if ( rStat == CDC::NO_ERR ) {
 
         rStat = CDC::i2cRead( sclPin, i2cAdr, buf, 1 );
         return( buf[ 0 ] );
@@ -90,7 +90,7 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
     uint8_t ret = 1;
     uint8_t tmp = 0;
 
-    while ( ret != CDC::ALL_OK ) {
+    while ( ret != CDC::NO_ERR ) {
 
         ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
     }

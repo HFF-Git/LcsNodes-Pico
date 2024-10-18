@@ -46,7 +46,7 @@
 //------------------------------------------------------------------------------------------------------------
 enum BaseStationErrors : uint8_t {
 
-    BASE_STATION_ERR_BASE             = LCS::ERR_NODE_SPECIFIC_BASE,
+    BASE_STATION_ERR_BASE             = 128,
 
     ERR_NO_SVC_MODE                   = BASE_STATION_ERR_BASE + 1,
     ERR_CV_OP_FAILED                  = BASE_STATION_ERR_BASE + 2,

@@ -50,13 +50,18 @@ extern "C" {
 // The debug mask. See the internal include file for details.
 // 
 //------------------------------------------------------------------------------------------------------------
-extern uint16_t debugMask;
+namespace LCS {
+
+    extern uint16_t debugMask;
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The name space for file local declarations.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
+
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 // The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"

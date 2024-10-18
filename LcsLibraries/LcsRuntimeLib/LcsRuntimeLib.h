@@ -554,7 +554,42 @@ enum LcsErrorCodes : uint8_t {
 
     ERR_EXT_BOARD_NOT_VALID             = 254,
 
-    ERR_NODE_SPECIFIC_BASE              = 128
+    ERR_USER_SPECIFIC_BASE              = 128
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
+// implementation of the CAN bus. The "can2040" library could run on the same or on the separate processor 
+// core. Technically, the PICO could also run the MCP2515 via the SPI interface, but so far we just use the
+// software version and avoid the additional controller hardware.
+//
+//------------------------------------------------------------------------------------------------------------
+enum CanBusControllerMode : uint8_t {
+
+    CAN_BUS_LIB_PICO_PIO_125K               = 1,
+    CAN_BUS_LIB_PICO_PIO_250K               = 2,
+    CAN_BUS_LIB_PICO_PIO_500K               = 3,
+    CAN_BUS_LIB_PICO_PIO_1000K              = 4,
+
+    CAN_BUS_LIB_PICO_PIO_125K_M_CORE        = 11,
+    CAN_BUS_LIB_PICO_PIO_250K_M_CORE        = 12,
+    CAN_BUS_LIB_PICO_PIO_500K_M_CORE        = 13,
+    CAN_BUS_LIB_PICO_PIO_1000K_M_CORE       = 14,
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "MsgPriority" defines the values for the message priority. It tracks the general definition found in the
+// sendMsg routines of the LCS library. For the CAN bus, the priority is encoded in the CAN address field.
+// A CAN Id consists of the CAN Id number and the priority. Messages start out with a hard coded priority and
+// on message timeout are raised in their priority. This done transparently to the firmware programmer.
+//
+//------------------------------------------------------------------------------------------------------------
+enum MsgPriority : uint8_t {
+
+    MSG_PRI_VERY_HIGH   = 0,
+    MSG_PRI_HIGH        = 1,
+    MSG_PRI_NORMAL      = 2,
+    MSG_PRI_LOW         = 3
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -575,16 +610,32 @@ extern "C" {
     typedef uint8_t ( *LcsReqCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
     typedef uint8_t ( *LcsRepCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
 
-    typedef uint8_t ( *LcsEventCallback) ( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData );
+    typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
+
+//----------------------------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------------------------
+struct LcsConfig {
+
+    uint16_t options  = 0;
+
+};
 
 //------------------------------------------------------------------------------------------------------------
 // Library functions. The main function are the initialization and start of the LCS runtime. Between "init"
 // and "start", the firmware should do its own setup and register the required callbacks. We will not return
-// from the "start" routine.
+// from the "start" routine. All call a plain C style library calls. Since we have only one instance of this
+// library, there is not really a need to encapsulate the internal data and function pointers in a structure
+// that is passed to each call. However, data structures are kept wherever possible local to the file and
+// only structures that are references throughout the library file set are available externally. Perhaps
+// one day, we encapsulate all data in a private structure for security reasons. To be determined.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t             initRuntime( CDC::CdcPinConfig *cfg, uint16_t nodeOptions = 0 );
+LcsConfig           getConfigDefault( );
+uint8_t             initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig );
 void                startRuntime( );
 
 //----------------------------------------------------------------------------------------------------------
@@ -689,7 +740,8 @@ uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1 = null
 //----------------------------------------------------------------------------------------------------------
 // The User Map interface. The LCS library offers a set of routines for the firmware to access the user
 // NVM area. The size is dependent on what the actual chip on the board offers. The meaning of this data
-// area is entirely firmware specific.
+// area is entirely firmware specific. Note that there are also routines for accessing the runtime data 
+// area as well as the individual extension board areas. They are declared in the internal include file.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t             usrNvmPutWord( uint32_t ofs, uint16_t word );
