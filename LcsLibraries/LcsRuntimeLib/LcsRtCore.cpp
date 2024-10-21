@@ -474,7 +474,7 @@ void handleMsgDccMgt( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-    if ( nodeMap.nodeOptions & ( ~ NOPT_SKIP_NODE_INIT_STEP )) {
+    if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_INIT_STEP )) {
 
         if ( callbackMap.initCallback != nullptr ) callbackMap.initCallback( nodeMap.nodeId << 4 );
 
@@ -488,10 +488,11 @@ void handleNodeStateInit( ) {
         }
     }
 
-     if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_ID_CONFIG )) {
+    if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_ID_CONFIG )) {
 
         sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
         timerVal  = CDC::getMillis( );
+
         nodeMap.nodeState = NS_REGISTER;
 
     } else nodeMap.nodeState = NS_OPERATE;

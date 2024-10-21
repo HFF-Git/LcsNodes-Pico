@@ -88,7 +88,7 @@ void setupConfigInfo( ) {
     cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
 
     cdcConfig.EXT_I2C_SCL_PIN       = 3;
-    cdcConfig. EXT_I2C_SDA_PIN      = 2;
+    cdcConfig.EXT_I2C_SDA_PIN       = 2;
     cdcConfig.EXT_I2C_ADR_ROOT      = 0x50;
 
     cdcConfig.CAN_BUS_RX_PIN        = 0;

@@ -221,8 +221,8 @@ void UIDisplayLcdI2C::clear( ) {
 // Oled Version using the SSD1306 controller chip. There is no nice mapping of display function via base
 // class inheritance, as used in the LiquidCrystal displays. We need to create the OLed display object and
 // implement each generic display function if possible. The Oled Display Class implements three methods.
-// "setCursor" sets the cursor to the desifed row and columns. These values are however depending on the
-// current font. The colum, measured in pixels, is computed to be the column parameter times the font width
+// "setCursor" sets the cursor to the desired row and columns. These values are however depending on the
+// current font. The column, measured in pixels, is computed to be the column parameter times the font width
 // of the current font. The display row and column parameter need to be multiplied with the dimensions
 // needed for the current font measured in multiple of 8 pixels. The "print" and "clear" methods just pass
 // through to their specific Oled Display Class counterparts.

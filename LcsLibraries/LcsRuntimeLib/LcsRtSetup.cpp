@@ -240,7 +240,7 @@ uint8_t buildNvmRuntimeStructures( ) {
 
     uint8_t rStat;
 
-    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "buildNvmRuntimeStructures\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures\n" );
 
     buildDefaultNodeMap( &nodeMap );
     buildDefaultPortMap( &portMap );
@@ -252,7 +252,7 @@ uint8_t buildNvmRuntimeStructures( ) {
     if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
     if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
 
-    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
     return( ALL_OK );
 }
 
@@ -323,12 +323,26 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
     if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
     if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
 
+    CDC::writeDio( ci -> ACTIVE_LED_PIN, true );
+
+    // ??? quick hack. If the console is not there yet, we never enter the loop ...
+
+    for ( int i = 0; i < 10; i++ ) {
+
+        if ( CDC::isConsoleConnected( )) break;
+
+        CDC::sleepMillis( 1000 );
+    }
+
     if ( CDC::isConsoleConnected( )) {
+
+        CDC::writeDio( ci -> READY_LED_PIN, true );
 
         while ( true ) {
 
             printf( ">" );   
             if( CDC::getConsoleChar( 1024 * 1024 ) == 'r' ) break;
+            CDC::sleepMillis( 1000 );
         }
 
         printf( "Have screen, starting ...  \n ");
@@ -346,9 +360,9 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) { 
+   if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) { 
 
-        printf( "initNvmChannels: nvmSCL: %d, nvmSDA: %d, nvmSCL: %d, nvmSDA: %d\n", 
+        printf( "initNvmChannels: nvmSCL: %d, nvmSDA: %d, extSCL: %d, extSDA: %d\n", 
                 ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN ); 
     }
 
@@ -368,7 +382,7 @@ uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 
     rStat = configNvm( ci );
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "initNvmChannels, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initNvmChannels, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -379,18 +393,18 @@ uint8_t initNvmChannels( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "initCanBus\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initCanBus\n" );
     
     msgBus = new LcsMsgBusCAN( );
 
     uint8_t rStat = msgBus -> init( 0, ci -> CAN_BUS_RX_PIN, ci -> CAN_BUS_TX_PIN, ci -> CAN_BUS_CTRL_MODE );
     if ( rStat != ALL_OK ) {
 
-        if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "initCanBus, CAN status: %d\n", rStat );
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initCanBus, CAN status: %d\n", rStat );
         rStat = ERR_CAN_SETUP;
     }
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "initCanBus, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initCanBus, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -407,10 +421,12 @@ uint8_t initCanBus( CDC::CdcPinConfig *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupNodeMap\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap\n" );
 
     uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );
+
+    printf( "got: %0x, %0x, %d\n", nodeMap.magicWord1, nodeMap.magicWord2,nodeMap.nodeMapSize );
 
     if (( nodeMap.magicWord1 != NVM_MWORD_1 ) || 
         ( nodeMap.magicWord2 != NVM_MWORD_2 ) || 
@@ -421,7 +437,7 @@ uint8_t setupNodeMap( ) {
         rStat = buildNvmRuntimeStructures( );
     }
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupNodeMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -431,11 +447,11 @@ uint8_t setupNodeMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupPortMap\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPortMap\n" );
 
     uint8_t rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupPortMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPortMap, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -450,9 +466,12 @@ uint8_t setupPortMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupEventMap\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+        
+        printf( "setupEventMap, entries: %d, HWM: %d\n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+    }
    
-    uint8_t rStat;
+    uint8_t rStat = ALL_OK;
 
     if ( nodeMap.eventMapHwm <= MAX_EVENT_MAP_ENTRIES ) {
 
@@ -484,7 +503,7 @@ uint8_t setupEventMap( ) {
         rStat = syncEventMap( );
     }
   
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupEventMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupEventMap, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -495,11 +514,11 @@ uint8_t setupEventMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupUserMap\n" );
+   if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupUserMap\n" );
 
     uint8_t rStat = ALL_OK;
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupUserMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupUserMap, status: %d\n", rStat );
     return ( ALL_OK );
 }
 
@@ -510,7 +529,7 @@ uint8_t setupUserMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupCallbackMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupCallbackMap\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCallbackMap\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -526,7 +545,7 @@ uint8_t setupCallbackMap( ) {
     callbackMap.reqCallback         = nullptr;
     callbackMap.repCallback         = nullptr;
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupCallbackMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCallbackMap, status: %d\n", rStat );
     return( rStat );
 }
 
@@ -534,11 +553,10 @@ uint8_t setupCallbackMap( ) {
 // "setupTaskMap" initializes the task map. A user can register routines that are executed on a periodic
 // basis.
 //
-// 
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupTaskMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupTaskMap\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupTaskMap\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -552,7 +570,7 @@ uint8_t setupTaskMap( ) {
         taskMap.map[ i ].timeStamp  = 0;
     }
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupTaskMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupTaskMap, status: %d\n", rStat );
     return( ALL_OK );
 }
 
@@ -582,7 +600,7 @@ uint8_t registerInternalTasks( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t detectExtensionBoards( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "detectExtensionBoards\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "detectExtensionBoards\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -606,7 +624,7 @@ uint8_t detectExtensionBoards( ) {
         }
     }
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "detectExtensionBoards, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "detectExtensionBoards, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -620,7 +638,7 @@ uint8_t detectExtensionBoards( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupExtensionBoards\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupExtensionBoards\n" );
 
     uint8_t rStat = ALL_OK;
 
@@ -651,36 +669,7 @@ uint8_t setupExtensionBoards( ) {
         }
     }
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "setupExtensionBoards, status: %d\n", rStat );
-    return ( rStat );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "invokeInitCallbacks" invokes the registered initialization callback for the node and the ports. The 
-// callback is invoked for the node and then for each port. Note that we do not know how many ports are
-// actually used by the firmware. So, we just assume all are used. No harm done. An init callback will return
-// a status code. If the init callback returned an error, the sequence is aborted and we return with an 
-// error. This will then ultimately result in the node start failing.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t invokeInitCallbacks( ) {
-
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "invokeInitCallbacks\n" );
-
-    uint8_t rStat = ALL_OK;
-
-    if ( callbackMap.initCallback != nullptr ) {
-
-        rStat = callbackMap.initCallback( buildNpId( nodeMap.nodeId, 0 ));
-
-        for ( uint8_t i = 0; i < nodeMap.portMapEntries; i++ ) {
-
-            rStat = callbackMap.initCallback( buildNpId( nodeMap.nodeId, i + 1 ));
-            if ( rStat != ALL_OK ) break;
-        } 
-    }
-
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "invokeInitCallbacks, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupExtensionBoards, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -692,7 +681,7 @@ uint8_t invokeInitCallbacks( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t powerFailHandler( ) {
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "powerFailHandler\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "powerFailHandler\n" );
     
     uint8_t rStat = ALL_OK;
 
@@ -701,7 +690,7 @@ uint8_t powerFailHandler( ) {
     
     if ( callbackMap.pfailCallback != nullptr ) callbackMap.pfailCallback( nodeMap.nodeId );
 
-    if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "invokeInitCallbacks, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "powerFailHandler, status: %d\n", rStat );
     return ( rStat );
 }
 
@@ -788,17 +777,18 @@ LcsConfig getConfigDefault( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
-    if ( lcsConfig -> options & NOPT_DEBUG_DURING_SETUP ) {
-
-        debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS | DBG_SETUP;
-        printf( "init LCS runtime\n") ;
-    }
-
     uint8_t rStat = ALL_OK;
 
     if ( rStat == ALL_OK )  rStat = initCdcLayer( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1 );
-        
+
+    if ( lcsConfig -> options & NOPT_DEBUG_DURING_SETUP ) {
+
+        //  debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS | DBG_SETUP;
+        debugMask = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS;
+        printf( "init LCS runtime\n") ;
+    }
+
     if ( rStat == ALL_OK )  rStat = initCanBus( cdcConfig );
     if ( rStat == ALL_OK )  rStat = initNvmChannels( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2 );
@@ -818,6 +808,9 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;
+
+    // ??? better handle of options ?   
+    nodeMap.nodeOptions = lcsConfig -> options;
 
     if ( rStat == ALL_OK )  {
         
@@ -849,11 +842,20 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 //------------------------------------------------------------------------------------------------------------
 void startRuntime( ) {
 
-     if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "Start LCS runtime\n") ;
+     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n") ;
 
     uint8_t rStat = ALL_OK;
 
-    rStat = invokeInitCallbacks( );
+    // ??? this simple write and read fails !!!!!!!! fix this first.... what a mess...
+
+   uint16_t testWord1 = 0xcc04;
+   rtNvmPutWord( 20, testWord1 );
+
+   uint16_t testWord2;
+   rtNvmGetBytes( 20, (uint8_t *) &testWord2, sizeof( testWord2));
+
+   printf( "word: %x, %x\n", testWord1, testWord2 );
+
 
     while ( true ) {
 

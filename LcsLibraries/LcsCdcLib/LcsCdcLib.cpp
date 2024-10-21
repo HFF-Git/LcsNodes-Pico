@@ -406,7 +406,6 @@ CDC::CdcPinConfig getConfigDefaultRP2040( ) {
 
     tmp.CFG_STATUS          = CDC::INIT_PENDING;
 
-
     // ??? controller family ?
     // ??? what other characteristics ? ( e.g. mem size ? )
 
@@ -571,18 +570,14 @@ void fatalError( uint8_t n ) {
 
     while ( true ) {
 
-        gpio_put( ledPin, true );
         sleep_ms( longPulse );
-        gpio_put( ledPin, false );
-        sleep_ms( shortPulse );
-
+       
         for ( int i = 0; i < n; i++ ) {
 
             gpio_put( ledPin, true );
             sleep_ms( shortPulse );
             gpio_put( ledPin, false );
             sleep_ms( shortPulse );
-
         }
     }
 }
@@ -1177,23 +1172,28 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
     else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
     else return ( I2C_PORT_ERR );
 
-    auto stat = i2c_read_blocking_until( i2c -> i2cHw,
+    auto ret = i2c_read_blocking_until( i2c -> i2cHw,
                                         i2cAdr,
                                         buf,
                                         len,
                                         stopBit,
                                         make_timeout_time_ms( i2c -> timeoutValMs ));
 
-    // ??? candidate for a debug level ?
-    // if ( stat == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
-    // if ( stat == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+    printf( "i2cRead: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+               sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
 
-    if (( stat == PICO_ERROR_GENERIC ) || ( stat == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
+    // ??? candidate for a debug level ?
+    if ( ret == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
+    if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+    if (( ret == PICO_ERROR_GENERIC ) || ( ret == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
     
     return ( NO_ERR );
 }
 
 uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
+
+    printf( "i2cWrite: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+             sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
 
     I2CInst *i2c = nullptr;
 
@@ -1202,17 +1202,15 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
     else return ( I2C_PORT_ERR );
 
     auto ret = i2c_write_blocking_until( i2c -> i2cHw,
-                                        i2cAdr,
-                                        buf,
-                                        len,
-                                        stopBit,
-                                        make_timeout_time_ms( i2c -> timeoutValMs ));
+                                         i2cAdr,
+                                         buf,
+                                         len,
+                                         stopBit,
+                                         make_timeout_time_ms( i2c -> timeoutValMs ));
 
     // ??? candidate for a debug level ?
     if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
     if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
-    if ( ret != len ) printf( "I2C write, PICO write len error, was: %d, is: %d\n", len, ret );
-
     if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
 
     return ( NO_ERR );

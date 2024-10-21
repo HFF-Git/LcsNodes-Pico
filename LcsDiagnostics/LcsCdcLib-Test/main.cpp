@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 // This source file contains the the RP2040 controller family hardware library code. The idea of this library
 // is to shield the actual hardware of processor and board implementation from the upper layers but still keep
-// the flexibilty and performance of the underlying hardware. 
+// the flexibility and performance of the underlying hardware. 
 //
 // This is a little test program for the individual functions of the CDC layer. It is a rather crude program
 // and you need to recompile it for each test of a portion of the library.
@@ -187,7 +187,7 @@ void testFatalErr( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Set the DIO pins to input, pullup and read the values. Use a litte cable to set the voltage on the
+// Set the DIO pins to input, pull-up and read the values. Use a little cable to set the voltage on the
 // extension connector.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -222,7 +222,7 @@ void testDioInput( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Set the DIO pins to ouput and periodically toggle the values. Use a an LED array and connect the pins of
+// Set the DIO pins to output and periodically toggle the values. Use a an LED array and connect the pins of
 // the extension connector to it. The toggle Led just indicates that the board is basically working.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -274,7 +274,7 @@ void testDioOutput( ) {
 
 //----------------------------------------------------------------------------------------------------------
 // Test the DIO pin pairs. Use a LED array and connect the pins of the extension connector to it. You
-// sould see a binary counting up. The toggle Led just indicates that the board is basically working.
+// should see a binary counting up. The toggle Led just indicates that the board is basically working.
 //
 //----------------------------------------------------------------------------------------------------------
 void testDioOutputPair( ) {
@@ -363,7 +363,7 @@ void testAdcBlockingRead( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Test the timer interrupt. The callback function is invokdd an we display the that the timer fired. The
+// Test the timer interrupt. The callback function is invoked an we display the that the timer fired. The
 // toggle Led just indicates that the board is basically working.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -401,7 +401,7 @@ void testSPI( ) {
 
 //----------------------------------------------------------------------------------------------------------
 // "testPWMFixed" tests the PWM functionality of the DIO pins 6 and 7. We will just configure the two ports,
-// set the frequency and three values to see of the duty cycle changes. Best to see on an Oszilloscope.
+// set the frequency and three values to see of the duty cycle changes. Best to see on an Oscilloscope.
 //
 //----------------------------------------------------------------------------------------------------------
 void testPWMFixed( ) {
@@ -431,7 +431,7 @@ void testPWMFixed( ) {
 
 //----------------------------------------------------------------------------------------------------------
 // "testPWMWithAnalogInput" will read in an analog value and use it as a dutyCycle for the PWM outputs. We
-// use a frequency of 100Hz, which is nicely to see on an Oszilloscope with a period length of 10ms. The
+// use a frequency of 100Hz, which is nicely to see on an Oscilloscope with a period length of 10ms. The
 // analog input is a bit noisy, so we ignore anything very small values.
 //
 //----------------------------------------------------------------------------------------------------------

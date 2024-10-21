@@ -49,10 +49,13 @@ LCS::LcsConfig      lcsConfig;
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-    lcsConfig.options = LCS::NOPT_DEBUG_DURING_SETUP;
+    uint8_t rStat;
 
     cdcConfig = CDC::getConfigDefault( );
 
+    cdcConfig.READY_LED_PIN         = 14;
+    cdcConfig.ACTIVE_LED_PIN        = 15;
+    
     cdcConfig.ADC_PIN_0             = 26;
     cdcConfig.ADC_PIN_1             = 27;
 
@@ -65,10 +68,33 @@ uint8_t initLcsRuntime( ) {
     cdcConfig.DIO_PIN_6             = 19;
     cdcConfig.DIO_PIN_7             = 18;
 
-    printf( "Init LCS runtime, configuration: \n" );
-    CDC::printConfigInfo( &cdcConfig );
+    cdcConfig.NVM_I2C_SCL_PIN       = 3;
+    cdcConfig.NVM_I2C_SDA_PIN       = 2;
+    cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
 
-    return( LCS::initRuntime( &lcsConfig, &cdcConfig ));
+    cdcConfig.EXT_I2C_SCL_PIN       = 17;
+    cdcConfig.EXT_I2C_SDA_PIN       = 16;
+    cdcConfig.EXT_I2C_ADR_ROOT      = 0x50;
+
+    cdcConfig.CAN_BUS_RX_PIN        = 0;
+    cdcConfig.CAN_BUS_TX_PIN        = 1;
+    cdcConfig.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
+    cdcConfig.CAN_BUS_DEF_ID        = 100;
+
+    cdcConfig.NODE_NVM_SIZE         = 8192;
+    cdcConfig.EXT_NVM_SIZE          = 4096;
+
+    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG | NOPT_DEBUG_DURING_SETUP;
+
+    rStat = LCS::initRuntime( &lcsConfig, &cdcConfig );
+
+    if ( rStat == ALL_OK ) {
+
+        printf( "Init LCS runtime, configuration: \n" );
+        CDC::printConfigInfo( &cdcConfig );
+    }
+
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -91,7 +117,7 @@ uint8_t lcsCmdCallback( char *cmdLine ) {
 
 uint8_t lcsTaskCallback( ) {
 
-    printf( "Task Callback...\n" );
+    // printf( "Task Callback...\n" );
     return( ALL_OK );    
 }
 
@@ -183,8 +209,8 @@ int main( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
     if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
     if ( rStat == ALL_OK ) startLcsRuntime( );
     return( ALL_OK );
 }

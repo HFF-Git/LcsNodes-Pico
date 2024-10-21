@@ -44,7 +44,6 @@ namespace LCS {
     extern LCS::LcsPendingReqMap    pendingReqMap;
     extern LCS::LcsDrvMap           drvMap;
     extern LCS::LcsMsgBusCAN        *msgBus;
-
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -74,11 +73,11 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
 
     while ( index < limit ) {
 
-        printf( "0x%4x: ", index * sizeof( uint16_t ));
+        printf( "0x%04x: ", index * sizeof( uint16_t ));
 
         for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-            if ( index + i < limit ) printf( "0x%4x ", ptr[ index + i ] );
+            if ( index + i < limit ) printf( "0x%04x ", ptr[ index + i ] );
         }
 
         index += itemsPerLine;
@@ -98,7 +97,7 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
     while ( start < limit ) {
 
-        printf( "0x%8x: ", start );
+        printf( "0x%08x: ", start );
 
         for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
@@ -107,7 +106,7 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
             if ( ofs < limit ) {
 
                 rtNvmGetWord( ofs, &val );
-                printf( "0x%4x ", val );
+                printf( "0x%04x ", val );
             }
         }
 
@@ -128,7 +127,7 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 
     while ( start < limit ) {
 
-        printf( "0x%8x: ", start );
+        printf( "0x%08x: ", start );
 
         for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
@@ -137,7 +136,7 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
             if ( ofs < limit ) {
 
                 extNvmGetWord( boardId, ofs, &val );
-                printf( "0x%4x ", val );
+                printf( "0x%04x ", val );
             }
         }
 
@@ -153,35 +152,35 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 //------------------------------------------------------------------------------------------------------------
 void dumpNodeMap( ) {
 
-    printf( "MEM Node Map: " );
+    printf( "MEM Node Map: \n" );
     dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ));
     printf( "\n" );
 }
 
 void dumpPortMap( ) {
 
-    printf( "MEM Port Map (Size: %d, Hwm: %d\n):", nodeMap.portMapEntries, nodeMap.portMapHwm );
+    printf( "MEM Port Map (Size: %d, Hwm: %d): \n", nodeMap.portMapEntries, nodeMap.portMapHwm );
     dumpMemData((uint16_t *) &portMap.map, sizeof( LcsPortMap ));
     printf( "\n" );
 }
 
 void dumpNodeData( ) {
 
-    printf( "MEM Node Data:" );
+    printf( "MEM Node Data: \n" );
     dumpMemData((uint16_t *) &nodeData.map, sizeof( LcsNodeData ));
     printf( "\n" );
 }
 
 void dumpEventMap( ) {
 
-    printf( "MEM Event Map (Size: %d, Hwm: %d\n):", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
     dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
 void dumpPendingReqMap( ) {
 
-    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d)\n ", pendingReqMap.size, pendingReqMap.hwm );
+    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n", pendingReqMap.size, pendingReqMap.hwm );
     dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
     printf( "\n" );
 }
@@ -195,14 +194,14 @@ void dumpCallbackMap( ) {
 
 void dumpTaskMap( ) {
 
-    printf( "Task Map: (Size: %d, Hwm: %d )\n ", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
+    printf( "Task Map: (Size: %d, Hwm: %d) \n", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
     dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
     printf( "\n" );
 }
 
 void dumpDrvMap( ) {
 
-    printf( "Driver Map: (Size: %d) \n ", drvMap.size );
+    printf( "Driver Map: (Size: %d) \n", drvMap.size );
     dumpMemData((uint16_t *) &drvMap, sizeof( LcsDrvMap ));
     printf( "\n" );
 }
@@ -221,7 +220,7 @@ void printSummary( ) {
 
 void dumpMemArea( ) {
 
-    printf( "MEM Area Dump:\n" );
+    printf( "MEM Area Dump: \n" );
     dumpNodeMap( );
     dumpPortMap( );
     dumpEventMap( );
@@ -234,21 +233,21 @@ void dumpMemArea( ) {
 
 void dumpNvmRuntimeArea( ) {
 
-    printf( "NVM Runtime Area Dump:\n" );
+    printf( "NVM Runtime Area Dump: \n" );
     dumpNvmData( 0, NVM_RUNTIME_AREA_SIZE );
     printf( "\n" );
 }
 
 void dumpNvmDrvData( uint16_t boardId  ) {
 
-    printf( "NVM Driver Data:\n" );
+    printf( "NVM Driver Data: \n" );
     dumpExtNvmData( boardId, 0, extNvmGetSize( ));
     printf( "\n" );
 }
 
 void dumpNvmUserArea( ) {
 
-    printf( "NVM Area Dump:\n" );
+    printf( "NVM Area Dump: \n" );
     dumpNvmData( NVM_USER_MAP_START, usrNvmGetSize( ));
     printf( "\n" );
 }
@@ -825,13 +824,15 @@ uint8_t handleSerialCommand( ) {
 
     char c;
 
-    while ( c = CDC::getConsoleChar( ) > 0 ) {
+    while (( c = CDC::getConsoleChar( )) > 0 ) {
 
         switch( c ) {
 
             case '<': commandBuf[ 0 ] = 0; break;
 
             case '>': {
+
+                printf( "\n" );
 
                 if ( commandBuf[ 0 ] == '!' ) {
 

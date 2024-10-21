@@ -196,7 +196,7 @@ void canBusCore( ) {
 
     if ( debugMask & ( LCS::DBG_CONFIG | LCS::DBG_CAN_BUS )) {
 
-        printf( "CAN Bus Initialized, runs on Core: %D", get_core_num( ));
+        printf( "CAN Bus Initialized, runs on Core: %d\n", get_core_num( ));
     }
 
     if ( cfg.mcRunOnCore1 ) {

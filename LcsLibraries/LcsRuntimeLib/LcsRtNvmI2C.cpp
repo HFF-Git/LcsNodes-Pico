@@ -128,17 +128,21 @@ uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to test whether the chip is read for the next operation. The test consist of 
-// writing to the chip and see if this works.
+// writing to the chip and see if this works. There is the case that it just takes a little time or there
+// is just no chip at that address. We will use a retry count so we will not try forever.
 //
 //------------------------------------------------------------------------------------------------------------
-bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
+bool chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
 
     uint8_t ret = 1;
     uint8_t tmp = 0;
 
     while ( ret != ALL_OK ) {
 
-        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
+        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, true );
+        
+        retryCnt --;
+        if ( retryCnt == 0 ) break;
     }
 
     return ( true );
@@ -177,24 +181,25 @@ uint16_t nvmSizeInBlocks( uint32_t nvmSize ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-uint8_t rStat = ALL_OK;
+    uint8_t rStat = ALL_OK;
 
-if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
-    printf( "nvmGetBytesFromPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, len: %d\n", sclPin, i2cAdr, ofs, len );
-}
+        printf( "nvmGetBytesFromPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", 
+                sclPin, i2cAdr, ofs, buf, len );
+    }
 
-uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
 
-if ( nvmSize == M24C04_MAX_SIZE ) {
+    if ( nvmSize == M24C04_MAX_SIZE ) {
 
         uint8_t tmpAdr  = i2cAdr | (( ofs >> 8 ) & 0x01 );
         uint8_t tmpData = ofs & 0xFF;
 
         if ( chipReady( sclPin, tmpAdr )) {
 
-            CDC::i2cWrite( nvmSclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
-            CDC::i2cRead( nvmSclPin, tmpAdr, buf, len );
+            CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
+            CDC::i2cRead( sclPin, tmpAdr, buf, len );
         }
     }
     else {
@@ -202,16 +207,16 @@ if ( nvmSize == M24C04_MAX_SIZE ) {
         if ( chipReady( sclPin, i2cAdr )) {
 
             uint8_t tmp = ( ofs  >> 8 ) & 0xFF;
-            CDC::i2cWrite( nvmSclPin, i2cAdr, &tmp, 1 );
+            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
 
             tmp = ofs & 0xFF;
-            CDC::i2cWrite( nvmSclPin, i2cAdr, &tmp, 1 );
+            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
 
-            CDC::i2cRead( nvmSclPin, i2cAdr, buf, len );
+            CDC::i2cRead( sclPin, i2cAdr, buf, len, true );
         }
     }
 
-    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+   if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
         printf( "nvmGetBytesFromPage: %d\n", rStat );
     }
@@ -228,22 +233,23 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 
     uint8_t rStat = ALL_OK;
 
-    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytesInPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, len: %d\n", sclPin, i2cAdr, ofs, len );
+        printf( "nvmPutBytesInPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
+        sclPin, i2cAdr, ofs, buf, len );
     }
 
     uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
 
     if ( nvmSize == M24C04_MAX_SIZE ) {
 
-            uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
-            uint8_t tmpOfs = ( ofs ) & 0xFF;
+        uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
+        uint8_t tmpOfs = ( ofs ) & 0xFF;
 
-            if ( chipReady( sclPin, tmpAdr )) {
+        if ( chipReady( sclPin, tmpAdr )) {
 
-            CDC::i2cWrite( nvmSclPin, tmpAdr, &tmpOfs, 1 );
-            CDC::i2cWrite( nvmSclPin, tmpAdr, buf, len );
+            CDC::i2cWrite( sclPin, tmpAdr, &tmpOfs, 1, true );
+            CDC::i2cWrite( sclPin, tmpAdr, buf, len );
         }
     }
     else {
@@ -251,13 +257,18 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
         if ( chipReady( sclPin, i2cAdr )) {
 
             uint8_t tmp = (( ofs >> 8 ) & 0xFF );
-            CDC::i2cWrite( nvmSclPin, i2cAdr, &tmp, 1 );
+            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
 
             tmp = ofs & 0xFF;
-            CDC::i2cWrite( nvmSclPin, i2cAdr, &tmp, 1 );
+            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
 
-            CDC::i2cWrite( nvmSclPin, i2cAdr, buf, len );
+            CDC::i2cWrite( sclPin, i2cAdr, buf, len, false );
         }
+    }
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
+
+        printf( "nvmPutBytesInPage: ret: %d\n", rStat );
     }
 
     return ( rStat );
@@ -271,9 +282,10 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
-        printf( "nvmGetBytes: ofs: 0x%x, bufAdr: %ptr, len: %d\n", ofs, (uint32_t) buf, len );
+        printf( "nvmGetBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
+                sclPin, i2cAdr, ofs, (uint32_t) buf, len );
     }
 
     uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
@@ -300,9 +312,9 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if ( debugMask & ( DBG_CONFIG | DBG_NVM_ACCESS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytes: ofs: 0x%x, bufAdr: %ptr, len: %d, uMap: %d\n", ofs, buf, len );
+        printf( "nvmPutBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", sclPin, i2cAdr, ofs, buf, len );
      }
 
     uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
@@ -410,7 +422,7 @@ uint8_t extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t le
 uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
-    return( nvmPutBytes( extSclPin, i2cAdr, ofs, buf, len ));
+    return( nvmGetBytes( extSclPin, i2cAdr, ofs, buf, len ));
 }
 
 uint32_t extNvmGetSize( ) {

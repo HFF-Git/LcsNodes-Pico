@@ -218,7 +218,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     // Initialization commands for a 128x64 SH1106 oled display. This section is based on 
     // https://github.com/stanleyhuangyc/MultiLCD. The SH1106 is a 132x64 controller. We use the middle 128
-    // colmuns.
+    // columns.
     // 
     //--------------------------------------------------------------------------------------------------------
     const uint8_t SH1106_128x64init[] = {
