@@ -53,6 +53,8 @@
 
 #include "LcsCdcLib.h"
 
+
+
 //------------------------------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
@@ -63,6 +65,13 @@
 namespace {
 
 using namespace CDC;
+
+//------------------------------------------------------------------------------------------------------------
+// "CDC_DEBUG" is the local define for printing debug information. In contrast to the rest of the debugging
+// and tracing of LCS libraries and programs, this library will have to be recompiled to enable debugging.
+//
+//------------------------------------------------------------------------------------------------------------
+#define CDC_DEBUG 0
 
 //------------------------------------------------------------------------------------------------------------  
 // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
@@ -1084,12 +1093,11 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
     pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
 
-    // phase out, CDC should have no debug option... this is the only place...
-    if ( debugLevel > 0 ) {
-    
-        printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
+    #if CDC_DEBUG == 1
+   
+    printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
                 pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
-    }
+    #endif
 
     return ( NO_ERR );
 }
@@ -1179,12 +1187,13 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
                                         stopBit,
                                         make_timeout_time_ms( i2c -> timeoutValMs ));
 
+    #if CDC_DEBUG == 1
     printf( "i2cRead: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
                sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
-
-    // ??? candidate for a debug level ?
     if ( ret == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
     if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+    #endif
+
     if (( ret == PICO_ERROR_GENERIC ) || ( ret == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
     
     return ( NO_ERR );
@@ -1192,8 +1201,11 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
 
 uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
+     #if CDC_DEBUG == 1
     printf( "i2cWrite: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
              sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+    #endif
+
 
     I2CInst *i2c = nullptr;
 
@@ -1208,9 +1220,11 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
                                          stopBit,
                                          make_timeout_time_ms( i2c -> timeoutValMs ));
 
-    // ??? candidate for a debug level ?
+    #if CDC_DEBUG == 1
     if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
     if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
+    #endif
+    
     if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
 
     return ( NO_ERR );

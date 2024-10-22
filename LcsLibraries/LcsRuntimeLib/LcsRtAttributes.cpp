@@ -171,7 +171,7 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_ATTRIBUTES )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
 
         printf( "nodeGet: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
@@ -380,7 +380,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_ATTRIBUTES )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
 
         printf( "nodePut: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
     }
@@ -495,7 +495,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_ATTRIBUTES )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
 
         printf( "nodeReq: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );

@@ -139,7 +139,7 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
 
     while ( ret != ALL_OK ) {
 
-        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, true );
+        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
         
         retryCnt --;
         if ( retryCnt == 0 ) break;
@@ -176,7 +176,9 @@ uint16_t nvmSizeInBlocks( uint32_t nvmSize ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. Although a read can 
-// cross a page boundary, we follow the same principle as we do for writes.
+// cross a page boundary, we follow the same principle as we do for writes when it comes to page boundaries.
+// The read is send ing the address with retaining the bus. The PICO library will then use the restart
+// condition. Just like we did in the write buffer counterpart, we need to send the address as one buffer.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
@@ -204,15 +206,15 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
     }
     else {
 
+        uint8_t adr[ 2 ];
+
+        adr[ 0 ] =  ( ofs  >> 8 ) & 0xFF;
+        adr[ 1 ] =  ofs & 0xFF;
+
         if ( chipReady( sclPin, i2cAdr )) {
 
-            uint8_t tmp = ( ofs  >> 8 ) & 0xFF;
-            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
-
-            tmp = ofs & 0xFF;
-            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
-
-            CDC::i2cRead( sclPin, i2cAdr, buf, len, true );
+            CDC::i2cWrite( sclPin, i2cAdr, adr, 2, true );
+            CDC::i2cRead( sclPin, i2cAdr, buf, len );
         }
     }
 
@@ -226,12 +228,16 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
 
 //------------------------------------------------------------------------------------------------------------
 // "nvmPutBytesInPage" transmits a set of data bytes only within the page boundary. In general, a write 
-// cannot cross a chip internal page boundary.
+// cannot cross a chip internal page boundary. The Chip expects a write to be one sequence with the address
+// bytes first followed by the data bytes with no stop or restart condition in between. This costed my
+// quite some debugging to figure this out. We will have a local buffer where we combine the address and
+// data and then send it.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
+    uint8_t dataBuf[ BUFFER_BLOCK_SIZE + 2 ];
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
@@ -254,16 +260,12 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
     }
     else {
 
-        if ( chipReady( sclPin, i2cAdr )) {
+        dataBuf[ 0 ]    = ( ofs  >> 8 ) & 0xFF;
+        dataBuf[ 1 ]    = ofs & 0xFF;
 
-            uint8_t tmp = (( ofs >> 8 ) & 0xFF );
-            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
+        for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-            tmp = ofs & 0xFF;
-            CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
-
-            CDC::i2cWrite( sclPin, i2cAdr, buf, len, false );
-        }
+        if ( chipReady( sclPin, i2cAdr )) CDC::i2cWrite( sclPin, i2cAdr, dataBuf, len + 2 );
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
@@ -333,6 +335,30 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
     return ( nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
 }
 
+//------------------------------------------------------------------------------------------------------------
+// "nvmClearArea" wipes out an area of the NVM chip.
+//
+// ??? a byte write is rather slow. Think about how to improve...
+//------------------------------------------------------------------------------------------------------------
+uint32_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len, uint8_t val ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
+
+        printf( "nvmClearArea: scl: %d, i2c: 0x%x, ofs: 0x%x, len: %d, val: %d\n", sclPin, i2cAdr, ofs, len, val );
+        printf( "Be patient ... :-)\n" );
+     }
+
+    uint32_t limit = ofs + len;
+
+    while ( ofs < limit ) {
+
+        nvmPutBytes( sclPin, i2cAdr, ofs, (uint8_t *) &val, sizeof( val ));
+        ofs += sizeof( val );
+    }
+
+    return( ALL_OK );
+}
+
 }; // namespace
 
 
@@ -388,6 +414,11 @@ uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
     return( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
+uint8_t rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val ) {
+
+    return( nvmClearArea( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, len, val ));
+}
+
 uint32_t rtNvmGetSize( ) { 
 
     return( NVM_RUNTIME_MAP_SIZE );
@@ -423,6 +454,12 @@ uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t le
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
     return( nvmGetBytes( extSclPin, i2cAdr, ofs, buf, len ));
+}
+
+uint8_t extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val ) {
+
+    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
+    return( nvmClearArea( extSclPin, i2cAdr, ofs, len, val ));
 }
 
 uint32_t extNvmGetSize( ) {

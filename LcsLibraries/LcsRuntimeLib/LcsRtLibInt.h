@@ -513,44 +513,46 @@ struct LcsDrvMap {
 //
 // ??? keep this list short... maybe keep local to each file....
 //----------------------------------------------------------------------------------------------------------
-uint8_t       configNvm( CDC::CdcPinConfig *ci );
+uint8_t     configNvm( CDC::CdcPinConfig *ci );
 
-uint8_t       rtNvmPutWord( uint32_t ofs, uint16_t word );
-uint8_t       rtNvmGetWord( uint32_t ofs, uint16_t *word );
-uint8_t       rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t       rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint32_t      rtNvmGetSize( );
+uint8_t     rtNvmPutWord( uint32_t ofs, uint16_t word );
+uint8_t     rtNvmGetWord( uint32_t ofs, uint16_t *word );
+uint8_t     rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val = 0 );  
+uint32_t    rtNvmGetSize( );
 
-uint8_t       extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word );
-uint8_t       extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
-uint8_t       extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t       extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
-uint32_t      extNvmGetSize( );
+uint8_t     extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word );
+uint8_t     extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
+uint8_t     extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     extNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val = 0 ); 
+uint32_t    extNvmGetSize( );
 
-uint8_t       resetNode( uint16_t npId );
+uint8_t     resetNode( uint16_t npId );
 
-uint8_t       syncEventMap( );
-uint8_t       addEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );
-uint8_t       removeEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );
-int           searchEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );
-uint8_t       getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId );
+uint8_t     syncEventMap( );
+uint8_t     addEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );
+uint8_t     removeEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );
+int         searchEvent( uint16_t eventId, uint16_t portId = NIL_PORT_ID );
+uint8_t     getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId );
 
-void          handleMsgLcsMgt( uint8_t *msg );
-void          handleMsgEvent( uint8_t *msg );
+void        handleMsgLcsMgt( uint8_t *msg );
+void        handleMsgEvent( uint8_t *msg );
 
-uint8_t       setupSerialCommand( );
-uint8_t       handleSerialCommand( );
+uint8_t     setupSerialCommand( );
+uint8_t     handleSerialCommand( );
 
-void          handleNodeStateInit( );
-void          handleNodeStateFail( );
-void          handleNodeStateRegister( );
-void          handleNodeStateCollision( );
-void          handleNodeStateHalted( );
-void          handleNodeStateConfig( );
-void          handleNodeStateOperations( );
+void        handleNodeStateInit( );
+void        handleNodeStateFail( );
+void        handleNodeStateRegister( );
+void        handleNodeStateCollision( );
+void        handleNodeStateHalted( );
+void        handleNodeStateConfig( );
+void        handleNodeStateOperations( );
 
-void          handlePeriodicTasks( );
-void          handleNodePortEvents( );
+void        handlePeriodicTasks( );
+void        handleNodePortEvents( );
 
 } // namespace LCS
 

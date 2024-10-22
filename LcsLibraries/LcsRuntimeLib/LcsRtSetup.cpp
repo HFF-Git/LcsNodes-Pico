@@ -119,63 +119,18 @@ uint16_t portId( uint16_t npId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "buildDefaultNodeMap" build a nodeMap with default values. It is used for initializing the memory runtime
-// node map with default values as all as data for formatting a new or corrupted runtime NVM.
+// "buildDefaultNodeMap" build a nodeMap with the default values from the declaration structure. The default
+// nodeMap is used for initializing the memory runtime node map for formatting a new or corrupted runtime NVM.
 //
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
-    // ??? try this version later... it relies on that we initialize a variable with the default values as 
-    // declared in the include file.
-    #if 0
     LcsNodeMap tmp;
 
     memcpy( tmp.name, nodeDefName, strlen( nodeDefName ));
     tmp.nodeUID = CDC::createUid( );
 
     *nMap = tmp;
-    #endif 
-
-    nMap -> magicWord1              = NVM_MWORD_1;
-    nMap -> boardType               = BT_NIL;
-    nMap -> boardVersion            = 0;
-    nMap -> controllerFamily        = CF_FAM_RPICO;
-    nMap -> nvmChipFamily           = CF_FAM_MICROCHIP;
-    nMap -> reserved1               = 0;
-    nMap -> reserved2               = 0;
-    nMap -> magicWord2              = NVM_MWORD_2;
-
-    nMap -> nodeState               = NS_NIL;
-    nMap -> nodeOptions             = 0;
-    nMap -> nodeFlags               = 0;
-    nMap -> nodeId                  = NIL_NODE_ID;
-    nMap -> nodeUID                 = CDC::createUid( );
-    nMap -> nodeType                = NIL_NODE_TYPE;   
-    nMap -> nodeSwVersion           = 0;
-    nMap -> nodeSwPatchLevel        = 0;
-    nMap -> nodeRestartCnt          = 0;
-    nMap -> nodeSystemTime          = 0;
-    nMap -> nodeMapSize             = sizeof( LcsNodeMap );  
-    memcpy( &nMap -> name, nodeDefName, strlen( nodeDefName ));
-
-    nMap -> nodeMapNvmOfs           = NVM_NODE_MAP_START;
-    nMap -> portMapNvmOfs           = NVM_PORT_MAP_START;
-    nMap -> nodeDataOfs             = NVM_NODE_DATA_START;
-    nMap -> eventMapNvmOfs          = NVM_EVENT_MAP_START;
-    nMap -> userMapNvmOfs           = NVM_USER_MAP_START;
-    nMap -> nvmMemSize              = NVM_RUNTIME_AREA_SIZE;
-
-    nMap -> portMapEntries          = MAX_PORT_MAP_ENTRIES;
-    nMap -> portMapHwm              = 0;
-
-    nMap -> eventMapEntries         = MAX_EVENT_MAP_ENTRIES;
-    nMap -> eventMapHwm             = 0;
-
-    nMap -> drvMapEntries           = MAX_EXT_BOARD_MAP_ENTRIES;
-    nMap -> drvMapHwm               = 0;
-
-    nMap -> taskMapEntries          = MAX_TASK_MAP_ENTRIES;
-    nMap -> taskMapHwm              = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -185,19 +140,7 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultPortMap( LcsPortMap *pMap ) {
 
-    uint8_t         rStat; 
-    LcsPortMapEntry pEntry;  // ??? would pEntry not already have all the default values ?
-
-    pEntry.options                         = 0;
-    pEntry.flags                           = 0;
-    pEntry.type                            = 0;
-
-    pEntry.eventNodeId                     = NIL_NODE_ID;
-    pEntry.eventId                         = NIL_EVENT_ID;
-    pEntry.eventValue                      = 0;
-    pEntry.eventAction                     = PEA_EVENT_IDLE;
-    pEntry.eventDelayTime                  = 0;
-    pEntry.eventTimeStamp                  = 0L;
+    LcsPortMapEntry pEntry;
 
     for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -212,13 +155,8 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultEventMap( LcsEventMap *eMap ) {
 
-    // ??? default values in event map entry ?
-
-    for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
-
-        eMap -> map[ i ].eventId = NIL_EVENT_ID;
-        eMap -> map[ i ].portId  = NIL_PORT_ID;
-    }
+    LcsEventMapEntry e;
+    for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) eMap -> map[ i ] = e;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -234,13 +172,14 @@ void buildDefaultNodeData( LcsNodeData *nData ) {
 //------------------------------------------------------------------------------------------------------------
 // "buildNvmRuntimeStructures" initializes a new or corrupt runtime NVM with default data.
 //
-// ??? try to declare local variables of our structs that we want to write to the NVM. C++ functionality ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructures( ) {
 
     uint8_t rStat;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures\n" );
+
+    rtNvmClearArea( NVM_NODE_MAP_START, NVM_RUNTIME_AREA_SIZE );
 
     buildDefaultNodeMap( &nodeMap );
     buildDefaultPortMap( &portMap );
@@ -252,7 +191,9 @@ uint8_t buildNvmRuntimeStructures( ) {
     if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
     if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
+
     return( ALL_OK );
 }
 
@@ -318,6 +259,8 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 
+    cdcMap.cfg = *ci;
+
     CDC::init( ci );
 
     if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
@@ -330,9 +273,10 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
     for ( int i = 0; i < 10; i++ ) {
 
         if ( CDC::isConsoleConnected( )) break;
-
         CDC::sleepMillis( 1000 );
     }
+
+    // ??? check what exactly "console connected means. Just the cable plugged in ?""
 
     if ( CDC::isConsoleConnected( )) {
 
@@ -426,7 +370,14 @@ uint8_t setupNodeMap( ) {
     uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );
 
-    printf( "got: %0x, %0x, %d\n", nodeMap.magicWord1, nodeMap.magicWord2,nodeMap.nodeMapSize );
+     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+        uint16_t *ptr = (uint16_t *) &nodeMap;
+
+        printf( "NodeMap Head: " );
+        for ( int i = 0; i < 8; i++ ) printf( "0x%x ", ptr[ i ] );
+        printf( "\n" );
+     }
 
     if (( nodeMap.magicWord1 != NVM_MWORD_1 ) || 
         ( nodeMap.magicWord2 != NVM_MWORD_2 ) || 
@@ -484,8 +435,10 @@ uint8_t setupEventMap( ) {
     }
     else {
 
-        nodeMap.eventMapHwm = 0;
+        LcsEventMapEntry e;
+        for ( uint16_t i = 0; i < nodeMap.eventMapEntries; i++ ) eventMap.map[ i ] = e;
 
+        nodeMap.eventMapHwm = 0;
         for ( uint16_t i = 0; i < nodeMap.eventMapEntries; i++ ) {
 
             LcsEventMapEntry eventEntry;
@@ -784,8 +737,9 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
     if ( lcsConfig -> options & NOPT_DEBUG_DURING_SETUP ) {
 
+        // ??? we need to be able to pass it from the program ?
         //  debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS | DBG_SETUP;
-        debugMask = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS;
+        debugMask = DBG_CONFIG | DBG_SETUP;
         printf( "init LCS runtime\n") ;
     }
 
@@ -845,17 +799,6 @@ void startRuntime( ) {
      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n") ;
 
     uint8_t rStat = ALL_OK;
-
-    // ??? this simple write and read fails !!!!!!!! fix this first.... what a mess...
-
-   uint16_t testWord1 = 0xcc04;
-   rtNvmPutWord( 20, testWord1 );
-
-   uint16_t testWord2;
-   rtNvmGetBytes( 20, (uint8_t *) &testWord2, sizeof( testWord2));
-
-   printf( "word: %x, %x\n", testWord1, testWord2 );
-
 
     while ( true ) {
 

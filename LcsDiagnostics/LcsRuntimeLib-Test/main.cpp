@@ -90,7 +90,7 @@ uint8_t initLcsRuntime( ) {
 
     if ( rStat == ALL_OK ) {
 
-        printf( "Init LCS runtime, configuration: \n" );
+        printf( "Init runtime, configuration: \n" );
         CDC::printConfigInfo( &cdcConfig );
     }
 
@@ -197,7 +197,7 @@ uint8_t registerLcsCallbacks( ) {
 //----------------------------------------------------------------------------------------------------------
 void startLcsRuntime( ) {
 
-    printf( "Start LCS runtime\n" );
+    printf( "Start runtime\n" );
     startRuntime( );
 }
 

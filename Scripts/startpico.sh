@@ -47,7 +47,9 @@ extract_usb_address_chars() {
 }
 
 # Function to build a device file, based on the address. We concatenate the prefix with the function
-# parameter and append a "1", which seems to be the first stdio port for the pico.
+# parameter and append a "1", which seems to be the first stdio port for the pico. The terminal 
+# application used is the "minicom" application. It does a fine job, does not get confused when
+# when the PICO is resetted and we can scroll. Life is good.
 #
 build_dev_file_name() {
 
@@ -75,8 +77,7 @@ if [[ -n "$port_number" ]]; then
     done
 
     echo "Start Terminal for Device File Name: $(build_dev_file_name "$1" )"
-    screen $(build_dev_file_name "$1" ) 115200
-   
+    minicom -D $(build_dev_file_name "$1" ) -b 115200
 else
     echo "PICO not found"
 fi
