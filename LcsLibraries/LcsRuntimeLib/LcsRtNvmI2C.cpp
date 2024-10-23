@@ -132,7 +132,7 @@ uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 // is just no chip at that address. We will use a retry count so we will not try forever.
 //
 //------------------------------------------------------------------------------------------------------------
-bool chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
+uint8_t chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
 
     uint8_t ret = 1;
     uint8_t tmp = 0;
@@ -145,7 +145,7 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
         if ( retryCnt == 0 ) break;
     }
 
-    return ( true );
+    return ( ret );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -198,11 +198,9 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
         uint8_t tmpAdr  = i2cAdr | (( ofs >> 8 ) & 0x01 );
         uint8_t tmpData = ofs & 0xFF;
 
-        if ( chipReady( sclPin, tmpAdr )) {
-
-            CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
-            CDC::i2cRead( sclPin, tmpAdr, buf, len );
-        }
+        rStat = chipReady( sclPin, i2cAdr );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, tmpAdr, buf, len );
     }
     else {
 
@@ -211,11 +209,9 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
         adr[ 0 ] =  ( ofs  >> 8 ) & 0xFF;
         adr[ 1 ] =  ofs & 0xFF;
 
-        if ( chipReady( sclPin, i2cAdr )) {
-
-            CDC::i2cWrite( sclPin, i2cAdr, adr, 2, true );
-            CDC::i2cRead( sclPin, i2cAdr, buf, len );
-        }
+        rStat = chipReady( sclPin, i2cAdr );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, i2cAdr, adr, 2, true );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, buf, len );
     }
 
    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
@@ -252,11 +248,9 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
         uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
         uint8_t tmpOfs = ( ofs ) & 0xFF;
 
-        if ( chipReady( sclPin, tmpAdr )) {
-
-            CDC::i2cWrite( sclPin, tmpAdr, &tmpOfs, 1, true );
-            CDC::i2cWrite( sclPin, tmpAdr, buf, len );
-        }
+        rStat = chipReady( sclPin, tmpAdr );
+        if ( rStat == ALL_OK ) CDC::i2cWrite( sclPin, tmpAdr, &tmpOfs, 1, true );
+        if ( rStat == ALL_OK ) CDC::i2cWrite( sclPin, tmpAdr, buf, len );
     }
     else {
 
@@ -265,7 +259,8 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-        if ( chipReady( sclPin, i2cAdr )) CDC::i2cWrite( sclPin, i2cAdr, dataBuf, len + 2 );
+        rStat = chipReady( sclPin, i2cAdr );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, i2cAdr, dataBuf, len + 2 );
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
@@ -284,6 +279,8 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
+    uint8_t rStat = ALL_OK;
+
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
         printf( "nvmGetBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
@@ -291,19 +288,25 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
     }
 
     uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
-    if ( ofs + len >= nvmSize - 1 ) return ( ERR_NVM_SIZE_EXCEEDED );
+    if ( ofs + len > nvmSize ) return ( ERR_NVM_SIZE_EXCEEDED );
 
     uint32_t  bytesLeft     = len;
     uint32_t  pageBytesLeft = BUFFER_BLOCK_SIZE - ofs % BUFFER_BLOCK_SIZE;
 
     while ( bytesLeft > pageBytesLeft ) {
 
-        nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        rStat = nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        if ( rStat != ALL_OK ) break;
+
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
     }
 
-    return ( nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
+    if ( rStat == ALL_OK ) {
+
+        return ( nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
+    }
+    else return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -314,49 +317,70 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
+    uint8_t rStat = ALL_OK;
+
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
         printf( "nvmPutBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", sclPin, i2cAdr, ofs, buf, len );
      }
 
     uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
-    if ( ofs + len >= nvmSize - 1 ) return ( ERR_NVM_SIZE_EXCEEDED );
+    if ( ofs + len > nvmSize ) return ( ERR_NVM_SIZE_EXCEEDED );
 
     uint32_t  bytesLeft     = len;
     uint32_t  pageBytesLeft = BUFFER_BLOCK_SIZE - ofs % BUFFER_BLOCK_SIZE;
 
     while ( bytesLeft > pageBytesLeft ) {
 
-        nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        rStat = nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        if ( rStat != ALL_OK ) break;
+
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
     }
 
-    return ( nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
+    if ( rStat == ALL_OK ) {
+
+        return ( nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
+    }
+    else return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "nvmClearArea" wipes out an area of the NVM chip.
+// "nvmClearArea" wipes out an area of the NVM chip. To speed up the writing, we fill a local buffer with 
+// the value and then write blocks at a time.
 //
-// ??? a byte write is rather slow. Think about how to improve...
 //------------------------------------------------------------------------------------------------------------
-uint32_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len, uint8_t val ) {
+uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len, uint8_t val ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
 
         printf( "nvmClearArea: scl: %d, i2c: 0x%x, ofs: 0x%x, len: %d, val: %d\n", sclPin, i2cAdr, ofs, len, val );
-        printf( "Be patient ... :-)\n" );
-     }
-
-    uint32_t limit = ofs + len;
-
-    while ( ofs < limit ) {
-
-        nvmPutBytes( sclPin, i2cAdr, ofs, (uint8_t *) &val, sizeof( val ));
-        ofs += sizeof( val );
     }
 
-    return( ALL_OK );
+    uint8_t     tmpBuf[ BUFFER_BLOCK_SIZE ];
+    uint8_t     rStat   = ALL_OK;
+    uint32_t    nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t    limit   = ofs + len;
+
+    if ( ofs + len > nvmSize ) return ( ERR_NVM_SIZE_EXCEEDED );
+
+    for ( int i = 0; i < BUFFER_BLOCK_SIZE; i ++ ) tmpBuf[ i ] = val;
+
+    while ( len > BUFFER_BLOCK_SIZE ) {
+
+        rStat = nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, sizeof( tmpBuf ));
+        if ( rStat != ALL_OK ) break;
+        
+        ofs += sizeof( val );
+        len -= BUFFER_BLOCK_SIZE;
+    }
+
+    if ( rStat == ALL_OK ) {
+
+        return( nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, len ));
+    }
+    else return( rStat );
 }
 
 }; // namespace

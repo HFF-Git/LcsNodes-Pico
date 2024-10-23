@@ -118,9 +118,19 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+
+            printf( "readAttrNvm: block: 0x%x, item: %d\n", block, item );
+        }
+
         uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
-        uint16_t ofs    = (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
-        uint8_t  rStat  = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
+        uint16_t ofs    = NVM_NODE_DATA_START + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+
+        printf( "Ofs: 0x%x\n", ofs );
+
+        uint8_t rStat = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
+
+        printf( "rStat: 0x%x\n", rStat );
 
         *arg = (( rStat == ALL_OK ) ? nodeData.map[ block ][ index ] : 0 );
         return ( rStat );
@@ -134,8 +144,15 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+
+            printf( "readAttrNvm: block: 0x%x, item: %d\n", block, item );
+        }
+
         uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
-        uint16_t ofs    = (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        uint16_t ofs    = NVM_NODE_DATA_START + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+
+        printf( "Ofs: 0x%x\n", ofs );
 
         nodeData.map[ block ][ index ] = arg;
         return ( rtNvmPutWord( ofs, arg ));
@@ -419,14 +436,18 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
-                portMap.map[ portId( npId ) - 1 ].eventDelayTime = val1;
+                if ( isInRangeU ( portId( npId ) - 1, 0, MAX_PORT_MAP_ENTRIES )) { 
 
-                uint16_t ofs =  NVM_PORT_MAP_START +
-                                offsetof( LcsPortMap, map ) + 
-                                (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, eventDelayTime );
+                    portMap.map[ portId( npId ) - 1 ].eventDelayTime = val1;
 
-                return ( rtNvmPutWord( ofs, val1 ));
+                    uint16_t ofs =  NVM_PORT_MAP_START +
+                                    offsetof( LcsPortMap, map ) + 
+                                    (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
+                                    offsetof( LcsPortMapEntry, eventDelayTime );
+
+                    return ( rtNvmPutWord( ofs, val1 ));
+                }
+                else return( ERR_INVALID_PORT_ID );
             }
             
             case ITEM_ID_NAME_1: {

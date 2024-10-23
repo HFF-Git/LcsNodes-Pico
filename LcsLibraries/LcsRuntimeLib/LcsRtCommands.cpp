@@ -561,7 +561,7 @@ void getNodeCommand( char *s ) {
     uint16_t  arg2    = 0;
     uint8_t   ret     = ALL_OK;
 
-    if ( sscanf( s, "%hu %hu %hu %hu", &npId, &item, &arg1, &arg2  ) != 2 ) return;
+    if ( sscanf( s, "%hu %hhu %hu %hu", &npId, &item, &arg1, &arg2  ) < 2 ) return;
 
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
@@ -602,7 +602,7 @@ void putNodeCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
      
         ret = nodePut( npId, item, val1, val2 );
-        printf( "<!p %d 0x%x 0x%x %d>", item, val1, val2, ret );
+        printf( "<!p 0x%x %d 0x%x 0x%x %d>", npId, item, val1, val2, ret );
     }
     else {
 
@@ -684,8 +684,6 @@ void broadcastLcsMsgCommand( char *s ) {
 //
 //    board - the extension board the driver handles.
 //    item  - the driver specific item which is the requested operation.
-//    arg1  - the first argument to the driver.
-//    arg2  - the optional second argument to the driver and also output from the driver.
 //
 //    returns:  <!G board item arg ret>
 //
@@ -709,13 +707,13 @@ void drvGetCommand( char *s ) {
 // We will use the same idea of item ranges for MEM and NVM, except that the NVM range will work only if the 
 // extension board is write-enabled.
 //
-//    <!M board item arg1 >
+//    <!P board item arg >
 //
 //    board - the extension board the driver handles.
 //    item  - the driver specific item which is the requested operation.
 //    arg   - the data argument to the driver.
 //
-//    returns:  <!M board item arg ret>
+//    returns:  <!P board item arg ret>
 //
 //------------------------------------------------------------------------------------------------------------
 void drvPutCommand( char *s ) {
@@ -823,7 +821,7 @@ void listCoreLibHelpCommand( ) {
     printf( "<!P board item arg > - send a PUT request to an extension board n\n" );
     printf( "<!R board item [ arg1 [ arg2 ]] > - send a REQ request to an extension board n\n" );
    
-    printf( " < !s [ level ] > - list status, default is summary\n" );
+    printf( "< !s [ level ] > - list status, default is summary\n" );
     printf( "              " " -  0  - summary\n" );
     printf( "              " " -  1  - Node Map\n" );
     printf( "              " " -  2  - Port Map\n" );

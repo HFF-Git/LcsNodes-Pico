@@ -407,6 +407,20 @@ uint8_t setupPortMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "setupNodeDataMap" will read the node data blocks.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupNodeDataMap( ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeDataMap\n" );
+
+    uint8_t rStat = rtNvmGetBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeDataMap, status: %d\n", rStat );
+    return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // The event map stores all event/port pairs this node is interested to process. The map is a sorted map and
 // there is a high water mark, so that we only read up to the last used entry in the map. Just like other 
 // data structures we could just read in all entries. However, this is a large map. It would be better to 
@@ -565,16 +579,18 @@ uint8_t detectExtensionBoards( ) {
         if ( rStat == ALL_OK ) {
 
             nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
-            nodeMap.drvMapHwm ++;
-
-            if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) 
-                printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
+            nodeMap.drvMapHwm ++; 
         }
         else {
 
-            if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) 
-                printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
+            // ??? set the fact that we could not find a board at this location ...
+
+
+            rStat = ALL_OK; // ??? so we return successful in this case...
         }
+
+        if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) 
+                printf( "detectExtensionBoard, N: %d, status: %d\n", i, rStat );
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "detectExtensionBoards, status: %d\n", rStat );
@@ -594,6 +610,9 @@ uint8_t setupExtensionBoards( ) {
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupExtensionBoards\n" );
 
     uint8_t rStat = ALL_OK;
+
+    // ??? do better, we need to know whether there are even boards or not...
+    if ( nodeMap.nodeFlags & NFLAGS_EXT_PRESENT ) return( rStat );
 
     for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
@@ -739,7 +758,7 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
         // ??? we need to be able to pass it from the program ?
         //  debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS | DBG_SETUP;
-        debugMask = DBG_CONFIG | DBG_SETUP;
+        debugMask = DBG_CONFIG | DBG_SETUP | DBG_ATTRIBUTES;
         printf( "init LCS runtime\n") ;
     }
 
@@ -749,6 +768,7 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
+    if ( rStat == ALL_OK )  rStat = setupNodeDataMap( );
     if ( rStat == ALL_OK )  rStat = setupEventMap( );
     if ( rStat == ALL_OK )  rStat = setupUserMap( );
     if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
