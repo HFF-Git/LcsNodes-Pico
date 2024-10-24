@@ -207,11 +207,9 @@ uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *ar
     return( ALL_OK );
 }
 
-uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d", npId, item );
-    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
-    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
     return( ALL_OK );
 }
 

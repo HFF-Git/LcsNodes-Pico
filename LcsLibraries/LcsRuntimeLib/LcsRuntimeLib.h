@@ -351,6 +351,7 @@ enum LcsItems : uint8_t {
     ITEM_ID_SUB_TYPE                    = 6,
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
+    ITEM_ID_DEBUG_MASK                  = 9,
 
     ITEM_ID_NODE_ID                     = 10,
     ITEM_ID_NODE_UID                    = 11,
@@ -419,6 +420,34 @@ enum LcsPortEventAction : uint8_t {
     PEA_EVENT_ON      = 1,
     PEA_EVENT_OFF     = 2,
     PEA_EVENT_EVT     = 3
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The debug mask. The library has a debug mask where each major part of the library has a flag. There could 
+// also be flags reserved for the firmware. There is an ITEM to read and set this mask. Wherever debugging is
+// needed, the bit mask will be used to determine whether to print debugging data or not. From a performance 
+// perspective, the test will take just a few instructions. In other words we do not take out debugging code 
+// when going into production. Never liked this approach of conditional debug anyway.
+//
+// The usage of the debug mask is generally: 
+//
+//      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_xxx )) ....
+// 
+// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or disabled. This feature will 
+// also be used when we test whether we even have a console or not. If there is no console, all the prints
+// will not be executed.
+//
+//------------------------------------------------------------------------------------------------------------
+enum DebugOtions : uint16_t {
+
+    DBG_CONFIG          = ( 1U << 0 ),
+    DBG_SETUP           = ( 1U << 1 ),
+    DBG_NVM_ACCESS      = ( 1U << 2 ),
+    DBG_CAN_BUS         = ( 1U << 3 ),
+    DBG_MSG_BUS         = ( 1U << 4 ),
+    DBG_ATTRIBUTES      = ( 1U << 5 ),
+    DBG_EVENTS          = ( 1U << 6 ),
+    
 };
 
 //---------------------------------------------------------------------------------------------------------
@@ -530,6 +559,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_INVALID_EVENT_MAP_INDEX         = 51,
     ERR_EVENT_MAP_FULL                  = 52,
     ERR_PENDING_REQ_MAP_FULL            = 53,
+    ERR_REQ_TIMEOUT                     = 54,
 
     ERR_INVALID_SESSION_ID              = 60,
     ERR_INVALID_CAB_ID                  = 61,
@@ -595,6 +625,35 @@ enum MsgPriority : uint8_t {
 //----------------------------------------------------------------------------------------------------------
 // Core library callback function signatures. Callbacks are registered by the firmware at setup time and
 // invoked as the communication back to the firmware layer.
+//
+//      LcsMsgCallback      -   is called with a LCS management message received.
+//      LcsCmdCallback      -   when the command interpreter detects a non LCS command, the command line 
+//                              is passed on to the callback. 
+//      LcsTaskCallback     -   a callback for a previously registered task. The callback is invoked on 
+//                              the configured periodic basis.
+//
+//      LcsResetCallback    -   a callback invoked when a reset is performed. The npId is passed so that
+//                              the callback can detect wether a port or node is the target.
+//
+//      LcsInitCallback     -   a callback called at initialization time, as part of "startRuntime". The
+//                              npId is passed so that the callback can detect wether a port or node is 
+//                              the target.
+//
+//      LcsPfailCallback    -   a callback when a power fail situation is detected. The npId is passed 
+//                              so that the callback can detect wether a port or node is the target.
+// 
+//      LcsReqCallback      -   a callback to invoke for a user request message. The callback is passed 
+//                              the item and a reference to the two input / output arguments.
+//      
+//      LcsRepCallback      -   a callback to return the reply message for a previous LCS message sent. The
+//                              reply can be a data reply, an ACK or NACK or a timeout error. The arguments 
+//                              are the item that was requested, the arguments and the return status of the
+//                              operation.
+//
+//      LcsEventCallback    -   a callback for a received event. The arguments are the issuing npId, the
+//                              event type and the optional arguments.
+//          
+// All callback functions need to return a status, which is ALL_OK if the callback was successful.
 // 
 //----------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -608,7 +667,7 @@ extern "C" {
     typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId );
 
     typedef uint8_t ( *LcsReqCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
-    typedef uint8_t ( *LcsRepCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+    typedef uint8_t ( *LcsRepCallback ) ( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
 
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }

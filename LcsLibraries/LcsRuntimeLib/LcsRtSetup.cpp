@@ -268,16 +268,10 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
 
     CDC::writeDio( ci -> ACTIVE_LED_PIN, true );
 
-    // ??? quick hack. If the console is not there yet, we never enter the loop ...
+    // ??? rethink this. We can detect that there is a cable connected. With "miniCom" terminal we can 
+    // even now handle a reset decently. So, do we still need this loop ? Check it out... 
 
-    for ( int i = 0; i < 10; i++ ) {
-
-        if ( CDC::isConsoleConnected( )) break;
-        CDC::sleepMillis( 1000 );
-    }
-
-    // ??? check what exactly "console connected means. Just the cable plugged in ?""
-
+    #if 1
     if ( CDC::isConsoleConnected( )) {
 
         CDC::writeDio( ci -> READY_LED_PIN, true );
@@ -292,6 +286,12 @@ uint8_t initCdcLayer( CDC::CdcPinConfig *ci ) {
         printf( "Have screen, starting ...  \n ");
     }
     else debugMask &= ~ DBG_CONFIG;
+
+    #else
+    
+    if ( ! CDC::isConsoleConnected( )) debugMask &= ~ DBG_CONFIG;
+    
+    #endif
 
     return ( ALL_OK );
 }
@@ -383,7 +383,8 @@ uint8_t setupNodeMap( ) {
         ( nodeMap.magicWord2 != NVM_MWORD_2 ) || 
         ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
 
-        if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) printf( "setupNodeMap: invalid header, re-format\n" );
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+            printf( "setupNodeMap: invalid header, re-format\n" );
 
         rStat = buildNvmRuntimeStructures( );
     }
@@ -426,7 +427,8 @@ uint8_t setupNodeDataMap( ) {
 // data structures we could just read in all entries. However, this is a large map. It would be better to 
 // just read up to the HWM, if the HWM is valid. If this is not the case, we have to assume that there are
 // bigger issues with the event map. In this case we will read the entire map entry by entry, add used 
-// entries, i.e. entries with a NIL event ID to the memory map and set the HWM accordingly.
+// entries, i.e. entries with a non-NIL event ID to the memory map. After reading all entries, the newly
+// created event map is written back to the NVM place.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
@@ -756,9 +758,8 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 
     if ( lcsConfig -> options & NOPT_DEBUG_DURING_SETUP ) {
 
-        // ??? we need to be able to pass it from the program ?
         //  debugMask = DBG_CONFIG | DBG_CAN_BUS | DBG_NVM_ACCESS | DBG_SETUP;
-        debugMask = DBG_CONFIG | DBG_SETUP | DBG_ATTRIBUTES;
+        debugMask = DBG_CONFIG | DBG_SETUP | DBG_ATTRIBUTES; // ??? take out after test, use the above...
         printf( "init LCS runtime\n") ;
     }
 
@@ -797,45 +798,15 @@ uint8_t initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// "startRuntime" is the main routine of the node activity processing. It is the method called after all 
-// setup is done. Running in a loop, the primary function is to handle the activities according to the node 
-// state. The run loop also processes the serial commands and periodic tasks. Note that this function will
-// not return. When the routine is called, it will as the very first thing invoke all registered init
-// callback functions before entering the processing loop.
-//
-// The very first thing that the routine will do is to invoke the firmware registered callbacks. Again, the
-// overall logic is to call "initRuntime", register any callbacks, do whatever firmware setup needs to be 
-// done and then call "startRuntime". The initialization callback is invoked for the node and then for each
-// port. We do not know how many ports are actually used by the firmware, so all slots are handled. The 
-// driver loaded for the discovered extension boards will all feature an init command. We call each driver
-// with this command code.
-// 
-// What follows is the node state machine loop. Each state has a handler routine. We process the state code
-// and if there is a console the console command input.
+// "startRuntime" is the main routine of the node activity processing. All it does is to call the node
+// state machine.
 //
 //------------------------------------------------------------------------------------------------------------
 void startRuntime( ) {
 
-     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n") ;
+     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n");
 
-    uint8_t rStat = ALL_OK;
-
-    while ( true ) {
-
-        switch ( nodeMap.nodeState ) {
-
-            case NS_INIT:       handleNodeStateInit( );       break;
-            case NS_FAIL:       handleNodeStateFail( );       break;
-            case NS_REGISTER:   handleNodeStateRegister( );   break;
-            case NS_COLLISION:  handleNodeStateCollision( );  break;
-            case NS_HALTED:     handleNodeStateHalted( );     break;
-            case NS_CONFIG:     handleNodeStateConfig( );     break;
-            case NS_OPERATE:    handleNodeStateOperations( ); break;
-            default: ;
-        }
-
-        handleSerialCommand( );
-    }
+     handleNodeState( );
 }
 
 }; // namespace LCS

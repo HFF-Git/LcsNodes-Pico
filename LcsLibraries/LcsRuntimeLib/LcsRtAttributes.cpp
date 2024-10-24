@@ -225,6 +225,12 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
+            case ITEM_ID_DEBUG_MASK: {
+
+                if ( nodeId( npId ) == nodeMap.nodeId ) *arg1 = debugMask;
+                return( ALL_OK );
+            }
+
             case ITEM_ID_NODE_UID: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
@@ -413,6 +419,22 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
     else {
 
         switch ( item ) {
+
+            case ITEM_ID_DEBUG_MASK: {
+
+                if ( nodeId( npId ) == nodeMap.nodeId ) {
+
+                    if ( CDC::isConsoleConnected( )) {
+
+                        debugMask = val1;           
+                    }
+                    else {
+
+                        debugMask = val1 & ~ DBG_CONFIG;
+                    }
+                
+                return( ALL_OK );
+            }
 
             case ITEM_ID_TYPE: {
 

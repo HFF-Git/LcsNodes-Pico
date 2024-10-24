@@ -680,10 +680,20 @@ uint32_t createUid( ) {
 // Console IO section. We set up the stdio via the USB connector. As part of the CDC init call, the configure
 // call should be done rather early, so that we can print out debug messages. In normal LCS node operation
 // there is no USB connected. Detecting a connection helps to decide whether we can report an error or need
-// to resort to a fatal error call at startup. Finally, there is a routine to get a character for the command
-// interfaces. Since the function just reads in a character, we have to exit it back to the console ourselves
-// if desired.
+// to resort to a fatal error call at startup. 
 //
+// There are two basic ways to detect an USB connection. The first is to simply check if thee is power on 
+// the USB port. The PICO features an internal GPIO pin for this purpose. Using this method still does not
+// mean that we have someone connected to the USB, but just that there is a cable with power. Well, good
+// enough for us. The second method truly detects that there is a USB host connected. This check is provided
+// via the PICO libraries which in turn use the tinyUSB library. However, there could be a timing problem
+// where the USB stack is not ready and we conclude wrongly that there is no USB connection. For now, let's
+// rather go with the risk that there is just power on the USB connector.
+//
+// Finally, there is a routine to get a character for the command interfaces. Since the function just reads
+// in a character, we have to echo it back to the console ourselves if desired.
+//
+// The USB check way would be "return( stdio_usb_connected( ));" instead of the GPIO check.
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureConsoleIO( ) {
 
@@ -693,7 +703,10 @@ uint8_t configureConsoleIO( ) {
 
 bool isConsoleConnected( ) {
 
-    return( stdio_usb_connected( ));
+    gpio_init( PICO_VBUS_PIN );
+    gpio_set_dir( PICO_VBUS_PIN, GPIO_IN );
+
+    return( gpio_get( PICO_VBUS_PIN ));
 }
   
 char getConsoleChar( bool echoBack, uint32_t timeoutVal ) {

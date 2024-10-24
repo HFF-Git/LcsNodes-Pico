@@ -164,7 +164,7 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
         printf( "Add Event: %d : %d\n", eventId, portId );
     }
@@ -197,7 +197,7 @@ uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
         printf( "Remove Event: %d : %d\n", eventId, portId );
     }
@@ -231,7 +231,7 @@ uint8_t removeEvent( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 int searchEvent( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
         printf( "Search Event: %d : %d", eventId, portId );
     }
@@ -272,7 +272,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
         }
     }
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) printf( "-> %d\n", res );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "-> %d\n", res );
     return ( res );
 }
 
@@ -284,7 +284,7 @@ int searchEvent( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) printf( "sync EventMap \n" );  
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "sync EventMap \n" );  
 
     uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_START, 
                                     (uint8_t *) eventMap.map, 
@@ -300,7 +300,7 @@ uint8_t syncEventMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
         printf( "Get Emap Entry: %d\n", index );
     }

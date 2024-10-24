@@ -176,7 +176,7 @@ void handleNodePortEvents( ) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
-                callbackMap.eventCallback(  buildNpId( pPtr -> eventNodeId, i + 1 ),
+                callbackMap.eventCallback(  pPtr -> eventNodeId,
                                             pPtr -> eventId,
                                             pPtr -> eventAction,
                                             pPtr -> eventValue );
@@ -365,7 +365,7 @@ void handleMsgPutNode( uint8_t *msg ) {
 // result in an action when we have an outstanding request for that node. That is, this handler will only
 // be called when the we passed the outstanding reply map check done before. All reply messages are routed
 // to this one callback. It is up to the firmware programmer to analyze for what and whom the reply really
-// is.
+// is. 
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
@@ -375,7 +375,7 @@ void handleMsgRepNode( uint8_t *msg ) {
     uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
     uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
 
-    if ( callbackMap.repCallback != nullptr ) callbackMap.repCallback( npId, item, &arg1, &arg2 );
+    if ( callbackMap.repCallback != nullptr ) callbackMap.repCallback( npId, item, arg1, arg2, ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -671,6 +671,32 @@ void handleNodeStateOperations( ) {
 
     handlePeriodicTasks( );
     handleNodePortEvents( );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "handleNodeState" is the main routine of the node activity processing. It is the method called after all 
+// setup is done. Running in a loop, the primary function is to handle the activities according to the node 
+// state. The run loop also processes the serial commands. Note that this function will not return.
+//
+//------------------------------------------------------------------------------------------------------------
+void handleNodeState( ) {
+
+    while ( true ) {
+
+        switch ( nodeMap.nodeState ) {
+
+            case NS_INIT:       handleNodeStateInit( );       break;
+            case NS_FAIL:       handleNodeStateFail( );       break;
+            case NS_REGISTER:   handleNodeStateRegister( );   break;
+            case NS_COLLISION:  handleNodeStateCollision( );  break;
+            case NS_HALTED:     handleNodeStateHalted( );     break;
+            case NS_CONFIG:     handleNodeStateConfig( );     break;
+            case NS_OPERATE:    handleNodeStateOperations( ); break;
+            default: ;
+        }
+
+        handleSerialCommand( );
+    }
 }
 
 }; // namespace
