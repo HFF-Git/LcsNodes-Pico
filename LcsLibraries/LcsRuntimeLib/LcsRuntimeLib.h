@@ -41,7 +41,7 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-//-----------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------.--------------------------------
 // A node is identified through the node number. Node numbers start with one. The nodeId of zero represents
 // the NIL node Id. The node Id is a 12-bit number, so up to 4095 nodes can be addressed. The nodeId, a
 // unique Id for the LCS nodes in a layout, is also used as the canId used for the CAN bus. Keep in mind
@@ -55,7 +55,7 @@ enum LcsNodeId : uint16_t {
     MAX_NODE_ID   = 4095
 };
 
-//-----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // A node type can be assigned to a node. NodeId types start with one. The nodeType of zero represents the
 // NIL node type. A node type is arbitrarily defined by the firmware programmer.
 //
@@ -91,7 +91,7 @@ enum LcsPortId : uint8_t {
     MAX_PORT_TYPE_ID  = 255
 };
 
-//-----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // Events are just numbers assigned to an event by a configuration tool. Event id numbers start with one. 
 // The  event number zero represents the NIL event number. The maximum event id number is 65535. 
 //
@@ -233,10 +233,10 @@ enum LocSpeed : uint8_t {
     MAX_LOCO_SPEED      = 127
 };
 
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // Locomotive direction. 
 //
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 enum LocoDirection : uint8_t {
 
     LOCO_DIR_LOCO_NEUTRAL  = 0,
@@ -256,36 +256,50 @@ enum LocoSessionModes : uint8_t {
     LSM_SHARED  = 3
 };
 
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // The defined board types. When the runtime is initialized, the firmware will pass the type to specify what 
-// board it expects. This value is compared to what is actually stored in the NVM of the main controller board. 
-// If they don't match, it is considered an error and the NVM needs to be configured to support the firmware. 
+// board it expects. This value is compared to what is actually stored in the NVM of the main controller 
+// board. If they don't match, it is considered an error and the NVM needs to be configured to support the 
+// firmware. 
 //
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 enum LcsBoardType : uint16_t {
 
-    BT_NIL                = 0,
-    BT_MAIN_CONTROLLER    = 1,
-    BT_BASE_STATION       = 2,
-    BT_BLOCK_CONTROLLER   = 3,
-    BT_CAB_HANDHELD       = 4,
+    BT_NIL                  = 0,
+    BT_MAIN_CONTROLLER      = 1,
+    BT_BASE_STATION         = 2,
+    BT_BLOCK_CONTROLLER     = 3,
+    BT_CAB_HANDHELD         = 4,
 
-    BT_EXT_OCC_DETECT     = 11,
-    BT_EXT_SERVO          = 12,
-    BT_EXT_GPIO           = 13
+    BT_EXT_NIL              = 10,
+    BT_EXT_OCC_DETECT       = 11,
+    BT_EXT_SERVO            = 12,
+    BT_EXT_GPIO             = 13
 };
 
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // The defined chip families. There are controller chip families such as the controller family RP2040, or 
 // chip families for the NVM chips used, and so on.
 //
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 enum LcsControllerFamilyType : uint16_t {
 
-    CF_FAM_NIL                = 0,
-    CF_FAM_RPICO              = 1,
-    CF_FAM_MICROCHIP          = 3,
-    CF_FAM_NXP                = 4
+    CF_FAM_NIL              = 0,
+    CF_FAM_RPICO            = 1,
+    CF_FAM_MICROCHIP        = 3,
+    CF_FAM_NXP              = 4
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Extension board driver flags. The flag are set when a board is detected and also during board operation.  
+//
+//------------------------------------------------------------------------------------------------------------
+enum LcsBoardFlags : uint16_t {
+
+    BF_NIL                  = 0,
+    BF_EXT_BOARD_PRESENT    = 1,
+    BF_EXT_BOARD_VALID      = 2,
+    BF_EXT_BOARD_READY      = 3,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -300,9 +314,10 @@ enum LcsControllerFamilyType : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum LcsNodeOptions : uint16_t {
 
-    NOPT_SKIP_NODE_ID_CONFIG    = 0x0001,
-    NOPT_SKIP_NODE_INIT_STEP    = 0x0002,
-    NOPT_DEBUG_DURING_SETUP     = 0x0008,
+    NOPT_NIL                    = 0,
+    NOPT_SKIP_NODE_ID_CONFIG    = ( 1 << 0 ),
+    NOPT_SKIP_NODE_INIT_STEP    = ( 1 << 1 ),
+    NOPT_DEBUG_DURING_SETUP     = ( 1 << 2 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -314,7 +329,8 @@ enum LcsNodeOptions : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum LcsNodeFlags : uint16_t {
 
-    NFLAGS_EXT_PRESENT          = 0x0001,
+    NFLAGS_NIL                  = 0,
+    NFLAGS_EXT_PRESENT          = ( 1 << 0 ),
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -398,9 +414,10 @@ enum LcsItems : uint8_t {
 //----------------------------------------------------------------------------------------------------------
 enum LcsPortFlags : uint16_t {
 
-    PF_PORT_ENABLED                 = 0x8000,
-    PF_PORT_EVENT_HANDLING_ENABLED  = 0x4000,
-    PF_EVENT_PENDING                = 0x2000
+    PF_NIL                          = 0,
+    PF_PORT_ENABLED                 = ( 1 << 15 ),
+    PF_PORT_EVENT_HANDLING_ENABLED  = ( 1 << 14 ),
+    PF_EVENT_PENDING                = ( 1 << 13 )
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -440,14 +457,13 @@ enum LcsPortEventAction : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum DebugOtions : uint16_t {
 
-    DBG_CONFIG          = ( 1U << 0 ),
-    DBG_SETUP           = ( 1U << 1 ),
-    DBG_NVM_ACCESS      = ( 1U << 2 ),
-    DBG_CAN_BUS         = ( 1U << 3 ),
-    DBG_MSG_BUS         = ( 1U << 4 ),
-    DBG_ATTRIBUTES      = ( 1U << 5 ),
-    DBG_EVENTS          = ( 1U << 6 ),
-    
+    DBG_CONFIG          = ( 1U << 15 ),
+    DBG_SETUP           = ( 1U << 14 ),
+    DBG_NVM_ACCESS      = ( 1U << 13 ),
+    DBG_CAN_BUS         = ( 1U << 12 ),
+    DBG_MSG_BUS         = ( 1U << 11 ),
+    DBG_ATTRIBUTES      = ( 1U << 10 ),
+    DBG_EVENTS          = ( 1U <<  9 )
 };
 
 //---------------------------------------------------------------------------------------------------------
@@ -673,11 +689,12 @@ extern "C" {
 }
 
 //----------------------------------------------------------------------------------------------------------
+// "LcsConfigDesc" is the data structure that contains initial data for setting up a node. There is the 
+// option field with bits.
 //
-//
-//
+// ??? also add the CAN bus mode ?
 //----------------------------------------------------------------------------------------------------------
-struct LcsConfig {
+struct LcsConfigDesc {
 
     uint16_t options  = 0;
 
@@ -693,8 +710,8 @@ struct LcsConfig {
 // one day, we encapsulate all data in a private structure for security reasons. To be determined.
 // 
 //------------------------------------------------------------------------------------------------------------
-LcsConfig           getConfigDefault( );
-uint8_t             initRuntime( LcsConfig *lcsConfig, CDC::CdcPinConfig *cdcConfig );
+LcsConfigDesc       getConfigDefault( );
+uint8_t             initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig );
 void                startRuntime( );
 
 //----------------------------------------------------------------------------------------------------------

@@ -36,8 +36,8 @@ using namespace LCS;
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig   cdcConfig;
-LCS::LcsConfig      lcsConfig;
+CDC::CdcConfigDesc  cdcConfig;
+LCS::LcsConfigDesc  lcsConfig;
 
 //----------------------------------------------------------------------------------------------------------
 // Init the CDC and Runtime library. We get a default CDC config structure and fill in the the additional

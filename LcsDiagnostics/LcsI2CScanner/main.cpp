@@ -30,7 +30,7 @@
 // The default CDC configuration data.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig cfg = CDC::getConfigDefault( );
+CDC::CdcConfigDesc cfg = CDC::getConfigDefault( );
 
 //----------------------------------------------------------------------------------------------------------
 // Init the CDC library.
@@ -56,7 +56,7 @@ uint8_t initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t configI2C( uint8_t sclPin, uint8_t sdaPin ) {
 
-  printf( "Configuring the I2C Bus, slcPin: %d, sdaPin: %d\n", sclPin, sdaPin );
+  printf( "Configuring the I2C Bus, sclPin: %d, sdaPin: %d\n", sclPin, sdaPin );
 
   return( CDC::configureI2C( sclPin, sdaPin ));
 }
@@ -76,7 +76,7 @@ void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
   printf( "Scanning for I2C Bus, sclPin: %d, sdaPin: %d\n", sclPin, sdaPin );
 
   for ( i2cAdr = 1; i2cAdr < 127; i2cAdr++ ) {
-
+    
     rStat = CDC::i2cRead( sclPin, i2cAdr, &buf, 1 );
 
     if ( rStat == 0 ) {

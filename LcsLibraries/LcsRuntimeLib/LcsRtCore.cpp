@@ -471,17 +471,21 @@ void handleMsgDccMgt( uint8_t *msg ) {
 // callback routine will be invoked. If the nodeId validation option is set, the node will request a nodeId 
 // and enter the state SETUP. Otherwise the next state is OPERATE.
 //
+// ??? idea: a port init call cold return a status that says "this port is not used". This way we could
+// set a better HWM.
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
     if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_INIT_STEP )) {
 
-        if ( callbackMap.initCallback != nullptr ) callbackMap.initCallback( nodeMap.nodeId << 4 );
+        if ( callbackMap.initCallback != nullptr ) {
+
+             callbackMap.initCallback( nodeMap.nodeId << 4 );
+        }
 
         for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            if ( callbackMap.initCallback != nullptr ) 
-                callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
+            callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
 
             portMap.map[ i ].flags |= PF_PORT_ENABLED;
             portMap.map[ i ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
@@ -505,22 +509,25 @@ void handleNodeStateInit( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
-
+    
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Node State Power FAIL. This is the state after when the node starts up after a power fail. We have this
-// state so that the firmware programmer can take some recovery action if desired. 
-//
-// The "initRuntime" routine will return a PFAIL status instead of ALL_OK when we restarted after a power 
-// fail. OR we could return ALL_OK but have a flag set that we restarted from a power fail.
-//
-// The power fail callback is used to actually do the work BEFORE we have the power failure.
+// state so that the firmware programmer can take some recovery action before the power goes away. x
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
 
-  
+    if ( callbackMap.pfailCallback != nullptr ) {
+
+        callbackMap.pfailCallback( nodeMap.nodeId << 4 );
+    }
+
+    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        callbackMap.pfailCallback(( nodeMap.nodeId << 4 ) | i + 1 );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------

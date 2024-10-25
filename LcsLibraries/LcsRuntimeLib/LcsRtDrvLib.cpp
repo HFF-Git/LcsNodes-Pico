@@ -83,7 +83,7 @@ uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
 
     if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
-        *arg = drvMap.map -> extBoard -> driverData[ item ];
+        *arg = drvMap.map[ boardId ].extBoard.driverData[ item ];
         return( ALL_OK );
     }
     else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
@@ -105,7 +105,7 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 
      if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
-        drvMap.map -> extBoard-> driverData[ item ] = arg;
+        drvMap.map[ boardId ].extBoard.driverData[ item ] = arg;
         return( ALL_OK );
     }
     else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {

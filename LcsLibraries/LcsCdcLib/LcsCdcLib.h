@@ -180,7 +180,7 @@ extern "C" {
 // the board. It will then just be read from there.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcPinConfig {
+struct CdcConfigDesc {
 
     uint8_t   CFG_STATUS;
 
@@ -282,12 +282,12 @@ char          getConsoleChar( bool echoBack = true, uint32_t timeoutVal = 0 );
 // that default structure and set the values necessary for the particular case.
 //
 //------------------------------------------------------------------------------------------------------------
-CdcPinConfig  getConfigDefault( );
-CdcPinConfig  *getConfigActual( );
-void          printConfigInfo( CdcPinConfig *ci );
+CdcConfigDesc getConfigDefault( );
+CdcConfigDesc *getConfigActual( );
+void          printConfigInfo( CdcConfigDesc *ci );
 void          setDebugLevel( uint8_t level = 0 );
 
-uint8_t       init( CdcPinConfig *ci );
+uint8_t       init( CdcConfigDesc *ci );
 void          fatalError( uint8_t n );
 void          fatalErrorMsg( char *str, uint8_t n );
 

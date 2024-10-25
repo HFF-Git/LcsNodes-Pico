@@ -37,7 +37,7 @@
 // numbers and values.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig cfg;
+CDC::CdcConfigDesc cfg;
 
 void setupConfigInfo( ) {
 

@@ -562,7 +562,7 @@ struct TestUIScreen : CabHandheldScreen {
 //
 // ??? only the opens actually needed are listed here...
 //------------------------------------------------------------------------------------------------------------
-extern CDC::CdcPinConfig      cfg;
+extern CDC::CdcConfigDesc     cfg;
 extern UIDisplay              *oled;
 extern UIEncoder              *encoder;
 extern CabStack               *cabStack;

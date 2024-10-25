@@ -131,6 +131,8 @@ uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 // writing to the chip and see if this works. There is the case that it just takes a little time or there
 // is just no chip at that address. We will use a retry count so we will not try forever.
 //
+// ??? will this work when we have a NVM write disabled chip ?
+// ??? should we distinguish between a read and a write request ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
 
@@ -397,7 +399,7 @@ namespace LCS {
 // from the CDC descriptors. The CDC descriptor also contains the configured sizes for the NVM chips. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configNvm( CDC::CdcPinConfig *ci ) {
+uint8_t configNvm( CDC::CdcConfigDesc *ci ) {
 
     nvmSclPin     = ci -> NVM_I2C_SCL_PIN;
     nvmSdaPin     = ci -> NVM_I2C_SDA_PIN;

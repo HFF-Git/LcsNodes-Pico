@@ -38,7 +38,7 @@ using namespace LCS;
 // numbers and values.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig cfg;
+CDC::CdcConfigDesc cfg;
 
 //----------------------------------------------------------------------------------------------------------
 // "printStatus" is a little helper function for the initialization routines protocol printing. 
@@ -57,7 +57,7 @@ uint8_t printStatus( uint8_t status ) {
 // numbers and values. 
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t setupConfigInfo( CDC::CdcPinConfig *cfg ) {
+uint8_t setupConfigInfo( CDC::CdcConfigDesc *cfg ) {
 
     printf( "Setup Config Info\n" );
 

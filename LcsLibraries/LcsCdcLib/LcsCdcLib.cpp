@@ -53,8 +53,6 @@
 
 #include "LcsCdcLib.h"
 
-
-
 //------------------------------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
@@ -82,10 +80,9 @@ uint8_t debugLevel = 0;
 //------------------------------------------------------------------------------------------------------------  
 // The CDC Library version data.
 //
-// ??? to set to real values.
 //------------------------------------------------------------------------------------------------------------
-const uint8_t CDC_LIB_MAJOR_VERSION = 5;
-const uint8_t CDC_LIB_MINOR_VERSION = 1;
+const uint8_t CDC_LIB_MAJOR_VERSION = 1;
+const uint8_t CDC_LIB_MINOR_VERSION = 0;
 
 //------------------------------------------------------------------------------------------------------------
 // Valid pin mapping for the Raspberry PI Pico board. We construct a set of bitmask for the pin numbers.
@@ -263,7 +260,7 @@ struct GpioIsrTable {
 // simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
 //
 //------------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig           cfg;
+CDC::CdcConfigDesc          cfg;
 CDC::TimerCallback          timerCallback = nullptr;
 GpioIsrTable                cdcIntHandlers;
 repeating_timer_t           timerData;
@@ -409,9 +406,9 @@ void uartRxCallback1( ) {
 // It is just a mapping of reserved names to actual GPIO pins.
 //
 //------------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig getConfigDefaultRP2040( ) {
+CDC::CdcConfigDesc getConfigDefaultRP2040( ) {
 
-    CDC::CdcPinConfig tmp;
+    CDC::CdcConfigDesc tmp;
 
     tmp.CFG_STATUS          = CDC::INIT_PENDING;
 
@@ -489,7 +486,7 @@ CDC::CdcPinConfig getConfigDefaultRP2040( ) {
 // follow. Also, we have dedicated settings for at least the I2C channels and the CAN bus IO pins.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t validateConfigRP20040( CDC::CdcPinConfig *ci ) {
+uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
 
     // ??? a ton of "validXXX" ?
 
@@ -521,7 +518,7 @@ void setDebugLevel( uint8_t level ) {
 // the relevant pins and values according to the actual hardware configuration.
 //
 //------------------------------------------------------------------------------------------------------------
-CdcPinConfig getConfigDefault( ) {
+CdcConfigDesc getConfigDefault( ) {
 
    return ( getConfigDefaultRP2040( ));
 }
@@ -531,7 +528,7 @@ CdcPinConfig getConfigDefault( ) {
 // structure to use. There is no need for the upper layers to keep the structure used at initialization time.
 //
 //------------------------------------------------------------------------------------------------------------
-CdcPinConfig *getConfigActual( ) {
+CdcConfigDesc *getConfigActual( ) {
 
    return ( &cfg );
 }
@@ -542,7 +539,7 @@ CdcPinConfig *getConfigActual( ) {
 // problem.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t init( CdcPinConfig *ci ) {
+uint8_t init( CdcConfigDesc *ci ) {
 
     cfg = *ci;
 
@@ -1375,7 +1372,7 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 // Print out the Config Structure.
 //
 //------------------------------------------------------------------------------------------------------------
-void printConfigInfo( CdcPinConfig *ci ) {
+void printConfigInfo( CdcConfigDesc *ci ) {
 
     printf( "CDC Pin Configuration Info ( status %d ): \n", ci -> CFG_STATUS );
 

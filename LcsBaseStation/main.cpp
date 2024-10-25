@@ -45,8 +45,8 @@ using namespace LCS;
 // Base station global objects.
 //
 //------------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig               cdcConfig;
-LCS::LcsConfig                  lcsConfig;
+CDC::CdcConfigDesc              cdcConfig;
+LCS::LcsConfigDesc              lcsConfig;
 LcsBaseStationCommand           serialCmd;
 LcsBaseStationDccTrack          mainTrack;
 LcsBaseStationDccTrack          progTrack;

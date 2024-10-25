@@ -64,7 +64,7 @@ namespace {
     bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
         return (( val >= lower ) && ( val <= upper ));
-     }
+    }
 
     uint8_t lowByte( uint16_t arg ) { 
         
@@ -422,17 +422,9 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_DEBUG_MASK: {
 
-                if ( nodeId( npId ) == nodeMap.nodeId ) {
-
-                    if ( CDC::isConsoleConnected( )) {
-
-                        debugMask = val1;           
-                    }
-                    else {
-
-                        debugMask = val1 & ~ DBG_CONFIG;
-                    }
-                
+                if ( CDC::isConsoleConnected( ))    debugMask = val1;           
+                else                                debugMask = val1 & ~ DBG_CONFIG;
+              
                 return( ALL_OK );
             }
 

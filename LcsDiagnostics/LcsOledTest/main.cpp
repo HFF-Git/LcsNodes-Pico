@@ -32,7 +32,7 @@
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcPinConfig   cfg     = CDC::getConfigDefault( );
+CDC::CdcConfigDesc  cfg     = CDC::getConfigDefault( );
 UIDisplay           *oled   = nullptr;
 
 //----------------------------------------------------------------------------------------------------------

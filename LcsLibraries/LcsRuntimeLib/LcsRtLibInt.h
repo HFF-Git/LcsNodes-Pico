@@ -130,8 +130,6 @@ const uint16_t  NVM_RUNTIME_AREA_SIZE         = 0x2000;
 const uint16_t NVM_MWORD_1 = ( 'L' << 8 ) + 'C';
 const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + '0';
 
-
-
 //----------------------------------------------------------------------------------------------------------
 // The node states. The node starts in the INIT state and once all is initialized and registered ends up in
 // the OPS or CFG mode.
@@ -233,7 +231,7 @@ struct LcsMsgBusCAN {
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcDesc {
 
-    CDC::CdcPinConfig cfg;
+    CDC::CdcConfigDesc cfg;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -254,50 +252,64 @@ struct LcsNodeData {
 // heart of all data on the node. When bringing up a node, we read in the node map from the NVM. The first 
 // check is whether the nodeMap read is a valid nodeMap. 
 //
-// ??? comment on the fields...
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-    uint16_t    magicWord1                    = NVM_MWORD_1;
-    uint16_t    boardType                     = BT_NIL;
-    uint16_t    boardVersion                  = 0;
-    uint16_t    controllerFamily              = CF_FAM_RPICO;
-    uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
-    uint16_t    reserved1                     = 0;
-    uint16_t    reserved2                     = 0;
-    uint16_t    magicWord2                    = NVM_MWORD_2;
+    //------------------------------------------------------------------------------------------------------
+    // NMV header. We read this in first an check for validity.
+    //------------------------------------------------------------------------------------------------------
+    uint16_t    magicWord1                      = NVM_MWORD_1;
+    uint16_t    boardType                       = BT_NIL;
+    uint16_t    boardVersion                    = 0;
+    uint16_t    controllerFamily                = CF_FAM_RPICO;
+    uint16_t    nvmChipFamily                   = CF_FAM_MICROCHIP;
+    uint16_t    reserved1                       = 0;
+    uint16_t    reserved2                       = 0;
+    uint16_t    magicWord2                      = NVM_MWORD_2;
 
-    uint16_t    nodeState                     = NS_NIL;
-    uint16_t    nodeOptions                   = 0;
-    uint16_t    nodeFlags                     = 0;
-    uint16_t    nodeId                        = NIL_NODE_ID;
-    uint32_t    nodeUID                       = 0L;
-    uint16_t    nodeType                      = NIL_NODE_TYPE;   
-    uint16_t    nodeSwVersion                 = 0;
-    uint16_t    nodeSwPatchLevel              = 0;
-    uint16_t    nodeRestartCnt                = 0;
-    uint32_t    nodeSystemTime                = 0;
-    uint16_t    nodeMapSize                   = sizeof( LcsNodeMap );  
-    char        name[ MAX_NODE_NAME_SIZE ]    = { 0 };
+    //------------------------------------------------------------------------------------------------------
+    // Node data.
+    //------------------------------------------------------------------------------------------------------
+    uint16_t    nodeState                       = NS_NIL;
+    uint16_t    nodeOptions                     = 0;
+    uint16_t    nodeFlags                       = 0;
+    uint16_t    nodeId                          = NIL_NODE_ID;
+    uint32_t    nodeUID                         = 0L;
+    uint16_t    nodeType                        = NIL_NODE_TYPE;   
+    uint16_t    nodeSwVersion                   = 0;
+    uint16_t    nodeSwPatchLevel                = 0;
+    uint16_t    nodeRestartCnt                  = 0;
+    uint32_t    nodeSystemTime                  = 0;
+    uint16_t    nodeMapSize                     = sizeof( LcsNodeMap );  
+    char        name[ MAX_NODE_NAME_SIZE ]      = { 0 };
 
-    uint16_t    nodeMapNvmOfs                 = NVM_NODE_MAP_START;
-    uint16_t    portMapNvmOfs                 = NVM_PORT_MAP_START;
-    uint16_t    nodeDataOfs                   = NVM_NODE_DATA_START;
-    uint16_t    eventMapNvmOfs                = NVM_EVENT_MAP_START;
-    uint16_t    userMapNvmOfs                 = NVM_USER_MAP_START;
-    uint32_t    nvmMemSize                    = NVM_RUNTIME_AREA_SIZE;
+    //------------------------------------------------------------------------------------------------------
+    // Runtime area offsets in the NVM.
+    //------------------------------------------------------------------------------------------------------
+    uint16_t    nvmNodeMapOfs                   = NVM_NODE_MAP_START;
+    uint16_t    nvmPortMapOfs                   = NVM_PORT_MAP_START;
+    uint16_t    nvmNodeDataOfs                  = NVM_NODE_DATA_START;
+    uint16_t    nvmEventMapOfs                  = NVM_EVENT_MAP_START;
+    uint16_t    nvmuserMapOfs                   = NVM_USER_MAP_START;
+    uint32_t    nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
 
-    uint16_t    portMapEntries                = MAX_PORT_MAP_ENTRIES;
-    uint16_t    portMapHwm                    = 0;
+    //------------------------------------------------------------------------------------------------------
+    // The number of entries in the core areas and a high water mark.
+    //------------------------------------------------------------------------------------------------------
+    uint16_t    portMapEntries                  = MAX_PORT_MAP_ENTRIES;
+    uint16_t    portMapHwm                      = 0;
 
-    uint16_t    eventMapEntries               = MAX_EVENT_MAP_ENTRIES;
-    uint16_t    eventMapHwm                   = 0;
+    uint16_t    eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
+    uint16_t    eventMapHwm                     = 0;
 
-    uint16_t    drvMapEntries                 = MAX_EXT_BOARD_MAP_ENTRIES;
-    uint16_t    drvMapHwm                     = 0;
+     uint16_t   taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t    taskMapHwm                      = 0;
 
-    uint16_t    taskMapEntries                = MAX_TASK_MAP_ENTRIES;
-    uint16_t    taskMapHwm                    = 0;
+    uint16_t    pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
+    uint16_t    pendingMapHwm                   = 0;
+
+    uint16_t    drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t    drvMapHwm                       = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -402,9 +414,6 @@ struct LcsPendingReqEntry {
 
 struct LcsPendingReqMap {
 
-    uint16_t            size    = MAX_PENDING_REQ_MAP_ENTRIES;           
-    uint16_t            hwm     = 0;
-
     LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
@@ -450,10 +459,15 @@ struct LcsDrvBoardDesc {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The runtime library maintains a driver table. A driver is a library that manages a particular extension 
-// board. During startup all extension boards will be located, if any. For each board the correct driver
-// will be stored in the driver map. The driver object is a set of defined methods and a reference to the
-// driver data area. This is the area that was read in when we located the extension board. 
+// The runtime library maintains a driver table, which has for each of the extension boards an entry. The 
+// first board has an index of zero.  While the drivers are set regardless of the order of the extension 
+// boards, the boardId would change with the order of extension boards connected. A firmware either needs
+// to insist on the correct order or map the extension boards regardless of order. 
+// 
+// The entry contains a set of flags about the driver, the procedure label for the driver code and the
+// extension board descriptor, which is read in from the extension board NVM area. During startup all 
+// extension boards will be located, if there are any. For each board the correct driver procedure label
+// will be stored in the driver map entry.
 //
 // If the extension board descriptor is invalid, the driver map entry is marked as failed. We can however
 // still access the data area from configuration tools, when the jumper to enable writing to the board is
@@ -461,22 +475,15 @@ struct LcsDrvBoardDesc {
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvEntry {
+    
+    uint16_t            flags       = 0;
+    LcsDrvReqFunc       drvFunc     = nullptr;
 
-    LcsDrvBoardDesc   *extBoard = nullptr;
-    LcsDrvReqFunc     drvFunc   = nullptr;
+    LcsDrvBoardDesc     extBoard;
 };
 
-//----------------------------------------------------------------------------------------------------------
-// The LCS driver map is a memory structure created at setup time. When an extension board is connected to
-// the controller board it is assigned by hardware an index number. The first board has an index of zero. 
-// While the drivers are set regardless of the order of the extension boards, the boardId would change
-// with the order of extension boards connected. A firmware either needs to insist on the correct order
-// or map the extension boards regardless of order.  
-// 
-//----------------------------------------------------------------------------------------------------------
 struct LcsDrvMap {
-
-    uint16_t        size = MAX_EXT_BOARD_MAP_ENTRIES;    
+ 
     LcsDrvEntry     map[ MAX_EXT_BOARDS ];
 };
 
@@ -485,7 +492,7 @@ struct LcsDrvMap {
 //
 // ??? keep this list short... maybe keep local to each file....
 //----------------------------------------------------------------------------------------------------------
-uint8_t     configNvm( CDC::CdcPinConfig *ci );
+uint8_t     configNvm( CDC::CdcConfigDesc *ci );
 
 uint8_t     rtNvmPutWord( uint32_t ofs, uint16_t word );
 uint8_t     rtNvmGetWord( uint32_t ofs, uint16_t *word );
@@ -498,7 +505,7 @@ uint8_t     extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word );
 uint8_t     extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
 uint8_t     extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t     extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     extNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val = 0 ); 
+uint8_t     extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val = 0 ); 
 uint32_t    extNvmGetSize( );
 
 uint8_t     resetNode( uint16_t npId );

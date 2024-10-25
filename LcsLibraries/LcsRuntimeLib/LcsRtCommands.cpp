@@ -9,6 +9,9 @@
 // reason for adopting the DCC++ command syntax that for example the JMRI community built tools that accept 
 // DCC++ commands.
 //
+// Most commands are sensitive to the node/port ID. If there is another node than our own node, specified 
+// with a zero node ID value, the commands is sent to the bus.
+//
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
@@ -150,62 +153,6 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 // nice to show formatted data. Perhaps one day...
 //
 //------------------------------------------------------------------------------------------------------------
-void dumpNodeMap( ) {
-
-    printf( "MEM Node Map: \n" );
-    dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ));
-    printf( "\n" );
-}
-
-void dumpPortMap( ) {
-
-    printf( "MEM Port Map (Size: %d, Hwm: %d): \n", nodeMap.portMapEntries, nodeMap.portMapHwm );
-    dumpMemData((uint16_t *) &portMap.map, sizeof( LcsPortMap ));
-    printf( "\n" );
-}
-
-void dumpNodeData( ) {
-
-    printf( "MEM Node Data: \n" );
-    dumpMemData((uint16_t *) &nodeData.map, sizeof( LcsNodeData ));
-    printf( "\n" );
-}
-
-void dumpEventMap( ) {
-
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
-    dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
-    printf( "\n" );
-}
-
-void dumpPendingReqMap( ) {
-
-    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n", pendingReqMap.size, pendingReqMap.hwm );
-    dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
-    printf( "\n" );
-}
-
-void dumpCallbackMap( ) {
-
-    printf( "Callback Map: \n" );
-    dumpMemData((uint16_t *) &callbackMap, sizeof( LcsCallbackMap ));
-    printf( "\n" );
-}
-
-void dumpTaskMap( ) {
-
-    printf( "Task Map: (Size: %d, Hwm: %d) \n", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
-    dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
-    printf( "\n" );
-}
-
-void dumpDrvMap( ) {
-
-    printf( "Driver Map: (Size: %d) \n", drvMap.size );
-    dumpMemData((uint16_t *) &drvMap, sizeof( LcsDrvMap ));
-    printf( "\n" );
-}
-
 void printSummary( ) {
 
     printf( "LCS Node: \"" );
@@ -218,16 +165,114 @@ void printSummary( ) {
     printf( "LCS Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
 }
 
-void dumpMemArea( ) {
+void dumpMemNodeMap( ) {
+
+    printf( "MEM Node Map: \n" );
+    dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ));
+    printf( "\n" );
+}
+
+void dumpMemPortMap( ) {
+
+    // ??? use the actual address as index to show ?
+
+    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", nodeMap.portMapEntries, nodeMap.portMapHwm );
+
+    // for ( int i  = 0; i < nodeMap.portMapHwm; i++ ) {
+    for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        printf( "Port %d:\n", i + 1 );
+        dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ));
+        printf( "\n" );
+    }
+}
+
+void dumpMemNodeData( ) {
+
+    printf( "MEM Node Data: \n" );
+
+     // for ( int i  = 0; i < nodeMap.portMapHwm; i++ ) { // ??? sync with how many ports we have ?
+    for ( int i  = 0; i < MAX_NODE_DATA_BLOCKS; i++ ) {
+
+        printf( "Port %d:\n", i );
+        dumpMemData((uint16_t *) &nodeData.map[ i ], MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
+        printf( "\n" );
+    }
+}
+
+void dumpMemEventMap( ) {
+
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+    dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
+    printf( "\n" );
+}
+
+void dumpMemPendingReqMap( ) {
+
+    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n", nodeMap.pendingMapEntries, nodeMap.pendingMapHwm );
+    dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
+    printf( "\n" );
+}
+
+void dumpMemCallbackMap( ) {
+
+    printf( "MEM Callback Map: \n" );
+    dumpMemData((uint16_t *) &callbackMap, sizeof( LcsCallbackMap ));
+    printf( "\n" );
+}
+
+void dumpMemTaskMap( ) {
+
+    printf( "MEM Task Map: (Size: %d, Hwm: %d) \n", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
+    dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
+    printf( "\n" );
+}
+
+void dumpMemDrvMap( ) {
+
+    printf( "MEM Driver Map: (Size: %d) \n", nodeMap.drvMapEntries );
+    dumpMemData((uint16_t *) &drvMap, sizeof( LcsDrvMap ));
+    printf( "\n" );
+}
+
+void dumpMemRuntimeArea( ) {
 
     printf( "MEM Area Dump: \n" );
-    dumpNodeMap( );
-    dumpPortMap( );
-    dumpEventMap( );
-    dumpPendingReqMap( );
-    dumpTaskMap( );
-    dumpCallbackMap( );
-    dumpDrvMap( );
+    dumpMemNodeMap( );
+    dumpMemPortMap( );
+    dumpMemEventMap( );
+    dumpMemPendingReqMap( );
+    dumpMemTaskMap( );
+    dumpMemCallbackMap( );
+    dumpMemDrvMap( );
+    printf( "\n" );
+}
+
+void dumpNvmNodeMap( ) {
+
+    printf( "NVM Node Map Dump: \n" );
+    dumpNvmData( NVM_NODE_MAP_START, sizeof( LcsNodeMap ));
+    printf( "\n" );
+}
+
+void dumpNvmPortMap( ) {
+
+    printf( "NVM Port Map Dump: \n" );
+    dumpNvmData( NVM_PORT_MAP_START, sizeof( LcsPortMap ));
+    printf( "\n" );
+}
+
+void dumpNvmNodeData( ) {
+
+    printf( "NVM Node Data Dump: \n" );
+    dumpNvmData( NVM_NODE_DATA_START, sizeof( LcsNodeData ));
+    printf( "\n" );
+}
+
+void dumpNvmEventMap( ) {
+
+    printf( "NVM Node Event Dump: \n" );
+    dumpNvmData( NVM_EVENT_MAP_START, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
@@ -252,7 +297,11 @@ void dumpNvmUserArea( ) {
     printf( "\n" );
 }
 
-void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void scanI2CBus( uint8_t sclPin ) {
 
     uint8_t rStat     = 0;
     uint8_t i2cAdr    = 0;
@@ -262,7 +311,7 @@ void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
     for ( i2cAdr = 1; i2cAdr < 127; i2cAdr++ ) {
 
         rStat = CDC::i2cRead( sclPin, i2cAdr, &buf, 1 );
-
+      
         if ( rStat == 0 ) {
 
             printf( "I2C device found at i2cAdr 0x%x\n", i2cAdr );
@@ -278,15 +327,15 @@ void listDevicesI2C( ) {
 
     if ( cdcMap.cfg.NVM_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) {
 
-      printf( "Scanning NVM I2C Bus: slc:%d, sda: %d \n", cdcMap.cfg.NVM_I2C_SCL_PIN, cdcMap.cfg.NVM_I2C_SDA_PIN );
-      scanI2CBus(  cdcMap.cfg.NVM_I2C_SCL_PIN, cdcMap.cfg.NVM_I2C_SDA_PIN );
+      printf( "Scanning NVM I2C Bus: scl:%d, sda: %d \n", cdcMap.cfg.NVM_I2C_SCL_PIN, cdcMap.cfg.NVM_I2C_SDA_PIN );
+      scanI2CBus(  cdcMap.cfg.NVM_I2C_SCL_PIN );
       printf( "\n" );
     }
 
     if ( cdcMap.cfg.EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) {
 
-      printf( "Scanning EXT I2C Bus: slc:%d, sda: %d \n", cdcMap.cfg.EXT_I2C_SCL_PIN, cdcMap.cfg.EXT_I2C_SDA_PIN );
-      scanI2CBus(  cdcMap.cfg.EXT_I2C_SCL_PIN, cdcMap.cfg.EXT_I2C_SDA_PIN );
+      printf( "Scanning EXT I2C Bus: scl:%d, sda: %d \n", cdcMap.cfg.EXT_I2C_SCL_PIN, cdcMap.cfg.EXT_I2C_SDA_PIN );
+      scanI2CBus(  cdcMap.cfg.EXT_I2C_SCL_PIN );
       printf( "\n" );
     }
 }
@@ -757,6 +806,23 @@ void drvReqCommand( char *s ) {
     printf( "<!R %d %d %d %d %d>", boardId, item, arg1, arg2, rStat );
 }
 
+void i2cPingCommand( char *s ) {
+
+    uint8_t i2cAdr      = 0;
+    uint8_t sclPin      = 0;
+    uint8_t rStat       = ALL_OK;
+    uint8_t buf[ 2 ]    = { 0 };
+
+    if ( sscanf( s, "%hhu %hhu", &sclPin, &i2cAdr ) < 2 ) return;
+
+    if ( i2cAdr > 127 ) i2cAdr = 127;
+    if (( sclPin != cdcMap.cfg.NVM_I2C_SCL_PIN ) && ( sclPin != cdcMap.cfg.EXT_I2C_SCL_PIN )) return;
+
+    rStat = CDC::i2cWrite( sclPin, i2cAdr, buf, 1 );
+
+    printf( "I2C Ping, ret: %d\n", rStat );
+}
+
 //------------------------------------------------------------------------------------------------------------
 // "listStatus" list information. The level argument specifies the what and the detail level.
 //
@@ -774,17 +840,24 @@ void listStatusCommand( char *s ) {
         switch ( level ) {
 
             case 0:     printSummary( );            break;
-            case 1:     dumpNodeMap( );             break;
-            case 2:     dumpPortMap( );             break;
-            case 3:     dumpNodeData( );            break;
-            case 4:     dumpEventMap( );            break;
-            case 5:     dumpPendingReqMap( );       break;
-            case 6:     dumpTaskMap( );             break;
-            case 7:     dumpCallbackMap( );         break;
-            case 8:     dumpDrvMap( );              break;
-            case 10:    dumpMemArea( );             break;
-            case 11:    dumpNvmRuntimeArea( );      break;
-            case 20:    listDevicesI2C( );          break;   
+
+            case 1:     dumpMemNodeMap( );          break;
+            case 2:     dumpMemPortMap( );          break;
+            case 3:     dumpMemNodeData( );         break;
+            case 4:     dumpMemEventMap( );         break;
+            case 5:     dumpMemPendingReqMap( );    break;
+            case 6:     dumpMemTaskMap( );          break;
+            case 7:     dumpMemCallbackMap( );      break;
+            case 8:     dumpMemDrvMap( );           break;
+            case 9:     dumpMemRuntimeArea( );      break;
+
+            case 21:    dumpNvmNodeMap( );          break;
+            case 22:    dumpNvmPortMap( );          break;
+            case 23:    dumpNvmNodeData( );         break;
+            case 24:    dumpNvmEventMap( );         break;
+            case 29:    dumpNvmRuntimeArea( );      break;
+
+            case 30:    listDevicesI2C( );          break;   
 
             default: printf( "<Unknown help option, use '?' for help>" );
         }
@@ -822,18 +895,24 @@ void listCoreLibHelpCommand( ) {
     printf( "<!R board item [ arg1 [ arg2 ]] > - send a REQ request to an extension board n\n" );
    
     printf( "< !s [ level ] > - list status, default is summary\n" );
-    printf( "              " " -  0  - summary\n" );
-    printf( "              " " -  1  - Node Map\n" );
-    printf( "              " " -  2  - Port Map\n" );
-    printf( "              " " -  3  - Node Data\n" );
-    printf( "              " " -  4  - Event Map\n" );
-    printf( "              " " -  5  - Pending Request Map\n" );
-    printf( "              " " -  6  - Task Map\n" );
-    printf( "              " " -  7  - Callback Map\n" );
-    printf( "              " " -  8  - Driver Map\n" );
-    printf( "              " " - 10  - MEM Area\n" );
-    printf( "              " " - 11  - NVM Area\n" );
-    printf( "              " " - 20  - I2C Devices\n" );
+    printf( "              " " -   0  - summary\n" );
+    printf( "              " " -   1  - MEM Node Map\n" );
+    printf( "              " " -   2  - MEM Port Map\n" );
+    printf( "              " " -   3  - MEM Node Data\n" );
+    printf( "              " " -   4  - MEM Event Map\n" );
+    printf( "              " " -   5  - MEM Pending Request Map\n" );
+    printf( "              " " -   6  - MEM Task Map\n" );
+    printf( "              " " -   7  - MEM Callback Map\n" );
+    printf( "              " " -   8  - MEM Driver Map\n" );
+    printf( "              " " -   9  - MEM Runtime Area\n" );
+
+    printf( "              " " -  21  - NVM Node Map\n" );
+    printf( "              " " -  22  - NVM Port Map\n" );
+    printf( "              " " -  23  - NVM Node Data\n" );
+    printf( "              " " -  24  - NVM Event Map\n" );
+    printf( "              " " -  29  - NVM Runtime Area\n" );
+
+    printf( "              " " -  30  - I2C Devices\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -880,23 +959,25 @@ uint8_t handleSerialCommand( ) {
                         case 'C': switchToConfigCommand( commandBuf + 2 );        break;
                         case 'O': switchToOperationsCommand( commandBuf + 2 );    break;
                         
-                        case 'a': enterEventCommand( commandBuf + 2 );            break;
-                        case 'd': removeEventCommand( commandBuf + 2 );           break;
-                        case 'f': findEventCommand( commandBuf + 2 );             break;
-                        case 'e': sendEventCommand( commandBuf + 2 );             break;
+                        case 'a': enterEventCommand( commandBuf + 2 );          break;
+                        case 'd': removeEventCommand( commandBuf + 2 );         break;
+                        case 'f': findEventCommand( commandBuf + 2 );           break;
+                        case 'e': sendEventCommand( commandBuf + 2 );           break;
                         
-                        case 'g': getNodeCommand( commandBuf + 2 );               break;
-                        case 'p': putNodeCommand( commandBuf + 2 );               break;
-                        case 'r': reqNodeCommand( commandBuf + 2 );               break;
+                        case 'g': getNodeCommand( commandBuf + 2 );             break;
+                        case 'p': putNodeCommand( commandBuf + 2 );             break;
+                        case 'r': reqNodeCommand( commandBuf + 2 );             break;
 
-                        case 'B': broadcastLcsMsgCommand( commandBuf + 2 );       break;
+                        case 'B': broadcastLcsMsgCommand( commandBuf + 2 );     break;
 
-                        case 'G': drvGetCommand( commandBuf + 2 );                break;
-                        case 'P': drvPutCommand( commandBuf + 2 );                break;
-                        case 'R': drvReqCommand( commandBuf + 2 );                break;
+                        case 'G': drvGetCommand( commandBuf + 2 );              break;
+                        case 'P': drvPutCommand( commandBuf + 2 );              break;
+                        case 'R': drvReqCommand( commandBuf + 2 );              break;
 
-                        case 's': listStatusCommand( commandBuf + 2 );            break;
-                        case '?': listCoreLibHelpCommand( );                      break;
+                        case 'I': i2cPingCommand( commandBuf + 2 );             break;
+
+                        case 's': listStatusCommand( commandBuf + 2 );          break;
+                        case '?': listCoreLibHelpCommand( );                    break;
 
                         default: printf( "<Unknown !-command, use '!?' for help>" );
                     }
