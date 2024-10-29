@@ -132,7 +132,7 @@ uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 // is just no chip at that address. We will use a retry count so we will not try forever.
 //
 // ??? will this work when we have a NVM write disabled chip ?
-// ??? should we distinguish between a read and a write request ?
+// ??? should we distinguish between a read and a write request ? what is better ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
 

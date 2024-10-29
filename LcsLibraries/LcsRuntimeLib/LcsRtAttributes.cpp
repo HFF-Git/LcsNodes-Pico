@@ -207,6 +207,13 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
         switch ( item ) {
 
+            case ITEM_ID_DEBUG_MASK: {
+
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
+                *arg1 = debugMask;
+                return( ALL_OK );
+            }
+
             case ITEM_ID_OPTIONS: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
@@ -225,10 +232,38 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_DEBUG_MASK: {
+            case ITEM_ID_VERSION: {
 
-                if ( nodeId( npId ) == nodeMap.nodeId ) *arg1 = debugMask;
-                return( ALL_OK );
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );
+
+                *arg1 = nodeMap.nodeSwVersion;
+                return ( ALL_OK );          
+            }
+
+            case ITEM_ID_TYPE: {
+
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
+
+                if ( portId( npId ) == 0 )   *arg1 = nodeMap. nodeType;
+                else                         *arg1 = portMap.map[ portId( npId ) - 1 ].type;
+
+                return ( ALL_OK );
+            }
+
+            case ITEM_ID_CONTROLLER_FAMILY: {
+
+                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
+
+                *arg1 = nodeMap.controllerFamily;
+                return ( ALL_OK );
+            }
+        
+            case ITEM_ID_NODE_ID: {
+
+                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
+
+                *arg1 = nodeMap.nodeId;
+                return ( ALL_OK );
             }
 
             case ITEM_ID_NODE_UID: {
@@ -241,11 +276,11 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_NODE_ID: {
+            case ITEM_ID_RESTART_COUNT: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = nodeMap.nodeId;
+                *arg1 = nodeMap.nodeRestartCnt;
                 return ( ALL_OK );
             }
 
@@ -273,30 +308,12 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_RESTART_COUNT: {
-
-                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
-
-                *arg1 = nodeMap.nodeRestartCnt;
-                return ( ALL_OK );
-            }
-
             case ITEM_ID_GET_EVENT_MAP_ENTRY: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG );
 
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
-            }
-
-            case ITEM_ID_TYPE: {
-
-                if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
-
-                if ( portId( npId ) == 0 )   *arg1 = nodeMap. nodeType;
-                else                         *arg1 = portMap.map[ portId( npId ) - 1 ].type;
-
-                return ( ALL_OK );
             }
 
             case ITEM_ID_NAME_1: {
@@ -332,7 +349,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 }
                 else {
 
-                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) - 1 ];
 
                     *arg1 = ((uint16_t) ( pEntry -> name[ 4 ] << 8  ) | pEntry -> name[ 5 ] );
                     *arg2 = ((uint16_t) ( pEntry -> name[ 6 ] << 8  ) | pEntry -> name[ 7 ] );
@@ -353,7 +370,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 }
                 else {
 
-                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) - 1 ];
 
                     *arg1 = ((uint16_t) ( pEntry -> name[ 8 ] << 8  ) | pEntry -> name[ 9 ] );
                     *arg2 = ((uint16_t) ( pEntry -> name[ 10 ] << 8  ) | pEntry -> name[ 11 ] );
@@ -374,7 +391,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 }
                 else {
 
-                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) -1 ];
+                    LcsPortMapEntry *pEntry = &portMap.map[ portId( npId ) - 1 ];
 
                     *arg1 = ((uint16_t) ( pEntry -> name[ 12 ] << 8  ) | pEntry -> name[ 13 ] );
                     *arg2 = ((uint16_t) ( pEntry -> name[ 14 ] << 8  ) | pEntry -> name[ 15 ] );
@@ -428,12 +445,36 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return( ALL_OK );
             }
 
+            case ITEM_ID_VERSION: {
+
+                nodeMap.nodeSwVersion = val1;
+                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeSwVersion ), val1 ));
+            }
+
+            case ITEM_ID_OPTIONS: {
+
+                nodeMap.nodeOptions = val1;
+                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeOptions ), val1 ));
+            }
+
+            case ITEM_ID_FLAGS: {
+
+                nodeMap.nodeFlags = val1;
+                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeFlags ), val1 ));
+            }
+
+            case ITEM_ID_NODE_ID: {
+
+                nodeMap.nodeId = nodeId( val1 );
+                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), val1 ));
+            }
+
             case ITEM_ID_TYPE: {
 
                 if ( portId( npId ) == 0 ) {
 
                     nodeMap.nodeType = lowByte( val1 );
-                    return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeType ), nodeMap.nodeType ));
+                    return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeType ), val1 ));
                 }
                 else {
 

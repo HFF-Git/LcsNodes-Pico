@@ -274,7 +274,7 @@ struct CdcConfigDesc {
 //------------------------------------------------------------------------------------------------------------
 uint8_t       configureConsoleIO( );
 bool          isConsoleConnected( );
-char          getConsoleChar( bool echoBack = true, uint32_t timeoutVal = 0 );
+char          getConsoleChar( uint32_t timeoutVal = 0 );
 
 //------------------------------------------------------------------------------------------------------------
 // CDC setup and configuration routines. The idea is to help the library write with a default configuration

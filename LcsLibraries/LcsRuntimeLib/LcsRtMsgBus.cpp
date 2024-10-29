@@ -478,7 +478,13 @@ uint8_t sendEventOn( uint16_t npId, uint16_t eventId ) {
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+    
+     if ( nodeId( npId ) == nodeMap.nodeId ) {
+
+        handleMsgEvent( msgBuf );
+        return( ALL_OK );
+    } 
+    else return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
 uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
@@ -488,7 +494,13 @@ uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+
+    if ( nodeId( npId ) == nodeMap.nodeId ) {
+
+        handleMsgEvent( msgBuf );
+        return( ALL_OK );
+    } 
+    else return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
 uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {

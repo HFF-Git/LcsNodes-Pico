@@ -595,11 +595,7 @@ void fatalError( uint8_t n ) {
 //------------------------------------------------------------------------------------------------------------
 void fatalErrorMsg( char *str, uint8_t n ) {
 
-    if ( isConsoleConnected( )) {
-
-        printf( "Fatal Error: %d: %s\n", n, str );
-    }
-
+    if ( isConsoleConnected( )) printf( "Fatal Error: %d: %s\n", n, str );
     fatalError( n );
 }
 
@@ -679,7 +675,7 @@ uint32_t createUid( ) {
 // there is no USB connected. Detecting a connection helps to decide whether we can report an error or need
 // to resort to a fatal error call at startup. 
 //
-// There are two basic ways to detect an USB connection. The first is to simply check if thee is power on 
+// There are two basic ways to detect an USB connection. The first is to simply check if there is power on 
 // the USB port. The PICO features an internal GPIO pin for this purpose. Using this method still does not
 // mean that we have someone connected to the USB, but just that there is a cable with power. Well, good
 // enough for us. The second method truly detects that there is a USB host connected. This check is provided
@@ -688,9 +684,9 @@ uint32_t createUid( ) {
 // rather go with the risk that there is just power on the USB connector.
 //
 // Finally, there is a routine to get a character for the command interfaces. Since the function just reads
-// in a character, we have to echo it back to the console ourselves if desired.
+// in a character, optionally with a timeout how ling to wait for any inout.
 //
-// The USB check way would be "return( stdio_usb_connected( ));" instead of the GPIO check.
+// PS: The USB check way would be "return( stdio_usb_connected( ));" instead of the GPIO check.
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureConsoleIO( ) {
 
@@ -706,15 +702,10 @@ bool isConsoleConnected( ) {
     return( gpio_get( PICO_VBUS_PIN ));
 }
   
-char getConsoleChar( bool echoBack, uint32_t timeoutVal ) {
+char getConsoleChar( uint32_t timeoutVal ) {
 
     int ch = getchar_timeout_us( timeoutVal );
-
-    if ( ch == PICO_ERROR_TIMEOUT ) return( 0 );
-
-    if ( echoBack ) printf( "%c", ch );
-
-    return( ch );
+    return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
 }
 
 //------------------------------------------------------------------------------------------------------------

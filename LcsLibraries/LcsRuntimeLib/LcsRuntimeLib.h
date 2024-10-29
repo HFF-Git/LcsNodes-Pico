@@ -317,7 +317,8 @@ enum LcsNodeOptions : uint16_t {
     NOPT_NIL                    = 0,
     NOPT_SKIP_NODE_ID_CONFIG    = ( 1 << 0 ),
     NOPT_SKIP_NODE_INIT_STEP    = ( 1 << 1 ),
-    NOPT_DEBUG_DURING_SETUP     = ( 1 << 2 )
+    NOPT_DEBUG_DURING_SETUP     = ( 1 << 2 ),
+    NOPT_FORMAT_RUNTIME         = ( 1 << 3 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -364,7 +365,7 @@ enum LcsItems : uint8_t {
     ITEM_ID_FLAGS                       = 2,
     ITEM_ID_VERSION                     = 4,
     ITEM_ID_TYPE                        = 5,
-    ITEM_ID_SUB_TYPE                    = 6,
+   
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
     ITEM_ID_DEBUG_MASK                  = 9,
@@ -386,7 +387,7 @@ enum LcsItems : uint8_t {
 
     ITEM_ID_RESET                       = 22,
     ITEM_ID_SYNC                        = 23,
-    ITEM_ID_SET_NODE_ID                 = 24,
+   
     ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
     ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
     ITEM_ID_GET_EVENT_MAP_ENTRY         = 27,

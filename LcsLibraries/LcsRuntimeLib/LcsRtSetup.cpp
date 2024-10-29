@@ -66,7 +66,9 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    uint16_t                    debugMask = 0;
+    uint16_t                    debugMask    = 0;
+    uint16_t                    startOptions = 0;
+
     LCS::LcsCdcDesc             cdcMap;
     LCS::LcsMsgBusCAN           *msgBus;
     LCS::LcsNodeData            nodeData;
@@ -170,7 +172,8 @@ void buildDefaultNodeData( LcsNodeData *nData ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "buildNvmRuntimeStructures" initializes a new or corrupt runtime NVM with default data.
+// "buildNvmRuntimeStructures" initializes a new or corrupt runtime NVM with default data. After successful
+// completion, we will have a valid runtime map.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructures( ) {
@@ -275,12 +278,22 @@ namespace LCS {
 // several times.
 //
 // There are two basic modes. The first is when we have a console connected. We will prompt and wait for a
-// start command. Depending on the command options for debugging, etc. can be set. The second mode is when 
-// there no console connected. In this case, just disable debug and start the show.
+// start command. There are several options for starting a node. The easiest is "R" which just starts the 
+// node. The "D" command will start with debugging enabled. We will set the setup debug flags to check any
+// issues during the startup phase. Finally, there is there "F" command, which will format the NVM runtime 
+// area. However, all that is happening in this routine is to set these options to be executed at the right
+// place in the setup sequence.
+//
+// The second mode is when there no console connected. In this case, Debug is disabled and we just setup
+// the node. This mode should be the normal case for all the nodes in a layout.
 // 
-// ??? have "r", "d", etc. to drive options...
+// Perhaps one day, this routine could be enhanced to allow commands to pile up the start options followed
+// by the final start command to get the show going. 
+//
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
+
+    const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
     cdcMap.cfg = *ci;
 
@@ -295,26 +308,43 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
         while ( true ) {
 
-            CDC::sleepMillis( 1000 );
             printf( ">" );   
 
-            char ch = CDC::getConsoleChar( 1024 * 1024 );
+            char ch = CDC::getConsoleChar( CONSOLE_TIMEOUT );
 
             if (( ch == 'R' ) || ( ch == 'r' )) {
 
-                debugMask &= ~ DBG_CONFIG;
-                break;
+                debugMask       &= ~ DBG_CONFIG;
+                startOptions    = NOPT_NIL;
+                return( ALL_OK );
             }
             else if (( ch == 'D' ) || ( ch == 'd' )) {
 
-                debugMask = DBG_CONFIG | DBG_SETUP;
-                break;
+                debugMask       = DBG_CONFIG | DBG_SETUP;
+                startOptions    = NOPT_NIL;
+                return( ALL_OK );
+            }
+            else if (( ch == 'F' ) || ( ch == 'f' )) {
+
+                debugMask       &= ~ DBG_CONFIG;
+                startOptions    = NOPT_FORMAT_RUNTIME;
+                return( ALL_OK );
+            }
+            else if ( ch == '?' ) {
+
+                printf( "Setup options:\n" );
+                printf( "r, R -> start the node with debug initially disabled\n" );
+                printf( "d, D -> start the node with \"setup\" debug options enabled\n" );
+                printf( "f, F -> start the node with a newly formatted runtime map\n" );
             }
         }
     }
-    else debugMask &= ~ DBG_CONFIG;
-
-    return ( ALL_OK );
+    else {
+        
+        debugMask       &= ~ DBG_CONFIG;
+        startOptions    = NOPT_NIL;
+        return ( ALL_OK );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -375,10 +405,10 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "setupNodeMap" sets up the nodeMap. It is the first routine after all the basic hardware settings is in 
-// place. We read in the nodeMap from the node NVM. A quick check of the magic words and the the nodeMap size
-// field will tell us whether this nodeMap was initialized before. If this is not the case, we must assume a
-// corrupt nodeMap or a new board. The runtime area data structures are created with default values and 
-// written to the NVM.
+// place. Unless the start options tell us to just format a new runtime area, we read in the nodeMap from 
+// the node NVM. A quick check of the magic words and the the nodeMap size field will tell us whether this
+// nodeMap was initialized before. If this is not the case, we must assume a corrupt nodeMap or a new board. 
+// The runtime area data structures are created with default values and written to the NVM.
 //
 // In any case, the follow-on setup routines can assume a valid data structure to work from and just read 
 // the NVM as normal. If this routine has an error it should be considered as a fatal error.
@@ -386,9 +416,19 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
+    uint8_t rStat = ALL_OK;
+
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap\n" );
 
-    uint8_t rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    if ( startOptions & NOPT_FORMAT_RUNTIME ) {
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
+            printf( "Format a new runtime area\n" );
+
+        rStat = buildNvmRuntimeStructures( );
+    }
+
+    rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );
 
      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
