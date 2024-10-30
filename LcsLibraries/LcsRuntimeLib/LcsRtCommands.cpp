@@ -125,8 +125,9 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 //------------------------------------------------------------------------------------------------------------
 void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
-    uint32_t  limit = start + len;
-    uint16_t  val   = 0;
+    uint8_t     rStat = ALL_OK;
+    uint32_t    limit = start + len;
+    uint16_t    val   = 0;
 
     while ( start < limit ) {
 
@@ -138,8 +139,8 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 
             if ( ofs < limit ) {
 
-                extNvmGetWord( boardId, ofs, &val );
-                printf( "0x%04x ", val );
+                rStat = extNvmGetWord( boardId, ofs, &val );
+                if ( rStat == ALL_OK ) printf( "0x%04x ", val );
             }
         }
 
@@ -231,7 +232,7 @@ void dumpMemDrvMap( ) {
     for ( int i  = 0; i < MAX_EXT_BOARDS; i++ ) {
 
         printf( "Board %d:\n", i );
-        dumpMemData(( uint16_t*) &drvMap.map, sizeof( LcsDrvEntry ));
+        dumpMemData(( uint16_t*) &drvMap.map[ i ], sizeof( LcsDrvEntry ));
         printf( "\n" );
     }
 
@@ -309,11 +310,21 @@ void dumpNvmRuntimeArea( ) {
     printf( "\n" );
 }
 
-void dumpNvmDrvData( uint16_t boardId  ) {
+void dumpNvmDrvData( uint16_t boardId ) {
 
-    printf( "NVM Driver Data: \n\n" );
-    dumpExtNvmData( boardId, 0, extNvmGetSize( ));
-    printf( "\n" );
+    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) {
+
+        printf( "Invalid board ID\n" );
+        return;
+    }
+
+    if ( drvMap.map[ boardId ].flags & BF_EXT_BOARD_PRESENT ) {
+
+        printf( "NVM Driver Data( board: %d ): \n\n", boardId );
+        dumpExtNvmData( boardId, 0, sizeof( LcsDrvBoardDesc ));
+        printf( "\n" );
+    }
+    else printf( "No board found \n" );
 }
 
 void dumpNvmUserArea( ) {
@@ -880,9 +891,12 @@ void listStatusCommand( char *s ) {
             case 24:    dumpNvmEventMap( );         break;
             case 29:    dumpNvmRuntimeArea( );      break;
 
-            // ??? EXT NVM ?
+            case 30:    dumpNvmDrvData( 0 );        break;
+            case 31:    dumpNvmDrvData( 1 );        break;
+            case 32:    dumpNvmDrvData( 2 );        break;
+            case 33:    dumpNvmDrvData( 3 );        break;
 
-            case 30:    listDevicesI2C( );          break;   
+            case 40:    listDevicesI2C( );          break;   
 
             default: printf( "<Unknown help option, use '?' for help>" );
         }
@@ -937,7 +951,12 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -  24  - NVM Event Map\n" );
     printf( "              " " -  29  - NVM Runtime Area\n" );
 
-    printf( "              " " -  30  - I2C Devices\n" );
+    printf( "              " " -  30  - NVM Extension Board 0\n" );
+    printf( "              " " -  31  - NVM Extension Board 1\n" );
+    printf( "              " " -  32  - NVM Extension Board 2\n" );
+    printf( "              " " -  33  - NVM Extension Board 3\n" );
+
+    printf( "              " " -  40  - I2C Devices\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------

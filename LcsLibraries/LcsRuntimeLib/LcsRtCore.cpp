@@ -509,7 +509,7 @@ void handleNodeStateInit( ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
-    
+    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -528,6 +528,8 @@ void handleNodeStatePfail( ) {
 
         callbackMap.pfailCallback(( nodeMap.nodeId << 4 ) | i + 1 );
     }
+
+    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -554,6 +556,8 @@ void handleNodeStateRegister( ) {
              }
         }
     }
+
+    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -570,6 +574,8 @@ void handleNodeStateCollision( ) {
         case LCS_OP_RESET:
         case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
     }
+
+    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -616,6 +622,7 @@ void handleNodeStateConfig( ) {
 
     handlePeriodicTasks( );
     handleNodePortEvents( );
+    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -678,6 +685,7 @@ void handleNodeStateOperations( ) {
 
     handlePeriodicTasks( );
     handleNodePortEvents( );
+    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -701,8 +709,6 @@ void handleNodeState( ) {
             case NS_OPERATE:    handleNodeStateOperations( ); break;
             default: ;
         }
-
-        handleSerialCommand( );
     }
 }
 

@@ -296,10 +296,10 @@ enum LcsControllerFamilyType : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum LcsBoardFlags : uint16_t {
 
-    BF_NIL                  = 0,
-    BF_EXT_BOARD_PRESENT    = 1,
-    BF_EXT_BOARD_VALID      = 2,
-    BF_EXT_BOARD_READY      = 3,
+    BF_NIL                  = ( 1U << 0 ),
+    BF_EXT_BOARD_PRESENT    = ( 1U << 1 ),
+    BF_EXT_BOARD_VALID      = ( 1U << 2 ),
+    BF_EXT_BOARD_READY      = ( 1U << 3 )
 };
 
 //------------------------------------------------------------------------------------------------------------

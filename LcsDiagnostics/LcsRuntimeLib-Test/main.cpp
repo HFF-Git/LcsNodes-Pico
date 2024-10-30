@@ -82,7 +82,7 @@ uint8_t initLcsRuntime( ) {
     cdcConfig.CAN_BUS_DEF_ID        = 100;
 
     cdcConfig.NODE_NVM_SIZE         = 8192;
-    cdcConfig.EXT_NVM_SIZE          = 4096;
+    cdcConfig.EXT_NVM_SIZE          = 512;
 
     lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG | NOPT_DEBUG_DURING_SETUP;
 

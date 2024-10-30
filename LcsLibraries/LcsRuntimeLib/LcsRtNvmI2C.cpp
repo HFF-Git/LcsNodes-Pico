@@ -70,7 +70,7 @@ using namespace LCS;
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //------------------------------------------------------------------------------------------------------------
-const uint16_t  BUFFER_BLOCK_SIZE           = 32;
+const uint16_t  BUFFER_BLOCK_SIZE           = 16; // ??? until we remove the M24C04 chip.
 
 const uint16_t  M24LC32_PAGE_SIZE           = 32;
 const uint32_t  M24LC32_MAX_SIZE            = 4096;
@@ -87,7 +87,7 @@ const uint32_t  M24LC256_MAX_SIZE           = 32768;
 const uint16_t  M24LC512_PAGE_SIZE          = 128;
 const uint32_t  M24LC512_MAX_SIZE           = 65536;
 
-const uint16_t  M24C04_PAGE_SIZE            = 8;
+const uint16_t  M24C04_PAGE_SIZE            = 16;
 const uint32_t  M24C04_MAX_SIZE             = 512;
 
 const uint8_t   NVM_I2C_ADR_ROOT            = 0b1010000;
@@ -144,7 +144,9 @@ uint8_t chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
         ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
         
         retryCnt --;
-        if ( retryCnt == 0 ) break;
+        if ( retryCnt == 0 ) return( 99 ); // ??? test ....
+        
+        break;
     }
 
     return ( ret );
@@ -200,7 +202,7 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
         uint8_t tmpAdr  = i2cAdr | (( ofs >> 8 ) & 0x01 );
         uint8_t tmpData = ofs & 0xFF;
 
-        rStat = chipReady( sclPin, i2cAdr );
+        rStat = chipReady( sclPin, tmpAdr );
         if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
         if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, tmpAdr, buf, len );
     }
@@ -247,12 +249,13 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 
     if ( nvmSize == M24C04_MAX_SIZE ) {
 
-        uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
-        uint8_t tmpOfs = ( ofs ) & 0xFF;
+        dataBuf[ 0 ] = ofs & 0xFF;
+        for ( int i = 0; i < len; i++ ) dataBuf[ i + 1 ] = buf[ i ];
 
+        uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
+         
         rStat = chipReady( sclPin, tmpAdr );
-        if ( rStat == ALL_OK ) CDC::i2cWrite( sclPin, tmpAdr, &tmpOfs, 1, true );
-        if ( rStat == ALL_OK ) CDC::i2cWrite( sclPin, tmpAdr, buf, len );
+        if ( rStat == ALL_OK ) CDC::i2cWrite( sclPin, tmpAdr, dataBuf, len + 1 );
     }
     else {
 
@@ -460,31 +463,31 @@ uint32_t rtNvmGetSize( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
 
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
+    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
     return( nvmPutBytes( extSclPin, i2cAdr, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word ) {
 
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
+    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
     return( nvmGetBytes( extSclPin, i2cAdr, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
+    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
     return( nvmPutBytes( extSclPin, i2cAdr, ofs, buf, len ));
 }
 
 uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
+    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
     return( nvmGetBytes( extSclPin, i2cAdr, ofs, buf, len ));
 }
 
 uint8_t extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val ) {
 
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + ( boardId % MAX_EXT_BOARD_MAP_ENTRIES );
+    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
     return( nvmClearArea( extSclPin, i2cAdr, ofs, len, val ));
 }
 

@@ -314,17 +314,23 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
             if (( ch == 'R' ) || ( ch == 'r' )) {
 
+                printf( "Starting - normal mode\n" );
+
                 debugMask       &= ~ DBG_CONFIG;
                 startOptions    = NOPT_NIL;
                 return( ALL_OK );
             }
             else if (( ch == 'D' ) || ( ch == 'd' )) {
 
+                 printf( "Starting - debug mode\n" );
+
                 debugMask       = DBG_CONFIG | DBG_SETUP;
                 startOptions    = NOPT_NIL;
                 return( ALL_OK );
             }
             else if (( ch == 'F' ) || ( ch == 'f' )) {
+
+                 printf( "Starting - format mode\n" );
 
                 debugMask       &= ~ DBG_CONFIG;
                 startOptions    = NOPT_FORMAT_RUNTIME;
@@ -337,6 +343,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
                 printf( "d, D -> start the node with \"setup\" debug options enabled\n" );
                 printf( "f, F -> start the node with a newly formatted runtime map\n" );
             }
+            else printf( "\n" );
         }
     }
     else {
@@ -421,9 +428,6 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap\n" );
 
     if ( startOptions & NOPT_FORMAT_RUNTIME ) {
-
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
-            printf( "Format a new runtime area\n" );
 
         rStat = buildNvmRuntimeStructures( );
     }
@@ -641,7 +645,8 @@ uint8_t setupDrvMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The runtime library has a set of internal periodic tasks that we will just register as part of the startup.
+// The runtime library will one day perhaps a set of internal functions to execute periodically. Right now,
+// this routine will do nothing.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t registerInternalTasks( ) {
@@ -649,8 +654,6 @@ uint8_t registerInternalTasks( ) {
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "registerInternalTasks\n" );
 
     uint8_t rStat = ALL_OK;
-
-    // ??? to do ...
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "registerInternalTasks\n" );
     return( rStat );
@@ -675,6 +678,9 @@ uint8_t detectExtensionBoards( ) {
 
     for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
+            printf( "detectExtensionBoard, boardId: %d\n", i ); 
+
         LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
 
         rStat = extNvmGetBytes( i, 0, (uint8_t *) &drvEntry -> extBoard, sizeof( LcsDrvBoardDesc ));
@@ -682,10 +688,14 @@ uint8_t detectExtensionBoards( ) {
 
             uint16_t *ptr = (uint16_t *) &drvEntry -> extBoard;
 
+            printf( "Extension Board Desc Head: " );
+            for ( int j = 0; j < 8; j++ ) printf( "0x%x ", ptr[ j ] );
+            printf( "\n" );
+
             nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
             nodeMap.drvMapHwm ++; 
 
-            drvEntry -> flags != BF_EXT_BOARD_PRESENT;
+            drvEntry -> flags |= BF_EXT_BOARD_PRESENT;
 
             if (( drvEntry -> extBoard.magicWord1 == NVM_MWORD_1 ) && 
                 ( drvEntry -> extBoard.magicWord2 == NVM_MWORD_2 )) {
@@ -700,10 +710,6 @@ uint8_t detectExtensionBoards( ) {
                 if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
                     printf( "detectExtensionBoard, boardId: %d -> inValid\n", i ); 
             }
-
-            printf( "Extension Board Desc Head: " );
-            for ( int j = 0; j < 8; j++ ) printf( "0x%x ", ptr[ j ] );
-            printf( "\n" );
         } 
         else {
             
@@ -719,7 +725,7 @@ uint8_t detectExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// For all detected extension boards, we will first check that the board descriptor at slot n is there and
+// For all detected extension boards, we will first check that the board descriptor at slot "n" is there and
 // that the board descriptor is reasonable. If so, the board type is used to load the respective driver.
 //
 //
@@ -774,7 +780,7 @@ uint8_t setupExtensionBoards( ) {
 
                     drvEntry -> flags   &= ~ BF_EXT_BOARD_READY;
 
-                    if ( debugMask & ( DBG_CONFIG || DBG_SETUP )) 
+                    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
                             printf( "setupExtensionBoards: invalid board type detected\n" );
                 }; 
             }
@@ -832,6 +838,8 @@ uint8_t resetNode( uint16_t npId ) {
     if ( rStat == ALL_OK ) {
 
         for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+
+            // ??? load MEM from NVM....
 
             rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, i ));
         }
