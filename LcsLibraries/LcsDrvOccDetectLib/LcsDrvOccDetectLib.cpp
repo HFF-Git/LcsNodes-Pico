@@ -3,7 +3,9 @@
 // LCS - Driver Library Code for Occupancy Detect extension boards
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains the occupancy detector driver routine. 
+// This source file contains the occupancy detector driver routine. It is a fairly simple driver that just 
+// reads in the track section state for the track detector circuit. The data is returned for the user defined
+// DRV_OCC_READ_MASK. The driver date area is not used for now.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -48,11 +50,10 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
-//
+// The PCA94555 fixed part of the I2C address.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t   PCA9555I2cAdrRoot     = 0x20;
-
 
 //------------------------------------------------------------------------------------------------------------
 // The PCA9555 chip features a set of eight registers.
@@ -68,9 +69,9 @@ uint8_t   PCA9555I2cAdrRoot     = 0x20;
 //
 //------------------------------------------------------------------------------------------------------------
 
-
 //------------------------------------------------------------------------------------------------------------
-//
+// The final I2C address consist of the chip fixed bits and the A0,2,3 section lines. A0 is zero hardwired,
+// A2 and A1 represent the board Id.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t mapI2CAdr( uint8_t boardId ) {
@@ -135,16 +136,10 @@ uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t
         //----------------------------------------------------------------------------------------------------
         case ITEM_ID_RESET: {
 
-            printf( "Reset: I2cAdr: 0x%02x\n", mapI2CAdr( boardId ));
-            printf( "SclPin: %d\n", cdcMap.cfg.EXT_I2C_SCL_PIN );
-
             uint8_t rStat =         writeReg( mapI2CAdr( boardId ), 4, 0xFF );
             if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 5, 0xFF );
             if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 6, 0xFF );
             if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 7, 0xFF );
-
-            printf( "Reset: I2cAdr: rStat: %d\n", rStat );
-
             return( rStat );
 
         } break;
@@ -159,7 +154,6 @@ uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t
             uint8_t tmp2 = readReg( mapI2CAdr( boardId ), 1 );
 
             *arg1 = ( tmp1 << 8 ) | tmp2; 
-
             return( ALL_OK );
 
         } break;

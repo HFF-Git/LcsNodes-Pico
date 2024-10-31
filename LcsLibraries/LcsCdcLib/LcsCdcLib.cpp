@@ -1202,8 +1202,7 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
 
 uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-    // #if CDC_DEBUG == 1
-    #if 1
+    #if CDC_DEBUG == 1
     printf( "i2cWrite: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
              sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
     #endif
@@ -1222,8 +1221,7 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
                                          stopBit,
                                          make_timeout_time_ms( i2c -> timeoutValMs ));
 
-    // #if CDC_DEBUG == 1
-    #if 1
+    #if CDC_DEBUG == 1
     if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
     if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
     #endif

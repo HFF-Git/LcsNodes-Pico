@@ -73,10 +73,10 @@ enum LogId : uint8_t {
 // not active, i.e. a call to "end" was issued before.
 //
 //------------------------------------------------------------------------------------------------------------
-void enableLog( bool arg );
-void beginLog( );
-void endLog( );
-void printLog( );
+void        enableLog( bool arg );
+void        beginLog( );
+void        endLog( );
+void        printLog( );
 
 void        writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
 void        writeLogId( uint8_t id );

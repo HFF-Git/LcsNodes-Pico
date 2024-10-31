@@ -42,7 +42,7 @@
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
-// Base station global objects.
+// Base station global data.
 //
 //------------------------------------------------------------------------------------------------------------
 CDC::CdcConfigDesc              cdcConfig;
@@ -99,7 +99,7 @@ void setupConfigInfo( ) {
     cdcConfig.NODE_NVM_SIZE         = 8192;
     cdcConfig.EXT_NVM_SIZE          = 4096;
 
-    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG | NOPT_DEBUG_DURING_SETUP;
+    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -384,7 +384,7 @@ uint8_t startLcsRuntime( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// 
+// The main program. Setup the runtime, register the callbacks, and get the show on the road.
 //
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
