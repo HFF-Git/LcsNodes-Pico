@@ -759,6 +759,9 @@ uint8_t setupExtensionBoards( ) {
                     
                     drvEntry -> drvFunc = lcsDrvOccDetect; 
                     drvEntry -> flags   |= BF_EXT_BOARD_READY;
+                    drvEntry -> lastErr = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
+
+                    printf( "OccDetect Driver Reset: %d\n", drvEntry -> lastErr );
 
                 } break;
 
@@ -843,6 +846,11 @@ uint8_t resetNode( uint16_t npId ) {
 
             rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, i ));
         }
+    }
+
+    if ( rStat == ALL_OK ) {
+
+        // ??? reset the drivers...
     }
 
     return ( rStat );

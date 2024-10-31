@@ -296,10 +296,10 @@ enum LcsControllerFamilyType : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum LcsBoardFlags : uint16_t {
 
-    BF_NIL                  = ( 1U << 0 ),
-    BF_EXT_BOARD_PRESENT    = ( 1U << 1 ),
-    BF_EXT_BOARD_VALID      = ( 1U << 2 ),
-    BF_EXT_BOARD_READY      = ( 1U << 3 )
+    BF_NIL                  = 0,
+    BF_EXT_BOARD_PRESENT    = ( 1U << 0 ),
+    BF_EXT_BOARD_VALID      = ( 1U << 1 ),
+    BF_EXT_BOARD_READY      = ( 1U << 2 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -358,25 +358,27 @@ enum LcsNodeFlags : uint16_t {
 // The following declarations does just list the item numbers defined. The ranges are defined in the internal
 // include file. The ranges as well as the reserved items defined here should not be tampered with.
 //
+// ??? to be sorted when more stable...
 //------------------------------------------------------------------------------------------------------------
 enum LcsItems : uint8_t {
 
     ITEM_ID_OPTIONS                     = 1,
     ITEM_ID_FLAGS                       = 2,
+    ITEM_ID_DEBUG_MASK                  = 3,
     ITEM_ID_VERSION                     = 4,
     ITEM_ID_TYPE                        = 5,
    
+    ITEM_ID_BOARD_VERSION               = 6,
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
-    ITEM_ID_DEBUG_MASK                  = 9,
-
+   
     ITEM_ID_NODE_ID                     = 10,
     ITEM_ID_NODE_UID                    = 11,
-    ITEM_ID_RESTART_COUNT               = 15,
+    ITEM_ID_RESTART_COUNT               = 12,
 
-    ITEM_ID_PORT_MAP_ENTRIES            = 12,
-    ITEM_ID_EVENT_MAP_ENTRIES           = 13,
-    ITEM_ID_ATTR_MAP_ENTRIES            = 14,
+    ITEM_ID_PORT_MAP_ENTRIES            = 13,
+    ITEM_ID_EVENT_MAP_ENTRIES           = 14,
+    ITEM_ID_ATTR_MAP_ENTRIES            = 15,
 
     ITEM_ID_NAME_1                      = 17,
     ITEM_ID_NAME_2                      = 18,
@@ -589,6 +591,10 @@ enum LcsErrorCodes : uint8_t {
     ERR_INVALID_BIT_POS                 = 68,
     ERR_INVALID_PACKET_LEN              = 69,
     ERR_INVALID_REPEATS                 = 70,
+
+    ERR_DRV_PUT_ERR                     = 71,
+    ERR_DRV_GET_ERR                     = 72,
+
 
     ERR_CAN_BUS_INIT                    = 81,
     ERR_CAN_INVALID_MODE                = 82,

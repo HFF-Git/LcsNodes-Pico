@@ -224,10 +224,9 @@ struct LcsMsgBusCAN {
 
 //----------------------------------------------------------------------------------------------------------
 // Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
-// pin configuration data. 
-//
-// ??? currently, the CDC config data is set directly by the application. One day, we may store this data
-// in the descriptor. So far, this is more of a place holder.
+// pin configuration data. Currently, the CDC config data is set directly by the application. We copy this
+// data to the "cfg" structure. One day, we may store this data in the descriptor. So far, this is more of
+// a place holder.
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcDesc {
 
@@ -477,6 +476,7 @@ struct LcsDrvBoardDesc {
 struct LcsDrvEntry {
     
     uint16_t            flags       = 0;
+    uint16_t            lastErr     = 0;
     LcsDrvReqFunc       drvFunc     = nullptr;
 
     LcsDrvBoardDesc     extBoard;

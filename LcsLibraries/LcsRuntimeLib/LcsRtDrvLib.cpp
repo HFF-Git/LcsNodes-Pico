@@ -72,6 +72,15 @@ uint8_t highByte( uint16_t arg ) {
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
+    
+//------------------------------------------------------------------------------------------------------------
+//
+// 
+//------------------------------------------------------------------------------------------------------------
+uint8_t drvInit( ) {
+
+    return ( ALL_OK );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // "drvGet" returns a value from the driver data array. 
@@ -79,55 +88,95 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
 
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
+    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES )                 return ( ERR_INVALID_BOARD_ID );
+    if ( ! drvMap.map[ boardId ].flags & BF_EXT_BOARD_PRESENT ) return( ERR_INVALID_BOARD_ID );
 
     if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
-        *arg = drvMap.map[ boardId ].extBoard.driverData[ item ];
+        *arg = drvMap.map[ boardId ].extBoard.driverData[ item - IR_ATTR_MEM_RANGE_START ];
         return( ALL_OK );
     }
     else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
 
-       if ( extNvmGetWord( boardId, 0, arg ) != ALL_OK ) return( 0 ); // ??? fix
+        uint32_t ofs =  offsetof( LcsDrvBoardDesc, driverData ) + 
+                        (( item - IR_ATTR_NVM_RANGE_START ) * sizeof( uint16_t ));
+
+       if ( extNvmGetWord( boardId, ofs, arg ) != ALL_OK ) return( ERR_DRV_GET_ERR );
        return( ALL_OK );
+    }
+    else if ( item == ITEM_ID_BOARD_VERSION ) {
+
+        *arg = drvMap.map[ boardId ].extBoard.boardVersion;
+        return( ALL_OK );
+    }
+    else if ( item == ITEM_ID_TYPE ) {
+
+        *arg = drvMap.map[ boardId ].extBoard.boardType;
+        return( ALL_OK );
     }
     else return( ERR_INVALID_ITEM_ID ); 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "drvPut" sets a value in the driver data array. Note that this is only the MEM portion. The NVM portion
-// is write disabled after initial configuration.
+// "drvPut" sets a value in the driver data array. Note that this is during normal operations only the MEM 
+// portion. The NVM chip on the extension board is write disabled after initial configuration. When the 
+// jumper on the board is taken out, writing to the NVM is enabled. The PUT and GET routines can be called
+// for a board that has no driver associated yet. This way, for example, the driver type and other initial
+// data can be set. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
+    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES )                 return( ERR_INVALID_BOARD_ID );
+    if ( ! drvMap.map[ boardId ].flags & BF_EXT_BOARD_PRESENT ) return( ERR_INVALID_BOARD_ID );
 
      if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
 
-        drvMap.map[ boardId ].extBoard.driverData[ item ] = arg;
+        drvMap.map[ boardId ].extBoard.driverData[ item - IR_ATTR_MEM_RANGE_START ] = arg;
         return( ALL_OK );
     }
     else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
 
-       if ( extNvmPutWord( boardId, 0, arg ) != ALL_OK ) return( 0 ); // ??? fix
+        uint32_t ofs =  offsetof( LcsDrvBoardDesc, driverData ) + 
+                        (( item - IR_ATTR_NVM_RANGE_START ) * sizeof( uint16_t ));
+
+       if ( extNvmPutWord( boardId, ofs, arg ) != ALL_OK ) return( ERR_DRV_PUT_ERR );
        return( ALL_OK );
+    }
+    else if ( item == ITEM_ID_BOARD_VERSION ) {
+
+        uint8_t rStat = ALL_OK;
+
+        rStat = extNvmPutWord( boardId, offsetof( LcsDrvBoardDesc, boardVersion ), arg );
+        if ( rStat == ALL_OK ) drvMap.map[ boardId ].extBoard.boardVersion = arg;
+        return( rStat );
+    }
+    else if ( item == ITEM_ID_TYPE ) {
+
+        uint8_t rStat = ALL_OK;
+
+        rStat = extNvmPutWord( boardId, offsetof( LcsDrvBoardDesc, boardType ), arg );
+        if ( rStat == ALL_OK ) drvMap.map[ boardId ].extBoard.boardType = arg;
+        return( rStat );
     }
     else return( ERR_INVALID_ITEM_ID ); 
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "drvReq" is the entry point to an extension board. For each extension board type there is driver function.
-// This function is called when we access that extension board.
+// This function is called when we access that extension board. Note that the REQ call will only work when
+// there is a board with a driver associated. The PUT and GET routines can be called for a board that has no
+// driver associated yet. This way, for example, the driver type and other initial data can be set. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) return ( ERR_INVALID_BOARD_ID );
+    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES )                 return ( ERR_INVALID_BOARD_ID );
+    if ( ! drvMap.map[ boardId ].flags & BF_EXT_BOARD_PRESENT ) return( ERR_INVALID_BOARD_ID );
 
-    if ( drvMap.map[ boardId - 1 ].drvFunc != nullptr ) {
+    if ( drvMap.map[ boardId ].drvFunc != nullptr ) {
 
-        return( drvMap.map[ boardId - 1 ].drvFunc( boardId - 1, item, arg1, arg2 ));
+        return( drvMap.map[ boardId ].drvFunc( boardId - 1, item, arg1, arg2 ));
     }
     else return( ERR_EXT_BOARD_NOT_VALID );
 }

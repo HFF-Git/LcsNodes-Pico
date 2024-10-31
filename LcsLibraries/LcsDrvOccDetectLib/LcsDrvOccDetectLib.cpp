@@ -3,7 +3,7 @@
 // LCS - Driver Library Code for Occupancy Detect extension boards
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains the ...
+// This source file contains the occupancy detector driver routine. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -28,6 +28,16 @@
 #include "LcsDrvOccDetectLib.h"
 
 //------------------------------------------------------------------------------------------------------------
+// External declaration to global structures defined in "LcsRtSetup".
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
+
+    extern uint16_t                     debugMask;
+    extern LCS::LcsCdcDesc              cdcMap;
+};
+
+//------------------------------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
 // the core library and the firmware designers.
@@ -35,71 +45,68 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t   sclPin    = 0;
-uint8_t   i2cAdr    = 0x20;
-uint16_t  ioData    = 0;
-
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 //
+//
 //------------------------------------------------------------------------------------------------------------
-uint8_t initDrv( ) {
+uint8_t   PCA9555I2cAdrRoot     = 0x20;
 
-    // CDC::configureI2C( 0, 0 );
 
-    return ( 0 );
+//------------------------------------------------------------------------------------------------------------
+// The PCA9555 chip features a set of eight registers.
+//
+// Reg 0 - Input port 0
+// Reg 1 - Input port 1
+// Reg 2 - Output port 0
+// Reg 3 - Output port 1
+// Reg 4 - Polarity Inversion port 0
+// Reg 5 - Polarity Inversion port 1
+// Reg 6 - Configuration port 0
+// Reg 7 - Configuration port 1
+//
+//------------------------------------------------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t mapI2CAdr( uint8_t boardId ) {
+
+    return( PCA9555I2cAdrRoot | (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 ));
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
-// ??? use CDC....
+// The occupancy detect board has the PCA9555 chip as an I2C to 16-bit port input/output chip. The "readReg"
+// and "writeReg" routines allow to access the chip internal register.
+// 
 //------------------------------------------------------------------------------------------------------------
-bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-}
-
-uint8_t readReg( uint8_t reg ) {
+uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
 
     uint8_t buf[ 2 ];
     uint8_t rStat = CDC::NO_ERR;
     
-    rStat = CDC::i2cWrite( sclPin, i2cAdr, &reg, 1 );
+    rStat = CDC::i2cWrite( cdcMap.cfg.EXT_I2C_SCL_PIN, i2cAdr, &reg, 1, true );
     if ( rStat == CDC::NO_ERR ) {
 
-        rStat = CDC::i2cRead( sclPin, i2cAdr, buf, 1 );
+        rStat = CDC::i2cRead( cdcMap.cfg.EXT_I2C_SCL_PIN, i2cAdr, buf, 1 );
         return( buf[ 0 ] );
     }
-    else return( 0 );
+    else return( ALL_OK );
 }
 
-uint8_t writeReg( uint8_t reg, uint8_t val ) {
+uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
 
     uint8_t buf[ 2 ];
     buf[ 0 ] = reg;
     buf[ 1 ] = val;
 
-    return( CDC::i2cWrite( sclPin, i2cAdr, buf, 2 ));
-}
-
-bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
-
-    uint8_t ret = 1;
-    uint8_t tmp = 0;
-
-    while ( ret != CDC::NO_ERR ) {
-
-        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
-    }
-
-    return ( true );
+    return( CDC::i2cWrite( cdcMap.cfg.EXT_I2C_SCL_PIN, i2cAdr, buf, 2 ));
 }
 
 } // namespace
-
 
 
 namespace LCS {
@@ -112,33 +119,44 @@ uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t
 
     switch( item ) {
 
+        //----------------------------------------------------------------------------------------------------
+        // The driver reset function. All drivers must support a reset item. For the PCA9555 we need to set 
+        // the IO direction an data inversion registers. These are the registers found on the chip:
+        //
+        // Reg 0 - Input port 0
+        // Reg 1 - Input port 1
+        // Reg 2 - Output port 0
+        // Reg 3 - Output port 1
+        // Reg 4 - Polarity Inversion port 0
+        // Reg 5 - Polarity Inversion port 1
+        // Reg 6 - Configuration port 0
+        // Reg 7 - Configuration port 1
+        //
+        //----------------------------------------------------------------------------------------------------
         case ITEM_ID_RESET: {
 
-            // ??? set inversion bit to one. Explain ...
-            writeReg( 4, 0xFF );
-            writeReg( 5, 0xFF );
+            printf( "Reset: I2cAdr: 0x%02x\n", mapI2CAdr( boardId ));
+            printf( "SclPin: %d\n", cdcMap.cfg.EXT_I2C_SCL_PIN );
 
-            // ??? set pins as input
-            writeReg( 6, 0xFF );
-            writeReg( 7, 0xFF );
+            uint8_t rStat =         writeReg( mapI2CAdr( boardId ), 4, 0xFF );
+            if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 5, 0xFF );
+            if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 6, 0xFF );
+            if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 7, 0xFF );
 
-            // ??? e.g. setting the IO direction...
-            //
-            // arg1 -> pin, or a port or a two ports bit mask
-            // arg2 -> 0 = output ( PCA9555 expects a zero for output )  & ~ ( 1 << pin )
-            // arg2 -> 1 = input  ( PCA9555 expects a one for input )    | ( 1 << pin )
-            //
-            // have a 16 bit mask for the bits, write both a when we set something ?
-            // writeI2C ( config reg 1, 2 )
+            printf( "Reset: I2cAdr: rStat: %d\n", rStat );
 
-            return( ALL_OK );
+            return( rStat );
 
         } break;
 
+        //----------------------------------------------------------------------------------------------------
+        // Read mask. All 16 occupancy detect inputs are stored in a 16-bit word. 
+        //
+        //----------------------------------------------------------------------------------------------------
         case DRV_OCC_READ_MASK: {
 
-            uint8_t tmp1 = readReg( 0 );
-            uint8_t tmp2 = readReg( 1 );
+            uint8_t tmp1 = readReg( mapI2CAdr( boardId ), 0 );
+            uint8_t tmp2 = readReg( mapI2CAdr( boardId ), 1 );
 
             *arg1 = ( tmp1 << 8 ) | tmp2; 
 

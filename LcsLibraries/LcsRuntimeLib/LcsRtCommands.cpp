@@ -231,8 +231,12 @@ void dumpMemDrvMap( ) {
 
     for ( int i  = 0; i < MAX_EXT_BOARDS; i++ ) {
 
-        printf( "Board %d:\n", i );
-        dumpMemData(( uint16_t*) &drvMap.map[ i ], sizeof( LcsDrvEntry ));
+        LcsDrvEntry *entry = &drvMap.map[ i ];
+
+        printf( "Board %d: ( Flags: 0x%04x, LastErr: %d, Drv: %p\n", 
+                i, entry -> flags, entry -> lastErr, entry -> drvFunc );
+                
+        dumpMemData(( uint16_t*) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ));
         printf( "\n" );
     }
 
@@ -800,6 +804,7 @@ void drvGetCommand( char *s ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void drvPutCommand( char *s ) {
+
     uint8_t  boardId  = 0;
     uint8_t  item     = 0;
     uint16_t arg      = 0;
@@ -809,7 +814,7 @@ void drvPutCommand( char *s ) {
 
     rStat = drvPut( boardId, item, arg );
 
-    printf( "<!M %d %d %d %d>", boardId, item, arg, rStat );
+    printf( "<!P %d %d %d %d>", boardId, item, arg, rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
