@@ -389,6 +389,7 @@ enum LcsItems : uint8_t {
 
     ITEM_ID_RESET                       = 22,
     ITEM_ID_SYNC                        = 23,
+    ITEM_ID_FORMAT                      = 24,
    
     ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
     ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
@@ -398,9 +399,7 @@ enum LcsItems : uint8_t {
     ITEM_ID_SET_ACTIVITY_LED            = 31,
     ITEM_ID_TOGGLE_READY_LED            = 32,
     ITEM_ID_TOGGLE_ACTIVITY_LED         = 33,
-    ITEM_ID_BLINK_READY_LED             = 34,
-    ITEM_ID_BLINK_ACTIVITY_LED          = 35,
-
+   
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
     
     // ??? add stop and enable periodic processing ?

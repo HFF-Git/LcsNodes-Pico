@@ -254,7 +254,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                  if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = nodeMap.controllerFamily;
+                *arg1 = nodeMap.head.controllerFamily;
                 return ( ALL_OK );
             }
         
@@ -648,12 +648,6 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             case ITEM_ID_TOGGLE_ACTIVITY_LED: {
 
                 return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
-            }
-
-            case ITEM_ID_BLINK_READY_LED:
-            case ITEM_ID_BLINK_ACTIVITY_LED: {
-
-                return ( ERR_NOT_IMPLEMENTED );
             }
 
             default: return ( ERR_INVALID_ITEM_ID );

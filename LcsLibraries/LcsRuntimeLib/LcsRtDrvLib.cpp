@@ -64,6 +64,26 @@ uint8_t highByte( uint16_t arg ) {
     return( arg >> 8 ); 
 }
 
+//------------------------------------------------------------------------------------------------------------
+// "buildDrvBoardDescArea" will create a default data area for the extension board NVM.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t buildDrvBoardDescArea( uint8_t boardId ) {
+
+    uint8_t         rStat;
+    LcsDrvBoardDesc tmp;
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "buildDrvBoardDescArea, boardId: %d\n", boardId );
+
+    rStat = extNvmPutBytes( boardId, 0, (uint8_t *) &tmp, sizeof( tmp ));
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "buildDrvBoardDescArea, stat: %d\n", rStat  );
+
+    return( rStat );
+}
+
 } // namespace
 
 
@@ -106,12 +126,12 @@ uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
     }
     else if ( item == ITEM_ID_BOARD_VERSION ) {
 
-        *arg = drvMap.map[ boardId ].extBoard.boardVersion;
+        *arg = drvMap.map[ boardId ].extBoard.head.boardVersion;
         return( ALL_OK );
     }
     else if ( item == ITEM_ID_TYPE ) {
 
-        *arg = drvMap.map[ boardId ].extBoard.boardType;
+        *arg = drvMap.map[ boardId ].extBoard.head.boardType;
         return( ALL_OK );
     }
     else return( ERR_INVALID_ITEM_ID ); 
@@ -147,16 +167,16 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 
         uint8_t rStat = ALL_OK;
 
-        rStat = extNvmPutWord( boardId, offsetof( LcsDrvBoardDesc, boardVersion ), arg );
-        if ( rStat == ALL_OK ) drvMap.map[ boardId ].extBoard.boardVersion = arg;
+        rStat = extNvmPutWord( boardId, offsetof( LcsDrvBoardDesc, head.boardVersion ), arg );
+        if ( rStat == ALL_OK ) drvMap.map[ boardId ].extBoard.head.boardVersion = arg;
         return( rStat );
     }
     else if ( item == ITEM_ID_TYPE ) {
 
         uint8_t rStat = ALL_OK;
 
-        rStat = extNvmPutWord( boardId, offsetof( LcsDrvBoardDesc, boardType ), arg );
-        if ( rStat == ALL_OK ) drvMap.map[ boardId ].extBoard.boardType = arg;
+        rStat = extNvmPutWord( boardId, offsetof( LcsDrvBoardDesc, head.boardType ), arg );
+        if ( rStat == ALL_OK ) drvMap.map[ boardId ].extBoard.head.boardType = arg;
         return( rStat );
     }
     else return( ERR_INVALID_ITEM_ID ); 
@@ -165,8 +185,12 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 //------------------------------------------------------------------------------------------------------------
 // "drvReq" is the entry point to an extension board. For each extension board type there is driver function.
 // This function is called when we access that extension board. Note that the REQ call will only work when
-// there is a board with a driver associated. The PUT and GET routines can be called for a board that has no
-// driver associated yet. This way, for example, the driver type and other initial data can be set. 
+// there is a board with a driver associated. There is however the case that the header area is a new area
+// or an invalid area. We have a board detected bit could not setup the driver for it. The "ITEM_ID_FORMAT" 
+// item is used to setup the extension board NVM. It works without checking for a valid driver.
+// 
+// The PUT and GET routines can be called for a board that has no driver associated yet. This way, for 
+// example, the driver type and other initial data can be set. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -174,11 +198,20 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) 
     if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES )                 return ( ERR_INVALID_BOARD_ID );
     if ( ! drvMap.map[ boardId ].flags & BF_EXT_BOARD_PRESENT ) return( ERR_INVALID_BOARD_ID );
 
-    if ( drvMap.map[ boardId ].drvFunc != nullptr ) {
+    if ( item == ITEM_ID_FORMAT ) {
 
-        return( drvMap.map[ boardId ].drvFunc( boardId - 1, item, arg1, arg2 ));
+            uint8_t rStat = ALL_OK;
+
+            return( buildDrvBoardDescArea( boardId ));
     }
-    else return( ERR_EXT_BOARD_NOT_VALID );
+    else {
+
+        if ( drvMap.map[ boardId ].drvFunc != nullptr ) {
+
+            return( drvMap.map[ boardId ].drvFunc( boardId - 1, item, arg1, arg2 ));
+        }
+        else return( ERR_EXT_BOARD_NOT_VALID );
+    }
 }
 
 } // namespace LCS

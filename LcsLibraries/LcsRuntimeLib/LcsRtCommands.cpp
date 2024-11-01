@@ -838,28 +838,11 @@ void drvReqCommand( char *s ) {
     uint16_t arg2     = 0;
     uint8_t  rStat    = 0;
 
-    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 3 ) return;
+    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 2 ) return;
 
     rStat = drvReq( boardId, item, &arg1, &arg2 );
 
     printf( "<!R %d %d %d %d %d>", boardId, item, arg1, arg2, rStat );
-}
-
-void i2cPingCommand( char *s ) {
-
-    uint8_t i2cAdr      = 0;
-    uint8_t sclPin      = 0;
-    uint8_t rStat       = ALL_OK;
-    uint8_t buf[ 2 ]    = { 0 };
-
-    if ( sscanf( s, "%hhu %hhu", &sclPin, &i2cAdr ) < 2 ) return;
-
-    if ( i2cAdr > 127 ) i2cAdr = 127;
-    if (( sclPin != cdcMap.cfg.NVM_I2C_SCL_PIN ) && ( sclPin != cdcMap.cfg.EXT_I2C_SCL_PIN )) return;
-
-    rStat = CDC::i2cWrite( sclPin, i2cAdr, buf, 1 );
-
-    printf( "I2C Ping, ret: %d\n", rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1036,8 +1019,6 @@ uint8_t handleSerialCommand( ) {
                         case 'G': drvGetCommand( commandBuf + 2 );              break;
                         case 'P': drvPutCommand( commandBuf + 2 );              break;
                         case 'R': drvReqCommand( commandBuf + 2 );              break;
-
-                        case 'I': i2cPingCommand( commandBuf + 2 );             break;
 
                         case 's': listStatusCommand( commandBuf + 2 );          break;
                         case '?': listCoreLibHelpCommand( );                    break;

@@ -234,6 +234,25 @@ struct LcsCdcDesc {
 };
 
 //----------------------------------------------------------------------------------------------------------
+// Each NVM memory, ie the NVM on the controller board or an extension board, starts with the header data
+// structure. This structure contains information to detect that the NVM was formatted, as well as some
+// hardware specific data to identify the board and relevant chips on it. The data in this header must be
+// "programmed" during a board setup. This is easily accomplished trough console commands and needs of 
+// course only be done once per board. The data structure size is 32 bytes.
+//
+//----------------------------------------------------------------------------------------------------------
+struct LcsNvmHeader {
+
+    uint16_t    magicWord1                      = NVM_MWORD_1;
+    uint16_t    boardType                       = BT_NIL;
+    uint16_t    boardVersion                    = 0;
+    uint16_t    controllerFamily                = CF_FAM_RPICO;
+    uint16_t    nvmChipFamily                   = CF_FAM_MICROCHIP;
+    uint16_t    resevedArea[ 10 ]               = { 0 };
+    uint16_t    magicWord2                      = NVM_MWORD_2;
+}; 
+
+//----------------------------------------------------------------------------------------------------------
 // An LCS node and the ports on the node each have an area of variables that are in memory as well as in 
 // the node NVM. Typical usage examples are configuration items such as a limit value. Upon power up or 
 // reset, the node data from the NVM area is copied to the MEM counterpart. Although the node and port 
@@ -257,6 +276,7 @@ struct LcsNodeMap {
     //------------------------------------------------------------------------------------------------------
     // NMV header. We read this in first an check for validity.
     //------------------------------------------------------------------------------------------------------
+    /*
     uint16_t    magicWord1                      = NVM_MWORD_1;
     uint16_t    boardType                       = BT_NIL;
     uint16_t    boardVersion                    = 0;
@@ -265,50 +285,56 @@ struct LcsNodeMap {
     uint16_t    reserved1                       = 0;
     uint16_t    reserved2                       = 0;
     uint16_t    magicWord2                      = NVM_MWORD_2;
+    */
+
+    LcsNvmHeader    head;
+    
 
     //------------------------------------------------------------------------------------------------------
     // Node data.
+    //
     //------------------------------------------------------------------------------------------------------
-    uint16_t    nodeState                       = NS_NIL;
-    uint16_t    nodeOptions                     = 0;
-    uint16_t    nodeFlags                       = 0;
-    uint16_t    nodeId                          = NIL_NODE_ID;
-    uint32_t    nodeUID                         = 0L;
-    uint16_t    nodeType                        = NIL_NODE_TYPE;   
-    uint16_t    nodeSwVersion                   = 0;
-    uint16_t    nodeSwPatchLevel                = 0;
-    uint16_t    nodeRestartCnt                  = 0;
-    uint32_t    nodeSystemTime                  = 0;
-    uint16_t    nodeMapSize                     = sizeof( LcsNodeMap );  
-    char        name[ MAX_NODE_NAME_SIZE ]      = { 0 };
+    uint16_t        nodeState                       = NS_NIL;
+    uint16_t        nodeOptions                     = 0;
+    uint16_t        nodeFlags                       = 0;
+    uint16_t        nodeId                          = NIL_NODE_ID;
+    uint32_t        nodeUID                         = 0L;
+    uint16_t        nodeType                        = NIL_NODE_TYPE;   
+    uint16_t        nodeSwVersion                   = 0;
+    uint16_t        nodeSwPatchLevel                = 0;
+    uint16_t        nodeRestartCnt                  = 0;
+    uint32_t        nodeSystemTime                  = 0;
+    uint16_t        nodeMapSize                     = sizeof( LcsNodeMap );  
+    char            name[ MAX_NODE_NAME_SIZE ]      = { 0 };
 
     //------------------------------------------------------------------------------------------------------
     // Runtime area offsets in the NVM.
+    //
     //------------------------------------------------------------------------------------------------------
-    uint16_t    nvmNodeMapOfs                   = NVM_NODE_MAP_START;
-    uint16_t    nvmPortMapOfs                   = NVM_PORT_MAP_START;
-    uint16_t    nvmNodeDataOfs                  = NVM_NODE_DATA_START;
-    uint16_t    nvmEventMapOfs                  = NVM_EVENT_MAP_START;
-    uint16_t    nvmuserMapOfs                   = NVM_USER_MAP_START;
-    uint32_t    nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
+    uint16_t        nvmNodeMapOfs                   = NVM_NODE_MAP_START;
+    uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
+    uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
+    uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;
+    uint16_t        nvmuserMapOfs                   = NVM_USER_MAP_START;
+    uint32_t        nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
 
     //------------------------------------------------------------------------------------------------------
     // The number of entries in the core areas and a high water mark.
     //------------------------------------------------------------------------------------------------------
-    uint16_t    portMapEntries                  = MAX_PORT_MAP_ENTRIES;
-    uint16_t    portMapHwm                      = 0;
+    uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
+    uint16_t        portMapHwm                      = 0;
 
-    uint16_t    eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
-    uint16_t    eventMapHwm                     = 0;
+    uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
+    uint16_t        eventMapHwm                     = 0;
 
-     uint16_t   taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
-    uint16_t    taskMapHwm                      = 0;
+     uint16_t       taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t        taskMapHwm                      = 0;
 
-    uint16_t    pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
-    uint16_t    pendingMapHwm                   = 0;
+    uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
+    uint16_t        pendingMapHwm                   = 0;
 
-    uint16_t    drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
-    uint16_t    drvMapHwm                       = 0;
+    uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t        drvMapHwm                       = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -445,16 +471,8 @@ extern "C" {
 //------------------------------------------------------------------------------------------------------------
 struct LcsDrvBoardDesc {
 
-    uint16_t    magicWord1                    = NVM_MWORD_1;
-    uint16_t    boardType                     = BT_NIL;
-    uint16_t    boardVersion                  = 0;
-    uint16_t    controllerFamily              = CF_FAM_RPICO;
-    uint16_t    nvmChipFamily                 = CF_FAM_MICROCHIP;
-    uint16_t    reserved1                     = 0;
-    uint16_t    reserved2                     = 0;
-    uint16_t    magicWord2                    = NVM_MWORD_2;
-    
-    uint16_t    driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
+    LcsNvmHeader    head;
+    uint16_t        driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
 };
 
 //----------------------------------------------------------------------------------------------------------

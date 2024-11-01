@@ -307,11 +307,17 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
     }
 
-    if ( rStat == ALL_OK ) {
+    if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
-        return ( nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
+        rStat = nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
     }
-    else return( rStat );
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
+
+        printf( "nvmGetBytes: ret: %d\n", rStat );
+    }
+   
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -319,6 +325,9 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 // boundary and also across a chip boundary. This routine will split the data to write only within one page
 // in a given write cycle.
 //
+// ??? there is a quirk with figuring out that a chip is ready for the next write instruction. Writing a 
+// a large amount of data will periodically fail. Until the root cause is know, there is a small delay of
+// 5 milli sec, which seems to be enough to give the chip some breathing air.
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
@@ -342,13 +351,22 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
+
+        CDC::sleepMillis( 5 );
     }
 
-    if ( rStat == ALL_OK ) {
+    if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
-        return ( nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft ));
+       rStat = nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
+       CDC::sleepMillis( 5 );
     }
-    else return( rStat );
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
+
+        printf( "nvmPutBytes: ret: %d\n", rStat );
+    }
+
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -377,15 +395,21 @@ uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len
         rStat = nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, sizeof( tmpBuf ));
         if ( rStat != ALL_OK ) break;
         
-        ofs += sizeof( val );
+        ofs += BUFFER_BLOCK_SIZE;
         len -= BUFFER_BLOCK_SIZE;
     }
 
-    if ( rStat == ALL_OK ) {
+    if (( rStat == ALL_OK ) && ( len > 0 )) {
 
-        return( nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, len ));
+        rStat = nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, len );
     }
-    else return( rStat );
+    
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
+
+        printf( "nvmClearArea: ret: %d\n", rStat );
+    }
+
+    return( rStat );
 }
 
 }; // namespace

@@ -197,7 +197,7 @@ uint8_t buildNvmRuntimeStructures( ) {
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
 
-    return( ALL_OK );
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -207,15 +207,9 @@ uint8_t buildNvmRuntimeStructures( ) {
 //------------------------------------------------------------------------------------------------------------
 void buildDefaultBoardDesc( LcsDrvBoardDesc *bDesc ) {
 
-    bDesc -> magicWord1        = NVM_MWORD_1;
-    bDesc -> boardType         = BT_NIL;
-    bDesc -> boardVersion      = 0;
-    bDesc -> controllerFamily  = CF_FAM_NIL;
-    bDesc -> nvmChipFamily     = CF_FAM_MICROCHIP;
-    bDesc -> reserved1         = 0;
-    bDesc -> reserved2         = 0;
-    bDesc -> magicWord2        = NVM_MWORD_2;
+    LcsNvmHeader tmp;
 
+    bDesc -> head = tmp;
     memset( bDesc -> driverData, 0, MAX_DRIVER_DATA_SIZE * sizeof( uint16_t ));
 }
 
@@ -324,7 +318,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
                  printf( "Starting - debug mode\n" );
 
-                debugMask       = DBG_CONFIG | DBG_SETUP;
+                debugMask       = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS;
                 startOptions    = NOPT_NIL;
                 return( ALL_OK );
             }
@@ -440,12 +434,12 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
         uint16_t *ptr = (uint16_t *) &nodeMap;
 
         printf( "NodeMap Head: " );
-        for ( int i = 0; i < 8; i++ ) printf( "0x%x ", ptr[ i ] );
+        for ( int i = 0; i < 16; i++ ) printf( "0x%x ", ptr[ i ] );
         printf( "\n" );
      }
 
-    if (( nodeMap.magicWord1 != NVM_MWORD_1 ) || 
-        ( nodeMap.magicWord2 != NVM_MWORD_2 ) || 
+    if (( nodeMap.head.magicWord1 != NVM_MWORD_1 ) || 
+        ( nodeMap.head.magicWord2 != NVM_MWORD_2 ) || 
         ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
 
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
@@ -689,7 +683,7 @@ uint8_t detectExtensionBoards( ) {
             uint16_t *ptr = (uint16_t *) &drvEntry -> extBoard;
 
             printf( "Extension Board Desc Head: " );
-            for ( int j = 0; j < 8; j++ ) printf( "0x%x ", ptr[ j ] );
+            for ( int j = 0; j < 16; j++ ) printf( "0x%x ", ptr[ j ] );
             printf( "\n" );
 
             nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
@@ -697,8 +691,8 @@ uint8_t detectExtensionBoards( ) {
 
             drvEntry -> flags |= BF_EXT_BOARD_PRESENT;
 
-            if (( drvEntry -> extBoard.magicWord1 == NVM_MWORD_1 ) && 
-                ( drvEntry -> extBoard.magicWord2 == NVM_MWORD_2 )) {
+            if (( drvEntry -> extBoard.head.magicWord1 == NVM_MWORD_1 ) && 
+                ( drvEntry -> extBoard.head.magicWord2 == NVM_MWORD_2 )) {
 
                 drvEntry -> flags |= BF_EXT_BOARD_VALID;
 
@@ -727,8 +721,6 @@ uint8_t detectExtensionBoards( ) {
 //------------------------------------------------------------------------------------------------------------
 // For all detected extension boards, we will first check that the board descriptor at slot "n" is there and
 // that the board descriptor is reasonable. If so, the board type is used to load the respective driver.
-//
-//
 // Note that during normal operations we cannot manipulate the NVM, as it is read protected. The jumper on
 // the extension board needs to be removed for this. When the jumper is removed, the extension board NVM can 
 // be written to with commands from the runtime. 
@@ -746,15 +738,8 @@ uint8_t setupExtensionBoards( ) {
 
         if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
 
-            switch( drvEntry -> extBoard.boardType ) {
+            switch( drvEntry -> extBoard.head.boardType ) {
     
-                case BT_EXT_NIL: {    
-                
-                // ??? when the desc is invalid, we cannot load a driver. 
-                // ??? should we first format the extension board ? 
-
-                } break;
-
                 case BT_EXT_OCC_DETECT: {
                     
                     drvEntry -> drvFunc = lcsDrvOccDetect; 
