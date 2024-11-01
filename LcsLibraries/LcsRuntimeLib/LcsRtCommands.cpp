@@ -76,7 +76,7 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
 
     while ( index < limit ) {
 
-        printf( "0x%04x: ", index * sizeof( uint16_t ));
+        printf( "0x%08x: ", index * sizeof( uint16_t ));
 
         for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
