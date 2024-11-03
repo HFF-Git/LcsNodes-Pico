@@ -593,9 +593,9 @@ void fatalError( uint8_t n ) {
 // console.
 //
 //------------------------------------------------------------------------------------------------------------
-void fatalErrorMsg( char *str, uint8_t n ) {
+void fatalErrorMsg( char *str, uint8_t n, uint8_t rStat ) {
 
-    if ( isConsoleConnected( )) printf( "Fatal Error: %d: %s\n", n, str );
+    if ( isConsoleConnected( )) printf( "Fatal Error: %d: %s, rStat: %d\n", n, str, rStat );
     fatalError( n );
 }
 

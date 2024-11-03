@@ -898,14 +898,14 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     uint8_t rStat = ALL_OK;
 
     if ( rStat == ALL_OK )  rStat = initCdcLayer( cdcConfig );
-    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1 );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1, rStat );
 
     CDC::writeDio( cdcConfig -> READY_LED_PIN, false );
     CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, true );
 
     if ( rStat == ALL_OK )  rStat = initCanBus( cdcConfig );
     if ( rStat == ALL_OK )  rStat = initNvmChannels( cdcConfig );
-    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2 );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2, rStat );
 
     if ( rStat == ALL_OK )  rStat = setupNodeMap( lcsConfig );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
@@ -917,7 +917,7 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvMap( );
     if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
-    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3 );
+    if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3, rStat );
 
     if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
     if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );

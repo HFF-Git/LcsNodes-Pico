@@ -974,6 +974,8 @@ uint8_t setupSerialCommand( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
 
+    #if 0
+
     char c;
 
     while (( c = CDC::getConsoleChar( )) > 0 ) {
@@ -1041,6 +1043,76 @@ uint8_t handleSerialCommand( ) {
             }
         }
     }
+
+    #else 
+
+    char c;
+
+    while (( c = CDC::getConsoleChar( )) > 0 ) {
+
+        switch( c ) {
+
+            case '\b': {
+
+                printf( "\b \b" );
+                if ( strlen( commandBuf ) > 0 ) commandBuf[ strlen( commandBuf ) - 1 ] = '\0';
+
+            } break;
+
+            case '\r': {
+
+                if ( strlen( commandBuf) > 0 ) {
+
+                    switch ( commandBuf[ 1 ] ) {
+
+                        case 'C': switchToConfigCommand( commandBuf + 1 );        break;
+                        case 'O': switchToOperationsCommand( commandBuf + 1 );    break;
+                        
+                        case 'a': enterEventCommand( commandBuf + 1 );          break;
+                        case 'd': removeEventCommand( commandBuf + 1 );         break;
+                        case 'f': findEventCommand( commandBuf + 1 );           break;
+                        case 'e': sendEventCommand( commandBuf + 1 );           break;
+                        
+                        case 'g': getNodeCommand( commandBuf + 1 );             break;
+                        case 'p': putNodeCommand( commandBuf + 1 );             break;
+                        case 'r': reqNodeCommand( commandBuf + 1 );             break;
+
+                        case 'B': broadcastLcsMsgCommand( commandBuf + 1 );     break;
+
+                        case 'G': drvGetCommand( commandBuf + 1 );              break;
+                        case 'P': drvPutCommand( commandBuf + 1 );              break;
+                        case 'R': drvReqCommand( commandBuf + 1 );              break;
+
+                        case 'I': i2cPingCommand( commandBuf + 1 );             break;
+
+                        case 's': listStatusCommand( commandBuf + 1 );          break;
+                        case '?': listCoreLibHelpCommand( );                    break;
+
+                        default: {
+                            
+                            if ( callbackMap.cmdLineCallback != nullptr ) {
+
+                                    callbackMap.cmdLineCallback( commandBuf );
+                                }
+                            else printf( "<Unknown command, use '?' for help>" );
+                        }
+                    }
+                }
+
+                commandBuf[ 0 ] = '\0';
+                printf( "-> ");
+            
+            } break;
+
+            default: {
+
+                printf( "%c", c );
+                if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) strncat( commandBuf, &c, 1 );
+            }
+        }
+    }
+
+    #endif
 
     return( ALL_OK );
 }

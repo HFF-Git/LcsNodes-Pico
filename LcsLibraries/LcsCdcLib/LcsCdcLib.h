@@ -282,14 +282,14 @@ char          getConsoleChar( uint32_t timeoutVal = 0 );
 // that default structure and set the values necessary for the particular case.
 //
 //------------------------------------------------------------------------------------------------------------
-CdcConfigDesc getConfigDefault( );
-CdcConfigDesc *getConfigActual( );
-void          printConfigInfo( CdcConfigDesc *ci );
-void          setDebugLevel( uint8_t level = 0 );
+CdcConfigDesc   getConfigDefault( );
+CdcConfigDesc   *getConfigActual( );
+void            printConfigInfo( CdcConfigDesc *ci );
+void            setDebugLevel( uint8_t level = 0 );
 
-uint8_t       init( CdcConfigDesc *ci );
-void          fatalError( uint8_t n );
-void          fatalErrorMsg( char *str, uint8_t n );
+uint8_t         init( CdcConfigDesc *ci );
+void            fatalError( uint8_t n );
+void            fatalErrorMsg( char *str, uint8_t n, uint8_t rStat );
 
 //------------------------------------------------------------------------------------------------------------
 // General controller routines.
