@@ -302,7 +302,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
         while ( true ) {
 
-            printf( ">" );   
+            printf( "=>" );   
 
             char ch = CDC::getConsoleChar( CONSOLE_TIMEOUT );
 
