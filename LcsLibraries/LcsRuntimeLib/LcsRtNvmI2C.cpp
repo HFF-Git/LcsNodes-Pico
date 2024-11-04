@@ -93,6 +93,8 @@ const uint32_t  M24C04_MAX_SIZE             = 512;
 const uint8_t   NVM_I2C_ADR_ROOT            = 0b1010000;
 const uint8_t   EXT_I2C_ADR_ROOT            = 0b1010000;
 
+const uint8_t   NVM_WRITE_DELAY             = 0x05;
+
 //------------------------------------------------------------------------------------------------------------
 // Runtime NVM sizes. The runtime map has a maximum of 8Kb. The maximum size of a NVM chip is 64Kb.  The 
 // maximum size for an extension board NVM chip is 4Kb. 
@@ -127,29 +129,61 @@ uint8_t     extSclPin                       = CDC::UNDEFINED_PIN;
 uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper function to test whether the chip is read for the next operation. The test consist of 
-// writing to the chip and see if this works. There is the case that it just takes a little time or there
-// is just no chip at that address. We will use a retry count so we will not try forever.
+// "testNvmChipMemorySize" will check the NVM chip for its size. Since the chip itself has no way of telling
+// its memory capacity, we need to go a rather cumbersome way. For each possible size, read the last byte,
+// store a new value there, read it again. If the values match, it is a valid memory location. Don't forget
+// to restore the previous value. If we are not successful, try the next smaller size. Currently, the LCS 
+// hardware uses The chip family M24LCxxx with sizes of 4, 8, 16, 32 and 64Kbytes.
 //
-// ??? will this work when we have a NVM write disabled chip ?
-// ??? should we distinguish between a read and a write request ? what is better ?
+// ??? not tested yet ...
 //------------------------------------------------------------------------------------------------------------
-uint8_t chipReady( uint8_t sclPin, uint8_t i2cAdr, uint16_t retryCnt = 100 ) {
+uint32_t testNvmChipMemorySize( uint8_t sclPin, uint8_t i2cAdr ) {
 
-    uint8_t ret = 1;
-    uint8_t tmp = 0;
+    uint32_t    nvmSize         = M24LC512_MAX_SIZE;
+    uint32_t    testAdr         = nvmSize - 1;
+    uint8_t     originalValue   = 0;
+    uint8_t     testValue       = 0xab;
+    uint8_t     tmpValue        = 0;
+    uint8_t     tmpBuf[ 3 ]     = { 0 };
+    uint8_t     rStat           = ALL_OK;
+    
+    while ( nvmSize >= M24LC32_MAX_SIZE ) {
 
-    while ( ret != ALL_OK ) {
-
-        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
+        tmpBuf[ 0 ] = testAdr >> 8 & 0xFF;
+        tmpBuf[ 1 ] = testAdr &0xFF;
         
-        retryCnt --;
-        if ( retryCnt == 0 ) return( 99 ); // ??? test ....
+        rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, 2, true );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, &originalValue, 1 );
+        if ( rStat != ALL_OK ) return( ERR_NVM_CHIP_SIZE_DETECT );
+
+        tmpBuf[ 2 ] = testValue;
         
-        break;
+        rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, sizeof( tmpBuf ));
+        if ( rStat == ALL_OK ) {
+
+            CDC::sleepMillis( NVM_WRITE_DELAY );
+
+            rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, 2, true );
+            if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, &tmpValue, 1 );
+            if ( rStat == ALL_OK ) {
+
+                if ( tmpValue == testValue ) {
+
+                    rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, sizeof( tmpBuf ));
+                    CDC::sleepMillis( NVM_WRITE_DELAY );
+                    return( nvmSize );
+                }
+                else {
+                    
+                    nvmSize = nvmSize / 2;
+                    testAdr = nvmSize - 1;
+                }
+            }
+        }   
+        else return( ERR_NVM_CHIP_SIZE_DETECT ); 
     }
 
-    return ( ret );
+    return( nvmSize );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -202,8 +236,7 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
         uint8_t tmpAdr  = i2cAdr | (( ofs >> 8 ) & 0x01 );
         uint8_t tmpData = ofs & 0xFF;
 
-        rStat = chipReady( sclPin, tmpAdr );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
+        rStat = CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
         if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, tmpAdr, buf, len );
     }
     else {
@@ -213,8 +246,7 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
         adr[ 0 ] =  ( ofs  >> 8 ) & 0xFF;
         adr[ 1 ] =  ofs & 0xFF;
 
-        rStat = chipReady( sclPin, i2cAdr );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, i2cAdr, adr, 2, true );
+        rStat = CDC::i2cWrite( sclPin, i2cAdr, adr, 2, true );
         if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, buf, len );
     }
 
@@ -253,9 +285,7 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 1 ] = buf[ i ];
 
         uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
-         
-        rStat = chipReady( sclPin, tmpAdr );
-        if ( rStat == ALL_OK ) CDC::i2cWrite( sclPin, tmpAdr, dataBuf, len + 1 );
+        rStat = CDC::i2cWrite( sclPin, tmpAdr, dataBuf, len + 1 );
     }
     else {
 
@@ -264,8 +294,7 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-        rStat = chipReady( sclPin, i2cAdr );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cWrite( sclPin, i2cAdr, dataBuf, len + 2 );
+        rStat = CDC::i2cWrite( sclPin, i2cAdr, dataBuf, len + 2 );
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {
@@ -325,9 +354,12 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 // boundary and also across a chip boundary. This routine will split the data to write only within one page
 // in a given write cycle.
 //
-// ??? there is a quirk with figuring out that a chip is ready for the next write instruction. Writing a 
-// a large amount of data will periodically fail. Until the root cause is know, there is a small delay of
-// 5 milli sec, which seems to be enough to give the chip some breathing air.
+// There is a quirk with figuring out that a chip is ready for the next write instruction. The data sheet 
+// suggest a writing of one byte to see of the chip acknowledges. If not it is still in a write operation. 
+// This approach does not seem to work with the PICO i2c libraries. So, we will go the "slow" way of giving 
+// the chip the time to complete the write cycle before issuing another one. Since we do not often write 
+// to the NVM, the slow mode is perhaps acceptable for now.
+//
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
@@ -352,13 +384,13 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
 
-        CDC::sleepMillis( 5 );
+        CDC::sleepMillis( NVM_WRITE_DELAY );
     }
 
     if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
        rStat = nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
-       CDC::sleepMillis( 5 );
+       CDC::sleepMillis( NVM_WRITE_DELAY );
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_NVM_ACCESS )) {

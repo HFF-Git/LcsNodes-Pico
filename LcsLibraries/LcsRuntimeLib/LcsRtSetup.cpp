@@ -327,6 +327,9 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
                  printf( "Starting - format mode\n" );
 
                 debugMask       &= ~ DBG_CONFIG;
+
+                debugMask       = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS; // ??? for testing ...
+                
                 startOptions    = NOPT_FORMAT_RUNTIME;
                 return( ALL_OK );
             }

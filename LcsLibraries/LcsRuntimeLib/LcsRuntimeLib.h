@@ -556,10 +556,11 @@ enum LcsErrorCodes : uint8_t {
     ERR_MEM_SETUP                       = 12,
     ERR_CAN_SETUP                       = 13,
 
-    ERR_NVM_NODE_MAP_CORRUPT            = 14,
-    ERR_NVM_SIZE_EXCEEDED               = 15,
-    ERR_MEM_SIZE_EXCEEDED               = 16,
-    ERR_NVM_OP_FAILED                   = 17,
+    ERR_NVM_CHIP_SIZE_DETECT            = 14,
+    ERR_NVM_NODE_MAP_CORRUPT            = 15,
+    ERR_NVM_SIZE_EXCEEDED               = 16,
+    ERR_MEM_SIZE_EXCEEDED               = 17,
+    ERR_NVM_OP_FAILED                   = 18,
 
     ERR_NODE_NOT_OPS_STATE              = 20,
     ERR_NODE_NOT_CONFIG_STATE           = 21,

@@ -65,7 +65,8 @@ uint8_t highByte( uint16_t arg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "buildDrvBoardDescArea" will create a default data area for the extension board NVM.
+// "buildDrvBoardDescArea" will create a default data area and initializes the extension board NVM with this
+// data.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t buildDrvBoardDescArea( uint8_t boardId ) {
@@ -144,6 +145,8 @@ uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
 // for a board that has no driver associated yet. This way, for example, the driver type and other initial
 // data can be set. 
 //
+//
+// ??? should we restart the extension board after setting the driver type ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
 
@@ -200,9 +203,14 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) 
 
     if ( item == ITEM_ID_FORMAT ) {
 
-            uint8_t rStat = ALL_OK;
+            LcsDrvEntry entry;
 
-            return( buildDrvBoardDescArea( boardId ));
+            entry.flags = BF_EXT_BOARD_PRESENT | BF_EXT_BOARD_VALID;
+
+            uint8_t rStat = buildDrvBoardDescArea( boardId );
+            if ( rStat == ALL_OK ) drvMap.map[ boardId ] = entry;
+
+            return( rStat );
     }
     else {
 
