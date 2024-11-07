@@ -65,6 +65,84 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
+#if 0
+    int     charIndex       = 0;
+    char    cmdStr[ 256 ]   = { 0 };
+    
+    while ( s[ charIndex ] != '\0' ) {
+
+        switch ( s[ charIndex ] ) {
+
+            case '<': {
+                
+                cmdStr[ 0 ] = '\0';
+                charIndex ++;
+
+            } break;
+
+            case '>': {
+
+                switch ( s[ 0 ] ) {
+
+                    case 'O': openSessionCmd( cmdStr + 1 ); break;
+                    case 'K': closeSessionCmd( cmdStr + 1 ); break;
+
+                    case 't': setThrottleCmd( cmdStr + 1 );  break;
+                    case 'f': setFunctionGroupCmd( cmdStr + 1 ); break;
+                    case 'v': setFunctionBitCmd( cmdStr + 1 ); break;
+
+                    case 'R': readCVCmd( cmdStr + 1 ); break;
+                    case 'W': writeCVByteCmd( cmdStr + 1 ); break;
+                    case 'B': writeCVBitCmd( cmdStr + 1 ); break;
+                    case 'w': writeCVByteMainCmd( cmdStr + 1 ); break;
+                    case 'b': writeCVBitMainCmd( cmdStr + 1 ); break;
+
+                    case 'M': writeDccPacketMainCmd( cmdStr + 1 ); break;
+                    case 'P': writeDccPacketProgCmd( cmdStr + 1 ); break;
+
+                    case 'C': setTrackOptionCmd( cmdStr + 1 ); break;
+                    case 'Y': printDccLogCommand( cmdStr + 1 ); break;
+
+                    case 'X': emergencyStopCmd( ); break;
+                    case '0': turnPowerOffAllCmd( ); break;
+                    case '1': turnPowerOnAllCmd( ); break;
+                    case '2': turnPowerOnMainCmd( ); break;
+                    case '3': turnPowerOnProgCmd( ); break;
+
+                    case 's': printStatusCmd( cmdStr + 1 ); break;
+                    case 'S': printBaseStationConfigCmd( ); break;
+                    case 'L': printSessionMap( ); break;
+
+                    case 'a': printTrackCurrentCmd( cmdStr + 1 ); break;
+
+                    case '?': printHelpCmd( ); break;
+
+                    case ' ': printf( "\n" ); break;
+
+                    case 'e':
+                    case 'E':
+                    case 'D':
+                    case 'T':
+                    case 'Z':
+                    case 'Q':
+                    case 'F': printf( "<Not implemented>\n" ); break;
+
+                    default: printf( "<Unknown command, use '?' for help>\n" );
+                }
+
+                charIndex ++;
+            
+            } break;
+
+            default: {
+
+                if ( strlen( cmdStr ) < sizeof( cmdStr) ) strncat( cmdStr, &s[ charIndex ], 1 );
+                charIndex ++;
+            }
+        }
+    }
+#else
+
     switch ( s[ 0 ] ) {
 
         case 'O': openSessionCmd( s + 1 ); break;
@@ -112,6 +190,9 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
         default: printf( "<Unknown command, use '?' for help>\n" );
     }
+
+#endif
+
 }
 
 //------------------------------------------------------------------------------------------------------------
