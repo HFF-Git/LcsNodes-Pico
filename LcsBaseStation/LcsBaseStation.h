@@ -26,7 +26,6 @@
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
-#include "DccLog.h"
 
 //------------------------------------------------------------------------------------------------------------
 // There are plenty of defines... some will go away after the design stabilizes....
@@ -393,6 +392,16 @@ struct LcsBaseStationDccTrack {
 
     void                        printDccTrackConfig( );
     void                        printDccTrackStatus( );
+
+    void                        enableLog( bool arg );
+    void                        beginLog( );
+    void                        endLog( );
+    void                        printLog( );
+
+    void                        writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
+    void                        writeLogId( uint8_t id );
+    void                        writeLogTs( );
+    void                        writeLogVal( uint8_t valId, uint16_t val );
 
     private:
 

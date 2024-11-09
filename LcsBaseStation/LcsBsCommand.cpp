@@ -811,13 +811,25 @@ void LcsBaseStationCommand::printTrackCurrentCmd( char *s ) {
 //
 //    <Y [ opt ]> where "opt" is the command to execute from the DCC Log function.
 //
+//      Main track: 
+//
 //      0 - disable DCC logging
 //      1 - enable DCC logging
 //      2 - start DCC logging
 //      3 - stop DCC logging
 //      4 - list log entries
 //
-//     10 - show real time RailCom buffer, experimental
+//      Prog track:
+//
+//      10 - disable DCC logging
+//      11 - enable DCC logging
+//      12 - start DCC logging
+//      13 - stop DCC logging
+//      14 - list log entries
+//
+//      RailCom:
+//
+//      20 - show real time RailCom buffer, experimental
 //
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printDccLogCommand( char *s ) {
@@ -826,23 +838,23 @@ void LcsBaseStationCommand::printDccLogCommand( char *s ) {
 
     sscanf( s, "%d", &opt );
 
-    printf( "<Y %d ", opt );
+   printf( "<Y %d ", opt );
 
     switch ( opt ) {
 
-        case 0: DCC_LOG::enableLog( false );  break;
-        case 1: DCC_LOG::enableLog( true );   break;
-        case 2: DCC_LOG::beginLog( );         break;
-        case 3: DCC_LOG::endLog( );           break;
+        case 0:     mainTrack -> enableLog( false );  break;
+        case 1:     mainTrack -> enableLog( true );   break;
+        case 2:     mainTrack -> beginLog( );         break;
+        case 3:     mainTrack -> endLog( );           break;
+        case 4:     mainTrack -> printLog( );         break;
 
-        case 4: {
+        case 10:    progTrack -> enableLog( false );  break;
+        case 11:    progTrack -> enableLog( true );   break;
+        case 12:    progTrack -> beginLog( );         break;
+        case 13:    progTrack -> endLog( );           break;
+        case 14:    progTrack -> printLog( );         break;
 
-        printf( "\n" );
-        DCC_LOG::printLog( );
-
-      } break;
-
-        case 10: {
+        case 20: {
 
             uint8_t buf[ 16 ];
 
@@ -855,6 +867,7 @@ void LcsBaseStationCommand::printDccLogCommand( char *s ) {
 
         default: ;
     } 
+    
     printf( ">" );
 }
 

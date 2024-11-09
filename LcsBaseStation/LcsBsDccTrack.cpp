@@ -3,9 +3,9 @@
 // LCS Base Station - DCC Track - implementation file
 //
 //------------------------------------------------------------------------------------------------------------
-// The DCC track object is the key object for the DCC subsystem. It is responsible for the DCC track signal
-// generation and the power management functions. There will be exactly two objects of this kind, one for
-// the MAIN track and the other for the PROG track.
+// The DCC track object is one of the the key objects for the DCC subsystem. It is responsible for the DCC 
+// track signal generation and the power management functions. There will be exactly two objects of this kind,
+// one for the MAIN track and the other for the PROG track. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -43,9 +43,8 @@
 //------------------------------------------------------------------------------------------------------------
 // The DccTrack Object local definitions. The DCC track object is a bit special. There are exactly two object
 // instances created, MAIN and PROG. Both however share the global mechanism for generating the DCC hardware
-// signals. There are callback functions for the DCC timer, the analog read function for a DCC track current
-// consumption and the serial I/O capability for the RailCom feature. The hardware lower layers can be found
-// in controller dependent code (CDC) layer.
+// signals. There are callback functions for the DCC timer and the serial I/O capability for the RailCom 
+// feature. The hardware lower layers can be found in controller dependent code (CDC) layer.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
@@ -53,9 +52,9 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
-// The DCC Track will allocate two Dcc Track Objects. For the interrupt system to work, references to the
+// The DCC Track will allocate two DCC Track Objects. For the interrupt system to work, references to the
 // objects must be static variables. The initialization sequence outside of this class will allocate the two
-// objects and keep a copy of the respective DCC track object created right here.
+// objects and we keep a copy of the respective DCC track object created right here.
 //
 //------------------------------------------------------------------------------------------------------------
 LcsBaseStationDccTrack  *mainTrack  = nullptr;
@@ -94,7 +93,7 @@ DccPacket       resetDccPacket    = { 3, 0, { 0x00, 0x00, 0x00 }};
 const uint8_t   bitMask9[ ]       = { 0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
 //------------------------------------------------------------------------------------------------------------
-// Programming decoders requires to detect a short rise in power consumption. The value is at least 60mA,
+// Programming decoders require to detect a short rise in power consumption. The value is at least 60mA,
 // but decoders can raise anything from 100mA to 250mA. This is a bit touchy and the value set to 100mA
 // was done after testing several decoders. Still, a bit flaky ...
 //
@@ -108,6 +107,7 @@ const uint8_t ACK_TRESHOLD_VAL  = 100;
 // signal length of 29 microseconds at the beginning of the period, right after the packet end bit of the
 // previous packet. Luckily 2 * 29 is 58, 2 * 58 is 116. Perfect for DCC packets.
 //
+// ??? think directly in microseconds ?
 //------------------------------------------------------------------------------------------------------------
 enum DccTrackTickValues : uint8_t {
 
@@ -119,12 +119,15 @@ enum DccTrackTickValues : uint8_t {
 
 //--------------------------------------------------------------------------------------------------------------
 // Base Station global limits. Perhaps to move to a configurable place...
+//
 //-------------------------------------------------------------------------------------------------------------
 #define MILLI_VOLT_PER_DIGIT            5
 #define MILLI_VOLT_PER_AMP              1500
 
 //------------------------------------------------------------------------------------------------------------
-// Maximum values for the DCC track power management thresholds. The values are specified in milliseconds.
+// DCC track power management is also a a state machine managing the state of the power track. Maximum values
+// for the DCC track power start and stop sequence as well as limits for power overload events are defined. 
+// We also define reasonable default values.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccTrackMaxThresholds : uint16_t {
@@ -136,12 +139,6 @@ enum DccTrackMaxThresholds : uint16_t {
     MAX_OVERLOAD_RESTART_COUNT          = 10
 };
 
-//------------------------------------------------------------------------------------------------------------
-// Timer and counter values for the DCC track power management routines. The values are specified in
-// milliseconds.
-//
-// ??? even used somewhere ? does it make sense ?
-//------------------------------------------------------------------------------------------------------------
 enum DccTrackThresholdsDefaults : uint16_t {
 
     DEF_START_TIME_THRESHOLD_MILLIS     = 1000,
@@ -152,7 +149,8 @@ enum DccTrackThresholdsDefaults : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Track state machine definitions. See the track state machine routine for an explanation of the states.
+// Track state machine state definitions. See the track state machine routine for an explanation of the 
+// individual states.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccTrackState : uint8_t {
@@ -201,7 +199,7 @@ uint8_t ticksForState[ ] = {
 //------------------------------------------------------------------------------------------------------------
 // DCC Track signal state machine follow up request items. The signal state machine first sets the hardware
 // signal for both tracks and then determines whether a follow up action is required. See the track state
-// machine routine for an explanation of the follow up actions.
+// machine routine for an explanation of the individual follow up actions.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccSignalStateFollowup : uint8_t {
@@ -221,12 +219,45 @@ enum DccSignalStateFollowup : uint8_t {
 // ticks will have passed when the timer interrupts again. Next, for each DCC track signal state we need to
 // remember how many ticks are left before the state machine needs to run again. Each time the timer will
 // interrupt, the passed ticks are subtracted from the ticks left counters. When the counter becomes zero,
-// the state machine will run.
+// the state machine for the track will run.
 //
 //------------------------------------------------------------------------------------------------------------
 volatile uint8_t timeToInterrupt    = 0;
 volatile uint8_t timeLeftMainTrack  = 0;
 volatile uint8_t timeLeftProgTrack  = 0;
+
+//------------------------------------------------------------------------------------------------------------
+// The DCC track object maintains an internal log facility for test and debugging purposes. During operation
+// a set of log entries can be recorded to a log buffer. A log entry consist of the header byte, which 
+// contains in the first byte the 4-bit log id and the 4-bit length of the log data. A log entry can therefore
+// record up to 16 bytes of payload.
+//
+//------------------------------------------------------------------------------------------------------------
+enum LogId : uint8_t {
+
+    LOG_NIL       = 0,
+    LOG_BEGIN     = 1,
+    LOG_END       = 2,
+    LOG_TSTAMP    = 3,
+    LOG_DCC_IDL   = 4,
+    LOG_DCC_RST   = 5,
+    LOG_DCC_PKT   = 6,
+    LOG_DCC_RCM   = 7,
+    LOG_VAL       = 8,
+    LOG_INV       = 15
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The log buffer and the log index. When writing to the log buffer, the index will always point to the
+// next available position. Once the buffer is full, no further data can be added.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint16_t  LOG_BUF_SIZE            = 4096;
+
+bool            logEnabled              = false;
+bool            logActive               = false;
+uint16_t        logBufIndex             = 0;
+uint8_t         logBuf[ LOG_BUF_SIZE ]  = { 0 };
 
 //------------------------------------------------------------------------------------------------------------
 // RailCom decoder table. The Railcom communication will send raw bytes where only four bits are "one" in
@@ -405,9 +436,9 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Conversion functions between milliAmps and digit values. For a better precision, the formula uses 32 bit
-// computation and stores the result back in a 16 bit quantity. Note that there is an awful lot of brackets
-// just to do 32bit computation.
+// Conversion functions between milliAmps and digit values as report4de by the analog to digital converter
+// hardware. For a better precision, the formula uses 32 bit computation and stores the result back in a 
+// 16 bit quantity. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint16_t milliAmpToDigitValue( uint16_t milliAmp, uint16_t digitsPerAmp ) {
@@ -491,7 +522,7 @@ void timerCallback( uint32_t timerVal ) {
 
         if      ( followUpProg == DCC_SIG_FOLLOW_UP_GET_BIT )     progTrack -> getNextBit( );
         else if ( followUpProg == DCC_SIG_FOLLOW_UP_GET_PACKET )  progTrack -> getNextPacket( );
-}
+    }
 
     if      ( followUpMain == DCC_SIG_FOLLOW_UP_MEASURE_CURRENT ) mainTrack -> powerMeasurement( );
     else if ( followUpProg == DCC_SIG_FOLLOW_UP_MEASURE_CURRENT ) progTrack -> powerMeasurement( );
@@ -514,11 +545,189 @@ void initDccTrackProcessing( ) {
     CDC::startRepeatingTimer( TICK_IN_MICROSECONDS );
 }
 
+//----------------------------------------------------------------------------------------------------------
+// DCC log functions for printing the DCC log buffer. The fist byte of each log entry has encoded the log
+// entry type and the entry length. Depending on the log entry type, data is displayed as just the header, 
+// a numeric 16-bit value, a numeric 32-bit vale or as an array of data bytes. We return the length of the 
+// DCC log entry.
+//
+//----------------------------------------------------------------------------------------------------------
+void printLogTimeStamp( uint16_t index ) {
+
+    uint32_t ts = logBuf[ index ];
+    ts = ( ts << 8 ) | logBuf[ index + 1 ];
+    ts = ( ts << 8 ) | logBuf[ index + 2 ];
+    ts = ( ts << 8 ) | logBuf[ index + 3 ];
+    printf( "0x%x", ts );
+}
+
+void printLogVal( uint16_t index ) {
+
+    uint16_t val = logBuf[ index ] << 8 | logBuf[ index + 1 ];
+    printf( "0x%04x", val );
+}
+
+void printLogData( uint16_t index, uint8_t len ) {
+
+    for ( int i = 0; i < len; i++ ) printf( "0x%02x ", logBuf[ index + i ] );
+}
+
+uint8_t printLogEntry( uint16_t index ) {
+
+    if ( index < LOG_BUF_SIZE ) {
+
+        uint8_t logEntryId  = logBuf[ index ] >> 4;
+        uint8_t logEntryLen = logBuf[ index ] & 0x0F;
+
+        switch ( logEntryId ) {
+
+            case LOG_NIL:      printf( "NIL        " ); break;
+            case LOG_BEGIN:    printf( "BEGIN      " ); break;
+            case LOG_END:      printf( "END        " ); break;
+            case LOG_TSTAMP:   printf( "TSTAMP     " ); break;
+            case LOG_DCC_IDL:  printf( "DCC_IDLE   " ); break;
+            case LOG_DCC_RST:  printf( "DCC_RESET  " ); break;
+            case LOG_DCC_PKT:  printf( "DCC_PKT    " ); break;
+            case LOG_DCC_RCM:  printf( "DCC_RCOM   " ); break;
+            case LOG_VAL:      printf( "VAL        " ); break;
+            default:           printf( "INVALID ( 0x%02 )", logBuf[ index ] >> 4 );
+        }
+
+        if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( index + 1 );
+        else if ( logEntryId == LOG_VAL     )  printLogVal( index + 1 );
+        else                                   printLogData( index + 1, logEntryLen );
+
+        return ( logEntryLen + 1 );
+    }
+    else return ( 0 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// There are a couple of routines to write the log data. For convenience, some of the log entry types are
+// available as a direct call. The order of data entry for numeric types is big endian, i.e. most significant
+// byte first.
+//
+//------------------------------------------------------------------------------------------------------------
+void writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
+
+  if ( logActive ) {
+
+    len = len % 16;
+    if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+
+      logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
+      for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+    }
+  }
+}
+
+void writeLogId( uint8_t id ) {
+
+  if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 ) | 1;
+}
+
+void writeLogTs( ) {
+
+  if ( logActive ) {
+
+    uint32_t ts = CDC::getMicros( );
+    logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+    logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
+    logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
+    logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
+    logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+  }
+}
+
+void writeLogVal( uint8_t valId, uint16_t val ) {
+
+  if ( logActive ) {
+
+    logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
+    logBuf[ logBufIndex ++ ] = valId;
+    logBuf[ logBufIndex ++ ] = val >> 8;
+    logBuf[ logBufIndex ++ ] = val & 0xFF;
+  }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The log management routines. A typical transaction to log would start the logging process and then end
+// it after the operation to analyze/debug. The "enableLog" call should be used to enable the logging
+// process all together, the other calls will only do work when the log is enabled. With this call the
+// recording process could be controlled from a command line setting or so.
+//
+//------------------------------------------------------------------------------------------------------------
+void enableLog( bool arg ) {
+
+  logEnabled = arg;
+  logActive  = false;
+}
+
+void beginLog( ) {
+
+  if ( logEnabled ) {
+
+    logActive   = true;
+    logBufIndex = 0;
+    writeLogId( LOG_BEGIN );
+    writeLogTs( );
+  }
+}
+
+void endLog( ) {
+
+  if ( logActive ) {
+
+    writeLogTs( );
+    writeLogId( LOG_END );
+    logActive = false;
+  }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// A simple routine to print out the log data, one entry on one line.
+//
+// ??? what is exactly the stop condition ? The END entry having a length of zero ?
+//------------------------------------------------------------------------------------------------------------
+void printLog( ) {
+
+    if ( logEnabled ) {
+
+        if ( ! logActive ) {
+
+            if ( logBufIndex > 0 ) {
+
+                printf( "\n" );
+
+                uint16_t entryIndex  = 0;
+                uint8_t  entryLen    = 0;
+
+                while ( entryIndex < logBufIndex ) {
+
+                    entryLen = printLogEntry( entryIndex );
+                    printf( "\n" );
+
+                    if ( entryLen > 0 ) entryIndex += entryLen;
+                    else                break;
+                }
+            }
+            else printf( "DCC Log Buf: Nothing recorded\n" );
+        }
+        else printf( "DCC Log Active\n" );
+    }
+    else printf( "DCC Log disabled\n" );
+}
+
+
 }; // namespace
 
 
 //============================================================================================================
+//============================================================================================================
+//
 // Object part.
+//
+//============================================================================================================
 //============================================================================================================
 
 
@@ -907,7 +1116,7 @@ void LcsBaseStationDccTrack::getNextPacket( ) {
 
         activeBufPtr -> repeat --;
 
-        DCC_LOG::writeLogData( DCC_LOG::LOG_DCC_PKT, activeBufPtr -> buf, activeBufPtr -> len );
+        writeLogData( LOG_DCC_PKT, activeBufPtr -> buf, activeBufPtr -> len );
     }
     else if ( flags & DT_F_DCC_PACKET_PENDING ) {
 
@@ -915,19 +1124,19 @@ void LcsBaseStationDccTrack::getNextPacket( ) {
         pendingBufPtr = (( pendingBufPtr == &dccBuf1 ) ? &dccBuf2 : &dccBuf1 );
         flags &= ~ DT_F_DCC_PACKET_PENDING;
 
-        DCC_LOG::writeLogData( DCC_LOG::LOG_DCC_PKT, activeBufPtr -> buf, activeBufPtr -> len );
+        writeLogData( LOG_DCC_PKT, activeBufPtr -> buf, activeBufPtr -> len );
     }
     else {
 
         if ( flags & DT_F_SERVICE_MODE_ON ) {
 
-        activeBufPtr = &resetDccPacket;
-        DCC_LOG::writeLogId( DCC_LOG::LOG_DCC_RST );
+            activeBufPtr = &resetDccPacket;
+            writeLogId( LOG_DCC_RST );
         }
         else {
 
-        activeBufPtr = &idleDccPacket;
-        DCC_LOG::writeLogId( DCC_LOG::LOG_DCC_IDL );
+            activeBufPtr = &idleDccPacket;
+            writeLogId( LOG_DCC_IDL );
         }
     }
 
@@ -964,7 +1173,7 @@ uint8_t LcsBaseStationDccTrack::handleRailComMsg( ) {
 
     railComBufIndex = CDC::getUartBuffer( uartRxPin, railComMsgBuf, sizeof( railComMsgBuf ));
 
-    DCC_LOG::writeLogData( DCC_LOG::LOG_DCC_RCM, railComMsgBuf, railComBufIndex );
+    writeLogData( LOG_DCC_RCM, railComMsgBuf, railComBufIndex );
 
     for ( uint8_t i = 0; i < railComBufIndex; i++ ) {
 
@@ -975,14 +1184,14 @@ uint8_t LcsBaseStationDccTrack::handleRailComMsg( ) {
         else if ( dataByte == BUSY ) ;
         else if ( dataByte < 64 ) {
 
-        // ??? valid
-        // ??? a railCom message can have multiple datagrams
-        // we would need to handle each datagram, one at a time or fill them into a kind of structure
-        // that has a slot for the up to maximum 4 datagrams per railCom cutout period.
+            // ??? valid
+            // ??? a railCom message can have multiple datagrams
+            // we would need to handle each datagram, one at a time or fill them into a kind of structure
+            // that has a slot for the up to maximum 4 datagrams per railCom cutout period.
         }
         else {
 
-        // ??? invalid packet ... if this is channel2, discard the entire message.
+            // ??? invalid packet ... if this is channel2, discard the entire message.
         }
 
         railComMsgBuf[ i ] = dataByte;
@@ -1504,10 +1713,121 @@ void LcsBaseStationDccTrack::loadPacket( const uint8_t *packet, uint8_t len, uin
 }
 
 //------------------------------------------------------------------------------------------------------------
-// ??? it would be convenient to have  kind if logging to debug what we see on the track. This eliminates
-// not only the print statements, but also is much closer to the real time behavior without debug.
+// The log management routines. A typical transaction to log would start the logging process and then end
+// it after the operation to analyze/debug. The "enableLog" call should be used to enable the logging
+// process all together, the other calls will only do work when the log is enabled. With this call the
+// recording process could be controlled from a command line setting or so. "beginLog" and "endLog" start 
+// and end a recording sequence.
 //
 //------------------------------------------------------------------------------------------------------------
+void LcsBaseStationDccTrack::enableLog( bool arg ) {
+
+    logEnabled = arg;
+    logActive  = false;
+}
+
+void LcsBaseStationDccTrack::beginLog( ) {
+
+    if ( logEnabled ) {
+
+        logActive   = true;
+        logBufIndex = 0;
+        writeLogId( LOG_BEGIN );
+        writeLogTs( );
+    }
+}
+
+void LcsBaseStationDccTrack::endLog( ) {
+
+    if ( logActive ) {
+
+        writeLogTs( );
+        writeLogId( LOG_END );
+        logActive = false;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// There are a couple of routines to write the log data when the logging is active. For convenience, some of
+// the log entry types are available as a direct call. The order of data entry for numeric types is big endian,
+// i.e. most significant byte first.
+//
+//------------------------------------------------------------------------------------------------------------
+void LcsBaseStationDccTrack::writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
+
+    if ( logActive ) {
+
+        len = len % 16;
+        if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+
+            logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
+            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+        }
+    }
+}
+
+void LcsBaseStationDccTrack::writeLogId( uint8_t id ) {
+
+    if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 );
+}
+
+void LcsBaseStationDccTrack::writeLogTs( ) {
+
+    if ( logActive ) {
+
+        uint32_t ts = CDC::getMicros( );
+        logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+        logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
+        logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
+        logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
+        logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+    }
+}
+
+void LcsBaseStationDccTrack::writeLogVal( uint8_t valId, uint16_t val ) {
+
+    if ( logActive ) {
+
+        logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
+        logBuf[ logBufIndex ++ ] = valId;
+        logBuf[ logBufIndex ++ ] = val >> 8;
+        logBuf[ logBufIndex ++ ] = val & 0xFF;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Print out the log data, one entry on one line. We only print the log buffer when there is no log sequence
+// active.
+//
+//------------------------------------------------------------------------------------------------------------
+void LcsBaseStationDccTrack::printLog( ) {
+
+    if ( logEnabled ) {
+
+        if ( ! logActive ) {
+
+            if ( logBufIndex > 0 ) {
+
+                printf( "\n" );
+
+                uint16_t entryIndex  = 0;
+                uint8_t  entryLen    = 0;
+
+                while ( entryIndex < logBufIndex ) {
+
+                    entryLen = printLogEntry( entryIndex );
+                    printf( "\n" );
+
+                    if ( entryLen > 0 ) entryIndex += entryLen;
+                    else                break;
+                }
+            }
+            else printf( "DCC Log Buf: Nothing recorded\n" );
+        }
+        else printf( "DCC Log Active\n" );
+    }
+    else printf( "DCC Log disabled\n" );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // Print out the DCC Track configuration data. For debugging purposes.

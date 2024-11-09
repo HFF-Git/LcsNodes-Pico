@@ -27,8 +27,6 @@ if ( TARGET tinyusb_device )
         LcsBsDictionary.cpp
         LcsBsLocoSession.cpp
         LcsBsMsgInterface.cpp 
-        DccLog.h
-        DccLog.cpp
     )
     target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
 
