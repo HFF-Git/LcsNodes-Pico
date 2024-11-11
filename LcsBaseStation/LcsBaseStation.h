@@ -28,7 +28,22 @@
 #include "LcsRuntimeLib.h"
 
 //------------------------------------------------------------------------------------------------------------
-// There are plenty of defines... some will go away after the design stabilizes....
+// The base station maintains a set of debug flags. The overall concept is very similar to the LCS runtime
+// library debug mask. Then following debug flags are defined:
+//
+//      DBG_BS_CONFIG                   -   DEBUG base station enabled
+//      DBG_BS_SESSION                  -   show the session management actions
+//      DBG_BS_LCS_MSG_INTERFACE        -   show the incoming LCS messages
+//      DBG_BS_TRACK_POWER_MGMT         -   show the track power measurement data
+//      DBG_BS_DCC_ACK_DETECT           -   display decoder ACK power measurements
+//      DBG_BS_CHECK_ALIVE_SESSIONS     -   displays that a session seems no longer be alive
+//      DBG_BS_RAILCOM                  -   show the RailCom activity
+//
+// The way to use these flags is for example:
+//
+//      if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_SESSION )) 
+//
+// ??? should have a command to set the debug mask on the fly...
 //------------------------------------------------------------------------------------------------------------
 #define DEBUG_SESSION                   1 // show the session management actions ...
 #define DEBUG_LCS_MSG_INTERFACE         1 // show the incoming LCS messages...
@@ -38,9 +53,22 @@
 #define DEBUG_CHECK_ALIVE_SESSIONS      0 // displays that a session seems no longer be alive ...
 #define DEBUG_WAVE_FORM                 0 // slows down the waveform timing so you can see it blinking ...
 
+enum BaseStationDebugFlags : uint16_t {
+
+    DBG_CONFIG                     = 1 << 15,       // DEBUG base station enabled
+
+    DBG_BS_SESSION                 = 1 << 0,        // show the session management actions
+    DBG_BS_LCS_MSG_INTERFACE       = 1 << 1,        // show the incoming LCS messages
+    DBG_BS_TRACK_POWER_MGMT        = 1 << 2,        // show the track power measurement data
+    DBG_BS_DCC_ACK_DETECT          = 1 << 3,        // display decoder ACK power measurements
+    DBG_BS_CHECK_ALIVE_SESSIONS    = 1 << 4,        // displays that a session seems no longer be alive
+    DBG_BS_RAILCOM                 = 1 << 5         // show the RailCom activity
+
+};
+
 //------------------------------------------------------------------------------------------------------------
-// Base station errors. Note that they need to be in the assigned number range of the core library. The core
-// library defines a starting point for node specific errors.
+// Base station errors. Note that they need to be in the assigned to the user number range of errors defined 
+// in the LCS runtime library. 
 //
 //------------------------------------------------------------------------------------------------------------
 enum BaseStationErrors : uint8_t {
@@ -67,8 +95,8 @@ enum BaseStationErrors : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 // DCC packet definition. A DCC packet is the payload data without the checksum. Besides the length in bytes
 // and the buffer, there is a repeat counter to specify how often this packet will be repeatedly transmitted
-// after the first transmission. A DCC packet is at most 15 bytes long, excluding the checksum byte. This is
-// true for XPOM and DCC-A support, otherwise it is historically a maximum of 6 bytes.
+// after the first transmission. Currently, a DCC packet is at most 15 bytes long, excluding the checksum 
+// byte. This is true for XPOM and DCC-A support, otherwise it is historically a maximum of 6 bytes.
 //
 //------------------------------------------------------------------------------------------------------------
 const uint8_t DCC_PACKET_SIZE = 16;
@@ -81,7 +109,7 @@ struct DccPacket {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// DCC packet payload data definitions we need.
+// DCC packet payload data definitions we need often, so these constants come in handy.
 //
 //----------------------------------------------------------------------------------------------------------
 const uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
@@ -89,7 +117,7 @@ const uint8_t   resetDccPacketData[ ]   = { 0x00, 0x00 };
 const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 
 //------------------------------------------------------------------------------------------------------------
-// Options to set for the DCC track. They are set when the track object is created.
+// Setup options to set for the DCC track. They are set when the track object is created.
 //
 //  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
 //  DT_OPT_CUTOUT              - The track is configured to emit a cutout during the DCC packet preamble.
@@ -99,9 +127,9 @@ const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 enum DccTrackOptions : uint16_t {
 
     DT_OPT_DEFAULT_SETTING      = 0,
-    DT_OPT_SERVICE_MODE_TRACK   = 0x0001,
-    DT_OPT_CUTOUT               = 0x0002,
-    DT_OPT_RAILCOM              = 0x0004
+    DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
+    DT_OPT_CUTOUT               = 1 << 1,
+    DT_OPT_RAILCOM              = 1 << 1
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -120,15 +148,15 @@ enum DccTrackOptions : uint16_t {
 enum DccTrackFlags : uint16_t {
 
     DT_F_DEFAULT_SETTING      = 0,
-    DT_F_POWER_ON             = 0x0001,
-    DT_F_POWER_OVERLOAD       = 0x0002,
-    DT_F_MEASUREMENT_ON       = 0x0004,
-    DT_F_SERVICE_MODE_ON      = 0x0008,
-    DT_F_CUTOUT_MODE_ON       = 0x0010,
-    DT_F_RAILCOM_MODE_ON      = 0x0020,
-    DT_F_DCC_PACKET_PENDING   = 0x0040,
-    DT_F_RAILCOM_MSG_PENDING  = 0x0080,
-    DT_F_CONFIG_ERROR         = 0x8000
+    DT_F_POWER_ON             = 1 << 0,
+    DT_F_POWER_OVERLOAD       = 1 << 1,
+    DT_F_MEASUREMENT_ON       = 1 << 2,
+    DT_F_SERVICE_MODE_ON      = 1 << 3,
+    DT_F_CUTOUT_MODE_ON       = 1 << 4,
+    DT_F_RAILCOM_MODE_ON      = 1 << 5,
+    DT_F_DCC_PACKET_PENDING   = 1 << 6,
+    DT_F_RAILCOM_MSG_PENDING  = 1 << 7,
+    DT_F_CONFIG_ERROR         = 1 << 15
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -137,8 +165,8 @@ enum DccTrackFlags : uint16_t {
 // by the DCC track state machine as part of the power on state.
 //
 //------------------------------------------------------------------------------------------------------------
-const uint8_t   SAMPLE_BUF_SIZE               = 64;
-const uint32_t  SAMPLE_TIME_INTERVAL_MILLIS   = 16;
+const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
+const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
 //------------------------------------------------------------------------------------------------------------
 // The RailCom buffer size. During the cutout period up to eight bytes of raw data are sent by the decoder if
@@ -148,7 +176,8 @@ const uint32_t  SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 const uint8_t   RAILCOM_BUF_SIZE = 8;
 
 //------------------------------------------------------------------------------------------------------------
-// The session map options.
+// The session map options. These are options initially set when the base station starts. They are used to 
+// set the flags, which are then used for processing the the actual settings. 
 //
 //  SM_KEEP_ALIVE_CHECKING  - enable keep alive checking. When enabled, the locomotive session need to receive
 //                            a keep alive LCS message periodically.
@@ -159,35 +188,37 @@ const uint8_t   RAILCOM_BUF_SIZE = 8;
 enum SessionMapOptions : uint16_t {
 
     SM_OPT_DEFAULT_SETTING        = 0,
-    SM_OPT_KEEP_ALIVE_CHECKING    = 0x0001,
-    SM_OPT_ENABLE_REFRESH         = 0x0002
+    SM_OPT_KEEP_ALIVE_CHECKING    = 1 << 0,
+    SM_OPT_ENABLE_REFRESH         = 1 << 1
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The session map flags.
+// The session map flags. The apply to all sessions in the session map. The initial values are copied from 
+// session option initial values.
 //
-//  SM_KEEP_ALIVE_CHECKING  - when set, keep alive checking is enabled.
-//  SM_ENABLE_REFRESH       - when set, the session will be refreshed periodically.
-//  SM_DEFAULT_SETTING      - initial value setting.
+//  SM_F_KEEP_ALIVE_CHECKING  - enable keep alive checking. When enabled, the locomotive session need to receive
+//                            a keep alive LCS message periodically.
+//  SM_F_ENABLE_REFRESH       - refresh the session data. This will send the locomotive speed and direction as
+//                            well as the function flags periodically in a round robin processing of the
 //
 //------------------------------------------------------------------------------------------------------------
 enum SessionMapFlags : uint16_t {
 
     SM_F_DEFAULT_SETTING        = 0,
-    SM_F_KEEP_ALIVE_CHECKING    = 0x0001,
-    SM_F_ENABLE_REFRESH         = 0x0002
+    SM_F_KEEP_ALIVE_CHECKING    = 1 << 0,
+    SM_F_ENABLE_REFRESH         = 1 << 1
 };
 
 //------------------------------------------------------------------------------------------------------------
 // Each session map entry has a set of flags.
 //
 //  SME_ALLOCATED           - the session is allocated, the entry valid.
-//  SME_SPDIR_FUNC_REFRESH  - locomotive speed/dir AND functions are refreshed.
-//  SME_SPDIR_ONLY_REFRESH  - locomotive speed/dir only are refreshed.
+//  SME_COMBINED_REFRESH    - locomotive speed/dir and functions are refreshed using the combined DCC packet.
+//  SME_SPDIR_REFRESH       - locomotive speed/dir are refreshed.
+//  SME_FUNC_REFRESH        - locomotive functions are refreshed. 
 //  SME_DISPATCHED          -
 //  SME_SHARED              -
-//  SME_DEFAULT_SETTING     - initial value setting.
-//
+// 
 //
 // ??? when the base station has a config value of using the DCC spdir/func command, these flags need to be
 // named slightly different. Should we still have the option to enable or disable it even though the base
@@ -196,86 +227,50 @@ enum SessionMapFlags : uint16_t {
 enum SessionMapEntryFlags : uint16_t {
 
     SME_DEFAULT_SETTING     = 0,
-    SME_ALLOCATED           = 0x0001,
-    SME_COMBINED_REFRESH    = 0x0002,
-    SME_SPDIR_ONLY_REFRESH  = 0x0004,
-    SME_DISPATCHED          = 0x0010,
-    SME_SHARED              = 0x0020
+    SME_ALLOCATED           = 1 << 0,
+    SME_COMBINED_REFRESH    = 1 << 1,
+    SME_SPDIR_ONLY_REFRESH  = 1 << 2, // ??? phase out...
+    SME_SPDIR_REFRESH       = 1 << 2,
+    SME_FUNC_REFRESH        = 1 << 3,
+    SME_DISPATCHED          = 1 << 4,
+    SME_SHARED              = 1 << 5
 };
 
 //------------------------------------------------------------------------------------------------------------
 // The base station items for nodeInfo and nodeControl calls .... tbd
 //
+// ??? the are mapped in the MEM / NVM range as well as in the USER range.
+// ??? how to do it consistently and understandably ?
 //------------------------------------------------------------------------------------------------------------
-/*
-
-  enum BaseStationNodeInfoItems : uint8_t {
-
-  // or use GET in all constants
-
-  BS_NI_GET_SESSION_MAP_OPTIONS
-  BS_NI_GET_SESSION_MAP_FLAGS
-
-  BS_NI_GET_MAX_SESSIONS
-  BS_NI_GET_ACTIVE_SESSIONS
-
-  BS_NI_GET_SME_xxx for items from the session entry...
-
-  };
-
-  enum BaseStationNodeControlItems : uint8_t {
-
-  // or use SET in all constants
-
-  BS_NC_SET_SESSION_MAP_OPTIONS - become active on next restart or reset...
-  BS_NC_SET_SESSION_MAP_FLAGS
-
-  BS_NC_SET_SME-xxx to set some SME fields...
-
-  };
-
-*/
-
-//------------------------------------------------------------------------------------------------------------
-// The base station items for portInfo and portControl calls .... tbd
-//
-// each track has a port, most values go to NVM for a clean restart / reset.
-//------------------------------------------------------------------------------------------------------------
-/*
-
-enum BaseStationPortInfoItems : uint8_t {
+enum BaseStationInfoItems : uint8_t {
 
     // or use GET in all constants
 
-    BS_PI_GET_INIT_CURRENT_VAL
-    BS_PI_GET_LIMIT_CURRENT_VAL
-    BS_PI_GET_MAX_CURRENT_VAL
-    BS_PI_GET_ACTUAL_CURRENT_VAL
+    BS_ITEM_SESSION_MAP_OPTIONS   = 128,
+    BS_ITEM_SESSION_MAP_FLAGS     = 129,
+    BS_ITEM_MAX_SESSIONS          = 130,
+    BS_ITEM_ACTIVE_SESSIONS       = 131,
 
-    thresholds
+    BS_ITEM_INIT_CURRENT_VAL      = 140,
+    BS_ITEM_LIMIT_CURRENT_VAL     = 140,
+    BS_ITEM_MAX_CURRENT_VAL       = 140,
+    BS_ITEM_ACTUAL_CURRENT_VAL     = 140,
 
-    eventID to send for events
+    // thresholds
 
-};
-
-enum BaseStationPortControlItems : uint8_t {
-
-  // or use SET in all constants
-
-  BS_PC_SET_INIT_CURRENT_VAL
-  BS_PC_SET_LIMIT_CURRENT_VAL
-  BS_PC_SET_MAX_CURRENT_VAL
-  BS_PC_SET_ACTUAL_CURRENT_VAL
-
-  thresholds
-
-  eventID to send for events
+    // eventID to send for events ?
 
 };
 
-*/
+//----------------------------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------------------------
+const uint32_t  MAIN_TRACK_STATE_TIME_INTERVAL  = 10;
+const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
+const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
 
-#define MAX_CAB_SESSIONS                64
+const uint16_t  MAX_CAB_SESSIONS                = 64;
 
 //------------------------------------------------------------------------------------------------------------
 // For creating the Loco Session object the session map object is described by the following descriptor.
@@ -300,7 +295,7 @@ struct LcsBaseStationSessionMapDesc {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationTrackDesc {
 
-    uint16_t  options                        = SM_OPT_DEFAULT_SETTING;
+    uint16_t  options                       = SM_OPT_DEFAULT_SETTING;
 
     uint8_t   enablePin                     = CDC::UNDEFINED_PIN;
     uint8_t   dccSigPin1                    = CDC::UNDEFINED_PIN;
@@ -325,7 +320,14 @@ struct LcsBaseStationTrackDesc {
 // and sending the DCC packet bit stream. A packet consists of the preamble bits, the postamble bit, the data
 // bytes separated with a ZERO bit and a checksum byte. Creating the DCC bit stream is done with the signal
 // generation routines. The signal state machine, running on a 29 microsecond tick, takes a DCC packet and
-// gets it out to the track.
+// gets it out to the track. The DCC signal state machine also invokes follow up actions that measure the 
+// actual power consumption, read in a railcom message and so on. There is also a DCC log facility which 
+// records internal events for testing and debugging.
+//
+// The other state machine will manage the actual track power. This machine is responsible for the periodic 
+// checking of power consumption and resulting power control. In contrast to the DCC signal state machine,
+// this machine is not driven by a periodic interrupt but invoked periodically via the LCS runtime task 
+// manager.
 //
 // For a base station, there will be two track objects. One is the MAIN track and the other one is the PROG
 // track. Each track has a DCC track object associated with it. In addition to the two track objects, there
@@ -459,31 +461,31 @@ struct LcsBaseStationDccTrack {
     DccPacket                   *activeBufPtr   = nullptr;
     DccPacket                   *pendingBufPtr  = nullptr;
 
-    // ??? a boat load of more fields...
+    // ??? to add....
     // base station capabilities according to RCN200 - 4 16 bit words
     // sample values per second for samples and dcc packets
-
     // buffers for POM / XPOM data
     // queue for POM / XPOM commands
 
     uint8_t                     railComBufIndex                   = 0;
     uint8_t                     railComMsgBuf[ RAILCOM_BUF_SIZE ] = { 0 };
 
-    // ??? better name for it ?
-
-    uint8_t                     sampleBufIndex                    = 0;
-    uint16_t                    sampleBuf[ SAMPLE_BUF_SIZE ]      = { 0 };
+    uint8_t                     pwrSampleBufIndex                    = 0;
+    uint16_t                    pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]      = { 0 };
 
     public:
 
     static void                 startDccProcessing( );
+
 };
 
 //------------------------------------------------------------------------------------------------------------
 // Every allocated loco session is described by the sessionMap structure. There are the engine cab Id, speed,
 // direction and function information. There is also a field that indicates when we received information for
 // this session from a cab control handheld. The function flags are stored in an array, each byte representing
-// a group.
+// a group. Most of the fields are actually used for a DCC type locomotive. When the locomotive is an analog
+// engine, only a subset of the fields is actually used. Nevertheless, even for an analog engine we will 
+// have a session. The base station will however not generate packets for this engine.
 //
 //------------------------------------------------------------------------------------------------------------
 struct SessionMapEntry {
@@ -497,11 +499,14 @@ struct SessionMapEntry {
   uint8_t         nextRefreshStep     = 0;
   unsigned long   lastKeepAliveTime   = 0;
   uint8_t         functions[ LCS::MAX_DCC_FUNC_GROUP_ID ] = { 0 };
+
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The loco session object is the central data structure of a base station. It manages the loco sessions,
-// assembles the DCC packets and drives the DCC track objects to send out the relevant DCC packages.
+// The loco session object is the central data structure for the base station locomotive management. For a 
+// DCC type engine it manages the loco sessions and assembles the DCC packets and drives the DCC track objects
+// to send out the relevant DCC packages. For an analog engine it will just manage the session entry and 
+// communicate via the LCS bus with the block controller that actually owns the engine at the moment.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationLocoSession {
@@ -582,12 +587,15 @@ struct LcsBaseStationLocoSession {
     SessionMapEntry           *sessionMapNextRefresh  = nullptr;
     SessionMapEntry           *sessionMapHwm          = nullptr;
     SessionMapEntry           *sessionMapLimit        = nullptr;
+
 };
 
 //------------------------------------------------------------------------------------------------------------
 // One of the key duties of the base station is to listen and react to DCC commands coming via the LCS bus.
 // The interface works very closely with the session management and the two DCC track objects.
 //
+// ??? how about we make the handleLcsMsg handler a routine vs. an object ?
+// ??? would make the any REQ/REP scheme easier ?
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationMsgInterface {
 
@@ -607,11 +615,13 @@ struct LcsBaseStationMsgInterface {
     LcsBaseStationLocoSession   *locoSessions   = nullptr;
     LcsBaseStationDccTrack      *mainTrack      = nullptr;
     LcsBaseStationDccTrack      *progTrack      = nullptr;
+
 };
 
 //------------------------------------------------------------------------------------------------------------
 // The base station implements a serial IO command interface. The command interface uses the DCC++ syntax of
-// a command line and where it is a original DCC++ command it implements them in a compatible way.
+// a command line and where it is a original DCC++ command it implements them in a compatible way. The idea
+// is to one day connect to the programs of the JMRI world, which support the DCC++ style command interface.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationCommand {

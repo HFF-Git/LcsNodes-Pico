@@ -460,12 +460,12 @@ enum LcsPortEventAction : uint8_t {
 enum DebugOtions : uint16_t {
 
     DBG_CONFIG          = ( 1U << 15 ),
-    DBG_SETUP           = ( 1U << 14 ),
-    DBG_NVM_ACCESS      = ( 1U << 13 ),
-    DBG_CAN_BUS         = ( 1U << 12 ),
-    DBG_MSG_BUS         = ( 1U << 11 ),
-    DBG_ATTRIBUTES      = ( 1U << 10 ),
-    DBG_EVENTS          = ( 1U <<  9 )
+    DBG_SETUP           = ( 1U << 0 ),
+    DBG_NVM_ACCESS      = ( 1U << 1 ),
+    DBG_CAN_BUS         = ( 1U << 2 ),
+    DBG_MSG_BUS         = ( 1U << 3 ),
+    DBG_ATTRIBUTES      = ( 1U << 4 ),
+    DBG_EVENTS          = ( 1U << 5 )
 };
 
 //---------------------------------------------------------------------------------------------------------

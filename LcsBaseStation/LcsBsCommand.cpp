@@ -5,10 +5,10 @@
 //------------------------------------------------------------------------------------------------------------
 // The serial command interface is used to directly send commands to the session and DCC track objects. The
 // command syntax is patterned after the DCC++ command syntax. Available commands that have a DCC++ counter
-// part are implemented exactly after the DCC++ command. The main motivation is to use this interface for
-// testing and debugging as well as third party tools that also implement the DCC++ command set to send
-// commands to this base station as well when calling the serial IO interface. For the layout control system,
-// the approach would rather be to send LCS messages for all tasks.
+// part are implemented exactly after the DCC++ command specification. The main motivation is to use this 
+// interface for testing and debugging as well as third party tools that also implement the DCC++ command set
+// to send commands to this base station as well when calling the serial IO interface. For the layout control
+// system, the approach would rather be to send LCS messages for all tasks.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -40,7 +40,8 @@ using namespace LCS;
 LcsBaseStationCommand::LcsBaseStationCommand( ) { }
 
 //------------------------------------------------------------------------------------------------------------
-// The object setup command. We need to remember the other objects we use in handling the commands.
+// The object setup command. We need to remember the other objects we use in handling the commands. For the
+// serial IO itself nothing to do, it was already done in the LCS runtime setup.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationCommand::setupSerialCommand(
@@ -60,7 +61,11 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 // "handleSerialCommand" analyzes the command line and invokes the respective command handler. The first
 // character in a command is the command letter. The command is followed by the arguments. For compatibility
 // with the DCC++ original command set, each command that is also a DCC++ command is implemented exactly as
-// the original. This allows external tools, such as the JMRI Decoder Pro configuration tool to be used.
+// the original. This allows external tools, such as the JMRI Decoder Pro configuration tool to be used. The
+// Arduino world has a buffer from which the characters are received. This allows to enter several commands
+// sequences "<" ... ">" in one line which are processed once the carriage return is hit. In the LCS runtime
+// case, the command callback passes the entire string as well. We need to parse this sequence of commands
+// and handle one command at a time.
 //
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
@@ -436,17 +441,17 @@ void LcsBaseStationCommand::readCVCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeCVByteCmd( char *s ) {
 
-  uint16_t  cvId          = NIL_DCC_CV_ID;
-  uint8_t   val           = 0;
-  int       callbacknum   = 0;
-  int       callbacksub   = 0;
-  int       ret           = 0;
+    uint16_t  cvId          = NIL_DCC_CV_ID;
+    uint8_t   val           = 0;
+    int       callbacknum   = 0;
+    int       callbacksub   = 0;
+    int       ret           = 0;
 
-  if ( sscanf( s, "%hu %hhu %d %d", &cvId, &val, &callbacknum, &callbacksub ) < 2 ) return;
+    if ( sscanf( s, "%hu %hhu %d %d", &cvId, &val, &callbacknum, &callbacksub ) < 2 ) return;
 
-  ret = locoSessions -> writeCVByte( cvId, val );
+    ret = locoSessions -> writeCVByte( cvId, val );
 
-  printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 ));
+    printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -469,18 +474,18 @@ void LcsBaseStationCommand::writeCVByteCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeCVBitCmd( char *s ) {
 
-  uint16_t  cvId          = NIL_DCC_CV_ID;
-  uint8_t   bitPos        = 0;
-  uint8_t   bitVal        = 0;
-  int       callbacknum   = 0;
-  int       callbacksub   = 0;
-  int       ret           = 0;
+    uint16_t  cvId          = NIL_DCC_CV_ID;
+    uint8_t   bitPos        = 0;
+    uint8_t   bitVal        = 0;
+    int       callbacknum   = 0;
+    int       callbacksub   = 0;
+    int       ret           = 0;
 
-  if ( sscanf( s, "%hu %hhu %hhu %d %d", &cvId, &bitPos, &bitVal, &callbacknum, &callbacksub ) != 5 ) return;
+    if ( sscanf( s, "%hu %hhu %hhu %d %d", &cvId, &bitPos, &bitVal, &callbacknum, &callbacksub ) != 5 ) return;
 
-  ret = locoSessions -> writeCVBit( cvId, bitPos, bitVal );
+    ret = locoSessions -> writeCVBit( cvId, bitPos, bitVal );
 
-  printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, (( ret == ALL_OK ) ? bitVal : -1 ));
+    printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, (( ret == ALL_OK ) ? bitVal : -1 ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -499,13 +504,13 @@ void LcsBaseStationCommand::writeCVBitCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeCVByteMainCmd( char *s ) {
 
-  uint16_t  cabId = NIL_CAB_ID;
-  uint16_t  cvId  = NIL_DCC_CV_ID;
-  uint8_t   val   = 0;
+    uint16_t  cabId = NIL_CAB_ID;
+    uint16_t  cvId  = NIL_DCC_CV_ID;
+    uint8_t   val   = 0;
 
-  if ( sscanf( s, "%hu %hu %hhu", &cabId, &cvId, &val ) != 3 ) return;
+    if ( sscanf( s, "%hu %hu %hhu", &cabId, &cvId, &val ) != 3 ) return;
 
-  locoSessions -> writeCVByteMain( locoSessions -> getSessionIdByCabId( cabId ), cvId, val );
+    locoSessions -> writeCVByteMain( locoSessions -> getSessionIdByCabId( cabId ), cvId, val );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -525,14 +530,14 @@ void LcsBaseStationCommand::writeCVByteMainCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeCVBitMainCmd( char *s ) {
 
-  uint16_t  cabId = NIL_CAB_ID;
-  uint16_t  cvId    = NIL_DCC_CV_ID;
-  uint8_t   bitPos = 0;
-  uint8_t   bitVal = 0;
+    uint16_t  cabId = NIL_CAB_ID;
+    uint16_t  cvId    = NIL_DCC_CV_ID;
+    uint8_t   bitPos = 0;
+    uint8_t   bitVal = 0;
 
-  if ( sscanf(s, "%hu %hu %hhu %hhu", &cabId, &cvId, &bitPos, &bitVal ) != 4 ) return;
+    if ( sscanf(s, "%hu %hu %hhu %hhu", &cabId, &cvId, &bitPos, &bitVal ) != 4 ) return;
 
-  locoSessions -> writeCVBitMain( locoSessions -> getSessionIdByCabId( cabId ), cvId, bitPos, bitVal );
+    locoSessions -> writeCVBitMain( locoSessions -> getSessionIdByCabId( cabId ), cvId, bitPos, bitVal );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -549,14 +554,14 @@ void LcsBaseStationCommand::writeCVBitMainCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeDccPacketMainCmd( char *s ) {
 
-  uint8_t b[ 16 ] = { 0 };
-  uint8_t nBytes  = sscanf( s,
-                            "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
-                            "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                            b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
-                            b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
+    uint8_t b[ 16 ] = { 0 };
+    uint8_t nBytes  = sscanf( s,
+                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
+                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
+                                b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
+                                b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
 
-  if ( nBytes >= 3 && nBytes <= 10 ) locoSessions -> writeDccPacketMain( b, nBytes, 0 );
+    if ( nBytes >= 3 && nBytes <= 10 ) locoSessions -> writeDccPacketMain( b, nBytes, 0 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -573,14 +578,14 @@ void LcsBaseStationCommand::writeDccPacketMainCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
 
-  uint8_t b[ 16 ] = { 0 };
-  uint8_t nBytes  = sscanf( s,
-                            "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
-                            "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                            b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
-                            b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
+    uint8_t b[ 16 ] = { 0 };
+    uint8_t nBytes  = sscanf( s,
+                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
+                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
+                                b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
+                                b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
 
-  if ( nBytes >= 3 && nBytes <= 10 ) locoSessions -> writeDccPacketProg( b, nBytes, 0 );
+    if ( nBytes >= 3 && nBytes <= 10 ) locoSessions -> writeDccPacketProg( b, nBytes, 0 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -594,8 +599,8 @@ void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::emergencyStopCmd( ) {
 
-  locoSessions -> emergencyStopAll( );
-  printf( "<X>" );
+    locoSessions -> emergencyStopAll( );
+    printf( "<X>" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -609,28 +614,28 @@ void LcsBaseStationCommand::emergencyStopCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::turnPowerOnAllCmd( ) {
 
-  mainTrack -> powerStart( );
-  progTrack -> powerStart( );
-  printf( "<p1>" );
+    mainTrack -> powerStart( );
+    progTrack -> powerStart( );
+    printf( "<p1>" );
 }
 
 void LcsBaseStationCommand::turnPowerOffAllCmd( ) {
 
-  mainTrack -> powerStop( );
-  progTrack -> powerStop( );
-  printf( "<p0>" );
+    mainTrack -> powerStop( );
+    progTrack -> powerStop( );
+    printf( "<p0>" );
 }
 
 void LcsBaseStationCommand::turnPowerOnMainCmd( ) {
 
-  mainTrack -> powerStart( );
-  printf( "<p1 MAIN>" );
+    mainTrack -> powerStart( );
+    printf( "<p1 MAIN>" );
 }
 
 void LcsBaseStationCommand::turnPowerOnProgCmd( ) {
 
-  progTrack -> powerStart( );
-  printf( "<p1 PROG>" );
+    progTrack -> powerStart( );
+    printf( "<p1 PROG>" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -653,21 +658,21 @@ void LcsBaseStationCommand::turnPowerOnProgCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setTrackOptionCmd( char *s ) {
 
-  uint8_t option = 0;
+    uint8_t option = 0;
 
-  if ( sscanf( s, "%hhu", &option ) == 1 ) {
+    if ( sscanf( s, "%hhu", &option ) == 1 ) {
 
-    switch ( option ) {
+        switch ( option ) {
 
-      case 1: mainTrack -> cutoutOn( );   break;
-      case 2: mainTrack -> cutoutOff( );  break;
-      case 3: mainTrack -> railComOn( );  break;
-      case 4: mainTrack -> railComOff( ); break;
+            case 1: mainTrack -> cutoutOn( );   break;
+            case 2: mainTrack -> cutoutOff( );  break;
+            case 3: mainTrack -> railComOn( );  break;
+            case 4: mainTrack -> railComOff( ); break;
 
-      case 10: progTrack -> serviceModeOff( );  break;
-      case 11: progTrack -> serviceModeOn( ); break;
+            case 10: progTrack -> serviceModeOff( );  break;
+            case 11: progTrack -> serviceModeOn( ); break;
+        }
     }
-  }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -683,30 +688,30 @@ void LcsBaseStationCommand::setTrackOptionCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printStatusCmd( char *s ) {
 
-  uint8_t opt = 0;
+    uint8_t opt = 0;
 
-  if ( sscanf( s, "%hhu", &opt ) > 0 ) {
+    if ( sscanf( s, "%hhu", &opt ) > 0 ) {
 
-    switch ( opt ) {
+        switch ( opt ) {
 
-      case 0: printVersionInfo( );      break;
-      case 1: printConfiguration( );    break;
-      case 2: printSessionMap( );       break;
-      case 3: printTrackStatusMain( );  break;
-      case 4: printTrackStatusProg( );  break;
+            case 0: printVersionInfo( );      break;
+            case 1: printConfiguration( );    break;
+            case 2: printSessionMap( );       break;
+            case 3: printTrackStatusMain( );  break;
+            case 4: printTrackStatusProg( );  break;
 
-      case 9: {
+            case 9: {
 
-          printConfiguration( );
-          printSessionMap( );
-          printTrackStatusMain( );
-          printTrackStatusProg( );
+                printConfiguration( );
+                printSessionMap( );
+                printTrackStatusMain( );
+                printTrackStatusProg( );
 
-        } break;
+            } break;
 
-      default: printVersionInfo( );
-    }
-  } else printVersionInfo( );
+            default: printVersionInfo( );
+        }
+    } else printVersionInfo( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -720,7 +725,7 @@ void LcsBaseStationCommand::printStatusCmd( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printBaseStationConfigCmd( ) {
 
-  printConfiguration( );
+    printConfiguration( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -730,10 +735,10 @@ void LcsBaseStationCommand::printBaseStationConfigCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printConfiguration( ) {
 
-  printVersionInfo( );
-  locoSessions -> printSessionMapConfig( );
-  mainTrack -> printDccTrackConfig( );
-  progTrack -> printDccTrackConfig( );
+    printVersionInfo( );
+    locoSessions -> printSessionMapConfig( );
+    mainTrack -> printDccTrackConfig( );
+    progTrack -> printDccTrackConfig( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -742,7 +747,7 @@ void LcsBaseStationCommand::printConfiguration( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printVersionInfo( ) {
 
-  printf( "<\nLCS Base Station / Version: tbd / %s %s >\n", __DATE__, __TIME__  );
+    printf( "<\nLCS Base Station / Version: tbd / %s %s >\n", __DATE__, __TIME__  );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -751,7 +756,7 @@ void LcsBaseStationCommand::printVersionInfo( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printSessionMap( ) {
 
-  locoSessions -> printSessionMapInfo( );
+    locoSessions -> printSessionMapInfo( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -760,7 +765,7 @@ void LcsBaseStationCommand::printSessionMap( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printTrackStatusMain( ) {
 
-  mainTrack -> printDccTrackStatus( );
+    mainTrack -> printDccTrackStatus( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -769,7 +774,7 @@ void LcsBaseStationCommand::printTrackStatusMain( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printTrackStatusProg( ) {
 
-  progTrack -> printDccTrackStatus( );
+    progTrack -> printDccTrackStatus( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -784,26 +789,26 @@ void LcsBaseStationCommand::printTrackStatusProg( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printTrackCurrentCmd( char *s ) {
 
-  int opt = -1;
+    int opt = -1;
 
-  sscanf( s, "%d", &opt );
+    sscanf( s, "%d", &opt );
 
-  printf( "<a " );
+    printf( "<a " );
 
-  switch ( opt ) {
+    switch ( opt ) {
 
-    case 0: printf( "%d", mainTrack -> getActualCurrent( )); break;
-    case 1: printf( "%d", progTrack -> getActualCurrent( )); break;
-    case 2: printf( "%d %d", mainTrack -> getActualCurrent( ), progTrack -> getActualCurrent( )); break;
+        case 0: printf( "%d", mainTrack -> getActualCurrent( )); break;
+        case 1: printf( "%d", progTrack -> getActualCurrent( )); break;
+        case 2: printf( "%d %d", mainTrack -> getActualCurrent( ), progTrack -> getActualCurrent( )); break;
 
-    case 10: printf( "%d", mainTrack -> getRMSCurrent( )); break;
-    case 11: printf( "%d", progTrack -> getRMSCurrent( )); break;
-    case 12: printf( "%d %d", mainTrack -> getRMSCurrent( ), progTrack -> getRMSCurrent( )); break;
+        case 10: printf( "%d", mainTrack -> getRMSCurrent( )); break;
+        case 11: printf( "%d", progTrack -> getRMSCurrent( )); break;
+        case 12: printf( "%d %d", mainTrack -> getRMSCurrent( ), progTrack -> getRMSCurrent( )); break;
 
-    default: printf( "%d", mainTrack -> getRMSCurrent( ));
-  }
+        default: printf( "%d", mainTrack -> getRMSCurrent( ));
+    }
 
-  printf( ">" );
+    printf( ">" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -838,7 +843,7 @@ void LcsBaseStationCommand::printDccLogCommand( char *s ) {
 
     sscanf( s, "%d", &opt );
 
-   printf( "<Y %d ", opt );
+    printf( "<Y %d ", opt );
 
     switch ( opt ) {
 
@@ -907,33 +912,38 @@ void LcsBaseStationCommand::printHelpCmd( ) {
     printf( "<2> - turn operations track power on\n" );
     printf( "<3> - turn programming track power on\n" );
 
-    printf( "<a [ opt ]>    - list current consumption, default is RMS for MAIN\n" );
-    printf( "             " " - opt 0  - actual - MAIN\n" );
-    printf( "             " " - opt 1  - actual - PROG\n" );
-    printf( "             " " - opt 2  - actual - both\n" );
-    printf( "             " " - opt 10 - RMS - MAIN\n" );
-    printf( "             " " - opt 11 - RMS - PROG\n" );
-    printf( "             " " - opt 12 - RMS - both\n" );
+    printf( "<a [ opt ]>  " " - list current consumption, default is RMS for MAIN\n" );
+    printf( "             " "   - opt 0  - actual - MAIN\n" );
+    printf( "             " "   - opt 1  - actual - PROG\n" );
+    printf( "             " "   - opt 2  - actual - both\n" );
+    printf( "             " "   - opt 10 - RMS - MAIN\n" );
+    printf( "             " "   - opt 11 - RMS - PROG\n" );
+    printf( "             " "   - opt 12 - RMS - both\n" );
 
     printf( "<C <option>> - turn on/off the Railcom option on the main track( 0 - off, 1 - on)\n" );
 
-    printf( "<s [ level ]> - list status at detail level, default is summary\n" );
-    printf( "             " " - level 0 - summary\n" );
-    printf( "             " " - level 1 - configuration\n" );
-    printf( "             " " - level 2 - session map\n" );
-    printf( "             " " - level 3 - main track current\n" );
-    printf( "             " " - level 4 - prog track current\n" );
-    printf( "             " " - level 9 - all of the above\n" );
+    printf( "<s [ level ]>" " - list status at detail level, default is summary\n" );
+    printf( "             " "   - level 0 - summary\n" );
+    printf( "             " "   - level 1 - configuration\n" );
+    printf( "             " "   - level 2 - session map\n" );
+    printf( "             " "   - level 3 - main track current\n" );
+    printf( "             " "   - level 4 - prog track current\n" );
+    printf( "             " "   - level 9 - all of the above\n" );
 
     printf( "<S> - list base station configuration\n" );
     printf( "<L> - list base station session table" );
 
     printf( "<Y [ opt ]> - DCC log options ( used for debugging and tracing )\n" );
-    printf( "             " " - level 0 - disable logging\n" );
-    printf( "             " " - level 1 - enable logging\n" );
-    printf( "             " " - level 2 - begin logging\n" );
-    printf( "             " " - level 3 - end logging\n" );
-    printf( "             " " - level 4 - print logging data\n" );
+    printf( "             " "   - 0  - disable main track logging\n" );
+    printf( "             " "   - 1  - enable main track logging\n" );
+    printf( "             " "   - 2  - begin main track logging\n" );
+    printf( "             " "   - 3  - end main track logging\n" );
+    printf( "             " "   - 4  - print main track logging data\n" );
+    printf( "             " "   - 10 - disable prog track logging\n" );
+    printf( "             " "   - 11 - enable prog track logging\n" );
+    printf( "             " "   - 12 - begin prog track logging\n" );
+    printf( "             " "   - 13 - end prog track logging\n" );
+    printf( "             " "   - 14 - print prog track logging data\n" );
 
     printf( "<?> - list this help\n" );
 

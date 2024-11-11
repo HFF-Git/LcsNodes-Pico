@@ -5,7 +5,11 @@
 //------------------------------------------------------------------------------------------------------------
 // The DCC track object is one of the the key objects for the DCC subsystem. It is responsible for the DCC 
 // track signal generation and the power management functions. There will be exactly two objects of this kind,
-// one for the MAIN track and the other for the PROG track. 
+// one for the MAIN track and the other for the PROG track. The DCC track object has two major functional 
+// parts. The first is to transmit a DCC packet to the track. This is the most important task, as with no
+// packets no power is on the tracks and the locomotive will not work. The second task is to continuously 
+// monitor the current consumption. Finally, for the RailCom option, the cutout generation and receiving 
+// of the RailCOm packets is handled.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -33,6 +37,7 @@
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a debugging option to set the
 // clock much slower so that the waveform can be seen.
 //
+// ??? take out, we are past that ...... since a long time.
 //------------------------------------------------------------------------------------------------------------
 #if DEBUG_WAVE_FORM == 1
 #define TICK_IN_MICROSECONDS  400000
@@ -56,7 +61,8 @@ using namespace LCS;
 // objects must be static variables. The initialization sequence outside of this class will allocate the two
 // objects and we keep a copy of the respective DCC track object created right here.
 //
-//------------------------------------------------------------------------------------------------------------
+// ??? when we use the global variables in the "main" file, can this go away ?
+ //------------------------------------------------------------------------------------------------------------
 LcsBaseStationDccTrack  *mainTrack  = nullptr;
 LcsBaseStationDccTrack  *progTrack  = nullptr;
 
@@ -69,28 +75,25 @@ LcsBaseStationDccTrack  *progTrack  = nullptr;
 // preamble.
 //
 //------------------------------------------------------------------------------------------------------------
-enum DccPacketDefinitions : uint8_t {
-
-    MAIN_PACKET_PREAMBLE_LEN    = 17,
-    MAIN_PACKET_POSTAMBLE_LEN   = 1,
-    PROG_PACKET_PREAMBLE_LEN    = 22,
-    PROG_PACKET_POSTAMBLE_LEN   = 1,
-    DCC_PACKET_CUTOUT_LEN       = 4,
-    MIN_DCC_PACKET_SIZE         = 2,
-    MAX_DCC_PACKET_SIZE         = 16,
-    MIN_DCC_PACKET_REPEATS      = 0,
-    MAX_DCC_PACKET_REPEATS      = 8,
-    RAILCOM_BUFFER_SIZE         = 8
-};
+const uint8_t   MAIN_PACKET_PREAMBLE_LEN    = 17;
+const uint8_t   MAIN_PACKET_POSTAMBLE_LEN   = 1;
+const uint8_t   PROG_PACKET_PREAMBLE_LEN    = 22;
+const uint8_t   PROG_PACKET_POSTAMBLE_LEN   = 1;
+const uint8_t   DCC_PACKET_CUTOUT_LEN       = 4;
+const uint8_t   MIN_DCC_PACKET_SIZE         = 2;
+const uint8_t   MAX_DCC_PACKET_SIZE         = 16;
+const uint8_t   MIN_DCC_PACKET_REPEATS      = 0;
+const uint8_t   MAX_DCC_PACKET_REPEATS      = 8;
+const uint8_t   RAILCOM_BUFFER_SIZE         = 8;
 
 //------------------------------------------------------------------------------------------------------------
 // Constant values definition. We need the RESET and IDLE packet as well as a bit mask for a quick bit
 // select in the data byte.
 //
 //------------------------------------------------------------------------------------------------------------
-DccPacket       idleDccPacket     = { 3, 0, { 0xFF, 0x00, 0xFF }};
-DccPacket       resetDccPacket    = { 3, 0, { 0x00, 0x00, 0x00 }};
-const uint8_t   bitMask9[ ]       = { 0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+DccPacket       idleDccPacket       = { 3, 0, { 0xFF, 0x00, 0xFF }};
+DccPacket       resetDccPacket      = { 3, 0, { 0x00, 0x00, 0x00 }};
+const uint8_t   bitMask9[ ]         = { 0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
 //------------------------------------------------------------------------------------------------------------
 // Programming decoders require to detect a short rise in power consumption. The value is at least 60mA,
@@ -98,7 +101,7 @@ const uint8_t   bitMask9[ ]       = { 0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 
 // was done after testing several decoders. Still, a bit flaky ...
 //
 //------------------------------------------------------------------------------------------------------------
-const uint8_t ACK_TRESHOLD_VAL  = 100;
+const uint8_t ACK_TRESHOLD_VAL      = 100;
 
 //------------------------------------------------------------------------------------------------------------
 // The DCC signal generator thinks in ticks. With a DCC ONE based on 58 microseconds and a DCC ZERO based
@@ -109,20 +112,17 @@ const uint8_t ACK_TRESHOLD_VAL  = 100;
 //
 // ??? think directly in microseconds ?
 //------------------------------------------------------------------------------------------------------------
-enum DccTrackTickValues : uint8_t {
-
-    TICKS_29_MICROS             =  1,
-    TICKS_58_MICROS             =  TICKS_29_MICROS * 2,
-    TICKS_116_MICROS            =  TICKS_29_MICROS * 4,
-    TICKS_CUTOUT_MICROS         =  TICKS_29_MICROS * 16
-};
+const uint32_t TICKS_29_MICROS             =  1;
+const uint32_t TICKS_58_MICROS             =  TICKS_29_MICROS * 2;
+const uint32_t TICKS_116_MICROS            =  TICKS_29_MICROS * 4;
+const uint32_t TICKS_CUTOUT_MICROS         =  TICKS_29_MICROS * 16;
 
 //--------------------------------------------------------------------------------------------------------------
 // Base Station global limits. Perhaps to move to a configurable place...
 //
 //-------------------------------------------------------------------------------------------------------------
-#define MILLI_VOLT_PER_DIGIT            5
-#define MILLI_VOLT_PER_AMP              1500
+const uint16_t MILLI_VOLT_PER_DIGIT        = 5;
+const uint16_t MILLI_VOLT_PER_AMP          = 1500;
 
 //------------------------------------------------------------------------------------------------------------
 // DCC track power management is also a a state machine managing the state of the power track. Maximum values
@@ -130,23 +130,17 @@ enum DccTrackTickValues : uint8_t {
 // We also define reasonable default values.
 //
 //------------------------------------------------------------------------------------------------------------
-enum DccTrackMaxThresholds : uint16_t {
+const uint16_t MAX_START_TIME_THRESHOLD_MILLIS     = 2000;
+const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS      = 1000;
+const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS  = 500;
+const uint16_t MAX_OVERLOAD_EVENT_COUNT            = 10;
+const uint16_t MAX_OVERLOAD_RESTART_COUNT          = 10;
 
-    MAX_START_TIME_THRESHOLD_MILLIS     = 2000,
-    MAX_STOP_TIME_THRESHOLD_MILLIS      = 1000,
-    MAX_OVERLOAD_TIME_THRESHOLD_MILLIS  = 500,
-    MAX_OVERLOAD_EVENT_COUNT            = 10,
-    MAX_OVERLOAD_RESTART_COUNT          = 10
-};
-
-enum DccTrackThresholdsDefaults : uint16_t {
-
-    DEF_START_TIME_THRESHOLD_MILLIS     = 1000,
-    DEF_STOP_TIME_THRESHOLD_MILLIS      = 500,
-    DEF_OVERLOAD_TIME_THRESHOLD_MILLIS  = 300,
-    DEF_OVERLOAD_EVENT_COUNT            = 10,
-    DEF_OVERLOAD_RESTART_COUNT          = 10
-};
+const uint16_t DEF_START_TIME_THRESHOLD_MILLIS     = 1000;
+const uint16_t DEF_STOP_TIME_THRESHOLD_MILLIS      = 500;
+const uint16_t DEF_OVERLOAD_TIME_THRESHOLD_MILLIS  = 300;
+const uint16_t DEF_OVERLOAD_EVENT_COUNT            = 10;
+const uint16_t DEF_OVERLOAD_RESTART_COUNT          = 10;
 
 //------------------------------------------------------------------------------------------------------------
 // Track state machine state definitions. See the track state machine routine for an explanation of the 
@@ -348,17 +342,17 @@ enum railComDatagramType : uint8_t {
 // a railcom message is valid, you should perhaps ignore channel 1 data and just check channel 2 for this
 // purpose. A RC datagram starts with the 4-bit ID and an 8 to 32bit payload.
 //
-//  RC_DG_MOB_ID_POM       ( 0  )  - 12bit
-//  RC_DG_MOB_ID_ADR_HIGH  ( 1  )  - 12bit
-//  RC_DG_MOB_ID_ADR_LOW   ( 2  )  - 12bit
-//  RC_DG_MOB_ID_APP_EXT   ( 3  )  - 18bit
-//  RC_DG_MOB_ID_APP_DYN   ( 7  )  - 18bit
-//  RC_DG_MOB_ID_XPOM_1    ( 8  )  - 36bit
-//  RC_DG_MOB_ID_XPOM_2    ( 9  )  - 36bit
-//  RC_DG_MOB_ID_XPOM_3    ( 10 )  - 36bit
-//  RC_DG_MOB_ID_XPOM_4    ( 11 )  - 36bit
-//  RC_DG_MOB_ID_TEST      ( 12 )  - ignore
-//  RC_DG_MOB_ID_SEARCH    ( 14 )  - 48bit
+//      RC_DG_MOB_ID_POM       ( 0  )  - 12bit
+//      RC_DG_MOB_ID_ADR_HIGH  ( 1  )  - 12bit
+//      RC_DG_MOB_ID_ADR_LOW   ( 2  )  - 12bit
+//      RC_DG_MOB_ID_APP_EXT   ( 3  )  - 18bit
+//      RC_DG_MOB_ID_APP_DYN   ( 7  )  - 18bit
+//      RC_DG_MOB_ID_XPOM_1    ( 8  )  - 36bit
+//      RC_DG_MOB_ID_XPOM_2    ( 9  )  - 36bit
+//      RC_DG_MOB_ID_XPOM_3    ( 10 )  - 36bit
+//      RC_DG_MOB_ID_XPOM_4    ( 11 )  - 36bit
+//      RC_DG_MOB_ID_TEST      ( 12 )  - ignore
+//      RC_DG_MOB_ID_SEARCH    ( 14 )  - 48bit
 //
 // A datagram with the ID 14 is a DDC-A datagram and all 8 datagram bytes are combined to an 48bit datagram.
 // A datagram packet can also contain more than one datagram. For example there could be two 18-bit length
@@ -387,16 +381,16 @@ enum railComDatagramMobId : uint8_t {
 //
 // ??? to fill in ...
 //
-//  RC_DG_STAT_ID_SRQ       ( 0  )  - 12bit
-//  RC_DG_STAT_ID_POM       ( 1  )  - 12bit
-//  RC_DG_STAT_ID_STAT1     ( 4  )  - 12bit
-//  RC_DG_STAT_ID_TIME      ( 5  )  - xxbit
-//  RC_DG_STAT_ID_ERR       ( 6  )  - xxbit
-//  RC_DG_STAT_ID_XPOM_1    ( 8  )  - 36bit
-//  RC_DG_STAT_ID_XPOM_2    ( 9  )  - 36bit
-//  RC_DG_STAT_ID_XPOM_3    ( 10 )  - 36bit
-//  RC_DG_STAT_ID_XPOM_4    ( 11 )  - 36bit
-//  RC_DG_STAT_ID_TEST      ( 12 )  - ignore
+//      RC_DG_STAT_ID_SRQ       ( 0  )  - 12bit
+//      RC_DG_STAT_ID_POM       ( 1  )  - 12bit
+//      RC_DG_STAT_ID_STAT1     ( 4  )  - 12bit
+//      RC_DG_STAT_ID_TIME      ( 5  )  - xxbit
+//      RC_DG_STAT_ID_ERR       ( 6  )  - xxbit
+//      RC_DG_STAT_ID_XPOM_1    ( 8  )  - 36bit
+//      RC_DG_STAT_ID_XPOM_2    ( 9  )  - 36bit
+//      RC_DG_STAT_ID_XPOM_3    ( 10 )  - 36bit
+//      RC_DG_STAT_ID_XPOM_4    ( 11 )  - 36bit
+//      RC_DG_STAT_ID_TEST      ( 12 )  - ignore
 //
 //------------------------------------------------------------------------------------------------------------
 enum railComDatagramStatId : uint8_t {
@@ -504,7 +498,9 @@ void timerCallback( uint32_t timerVal ) {
     if ( timeLeftMainTrack == 0 ) mainTrack -> runDccSignalStateMachine( &timeLeftMainTrack, &followUpMain );
     if ( timeLeftProgTrack == 0 ) progTrack -> runDccSignalStateMachine( &timeLeftProgTrack, &followUpProg );
 
+    // take out after test ...
     // timeToInterrupt = min( timeLeftMainTrack, timeLeftProgTrack );
+
     timeToInterrupt = (( timeLeftMainTrack < timeLeftProgTrack ) ? timeLeftMainTrack : timeLeftProgTrack );
 
     CDC::setRepeatingTimerLimit( timeToInterrupt * TICK_IN_MICROSECONDS );
@@ -610,44 +606,44 @@ uint8_t printLogEntry( uint16_t index ) {
 //------------------------------------------------------------------------------------------------------------
 void writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
 
-  if ( logActive ) {
+    if ( logActive ) {
 
-    len = len % 16;
-    if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+        len = len % 16;
+        if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
 
-      logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
-      for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+            logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
+            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+        }
     }
-  }
 }
 
 void writeLogId( uint8_t id ) {
 
-  if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 ) | 1;
+    if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 ) | 1;
 }
 
 void writeLogTs( ) {
 
-  if ( logActive ) {
+    if ( logActive ) {
 
-    uint32_t ts = CDC::getMicros( );
-    logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
-    logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
-    logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
-    logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
-    logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
-  }
+        uint32_t ts = CDC::getMicros( );
+        logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+        logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
+        logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
+        logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
+        logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+    }
 }
 
 void writeLogVal( uint8_t valId, uint16_t val ) {
 
-  if ( logActive ) {
+    if ( logActive ) {
 
-    logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
-    logBuf[ logBufIndex ++ ] = valId;
-    logBuf[ logBufIndex ++ ] = val >> 8;
-    logBuf[ logBufIndex ++ ] = val & 0xFF;
-  }
+        logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
+        logBuf[ logBufIndex ++ ] = valId;
+        logBuf[ logBufIndex ++ ] = val >> 8;
+        logBuf[ logBufIndex ++ ] = val & 0xFF;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -659,29 +655,29 @@ void writeLogVal( uint8_t valId, uint16_t val ) {
 //------------------------------------------------------------------------------------------------------------
 void enableLog( bool arg ) {
 
-  logEnabled = arg;
-  logActive  = false;
+    logEnabled = arg;
+    logActive  = false;
 }
 
 void beginLog( ) {
 
-  if ( logEnabled ) {
+    if ( logEnabled ) {
 
-    logActive   = true;
-    logBufIndex = 0;
-    writeLogId( LOG_BEGIN );
-    writeLogTs( );
-  }
+        logActive   = true;
+        logBufIndex = 0;
+        writeLogId( LOG_BEGIN );
+        writeLogTs( );
+    }
 }
 
 void endLog( ) {
 
-  if ( logActive ) {
+    if ( logActive ) {
 
-    writeLogTs( );
-    writeLogId( LOG_END );
-    logActive = false;
-  }
+        writeLogTs( );
+        writeLogId( LOG_END );
+        logActive = false;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -718,7 +714,6 @@ void printLog( ) {
     else printf( "DCC Log disabled\n" );
 }
 
-
 }; // namespace
 
 
@@ -734,7 +729,7 @@ void printLog( ) {
 //------------------------------------------------------------------------------------------------------------
 // "startDccProcessing" will kick off the DCC timer for the track signal processing. The idea is that the
 // program first creates all the DCC track objects, does whatever else needs to be initialized and then starts
-// the signal processing with this routine.
+// the signal generation with this routine.
 //
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::startDccProcessing( ) {
@@ -777,7 +772,7 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
         return ( ERR_DCC_PIN_CONFIG );
     }
 
-    if  ((( trackDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && ( trackDesc -> options & DT_OPT_CUTOUT ))    ||
+    if ((( trackDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && ( trackDesc -> options & DT_OPT_CUTOUT ))    ||
         (( trackDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && ( trackDesc -> options & DT_OPT_RAILCOM ))   ||
         (( trackDesc -> options & DT_OPT_RAILCOM ) && ( ! ( trackDesc -> options & DT_OPT_CUTOUT )))          ||
         ( trackDesc -> initCurrentMilliAmp  > trackDesc -> limitCurrentMilliAmp )                             ||
@@ -864,8 +859,8 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
         flags |= DT_F_RAILCOM_MODE_ON;
         if ( CDC::configureUart( uartRxPin, CDC::UNDEFINED_PIN, 250000, CDC::UART_MODE_8N1 ) != ALL_OK ) {
 
-        flags = DT_F_CONFIG_ERROR;
-        return ( ERR_DCC_TRACK_CONFIG );
+            flags = DT_F_CONFIG_ERROR;
+            return ( ERR_DCC_TRACK_CONFIG );
         }
     }
 
@@ -952,11 +947,11 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_CUTOUT_1: {
 
-        CDC::writeDioPair( dccSigPin1, false, dccSigPin2, false );
-        *timeToInterrupt  = TICKS_CUTOUT_MICROS;
-        *followUpAction   = (( flags & DT_F_RAILCOM_MODE_ON ) ?
-                             DCC_SIG_FOLLOW_UP_START_RAILCOM_IO : DCC_SIG_FOLLOW_UP_NONE );
-        signalState       = DCC_SIG_CUTOUT_2;
+            CDC::writeDioPair( dccSigPin1, false, dccSigPin2, false );
+            *timeToInterrupt  = TICKS_CUTOUT_MICROS;
+            *followUpAction   = (( flags & DT_F_RAILCOM_MODE_ON ) ?
+                                DCC_SIG_FOLLOW_UP_START_RAILCOM_IO : DCC_SIG_FOLLOW_UP_NONE );
+            signalState       = DCC_SIG_CUTOUT_2;
 
         } break;
 
@@ -977,8 +972,8 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
             if ( flags & DT_F_RAILCOM_MODE_ON ) {
 
-            flags           |= DT_F_RAILCOM_MSG_PENDING;
-            *followUpAction = DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO;
+                flags           |= DT_F_RAILCOM_MSG_PENDING;
+                *followUpAction = DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO;
             }
             else *followUpAction = DCC_SIG_FOLLOW_UP_NONE;
 
@@ -1007,23 +1002,23 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
             if ( currentBit ) {
 
-            CDC::writeDioPair( dccSigPin1, false, dccSigPin2, true );
+                CDC::writeDioPair( dccSigPin1, false, dccSigPin2, true );
 
-            if ( postambleSent >= postambleLen ) {
+                if ( postambleSent >= postambleLen ) {
 
-                *followUpAction = DCC_SIG_FOLLOW_UP_GET_PACKET;
-                signalState     = (( flags & DT_F_CUTOUT_MODE_ON ) ? DCC_SIG_CUTOUT_START : DCC_SIG_START_BIT );
+                    *followUpAction = DCC_SIG_FOLLOW_UP_GET_PACKET;
+                    signalState     = (( flags & DT_F_CUTOUT_MODE_ON ) ? DCC_SIG_CUTOUT_START : DCC_SIG_START_BIT );
+                }
+                else {
+
+                    *followUpAction = DCC_SIG_FOLLOW_UP_NONE;
+                    signalState     = DCC_SIG_START_BIT;
+                }
             }
             else {
 
-                *followUpAction = DCC_SIG_FOLLOW_UP_NONE;
-                signalState     = DCC_SIG_START_BIT;
-            }
-            }
-            else {
-
-            *followUpAction   = (( bitsSent == 0 ) ? DCC_SIG_FOLLOW_UP_MEASURE_CURRENT :  DCC_SIG_FOLLOW_UP_NONE );
-            signalState       = DCC_SIG_ZERO_SECOND_HALF;
+                *followUpAction   = (( bitsSent == 0 ) ? DCC_SIG_FOLLOW_UP_MEASURE_CURRENT :  DCC_SIG_FOLLOW_UP_NONE );
+                signalState       = DCC_SIG_ZERO_SECOND_HALF;
             }
 
             *timeToInterrupt  = TICKS_58_MICROS;
@@ -1074,8 +1069,8 @@ void LcsBaseStationDccTrack::getNextBit( ) {
 
         if ( bitsSent == 9 ) {
 
-        bytesSent ++;
-        bitsSent = 0;
+            bytesSent ++;
+            bitsSent = 0;
         }
     }
     else if ( postambleSent < postambleLen ) {
@@ -1211,8 +1206,8 @@ uint8_t LcsBaseStationDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
 
         do {
 
-        buf[ i ] = railComMsgBuf[ i ];
-        i++;
+            buf[ i ] = railComMsgBuf[ i ];
+            i++;
 
         } while (( i < railComBufIndex ) && ( i < bufLen ));
 
@@ -1291,33 +1286,33 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
 
             if (( CDC::getMillis( ) - trackTimeStamp ) > startTimeThreshold ) {
 
-            highWaterMarkDigitValue = 0;
-            actualCurrentDigitValue = 0;
-            overloadRestartCount    = 0;
-            overloadEventCount      = 0;
-            flags                   |= DT_F_POWER_ON | DT_F_MEASUREMENT_ON;
-            limitCurrentDigitValue  = milliAmpToDigitValue( limitCurrentMilliAmp, digitsPerAmp );
+                highWaterMarkDigitValue = 0;
+                actualCurrentDigitValue = 0;
+                overloadRestartCount    = 0;
+                overloadEventCount      = 0;
+                flags                   |= DT_F_POWER_ON | DT_F_MEASUREMENT_ON;
+                limitCurrentDigitValue  = milliAmpToDigitValue( limitCurrentMilliAmp, digitsPerAmp );
 
-            CDC::writeDio( enablePin, true );
-            trackState = DCC_TRACK_POWER_ON;
+                CDC::writeDio( enablePin, true );
+                trackState = DCC_TRACK_POWER_ON;
             }
 
         } break;
 
         case DCC_TRACK_POWER_ON: {
 
-            if (( CDC::getMillis( ) - lastPwrSampleTimeStamp ) > SAMPLE_TIME_INTERVAL_MILLIS ) {
+            if (( CDC::getMillis( ) - lastPwrSampleTimeStamp ) > PWR_SAMPLE_TIME_INTERVAL_MILLIS ) {
 
-            sampleBuf[ sampleBufIndex % SAMPLE_BUF_SIZE ] = actualCurrentDigitValue;
-            sampleBufIndex ++;
-            lastPwrSampleTimeStamp = CDC::getMillis( );
+                pwrSampleBuf[ pwrSampleBufIndex % DCC_TRACK_POWER_ON ] = actualCurrentDigitValue;
+                pwrSampleBufIndex ++;
+                lastPwrSampleTimeStamp = CDC::getMillis( );
             }
 
             if (( CDC::getMillis( ) - lastPwrSamplePerSecTimeStamp ) > 1000 ) {
 
-            pwrSamplesPerSec          = totalPwrSamplesTaken - lastPwrSamplePerSecTaken;
-            lastPwrSamplePerSecTaken  = totalPwrSamplesTaken;
-            lastPwrSamplePerSecTimeStamp = CDC::getMillis( );
+                pwrSamplesPerSec          = totalPwrSamplesTaken - lastPwrSamplePerSecTaken;
+                lastPwrSamplePerSecTaken  = totalPwrSamplesTaken;
+                lastPwrSamplePerSecTimeStamp = CDC::getMillis( );
             }
 
             if ( flags & DT_F_POWER_OVERLOAD ) {
@@ -1562,9 +1557,9 @@ uint16_t LcsBaseStationDccTrack::getRMSCurrent( ) {
 
     uint32_t res = 0;
 
-    for ( uint8_t i = 0; i < SAMPLE_BUF_SIZE; i++ ) res += sampleBuf[ i ] * sampleBuf[ i ];
+    for ( uint8_t i = 0; i < PWR_SAMPLE_BUF_SIZE; i++ ) res += pwrSampleBuf[ i ] * pwrSampleBuf[ i ];
 
-    return ( digitValueToMilliAmp( sqrt( res / SAMPLE_BUF_SIZE ), digitsPerAmp ));
+    return ( digitValueToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE ), digitsPerAmp ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1686,7 +1681,7 @@ bool LcsBaseStationDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t 
 // checksum and set the pending flag.
 //
 // ??? For a high number of session we may want to think about a queuing approach. Right now, this routine
-// stops when there is a packet already queued, i.e. pending. This may cause issues in delaying other tasks
+// waits when there is a packet already queued, i.e. pending. This may cause issues in delaying other tasks
 // such as receiving a CAN bus message.
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::loadPacket( const uint8_t *packet, uint8_t len, uint8_t repeat ) {
@@ -1867,25 +1862,25 @@ void LcsBaseStationDccTrack::printDccTrackConfig( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::printDccTrackStatus( ) {
 
-  printf( "DccTrack: " );
+    printf( "DccTrack: " );
 
-  if ( options & DT_OPT_SERVICE_MODE_TRACK )  printf( "PROG" );
-  else                                        printf( "MAIN" );
+    if ( options & DT_OPT_SERVICE_MODE_TRACK )  printf( "PROG" );
+    else                                        printf( "MAIN" );
 
-  printf( ", Track Status: ( 0x%x ) -> ", flags );
- 
-  if ( flags & DT_F_POWER_ON         ) printf( "PowerOn " );
-  if ( flags & DT_F_POWER_OVERLOAD   ) printf( "PowerOverload " );
-  if ( flags & DT_F_MEASUREMENT_ON   ) printf( "PowerMeasOn " );
-  if ( flags & DT_F_SERVICE_MODE_ON  ) printf( "SvcModeOn " );
-  if ( flags & DT_F_CUTOUT_MODE_ON   ) printf( "CutoutOn " );
-  if ( flags & DT_F_RAILCOM_MODE_ON  ) printf( "RailcomOn " );
-  if ( flags & DT_F_CONFIG_ERROR     ) printf( "ConfigError " );
-  printf( "\n" );
+    printf( ", Track Status: ( 0x%x ) -> ", flags );
+    
+    if ( flags & DT_F_POWER_ON         ) printf( "PowerOn " );
+    if ( flags & DT_F_POWER_OVERLOAD   ) printf( "PowerOverload " );
+    if ( flags & DT_F_MEASUREMENT_ON   ) printf( "PowerMeasOn " );
+    if ( flags & DT_F_SERVICE_MODE_ON  ) printf( "SvcModeOn " );
+    if ( flags & DT_F_CUTOUT_MODE_ON   ) printf( "CutoutOn " );
+    if ( flags & DT_F_RAILCOM_MODE_ON  ) printf( "RailcomOn " );
+    if ( flags & DT_F_CONFIG_ERROR     ) printf( "ConfigError " );
+    printf( "\n" );
 
-  printf( "Packets Send: %d\n", dccPacketsSend );
-  printf( "Total Power Samples: %d\n", totalPwrSamplesTaken );
-  printf( "Power Samples per Sec: %d\n", pwrSamplesPerSec );
-  printf( "Power consumption (RMS): %d\n", getRMSCurrent( ));
-  printf( "\n" );
+    printf( "Packets Send: %d\n", dccPacketsSend );
+    printf( "Total Power Samples: %d\n", totalPwrSamplesTaken );
+    printf( "Power Samples per Sec: %d\n", pwrSamplesPerSec );
+    printf( "Power consumption (RMS): %d\n", getRMSCurrent( ));
+    printf( "\n" );
 }

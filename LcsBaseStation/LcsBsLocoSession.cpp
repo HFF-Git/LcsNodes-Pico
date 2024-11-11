@@ -3,9 +3,16 @@
 // LCS Base Station - Loco Session Management - implementation file
 //
 //------------------------------------------------------------------------------------------------------------
+// The locomotive session object is the besides the two DCC tracks the other main component of a base station.
+// Each engine to run needs a session on this session object. Typically, the handheld will "open" a session.
+// The session identifier is then the handle to the locomotive. 
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -37,16 +44,13 @@ namespace {
 // is true for XPOM support, otherwise it is according to NMRA up to 6 bytes.
 //
 //------------------------------------------------------------------------------------------------------------
-enum DccPacketDefinitions : uint8_t {
-
-    MIN_DCC_PACKET_SIZE         = 2,
-    MAX_DCC_PACKET_SIZE         = 16,
-    MIN_DCC_PACKET_REPEATS      = 0,
-    MAX_DCC_PACKET_REPEATS      = 8
-};
+const uint8_t   MIN_DCC_PACKET_SIZE         = 2;
+const uint8_t   MAX_DCC_PACKET_SIZE         = 16;
+const uint8_t   MIN_DCC_PACKET_REPEATS      = 0;
+const uint8_t   MAX_DCC_PACKET_REPEATS      = 8;
 
 //----------------------------------------------------------------------------------------------------------
-// Utility routines for number range checks.
+// Utility routines.
 //
 //----------------------------------------------------------------------------------------------------------
 bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
@@ -167,11 +171,13 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
 
 }; // namespace
 
-
 //============================================================================================================
+//============================================================================================================
+//
 // Object part.
+//
 //============================================================================================================
-
+//============================================================================================================
 
 //------------------------------------------------------------------------------------------------------------
 // "LocoSession" constructor. Nothing to do here.
@@ -306,11 +312,6 @@ uint8_t LcsBaseStationLocoSession::markSessionAlive( uint8_t sId ) {
     return ( ALL_OK );
 }
 
-
-// ??? need an overall concept for periodic tasks... this function  will go into it ...
-// ??? separate out the check alive functionality ? it is a separate task...
-// ??? sessionMapNextAliveCheck var needed ...
-
 //------------------------------------------------------------------------------------------------------------
 // "refreshActiveSessions" walks through the session map up to the high water mark and invokes the session
 // refresh function for each used entry. As the refresh entry routine will show, we will do this refreshing
@@ -350,10 +351,12 @@ void LcsBaseStationLocoSession::refreshActiveSessions( ) {
 //
 // ??? should we alternate when SPDIR and FUNC are sent separately ?
 // ??? is it something like: SPDIR, FG1, SPDIR, FG2, ...
-
 //
 // ??? what to do for emergency stop, keep refreshing ? keep alive checking ?
 // ??? how do we integrate the STEAL/SHARE/DISPATCHED concept ?
+//
+// ??? separate out the check alive functionality ? it is a separate task...
+// ??? sessionMapNextAliveCheck var needed ...
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 
@@ -424,7 +427,7 @@ uint8_t LcsBaseStationLocoSession::getSessionIdByCabId( uint16_t cabId ) {
 
     SessionMapEntry *smePtr = lookupSessionEntry( cabId );
     return (( smePtr == nullptr ) ? NIL_LOCO_SESSION_ID : (( smePtr - sessionMap ) + 1 ));
-    }
+}
 
 uint16_t LcsBaseStationLocoSession::getOptions( ) {
 
@@ -473,8 +476,9 @@ uint8_t LcsBaseStationLocoSession::setThrottle( uint8_t sId, uint8_t speed, uint
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setThrottle" will send a DCC packet with speed and direction for a loco. If the function refresh option
-// is enabled, the DCC command will specify speed, direction and functions to refresh in one packet.
+// "setThrottle" will send a DCC packet with speed and direction for a loco. If the combined speed and 
+// function refresh option is enabled, the DCC command will specify speed, direction and functions to refresh
+// in one packet.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setThrottle( SessionMapEntry *smePtr, uint8_t speed, uint8_t direction ) {
@@ -548,16 +552,16 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( uint8_t sId, uint8_t fGr
 // "setDccFunctionGroup" sets an entire group of function flags.The DCC function flags F0 .. F68 are stored
 // in ten groups.
 //
-//  Group 1:  F0, F4, F3, F2, F1      DCC Command Format: 100DDDDD
-//  Group 2:  F8, F7, F6, F5          DCC Command Format: 1011DDDD
-//  Group 3:  F12, F11, F10, F9       DCC Command Format: 1010DDDD
-//  Group 4:  F20 .. F13              DCC Command Format: 0xDE DDDDDDDD
-//  Group 5:  F28 .. F21              DCC Command Format: 0xDF DDDDDDDD
-//  Group 6:  F36 .. F29              DCC Command Format: 0xD8 DDDDDDDD
-//  Group 7:  F44 .. F37              DCC Command Format: 0xD9 DDDDDDDD
-//  Group 8:  F52 .. F45              DCC Command Format: 0xDA DDDDDDDD
-//  Group 9:  F60 .. F53              DCC Command Format: 0xDB DDDDDDDD
-//  Group 10: F68 .. F61              DCC Command Format: 0xDC DDDDDDDD
+//      Group 1:  F0, F4, F3, F2, F1      DCC Command Format: 100DDDDD
+//      Group 2:  F8, F7, F6, F5          DCC Command Format: 1011DDDD
+//      Group 3:  F12, F11, F10, F9       DCC Command Format: 1010DDDD
+//      Group 4:  F20 .. F13              DCC Command Format: 0xDE DDDDDDDD
+//      Group 5:  F28 .. F21              DCC Command Format: 0xDF DDDDDDDD
+//      Group 6:  F36 .. F29              DCC Command Format: 0xD8 DDDDDDDD
+//      Group 7:  F44 .. F37              DCC Command Format: 0xD9 DDDDDDDD
+//      Group 8:  F52 .. F45              DCC Command Format: 0xDA DDDDDDDD
+//      Group 9:  F60 .. F53              DCC Command Format: 0xDB DDDDDDDD
+//      Group 10: F68 .. F61              DCC Command Format: 0xDC DDDDDDDD
 //
 // The routines updates the entire function group byte in the loco session entry, so we can keep track of the
 // values. The function command is repeated 4 times to the track.
@@ -613,9 +617,9 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr,
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val ) {
 
-  if        ( mode == 0 )  return ( writeCVByteMain( sId, cvId, val ));
-  else if   ( mode == 1 )  return ( writeCVBitMain( sId, cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
-  else                     return ( ERR_INVALID_CV_MODE );
+    if        ( mode == 0 )  return ( writeCVByteMain( sId, cvId, val ));
+    else if   ( mode == 1 )  return ( writeCVBitMain( sId, cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
+    else                     return ( ERR_INVALID_CV_MODE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -682,11 +686,11 @@ uint8_t LcsBaseStationLocoSession::writeCVBitMain( uint8_t sId, uint16_t cvId, u
 // are not supported. For bit mode access, the bit position and bit value are encoded in the "val" parameter
 // with bit 3 containing the data and bit 0 ..2 the bit offset.
 //
-//    0 Direct Byte
-//    1 Direct Bit
-//    2 Page Mode
-//    3 Register Mode
-//    4 Address Only Mode
+//    0 - Direct Byte
+//    1 - Direct Bit
+//    2 - Page Mode
+//    3 - Register Mode
+//    4 - Address Only Mode
 //
 // This function implements the CV read mode 0 and 1, which is reading a byte or a bit at a time by calling
 // the respective method.
@@ -785,8 +789,8 @@ uint8_t LcsBaseStationLocoSession::readCVBit( uint16_t cvId, uint8_t bitPos, uin
     
         if ( progTrack -> decoderAckDetect( base, 9 )) {
 
-        *val = 1;
-        return ( ALL_OK );
+            *val = 1;
+            return ( ALL_OK );
         }
         else return ( ERR_CV_OP_FAILED );
     }
