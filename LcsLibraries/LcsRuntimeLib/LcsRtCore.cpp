@@ -140,7 +140,7 @@ void registerRepCallback( LcsRepCallback functionId ) {
 // driver function form them. We fid a free entry and use it.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t drvRegisterFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
+uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
 
     for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
 

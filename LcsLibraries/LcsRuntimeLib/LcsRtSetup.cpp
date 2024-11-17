@@ -742,11 +742,11 @@ uint8_t detectExtensionBoards( ) {
 // When the type is unknown, a nullptr is returned.
 //
 //------------------------------------------------------------------------------------------------------------
-LcsDrvReqFunc *lookupDrvFunc( uint16_t drvType ) {
+LcsDrvReqFunc lookupDrvFunc( uint16_t drvType ) {
 
     for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
 
-        if ( drvLabelMap.map[ i ].drvType == drvType ) return( &drvLabelMap.map[ i ].drvFunc );
+        if ( drvLabelMap.map[ i ].drvType == drvType ) return( drvLabelMap.map[ i ].drvFunc );
     }
 
     return( nullptr );
@@ -756,8 +756,8 @@ LcsDrvReqFunc *lookupDrvFunc( uint16_t drvType ) {
 // For all detected extension boards, we will first check that the board descriptor at slot "n" is there and
 // that the board descriptor is reasonable. If so, the board type is used to load the respective driver.
 // Note that during normal operations we cannot manipulate the NVM, as it is read protected. The jumper on
-// the extension board needs to be removed for this. When the jumper is removed, the extension board NVM can 
-// be written to with commands from the runtime. 
+// the extension board needs to be removed for this. When removed, the extension board NVM can be written to
+// with commands from the runtime. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
@@ -772,9 +772,24 @@ uint8_t setupExtensionBoards( ) {
 
         if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
 
-            LcsDrvReqFunc *drvFunc = lookupDrvFunc( drvEntry -> extBoard.head.boardType ); 
+            #if 0
+            LcsDrvReqFunc drvFunc = lookupDrvFunc( drvEntry -> extBoard.head.boardType ); 
 
-            // ??? rework to use the label when finished....
+            if ( drvFunc != nullptr ) {
+
+                drvEntry -> drvFunc = drvFunc; 
+                drvEntry -> flags   |= BF_EXT_BOARD_READY;
+                drvEntry -> lastErr = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
+
+                printf( "Driver setup, type: %d, stat: %d\n", 
+                        drvEntry -> extBoard.head.boardType, drvEntry -> lastErr );
+            }
+            else {
+
+                printf( "Driver setup, type not found: %d\n", drvEntry -> extBoard.head.boardType );
+            }
+
+            #else
 
             switch( drvEntry -> extBoard.head.boardType ) {
     
@@ -810,6 +825,8 @@ uint8_t setupExtensionBoards( ) {
                             printf( "setupExtensionBoards: invalid board type detected\n" );
                 }; 
             }
+
+            #endif
         }
     }
 

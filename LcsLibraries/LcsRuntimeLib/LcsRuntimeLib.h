@@ -742,7 +742,7 @@ uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_
 uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //----------------------------------------------------------------------------------------------------------
-// Register callbacks for messages and tasks.
+// Function registration routines for callbacks, tasks, driver types, etc.
 //
 //----------------------------------------------------------------------------------------------------------
 void                registerLcsMsgCallback( LcsMsgCallback functionId );
@@ -755,6 +755,7 @@ void                registerEventCallback( LcsEventCallback functionId );
 void                registerReqCallback( LcsReqCallback handler );
 void                registerRepCallback( LcsRepCallback handler );
 uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
+uint8_t             registerDrvFunc( uint16_t drvType, LcsDrvReqFunc drvReqFunction );
 
 //----------------------------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.
@@ -824,8 +825,7 @@ void                printLcsMs( uint8_t *msgBuf );
 // for the board. Just like for the node / port items, there are routines to GET/SET/REQ driver data and
 // functions. The init function is only called by the library at setup time.
 //
-//----------------------------------------------------------------------------------------------------------
-uint8_t             drvRegisterFunc( uint16_t drvType, LcsDrvReqFunc drvReqFunction );
+//---------------------------------------------------------------------------------------------------------
 uint8_t             drvInit( uint8_t boardId );
 uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );
 uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );

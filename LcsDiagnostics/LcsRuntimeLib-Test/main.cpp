@@ -29,8 +29,7 @@
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
-
-// ??? need to include  the declaration files for the drivers....
+#include "LcsDrvOccDetectLib.h"
 
 using namespace LCS;
 
@@ -197,9 +196,12 @@ uint8_t registerLcsCallbacks( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t registerLcsDrvFunctions( ) {
 
-    // ??? to do .....
+    printf( "Register Extension Board Drivers\n" );
 
-    return( ALL_OK );
+    uint8_t ret = registerDrvFunc( BT_EXT_OCC_DETECT, lcsDrvOccDetect );
+    if ( ret != ALL_OK )  printf( "Registration failed: %d\n, ret ");
+
+    return( ret );
 }
 
 //----------------------------------------------------------------------------------------------------------
