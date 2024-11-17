@@ -34,6 +34,12 @@
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
+// External global variables.
+//
+//------------------------------------------------------------------------------------------------------------
+extern uint16_t debugMask;
+
+//------------------------------------------------------------------------------------------------------------
 // Loco Session implementation file - local declarations.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -368,9 +374,10 @@ void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 
             if (( CDC::getMillis( ) - smePtr -> lastKeepAliveTime ) > refreshAliveTimeOutVal ) {
 
-                #if DEBUG_CHECK_ALIVE_SESSIONS == 1
-                printf( "Session: %d expired\n", smePtr - sessionMap );
-                #endif
+                if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_CHECK_ALIVE_SESSIONS )) {
+
+                    printf( "Session: %d expired\n", smePtr - sessionMap );
+                }
 
                 deallocateSessionEntry( smePtr );
             }
@@ -937,10 +944,11 @@ SessionMapEntry* LcsBaseStationLocoSession::allocateSessionEntry( uint16_t cabId
         freePtr -> cabId  = cabId;
         freePtr -> flags  |= SME_ALLOCATED;
 
-        #if DEBUG_SESSION == 1
-        printf( "Allocate session entry: %d, HWM: %d\n", 
+        if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_SESSION )) {
+
+            printf( "Allocate session entry: %d, HWM: %d\n", 
                 ( freePtr - sessionMap + 1 ), ( sessionMapHwm - sessionMap ));
-        #endif
+        }
     }
 
     return ( freePtr );
@@ -970,10 +978,11 @@ void LcsBaseStationLocoSession::deallocateSessionEntry( SessionMapEntry *smePtr 
         }
         else initSessionEntry( smePtr );
 
-        #if DEBUG_SESSION == 1
-        printf( "Released Session, sId: %d, ,new  HWM: %d\n", 
+       if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_SESSION )) {
+        
+            printf( "Released Session, sId: %d, ,new  HWM: %d\n", 
                 ( smePtr - sessionMap + 1 ), ( sessionMapHwm - sessionMap ));
-        #endif
+       }
     }
 }
 

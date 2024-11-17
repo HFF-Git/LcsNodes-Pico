@@ -78,6 +78,7 @@ namespace LCS {
     LCS::LcsCallbackMap         callbackMap;
     LCS::LcsPendingReqMap       pendingReqMap;
     LCS::LcsTaskMap             taskMap;
+    LCS::LcsDrvLabelMap         drvLabelMap;
     LCS::LcsDrvMap              drvMap;
 }
     
@@ -210,7 +211,7 @@ void buildDefaultBoardDesc( LcsDrvBoardDesc *bDesc ) {
     LcsNvmHeader tmp;
 
     bDesc -> head = tmp;
-    memset( bDesc -> driverData, 0, MAX_DRIVER_DATA_SIZE * sizeof( uint16_t ));
+    memset( bDesc -> driverData, 0, MAX_DRV_DATA_SIZE * sizeof( uint16_t ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -624,6 +625,21 @@ uint8_t setupPendingReqMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "setupDrvMap" initializes the driver function label map. This table is used when we need to find the 
+// driver for an extension board type.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupDrvLabelMap( ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvLabelMap\n" );
+
+
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvLabelMap\n" );
+    return( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "setupDrvMap" initializes the driver map. For each possible extension board, up to four, there is an
 // entry in this map.
 //
@@ -722,6 +738,21 @@ uint8_t detectExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "lookupDrvFunc" searches the driver function label map. It is called when we setup the extension board.
+// When the type is unknown, a nullptr is returned.
+//
+//------------------------------------------------------------------------------------------------------------
+LcsDrvReqFunc *lookupDrvFunc( uint16_t drvType ) {
+
+    for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
+
+        if ( drvLabelMap.map[ i ].drvType == drvType ) return( &drvLabelMap.map[ i ].drvFunc );
+    }
+
+    return( nullptr );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // For all detected extension boards, we will first check that the board descriptor at slot "n" is there and
 // that the board descriptor is reasonable. If so, the board type is used to load the respective driver.
 // Note that during normal operations we cannot manipulate the NVM, as it is read protected. The jumper on
@@ -740,6 +771,10 @@ uint8_t setupExtensionBoards( ) {
         LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
 
         if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
+
+            LcsDrvReqFunc *drvFunc = lookupDrvFunc( drvEntry -> extBoard.head.boardType ); 
+
+            // ??? rework to use the label when finished....
 
             switch( drvEntry -> extBoard.head.boardType ) {
     
@@ -918,6 +953,7 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
     if ( rStat == ALL_OK )  rStat = setupTaskMap( );
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
+    if ( rStat == ALL_OK )  rStat = setupDrvLabelMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvMap( );
     if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3, rStat );

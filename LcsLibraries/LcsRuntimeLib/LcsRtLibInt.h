@@ -92,31 +92,32 @@ namespace LCS {
 // for each area, avoiding configuration complexity.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t  MAX_NODE_DATA_BLOCKS          = 16;
-const uint16_t  MAX_ATTR_MAP_ENTRIES          = 64;
-const uint16_t  MAX_PORT_MAP_ENTRIES          = 15;
-const uint16_t  MAX_EVENT_MAP_ENTRIES         = 1024;
-const uint16_t  MAX_TASK_MAP_ENTRIES          = 16;
+const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
+const uint16_t  MAX_ATTR_MAP_ENTRIES            = 64;
+const uint16_t  MAX_PORT_MAP_ENTRIES            = 15;
+const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
+const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 
-const uint16_t  MAX_LCS_MSG_SIZE              = 8;
-const uint16_t  MAX_NODE_NAME_SIZE            = 16;
-const uint16_t  MAX_PORT_NAME_SIZE            = 16;
-const uint16_t  MAX_BOARD_NAME_SIZE           = 16;
-const uint16_t  MAX_COMMAND_LINE_SIZE         = 256;
+const uint16_t  MAX_LCS_MSG_SIZE                = 8;
+const uint16_t  MAX_NODE_NAME_SIZE              = 16;
+const uint16_t  MAX_PORT_NAME_SIZE              = 16;
+const uint16_t  MAX_BOARD_NAME_SIZE             = 16;
+const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 
-const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES     = 4;
-const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES   = 8;
-const uint16_t  EVENT_DELAY_TICK_MILLIS       = 32;
+const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
+const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES     = 8;
+const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
-const uint8_t   MAX_EXT_BOARDS                = 4;
-const uint8_t   MAX_DRIVER_DATA_SIZE          = 64;
+const uint8_t   MAX_DRV_TYPES                   = 8;
+const uint8_t   MAX_EXT_BOARDS                  = 4;
+const uint8_t   MAX_DRV_DATA_SIZE               = 64;
 
-const uint16_t  NVM_NODE_MAP_START            = 0;
-const uint16_t  NVM_PORT_MAP_START            = 0x400;
-const uint16_t  NVM_NODE_DATA_START           = 0x800;
-const uint16_t  NVM_EVENT_MAP_START           = 0x1000;
-const uint16_t  NVM_USER_MAP_START            = 0x2000;
-const uint16_t  NVM_RUNTIME_AREA_SIZE         = 0x2000;
+const uint16_t  NVM_NODE_MAP_START              = 0;
+const uint16_t  NVM_PORT_MAP_START              = 0x400;
+const uint16_t  NVM_NODE_DATA_START             = 0x800;
+const uint16_t  NVM_EVENT_MAP_START             = 0x1000;
+const uint16_t  NVM_USER_MAP_START              = 0x2000;
+const uint16_t  NVM_RUNTIME_AREA_SIZE           = 0x2000;
 
 //----------------------------------------------------------------------------------------------------------
 // The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
@@ -276,20 +277,8 @@ struct LcsNodeMap {
     //------------------------------------------------------------------------------------------------------
     // NMV header. We read this in first an check for validity.
     //------------------------------------------------------------------------------------------------------
-    /*
-    uint16_t    magicWord1                      = NVM_MWORD_1;
-    uint16_t    boardType                       = BT_NIL;
-    uint16_t    boardVersion                    = 0;
-    uint16_t    controllerFamily                = CF_FAM_RPICO;
-    uint16_t    nvmChipFamily                   = CF_FAM_MICROCHIP;
-    uint16_t    reserved1                       = 0;
-    uint16_t    reserved2                       = 0;
-    uint16_t    magicWord2                      = NVM_MWORD_2;
-    */
-
     LcsNvmHeader    head;
     
-
     //------------------------------------------------------------------------------------------------------
     // Node data.
     //
@@ -443,16 +432,6 @@ struct LcsPendingReqMap {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Driver functions are invoked through this routine signature. During setup, the correct driver label is
-// set in the driver map.
-//
-//------------------------------------------------------------------------------------------------------------
-extern "C" {
-
-    typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );  
-} 
-
-//------------------------------------------------------------------------------------------------------------
 // Each extension board will have a NVM to store the board configuration data. Similar to the node map of 
 // the controller board, this extension board will have a data structure that is read at initialization time. 
 // The structure of this data is rather simple. We have the common 8-word header which describes the board in 
@@ -472,7 +451,24 @@ extern "C" {
 struct LcsDrvBoardDesc {
 
     LcsNvmHeader    head;
-    uint16_t        driverData[ MAX_DRIVER_DATA_SIZE ]  = { 0 };
+    uint16_t        driverData[ MAX_DRV_DATA_SIZE ]  = { 0 };
+};
+
+//----------------------------------------------------------------------------------------------------------
+// An extension board is accessed via a dedicated driver. The firmware is required to register the available
+// drivers with the runtime. The type and function label are kept in the driver label map. This data is 
+// used when a board os detected to select the correct driver.
+//
+//----------------------------------------------------------------------------------------------------------
+struct LcsDrvFuncEntry {
+
+    uint16_t        drvType = BT_NIL;
+    LcsDrvReqFunc   drvFunc = nullptr;
+};
+
+struct LcsDrvLabelMap {
+
+    LcsDrvFuncEntry map[ MAX_DRV_TYPES ] = { 0 };
 };
 
 //----------------------------------------------------------------------------------------------------------

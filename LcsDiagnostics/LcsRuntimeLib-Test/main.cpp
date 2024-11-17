@@ -30,6 +30,8 @@
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 
+// ??? need to include  the declaration files for the drivers....
+
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------------------------
@@ -190,6 +192,17 @@ uint8_t registerLcsCallbacks( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
+// Setup the drivers for extension boards.
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t registerLcsDrvFunctions( ) {
+
+    // ??? to do .....
+
+    return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
 // This is the last routine we call when the setup worked fine. We actually never return.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -209,6 +222,7 @@ int main( ) {
 
     if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
     if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
+    if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );
     if ( rStat == ALL_OK ) startLcsRuntime( );
     return( ALL_OK );
 }

@@ -34,11 +34,20 @@
 #include <math.h>
 
 //------------------------------------------------------------------------------------------------------------
+// External global variables.
+//
+//------------------------------------------------------------------------------------------------------------
+extern uint16_t debugMask;
+
+//------------------------------------------------------------------------------------------------------------
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a debugging option to set the
 // clock much slower so that the waveform can be seen.
 //
-// ??? take out, we are past that ...... since a long time.
+// ??? take out, we are past that ...... since a long time. -> one last check than out ...
 //------------------------------------------------------------------------------------------------------------
+
+#define DEBUG_WAVE_FORM 0               
+
 #if DEBUG_WAVE_FORM == 1
 #define TICK_IN_MICROSECONDS  400000
 #else
@@ -1321,22 +1330,22 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
 
                 if ( overloadEventCount > overloadEventThreshold ) {
 
-                    #if DEBUG_CURRENT_MEASUREMENT == 1
-                    printf( "Overload detected: " );
+                    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_TRACK_POWER_MGMT )) {
 
-                    if ( options &  DT_OPT_SERVICE_MODE_TRACK ) printf( "Prog Track: " );
-                    else                                        printf( "Main Track: " );
+                        printf( "Overload detected: " );
 
-                    #if 0
-                    printf( "(hwm(mA): %d : limit(mA): %d )\n", 
-                            digitValueToMilliAmp( highWaterMarkDigitValue, digitsPerAmp ),
-                            digitValueToMilliAmp( limitCurrentDigitValue, digitsPerAmp ));
-                    
-                    #else
-                    printf( "(hwm(dVal): %d  : limit(dVal): %d )\n", highWaterMarkDigitValue, limitCurrentDigitValue );
-                    #endif
+                        if ( options &  DT_OPT_SERVICE_MODE_TRACK ) printf( "Prog Track: " );
+                        else                                        printf( "Main Track: " );
 
-                    #endif
+                        #if 0
+                        printf( "(hwm(mA): %d : limit(mA): %d )\n", 
+                                digitValueToMilliAmp( highWaterMarkDigitValue, digitsPerAmp ),
+                                digitValueToMilliAmp( limitCurrentDigitValue, digitsPerAmp ));
+                        
+                        #else
+                        printf( "(hwm(dVal): %d  : limit(dVal): %d )\n", highWaterMarkDigitValue, limitCurrentDigitValue );
+                        #endif
+                    }
 
                     trackTimeStamp  = CDC::getMillis( );
                     flags           |= DT_F_POWER_OVERLOAD;
@@ -1358,9 +1367,10 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
 
                 if ( overloadRestartCount > overloadRestartThreshold ) {
 
-                    #if DEBUG_CURRENT_MEASUREMENT == 1
-                    printf( "Overload restart failed, Cnt:%d\n", overloadRestartCount );
-                    #endif
+                    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_TRACK_POWER_MGMT )) {
+
+                        printf( "Overload restart failed, Cnt:%d\n", overloadRestartCount );
+                    }
 
                     trackState = DCC_TRACK_POWER_STOP1;
                 }
@@ -1596,9 +1606,10 @@ void LcsBaseStationDccTrack::powerMeasurement( ) {
 //------------------------------------------------------------------------------------------------------------
 uint16_t LcsBaseStationDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
-    #if DEBUG_DCC_ACK_DETECT == 1
-    printf( "\nDecoder Ack setup: ( " );
-    #endif
+    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+
+        printf( "\nDecoder Ack setup: ( " );
+    }
 
     uint16_t sum = 0;
 
@@ -1608,16 +1619,18 @@ uint16_t LcsBaseStationDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend 
 
         loadPacket( resetDccPacketData, 2, 0 );
 
-        #if DEBUG_DCC_ACK_DETECT == 1
-        printf( "%d ", highWaterMarkDigitValue );
-        #endif
+        if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+       
+            printf( "%d ", highWaterMarkDigitValue );
+        }
 
         sum += highWaterMarkDigitValue;
     }
 
-    #if DEBUG_DCC_ACK_DETECT == 1
-    printf( ") -> %d\n", ( sum + resetPacketsToSend - 1 ) / resetPacketsToSend );
-    #endif
+    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+
+        printf( ") -> %d\n", ( sum + resetPacketsToSend - 1 ) / resetPacketsToSend );
+    }
 
     return (( sum + resetPacketsToSend - 1 ) / resetPacketsToSend );
 }
@@ -1639,9 +1652,10 @@ uint16_t LcsBaseStationDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend 
 //------------------------------------------------------------------------------------------------------------
 bool LcsBaseStationDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t retries ) {
 
-    #if DEBUG_DCC_ACK_DETECT == 1
-    printf( "Decoder Ack detect: ( %d : %d : ( ", baseDigitValue, ackThresholdDigitValue );
-    #endif
+    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+
+        printf( "Decoder Ack detect: ( %d : %d : ( ", baseDigitValue, ackThresholdDigitValue );
+    }
 
     for ( uint8_t i = 0; i < retries; i++ ) {
 
@@ -1649,24 +1663,27 @@ bool LcsBaseStationDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t 
 
         loadPacket( resetDccPacketData, 2, 0 );
 
-        #if DEBUG_DCC_ACK_DETECT == 1
-        printf( "%d ", highWaterMarkDigitValue );
-        #endif
+        if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+
+            printf( "%d ", highWaterMarkDigitValue );
+        }
 
         if (( highWaterMarkDigitValue >= baseDigitValue ) &&
             ( highWaterMarkDigitValue - baseDigitValue >= ackThresholdDigitValue )) {
 
-        #if DEBUG_DCC_ACK_DETECT == 1
-        printf( "[ %d ] ) -> OK\n", abs( highWaterMarkDigitValue - baseDigitValue ));
-        #endif
+            if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+
+                printf( "[ %d ] ) -> OK\n", abs( highWaterMarkDigitValue - baseDigitValue ));
+            }
 
         return ( true );
         }
     }
 
-    #if DEBUG_DCC_ACK_DETECT == 1
-    printf( ") -> FAILED" );
-    #endif
+    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+
+        printf( ") -> FAILED" );
+    }
 
     return ( false );
 }

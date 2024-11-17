@@ -38,6 +38,7 @@ namespace LCS {
     extern LCS::LcsCallbackMap      callbackMap;
     extern LCS::LcsTaskMap          taskMap;
     extern LCS::LcsPendingReqMap    pendingReqMap;
+    extern LCS::LcsDrvLabelMap      drvLabelMap;
     extern LCS::LcsDrvMap           drvMap;
     extern LCS::LcsMsgBusCAN        *msgBus;
 };
@@ -132,6 +133,26 @@ void registerReqCallback( LcsReqCallback functionId ) {
 void registerRepCallback( LcsRepCallback functionId ) {
     
     callbackMap.repCallback = functionId;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Driver function registration. There is a simple table which maintains extension boards types and the 
+// driver function form them. We fid a free entry and use it.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t drvRegisterFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
+
+    for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
+
+        if ( drvLabelMap.map[ i ].drvType == BT_NIL ) {
+
+            drvLabelMap.map[ i ].drvType    = drvType;
+            drvLabelMap.map[ i ].drvFunc    = drvReqFunction;
+            return( ALL_OK );
+        }
+    }
+
+    return( ERR_DRV_FUNC_MAP_FULL );
 }
 
 //-----------------------------------------------------------------------------------------------------------

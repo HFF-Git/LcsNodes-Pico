@@ -592,9 +592,9 @@ enum LcsErrorCodes : uint8_t {
     ERR_INVALID_PACKET_LEN              = 69,
     ERR_INVALID_REPEATS                 = 70,
 
-    ERR_DRV_PUT_ERR                     = 71,
-    ERR_DRV_GET_ERR                     = 72,
-
+    ERR_DRV_FUNC_MAP_FULL               = 75,    
+    ERR_DRV_PUT_ERR                     = 76,
+    ERR_DRV_GET_ERR                     = 77,
 
     ERR_CAN_BUS_INIT                    = 81,
     ERR_CAN_INVALID_MODE                = 82,
@@ -694,6 +694,16 @@ extern "C" {
 
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
+
+//------------------------------------------------------------------------------------------------------------
+// A  driver for an extension board is invoked through this routine signature. During setup, the correct 
+// driver label needs to be set in the driver map.
+//
+//------------------------------------------------------------------------------------------------------------
+extern "C" {
+
+    typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );  
+} 
 
 //----------------------------------------------------------------------------------------------------------
 // "LcsConfigDesc" is the data structure that contains initial data for setting up a node. There is the 
@@ -815,6 +825,7 @@ void                printLcsMs( uint8_t *msgBuf );
 // functions. The init function is only called by the library at setup time.
 //
 //----------------------------------------------------------------------------------------------------------
+uint8_t             drvRegisterFunc( uint16_t drvType, LcsDrvReqFunc drvReqFunction );
 uint8_t             drvInit( uint8_t boardId );
 uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );
 uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );
