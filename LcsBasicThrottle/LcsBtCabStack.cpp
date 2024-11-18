@@ -60,7 +60,7 @@ bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// "setupcabSlots" will create the local cab table and read in the entries from the NVM area.
+// "C" will create the local cab table and read in the entries from the NVM area.
 //
 // ??? optional: we could read from the base station any changes to the loco attributes... ?
 //------------------------------------------------------------------------------------------------------------

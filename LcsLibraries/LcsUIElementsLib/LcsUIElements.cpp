@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// UI Elements - inplementation file
+// UI Elements - implementation file
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -99,8 +99,7 @@ void UIElements::append( UIElements* res ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "tick" is the static routine to be called from the Arduino loop as often as possible. Each tick will be
-// processed in the respective UI element state machine.
+// "tick" is the static routine to be called to advance the UI elements state machine.
 //
 //------------------------------------------------------------------------------------------------------------
 void UIElements::tick( ) {
@@ -113,3 +112,23 @@ void UIElements::tick( ) {
     res = res -> next;
   }
 }
+
+//------------------------------------------------------------------------------------------------------------
+// 
+// ??? test. we need a repeating time to advance the UI element state machines.
+//------------------------------------------------------------------------------------------------------------
+
+void doTicks( uint32_t timerVal ) {
+
+   UIElements::tick( );
+}
+
+void UIElements::startTicks( ) {
+
+    CDC::onTimerEvent( doTicks );
+    CDC::startRepeatingTimer( 20 );
+}
+
+
+
+

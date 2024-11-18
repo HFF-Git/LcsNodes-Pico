@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// UI Screen - inplementation file
+// UI Screen - implementation file
 //
 //------------------------------------------------------------------------------------------------------------
 // UI Elements of Buttons, Knobs, LEDs and displays are the atoms of a User Interface. The next level is to
@@ -18,7 +18,7 @@
 // us to the first child. The SELCET button selects the current screen and triggers an action.
 //
 // To keep the screen hierarchy flexible, the meaning of the buttons within a given screen is not fixed.
-// inside a sccreen the menu and select buttons an change their meaning, with the exception of the long press
+// inside a screen the menu and select buttons an change their meaning, with the exception of the long press
 // of the MENU button.  As a convention, the menu button should be used to toggle through screens, the select
 // button is used to enter a screen child list and as a kind of commit button. Quite common are also the
 // up / down buttons, which manipulate screen content, such as incrementing a number on the screen. But they
@@ -28,7 +28,7 @@
 // with the respective UI elements. For example, the screen MENU button handler is registered with the MENU
 // button object. Pressing that button will invoke the MENU button handler in the screen. The screen object
 // will pass all UI Elements events for which the callback to the current screen. For example, the UIScreen
-// base class has the MENU and SELCECT button event handler to navigate through the screens. A screen that
+// base class has the MENU and SELECT button event handler to navigate through the screens. A screen that
 // inherits from the UIScreen could overwrite these handlers and assign a new meaning to the MENU and SELECT
 // button. That's it.
 //
@@ -82,7 +82,7 @@ namespace {
 // a button event such as a click, will be passed to the screen methods of the current screen. When the UI
 // Element, e.g. a button, is configured, the callback function to register for the button event is the
 // corresponding static handler routine. For each UI element type used on a screen there is a static function
-// that will  route the event to the current screeen handler methods. So far, there are the button and encoder
+// that will  route the event to the current screen handler methods. So far, there are the button and encoder
 // callbacks.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -209,7 +209,7 @@ UIScreen::UIScreen( ) { }
 //
 // Sometimes it is useful to disable a screen in a screen list. Rather than taking it out of the list, there
 // is an enable flag. When the menuButton click event is handled it will skip disabled screens. If all screens
-// are disalbed, no action wil be taken.
+// are disabled, no action will be taken.
 //
 //------------------------------------------------------------------------------------------------------------
 void UIScreen::menuButtonClick( UIButton *buttonObj ) {
@@ -315,7 +315,7 @@ bool UIScreen::setup( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Screen can be conditionally shown. If a screen is doisabled, it will stay in the list but skipped when
+// Screen can be conditionally shown. If a screen is disabled, it will stay in the list but skipped when
 // toggling through the windows.
 //
 //------------------------------------------------------------------------------------------------------------

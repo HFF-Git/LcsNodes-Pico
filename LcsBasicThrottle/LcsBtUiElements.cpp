@@ -30,8 +30,12 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBasicThrottle.h"
 
-using namespace LCS;
+extern CDC::CdcConfigDesc       cdcConfig;
+extern UIEncoder                *encoder;
+extern CabStack                 *cabStack;
+extern CabMsgBus                *msgBus;
 
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.
@@ -39,18 +43,7 @@ using namespace LCS;
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-}
-
 };
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-#define DISPLAY_I2C_ADR 0x3C
 
 //------------------------------------------------------------------------------------------------------------
 // Global variables.
@@ -75,17 +68,10 @@ UIEncoder     *encoder                    = nullptr;
 UIButton      *encoderButton              = nullptr;
 
 //------------------------------------------------------------------------------------------------------------
-// Configure the IO pins for the UI Elements. Note that there are two version for now. The Atmega version uses
-// a main controller board and an extension board. All UI Elements are connected via the I2C channel zero. The
-// extension board has an I2C Expander and all UI Elements are connected to the ports of this chip. The RPICO
-// version is a monolithic board and all UI Elements are connected to the PICO itself. The PICO also has an
-// LcsNode NVM which is connected via I2C channel 0. The UI Display elements is connected to the I2C channel 1.
+// Configure the IO pins for the UI Elements. 
 //
-// ?? over time, the ATmega version will go away. But for now ...
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
-
-    CDC::configureDio( UP_BUTTON_ID, CDC::IN_PULLUP );
 
     CDC::configureDio( MENU_BUTTON_ID, CDC::IN_PULLUP );
     CDC::configureDio( SELECT_BUTTON_ID, CDC::IN_PULLUP );
@@ -115,10 +101,6 @@ uint8_t setupIOPins( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 bool getData( uint8_t hwId ) {
-
-    #if 0
-    printf( "Get data: %d -> %d\n", hwId, CDC::readDio( hwId ) == HIGH );
-    #endif
 
     if (( hwId == ENCODER_ID_A ) || ( hwId == ENCODER_ID_B ))
         return ( CDC::readDio( hwId ) == true );
@@ -176,13 +158,10 @@ uint8_t createUIElements( ) {
   f4Button ->       setResId( DCC_F_M_F4 );
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
-
-/*
-  oled = new UIDisplayOledSSD1306 ( DT_OLED_DISPLAY_128x64_2F_4,
-                                    cfg.I2C_SCL_PIN_0,
-                                    cfg.I2C_SDA_PIN_0,
-                                    cfg.I2C_ADR_0 );
-*/
+  oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64_16_8, 
+                            cdcConfig.EXT_I2C_SCL_PIN, 
+                            cdcConfig.EXT_I2C_SDA_PIN, 
+                            cdcConfig.EXT_I2C_ADR_ROOT );
 
   return ( ALL_OK );
 }

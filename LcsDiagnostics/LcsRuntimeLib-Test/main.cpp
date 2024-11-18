@@ -116,9 +116,14 @@ uint8_t lcsCmdCallback( char *cmdLine ) {
     return( ALL_OK );
 }
 
-uint8_t lcsTaskCallback( ) {
+uint8_t lcsTaskCallback1( ) {
 
-    // printf( "Task Callback...\n" );
+    //printf( "Task Callback1...\n" );
+    return( ALL_OK );    
+}
+uint8_t lcsTaskCallback2( ) {
+
+    //printf( "Task Callback2...\n" );
     return( ALL_OK );    
 }
 
@@ -180,7 +185,8 @@ uint8_t registerLcsCallbacks( ) {
     registerLcsMsgCallback( lcsMsgCallback );
     registerDccMsgCallback( lcsDccMsgCallback );
     registerCmdCallback( lcsCmdCallback );
-    registerTaskCallback( lcsTaskCallback, 1000 );
+    registerTaskCallback( lcsTaskCallback1, 1000 );
+    registerTaskCallback( lcsTaskCallback2, 2000 );
     registerInitCallback( lcsInitCallback );
     registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );

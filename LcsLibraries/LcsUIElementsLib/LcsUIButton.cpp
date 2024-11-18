@@ -93,7 +93,7 @@ void UIButton::setPressMillis( uint32_t ticks ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The UI Button object. Eaxch button has a resource ID. This could be diretcly teh pin number but also any
+// The UI Button object. Each button has a resource ID. This could be directly the pin number but also any
 // other number by which the button is identified in callbacks. A button can also be active low or high.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -172,13 +172,13 @@ uint8_t UIButton::getHwId( ) {
 //
 //    State 0     - the button becomes active. Remember the starting time and set the state to 1.
 //
-//    State 1     - if the button is incactive before the debouncing time window, it is perhaps a glitch,
+//    State 1     - if the button is inactive before the debouncing time window, it is perhaps a glitch,
 //                  ignore, go back to state 0.
 //
 //                  else if the button is inactive remember the stopping time and set the state to 2.
 //
 //                  else if the button is active and the time for a long press is exceeded, mark a long
-//                  presed event and invoke the start and during long press handlers, if any. Set the new
+//                  pressed event and invoke the start and during long press handlers, if any. Set the new
 //                  state to 4.
 //
 //                  else set the sate to 1.

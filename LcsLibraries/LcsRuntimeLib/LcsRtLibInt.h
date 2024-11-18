@@ -322,6 +322,9 @@ struct LcsNodeMap {
     uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
     uint16_t        pendingMapHwm                   = 0;
 
+    uint16_t        drvFuncMapEntries               = MAX_DRV_TYPES;
+    uint16_t        drvFuncMapHwm                   = 0;
+
     uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
     uint16_t        drvMapHwm                       = 0;
 };
@@ -466,7 +469,7 @@ struct LcsDrvFuncEntry {
     LcsDrvReqFunc   drvFunc = nullptr;
 };
 
-struct LcsDrvLabelMap {
+struct LcsDrvFuncMap {
 
     LcsDrvFuncEntry map[ MAX_DRV_TYPES ] = { 0 };
 };

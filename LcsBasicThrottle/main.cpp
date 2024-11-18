@@ -27,17 +27,34 @@
 //
 //------------------------------------------------------------------------------------------------------------
 
-#include "LcsCdcLib.h"
-#include "LcsRuntimeLib.h"
+// #include "LcsCdcLib.h"
+// #include "LcsRuntimeLib.h"
+// #include "LcsUIElements.h"
+#include "LcsBasicThrottle.h"
 
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values.
+// Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc cfg;
+CDC::CdcConfigDesc          cdcConfig;
+LCS::LcsConfigDesc          lcsConfig;
+
+//----------------------------------------------------------------------------------------------------------
+// Externals.
+//
+//----------------------------------------------------------------------------------------------------------
+extern UIDisplay              *oled;
+extern UIEncoder              *encoder;
+extern CabStack               *cabStack;
+extern CabMsgBus              *msgBus;
+
+extern uint8_t                setupLcsLib( );
+extern uint8_t                setupMsgBus( );
+extern uint8_t                setupUIElements( );
+extern uint8_t                setupScreens( );
+extern uint8_t                setupCabStack( );
 
 //----------------------------------------------------------------------------------------------------------
 // "printStatus" is a little helper function for the initialization routines protocol printing. If there is
@@ -47,99 +64,104 @@ CDC::CdcConfigDesc cfg;
 //----------------------------------------------------------------------------------------------------------
 uint8_t printStatus( uint8_t status ) {
 
-    if ( status == ALL_OK ) printf( "-> OK" );
+    if ( status == ALL_OK ) printf( "-> OK\n" );
     else                    printf( "-> FAILED: %d\n", status );
        
     return ( status );
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values. Note that the ATmega version uses an I2C expander. The RPico version has all the UI
-// elements directly connected. We will for now just have defines ( sigh ) to separate them throughout the
-// code.
-//
-//
-//----------------------------------------------------------------------------------------------------------
-uint8_t setupConfigInfo( CDC::CdcConfigDesc *cfg ) {
-
-    printf( "Setup Config Info\n" );
-
-    *cfg = CDC::getConfigDefault( );
-
-    cfg -> ADC_PIN_0             = 26;
-    cfg -> ADC_PIN_1             = 27;
-
-    cfg -> PWM_PIN_0             = 20;
-    cfg -> PWM_PIN_1             = 21;
-
-    cfg -> PFAIL_PIN             = 7;
-    cfg -> EXT_INT_PIN           = 22;
-    cfg -> READY_LED_PIN         = 14;
-    cfg -> ACTIVE_LED_PIN        = 15;
-
-    cfg -> DIO_PIN_0             = 9;
-    cfg -> DIO_PIN_1             = 8;
-    cfg -> DIO_PIN_2             = 10;
-    cfg -> DIO_PIN_3             = 11;
-    cfg -> DIO_PIN_4             = 21;
-    cfg -> DIO_PIN_5             = 20;
-    cfg -> DIO_PIN_6             = 19;
-    cfg -> DIO_PIN_7             = 18;
-
-    cfg -> NVM_I2C_SCL_PIN       = 17;
-    cfg -> NVM_I2C_SDA_PIN       = 16;
-    cfg -> NVM_I2C_ADR_ROOT      = 0x50;
-
-    cfg -> EXT_I2C_SCL_PIN       = 3;
-    cfg -> EXT_I2C_SDA_PIN       = 2;
-    cfg -> EXT_I2C_ADR_ROOT      = 0x50;
-
-    CDC::printConfigInfo( cfg );
-    return( ALL_OK );
-}
-
-//----------------------------------------------------------------------------------------------------------
 // Init the CDC and Runtime library...
 //
+// ??? the pin naming --- confusing ?
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
     uint8_t rStat = ALL_OK;
 
+    cdcConfig = CDC::getConfigDefault( );
+
+    cdcConfig.ADC_PIN_0             = 26;
+    cdcConfig.ADC_PIN_1             = 27;
+
+    cdcConfig.PWM_PIN_0             = 20;
+    cdcConfig.PWM_PIN_1             = 21;
+
+    cdcConfig.PFAIL_PIN             = 7;
+    cdcConfig.EXT_INT_PIN           = 22;
+    cdcConfig.READY_LED_PIN         = 14;
+    cdcConfig.ACTIVE_LED_PIN        = 15;
+
+    cdcConfig.DIO_PIN_0             = 9;
+    cdcConfig.DIO_PIN_1             = 8;
+    cdcConfig.DIO_PIN_2             = 10;
+    cdcConfig.DIO_PIN_3             = 11;
+    cdcConfig. DIO_PIN_4            = 21;
+    cdcConfig.DIO_PIN_5             = 20;
+    cdcConfig.DIO_PIN_6             = 19;
+    cdcConfig.DIO_PIN_7             = 18;
+
+    cdcConfig.NVM_I2C_SCL_PIN       = 3;
+    cdcConfig.NVM_I2C_SDA_PIN       = 2;
+    cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
+
+    cdcConfig.EXT_I2C_SCL_PIN       = 17;
+    cdcConfig.EXT_I2C_SDA_PIN       = 16;
+    cdcConfig.EXT_I2C_ADR_ROOT      = 0x3C;
+
+    cdcConfig.CAN_BUS_RX_PIN        = 0;
+    cdcConfig.CAN_BUS_TX_PIN        = 1;
+    cdcConfig.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
+    cdcConfig.CAN_BUS_DEF_ID        = 100;
+
+    cdcConfig.NODE_NVM_SIZE         = 8192;
+    cdcConfig.EXT_NVM_SIZE          = 512;
+
+    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG | NOPT_DEBUG_DURING_SETUP;
+
     printf( "LCS Basic Throttle\n" );
 
-    rStat = setupConfigInfo( &cfg );
+    if ( rStat == ALL_OK ) {
 
-    
+        printf( "Init runtime, configuration: \n" );
+        CDC::printConfigInfo( &cdcConfig );
+    }
+
+    if ( rStat == ALL_OK ) {
+
+        printf( "Init RuntimeLib " );
+        rStat = initRuntime( &lcsConfig, &cdcConfig );
+    }
+
     if ( rStat == ALL_OK ) {
 
         printf( "Setup Msg Bus " );
-        // rStat = printStatus( setupMsgBus( ));
+        rStat = printStatus( setupMsgBus( ));
     }
 
     if ( rStat == ALL_OK ) {
 
         printf( "Setup UI Elements " );
-        // rStat = printStatus( setupUIElements( ));
+        rStat = printStatus( setupUIElements( ));
     }
 
     if ( rStat == ALL_OK ) {
 
         printf( "Setup Screens " );
-        // rStat = printStatus( setupScreens( ));
+        rStat = printStatus( setupScreens( ));
     }
 
     if ( rStat == ALL_OK ) {
 
         printf( "Setup Cab Stack " );
-        // rStat = printStatus( setupCabStack ( ));
+        rStat = printStatus( setupCabStack ( ));
     }
 
     if ( rStat == ALL_OK ) {
 
         printf( "Ready..." );
-        // UIScreen::setup( );    
+        UIScreen::setup( );   
+        UIElements::startTicks( ); 
     }
 
     return( rStat );
@@ -151,6 +173,7 @@ uint8_t initLcsRuntime( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t registerCallbacks( ) {
 
+    printf( "BasicThrottle, register callbacks\n" );
 
     return( LCS::ALL_OK );
 }
@@ -159,20 +182,22 @@ uint8_t registerCallbacks( ) {
 // 
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t startLcsRuntime( ) {
+void startLcsRuntime( ) {
 
-
-    return( LCS::ALL_OK );
+    printf( "BasicThrottle, start runtime\n" );
+    startRuntime( );
 }
 
 //----------------------------------------------------------------------------------------------------------
-// 
+// Main. Initialize, register and start the show.
 //
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    initLcsRuntime( );
-    registerCallbacks( );
-    startLcsRuntime( );
+    uint8_t rStat = ALL_OK;
+
+    rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) registerCallbacks( );
+    if ( rStat == ALL_OK ) startLcsRuntime( );
     return( 0 );
 }

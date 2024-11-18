@@ -78,7 +78,7 @@ namespace LCS {
     LCS::LcsCallbackMap         callbackMap;
     LCS::LcsPendingReqMap       pendingReqMap;
     LCS::LcsTaskMap             taskMap;
-    LCS::LcsDrvLabelMap         drvLabelMap;
+    LCS::LcsDrvFuncMap          drvFuncMap;
     LCS::LcsDrvMap              drvMap;
 }
     
@@ -283,7 +283,7 @@ namespace LCS {
 // the node. This mode should be the normal case for all the nodes in a layout.
 // 
 // Perhaps one day, this routine could be enhanced to allow commands to pile up the start options followed
-// by the final start command to get the show going. 
+// by the final start command to get the show going. especially the debug mask would be a candidate.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
@@ -319,7 +319,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
                  printf( "Starting - debug mode\n" );
 
-                debugMask       = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS;
+                debugMask       = DBG_CONFIG | DBG_SETUP;
                 startOptions    = NOPT_NIL;
                 return( ALL_OK );
             }
@@ -329,7 +329,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
                 debugMask       &= ~ DBG_CONFIG;
 
-                debugMask       = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS; // ??? for testing ...
+                debugMask       = DBG_CONFIG | DBG_SETUP;
                 
                 startOptions    = NOPT_FORMAT_RUNTIME;
                 return( ALL_OK );
@@ -382,7 +382,9 @@ uint8_t initNvmChannels( CDC::CdcConfigDesc *ci ) {
 
     rStat = configNvm( ci );
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initNvmChannels, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "initNvmChannels, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -400,11 +402,15 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
     uint8_t rStat = msgBus -> init( 0, ci -> CAN_BUS_RX_PIN, ci -> CAN_BUS_TX_PIN, ci -> CAN_BUS_CTRL_MODE );
     if ( rStat != ALL_OK ) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initCanBus, CAN status: %d\n", rStat );
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+            printf( "initCanBus, CAN status: %d\n", rStat );
+        
         rStat = ERR_CAN_SETUP;
     }
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initCanBus, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "initCanBus, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -454,7 +460,9 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
     nodeMap.nodeOptions = cfg -> options;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupNodeMap, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -468,7 +476,9 @@ uint8_t setupPortMap( ) {
 
     uint8_t rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPortMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupPortMap, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -482,7 +492,9 @@ uint8_t setupNodeDataMap( ) {
 
     uint8_t rStat = rtNvmGetBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeDataMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupNodeDataMap, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -537,7 +549,9 @@ uint8_t setupEventMap( ) {
         rStat = syncEventMap( );
     }
   
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupEventMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupEventMap, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -552,7 +566,9 @@ uint8_t setupUserMap( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupUserMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupUserMap, status: %d\n", rStat );
+    
     return ( ALL_OK );
 }
 
@@ -579,7 +595,9 @@ uint8_t setupCallbackMap( ) {
     callbackMap.reqCallback         = nullptr;
     callbackMap.repCallback         = nullptr;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCallbackMap, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupCallbackMap, status: %d\n", rStat );
+    
     return( rStat );
 }
 
@@ -604,8 +622,10 @@ uint8_t setupTaskMap( ) {
         taskMap.map[ i ].timeStamp  = 0;
     }
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupTaskMap, status: %d\n", rStat );
-    return( ALL_OK );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupTaskMap, status: %d\n", rStat );
+    
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -615,28 +635,39 @@ uint8_t setupTaskMap( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPendingReqMap( ) {
 
+    uint8_t rStat = ALL_OK;
+
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPendingReqMap\n" );
 
     nodeMap.pendingMapEntries   = MAX_PENDING_REQ_MAP_ENTRIES;
     nodeMap.pendingMapHwm       = MAX_PENDING_REQ_MAP_ENTRIES;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPendingReqMap\n" );
-    return( ALL_OK );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupPendingReqMap, status: %d\n", rStat );
+    
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupDrvMap" initializes the driver function label map. This table is used when we need to find the 
+// "setupDrvFuncMap" initializes the driver function label map. This table is used when we need to find the 
 // driver for an extension board type.
 //
+// ??? we could pre register all known drivers... a user could still register a new one and also overwrite
+// a pre-registered driver with a new func label.
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupDrvLabelMap( ) {
+uint8_t setupDrvFuncMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvLabelMap\n" );
 
+    uint8_t rStat = ALL_OK;
 
+    nodeMap.drvFuncMapEntries = MAX_DRV_TYPES;
+    nodeMap.drvFuncMapHwm     = MAX_DRV_TYPES;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvLabelMap\n" );
-    return( ALL_OK );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupDrvLabelMap, status: %d\n", rStat );
+    
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -648,13 +679,17 @@ uint8_t setupDrvMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvMap\n" );
 
+    uint8_t rStat = ALL_OK;
+
     nodeMap.pendingMapEntries   = MAX_PENDING_REQ_MAP_ENTRIES;
     nodeMap.pendingMapHwm       = MAX_PENDING_REQ_MAP_ENTRIES;
 
     buildDefaultDrvMap( &drvMap );
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvMap\n" );
-    return( ALL_OK );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupDrvMap, status: %d\n", rStat  );
+    
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -668,7 +703,10 @@ uint8_t registerInternalTasks( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "registerInternalTasks\n" );
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "registerInternalTasks, status: %d\n" );
+    
     return( rStat );
 }
 
@@ -701,9 +739,12 @@ uint8_t detectExtensionBoards( ) {
 
             uint16_t *ptr = (uint16_t *) &drvEntry -> extBoard;
 
-            printf( "Extension Board Desc Head: " );
-            for ( int j = 0; j < 16; j++ ) printf( "0x%x ", ptr[ j ] );
-            printf( "\n" );
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                printf( "Extension Board Desc Head: " );
+                for ( int j = 0; j < 16; j++ ) printf( "0x%x ", ptr[ j ] );
+                printf( "\n" );
+            }
 
             nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
             nodeMap.drvMapHwm ++; 
@@ -746,7 +787,7 @@ LcsDrvReqFunc lookupDrvFunc( uint16_t drvType ) {
 
     for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
 
-        if ( drvLabelMap.map[ i ].drvType == drvType ) return( drvLabelMap.map[ i ].drvFunc );
+        if ( drvFuncMap.map[ i ].drvType == drvType ) return( drvFuncMap.map[ i ].drvFunc );
     }
 
     return( nullptr );
@@ -759,6 +800,13 @@ LcsDrvReqFunc lookupDrvFunc( uint16_t drvType ) {
 // the extension board needs to be removed for this. When removed, the extension board NVM can be written to
 // with commands from the runtime. 
 //
+// When the driver function is not pre registered, we do not have a function to set in the driver map.
+// In this case the driver is not usable yet. The problem is that we can only make driver registration 
+// calls after LcsInitRuntime. But the all driver boards have been detected. There are two ways. For driver
+// know already, we "pre-register" them. For any other driver, the driver function registration routine will
+// check the driver table for the driver type and the patch the function label. All this should takes place 
+// before the final call to "startRuntime".
+// 
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
@@ -772,7 +820,6 @@ uint8_t setupExtensionBoards( ) {
 
         if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
 
-            #if 0
             LcsDrvReqFunc drvFunc = lookupDrvFunc( drvEntry -> extBoard.head.boardType ); 
 
             if ( drvFunc != nullptr ) {
@@ -781,52 +828,19 @@ uint8_t setupExtensionBoards( ) {
                 drvEntry -> flags   |= BF_EXT_BOARD_READY;
                 drvEntry -> lastErr = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
 
-                printf( "Driver setup, type: %d, stat: %d\n", 
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+                    
+                    printf( "Driver setup, type: %d, stat: %d\n", 
                         drvEntry -> extBoard.head.boardType, drvEntry -> lastErr );
+                }
             }
             else {
 
-                printf( "Driver setup, type not found: %d\n", drvEntry -> extBoard.head.boardType );
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                    printf( "Driver setup, type not found: %d\n", drvEntry -> extBoard.head.boardType );
+                }
             }
-
-            #else
-
-            switch( drvEntry -> extBoard.head.boardType ) {
-    
-                case BT_EXT_OCC_DETECT: {
-                    
-                    drvEntry -> drvFunc = lcsDrvOccDetect; 
-                    drvEntry -> flags   |= BF_EXT_BOARD_READY;
-                    drvEntry -> lastErr = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
-
-                    printf( "OccDetect Driver Reset: %d\n", drvEntry -> lastErr );
-
-                } break;
-
-                case BT_EXT_SERVO: {
-
-                    drvEntry -> drvFunc = lcsDrvServo; 
-                    drvEntry -> flags   |= BF_EXT_BOARD_READY;
-
-                } break;
-                
-                case BT_EXT_GPIO: {
-
-                    drvEntry -> drvFunc = nullptr; // ??? for now ... 
-                    drvEntry -> flags   |= BF_EXT_BOARD_READY;
-
-                } break;
-
-                default: {
-
-                    drvEntry -> flags   &= ~ BF_EXT_BOARD_READY;
-
-                    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                            printf( "setupExtensionBoards: invalid board type detected\n" );
-                }; 
-            }
-
-            #endif
         }
     }
 
@@ -834,6 +848,88 @@ uint8_t setupExtensionBoards( ) {
         printf( "setupExtensionBoards, status: %d\n", rStat );
 
     return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Driver function registration. There is a simple table which maintains extension boards types and the 
+// driver function form them. If the type is already registered, we just overwrite the function signature.
+// Otherwise we find a free entry and use it.
+//
+// The driver function registration can only be called after the initialization of the LCS runtime. By then 
+// the extension boards are however already detected, and if there are no drivers pre-registered no driver 
+// function was registered. The extension board is therefore not ready and was also not reseted. Consequently, 
+// the  registration call will check or detected valid extension boards and patch the driver function label 
+// and invoke the RESET request.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "registerDrvFunc, type: %d, func: %p\n", drvType, drvReqFunction );
+
+    bool found = false;
+
+    for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
+
+        if ( drvFuncMap.map[ i ].drvType == drvType ) {
+
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, overwrite: %d\n", i );
+
+            drvFuncMap.map[ i ].drvFunc = drvReqFunction;
+            found = true;
+            break;
+        }
+    }
+
+    if ( ! found ) {
+
+        for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
+
+            if ( drvFuncMap.map[ i ].drvType == BT_NIL ) {
+
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                    printf( "registerDrvFunc, allocate: %d\n", i );
+
+                drvFuncMap.map[ i ].drvType = drvType;
+                drvFuncMap.map[ i ].drvFunc = drvReqFunction;
+                found = true;
+                break;
+            }
+        }
+    }
+
+    if ( ! found ) {
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, table full\n" );
+    
+        return( ERR_DRV_FUNC_MAP_FULL );
+    }
+
+    for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+
+        LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
+
+        if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
+
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, set func for board: %d\n", i );
+
+            if ( drvEntry -> extBoard.head.boardType == drvType ) {
+
+                drvEntry -> drvFunc     = drvReqFunction;
+                drvEntry -> flags       |= BF_EXT_BOARD_READY;
+                drvEntry -> lastErr     = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
+            }
+
+        }
+     }
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, ret: ALL_OK\n" );
+
+    return( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -853,7 +949,9 @@ uint8_t powerFailHandler( ) {
     
     if ( callbackMap.pfailCallback != nullptr ) callbackMap.pfailCallback( nodeMap.nodeId );
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "powerFailHandler, status: %d\n", rStat );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "powerFailHandler, status: %d\n", rStat );
+    
     return ( rStat );
 }
 
@@ -970,7 +1068,7 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
     if ( rStat == ALL_OK )  rStat = setupTaskMap( );
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
-    if ( rStat == ALL_OK )  rStat = setupDrvLabelMap( );
+    if ( rStat == ALL_OK )  rStat = setupDrvFuncMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvMap( );
     if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3, rStat );

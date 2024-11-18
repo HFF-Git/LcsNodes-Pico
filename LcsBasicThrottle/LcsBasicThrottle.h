@@ -556,22 +556,4 @@ struct TestUIScreen : CabHandheldScreen {
     void encoderPosChange( UIEncoder *encoderObj );
 };
 
-//------------------------------------------------------------------------------------------------------------
-// Variables and functions that will be used by other .cpp files are listed here as "extern". I'd rather
-// prefer this kind of global variables arrangement than to pass around many references to the objects.
-//
-// ??? only the opens actually needed are listed here...
-//------------------------------------------------------------------------------------------------------------
-extern CDC::CdcConfigDesc     cfg;
-extern UIDisplay              *oled;
-extern UIEncoder              *encoder;
-extern CabStack               *cabStack;
-extern CabMsgBus              *msgBus;
-
-extern uint8_t                setupLcsLib( );
-extern uint8_t                setupMsgBus( );
-extern uint8_t                setupUIElements( );
-extern uint8_t                setupScreens( );
-extern uint8_t                setupCabStack( );
-
 #endif

@@ -135,7 +135,7 @@ namespace {
 
     //--------------------------------------------------------------------------------------------------------
     // Each controller is described by a device type structure. The structure contains the width and height
-    // as well as a command list of commands to issue when teh display is initialized.
+    // as well as a command list of commands to issue when the display is initialized.
     //
     //--------------------------------------------------------------------------------------------------------
     struct DevType {
@@ -311,7 +311,7 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
     this -> rstPin = rstPin;
 
     // ??? into a debug bracket ?
-    #if 0
+    #if 1
     printf( "Oled Display begin: sclPin: %d, sdaPin: %d, i2cAdr: 0x%x, rstPin: %d\n ", 
             sclPin, sdaPin, i2cAdr, rstPin );
     #endif
@@ -372,46 +372,46 @@ void LcsOledDisplay::displayOff( ) {
 
 void LcsOledDisplay::invertDisplay(bool invert) {
 
-  ssd1306WriteCmd(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
+    ssd1306WriteCmd(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
 }
 
 void LcsOledDisplay::clear() {
 
-  clearRegion(0, displayWidthPixels() - 1, 0, displayRows() - 1);
+    clearRegion(0, displayWidthPixels() - 1, 0, displayRows() - 1);
 }
 
 void LcsOledDisplay::clearRegion( uint8_t c0, uint8_t c1, uint8_t r0, uint8_t r1 ) {
 
-  // Cancel skip character pixels.
-  m_skip = 0;
+    // Cancel skip character pixels.
+    m_skip = 0;
 
-  // Insure only rows on display will be cleared.
-  if (r1 >= displayRows()) r1 = displayRows() - 1;
+    // Insure only rows on display will be cleared.
+    if (r1 >= displayRows()) r1 = displayRows() - 1;
 
-  for (uint8_t r = r0; r <= r1; r++) {
-    setCursor(c0, r);
-    for (uint8_t c = c0; c <= c1; c++) {
-      // Insure clear() writes zero. result is (m_invertMask^m_invertMask).
-      ssd1306WriteRamBuffered( m_invertMask );
+    for (uint8_t r = r0; r <= r1; r++) {
+        setCursor(c0, r);
+        for (uint8_t c = c0; c <= c1; c++) {
+        // Insure clear() writes zero. result is (m_invertMask^m_invertMask).
+        ssd1306WriteRamBuffered( m_invertMask );
+        }
     }
-  }
-  setCursor(c0, r0);
+    setCursor(c0, r0);
 }
 
 void LcsOledDisplay::clearToEOL() {
 
-  clearRegion(m_col, displayWidthPixels() - 1, m_row, m_row + fontRows() - 1);
+    clearRegion(m_col, displayWidthPixels() - 1, m_row, m_row + fontRows() - 1);
 }
 
 void LcsOledDisplay::clearField(uint8_t col, uint8_t row, uint8_t n) {
   
-  clearRegion(col, col + fieldWidthPixels(n) - 1, row, row + fontRows() - 1);
+    clearRegion(col, col + fieldWidthPixels(n) - 1, row, row + fontRows() - 1);
 }
 
 void LcsOledDisplay::displayRemap180Degrees( bool mode ) {
 
-  ssd1306WriteCmd(mode ? SSD1306_SEGREMAP : SSD1306_SEGREMAP | 1);
-  ssd1306WriteCmd(mode ? SSD1306_COMSCANINC : SSD1306_COMSCANDEC);
+    ssd1306WriteCmd(mode ? SSD1306_SEGREMAP : SSD1306_SEGREMAP | 1);
+    ssd1306WriteCmd(mode ? SSD1306_COMSCANINC : SSD1306_COMSCANDEC);
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -420,20 +420,20 @@ void LcsOledDisplay::displayRemap180Degrees( bool mode ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::charWidthPixels(uint8_t c) const {
 
-  if (!m_font) {
-    return 0;
-  }
-  uint8_t first = m_font[ FONT_FIRST_CHAR ];
-  uint8_t count = m_font[ FONT_CHAR_COUNT ];
-  if (c < first || c >= (first + count)) {
-    return 0;
-  }
-  if (fontSize() > 1) {
-    // Proportional font.
-    return m_magFactor * m_font[ FONT_WIDTH_TABLE + c - first ];
-  }
-  // Fixed width font.
-  return m_magFactor * m_font[ FONT_WIDTH ];
+    if (!m_font) {
+        return 0;
+    }
+    uint8_t first = m_font[ FONT_FIRST_CHAR ];
+    uint8_t count = m_font[ FONT_CHAR_COUNT ];
+    if (c < first || c >= (first + count)) {
+        return 0;
+    }
+    if (fontSize() > 1) {
+        // Proportional font.
+        return m_magFactor * m_font[ FONT_WIDTH_TABLE + c - first ];
+    }
+    // Fixed width font.
+    return m_magFactor * m_font[ FONT_WIDTH ];
 }
 
 uint8_t LcsOledDisplay::charSpacingPixels( uint8_t c ) { 
@@ -480,7 +480,7 @@ uint8_t LcsOledDisplay::fontHeightPixels( ) const {
 
 uint8_t LcsOledDisplay::fontRows( ) const {
 
-  return ( m_font ? m_magFactor * (( m_font[ FONT_HEIGHT ] + 7) / 8) : 0 );
+  return ( m_font ? m_magFactor * (( m_font[ FONT_HEIGHT ] + 7 ) / 8 ) : 0 );
 }
 
 uint16_t LcsOledDisplay::fontSize( ) const {
@@ -534,7 +534,6 @@ bool LcsOledDisplay::invertMode() const { return !!m_invertMask; }
 
 void LcsOledDisplay::setInvertMode( bool mode ) { m_invertMask = mode ? 0XFF : 0; }
 
-
 void LcsOledDisplay::setContrast(uint8_t value) {
 
   ssd1306WriteCmd(SSD1306_SETCONTRAST);
@@ -575,95 +574,95 @@ void LcsOledDisplay::setColPixels( uint8_t col ) {
 //------------------------------------------------------------------------------------------------------------
 size_t LcsOledDisplay::writeChar( uint8_t ch ) {
 
-  if ( !m_font ) {
+    if ( !m_font ) {
 
-    return 0;
-  }
-
-  uint8_t         w     = m_font[ FONT_WIDTH ];
-  uint8_t         h     = m_font[ FONT_HEIGHT ];
-  uint8_t         nr    = (h + 7) / 8;
-  uint8_t         first = m_font[ FONT_FIRST_CHAR ];
-  uint8_t         count = m_font[ FONT_CHAR_COUNT ];
-  const uint8_t   *base = m_font + FONT_WIDTH_TABLE;
-
-  if (ch == '\r') {
-
-    setColPixels( 0 );
-    return 1;
-  }
-
-  if (ch == '\n') {
-
-    setColPixels( 0 );
-    uint8_t fr = m_magFactor * nr;
-    setRow(m_row + fr);
-    return 1;
-  }
-
-  bool nfSpace = false;
-  if (first <= ch && ch < (first + count)) {
-    ch -= first;
-  } else if (ENABLE_NONFONT_SPACE && ch == ' ') {
-    nfSpace = true;
-  } else {
-    // Error if not in font.
-    return 0;
-  }
-
-  uint8_t s = letterSpacingPixels( );
-  uint8_t thieleShift = 0;
-  if (nfSpace) {
-    // non-font space.
-  } else if (fontSize() < 2) {
-    // Fixed width font.
-    base += nr * w * ch;
-  } else {
-    if (h & 7) {
-      thieleShift = 8 - (h & 7);
-    }
-    uint16_t index = 0;
-    for (uint8_t i = 0; i < ch; i++) {
-
-      index += base[ i ];
+        return 0;
     }
 
-    w = base[ ch ];
-    base += nr * index + count;
-  }
+    uint8_t         w     = m_font[ FONT_WIDTH ];
+    uint8_t         h     = m_font[ FONT_HEIGHT ];
+    uint8_t         nr    = (h + 7) / 8;
+    uint8_t         first = m_font[ FONT_FIRST_CHAR ];
+    uint8_t         count = m_font[ FONT_CHAR_COUNT ];
+    const uint8_t   *base = m_font + FONT_WIDTH_TABLE;
 
-  uint8_t scol = m_col;
-  uint8_t srow = m_row;
-  uint8_t skip = m_skip;
-  for ( uint8_t r = 0; r < nr; r++ ) {
-    for ( uint8_t m = 0; m < m_magFactor; m++ ) {
+    if (ch == '\r') {
 
-      skipColumnsPixels(skip);
-      if (r || m) {
-        setCursor(scol, m_row + 1);
-      }
-      for (uint8_t c = 0; c < w; c++) {
+        setColPixels( 0 );
+        return 1;
+    }
 
-        uint8_t b = nfSpace ? 0 : base[ c + r * w ];
-      
-        if (thieleShift && (r + 1) == nr) {
-          b >>= thieleShift;
+    if (ch == '\n') {
+
+        setColPixels( 0 );
+        uint8_t fr = m_magFactor * nr;
+        setRow(m_row + fr);
+        return 1;
+    }
+
+    bool nfSpace = false;
+    if (first <= ch && ch < (first + count)) {
+        ch -= first;
+    } else if (ENABLE_NONFONT_SPACE && ch == ' ') {
+        nfSpace = true;
+    } else {
+        // Error if not in font.
+        return 0;
+    }
+
+    uint8_t s = letterSpacingPixels( );
+    uint8_t thieleShift = 0;
+    if (nfSpace) {
+        // non-font space.
+    } else if (fontSize() < 2) {
+        // Fixed width font.
+        base += nr * w * ch;
+    } else {
+        if (h & 7) {
+        thieleShift = 8 - (h & 7);
         }
-        if (m_magFactor == 2) {
-          b = m ? b >> 4 : b & 0XF;
-          b = scaledNibble[ b ];
-          ssd1306WriteRamBuffered(b);
-        }
-        ssd1306WriteRamBuffered(b);
-      }
-      for (uint8_t i = 0; i < s; i++) {
-        ssd1306WriteRamBuffered(0);
-      }
-    }
-  }
+        uint16_t index = 0;
+        for (uint8_t i = 0; i < ch; i++) {
 
-  setRow(srow);
-  return 1;
+        index += base[ i ];
+        }
+
+        w = base[ ch ];
+        base += nr * index + count;
+    }
+
+    uint8_t scol = m_col;
+    uint8_t srow = m_row;
+    uint8_t skip = m_skip;
+    for ( uint8_t r = 0; r < nr; r++ ) {
+        for ( uint8_t m = 0; m < m_magFactor; m++ ) {
+
+            skipColumnsPixels(skip);
+            if (r || m) {
+                setCursor(scol, m_row + 1);
+            }
+            for (uint8_t c = 0; c < w; c++) {
+
+                uint8_t b = nfSpace ? 0 : base[ c + r * w ];
+            
+                if (thieleShift && (r + 1) == nr) {
+                b >>= thieleShift;
+                }
+                if (m_magFactor == 2) {
+                b = m ? b >> 4 : b & 0XF;
+                b = scaledNibble[ b ];
+                ssd1306WriteRamBuffered(b);
+                }
+                ssd1306WriteRamBuffered(b);
+            }
+            for (uint8_t i = 0; i < s; i++) {
+                ssd1306WriteRamBuffered(0);
+            }
+        }
+    } 
+
+    setRow(srow);
+    return 1;
 }
 
 void LcsOledDisplay::ssd1306WriteCmd( uint8_t cmdByte ) { 
@@ -674,22 +673,22 @@ void LcsOledDisplay::ssd1306WriteCmd( uint8_t cmdByte ) {
 void LcsOledDisplay::ssd1306WriteRamImmediate(uint8_t c) {
 
   if (m_col < m_displayWidth) {
-    writeDisplay(c ^ m_invertMask, SSD1306_MODE_RAM);
+    writeDisplay(c ^ m_invertMask, SSD1306_MODE_RAM );
     m_col++;
   }
 }
 
 void LcsOledDisplay::ssd1306WriteRamBuffered( uint8_t c ) {
 
-  if ( m_skip ) {
+    if ( m_skip ) {
 
-    m_skip--;
-  } 
-  else if (m_col < m_displayWidth) {
+        m_skip--;
+    } 
+    else if (m_col < m_displayWidth) {
     
-    writeDisplay( c ^ m_invertMask, SSD1306_MODE_RAM_BUF );
-    m_col++;
-  }
+        writeDisplay( c ^ m_invertMask, SSD1306_MODE_RAM_BUF );
+        m_col++;
+    }
 }
 
 void LcsOledDisplay::writeDisplay( uint8_t b, uint8_t mode ) {

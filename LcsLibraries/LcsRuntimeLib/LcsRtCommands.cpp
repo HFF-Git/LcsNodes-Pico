@@ -41,6 +41,7 @@ namespace LCS {
     extern LCS::LcsCallbackMap      callbackMap;
     extern LCS::LcsTaskMap          taskMap;
     extern LCS::LcsPendingReqMap    pendingReqMap;
+    extern LCS::LcsDrvFuncMap       drvFuncMap;
     extern LCS::LcsDrvMap           drvMap;
     extern LCS::LcsMsgBusCAN        *msgBus;
 };
@@ -221,6 +222,19 @@ void dumpMemTaskMap( ) {
     printf( "\n" );
 }
 
+void dumpMemDrvFuncMap( ) {
+
+    printf( "MEM Driver Function Map: (Size: %d) \n\n", nodeMap.drvFuncMapEntries );
+
+    for ( int i  = 0; i < MAX_DRV_TYPES; i++ ) {
+
+        LcsDrvFuncEntry *entry = &drvFuncMap.map[ i ];
+        printf( "%d: Type: %d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
+    }
+
+     printf( "\n" );
+}
+
 void dumpMemDrvMap( ) {
 
     printf( "MEM Driver Map: (Size: %d) \n\n", nodeMap.drvMapEntries );
@@ -248,6 +262,7 @@ void dumpMemRuntimeArea( ) {
     dumpMemPendingReqMap( );
     dumpMemTaskMap( );
     dumpMemCallbackMap( );
+    dumpMemDrvFuncMap( );
     dumpMemDrvMap( );
     printf( "\n" );
 }
@@ -860,8 +875,9 @@ void listStatusCommand( char *s ) {
             case 5:     dumpMemPendingReqMap( );    break;
             case 6:     dumpMemTaskMap( );          break;
             case 7:     dumpMemCallbackMap( );      break;
-            case 8:     dumpMemDrvMap( );           break;
-            case 9:     dumpMemRuntimeArea( );      break;
+            case 8:     dumpMemDrvFuncMap( );       break;
+            case 9:     dumpMemDrvMap( );           break;
+            case 10:    dumpMemRuntimeArea( );      break;
 
             case 21:    dumpNvmNodeMap( );          break;
             case 22:    dumpNvmPortMap( );          break;
@@ -918,8 +934,9 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -   5  - MEM Pending Request Map\n" );
     printf( "              " " -   6  - MEM Task Map\n" );
     printf( "              " " -   7  - MEM Callback Map\n" );
-    printf( "              " " -   8  - MEM Driver Map\n" );
-    printf( "              " " -   9  - MEM Runtime Area\n" );
+    printf( "              " " -   8  - MEM Driver Function Map" );
+    printf( "              " " -   9  - MEM Driver Map\n" );
+    printf( "              " " -  10  - MEM Runtime Area\n" );
 
     printf( "              " " -  21  - NVM Node Map\n" );
     printf( "              " " -  22  - NVM Port Map\n" );

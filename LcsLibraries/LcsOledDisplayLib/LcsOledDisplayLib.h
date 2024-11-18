@@ -10,7 +10,7 @@
 // LCS - OLED Display Driver - Include file
 // Copyright (C) 2024 - 2024  Helmut Fieres
 //
-// Bill Greiman wrote a version for the Arduino world. I took his files, and adapated them for my needs and 
+// Bill Greiman wrote a version for the Arduino world. I took his files, and adapted them for my needs and 
 // the PICO environment. Here is the original copyright info.
 //
 // SSD1306Ascii - Oled Library for the Arduino world.
@@ -36,8 +36,6 @@
 #include "LcsCdcLib.h"
 #include "fonts/allFonts.h"
 
-
-
 /**
  * If ENABLE_NONFONT_SPACE is nonzero, a space of width FONT_WIDTH will
  * be enabled in fonts which do not have an encoding for 0X20, space.
@@ -45,9 +43,6 @@
 #ifndef ENABLE_NONFONT_SPACE
 #define ENABLE_NONFONT_SPACE 1
 #endif  // ENABLE_NONFONT_SPACE
-
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // 
@@ -59,9 +54,7 @@ enum OledDevType : uint8_t {
     ODT_OLED_DISPLAY_128x32_SSD1306 = 1,
     ODT_OLED_DISPLAY_128x64_SSD1306 = 2,
     ODT_OLED_DISPLAY_128x64_SH1106  = 3
-
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // 
@@ -74,14 +67,10 @@ enum FontId : uint8_t {
   FID_8x8   = 2,
   FID_8x16  = 3,
   FID_10x16 = 4,
-
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // 
-//
-//
 //
 //
 //------------------------------------------------------------------------------------------------------------

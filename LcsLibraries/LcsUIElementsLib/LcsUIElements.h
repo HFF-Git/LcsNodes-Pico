@@ -5,9 +5,9 @@
 //------------------------------------------------------------------------------------------------------------
 // UI Elements. You start an Arduino project and the first Led is blinking, a button is pushed. Before you
 // know it, buttons need to be debounced, short and long pressed, active high or active low. You would like
-// to toggle a Led and remember its state. There are displays with different interfaces and capabilties. On
-// some displays you want to control the brigthness and contrast. Finally, in some projects you run out of
-// physical pins and want to connect an array of buttons or Leds through somethig like a parallel IO extender
+// to toggle a Led and remember its state. There are displays with different interfaces and capabilities. On
+// some displays you want to control the brightness and contrast. Finally, in some projects you run out of
+// physical pins and want to connect an array of buttons or LEDs through something like a parallel IO extender
 // or a simple shift registers. The list is long. In all Arduino projects you implement it somehow directly
 // in project just to take part of the functions to the next project and so on.
 //
@@ -30,7 +30,7 @@
 //------------------------------------------------------------------------------------------------------------
 // Some of the UI Element classes were inspired by the work of "Matthias Hertel", here is his copyright notice.
 // I like his approach for handling events with a finite state machine very much. The button, button array,
-// encoders and Leds are all managed by a state machine that advances with a call to the function "tick".
+// encoders and LEDs are all managed by a state machine that advances with a call to the function "tick".
 //
 // ( Original state machine->  Copyright (c) by Matthias Hertel, https://www.mathertel.de. )
 //------------------------------------------------------------------------------------------------------------
@@ -96,7 +96,6 @@ enum DisplayType : uint8_t {
   DT_LCD_DISPLAY_128_32         = 3,
   DT_LCD_DISPLAY_128_64         = 4,
 
-
   DT_OLED_DISPLAY_128x32_16_4   = 5,
   DT_OLED_DISPLAY_128x32_8_2    = 6,
   DT_OLED_DISPLAY_128x64_16_8   = 7,
@@ -107,7 +106,7 @@ enum DisplayType : uint8_t {
 
 //------------------------------------------------------------------------------------------------------------
 // OLED displays feature a set of fonts. A small set of all possible fonts is available for the OLED display.
-// The font type is meaningless for thw LCD displays, they have only one character set.
+// The font type is meaningless for the LCD displays, they have only one character set.
 //
 // ??? rather put in OLED display ?
 //------------------------------------------------------------------------------------------------------------
@@ -123,8 +122,8 @@ enum FontType : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 // Callback function definition. UI Elements implement two kinds of callback functions. The first group is the
 // data setting and retrieval function, which is used by buttons, LEDs and encoders to work with the hardware
-// elements that reprsent these objects. UI elements that process events additionally implement the second
-// type callback function mechanism to inform the client on the event that occured. For example, when a button
+// elements that represent these objects. UI elements that process events additionally implement the second
+// type callback function mechanism to inform the client on the event that occurred. For example, when a button
 // is pushed and has registered a callback function, this is the function signature invoked.
 //------------------------------------------------------------------------------------------------------------
 #ifdef __cplusplus
@@ -160,6 +159,8 @@ struct UIElements {
     static uint8_t    setup( );
     static void       tick( );
 
+     static void       startTicks( );
+
     protected:
 
     UIElements( bool  atHead = false );
@@ -172,6 +173,8 @@ struct UIElements {
 
     static void       append( UIElements* res );
     static void       insert( UIElements* res );
+
+   
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -407,18 +410,18 @@ struct UIDisplayOled : public UIDisplay {
 // The "UIScreen" is the central object for screens. A screen is just an array of rows and columns of ASCII
 // characters. The object contains pointers to the parent screen, the next screen at that level and a pointer
 // to an optional child list. Screen hierarchies are built by appending a screen to another screens child
-// list. The UIScreen class provides callbacks for for handling UIElement events, which can be overriden to
+// list. The UIScreen class provides callbacks for for handling UIElement events, which can be overridden to
 // implement screen specific actions. The "menu" and "select" will as default handler have the menu
-// navigation function, all other UIElements just end in a dummy function to be overriden if needed. A menu
+// navigation function, all other UIElements just end in a dummy function to be overridden if needed. A menu
 // button toggles through the child list, the select button selects the first child of the current menu as
-// next screen, if available. The "enterScreen", "exitScreen" methods are cab be overriden to provide entry
-// and exit processing, such as showing the initial screen content or cleaning up data when leaving a sccreen.
+// next screen, if available. The "enterScreen", "exitScreen" methods are cab be overridden to provide entry
+// and exit processing, such as showing the initial screen content or cleaning up data when leaving a screen.
 //
 // UIElement actions from buttons and encoders are passed to the active screen via the the respective element
 // callback. There are static class functions that are registered at the UIElements and when invoked pass the
-// data to the current screen. If UIScreen class contains dummy functions to avoid implmenting dummy functions
+// data to the current screen. If UIScreen class contains dummy functions to avoid implementing dummy functions
 // in the derived screen classes. Also, when overriding the menu and select button in a derived class, the
-// enter and exit screen invocation must be handled by the overiding procedure.
+// enter and exit screen invocation must be handled by the overriding procedure.
 //
 // ??? we may have to add the process tick mechanism so that we can implement timestamp based processing...
 //------------------------------------------------------------------------------------------------------------

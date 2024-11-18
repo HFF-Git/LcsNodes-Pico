@@ -89,6 +89,7 @@ namespace {
 // The base class constructor. A display features a row x column matrix for ASCII display. The maximum matrix
 // size is set from the display type passed.
 //
+// ???? we think in 8x8 !!!!!!
 //------------------------------------------------------------------------------------------------------------
 UIDisplay::UIDisplay( uint8_t dType ) {
 
@@ -236,7 +237,9 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
 
     oled = new LcsOledDisplay( );
 
-    oled -> begin( ODT_OLED_DISPLAY_128x64_SH1106, sclPin, sdaPin, I2cAddress );
+   // oled -> begin( ODT_OLED_DISPLAY_128x64_SH1106, sclPin, sdaPin, I2cAddress );
+    oled -> begin( ODT_OLED_DISPLAY_128x64_SSD1306, sclPin, sdaPin, I2cAddress );
+   
 
     switch ( dType ) {
 
@@ -261,14 +264,14 @@ void UIDisplayOled::displayOff( ) {
 
 void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
 
-  uint8_t lCol = (( col > maxColumns ) ? maxColumns : col ) * oled -> fontWidthPixels( );
-  uint8_t lRow = row;
-  uint8_t fRow = oled -> fontRows( );
+    uint8_t lCol = (( col > maxColumns ) ? maxColumns : col ) * oled -> fontWidthPixels( );
+    uint8_t lRow = row;
+    uint8_t fRow = oled -> fontRows( );
 
-  if ( fRow - 1 > row ) lRow = fRow - 1;
-  if ( row > maxRows ) lRow = maxRows;
+    if ( fRow - 1 > row ) lRow = fRow - 1;
+    if ( row > maxRows ) lRow = maxRows;
 
-  oled -> setCursor( lCol, lRow );
+    oled -> setCursor( lCol, lRow );
 }
 
 void UIDisplayOled::setFont( uint8_t fontId ) {
