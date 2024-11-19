@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // UILedElements
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -33,14 +33,14 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------
-  // LEDs can blink. All LEDs will be configured with the same blink interval value. Another option would be
-  // to spend each LEd its own interval, but this would just ramp up the storage requirement and perhaps
-  // rarely used. So for now, all LEDs have the same blick interval.
-  //
-  //----------------------------------------------------------------------------------------------------------
-  const uint16_t DEFAULT_BLINK_TICKS    = 1000;
-  uint32_t       blickIntervalInMillis  = DEFAULT_BLINK_TICKS;
+//------------------------------------------------------------------------------------------------------------
+// LEDs can blink. All LEDs will be configured with the same blink interval value. Another option would be
+// to spend each LEd its own interval, but this would just ramp up the storage requirement and perhaps
+// rarely used. So for now, all LEDs have the same blink interval.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint16_t DEFAULT_BLINK_TICKS    = 1000;
+uint32_t       blickIntervalInMillis  = DEFAULT_BLINK_TICKS;
 
 };
 
@@ -50,7 +50,7 @@ namespace {
 //------------------------------------------------------------------------------------------------------------
 void UILed::setBlinkIntervalMillis( uint32_t val ) {
 
-  blickIntervalInMillis = val;
+    blickIntervalInMillis = val;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -59,64 +59,64 @@ void UILed::setBlinkIntervalMillis( uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 UILed::UILed( uint8_t hwId ) {
 
-  this -> hwId  = hwId;
+     this -> hwId  = hwId;
 }
 
 void UILed::attachSetDataFunction( UISetDataFunction functionId ) {
 
-  setDataFunc = functionId;
+    setDataFunc = functionId;
 }
 
 bool UILed::isOn( ) {
 
-  return ( ledOn );
+     return ( ledOn );
 }
 
 bool UILed::isOff( ) {
 
-  return ( ! ledOn );
+    return ( ! ledOn );
 }
 
 void UILed::setOn( ) {
 
-  ledOn    = true;
-  ledBlink = false;
+    ledOn    = true;
+    ledBlink = false;
 }
 
 void UILed::setOff( ) {
 
-  ledOn    = false;
-  ledBlink = false;
+    ledOn    = false;
+    ledBlink = false;
 }
 
 void UILed::setVal( bool val ) {
 
-  ledOn    = val;
-  ledBlink = false;
+    ledOn    = val;
+    ledBlink = false;
 }
 
 void UILed::toggle( ) {
 
-  ledOn = ! ledOn;
-  ledBlink = false;
+    ledOn = ! ledOn;
+    ledBlink = false;
 }
 
 void UILed::blink( ) {
 
-  ledOn    = true;
-  ledBlink = true;
+    ledOn    = true;
+    ledBlink = true;
 }
 
 void UILed::processTick( ) {
 
-  if ( ledBlink ) {
+    if ( ledBlink ) {
 
-    if (( CDC::getMillis( ) - lastChange ) > blickIntervalInMillis ) {
+        if (( CDC::getMillis( ) - lastChange ) > blickIntervalInMillis ) {
 
-      lastChange  = CDC::getMillis( );
-      ledOn       = ! ledOn;
+            lastChange  = CDC::getMillis( );
+            ledOn       = ! ledOn;
+        }
     }
-  }
 
-  setDataFunc( hwId, ledOn );
+    setDataFunc( hwId, ledOn );
 }

@@ -158,7 +158,7 @@ uint8_t createUIElements( ) {
   f4Button ->       setResId( DCC_F_M_F4 );
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
-  oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64_16_8, 
+  oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, 
                             cdcConfig.EXT_I2C_SCL_PIN, 
                             cdcConfig.EXT_I2C_SDA_PIN, 
                             cdcConfig.EXT_I2C_ADR_ROOT );

@@ -4,14 +4,14 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // Rotary encoder are the second active UI element. They do have two ports and depending on the direction
-// turned, readig the values for the two ports tells the direction. Whenever the encoder is turned the
+// turned, reading the values for the two ports tells the direction. Whenever the encoder is turned the
 // new position is passed via a callback. Some rotary encoders also have a push button built into the knob.
-// This will not be handled here, it is just a button for whihc we have the UIButton object.
+// This will not be handled here, it is just a button for which we have the UIButton object.
 //
 //------------------------------------------------------------------------------------------------------------
 //
 // UIEncoderElements
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -35,14 +35,14 @@
 //------------------------------------------------------------------------------------------------------------
 UIEncoder::UIEncoder( uint8_t hwIdA, uint8_t hwIdB, int lower, int upper, bool activeLow ) {
 
-  this -> hwIdA     = hwIdA;
-  this -> hwIdB     = hwIdB;
-  this -> activeLow = activeLow;
+    this -> hwIdA     = hwIdA;
+    this -> hwIdB     = hwIdB;
+    this -> activeLow = activeLow;
 
-  lowerLimit = (( lower < upper ) ? lower : INT_MIN );
-  upperLimit = (( upper > lower ) ? upper : INT_MAX );
+    lowerLimit = (( lower < upper ) ? lower : INT_MIN );
+    upperLimit = (( upper > lower ) ? upper : INT_MAX );
 
-  reset( );
+    reset( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -52,101 +52,101 @@ UIEncoder::UIEncoder( uint8_t hwIdA, uint8_t hwIdB, int lower, int upper, bool a
 //------------------------------------------------------------------------------------------------------------
 void UIEncoder::reset( ) {
 
-  oldState        = (( getDataFunc != nullptr ) ? getDataFunc( hwIdA ) : false );
-  position        = 0;
-  positionPrev    = 0;
+    oldState        = (( getDataFunc != nullptr ) ? getDataFunc( hwIdA ) : false );
+    position        = 0;
+    positionPrev    = 0;
 }
 
 uint8_t UIEncoder::getHwIdA( ) {
 
-  return ( hwIdA );
+    return ( hwIdA );
 }
 
 uint8_t UIEncoder::getHwIdB( ) {
 
-  return ( hwIdB );
+    return ( hwIdB );
 }
 
 int UIEncoder::getPosition( ) {
 
-  return ( position );
+    return ( position );
 }
 
 int UIEncoder::getUpperLimit( ) {
 
-  return ( upperLimit );
+    return ( upperLimit );
 }
 
 int UIEncoder::getLowerLimit( ) {
 
-  return ( lowerLimit );
+    return ( lowerLimit );
 }
 
 uint32_t UIEncoder::getMillisBetweenRotations( ) {
 
-  return ( positionTime - positionTimePrev );
+    return ( positionTime - positionTimePrev );
 }
 
 void UIEncoder::setLimits( int lower, int upper ) {
 
-  if ( lower < upper ) {
+    if ( lower < upper ) {
 
-    lowerLimit = lower;
-    upperLimit = upper;
-  }
+        lowerLimit = lower;
+        upperLimit = upper;
+    }
 }
 
 void UIEncoder::setPosition( int newPosition, bool suppressCallback ) {
 
-  if (( newPosition >= lowerLimit ) && ( newPosition <= upperLimit )) {
+    if (( newPosition >= lowerLimit ) && ( newPosition <= upperLimit )) {
 
-    position      = newPosition;
-    positionPrev  = newPosition;
+        position      = newPosition;
+        positionPrev  = newPosition;
 
-    if (( newPosition != position ) && ( positionChangedFunc != nullptr ) && ( ! suppressCallback ))
-      positionChangedFunc( this );
-  }
+        if (( newPosition != position ) && ( positionChangedFunc != nullptr ) && ( ! suppressCallback ))
+        positionChangedFunc( this );
+    }
 }
 
 void UIEncoder::attachPositionChanged( UIEncoderCallBackFunction functionId ) {
 
-  positionChangedFunc = functionId;
+    positionChangedFunc = functionId;
 }
 
 void UIEncoder::attachGetDataFunction( UIGetDataFunction functionId ) {
 
-  getDataFunc = functionId;
+    getDataFunc = functionId;
 }
 
 void UIEncoder::processTick( ) {
 
-  if ( getDataFunc != nullptr ) {
+    if ( getDataFunc != nullptr ) {
 
-    idAVal = getDataFunc( hwIdA );
-    idBVal = getDataFunc( hwIdB );
+        idAVal = getDataFunc( hwIdA );
+        idBVal = getDataFunc( hwIdB );
 
-    if ( activeLow ) {
+        if ( activeLow ) {
 
-      idAVal = !idAVal;
-      idBVal = !idBVal;
+        idAVal = !idAVal;
+        idBVal = !idBVal;
+        }
     }
-  }
-  else return;
+    else return;
 
-  if (( idAVal != oldState ) && ( idAVal == true )) {
+    if (( idAVal != oldState ) && ( idAVal == true )) {
 
-    position = (( idBVal != idAVal ) ? position - 1 : position + 1 );
+        position = (( idBVal != idAVal ) ? position - 1 : position + 1 );
 
-    if ( position > upperLimit ) position = upperLimit;
-    if ( position < lowerLimit ) position = lowerLimit;
+        if ( position > upperLimit ) position = upperLimit;
+        if ( position < lowerLimit ) position = lowerLimit;
 
-    if (( positionPrev != position ) && ( positionChangedFunc != nullptr ))
-      positionChangedFunc( this );
+        if (( positionPrev != position ) && ( positionChangedFunc != nullptr ))
+        positionChangedFunc( this );
 
-    positionPrev      = position;
-    positionTimePrev  = positionTime;
-    positionTime      = CDC::getMillis( );
-  }
+        positionPrev      = position;
+        positionTimePrev  = positionTime;
+        positionTime      = CDC::getMillis( );
+    }
 
-  oldState = idAVal;
+    oldState = idAVal;
 }

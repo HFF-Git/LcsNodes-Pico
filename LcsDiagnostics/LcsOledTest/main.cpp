@@ -72,7 +72,7 @@ int main( ) {
         return( -1 );
     }
 
-    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64_16_4, 17, 16, 0x3C );
+    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, 17, 16, 0x3C );
 
     while ( true ) {
 

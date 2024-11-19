@@ -204,10 +204,10 @@ void handlePeriodicTasks( ) {
 
         LcsPTaskMapEntry *thisEntry = &taskMap.map[ i ];
 
-        if (( ts - thisEntry -> timeStamp ) > thisEntry -> interval ) {
+        if ( ts > thisEntry -> timeStamp  ) {
 
             if ( thisEntry -> task != nullptr ) thisEntry -> task( );
-            thisEntry -> timeStamp = ts;
+            thisEntry -> timeStamp = ts + thisEntry -> interval;
         }
     }
 }
@@ -481,12 +481,12 @@ void handleNodeStateInit( ) {
 
         if ( callbackMap.initCallback != nullptr ) {
 
-             callbackMap.initCallback( nodeMap.nodeId << 4 );
+            if ( callbackMap.initCallback ) callbackMap.initCallback( nodeMap.nodeId << 4 );
         }
 
         for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
+            if ( callbackMap.initCallback ) callbackMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
 
             portMap.map[ i ].flags |= PF_PORT_ENABLED;
             portMap.map[ i ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
@@ -511,6 +511,7 @@ void handleNodeStateInit( ) {
 void handleNodeStateFail( ) {
 
     handleSerialCommand( );
+
 }
 
 //------------------------------------------------------------------------------------------------------------

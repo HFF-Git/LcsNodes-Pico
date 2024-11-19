@@ -3,13 +3,14 @@
 // UIDisplayElements - implementation file.
 //
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// The UI element library features a simple display object. It is a basic ASCII matrix of rows and columns.
+// The display classes are LCD and OLED. While the LCD is rather fixed with respect to columns and rows, the
+// OLED class allows for different fonts. For OLEDs the basic raster is 8x8 pixels.
 //
 //------------------------------------------------------------------------------------------------------------
 //
 // UIDisplayElements
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -35,12 +36,16 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  struct {
+//------------------------------------------------------------------------------------------------------------
+// The font table for the OLED display.
+//
+//------------------------------------------------------------------------------------------------------------
+struct {
 
-    uint8_t fontId;
-    const uint8_t *font;
+uint8_t fontId;
+const uint8_t *font;
 
-  } FontTab[ ] = {
+} FontTab[ ] = {
 
     { FT_DEF,   font8x8         },
     { FT_5x7,   font5x7         },
@@ -48,34 +53,34 @@ namespace {
     { FT_8x16,  ZevvPeep8x16    },
     { FT_10x16, TimesNewRoman16   }
 
-  };
+};
 
-  // perhaps add some more....
-  /*
-    const uint8_t* fontList[] = {
-      Arial14,
-      Arial_bold_14,
-      Callibri11,
-      Callibri11_bold,
-      Callibri11_italic,
-      Callibri15,
-      Corsiva_12,
-      fixed_bold10x15,
-      Iain5x7,
-      lcd5x7,
-      Stang5x7,
-      System5x7,
-      TimesNewRoman16,
-      TimesNewRoman16_bold,
-      TimesNewRoman16_italic,
-      utf8font10x16,
-      Verdana12,
-      Verdana12_bold,
-      Verdana12_italic,
-      X11fixed7x14,
-      X11fixed7x14B,
-    };
-  */
+// perhaps add some more....
+/*
+const uint8_t* fontList[] = {
+    Arial14,
+    Arial_bold_14,
+    Callibri11,
+    Callibri11_bold,
+    Callibri11_italic,
+    Callibri15,
+    Corsiva_12,
+    fixed_bold10x15,
+    Iain5x7,
+    lcd5x7,
+    Stang5x7,
+    System5x7,
+    TimesNewRoman16,
+    TimesNewRoman16_bold,
+    TimesNewRoman16_italic,
+    utf8font10x16,
+    Verdana12,
+    Verdana12_bold,
+    Verdana12_italic,
+    X11fixed7x14,
+    X11fixed7x14B,
+};
+*/
 
 } // namespace
 
@@ -109,35 +114,14 @@ UIDisplay::UIDisplay( uint8_t dType ) {
 
       } break;
 
-    case DT_OLED_DISPLAY_128x32_16_4: {
+    case DT_OLED_DISPLAY_128x32: {
 
         maxColumns  = 16;
         maxRows     = 4;
 
       } break;
 
-    case DT_OLED_DISPLAY_128x32_8_2: {
-
-        maxColumns  = 8;
-        maxRows     = 2;
-
-      } break;
-
-    case DT_OLED_DISPLAY_128x64_16_8: {
-
-        maxColumns  = 16;
-        maxRows     = 8;
-
-      } break;
-
-    case DT_OLED_DISPLAY_128x64_16_4: {
-
-        maxColumns  = 8;
-        maxRows     = 4;
-
-      } break;
-
-    case DT_OLED_DISPLAY_128x64_2F_4: {
+    case DT_OLED_DISPLAY_128x64: {
 
         maxColumns  = 16;
         maxRows     = 8;
@@ -243,12 +227,9 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
 
     switch ( dType ) {
 
-        case DT_OLED_DISPLAY_128x32_16_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-        case DT_OLED_DISPLAY_128x32_8_2:  oled -> setFont( FontTab[ FT_8x16 ].font );   break;
-        case DT_OLED_DISPLAY_128x64_16_8: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-        case DT_OLED_DISPLAY_128x64_16_4: oled -> setFont( FontTab[ FT_8x16 ].font );   break;
-        case DT_OLED_DISPLAY_128x64_2F_4: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-        default:                          oled -> setFont( FontTab[ FT_DEF ].font );
+        case DT_OLED_DISPLAY_128x32: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
+        case DT_OLED_DISPLAY_128x64: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
+        default:                     oled -> setFont( FontTab[ FT_DEF ].font );
     }
 }
 

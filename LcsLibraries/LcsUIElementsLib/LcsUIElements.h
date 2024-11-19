@@ -15,7 +15,6 @@
 // definitions. UIElements is the base class and also maintains a linked list of all created objects. This
 // list is used when the "tick" function is called to advance the state machines in the relevant objects.
 //
-// UITimer
 // UILed
 // UIButton
 // UIEncoder
@@ -36,7 +35,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // UI Elements
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -78,7 +77,7 @@ const uint8_t INVALID_PIN      = 255;
 //------------------------------------------------------------------------------------------------------------
 // There are quite a few displays to support. While the LCD displays just feature a fixed column and row size,
 // the Oled displays support a column and row size that depends on the font used. 
-
+//
 // For simplicity, we will only support a few fonts. There is an 8x8 pixel font and a 8x16 font. 
 // The configured size is encoded in column / row numbers at the end of the type of display.
 //
@@ -89,20 +88,14 @@ const uint8_t INVALID_PIN      = 255;
 //------------------------------------------------------------------------------------------------------------
 enum DisplayType : uint8_t {
 
-  // ??? simplify, default for 128x64 is 8Px font, a parameter create can set the font... ?
+    DT_LCD_DISPLAY_16_2         = 1,
+    DT_LCD_DISPLAY_20_4         = 2,
+    DT_LCD_DISPLAY_128_32       = 3,
+    DT_LCD_DISPLAY_128_64       = 4,
 
-  DT_LCD_DISPLAY_16_2           = 1,
-  DT_LCD_DISPLAY_20_4           = 2,
-  DT_LCD_DISPLAY_128_32         = 3,
-  DT_LCD_DISPLAY_128_64         = 4,
-
-  DT_OLED_DISPLAY_128x32_16_4   = 5,
-  DT_OLED_DISPLAY_128x32_8_2    = 6,
-  DT_OLED_DISPLAY_128x64_16_8   = 7,
-  DT_OLED_DISPLAY_128x64_16_4   = 8,
-  DT_OLED_DISPLAY_128x64_2F_4   = 9   // ??? why do we need this one ?
+    DT_OLED_DISPLAY_128x32      = 11,
+    DT_OLED_DISPLAY_128x64      = 12,
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // OLED displays feature a set of fonts. A small set of all possible fonts is available for the OLED display.
@@ -157,9 +150,7 @@ struct UIElements {
     void              setResId( int arg );
     
     static uint8_t    setup( );
-    static void       tick( );
-
-     static void       startTicks( );
+    static uint8_t    tick( );
 
     protected:
 
@@ -174,30 +165,6 @@ struct UIElements {
     static void       append( UIElements* res );
     static void       insert( UIElements* res );
 
-   
-};
-
-//------------------------------------------------------------------------------------------------------------
-// "UITimer" definitions.
-//
-//------------------------------------------------------------------------------------------------------------
-struct UITimer : UIElements {
-
-    public:
-
-    UITimer( );
-
-    void setTimer( uint32_t val );
-    void attachTimer( UITimerCallBackFunction functionId );
-
-    private:
-
-    void                      processTick( );
-
-    bool                      timerEnabled    = true;
-    uint32_t                  timerInterval   = 0L;
-    uint32_t                  startTimerVal   = 0L;
-    UITimerCallBackFunction   timerCallback   = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------

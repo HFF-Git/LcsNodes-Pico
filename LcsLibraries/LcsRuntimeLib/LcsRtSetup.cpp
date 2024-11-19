@@ -973,7 +973,12 @@ uint8_t resetNode( uint16_t npId ) {
 
          // ??? load MEM from NVM....
 
-        rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, 0  ));
+        if ( callbackMap.resetCallback != nullptr ) {
+
+            rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, 0  ));
+        }
+
+        
     }
 
     if ( rStat == ALL_OK ) {
@@ -982,7 +987,10 @@ uint8_t resetNode( uint16_t npId ) {
 
             // ??? load MEM from NVM....
 
-            rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, i ));
+            if ( callbackMap.resetCallback != nullptr ) {
+
+                rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, i ));
+            }
         }
     }
 

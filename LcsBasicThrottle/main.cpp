@@ -38,23 +38,23 @@ using namespace LCS;
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc          cdcConfig;
-LCS::LcsConfigDesc          lcsConfig;
+CDC::CdcConfigDesc      cdcConfig;
+LCS::LcsConfigDesc      lcsConfig;
 
 //----------------------------------------------------------------------------------------------------------
 // Externals.
 //
 //----------------------------------------------------------------------------------------------------------
-extern UIDisplay              *oled;
-extern UIEncoder              *encoder;
-extern CabStack               *cabStack;
-extern CabMsgBus              *msgBus;
+extern UIDisplay        *oled;
+extern UIEncoder        *encoder;
+extern CabStack         *cabStack;
+extern CabMsgBus        *msgBus;
 
-extern uint8_t                setupLcsLib( );
-extern uint8_t                setupMsgBus( );
-extern uint8_t                setupUIElements( );
-extern uint8_t                setupScreens( );
-extern uint8_t                setupCabStack( );
+extern uint8_t          setupLcsLib( );
+extern uint8_t          setupMsgBus( );
+extern uint8_t          setupUIElements( );
+extern uint8_t          setupScreens( );
+extern uint8_t          setupCabStack( );
 
 //----------------------------------------------------------------------------------------------------------
 // "printStatus" is a little helper function for the initialization routines protocol printing. If there is
@@ -161,7 +161,6 @@ uint8_t initLcsRuntime( ) {
 
         printf( "Ready..." );
         UIScreen::setup( );   
-        UIElements::startTicks( ); 
     }
 
     return( rStat );
@@ -174,6 +173,8 @@ uint8_t initLcsRuntime( ) {
 uint8_t registerCallbacks( ) {
 
     printf( "BasicThrottle, register callbacks\n" );
+
+    registerTaskCallback( UIElements::tick, 10  ); // 10ms tick ?
 
     return( LCS::ALL_OK );
 }

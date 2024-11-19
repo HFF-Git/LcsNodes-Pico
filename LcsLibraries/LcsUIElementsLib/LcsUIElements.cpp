@@ -42,10 +42,9 @@ static UIElements*  resList = NULL;
 //------------------------------------------------------------------------------------------------------------
 UIElements::UIElements( bool atHead ) {
 
-  if ( atHead ) insert( this );
-  else          append( this );
+    if ( atHead ) insert( this );
+    else          append( this );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // Resource ID getter/setter.
@@ -53,12 +52,12 @@ UIElements::UIElements( bool atHead ) {
 //------------------------------------------------------------------------------------------------------------
 int UIElements::getResId( ) { 
   
-  return( resId );
+    return( resId );
 }
 
 void UIElements::setResId( int arg ) {
 
-  resId = arg;
+    resId = arg;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -67,7 +66,7 @@ void UIElements::setResId( int arg ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t UIElements::setup( ) {
 
-  return ( 0 );
+    return ( 0 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -77,58 +76,40 @@ uint8_t UIElements::setup( ) {
 //------------------------------------------------------------------------------------------------------------
 void UIElements::insert( UIElements* res ) {
 
-  if ( resList != NULL ) {
+    if ( resList != NULL ) {
 
-    res -> next = resList;
-    resList = res;
-  }
-  else resList = res;
+        res -> next = resList;
+        resList = res;
+    }
+    else resList = res;
 }
 
 void UIElements::append( UIElements* res ) {
 
-  if ( resList != NULL ) {
+    if ( resList != NULL ) {
 
-    UIElements *temp = resList;
-    while ( temp -> next != nullptr ) temp = temp -> next;
+        UIElements *temp = resList;
+        while ( temp -> next != nullptr ) temp = temp -> next;
 
-    temp -> next = res;
-    res -> next = nullptr;
-  }
-  else resList = res;
+        temp -> next = res;
+        res -> next = nullptr;
+    }
+    else resList = res;
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "tick" is the static routine to be called to advance the UI elements state machine.
 //
 //------------------------------------------------------------------------------------------------------------
-void UIElements::tick( ) {
+uint8_t UIElements::tick( ) {
 
-  UIElements* res = resList;
+    UIElements* res = resList;
 
-  while ( res != NULL ) {
+    while ( res != NULL ) {
 
-    res -> processTick( );
-    res = res -> next;
-  }
+        res -> processTick( );
+        res = res -> next;
+    }
+
+    return( 0 );
 }
-
-//------------------------------------------------------------------------------------------------------------
-// 
-// ??? test. we need a repeating time to advance the UI element state machines.
-//------------------------------------------------------------------------------------------------------------
-
-void doTicks( uint32_t timerVal ) {
-
-   UIElements::tick( );
-}
-
-void UIElements::startTicks( ) {
-
-    CDC::onTimerEvent( doTicks );
-    CDC::startRepeatingTimer( 20 );
-}
-
-
-
-
