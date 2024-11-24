@@ -864,23 +864,27 @@ uint8_t writeDioMask( uint32_t dioMask, uint32_t dioVal ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t adcPin ) {
 
-    if ( ! validPin( adcPin, VALID_ADC_PINS ))  return ( CDC::ADC_PIN_ERR );
+    if ( ! validPin( adcPin, VALID_ADC_PINS ))  return ( ADC_PIN_ERR );
 
     AdcInst *tmp = nullptr;
 
     if ( adcPin == cfg.ADC_PIN_0 ) {
 
         tmp = &CdcAdc0;
+        tmp -> adcPin = adcPin;
         tmp -> adcNum = 0;
+        
     }
      else if ( adcPin == cfg.ADC_PIN_1 ) {
 
         tmp = &CdcAdc1;
+        tmp -> adcPin = adcPin;
         tmp -> adcNum = 1;
     }
     else if ( adcPin == cfg.ADC_PIN_2 ) {
 
         tmp = &CdcAdc2;
+        tmp -> adcPin = adcPin;
         tmp -> adcNum = 2;
     }
     else return ( ADC_PIN_ERR );
@@ -907,10 +911,9 @@ uint16_t readAdc( uint8_t adcPin ) {
     AdcInst *tmp = nullptr;
 
     if      ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc0;
-    else if ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc1;
-    else if ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc2;
+    else if ( adcPin == CdcAdc1.adcPin ) tmp = &CdcAdc1;
+    else if ( adcPin == CdcAdc2.adcPin ) tmp = &CdcAdc2;
     else return ( 0 );
-
     adc_select_input( tmp -> adcNum );
     return ( adc_read( ) >> 2 );
 }

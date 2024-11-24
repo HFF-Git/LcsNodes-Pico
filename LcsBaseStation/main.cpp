@@ -113,12 +113,12 @@ void setupConfigInfo( ) {
     cdcConfig.UART_RX_PIN_1         = 13;
     cdcConfig.UART_RX_PIN_2         = 9;
 
-    cdcConfig.NVM_I2C_SCL_PIN       = 17;
-    cdcConfig.NVM_I2C_SDA_PIN       = 16;
+    cdcConfig.NVM_I2C_SCL_PIN       = 3;
+    cdcConfig.NVM_I2C_SDA_PIN       = 2;
     cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
 
-    cdcConfig.EXT_I2C_SCL_PIN       = 3;
-    cdcConfig.EXT_I2C_SDA_PIN       = 2;
+    cdcConfig.EXT_I2C_SCL_PIN       = 17;
+    cdcConfig.EXT_I2C_SDA_PIN       = 16;
     cdcConfig.EXT_I2C_ADR_ROOT      = 0x50;
 
     cdcConfig.CAN_BUS_RX_PIN        = 0;
@@ -215,7 +215,8 @@ uint8_t lcsCmdCallback( char *cmdLine ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
-    printf( "MsgCallback: " );
+    printf( "MsgCallback: ", msg  );
+
     for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
     printf( "\n" );
     return( ALL_OK );
@@ -228,30 +229,6 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 // active locomotive session entries.
 //
 //------------------------------------------------------------------------------------------------------------
-
-// ??? used for initial testing, take out later...
-uint8_t lcsTaskCallback( ) {
-
-    printf( "Task Callback...\n" );
-    return( ALL_OK );    
-}
-
-// ??? goes away...
-void lcsLoop( ) {
-
-  static uint8_t nextStep = 0;
-
-  switch ( nextStep ) {
-
-    case 0: mainTrack.runDccTrackStateMachine( );  nextStep = 1; break;
-    case 1: progTrack.runDccTrackStateMachine( );  nextStep = 2; break;
-    case 2: locoSessions.refreshActiveSessions( ); nextStep = 0; break;
-    default: nextStep = 0;
-  }
-}
-
-// ??? use these....
-
 uint8_t bsMainTrackCallback( ) {
 
     mainTrack.runDccTrackStateMachine( );
@@ -309,14 +286,15 @@ uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-  setupConfigInfo( );
-  CDC::printConfigInfo( &cdcConfig );
-
-  uint8_t rStat = LCS::initRuntime( &lcsConfig, &cdcConfig );
-
-  printf( "LCS Base Station\n" );
-  printStatus( rStat );
-  return( rStat );
+    setupConfigInfo( );
+  
+    uint8_t rStat = LCS::initRuntime( &lcsConfig, &cdcConfig );
+    printf( "LCS Base Station\n" );
+    
+    CDC::printConfigInfo( &cdcConfig );
+    
+    printStatus( rStat );
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -433,8 +411,6 @@ uint8_t registerCallbacks( ) {
     registerReqCallback( lcsReqCallback );
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
-
-    registerTaskCallback( lcsTaskCallback, 1000 );
     registerTaskCallback( bsMainTrackCallback, MAIN_TRACK_STATE_TIME_INTERVAL );
     registerTaskCallback( bsProgTrackCallback, PROG_TRACK_STATE_TIME_INTERVAL );
     registerTaskCallback( bsRefreshActiveSessionCallback, SESSION_REFRESH_TASK_INTERVAL );
@@ -462,7 +438,6 @@ uint8_t startBaseStation( ) {
 
         LcsBaseStationDccTrack::startDccProcessing( );
 
-       
         mainTrack.powerStart( );
         progTrack.powerStart( );
 

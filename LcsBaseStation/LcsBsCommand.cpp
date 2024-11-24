@@ -67,16 +67,13 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 // "handleSerialCommand" analyzes the command line and invokes the respective command handler. The first
 // character in a command is the command letter. The command is followed by the arguments. For compatibility
 // with the DCC++ original command set, each command that is also a DCC++ command is implemented exactly as
-// the original. This allows external tools, such as the JMRI Decoder Pro configuration tool to be used. The
-// Arduino world has a buffer from which the characters are received. This allows to enter several commands
-// sequences "<" ... ">" in one line which are processed once the carriage return is hit. In the LCS runtime
-// case, the command callback passes the entire string as well. We need to parse this sequence of commands
-// and handle one command at a time.
+// the original. This allows external tools, such as the JMRI Decoder Pro configuration tool to be used. The 
+// command handler supports command sequences "<" ... ">" in one line which are processed once the carriage
+// return is hit.
 //
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
-#if 0
     int     charIndex       = 0;
     char    cmdStr[ 256 ]   = { 0 };
     
@@ -85,7 +82,7 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
         switch ( s[ charIndex ] ) {
 
             case '<': {
-                
+
                 cmdStr[ 0 ] = '\0';
                 charIndex ++;
 
@@ -93,7 +90,7 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
             case '>': {
 
-                switch ( s[ 0 ] ) {
+                switch ( cmdStr[ 0 ] ) {
 
                     case 'O': openSessionCmd( cmdStr + 1 ); break;
                     case 'K': closeSessionCmd( cmdStr + 1 ); break;
@@ -152,58 +149,6 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
             }
         }
     }
-#else
-
-    switch ( s[ 0 ] ) {
-
-        case 'O': openSessionCmd( s + 1 ); break;
-        case 'K': closeSessionCmd( s + 1 ); break;
-
-        case 't': setThrottleCmd( s + 1 );  break;
-        case 'f': setFunctionGroupCmd( s + 1 ); break;
-        case 'v': setFunctionBitCmd( s + 1 ); break;
-
-        case 'R': readCVCmd( s + 1 ); break;
-        case 'W': writeCVByteCmd( s + 1 ); break;
-        case 'B': writeCVBitCmd( s + 1 ); break;
-        case 'w': writeCVByteMainCmd( s + 1 ); break;
-        case 'b': writeCVBitMainCmd(s + 1 ); break;
-
-        case 'M': writeDccPacketMainCmd( s + 1 ); break;
-        case 'P': writeDccPacketProgCmd( s + 1 ); break;
-
-        case 'C': setTrackOptionCmd( s + 1 ); break;
-        case 'Y': printDccLogCommand( s + 1 ); break;
-
-        case 'X': emergencyStopCmd( ); break;
-        case '0': turnPowerOffAllCmd( ); break;
-        case '1': turnPowerOnAllCmd( ); break;
-        case '2': turnPowerOnMainCmd( ); break;
-        case '3': turnPowerOnProgCmd( ); break;
-
-        case 's': printStatusCmd( s + 1 ); break;
-        case 'S': printBaseStationConfigCmd( ); break;
-        case 'L': printSessionMap( ); break;
-
-        case 'a': printTrackCurrentCmd( s + 1 ); break;
-
-        case '?': printHelpCmd( ); break;
-
-        case ' ': printf( "\n" ); break;
-
-        case 'e':
-        case 'E':
-        case 'D':
-        case 'T':
-        case 'Z':
-        case 'Q':
-        case 'F': printf( "<Not implemented>\n" ); break;
-
-        default: printf( "<Unknown command, use '?' for help>\n" );
-    }
-
-#endif
-
 }
 
 //------------------------------------------------------------------------------------------------------------

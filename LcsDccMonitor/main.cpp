@@ -124,7 +124,7 @@ volatile bool     cutoutDetected = false;
 // see new packets added. This has the not so nice effect that identical packets are not shown again. For
 // example, turning F1 ON, then OFF, and then ON again in a period will not show the second turning ON. The
 // same is true for for the loco speed up or down. Although correct, it looks a bit erratic on the screen,
-// gving you the impression that the command was not sent. Once the time period expired, the buffer is reset.
+// giving you the impression that the command was not sent. Once the time period expired, the buffer is reset.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t           dccPacketBufferSize       = DEFAULT_DCC_PACKETS;
@@ -192,8 +192,8 @@ void setupConfigInfo( ) {
 // to see what the level is. A simple interrupt on the rising edge starting a timer interrupt period of 80
 // microseconds and then reading the signal value in the timer interrupt routine should do. If low we are in
 // DCC "one" bit situation, if not, it is as DCC "zero" bit situation. On detecting an edge we record the
-// system time ( micros ( )) on a high signal value. On the next edge we we compare the delta sytem time
-// against our threshhold of 80 microseconds.
+// system time ( micros ( )) on a high signal value. On the next edge we we compare the delta system time
+// against our threshold of 80 microseconds.
 //
 // The bits are stored in the bit buffer. From there the bits are consumed to assemble a DCC packet. DCC
 // Packets are zeroes and ones, with a one having a 58 micro seconds and a zero having a 100 second half cycle.
@@ -207,10 +207,10 @@ volatile uint32_t lastFallingTs  = 0;
 // This routine is invoked by a changing signal on the signal pin. We read in the value from the signal pin.
 // A value of high means that we we detected a rising edge, for which we will just record the timestamp. On
 // a signal value of low we will compute the elapsed time and compare against our threshold. Smaller than the
-// threshold of 80 microseonds is a DCC "one", else a DCC "zero".
+// threshold of 80 micro seconds is a DCC "one", else a DCC "zero".
 //
 // ??? I tried to measure the signal windows on AVR... but the numbers are really not good. The Scope shows
-// them ranges precisely what they should be, the measured timing window with "micros" is reall not good.
+// them ranges precisely what they should be, the measured timing window with "micros" is really not good.
 // ??? check again for the PICO.
 //
 // ??? if this is still not really good, we need a new approach .... to be designed then ...
@@ -260,8 +260,7 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Attach an interrupt handler to the HW pin to detect a changing edge in the signal. We read in the signal
-// from pin DCC_SIGNALE_PIN which is associated with external interrupt 0. Right now this is pin 2. If any
-// other pin is used, this also affects the interrupt handler vector.
+// from EXT_INT_PIN from the CDC configuration.
 //
 //------------------------------------------------------------------------------------------------------------
 void startBitDetection( ) {
@@ -286,7 +285,7 @@ void stopBitDetection( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "getBit" is the routine that works with the interrupt routine to fill the data buffer. If there are bits
-// in the bit buffer, the routine will remove from the tail of the bitbuffer. If there are no bits in the
+// in the bit buffer, the routine will remove from the tail of the bit buffer. If there are no bits in the
 // buffer, this routine will wait indefinitely for bits to arrive.
 //
 // ??? this is a bit unfortunate to wait forever when there are a no signal issues....
@@ -458,8 +457,8 @@ void showStatistics( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "showPackets" handles the DCC packets received. First we remeber whether the last received packet was a
-// RESET packet. This is needed for detecting that we should switch to service mode paxket interpretation.
+// "showPackets" handles the DCC packets received. First we remember whether the last received packet was a
+// RESET packet. This is needed for detecting that we should switch to service mode packet interpretation.
 // If the new packet is not previously shown in the current display time interval, it will be displayed.
 // Once in service mode, the formatter will stay in service mode until the first operations packet is received.
 // For both modes, there is an option to list the packet in HEX and BINARY. The function returns the number
@@ -687,7 +686,7 @@ void checkUserInput( ) {
     case 'h': {
 
       if ( showFlags & SHOW_HEX ) showFlags &= ~SHOW_HEX; else showFlags |= SHOW_HEX;
-      printf( "show packet data in hexadezimal = %d\n", (( showFlags & SHOW_HEX ) ? 1 : 0 ));
+      printf( "show packet data in hexadecimal = %d\n", (( showFlags & SHOW_HEX ) ? 1 : 0 ));
       
     } break;
 
@@ -742,8 +741,8 @@ void checkUserInput( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // DCC Packet test data section. It helps a lot to test the correct formatting without being connected to an
-// actual layout. The test data DCC packets are returnedone after the other to also test sequences such as
-// a reset packet followed by prgramming mode packet.
+// actual layout. The test data DCC packets are returned one after the other to also test sequences such as
+// a reset packet followed by programming mode packet.
 //
 //------------------------------------------------------------------------------------------------------------
 #if DEBUG_PACKET_FORMATTER == 1

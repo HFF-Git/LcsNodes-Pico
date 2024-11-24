@@ -1205,7 +1205,7 @@ uint8_t LcsBaseStationDccTrack::handleRailComMsg( ) {
     return ( ALL_OK );
 }
 
-// ??? not very useful, but good for debugging and initial testing ....
+// ??? not very useful, but good for debugging and initial testing .... and it works like a champ :-)
 
 uint8_t LcsBaseStationDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
 
