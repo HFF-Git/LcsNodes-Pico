@@ -520,19 +520,19 @@ namespace {
   //----------------------------------------------------------------------------------------------------------
   int decoderLocoStr( char *buf, uint8_t *dccPkt ) {
 
-    int     cursor    = 0;
-    uint8_t    byte1     = dccPkt[ 1 ];
-    uint8_t    byte2     = dccPkt[ 2 ];
-    uint8_t dccInstr  = dccPacketInstrByte( dccPkt );
+        int         cursor      = 0;
+        uint8_t     byte1       = dccPkt[ 1 ];
+        uint8_t     byte2       = dccPkt[ 2 ];
+        uint8_t     dccInstr    = dccPacketInstrByte( dccPkt );
 
-    if ( isInRangeU( byte1, 1, 127 )) {
+        if ( isInRangeU( byte1, 1, 127 )) {
 
-      cursor += sprintf( buf + cursor, "Loc %d ", byte1 & 0b01111111 );
-    }
-    else if ( isInRangeU( byte1, 192, 231 )) {
+        cursor += sprintf( buf + cursor, "Loc %d ", byte1 & 0b01111111 );
+        }
+        else if ( isInRangeU( byte1, 192, 231 )) {
 
-      cursor += sprintf( buf + cursor, "Loc %d ", (( byte1 & 0b00111111 ) * 256 ) + byte2 );
-    }
+        cursor += sprintf( buf + cursor, "Loc %d ", (( byte1 & 0b00111111 ) * 256 ) + byte2 );
+        }
 
     switch ( dccInstr >> 5 ) {
 
