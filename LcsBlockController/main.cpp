@@ -286,6 +286,21 @@ uint8_t startBlockController( ) {
     if ( rStat == ALL_OK ) ; // ??? add block controller objects....
 
 
+    // ??? for the quick test ....
+    printf( "Configure DIO pins" );
+    CDC::configurePwm( cdcConfig.DIO_PIN_2, 70 );
+    CDC::configurePwm( cdcConfig.DIO_PIN_3, 70 );
+    CDC::configurePwm( cdcConfig.DIO_PIN_4, 70 );
+    CDC::configurePwm( cdcConfig.DIO_PIN_5, 70 );
+
+    printf( "Set output to pins" );
+    CDC::writePwm(cdcConfig.DIO_PIN_2, 1 );
+    CDC::writePwm(cdcConfig.DIO_PIN_3, 1 );
+    CDC::writePwm(cdcConfig.DIO_PIN_4, 1 );
+    CDC::writePwm(cdcConfig.DIO_PIN_5, 1 );
+
+
+
     if ( rStat == ALL_OK ) {
 
        

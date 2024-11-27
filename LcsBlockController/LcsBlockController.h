@@ -84,11 +84,57 @@
 //------------------------------------------------------------------------------------------------------------
 
 
+//------------------------------------------------------------------------------------------------------------
+// The block controller can contain up to four blocks. Each block track is described by the LcsBlockDesc
+// descriptor. There are the hardware pins sel1Pin1, selPin2, sensePin and uartRxPin. In addition there are
+// the limits for current consumption values, all specified in milliAmps. The initial current sets the current
+// consumption limit after the track is turned on. The limit current consumption specifies the actual 
+// configured value that is checked for a track current overload situation. The maximum current defines what 
+// current the power module should never exceed. For the measurements to work, the power module needs to 
+// deliver a voltage that corresponds to the current drawn on the track. The value is measured in milliVolt 
+// per Ampere drawn. Finally, there are threshold times for managing the track overload and restart 
+// capability.
+//
+//------------------------------------------------------------------------------------------------------------
+struct LcsBlockTrackDesc {
+
+    uint16_t    options;
+    uint8_t     selPin1     = CDC::UNDEFINED_PIN;
+    uint8_t     selPin2     = CDC::UNDEFINED_PIN;
+    uint8_t     sensePin    = CDC::UNDEFINED_PIN;
+    uint8_t     uartRxPin   = CDC::UNDEFINED_PIN;
+
+    uint16_t  initCurrentMilliAmp           = 0;
+    uint16_t  limitCurrentMilliAmp          = 0;
+    uint16_t  maxCurrentMilliAmp            = 0;
+    uint16_t  milliVoltPerAmp               = 0;
+
+    uint16_t  startTimeThresholdMillis      = 0;
+    uint16_t  stopTimeThresholdMillis       = 0;
+    uint16_t  overloadTimeThresholdMillis   = 0;
+    uint16_t  overloadEventThreshold        = 0;
+    uint16_t  overloadRestartThreshold      = 0;
+};
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
 struct LcsBlockDesc {
+
 
 
 };
 
+
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
 struct LcsBlockControllerLogic {
 
 

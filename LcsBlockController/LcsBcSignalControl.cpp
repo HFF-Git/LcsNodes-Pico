@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Control Logic
+// LCS Block Controller - Signal Control
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -21,17 +21,6 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#include "LcsBlockController.h"
-
-// ??? contains the main code, the setup, the message handler, etc.
 
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-LcsBlockControllerLogic::LcsBlockControllerLogic( LcsBlockDesc *blockDesc ) {
-
-    this -> blockDesc = blockDesc;
-
-}
+// ??? contains the routines that manage the signal settings

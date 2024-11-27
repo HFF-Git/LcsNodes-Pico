@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Control Logic
+// LCS Block Controller - Track Power
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -21,17 +21,10 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#include "LcsBlockController.h"
-
-// ??? contains the main code, the setup, the message handler, etc.
 
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-LcsBlockControllerLogic::LcsBlockControllerLogic( LcsBlockDesc *blockDesc ) {
+// ??? contains the code that manage the track power
 
-    this -> blockDesc = blockDesc;
+// ??? leverage the DCC track module in base station.
 
-}
+// ??? descriptor has to specify the four pins for each H-Bridge

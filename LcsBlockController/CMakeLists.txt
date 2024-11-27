@@ -22,7 +22,9 @@ if ( TARGET tinyusb_device )
     
         LcsBlockController.h 
         main.cpp
-        LcsBcTrack.cpp 
+        LcsBcTrackPower.cpp 
+        LcsBcOccDetect.cpp
+        LcsBcSignalControl.cpp
         LcsBcLogic.cpp 
     )
     

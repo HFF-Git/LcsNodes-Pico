@@ -499,6 +499,27 @@ uint8_t setupNodeDataMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "setupCdcMap" will read the CDC descriptor from the NVM.
+//
+// ??? we should read it from the NVM, which implies that we need a way to handle vanilla boards...
+// ??? we should also have a file with CDC descriptors for all boards we currently have...
+// ??? if we detect a board with the vanilla board type, we can set the correct board type and the 
+// reboot...
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupCdcMap( CDC::CdcConfigDesc *cdcConfig ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCdcMap\n" );
+
+    uint8_t rStat = ALL_OK;
+
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupCdcMap, status: %d\n", rStat );
+    
+    return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // The event map stores all event/port pairs this node is interested to process. The map is a sorted map and
 // there is a high water mark, so that we only read up to the last used entry in the map. Just like other 
 // data structures we could just read in all entries. However, this is a large map. It would be better to 
@@ -1069,6 +1090,7 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2, rStat );
 
     if ( rStat == ALL_OK )  rStat = setupNodeMap( lcsConfig );
+    if ( rStat == ALL_OK )  rStat = setupCdcMap( cdcConfig );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
     if ( rStat == ALL_OK )  rStat = setupNodeDataMap( );
     if ( rStat == ALL_OK )  rStat = setupEventMap( );
