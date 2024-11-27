@@ -128,7 +128,6 @@ enum dioMode : uint8_t {
     IN_PULLUP     = 2
 };
 
-
 //------------------------------------------------------------------------------------------------------------
 // GPIO interrupts are detected as level change or edge changes.
 //

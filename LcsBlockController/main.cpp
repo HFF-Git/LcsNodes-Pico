@@ -25,126 +25,287 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
+#include "LcsBlockController.h"
+
+using namespace LCS;
+
+//------------------------------------------------------------------------------------------------------------
+// Block Controller global data.
+//
+//------------------------------------------------------------------------------------------------------------
+uint16_t                        debugMask;
+CDC::CdcConfigDesc              cdcConfig;
+LCS::LcsConfigDesc              lcsConfig;
+LcsBlockControllerLogic         *bcLogic;
+
+// ??? other BC specific global data ...
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values.
+// Setup the configuration of the HW board. The CDC config contains the HW pin mapping. The dual bridge pins
+// for enabling the bridge and controlling its direction. The pins are mapped to the CDC pin names DIO2 to 
+// DIO5 as shown below.
 //
-//----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc cfg;
-
-//----------------------------------------------------------------------------------------------------------
+//      cdcConfig.DIO_PIN_0     -> undefined
+//      cdcConfig.DIO_PIN_1     -> undefined
+//      cdcConfig.DIO_PIN_2     -> Select-0-1 
+//      cdcConfig.DIO_PIN_3     -> Select-0-2     
+//      cdcConfig.DIO_PIN_4     -> Select-1-1    
+//      cdcConfig.DIO_PIN_5     -> Select-1-2     
+//      cdcConfig.DIO_PIN_6     -> undefined 
+//      cdcConfig.DIO_PIN_7     -> Cut-Signal
 //
+// Current mapping: Dual Block Controller Board B.00.01 - PICO - newest version.
 //
+//      cdcConfig.DIO_PIN_2     = 21; 
+//      cdcConfig.DIO_PIN_3     = 20;       
+//      cdcConfig.DIO_PIN_4     = 19;  
+//      cdcConfig.DIO_PIN_5     = 18;    
+//      cdcConfig.DIO_PIN_7     = 4;    
 //
+// In addition, the HW pins for I2C, analog inputs and so on are set. Check the schematic for the board 
+// to see all pin assign,ents.
+//
+// ??? one day we will have several base station versions. Although they will perhaps differ, their the CDC
+// pin names used should not change. But we would need to come up with an idea which configuration to use
+// when preparing an image for the base station board.
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-  cfg = CDC::getConfigDefault( );
+    cdcConfig = CDC::getConfigDefault( );
+    lcsConfig = LCS::getConfigDefault( );
 
-  //--------------------------------------------------------------------------------------------------------
-  // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  cfg.ADC_PIN_0             = 26;
-  cfg.ADC_PIN_1             = 27;
+    cdcConfig.ADC_PIN_0             = 26;
+    cdcConfig.ADC_PIN_1             = 27;
 
-  cfg.PWM_PIN_0             = 20;
-  cfg.PWM_PIN_1             = 21;
+    cdcConfig.PFAIL_PIN             = 5;
+    cdcConfig.EXT_INT_PIN           = 22;
+    cdcConfig.READY_LED_PIN         = 14;
+    cdcConfig.ACTIVE_LED_PIN        = 15;
 
-  cfg.PFAIL_PIN             = 7;
-  cfg.EXT_INT_PIN           = 22;
-  cfg.READY_LED_PIN         = 14;
-  cfg.ACTIVE_LED_PIN        = 15;
+    cdcConfig.DIO_PIN_2             = 21; 
+    cdcConfig.DIO_PIN_3             = 20;       
+    cdcConfig.DIO_PIN_4             = 19;  
+    cdcConfig.DIO_PIN_5             = 18;    
+    cdcConfig.DIO_PIN_7             = 4;    
 
-  cfg.DIO_PIN_0             = 9;
-  cfg.DIO_PIN_1             = 8;
-  cfg.DIO_PIN_2             = 10;
-  cfg.DIO_PIN_3             = 11;
-  cfg.DIO_PIN_4             = 21;
-  cfg.DIO_PIN_5             = 20;
-  cfg.DIO_PIN_6             = 19;
-  cfg.DIO_PIN_7             = 18;
+    cdcConfig.UART_RX_PIN_1         = 13;
+    cdcConfig.UART_RX_PIN_2         = 9;
 
-  cfg.NVM_I2C_SCL_PIN       = 17;
-  cfg.NVM_I2C_SDA_PIN       = 16;
-  cfg.NVM_I2C_ADR_ROOT      = 0x50;
+    cdcConfig.NVM_I2C_SCL_PIN       = 3;
+    cdcConfig.NVM_I2C_SDA_PIN       = 2;
+    cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
 
-  cfg.EXT_I2C_SCL_PIN       = 3;
-  cfg. EXT_I2C_SDA_PIN      = 2;
-  cfg.EXT_I2C_ADR_ROOT      = 0x50;
+    cdcConfig.EXT_I2C_SCL_PIN       = 17;
+    cdcConfig.EXT_I2C_SDA_PIN       = 16;
+    cdcConfig.EXT_I2C_ADR_ROOT      = 0x50;
 
-  CDC::printConfigInfo( &cfg );
+    cdcConfig.CAN_BUS_RX_PIN        = 0;
+    cdcConfig.CAN_BUS_TX_PIN        = 1;
+    cdcConfig.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
+    cdcConfig.CAN_BUS_DEF_ID        = 100;
+
+    cdcConfig.NODE_NVM_SIZE         = 8192;
+    cdcConfig.EXT_NVM_SIZE          = 4096;
+
+    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Some little helper functions.
+//
+//------------------------------------------------------------------------------------------------------------
+void printLcsMsg( uint8_t *msg ) {
+
+  int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
+
+  for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[i] );
+  printf( "\n" );
+}
+
+uint8_t printStatus (uint8_t status ) {
+
+  printf( "Status: " );
+  if ( status == LCS::ALL_OK ) printf( "OK\n" );
+  else printf ( "FAILED: %d\n", status );
+  return ( status );
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Init the CDC and Runtime library...
+// The node and port initialization callback.
+//
+// ??? when we know what ports we actually need / use, disable the rest of the ports.
+//----------------------------------------------------------------------------------------------------------
+uint8_t lcsInitCallback( uint16_t npId ) {
+
+    switch ( npId & 0xF ) {
+
+        case 0:     printf( "Node Init Callback: 0x%x\n", npId >> 4     ); break;
+        default:    printf( "Port Init Callback: 0x%x\n", npId &  0xF   );
+    } 
+
+    return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
+// The node or port reset callback.
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t lcsResetCallback( uint16_t npId ) {
+
+    switch ( npId & 0xF ) {
+
+        case 0:     printf( "Node Reset Callback: 0x%x\n", npId >> 4     ); break;
+        default:    printf( "Port Reset Callback: 0x%x\n", npId &  0xF   );
+    } 
+
+    return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
+// The node or port power fail callback.
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t lcsPfailCallback( uint16_t npId ) {
+
+    switch ( npId & 0xF ) {
+
+        case 0:     printf( "Node Power Fail Callback: 0x%x\n", npId >> 4     ); break;
+        default:    printf( "Port Power Fail Callback: 0x%x\n", npId &  0xF   );
+    } 
+
+    return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
+// The base station has also a command line interpreter. The callback is invoked by the core library when
+// there is a command that it does not handle.
+//
+// ??? should we have a block controller specific command interpreter ?
+//----------------------------------------------------------------------------------------------------------
+uint8_t lcsCmdCallback( char *cmdLine ) {
+
+   
+    return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
+// Other LCS message callbacks. All we do is to list their invocation. ( for now )
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t lcsMsgCallback( uint8_t *msg ) {
+
+    printf( "MsgCallback: ", msg  );
+
+    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
+    printf( "\n" );
+    return( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// When the base station node receives a request with an item defined in the user item range or the base
+// station itself issues such a request, the defined callback is invoked.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+
+    printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
+    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
+    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+    return( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// When the base station gets a reply message for a request previously sent, this callback is invoked.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
+
+    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
+    return( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// For any event on the LCS system that the base station is interested in, this callback is invoked.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
+
+    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
+    return( ALL_OK );
+}
+
+//----------------------------------------------------------------------------------------------------------
+// Init the Runtime.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-  setupConfigInfo( );
- 
-  uint8_t rStat = CDC::init( &cfg );
-
-  if ( rStat != LCS::ALL_OK ) {
-
-  }
-
-  printf( "LCS Block Controller\n" );
-
-  if ( rStat != 0 )  printf( "Err code: %d\n", rStat );
-  else printf( "OK\n" );
-
-  return( 0 );
+    setupConfigInfo( );
+  
+    uint8_t rStat = LCS::initRuntime( &lcsConfig, &cdcConfig );
+    printf( "LCS Block Controller\n" );
+    
+    CDC::printConfigInfo( &cdcConfig );
+    
+    printStatus( rStat );
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------------------------
-// 
+// After the initial setup of the runtime library, the callback are registered.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t registerCallbacks( ) {
 
+    printf( "Registering Callbacks\n" );
 
-  return( LCS::ALL_OK );
+    registerLcsMsgCallback( lcsMsgCallback );
+    registerCmdCallback( lcsCmdCallback );
+    registerInitCallback( lcsInitCallback );
+    registerResetCallback( lcsResetCallback );
+    registerPfailCallback( lcsPfailCallback );
+    registerReqCallback( lcsReqCallback );
+    registerRepCallback( lcsRepCallback );
+    registerEventCallback( lcsEventCallback );
+   
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
-// 
+// Fire up the base station. First all base station modules are initialized. If this is OK, the DCC tack
+// signal generation is enabled, i.e. the interrupt driven DCC packet broadcasting starts. Finally, the 
+// track power is turned on and we give control to the LCS runtime for processing events and requests.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t startLcsRuntime( ) {
+uint8_t startBlockController( ) {
+
+    uint8_t rStat = ALL_OK; 
+    
+    if ( rStat == ALL_OK ) ; // ??? add block controller objects....
 
 
-  return( LCS::ALL_OK );
+    if ( rStat == ALL_OK ) {
+
+       
+        printf( "Ready...\n" );
+    
+        startRuntime( );
+  }
+
+  return( ALL_OK );
 }
 
-
-// ??? need a power fail callback to store critical data.
-
-// ??? need to think about an orderly shutdown, engines will be all over the place.
-// ??? need to save block state, engine type, speed, engine Id, sessionId, etc.
-// ??? route Id ?
-
-// ??? perhaps we create session Ids for all engine found... ???
-
-
-// ??? rising edge of cutout will sync PWM drivers.... need an interrupt handler...
-
-
-
 //----------------------------------------------------------------------------------------------------------
-// 
+// The main program. Setup the runtime, register the callbacks, and get the show on the road.
 //
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    initLcsRuntime( );
-    registerCallbacks( );
-    startLcsRuntime( );
-    return( 0 );
-}
+    uint8_t rStat = ALL_OK;
 
+    if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = registerCallbacks( );
+    if ( rStat == ALL_OK ) return( startBlockController( ));
+}

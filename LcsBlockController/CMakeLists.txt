@@ -20,9 +20,10 @@ if ( TARGET tinyusb_device )
 
     add_executable( ${PROJECT_NAME} 
     
-        main.cpp
         LcsBlockController.h 
-    
+        main.cpp
+        LcsBcTrack.cpp 
+        LcsBcLogic.cpp 
     )
     
     target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )

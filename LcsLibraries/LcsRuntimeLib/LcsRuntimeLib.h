@@ -324,7 +324,8 @@ enum LcsNodeOptions : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Node Flags. Flags are initialized at library startup and represent library state information.
 //
-//  NFLAGS_EXT_PRESENT  - extension boards are present.
+//  NFLAGS_EXT_PRESENT          - extension boards are present.
+//  NFLAGS_NVM_WRITE_ENABLED    - write to the protected NVM areas is enabled.
 //
 // 
 //------------------------------------------------------------------------------------------------------------
@@ -332,6 +333,7 @@ enum LcsNodeFlags : uint16_t {
 
     NFLAGS_NIL                  = 0,
     NFLAGS_EXT_PRESENT          = ( 1 << 0 ),
+    NFLAGS_NVM_WRITE_ENABLED    = ( 1 << 1 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -390,7 +392,7 @@ enum LcsItems : uint8_t {
     ITEM_ID_RESET                       = 22,
     ITEM_ID_SYNC                        = 23,
     ITEM_ID_FORMAT                      = 24,
-   
+    
     ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
     ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
     ITEM_ID_GET_EVENT_MAP_ENTRY         = 27,
@@ -399,6 +401,8 @@ enum LcsItems : uint8_t {
     ITEM_ID_SET_ACTIVITY_LED            = 31,
     ITEM_ID_TOGGLE_READY_LED            = 32,
     ITEM_ID_TOGGLE_ACTIVITY_LED         = 33,
+
+    ITEM_ID_NVM_PROTECTED_ACCESS        = 35,
    
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
     

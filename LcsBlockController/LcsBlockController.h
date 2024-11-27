@@ -31,7 +31,7 @@
 //
 // Ideas how to use the node data:
 //
-// There is a static data portion, which describes the block. This is data is entered when teh block is configured.
+// There is a static data portion, which describes the block. This is data is entered when the block is configured.
 //
 //  - block ID
 //  - block length
@@ -40,7 +40,7 @@
 //  - next block(s)
 //
 //  - number of sections
-//  - section lengts
+//  - section lengths
 //  - speed level - slow, middle, high ... 
 //  - support DCC and analog flag
 //  - max current limit
@@ -56,7 +56,7 @@
 //  - section enter / leave timestamps
 //  - 
 //
-// ??? what is retrieved from the dynamivc data on a restart ?
+// ??? what is retrieved from the dynamic data on a restart ?
 //
 // The node attributes contains data about how many blocks this node contains ( nodeId + portId -> blockId )
 // 
@@ -72,7 +72,7 @@
 //  - turnout setting
 //  - ...
 
-// There are predefined events tha the controller node will send.
+// There are predefined events that the controller node will send.
 // 
 //  - block state change
 //  - section occupied
@@ -84,7 +84,23 @@
 //------------------------------------------------------------------------------------------------------------
 
 
+struct LcsBlockDesc {
 
+
+};
+
+struct LcsBlockControllerLogic {
+
+
+    LcsBlockControllerLogic( LcsBlockDesc *blockDesc );
+
+    uint8_t setupBlocks( );
+
+    private:
+
+    LcsBlockDesc *blockDesc;
+
+};
 
 
 #endif

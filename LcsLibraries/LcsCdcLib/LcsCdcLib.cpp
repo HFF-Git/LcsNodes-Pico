@@ -157,6 +157,17 @@ const uint16_t  MAX_CPU_CORE              = 2;
 const uint16_t  MAX_INT_PIN               = 24;
 
 //------------------------------------------------------------------------------------------------------------
+// A timer instance. We currently support inly one HW timer.
+//
+//------------------------------------------------------------------------------------------------------------
+struct TimerInst {
+
+    bool                configured  = false;
+    repeating_timer_t   timerData;
+   
+};
+
+//------------------------------------------------------------------------------------------------------------
 // An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
 // instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
 // instance.
@@ -557,7 +568,7 @@ uint8_t init( CdcConfigDesc *ci ) {
 //    repeat forever:
 //
 //    - 1s ON, 0.5s 0FF
-//    - for ( int i = 0; i < n; i++ ) { 0.5s ON; 0.5s OFF; }
+//    - for ( int i = 0; i < n; i++ ) { 0.5s ON; 0.5s OFF; }
 //
 // The only way to get out of this loop is then to reset the board. Fatal errors are hopefully not many. One
 // obvious one is when we cannot detect the NVM and thus know nothing about the board.
@@ -684,7 +695,7 @@ uint32_t createUid( ) {
 // rather go with the risk that there is just power on the USB connector.
 //
 // Finally, there is a routine to get a character for the command interfaces. Since the function just reads
-// in a character, optionally with a timeout how ling to wait for any inout.
+// in a character, optionally with a timeout how long to wait for any inout.
 //
 // PS: The USB check way would be "return( stdio_usb_connected( ));" instead of the GPIO check.
 //------------------------------------------------------------------------------------------------------------
@@ -1244,21 +1255,20 @@ uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_
 
     SPIInst *spi = nullptr;
 
-    if (( CdcSPI0.sclkPin == sclkPin ) &&
-        ( CdcSPI0.mosiPin == mosiPin ) &&
-        ( CdcSPI0.misoPin == misoPin )) {
+     if ((( 1 << sclkPin ) & VALID_SPI_0_SCK_PINS ) && 
+         (( 1 << mosiPin ) & VALID_SPI_0_TX_PINS  ) &&
+         (( 1 << misoPin ) & VALID_SPI_0_RX_PINS  )) {
 
         spi = &CdcSPI0;
         spi -> spiHw = spi0;
-
-    } else if (( CdcSPI1.sclkPin == sclkPin ) &&
-                ( CdcSPI1.mosiPin == mosiPin ) &&
-                ( CdcSPI1.misoPin == misoPin ) &&
-                ( CdcSPI1.configured )) {
+    }
+    else if ((( 1 << sclkPin ) & VALID_SPI_1_SCK_PINS ) && 
+             (( 1 << mosiPin ) & VALID_SPI_1_TX_PINS  ) &&
+             (( 1 << misoPin ) & VALID_SPI_1_RX_PINS  )) {
 
         spi = &CdcSPI1;
         spi -> spiHw = spi1;
-    }
+    }  
     else return ( SPI_PORT_ERR );
 
     spi -> mosiPin     = mosiPin;
