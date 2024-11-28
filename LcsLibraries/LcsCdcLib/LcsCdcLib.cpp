@@ -1079,6 +1079,7 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 //
 // To do .... ( there is a way via the pwm_Config CSR field... )
 //
+// ??? should we have also a kind of PWM pair ? Is that even possible ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
@@ -1247,9 +1248,9 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 
 //------------------------------------------------------------------------------------------------------------
 // SPI interface section. The PICO features two SPI HW blocks. We implement a simple SPI interface with a
-// a fixed set of SPI options for frequency, bit order and mode. One day this may change.
+// a fixed set of SPI options for frequency, bit order and mode. One day this may change. We do not take 
+// care of the chip select stuff and expect that the caller manages the select pin.
 //
-// ??? we do not take care of the chip select stuff. Expect to put a chip select / deselect around the calls?
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
 

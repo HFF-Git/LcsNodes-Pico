@@ -85,6 +85,139 @@
 
 
 //------------------------------------------------------------------------------------------------------------
+// The block controller maintains a set of debug flags. The overall concept is very similar to the LCS runtime
+// library debug mask. Then following debug flags are defined:
+//
+//      DBG_BC_CONFIG                   -   DEBUG base station enabled
+//      DBG_BC_SETUP                    -   show the setup steps
+//      DBG_BC_LCS_MSG_INTERFACE        -   show the incoming LCS messages
+//      DBG_BC_TRACK_POWER_MGMT         -   show the track power measurement data
+//      DBG_BC_RAILCOM                  -   show the RailCom activity
+//
+// The way to use these flags is for example:
+//
+//      if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SESSION )) 
+//
+//------------------------------------------------------------------------------------------------------------
+enum BlockControllerDebugFlags : uint16_t {
+
+    DBG_BC_CONFIG                  = 1 << 15,       // DEBUG enabled
+    DBG_BC_SETUP                   = 1 << 1,        // show the setup steps
+    DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,        // show the incoming LCS messages
+    DBG_BC_TRACK_POWER_MGMT        = 1 << 3,        // show the track power measurement data
+    DBG_BC_RAILCOM                 = 1 << 4         // show the RailCom activity
+
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Base station errors. Note that they need to be in the assigned to the user number range of errors defined 
+// in the LCS runtime library. 
+//
+//------------------------------------------------------------------------------------------------------------
+enum BaseStationErrors : uint8_t {
+
+    BLOCK_CONTROLLER_ERR_BASE         = 128,
+
+    ERR_MSG_INTERFACE_SETUP           = BLOCK_CONTROLLER_ERR_BASE + 10,
+    ERR_DCC_TRACK_CONFIG              = BLOCK_CONTROLLER_ERR_BASE + 11,
+    ERR_DCC_PIN_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 12,
+
+
+    ERR_NVM_HW_SETUP                  = BLOCK_CONTROLLER_ERR_BASE + 15,
+    ERR_PIO_HW_SETUP                  = BLOCK_CONTROLLER_ERR_BASE + 16
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Setup options to set for the DCC track. They are set when the track object is created.
+//
+//  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
+//  DT_OPT_CUTOUT              - The track is configured to emit a cutout during the DCC packet preamble.
+//  DT_OPT_RAILCOM             - The track support Railcom detection.
+//
+//------------------------------------------------------------------------------------------------------------
+enum BlockControllerTrackOptions : uint16_t {
+
+    BT_OPT_DEFAULT_SETTING      = 0,
+    BT_OPT_CUTOUT               = 1 << 1,
+    BT_OPT_RAILCOM              = 1 << 2
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The block track object has a set of flags to indicate its current status.
+//
+//  DT_F_POWER_ON             - The track is under power.
+//  DT_F_POWER_OVERLOAD       - An overload situation was detected.
+//  DT_F_MEASUREMENT_ON       - The power measurement is enabled.
+//  DT_F_SERVICE_MODE_ON      - The track is currently in service mode, i.e. is a PROG track.
+//  DT_F_CUTOUT_MODE_ON       - The track has the cutout generation enabled.
+//  DT_F_RAILCOM_MODE_ON      - The track has the railcom detect enabled.
+//  DT_F_RAILCOM_MSG_PENDING  - If railcom is enabled, a received datagram is indicated.
+//  DT_F_CONFIG_ERROR         - The passed configuration descriptor has invalid options configured.
+//
+//------------------------------------------------------------------------------------------------------------
+enum DccTrackFlags : uint16_t {
+
+    BT_F_DEFAULT_SETTING      = 0,
+    BT_F_POWER_ON             = 1 << 0,
+    DT_F_POWER_OVERLOAD       = 1 << 1,
+    BT_F_MEASUREMENT_ON       = 1 << 2,
+    BT_F_SERVICE_MODE_ON      = 1 << 3,
+    DT_F_CUTOUT_MODE_ON       = 1 << 4,
+    BT_F_RAILCOM_MODE_ON      = 1 << 5,
+    BT_F_DCC_PACKET_PENDING   = 1 << 6,
+    BT_F_RAILCOM_MSG_PENDING  = 1 << 7,
+    BT_F_CONFIG_ERROR         = 1 << 15
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The following constants are for the current consumption RMS measurement. The idea is to record the measured
+// ADC values in a circular buffer, every time a certain amount of milliseconds has passed. This work is done
+// by the DCC track state machine as part of the power on state.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
+const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
+
+//------------------------------------------------------------------------------------------------------------
+// The RailCom buffer size. During the cutout period up to eight bytes of raw data are sent by the decoder if
+// the Railcom option is enabled.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint8_t   RAILCOM_BUF_SIZE = 8;
+
+//------------------------------------------------------------------------------------------------------------
+// The base station items for nodeInfo and nodeControl calls .... tbd
+//
+// ??? the are mapped in the MEM / NVM range as well as in the USER range.
+// ??? how to do it consistently and understandably ?
+//------------------------------------------------------------------------------------------------------------
+enum BlockControllerItems : uint8_t {
+
+   
+
+    BC_ITEM_INIT_CURRENT_VAL      = 140,
+    BC_ITEM_LIMIT_CURRENT_VAL     = 140,
+    BC_ITEM_MAX_CURRENT_VAL       = 140,
+    BC_ITEM_ACTUAL_CURRENT_VAL     = 140,
+
+    // thresholds
+
+    // eventID to send for events ?
+
+};
+
+//----------------------------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------------------------
+const uint32_t  MAIN_TRACK_STATE_TIME_INTERVAL  = 10;
+const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
+const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
+
+const uint16_t  MAX_CAB_SESSIONS                = 64;
+
+
+//------------------------------------------------------------------------------------------------------------
 // The block controller can contain up to four blocks. Each block track is described by the LcsBlockDesc
 // descriptor. There are the hardware pins sel1Pin1, selPin2, sensePin and uartRxPin. In addition there are
 // the limits for current consumption values, all specified in milliAmps. The initial current sets the current
@@ -99,21 +232,21 @@
 struct LcsBlockTrackDesc {
 
     uint16_t    options;
-    uint8_t     selPin1     = CDC::UNDEFINED_PIN;
-    uint8_t     selPin2     = CDC::UNDEFINED_PIN;
-    uint8_t     sensePin    = CDC::UNDEFINED_PIN;
-    uint8_t     uartRxPin   = CDC::UNDEFINED_PIN;
+    uint8_t     selPin1                         = CDC::UNDEFINED_PIN;
+    uint8_t     selPin2                         = CDC::UNDEFINED_PIN;
+    uint8_t     sensePin                        = CDC::UNDEFINED_PIN;
+    uint8_t     uartRxPin                       = CDC::UNDEFINED_PIN;
 
-    uint16_t  initCurrentMilliAmp           = 0;
-    uint16_t  limitCurrentMilliAmp          = 0;
-    uint16_t  maxCurrentMilliAmp            = 0;
-    uint16_t  milliVoltPerAmp               = 0;
+    uint16_t    initCurrentMilliAmp             = 0;
+    uint16_t    limitCurrentMilliAmp            = 0;
+    uint16_t    maxCurrentMilliAmp              = 0;
+    uint16_t    milliVoltPerAmp                 = 0;
 
-    uint16_t  startTimeThresholdMillis      = 0;
-    uint16_t  stopTimeThresholdMillis       = 0;
-    uint16_t  overloadTimeThresholdMillis   = 0;
-    uint16_t  overloadEventThreshold        = 0;
-    uint16_t  overloadRestartThreshold      = 0;
+    uint16_t    startTimeThresholdMillis        = 0;
+    uint16_t    stopTimeThresholdMillis         = 0;
+    uint16_t    overloadTimeThresholdMillis     = 0;
+    uint16_t    overloadEventThreshold          = 0;
+    uint16_t    overloadRestartThreshold        = 0;
 };
 
 
@@ -128,12 +261,154 @@ struct LcsBlockDesc {
 
 };
 
+//------------------------------------------------------------------------------------------------------------
+// 
+//
+// ??? manages the H-Bridge for one track.
+// ?? pins are sel1, sel2, sense and uart
+// ??? runs the state machine for the track
+//
+//------------------------------------------------------------------------------------------------------------
+struct LcsBlockTrack {
 
+
+    public:
+
+    LcsBlockTrack( );
+
+    uint8_t                     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
+
+    uint8_t                     setBlockTrackState( uint8_t state, uint8_t speed );
+    
+    uint16_t                    getFlags( );
+    uint16_t                    getOptions( );
+
+    void                        runDccTrackStateMachine( );
+    void                        powerStart( );
+    void                        powerStop( );
+    bool                        isPowerOn( );
+    bool                        isPowerOverload( );
+    bool                        isCutoutOn( );
+
+    void                        railComOn( );
+    void                        railComOff( );
+    bool                        isRailComOn( );
+
+    void                        setLimitCurrent( uint16_t val );
+    uint16_t                    getLimitCurrent( );
+    uint16_t                    getActualCurrent( );
+    uint16_t                    getInitCurrent( );
+    uint16_t                    getMaxCurrent( );
+    uint16_t                    getRMSCurrent( );
+
+    void                        checkOverload( );
+
+    void                        powerMeasurement( );
+
+    void                        startRailComIO( );
+    void                        stopRailComIO( );
+    uint8_t                     handleRailComMsg( );
+    uint8_t                     getRailComMsg( uint8_t *buf, uint8_t bufLen );
+
+    uint32_t                    getPwrSamplesTaken( );
+    uint16_t                    getPwrSamplesPerSec( );
+
+    void                        printDccTrackConfig( );
+    void                        printDccTrackStatus( );
+
+    void                        enableLog( bool arg );
+    void                        beginLog( );
+    void                        endLog( );
+    void                        printLog( );
+
+    void                        writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
+    void                        writeLogId( uint8_t id );
+    void                        writeLogTs( );
+    void                        writeLogVal( uint8_t valId, uint16_t val );
+
+    private:
+
+    uint16_t                    options                         = BT_OPT_DEFAULT_SETTING;
+    volatile uint16_t           flags                           = BT_F_DEFAULT_SETTING;
+
+    volatile uint8_t            trackState                      = 0;
+    volatile uint32_t           trackTimeStamp                  = 0;
+    volatile uint8_t            overloadEventCount              = 0;
+    volatile uint8_t            overloadRestartCount            = 0;
+
+    uint8_t                     selPin1                         = CDC::UNDEFINED_PIN;
+    uint8_t                     selPin2                         = CDC::UNDEFINED_PIN;
+    uint8_t                     sensePin                        = CDC::UNDEFINED_PIN;
+    uint8_t                     uartRxPin                       = CDC::UNDEFINED_PIN;
+
+    uint16_t                    initCurrentMilliAmp             = 0;
+    uint16_t                    limitCurrentMilliAmp            = 0;
+    uint16_t                    maxCurrentMilliAmp              = 0;
+
+    uint16_t                    startTimeThreshold              = 0;
+    uint16_t                    stopTimeThreshold               = 0;
+    uint16_t                    overloadTimeThreshold           = 0;
+    uint16_t                    overloadEventThreshold          = 0;
+    uint16_t                    overloadRestartThreshold        = 0;
+
+    uint16_t                    milliVoltPerAmp                 = 0;
+    uint16_t                    digitsPerAmp                    = 0;
+    volatile uint16_t           actualCurrentDigitValue         = 0;
+    volatile uint16_t           highWaterMarkDigitValue         = 0;
+    volatile uint16_t           limitCurrentDigitValue          = 0;
+    uint16_t                    ackThresholdDigitValue          = 0;
+
+    uint32_t                    totalPwrSamplesTaken            = 0;
+    uint32_t                    lastPwrSampleTimeStamp          = 0;
+
+    uint32_t                    lastPwrSamplePerSecTaken        = 0;
+    uint32_t                    lastPwrSamplePerSecTimeStamp    = 0;
+    uint32_t                    pwrSamplesPerSec                = 0;
+
+    // ??? to add....
+    
+    // sample values per second for samples and dcc packets
+    // buffers for POM / XPOM data
+    // queue for POM / XPOM commands
+
+    uint8_t                     railComBufIndex                         = 0;
+    uint8_t                     railComMsgBuf[ RAILCOM_BUF_SIZE ]       = { 0 };
+
+    uint8_t                     pwrSampleBufIndex                       = 0;
+    uint16_t                    pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]     = { 0 };
+
+};
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct LcsOccDetect {
+
+
+};
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct LcsSignal {
+
+
+};
 
 
 //------------------------------------------------------------------------------------------------------------
 //
 //
+//
+// ??? runs the block logic
+// ??? how to manage one to four blocks ?
+// ??? how to assign occ detect an signals to the block ?
+// ??? should message handling be a separate part ?
+// ??? can we build the control logic in such a way that it is configurable via ITEMs ?
 //------------------------------------------------------------------------------------------------------------
 struct LcsBlockControllerLogic {
 

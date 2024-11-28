@@ -121,7 +121,7 @@ enum DccTrackOptions : uint16_t {
     DT_OPT_DEFAULT_SETTING      = 0,
     DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
     DT_OPT_CUTOUT               = 1 << 1,
-    DT_OPT_RAILCOM              = 1 << 1
+    DT_OPT_RAILCOM              = 1 << 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -234,7 +234,7 @@ enum SessionMapEntryFlags : uint16_t {
 // ??? the are mapped in the MEM / NVM range as well as in the USER range.
 // ??? how to do it consistently and understandably ?
 //------------------------------------------------------------------------------------------------------------
-enum BaseStationInfoItems : uint8_t {
+enum BaseStationItems : uint8_t {
 
     // or use GET in all constants
 
