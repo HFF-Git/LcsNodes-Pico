@@ -43,37 +43,41 @@ namespace LCS {
 // memory to NVM so that it is the initial value on the next restart. All data is stored in controller native 
 // endianness. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
 //
-// The NVM layout is a fixed one. We have the nodeMap starting at offset zero, the portMap starting at 
-// offset 0x400, the attributeMap starting at offset 0x800 and the eventMap at offset 0x1000. The system area
-// is in total 8 Kbytes. The optional user map occupies all the remaining bytes in the NVM and starts at 
-// 0x2000. A firmware programmer can access the system as well as the user data areas. However, note that 
-// dangerous things can be done when modifying the system area directly.
+// The NVM layout is a fixed one. We have the nodeMap starting at offset zero, The CDC map starting at offset
+// 0x200, the portMap starting at offset 0x400, the attributeMap starting at offset 0x800 and the eventMap
+// at offset 0x1000. The system area is in total 8 Kbytes. The optional user map occupies all the remaining
+// bytes in the NVM and starts at 0x2000. A firmware programmer can access the system as well as the user 
+// data areas. However, note that dangerous things can be done when modifying the system area directly.
 //
-//        0x0000  :-------------------------------------------:
-//                :                                           :
-//                :       Node Map                            :
-//                :                                           :
-//        0x0400  :-------------------------------------------:
-//                :                                           :
-//                :       Port Map                            :
-//                :                                           :
-//        0x0800  :-------------------------------------------:
-//                :                                           :
-//                :       Attribute Map                       :
-//                :                                           :
-//        0x1000  :-------------------------------------------:
-//                :                                           :
-//                :       Event Map                           :
-//                :                                           :
-//        0x2000  :-------------------------------------------:
-//                :                                           :
-//                :                                           :
-//                :                                           :
-//                :       Optional User Map                   :
-//                :                                           :
-//                :                                           :
-//                :                                           :
-//        0xNNNN  :-------------------------------------------:
+//        0x0000    :-------------------------------------------:
+//                  :                                           :
+//                  :       Node Map                            :
+//                  :                                           :
+//        0x0200    :-------------------------------------------:
+//                  :                                           :
+//                  :       CDC Map                             :
+//                  :                                           :
+//        0x0400    :-------------------------------------------:
+//                  :                                           :
+//                  :       Port Map                            :
+//                  :                                           :
+//        0x0800    :-------------------------------------------:
+//                  :                                           :
+//                  :       Attribute Map                       :
+//                  :                                           :
+//        0x1000    :-------------------------------------------:
+//                  :                                           :
+//                  :       Event Map                           :
+//                  :                                           :
+//        0x2000    :-------------------------------------------:
+//                  :                                           :
+//                  :                                           :
+//                  :                                           :
+//                  :       Optional User Map                   :
+//                  :                                           :
+//                  :                                           :
+//                  :                                           :
+//        0xNNNN    :-------------------------------------------:
 //
 // The node map and port map do not fill the entire area allocated for them. Yet. For future developments,
 // each area has some spare room. The attribute map contains the variables for the node and ports. Each 
@@ -112,6 +116,7 @@ const uint8_t   MAX_EXT_BOARDS                  = 4;
 const uint8_t   MAX_DRV_DATA_SIZE               = 64;
 
 const uint16_t  NVM_NODE_MAP_START              = 0;
+const uint16_t  NVM_CDC_MAP_START               = 0x200;
 const uint16_t  NVM_PORT_MAP_START              = 0x400;
 const uint16_t  NVM_NODE_DATA_START             = 0x800;
 const uint16_t  NVM_EVENT_MAP_START             = 0x1000;
@@ -300,6 +305,7 @@ struct LcsNodeMap {
     //
     //------------------------------------------------------------------------------------------------------
     uint16_t        nvmNodeMapOfs                   = NVM_NODE_MAP_START;
+    uint16_t        nvmCdcMapOfs                    = NVM_CDC_MAP_START;
     uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
     uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
     uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;

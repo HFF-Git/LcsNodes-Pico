@@ -157,6 +157,17 @@ const uint16_t  MAX_CPU_CORE              = 2;
 const uint16_t  MAX_INT_PIN               = 24;
 
 //------------------------------------------------------------------------------------------------------------
+// A timer instance. We currently support inly one HW timer.
+//
+//------------------------------------------------------------------------------------------------------------
+struct TimerInst {
+
+    bool                configured  = false;
+    repeating_timer_t   timerData;
+   
+};
+
+//------------------------------------------------------------------------------------------------------------
 // An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
 // instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
 // instance.
@@ -684,7 +695,7 @@ uint32_t createUid( ) {
 // rather go with the risk that there is just power on the USB connector.
 //
 // Finally, there is a routine to get a character for the command interfaces. Since the function just reads
-// in a character, optionally with a timeout how ling to wait for any inout.
+// in a character, optionally with a timeout how long to wait for any inout.
 //
 // PS: The USB check way would be "return( stdio_usb_connected( ));" instead of the GPIO check.
 //------------------------------------------------------------------------------------------------------------
@@ -1068,6 +1079,7 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 //
 // To do .... ( there is a way via the pwm_Config CSR field... )
 //
+// ??? should we have also a kind of PWM pair ? Is that even possible ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
@@ -1236,29 +1248,28 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 
 //------------------------------------------------------------------------------------------------------------
 // SPI interface section. The PICO features two SPI HW blocks. We implement a simple SPI interface with a
-// a fixed set of SPI options for frequency, bit order and mode. One day this may change.
+// a fixed set of SPI options for frequency, bit order and mode. One day this may change. We do not take 
+// care of the chip select stuff and expect that the caller manages the select pin.
 //
-// ??? we do not take care of the chip select stuff. Expect to put a chip select / deselect around the calls?
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
 
     SPIInst *spi = nullptr;
 
-    if (( CdcSPI0.sclkPin == sclkPin ) &&
-        ( CdcSPI0.mosiPin == mosiPin ) &&
-        ( CdcSPI0.misoPin == misoPin )) {
+     if ((( 1 << sclkPin ) & VALID_SPI_0_SCK_PINS ) && 
+         (( 1 << mosiPin ) & VALID_SPI_0_TX_PINS  ) &&
+         (( 1 << misoPin ) & VALID_SPI_0_RX_PINS  )) {
 
         spi = &CdcSPI0;
         spi -> spiHw = spi0;
-
-    } else if (( CdcSPI1.sclkPin == sclkPin ) &&
-                ( CdcSPI1.mosiPin == mosiPin ) &&
-                ( CdcSPI1.misoPin == misoPin ) &&
-                ( CdcSPI1.configured )) {
+    }
+    else if ((( 1 << sclkPin ) & VALID_SPI_1_SCK_PINS ) && 
+             (( 1 << mosiPin ) & VALID_SPI_1_TX_PINS  ) &&
+             (( 1 << misoPin ) & VALID_SPI_1_RX_PINS  )) {
 
         spi = &CdcSPI1;
         spi -> spiHw = spi1;
-    }
+    }  
     else return ( SPI_PORT_ERR );
 
     spi -> mosiPin     = mosiPin;

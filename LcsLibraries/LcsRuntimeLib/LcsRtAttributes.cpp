@@ -400,6 +400,16 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
+            case ITEM_ID_NVM_PROTECTED_ACCESS: {
+
+                // ??? access to protected NVM data areas.
+                // ??? arg 1 -> offset
+                // ??? arg 2 -> value
+
+                return ( ALL_OK );
+
+            } break;
+
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
@@ -557,6 +567,16 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 tempName[ 15 ]  = lowByte( val2 );
                 return ( ALL_OK );
             }
+
+            case ITEM_ID_NVM_PROTECTED_ACCESS: {
+
+                // ??? access to protected NVM data areas.
+                // ??? arg 1 -> offset
+                // ??? arg 2 -> value
+
+                return ( ALL_OK );
+
+            } break;
 
             default: return ( ERR_INVALID_ITEM_ID );
         }
