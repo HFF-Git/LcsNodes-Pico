@@ -557,7 +557,7 @@ uint8_t init( CdcConfigDesc *ci ) {
 //    repeat forever:
 //
 //    - 1s ON, 0.5s 0FF
-//    - for ( int i = 0; i < n; i++ ) { 0.5s ON; 0.5s OFF; }
+//    - for ( int i = 0; i < n; i++ ) { 0.5s ON; 0.5s OFF; }
 //
 // The only way to get out of this loop is then to reset the board. Fatal errors are hopefully not many. One
 // obvious one is when we cannot detect the NVM and thus know nothing about the board.

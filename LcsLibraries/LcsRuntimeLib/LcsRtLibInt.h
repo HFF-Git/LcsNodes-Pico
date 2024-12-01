@@ -30,12 +30,11 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
+#include <ctype.h>
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 
 namespace LCS {
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the

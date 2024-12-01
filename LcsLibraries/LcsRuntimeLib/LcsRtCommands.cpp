@@ -65,7 +65,7 @@ char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 // quantities.
 //
 //------------------------------------------------------------------------------------------------------------
-void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
+void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool printAscii) {
 
     uint16_t  index   = 0;
     uint16_t  limit   = ( len + 1 ) / 2; 
@@ -80,6 +80,20 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
             if ( index + i < limit ) printf( "0x%04x ", ptr[ index + i ] );
         }
 
+        if ( printAscii ) {
+
+            printf( "  " );
+
+            for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+                if ( isprint( ptr[ index + i ] >> 8  )) printf( "%c", ptr[ index + i ] >> 8 );
+                else                                    printf( "." );
+
+                if ( isprint( ptr[ index + i ] & 0xff )) printf( "%c", ptr[ index + i ] & 0xFF );
+                else                                     printf( "." );
+            }
+        }
+
         index += itemsPerLine;
         printf( "\n" );
     }
@@ -90,10 +104,11 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8 ) {
 // The data is listed in 16-bit quantities.
 //
 //------------------------------------------------------------------------------------------------------------
-void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
+void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool printAscii = false ) {
 
-    uint32_t  limit = start + len;
-    uint16_t  val   = 0;
+    uint8_t     rStat = ALL_OK;
+    uint32_t    limit = start + len;
+    uint16_t    val   = 0;
 
     while ( start < limit ) {
 
@@ -105,8 +120,26 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
             if ( ofs < limit ) {
 
-                rtNvmGetWord( ofs, &val );
-                printf( "0x%04x ", val );
+                rStat = rtNvmGetWord( ofs, &val );
+                if ( rStat == ALL_OK ) printf( "0x%04x ", val );
+            }
+        }
+
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
+
+            if ( ofs < limit ) {
+
+                rStat = rtNvmGetWord( ofs, &val );
+                if ( rStat == ALL_OK ) {
+
+                    if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
+                    else                                      printf( "." );
+
+                    if ( isprint( val & 0xff )) printf( "%c", val & 0xFF );
+                    else                                      printf( "." );
+                }
             }
         }
 
@@ -141,6 +174,24 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
             }
         }
 
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
+
+            if ( ofs < limit ) {
+
+                rStat = extNvmGetWord( boardId, ofs, &val );
+                if ( rStat == ALL_OK ) {
+                    
+                    if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
+                    else                       printf( "." );
+
+                    if ( isprint( val & 0xff )) printf( "%c", val & 0xFF );
+                    else                        printf( "." );
+                }
+            }
+        }
+
         start = start + itemsPerLine * sizeof(uint16_t);
         printf( "\n" );
     }
@@ -166,7 +217,7 @@ void printSummary( ) {
 void dumpMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
-    dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ));
+    dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ), 8, true);
     printf( "\n" );
 }
 
@@ -177,11 +228,11 @@ void dumpMemPortMap( ) {
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         printf( "Port %d:\n", i + 1 );
-        dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ));
+        dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ), 8, true);
         printf( "\n" );
     }
 }
-
+ 
 void dumpMemNodeData( ) {
 
     printf( "MEM Node Data: \n\n" );
@@ -246,7 +297,7 @@ void dumpMemDrvMap( ) {
         printf( "Board %d: ( Flags: 0x%04x, LastErr: %d, Drv: %p\n", 
                 i, entry -> flags, entry -> lastErr, entry -> drvFunc );
                 
-        dumpMemData(( uint16_t*) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ));
+        dumpMemData(( uint16_t*) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ), 8, true );
         printf( "\n" );
     }
 
@@ -275,7 +326,7 @@ void dumpMemRuntimeArea( ) {
 void dumpNvmNodeMap( ) {
 
     printf( "NVM Node Map Dump: \n\n" );
-    dumpNvmData( NVM_NODE_MAP_START, sizeof( LcsNodeMap ));
+    dumpNvmData( NVM_NODE_MAP_START, sizeof( LcsNodeMap ), 8, true );
     printf( "\n" );
 }
 
@@ -288,7 +339,7 @@ void dumpNvmPortMap( ) {
         uint32_t ofs = NVM_PORT_MAP_START + ( i * sizeof( LcsPortMapEntry ));
 
         printf( "Port %d, NVM ofs: 0x%04x \n", i + 1, ofs );
-        dumpNvmData( ofs, sizeof( LcsPortMapEntry ));
+        dumpNvmData( ofs, sizeof( LcsPortMapEntry ), 8, true );
         printf( "\n" );
     }
 
@@ -321,7 +372,7 @@ void dumpNvmEventMap( ) {
 void dumpNvmRuntimeArea( ) {
 
     printf( "NVM Runtime Area Dump: \n\n" );
-    dumpNvmData( 0, NVM_RUNTIME_AREA_SIZE );
+    dumpNvmData( 0, NVM_RUNTIME_AREA_SIZE , 8, true );
     printf( "\n" );
 }
 
@@ -345,7 +396,7 @@ void dumpNvmDrvData( uint16_t boardId ) {
 void dumpNvmUserArea( ) {
 
     printf( "NVM Area Dump: \n\n" );
-    dumpNvmData( NVM_USER_MAP_START, usrNvmGetSize( ));
+    dumpNvmData( NVM_USER_MAP_START, usrNvmGetSize( ), 8, true );
     printf( "\n" );
 }
 

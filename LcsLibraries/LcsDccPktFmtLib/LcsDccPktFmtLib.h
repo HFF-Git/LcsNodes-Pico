@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - DCC Packet Formatter
-// Copyright (C) 2021 - 2022  Helmut Fieres
+// Copyright (C) 2021 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -36,13 +36,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include <pico/stdio.h>
-#include <pico/stdlib.h>
-
 //------------------------------------------------------------------------------------------------------------
 // The LCS DCC packet formatter declarations. There are a set of options for setting up the formatting options
 // and the actual formatting method. The options allow for formatting DCC packets for locomotives, accessories
-// and CV programming packets. Additionally, each packet can be also showns in a  hex or binary format.
+// and CV programming packets. Additionally, each packet can be also shows in a  hex or binary format.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LcsDccPacketFormatter {
