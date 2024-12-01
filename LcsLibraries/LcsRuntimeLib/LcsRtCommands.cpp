@@ -82,6 +82,12 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool p
 
         if ( printAscii ) {
 
+            if ( index + itemsPerLine >= limit ) {
+
+                int tmp = index + itemsPerLine - ( limit % itemsPerLine );
+                for ( int i = 0; i < tmp; i++ ) fprintf((char *)  "     " );
+            };
+
             printf( "  " );
 
             for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
@@ -235,7 +241,7 @@ void dumpMemPortMap( ) {
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         printf( "Port %d:\n", i + 1 );
-        dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ), 8, true);
+        dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ), 8, true );
         printf( "\n" );
     }
 }
@@ -1004,7 +1010,7 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -   6  - MEM Pending Request Map\n" );
     printf( "              " " -   7  - MEM Task Map\n" );
     printf( "              " " -   8  - MEM Callback Map\n" );
-    printf( "              " " -   9  - MEM Driver Function Map" );
+    printf( "              " " -   9  - MEM Driver Function Map\n" );
     printf( "              " " -  10  - MEM Driver Map\n" );
     printf( "              " " -  11  - MEM Runtime Area\n" );
 

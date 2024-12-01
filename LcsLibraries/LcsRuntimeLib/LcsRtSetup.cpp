@@ -130,7 +130,7 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
     LcsNodeMap tmp;
 
-    memcpy( tmp.name, nodeDefName, strlen( nodeDefName ));
+    snprintf( tmp.name, MAX_NODE_NAME_SIZE, "Node" );
     tmp.nodeUID = CDC::createUid( );
 
     *nMap = tmp;
@@ -147,7 +147,7 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
 
         LcsPortMapEntry pEntry;
 
-        snprintf( pEntry.name, MAX_PORT_NAME_SIZE, "Port: %d", i );
+        snprintf( pEntry.name, MAX_PORT_NAME_SIZE, "Port-%d", i );
         pMap -> map[ i ] = pEntry;
     }
 }

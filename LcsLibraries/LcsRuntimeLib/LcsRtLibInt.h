@@ -321,7 +321,7 @@ struct LcsNodeMap {
     uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
     uint16_t        eventMapHwm                     = 0;
 
-     uint16_t       taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t       taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
     uint16_t        taskMapHwm                      = 0;
 
     uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
