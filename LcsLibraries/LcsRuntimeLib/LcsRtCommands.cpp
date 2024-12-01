@@ -61,8 +61,9 @@ using namespace LCS;
 char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
 //------------------------------------------------------------------------------------------------------------
-// "dumpMemData" lists the memory data content of the storage area passed. The data is listed in 16-bit 
-// quantities.
+// "dumpMemData" lists the memory data content of the storage area passed. The data is displayed in 16-bit 
+// quantities.  Because the PICO uses little-endian format, ASCII characters may appear reversed when 
+// interpreted directly.
 //
 //------------------------------------------------------------------------------------------------------------
 void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool printAscii = false ) {
@@ -84,21 +85,25 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool p
 
             if ( index + itemsPerLine >= limit ) {
 
-                int tmp = index + itemsPerLine - ( limit % itemsPerLine );
-                for ( int i = 0; i < tmp; i++ ) fprintf((char *)  "     " );
+                int tmp = index + itemsPerLine - limit;
+                for ( int i = 0; i < tmp; i++ ) printf( "       " );
             };
 
             printf( "  " );
 
             for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-                if ( isprint( ptr[ index + i ] >> 8  )) printf( "%c", ptr[ index + i ] >> 8 );
-                else                                    printf( "." );
+                if ( index + i < limit ) {
 
-                if ( isprint( ptr[ index + i ] & 0xff )) printf( "%c", ptr[ index + i ] & 0xFF );
-                else                                     printf( "." );
+                    if ( isprint( ptr[ index + i ] >> 8  )) printf( "%c", ptr[ index + i ] >> 8 );
+                    else                                    printf( "." );
+
+                    if ( isprint( ptr[ index + i ] & 0xff )) printf( "%c ", ptr[ index + i ] & 0xff );
+                    else                                     printf( ". " );
+                }
             }
         }
+       
 
         index += itemsPerLine;
         printf( "\n" );
@@ -106,8 +111,9 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool p
 }
 
 //------------------------------------------------------------------------------------------------------------
-// List NVM storage data. We are passed the absolute byte offset into the NVM area and the length in bytes.
-// The data is listed in 16-bit quantities.
+// List the NVM storage data. The function receives the absolute byte offset within the NVM area and the 
+// length in bytes. The data is displayed in 16-bit quantities. Because the PICO uses little-endian format, 
+// ASCII characters may appear reversed when interpreted directly.
 //
 //------------------------------------------------------------------------------------------------------------
 void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool printAscii = false ) {
@@ -131,24 +137,35 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool 
             }
         }
 
-        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+        if ( printAscii ) {
 
-            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
+            if ( start + ( itemsPerLine * sizeof(uint16_t)) >= limit ) {
 
-            if ( ofs < limit ) {
+                int tmp = ( start + ( itemsPerLine * sizeof(uint16_t)) - limit ) / sizeof( uint16_t);
+                for ( int i = 0; i < tmp; i++ ) printf( "       " );
+            };
 
-                rStat = rtNvmGetWord( ofs, &val );
-                if ( rStat == ALL_OK ) {
+            printf( "  " );
 
-                    if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
-                    else                                      printf( "." );
+            for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-                    if ( isprint( val & 0xff )) printf( "%c", val & 0xFF );
-                    else                                      printf( "." );
+                uint32_t ofs = start + ( i * sizeof(uint16_t));
+
+                if ( ofs < limit ) {
+
+                    rStat = rtNvmGetWord( ofs, &val );
+                    if ( rStat == ALL_OK ) {
+
+                        if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
+                        else                       printf( "." );
+
+                        if ( isprint( val & 0xff )) printf( "%c ", val & 0xFF );
+                        else                        printf( ". " );
+                    }
                 }
             }
         }
-
+   
         start = start + ( itemsPerLine * sizeof(uint16_t));
         printf( "\n" );
     }
@@ -192,8 +209,8 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
                     if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
                     else                       printf( "." );
 
-                    if ( isprint( val & 0xff )) printf( "%c", val & 0xFF );
-                    else                        printf( "." );
+                    if ( isprint( val & 0xff )) printf( "%c ", val & 0xFF );
+                    else                        printf( ". " );
                 }
             }
         }
@@ -510,7 +527,7 @@ void errorArgList( ) {
 
 void errorStatusMsg( char *msg, uint8_t ret ) {
 
-    printf( "%s : %d\n" );
+    printf( "Error: %s ( %d )\n", msg, ret );
 }
 
 }; // namespace
@@ -598,7 +615,7 @@ void enterEventCommand( char *s ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         uint8_t ret = nodeReq( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, &eventId, &portId );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node enter event error", ret );
+       if ( ret != ALL_OK ) errorStatusMsg((char *) "Node enter event error", ret );
     }
     else {
 

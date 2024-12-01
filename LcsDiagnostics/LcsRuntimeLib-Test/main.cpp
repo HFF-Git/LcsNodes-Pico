@@ -99,6 +99,22 @@ uint8_t initLcsRuntime( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t setupPinsForExtBoardTests( ) {
+
+    uint8_t rStat = ALL_OK;
+    if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_0, CDC::OUT );
+    if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_1, CDC::OUT );
+    if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_0, true  );
+    if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_1, true );
+
+    printf( "Setup DIO pins 0 and 1 for Extension Board Test, stat: %d \n", rStat );
+    return( rStat );
+}
+
+//----------------------------------------------------------------------------------------------------------
 // Callbacks. All we do is to list their invocation.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -229,6 +245,7 @@ int main( ) {
     uint8_t rStat = ALL_OK;
 
     if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = setupPinsForExtBoardTests( );
     if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
     if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );
     if ( rStat == ALL_OK ) startLcsRuntime( );

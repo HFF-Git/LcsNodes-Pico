@@ -132,8 +132,8 @@ const uint16_t  NVM_RUNTIME_AREA_SIZE           = 0x2000;
 // during startup.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t NVM_MWORD_1 = ( 'L' << 8 ) + 'C';
-const uint16_t NVM_MWORD_2 = ( 'S' << 8 ) + '0';
+const uint16_t NVM_MWORD_1 = (uint16_t) ( 'L' << 8 ) + 'C';
+const uint16_t NVM_MWORD_2 = (uint16_t) ( 'S' << 8 ) + '0';
 
 //----------------------------------------------------------------------------------------------------------
 // The node states. The node starts in the INIT state and once all is initialized and registered ends up in
@@ -321,7 +321,7 @@ struct LcsNodeMap {
     uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
     uint16_t        eventMapHwm                     = 0;
 
-    uint16_t       taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t        taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
     uint16_t        taskMapHwm                      = 0;
 
     uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           

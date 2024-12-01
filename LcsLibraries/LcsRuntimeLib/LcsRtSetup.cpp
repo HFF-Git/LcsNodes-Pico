@@ -147,7 +147,7 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
 
         LcsPortMapEntry pEntry;
 
-        snprintf( pEntry.name, MAX_PORT_NAME_SIZE, "Port-%d", i );
+        snprintf( pEntry.name, MAX_PORT_NAME_SIZE, "Port-%d", i + 1 );
         pMap -> map[ i ] = pEntry;
     }
 }
@@ -319,7 +319,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
                  printf( "Starting - debug mode\n" );
 
-                debugMask       = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS;
+                debugMask       = DBG_CONFIG | DBG_SETUP | DBG_EVENTS;
                 startOptions    = NOPT_NIL;
                 return( ALL_OK );
             }

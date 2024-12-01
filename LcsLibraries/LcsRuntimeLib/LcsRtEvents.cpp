@@ -99,9 +99,9 @@ int compareEventEntry( const LcsEventMapEntry *arg1, const LcsEventMapEntry *arg
 //------------------------------------------------------------------------------------------------------------
 uint8_t addToMemEventMap( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) {
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
 
-        printf( "Add to MEM Event Map: %d : %d \n", eventId, portId );
+        printf( "Add to MEM Event Map: %d : %d\n", eventId, portId );
     }
 
     if ( searchEvent( eventId, portId ) >= 0 )    return ( ALL_OK );
@@ -131,7 +131,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t portId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t removeFromMemEventMap( uint16_t eventId, uint16_t portId ) {
 
-    if ( debugMask & ( DBG_CONFIG || DBG_EVENTS )) { 
+     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
         printf( "Remove from MEM Event Map: %d : %d \n", eventId, portId );
     }
@@ -166,12 +166,13 @@ uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
-        printf( "Add Event: %d : %d\n", eventId, portId );
+        printf( "Add Event: event: %d, port: %d\n", eventId, portId );
     }
 
     int rStat = ALL_OK;
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
+    if ( portId >  MAX_PORT_ID ) return ( ERR_INVALID_PORT_ID );
 
     if ( portId == NIL_PORT_ID ) {
 
@@ -181,11 +182,10 @@ uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
             if ( rStat != ALL_OK ) break;
         }
     }
-    else if ( isInRangeU( portId, MIN_PORT_ID, MAX_PORT_ID )) {
+    else {
 
         rStat = addToMemEventMap( eventId, portId );
     }
-    else rStat = ERR_INVALID_PORT_ID;
 
     return ( rStat );
 }
@@ -290,7 +290,13 @@ uint8_t syncEventMap( ) {
                                     (uint8_t *) eventMap.map, 
                                     nodeMap.eventMapHwm * sizeof( LcsEventMapEntry ));
 
-    return ( ALL_OK );
+    if ( rStat == ALL_OK ) {
+
+        uint32_t ofs = NVM_NODE_MAP_START + offsetof( LcsNodeMap, eventMapHwm );
+        rStat = rtNvmPutWord( ofs, nodeMap.eventMapHwm );
+    }
+
+    return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
