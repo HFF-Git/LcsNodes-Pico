@@ -65,7 +65,7 @@ char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
 // quantities.
 //
 //------------------------------------------------------------------------------------------------------------
-void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool printAscii) {
+void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool printAscii = false ) {
 
     uint16_t  index   = 0;
     uint16_t  limit   = ( len + 1 ) / 2; 
@@ -493,8 +493,9 @@ uint8_t highByte( uint16_t arg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Helper routines for error status handling.
 //
-//
+// ??? one day, combine all error strings in one routine and print them from there...
 //------------------------------------------------------------------------------------------------------------
 void errorArgList( ) {
 
