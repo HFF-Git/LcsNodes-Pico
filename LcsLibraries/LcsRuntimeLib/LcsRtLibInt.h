@@ -253,7 +253,7 @@ struct LcsNvmHeader {
     uint16_t    boardVersion                    = 0;
     uint16_t    controllerFamily                = CF_FAM_RPICO;
     uint16_t    nvmChipFamily                   = CF_FAM_MICROCHIP;
-    uint16_t    resevedArea[ 10 ]               = { 0 };
+    uint16_t    reservedArea[ 10 ]              = { 0 };
     uint16_t    magicWord2                      = NVM_MWORD_2;
 }; 
 

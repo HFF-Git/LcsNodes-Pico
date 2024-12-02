@@ -439,6 +439,152 @@ void dumpNvmUserArea( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Print memory structures in a formatted way.
+//
+//
+// ??? should we always print and dump for MEM ?
+// ??? or keep them apart in a numbering scheme ?
+//------------------------------------------------------------------------------------------------------------
+void printMemNodeMap( ) {
+
+    printf( "MEM Node Map: \n\n" );
+
+/*
+    uint16_t        magicWord1                      = NVM_MWORD_1;
+    uint16_t        boardType                       = BT_NIL;
+    uint16_t        boardVersion                    = 0;
+    uint16_t        controllerFamily                = CF_FAM_RPICO;
+    uint16_t        nvmChipFamily                   = CF_FAM_MICROCHIP;
+    uint16_t        reservedArea[ 10 ]               = { 0 };
+    uint16_t        magicWord2                      = NVM_MWORD_2;
+
+    uint16_t        nodeState                       = NS_NIL;
+    uint16_t        nodeOptions                     = 0;
+    uint16_t        nodeFlags                       = 0;
+    uint16_t        nodeId                          = NIL_NODE_ID;
+    uint32_t        nodeUID                         = 0L;
+    uint16_t        nodeType                        = NIL_NODE_TYPE;   
+    uint16_t        nodeSwVersion                   = 0;
+    uint16_t        nodeSwPatchLevel                = 0;
+    uint16_t        nodeRestartCnt                  = 0;
+    uint32_t        nodeSystemTime                  = 0;
+    uint16_t        nodeMapSize                     = sizeof( LcsNodeMap );  
+    char            name[ MAX_NODE_NAME_SIZE ]      = { 0 };
+
+    uint16_t        nvmNodeMapOfs                   = NVM_NODE_MAP_START;
+    uint16_t        nvmCdcMapOfs                    = NVM_CDC_MAP_START;
+    uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
+    uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
+    uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;
+    uint16_t        nvmuserMapOfs                   = NVM_USER_MAP_START;
+    uint32_t        nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
+
+    uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
+    uint16_t        portMapHwm                      = 0;
+
+    uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
+    uint16_t        eventMapHwm                     = 0;
+
+    uint16_t        taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t        taskMapHwm                      = 0;
+
+    uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
+    uint16_t        pendingMapHwm                   = 0;
+
+    uint16_t        drvFuncMapEntries               = MAX_DRV_TYPES;
+    uint16_t        drvFuncMapHwm                   = 0;
+
+    uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t        drvMapHwm                       = 0;
+
+    // add the node data area ....
+*/
+   
+    printf( "\n" );
+}
+
+void printMemCdcMap( ) {
+
+    printf( "MEM CDC Map: \n\n" );
+
+    // resort to CDC::printInfo command ?
+    
+    
+    printf( "\n" );
+}
+
+void printMemPortMap( ) {
+
+    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", nodeMap.portMapEntries, nodeMap.portMapHwm );
+
+    for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        printf( "Port %d:\n", i + 1 );
+
+        /*
+        
+        uint16_t  options                       = 0;
+        uint16_t  flags                         = 0;
+        uint16_t  type                          = 0;
+
+        uint16_t  eventNodeId                   = NIL_NODE_ID;
+        uint16_t  eventId                       = NIL_EVENT_ID;
+        uint16_t  eventValue                    = 0;
+        uint16_t  eventAction                   = PEA_EVENT_IDLE;
+        uint16_t  eventDelayTime                = 0;
+        uint32_t  eventTimeStamp                = 0L;
+
+        char      name[ MAX_PORT_NAME_SIZE  ]   = { 0 };
+
+        // add the port data area ?
+        
+        */
+       
+        printf( "\n" );
+    }
+}
+ 
+void printMemEventMap( ) {
+
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+
+    // print my entries, hwm 
+
+    // print the entries up to the HWM, 4 in a row ?
+   
+    printf( "\n" );
+}
+
+void printMemPendingReqMap( ) {
+
+    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", nodeMap.pendingMapEntries, nodeMap.pendingMapHwm );
+
+    // does it make sense to print this dynamic data ?
+    
+    
+    printf( "\n" );
+}
+
+void printMemDrvMap( ) {
+
+    printf( "MEM Driver Map: (Size: %d) \n\n", nodeMap.drvMapEntries );
+
+    for ( int i  = 0; i < MAX_EXT_BOARDS; i++ ) {
+
+        LcsDrvEntry *entry = &drvMap.map[ i ];
+
+        printf( "Board %d: ( Flags: 0x%04x, LastErr: %d, Drv: %p\n", 
+                i, entry -> flags, entry -> lastErr, entry -> drvFunc );
+
+        // add to print the driver data area...
+                
+        printf( "\n" );
+    }
+
+     printf( "\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "scanI2CBus" and "listDevicesI2C" are two routines that will list all chips found on the NVM and EXT bus.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -555,7 +701,7 @@ void switchToConfigCommand( char *s ) {
 
     if ( sscanf( s, "%hu", &npId ) < 1 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == 0 ) {
+    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
 
         uint8_t msg[ 8 ] = { LCS_OP_CFG };
         handleMsgLcsMgt( msg );
@@ -581,7 +727,7 @@ void switchToOperationsCommand( char *s ) {
 
     if ( sscanf( s, "%hu", &npId ) < 1 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == 0 ) {
+    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
 
         uint8_t msg[ 8 ] = { LCS_OP_OPS };
         handleMsgLcsMgt( msg );
@@ -612,7 +758,7 @@ void enterEventCommand( char *s ) {
 
     if ( sscanf( s, "%hu %hu %hu ", &npId, &eventId, &portId ) < 2 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) {
+   if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
 
         uint8_t ret = nodeReq( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, &eventId, &portId );
        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node enter event error", ret );
@@ -643,7 +789,7 @@ void removeEventCommand( char *s ) {
 
     if ( sscanf( s, "%hu %hu %hu ", &npId, &eventId, &portId ) < 1 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) {
+    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
 
         int ret = nodeReq( npId, ITEM_ID_DEL_EVENT_MAP_ENTRY, &eventId, &portId );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node remove event error", ret );
@@ -753,7 +899,7 @@ void getNodeCommand( char *s ) {
 
     if ( sscanf( s, "%hu %hhu %hu %hu", &npId, &item, &arg1, &arg2  ) < 2 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) {
+    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
 
         ret = nodeGet( npId, item, &arg1, &arg2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node GET error", ret );
@@ -788,7 +934,7 @@ void putNodeCommand( char *s ) {
 
     if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) {
+    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
      
         ret = nodePut( npId, item, val1, val2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node PUT error", ret );
@@ -823,7 +969,7 @@ void reqNodeCommand( char *s ) {
 
     if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) {
+    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
      
         ret = nodeReq( npId, item, &val1, &val2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node REQ error", ret );
@@ -967,7 +1113,7 @@ void listStatusCommand( char *s ) {
             case 7:     dumpMemTaskMap( );          break;
             case 8:     dumpMemCallbackMap( );      break;
             case 9:     dumpMemDrvFuncMap( );       break;
-            case 10:     dumpMemDrvMap( );           break;
+            case 10:    dumpMemDrvMap( );           break;
             case 11:    dumpMemRuntimeArea( );      break;
 
             case 21:    dumpNvmNodeMap( );          break;
