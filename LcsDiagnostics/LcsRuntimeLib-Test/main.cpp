@@ -99,7 +99,8 @@ uint8_t initLcsRuntime( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-//
+// When a main controller board is used to drive an extension board, the DIO pins need to be set to 
+// the value 1 for both pins. This is equivalent to leaving the extension boards select input pins open.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t setupPinsForExtBoardTests( ) {
@@ -107,7 +108,7 @@ uint8_t setupPinsForExtBoardTests( ) {
     uint8_t rStat = ALL_OK;
     if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_0, CDC::OUT );
     if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_1, CDC::OUT );
-    if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_0, true  );
+    if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_0, false  );
     if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_1, true );
 
     printf( "Setup DIO pins 0 and 1 for Extension Board Test, stat: %d \n", rStat );

@@ -439,11 +439,9 @@ void dumpNvmUserArea( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Print memory structures in a formatted way.
+// Print memory structures in a formatted way. Note that not all memory structures are printed. Some of the 
+// maps contain dynamic data, which changed rapidly. There is no point in showing that kind of data.
 //
-//
-// ??? should we always print and dump for MEM ?
-// ??? or keep them apart in a numbering scheme ?
 //------------------------------------------------------------------------------------------------------------
 void printMemNodeMap( ) {
 
@@ -476,7 +474,7 @@ void printMemNodeMap( ) {
     uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
     uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
     uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;
-    uint16_t        nvmuserMapOfs                   = NVM_USER_MAP_START;
+    uint16_t        nvmUserMapOfs                   = NVM_USER_MAP_START;
     uint32_t        nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
 
     uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
@@ -519,21 +517,21 @@ void printMemPortMap( ) {
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        printf( "Port %d:\n", i + 1 );
+        LcsPortMapEntry *ptr = &portMap.map[ i ];
+
+        printf( "Port %02d: Type: %02d, Options: 0x%04x, Flags: 0x%04x\n", 
+                i + 1,  
+                ptr -> type,
+                ptr -> options,
+                ptr -> flags );
 
         /*
-        
-        uint16_t  options                       = 0;
-        uint16_t  flags                         = 0;
-        uint16_t  type                          = 0;
-
         uint16_t  eventNodeId                   = NIL_NODE_ID;
         uint16_t  eventId                       = NIL_EVENT_ID;
         uint16_t  eventValue                    = 0;
         uint16_t  eventAction                   = PEA_EVENT_IDLE;
         uint16_t  eventDelayTime                = 0;
         uint32_t  eventTimeStamp                = 0L;
-
         char      name[ MAX_PORT_NAME_SIZE  ]   = { 0 };
 
         // add the port data area ?
@@ -552,16 +550,6 @@ void printMemEventMap( ) {
 
     // print the entries up to the HWM, 4 in a row ?
    
-    printf( "\n" );
-}
-
-void printMemPendingReqMap( ) {
-
-    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", nodeMap.pendingMapEntries, nodeMap.pendingMapHwm );
-
-    // does it make sense to print this dynamic data ?
-    
-    
     printf( "\n" );
 }
 
@@ -697,18 +685,20 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 void switchToConfigCommand( char *s ) {
 
-    uint16_t npId = 0;
+    int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%hu", &npId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) < 1 ) return( errorArgList( ));
 
-    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId = (uint16_t) npId;
+
+    if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
         uint8_t msg[ 8 ] = { LCS_OP_CFG };
         handleMsgLcsMgt( msg );
     }
     else {
 
-        uint8_t ret = sendCfg( npId );
+        uint8_t ret = sendCfg( tmpNpId );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
     }
 }
@@ -723,18 +713,20 @@ void switchToConfigCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void switchToOperationsCommand( char *s ) {
 
-    uint16_t npId = 0;
+    int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%hu", &npId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) < 1 ) return( errorArgList( ));
 
-    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId = (uint16_t) npId;
+
+    if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
         uint8_t msg[ 8 ] = { LCS_OP_OPS };
         handleMsgLcsMgt( msg );
     }
     else {
 
-        uint8_t ret = sendOps( npId );
+        uint8_t ret = sendOps( tmpNpId );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
     }
 }
@@ -752,20 +744,24 @@ void switchToOperationsCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void enterEventCommand( char *s ) {
 
-    uint16_t  npId      = 0;
-    uint16_t  eventId   = NIL_EVENT_ID;
-    uint16_t  portId    = NIL_PORT_ID;
+    int  npId      = NIL_NODE_ID;
+    int  eventId   = NIL_EVENT_ID;
+    int  portId    = NIL_PORT_ID;
 
-    if ( sscanf( s, "%hu %hu %hu ", &npId, &eventId, &portId ) < 2 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 2 ) return( errorArgList( ));
 
-   if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint16_t tmpEvent   = (uint16_t) eventId;
+    uint16_t tmpPort    = (uint16_t) portId;
 
-        uint8_t ret = nodeReq( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, &eventId, &portId );
+   if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
+
+        uint8_t ret = nodeReq((uint16_t) tmpNpId, ITEM_ID_ADD_EVENT_MAP_ENTRY, &tmpEvent, &tmpPort );
        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node enter event error", ret );
     }
     else {
 
-        uint8_t ret = sendReqNode( nodeId( npId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, eventId, portId );
+        uint8_t ret = sendReqNode( nodeId( tmpNpId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, tmpEvent, tmpPort );                  
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
     }
 }
@@ -783,20 +779,24 @@ void enterEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void removeEventCommand( char *s ) {
 
-    uint16_t  eventId   = NIL_EVENT_ID;
-    uint16_t  portId    = NIL_PORT_ID;
-    uint16_t  npId      =  0;
+    int  npId      = NIL_NODE_ID;
+    int  eventId   = NIL_EVENT_ID;
+    int  portId    = NIL_PORT_ID;
 
-    if ( sscanf( s, "%hu %hu %hu ", &npId, &eventId, &portId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 1 ) return( errorArgList( ));
 
-    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint16_t tmpEvent   = (uint16_t) eventId;
+    uint16_t tmpPort    = (uint16_t) portId;
 
-        int ret = nodeReq( npId, ITEM_ID_DEL_EVENT_MAP_ENTRY, &eventId, &portId );
+    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
+
+        int ret = nodeReq( tmpNpId, ITEM_ID_DEL_EVENT_MAP_ENTRY, &tmpEvent, &tmpPort );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node remove event error", ret );
     }
     else {
 
-        uint8_t ret = sendReqNode( nodeMap.nodeId, ITEM_ID_DEL_EVENT_MAP_ENTRY, eventId, portId );
+        uint8_t ret = sendReqNode( tmpNpId, ITEM_ID_DEL_EVENT_MAP_ENTRY, tmpEvent, tmpPort );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
     }
 }
@@ -814,12 +814,15 @@ void removeEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void findEventCommand( char *s ) {
 
-    uint16_t  eventId   = NIL_EVENT_ID;
-    uint16_t  portId    = NIL_PORT_ID;
+    int  eventId   = NIL_EVENT_ID;
+    int  portId    = NIL_PORT_ID;
 
-    if ( sscanf( s, "%hu %hu ", &eventId, &portId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i ", &eventId, &portId ) < 1 ) return( errorArgList( ));
 
-    int ret = searchEvent( eventId, portId );
+    uint16_t tmpEvent   = (uint16_t) eventId;
+    uint16_t tmpPort    = (uint16_t) portId;
+
+    int ret = searchEvent( tmpEvent, tmpPort );
     printf( "Event map index: %d", ret );
 }
 
@@ -837,41 +840,45 @@ void findEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void sendEventCommand( char *s ) {
 
-    uint8_t     msg[ 8 ]    = { };
-    uint16_t    npId        = NIL_NODE_ID;
-    uint16_t    eventId     = NIL_EVENT_ID;
-    uint8_t     mode        = 0;
-    uint16_t    arg         = 0;
-    uint8_t     len         = 0;
-    uint8_t     ret         = 0;
+    uint8_t msg[ 8 ]    = { };
+    int     npId        = NIL_NODE_ID;
+    int     eventId     = NIL_EVENT_ID;
+    int     mode        = 0;
+    int     arg         = 0;
+    int     len         = 0;
+    uint8_t ret         = ALL_OK;
 
-    len = sscanf( s, "%hhu %hu %hu %hu", &mode, &npId, &eventId, &arg );
+    len = sscanf( s, "%i %i %i %i", &mode, &npId, &eventId, &arg );
+
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint16_t tmpEvent   = (uint16_t) eventId;
+    uint16_t tmpArg     = (uint16_t) arg;
 
     if ( len < 3 ) return( errorArgList( ));
 
     msg[ 0 ] = 0;
-    msg[ 1 ] = highByte( npId );
-    msg[ 2 ] = lowByte( npId );
-    msg[ 3 ] = highByte( eventId );
-    msg[ 4 ] = lowByte( eventId );
-    msg[ 5 ] = highByte( arg );
-    msg[ 6 ] = lowByte( arg );
+    msg[ 1 ] = highByte( tmpNpId );
+    msg[ 2 ] = lowByte( tmpNpId );
+    msg[ 3 ] = highByte( tmpEvent );
+    msg[ 4 ] = lowByte( tmpEvent );
+    msg[ 5 ] = highByte( tmpArg );
+    msg[ 6 ] = lowByte( tmpArg );
     msg[ 7 ] = 0;
 
     if ( mode == 0 ) {
 
         msg[ 0 ] = LCS_OP_EVT_ON;
-        ret = sendEventOn( npId, eventId ); 
+        ret = sendEventOn( tmpNpId, tmpEvent ); 
     }
     else if ( mode == 0 ) {
 
         msg[ 0 ] = LCS_OP_EVT_OFF;
-        ret = sendEventOn( npId, eventId ); 
+        ret = sendEventOn( tmpNpId, tmpEvent ); 
     }
     else if ( mode == 2 ) {
 
         msg[ 0 ] = LCS_OP_EVT;
-        ret = sendEvent( npId, eventId, arg ); 
+        ret = sendEvent( tmpNpId, tmpEvent, tmpArg ); 
     }
 
     if ( ret != ALL_OK ) errorStatusMsg((char *) "Send event error", ret );
@@ -891,23 +898,28 @@ void sendEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void getNodeCommand( char *s ) {
 
-    uint16_t  npId    = 0;
-    uint8_t   item    = 0;
-    uint16_t  arg1    = 0;
-    uint16_t  arg2    = 0;
-    uint8_t   ret     = ALL_OK;
+    int     npId    = 0;
+    int     item    = 0;
+    int     arg1    = 0;
+    int     arg2    = 0;
+    uint8_t ret     = ALL_OK;
 
-    if ( sscanf( s, "%hu %hhu %hu %hu", &npId, &item, &arg1, &arg2  ) < 2 ) return( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) return( errorArgList( ));
 
-    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint8_t  tmpItem    = (uint8_t) item;
+    uint16_t tmpArg1    = (uint16_t) arg1;
+    uint16_t tmpArg2    = (uint16_t) arg2;
 
-        ret = nodeGet( npId, item, &arg1, &arg2 );
+    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
+
+        ret = nodeGet ( tmpNpId, tmpItem, &tmpArg1, &tmpArg2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node GET error", ret );
-        else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", npId, item, arg1, arg2 );
+        else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", tmpNpId, tmpItem, tmpArg1, tmpArg2 );
     }
     else {
 
-        ret = sendGetNode( npId, item, arg1, arg2 );
+        ret = sendGetNode( tmpNpId, tmpItem, tmpArg1, tmpArg2 );
          if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node GET error", ret );
     }
 }
@@ -926,23 +938,30 @@ void getNodeCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void putNodeCommand( char *s ) {
 
-    uint16_t  npId  = 0;
-    uint8_t   item  = 0;
-    uint16_t  val1  = 0;
-    uint16_t  val2  = 0;
-    uint8_t   ret   = ALL_OK;
+    int     npId    = 0;
+    int     item    = 0;
+    int     val1    = 0;
+    int     val2    = 0;
+    uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
 
-    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpVal1    = (uint16_t) val1;
+    uint16_t tmpVal2    = (uint16_t) val2;
+
+    printf ( "val1: %d\n", val1 );
+
+    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodePut( npId, item, val1, val2 );
+        ret = nodePut( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node PUT error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", npId, item, val1, val2 );
+        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 
-        ret = sendSetNode( npId, item, val1, val2 );
+        ret = sendSetNode( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node PUT error", ret );
     }
 }
@@ -961,23 +980,28 @@ void putNodeCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void reqNodeCommand( char *s ) {
 
-    uint16_t  npId  = 0;
-    uint8_t   item  = 0;
-    uint16_t  val1  = 0;
-    uint16_t  val2  = 0;
-    uint8_t   ret   = ALL_OK;
+    int     npId    = 0;
+    int     item    = 0;
+    int     val1    = 0;
+    int     val2    = 0;
+    uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%hu %hhu %hu %hu", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
 
-    if (( npId == 0 ) || ( nodeId( npId ) == nodeMap.nodeId )) {
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpVal1    = (uint16_t) val1;
+    uint16_t tmpVal2    = (uint16_t) val2;
+
+    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodeReq( npId, item, &val1, &val2 );
+        ret = nodeReq( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node REQ error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", npId, item, val1, val2 );
+        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", tmpNpId, tmpItem, tmpVal1, tmpVal1 );
     }
     else {
 
-        ret = sendReqNode( npId, item, val1, val2 );
+        ret = sendReqNode( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node REQ error", ret );
     }
 }
@@ -994,11 +1018,14 @@ void reqNodeCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void broadcastLcsMsgCommand( char *s ) {
 
-    uint8_t b[ 8 ] = { 0 };
-    uint8_t nBytes  = sscanf( s, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                                b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7 );
+    int     inBuf[ 8 ]  = { 0 };
+    uint8_t b[ 8 ]      = { 0 };
+    uint8_t nBytes  = sscanf( s, "%i %i %i %i %i %i %i %i",
+                            inBuf, inBuf + 1, inBuf + 2, inBuf + 3, inBuf + 4, inBuf + 5, inBuf + 6, inBuf + 7 );
 
     if ( nBytes >= 1 && nBytes <= 8 ) {
+
+        for ( int i = 0; i < 8; i++ ) b[ i ] == (uint8_t) inBuf[ i ];
 
         uint8_t ret = msgBus -> sendLcsMsg( b ); 
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Can Bus send error", ret );
@@ -1019,17 +1046,21 @@ void broadcastLcsMsgCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void drvGetCommand( char *s ) {
 
-    uint8_t  boardId  = 0;
-    uint8_t  item     = 0;
-    uint16_t arg      = 0;
-    uint8_t  ret      = 0;
+    int  boardId    = 0;
+    int  item       = 0;
+    int  arg        = 0;
+    int  ret        = ALL_OK;
 
-    if ( sscanf( s, "%hhu %hhu", &boardId, &item ) < 2 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i", &boardId, &item ) < 2 ) return( errorArgList( ));
 
-    ret = drvGet( boardId, item, &arg );
+    uint16_t tmpBoard   = (uint8_t) boardId;
+    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpArg     = (uint16_t) arg;
+  
+    ret = drvGet( tmpBoard, tmpItem, &tmpArg );
 
     if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver GET error", ret );
-    else printf( "Board: %d, item: %d, arg: 0x%x\n", boardId, item, &arg );
+    else printf( "Board: %d, item: %d, arg: 0x%x\n", tmpBoard, tmpItem, tmpArg );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1046,17 +1077,21 @@ void drvGetCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void drvPutCommand( char *s ) {
 
-    uint8_t  boardId  = 0;
-    uint8_t  item     = 0;
-    uint16_t val      = 0;
-    uint8_t  ret      = 0;
+    int  boardId    = 0;
+    int  item       = 0;
+    int  val        = 0;
+    int  ret        = ALL_OK;
 
-    if ( sscanf( s, "%hhu %hhu %hu", &boardId, &item, &val ) < 3 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i %i", &boardId, &item, &val ) < 3 ) return( errorArgList( ));
 
-    ret = drvPut( boardId, item, val );
+    uint16_t tmpBoard   = (uint8_t) boardId;
+    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpVal     = (uint16_t) val;
+
+    ret = drvPut( tmpBoard, tmpItem, tmpVal );
     
     if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver PUT error", ret );
-    else printf( "Board: %d, item: %d, arg: 0x%x\n", boardId, item, &val );
+    else printf( "Board: %d, item: %d, arg: 0x%x\n", tmpBoard, tmpItem, tmpVal );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1072,18 +1107,23 @@ void drvPutCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void drvReqCommand( char *s ) {
 
-    uint8_t  boardId  = 0;
-    uint8_t  item     = 0;
-    uint16_t arg1     = 0;
-    uint16_t arg2     = 0;
-    uint8_t  ret      = 0;
+    int     boardId  = 0;
+    int     item     = 0;
+    int     arg1     = 0;
+    int     arg2     = 0;
+    uint8_t ret      = ALL_OK;
 
-    if ( sscanf( s, "%hhu %hhu %hu %hu", &boardId, &item, &arg1, &arg2 ) < 2 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i %i %i", &boardId, &item, &arg1, &arg2 ) < 2 ) return( errorArgList( ));
 
-    ret = drvReq( boardId, item, &arg1, &arg2 );
+    uint16_t tmpBoard   = (uint8_t) boardId;
+    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpArg1     = (uint16_t) arg1;
+    uint16_t tmpArg2     = (uint16_t) arg2;
+
+    ret = drvReq( tmpBoard, tmpItem, &tmpArg1, &tmpArg2 );
 
     if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver REQ error", ret );
-    else printf( "Board: %d, item: %d, arg1: 0x%x, arg2: 0x%x\n", boardId, item, &arg1, &arg2 );
+    else printf( "Board: %d, item: %d, arg1: 0x%x, arg2: 0x%x\n", tmpBoard, tmpItem, tmpArg1, tmpArg2 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1098,7 +1138,7 @@ void listStatusCommand( char *s ) {
 
     int level = 0;
 
-    if ( sscanf( s, " %d", &level ) > 0 ) {
+    if ( sscanf( s, " %i", &level ) > 0 ) {
 
         switch ( level ) {
 
@@ -1123,14 +1163,20 @@ void listStatusCommand( char *s ) {
             case 25:    dumpNvmEventMap( );         break;
             case 26:    dumpNvmRuntimeArea( );      break;
 
-            case 30:    dumpNvmDrvData( 0 );        break;
-            case 31:    dumpNvmDrvData( 1 );        break;
-            case 32:    dumpNvmDrvData( 2 );        break;
-            case 33:    dumpNvmDrvData( 3 );        break;
+            case 31:    printMemNodeMap( );         break;
+            case 32:    printMemCdcMap( );          break;
+            case 33:    printMemPortMap( );         break;
+            case 35:    printMemEventMap( );        break;
+            case 38:    printMemDrvMap( );          break;
+            
+            case 40:    dumpNvmDrvData( 0 );        break;
+            case 41:    dumpNvmDrvData( 1 );        break;
+            case 42:    dumpNvmDrvData( 2 );        break;
+            case 43:    dumpNvmDrvData( 3 );        break;
 
-            case 40:    listDevicesI2C( );          break;   
+            case 50:    listDevicesI2C( );          break;   
 
-            default: printf( "<Unknown help option, use '?' for help>" );
+            default: printf( "Unknown help option, use '?' for help\n" );
         }
     } 
     else printSummary( );
@@ -1184,12 +1230,18 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -  25  - NVM Event Map\n" );
     printf( "              " " -  26  - NVM Runtime Area\n" );
 
-    printf( "              " " -  30  - NVM Extension Board 0\n" );
-    printf( "              " " -  31  - NVM Extension Board 1\n" );
-    printf( "              " " -  32  - NVM Extension Board 2\n" );
-    printf( "              " " -  33  - NVM Extension Board 3\n" );
+    printf( "              " " -  31  - MEM Node Map formatted\n" );
+    printf( "              " " -  32  - MEM CDC Map formatted\n" );
+    printf( "              " " -  33  - NVM Port Map formatted\n" );
+    printf( "              " " -  35  - MEM Event Map formatted\n" );
+    printf( "              " " -  38  - MEM Driver Map formatted\n" );
 
-    printf( "              " " -  40  - I2C Devices\n" );
+    printf( "              " " -  40  - NVM Extension Board 0\n" );
+    printf( "              " " -  41  - NVM Extension Board 1\n" );
+    printf( "              " " -  42  - NVM Extension Board 2\n" );
+    printf( "              " " -  43  - NVM Extension Board 3\n" );
+
+    printf( "              " " -  50  - I2C Devices\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------

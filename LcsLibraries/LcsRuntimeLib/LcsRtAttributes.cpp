@@ -476,7 +476,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
             case ITEM_ID_NODE_ID: {
 
                 nodeMap.nodeId = nodeId( val1 );
-                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), val1 ));
+                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
             }
 
             case ITEM_ID_TYPE: {
