@@ -288,8 +288,7 @@ struct LcsBlockTrack {
     void                        powerStop( );
     bool                        isPowerOn( );
     bool                        isPowerOverload( );
-    bool                        isCutoutOn( );
-
+   
     void                        railComOn( );
     void                        railComOff( );
     bool                        isRailComOn( );
@@ -302,7 +301,6 @@ struct LcsBlockTrack {
     uint16_t                    getRMSCurrent( );
 
     void                        checkOverload( );
-
     void                        powerMeasurement( );
 
     void                        startRailComIO( );

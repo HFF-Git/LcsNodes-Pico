@@ -4,6 +4,13 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
+//
+// ??? contains the code that manage the track power
+//
+// ??? leverage the DCC track module in base station.
+//
+// ??? descriptor has to specify the four pins for each H-Bridge
+//
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS Block Controller - Track Power
@@ -24,18 +31,6 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
-#include <math.h>
-
-// ??? contains the code that manage the track power
-
-// ??? leverage the DCC track module in base station.
-
-// ??? descriptor has to specify the four pins for each H-Bridge
-
-
-#if 0
-
-
 #include <math.h>
 
 //------------------------------------------------------------------------------------------------------------
@@ -526,7 +521,9 @@ void printLog( ) {
 // Object instance section. The DccTrack constructor. Nothing to do so far.
 //
 //------------------------------------------------------------------------------------------------------------
-LcsBaseStationDccTrack::LcsBaseStationDccTrack( ) { }
+LcsBlockTrack::LcsBlockTrack( ) { }
+
+#if 0
 
 //------------------------------------------------------------------------------------------------------------
 // "setupDccTrack" performs the setup tasks for the DCC track.  We will configure the hardware, the DCC
@@ -1077,7 +1074,6 @@ void LcsBaseStationDccTrack::powerMeasurement( ) {
     }
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // The log management routines. A typical transaction to log would start the logging process and then end
 // it after the operation to analyze/debug. The "enableLog" call should be used to enable the logging
@@ -1258,5 +1254,3 @@ void LcsBaseStationDccTrack::printDccTrackStatus( ) {
 
 
 #endif
-
-
