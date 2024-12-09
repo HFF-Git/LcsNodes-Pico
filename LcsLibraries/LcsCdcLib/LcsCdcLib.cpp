@@ -69,7 +69,7 @@ using namespace CDC;
 // and tracing of LCS libraries and programs, this library will have to be recompiled to enable debugging.
 //
 //------------------------------------------------------------------------------------------------------------
-#define CDC_DEBUG 0
+#define CDC_DEBUG 1
 
 //------------------------------------------------------------------------------------------------------------  
 // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
@@ -1080,6 +1080,8 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 // To do .... ( there is a way via the pwm_Config CSR field... )
 //
 // ??? should we have also a kind of PWM pair ? Is that even possible ?
+// ??? do we need more PWM pins ? The PICO is really flexible ?
+// ??? combine DIO and PWM somehow ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
@@ -1110,7 +1112,6 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
 
     #if CDC_DEBUG == 1
-   
     printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
                 pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
     #endif
@@ -1119,6 +1120,10 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
 }
 
 uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
+
+    #if CDC_DEBUG == 1
+    printf( "Write PWM: Pin: %d, duty: %d\n", pwmPin, dutyCycle );
+    #endif
 
     PwmInst *pwm = nullptr;
 
@@ -1134,12 +1139,17 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     if ( dutyCycle == 0 ) {
 
         pwm_set_enabled( sliceNum, false );
-        writeDio( pwmPin, false );
+        gpio_put( pwmPin, false );
     }
     else if ( dutyCycle == 255 ) {
 
         pwm_set_enabled( sliceNum, false );
-        writeDio( pwmPin, true );
+
+        #if CDC_DEBUG == 1
+        printf( "Write GPIO true: Pin: %d\n", pwmPin );
+        #endif
+
+        gpio_put( pwmPin, true );
     }
     else {
 

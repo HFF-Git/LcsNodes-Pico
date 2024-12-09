@@ -4,6 +4,13 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
+// ??? this is a first cut at the block controller software. It remains to be seen what we should factor out
+// and use across base station and block controller.
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+//
 // LCS Block Controller
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
@@ -114,32 +121,32 @@ enum BlockControllerDebugFlags : uint16_t {
 // in the LCS runtime library. 
 //
 //------------------------------------------------------------------------------------------------------------
-enum BaseStationErrors : uint8_t {
+enum BlockControllerErrors : uint8_t {
 
-    BLOCK_CONTROLLER_ERR_BASE         = 128,
+    BLOCK_CONTROLLER_ERR_BASE       = 128,
 
-    ERR_MSG_INTERFACE_SETUP           = BLOCK_CONTROLLER_ERR_BASE + 10,
-    ERR_DCC_TRACK_CONFIG              = BLOCK_CONTROLLER_ERR_BASE + 11,
-    ERR_DCC_PIN_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 12,
+    ERR_MSG_INTERFACE_SETUP         = BLOCK_CONTROLLER_ERR_BASE + 10,
+    ERR_DCC_TRACK_CONFIG            = BLOCK_CONTROLLER_ERR_BASE + 11,
+    ERR_PIN_CONFIG                  = BLOCK_CONTROLLER_ERR_BASE + 12,
+
+    ERR_TRACK_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 13,
 
 
-    ERR_NVM_HW_SETUP                  = BLOCK_CONTROLLER_ERR_BASE + 15,
-    ERR_PIO_HW_SETUP                  = BLOCK_CONTROLLER_ERR_BASE + 16
+    ERR_NVM_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 15,
+    ERR_PIO_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 16
 };
 
 //------------------------------------------------------------------------------------------------------------
 // Setup options to set for the DCC track. They are set when the track object is created.
 //
 //  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
-//  DT_OPT_CUTOUT              - The track is configured to emit a cutout during the DCC packet preamble.
 //  DT_OPT_RAILCOM             - The track support Railcom detection.
 //
 //------------------------------------------------------------------------------------------------------------
 enum BlockControllerTrackOptions : uint16_t {
 
     BT_OPT_DEFAULT_SETTING      = 0,
-    BT_OPT_CUTOUT               = 1 << 1,
-    BT_OPT_RAILCOM              = 1 << 2
+    BT_OPT_RAILCOM              = 1 << 1
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -155,16 +162,13 @@ enum BlockControllerTrackOptions : uint16_t {
 //  DT_F_CONFIG_ERROR         - The passed configuration descriptor has invalid options configured.
 //
 //------------------------------------------------------------------------------------------------------------
-enum DccTrackFlags : uint16_t {
+enum TrackFlags : uint16_t {
 
     BT_F_DEFAULT_SETTING      = 0,
     BT_F_POWER_ON             = 1 << 0,
-    DT_F_POWER_OVERLOAD       = 1 << 1,
+    BT_F_POWER_OVERLOAD       = 1 << 1,
     BT_F_MEASUREMENT_ON       = 1 << 2,
-    BT_F_SERVICE_MODE_ON      = 1 << 3,
-    DT_F_CUTOUT_MODE_ON       = 1 << 4,
     BT_F_RAILCOM_MODE_ON      = 1 << 5,
-    BT_F_DCC_PACKET_PENDING   = 1 << 6,
     BT_F_RAILCOM_MSG_PENDING  = 1 << 7,
     BT_F_CONFIG_ERROR         = 1 << 15
 };
@@ -178,12 +182,6 @@ enum DccTrackFlags : uint16_t {
 const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
 const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
-//------------------------------------------------------------------------------------------------------------
-// The RailCom buffer size. During the cutout period up to eight bytes of raw data are sent by the decoder if
-// the Railcom option is enabled.
-//
-//------------------------------------------------------------------------------------------------------------
-const uint8_t   RAILCOM_BUF_SIZE = 8;
 
 //------------------------------------------------------------------------------------------------------------
 // The base station items for nodeInfo and nodeControl calls .... tbd
@@ -196,9 +194,9 @@ enum BlockControllerItems : uint8_t {
    
 
     BC_ITEM_INIT_CURRENT_VAL      = 140,
-    BC_ITEM_LIMIT_CURRENT_VAL     = 140,
-    BC_ITEM_MAX_CURRENT_VAL       = 140,
-    BC_ITEM_ACTUAL_CURRENT_VAL     = 140,
+    BC_ITEM_LIMIT_CURRENT_VAL     = 141,
+    BC_ITEM_MAX_CURRENT_VAL       = 142,
+    BC_ITEM_ACTUAL_CURRENT_VAL     = 143,
 
     // thresholds
 
@@ -210,12 +208,7 @@ enum BlockControllerItems : uint8_t {
 // 
 //
 //----------------------------------------------------------------------------------------------------------
-const uint32_t  MAIN_TRACK_STATE_TIME_INTERVAL  = 10;
-const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
-const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
-
-const uint16_t  MAX_CAB_SESSIONS                = 64;
-
+const uint32_t TRACK_STATE_TIME_INTERVAL  = 10;
 
 //------------------------------------------------------------------------------------------------------------
 // The block controller can contain up to four blocks. Each block track is described by the LcsBlockDesc
@@ -236,6 +229,8 @@ struct LcsBlockTrackDesc {
     uint8_t     selPin2                         = CDC::UNDEFINED_PIN;
     uint8_t     sensePin                        = CDC::UNDEFINED_PIN;
     uint8_t     uartRxPin                       = CDC::UNDEFINED_PIN;
+
+    uint16_t    pwmFrequency                    = 70;
 
     uint16_t    initCurrentMilliAmp             = 0;
     uint16_t    limitCurrentMilliAmp            = 0;
@@ -311,8 +306,8 @@ struct LcsBlockTrack {
     uint32_t                    getPwrSamplesTaken( );
     uint16_t                    getPwrSamplesPerSec( );
 
-    void                        printDccTrackConfig( );
-    void                        printDccTrackStatus( );
+    void                        printTrackConfig( );
+    void                        printTrackStatus( );
 
     void                        enableLog( bool arg );
     void                        beginLog( );
@@ -339,6 +334,7 @@ struct LcsBlockTrack {
     uint8_t                     sensePin                        = CDC::UNDEFINED_PIN;
     uint8_t                     uartRxPin                       = CDC::UNDEFINED_PIN;
 
+    uint16_t                    pwmFrequency                    = 0;
     uint16_t                    initCurrentMilliAmp             = 0;
     uint16_t                    limitCurrentMilliAmp            = 0;
     uint16_t                    maxCurrentMilliAmp              = 0;
@@ -354,7 +350,6 @@ struct LcsBlockTrack {
     volatile uint16_t           actualCurrentDigitValue         = 0;
     volatile uint16_t           highWaterMarkDigitValue         = 0;
     volatile uint16_t           limitCurrentDigitValue          = 0;
-    uint16_t                    ackThresholdDigitValue          = 0;
 
     uint32_t                    totalPwrSamplesTaken            = 0;
     uint32_t                    lastPwrSampleTimeStamp          = 0;
@@ -362,15 +357,6 @@ struct LcsBlockTrack {
     uint32_t                    lastPwrSamplePerSecTaken        = 0;
     uint32_t                    lastPwrSamplePerSecTimeStamp    = 0;
     uint32_t                    pwrSamplesPerSec                = 0;
-
-    // ??? to add....
-    
-    // sample values per second for samples and dcc packets
-    // buffers for POM / XPOM data
-    // queue for POM / XPOM commands
-
-    uint8_t                     railComBufIndex                         = 0;
-    uint8_t                     railComMsgBuf[ RAILCOM_BUF_SIZE ]       = { 0 };
 
     uint8_t                     pwrSampleBufIndex                       = 0;
     uint16_t                    pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]     = { 0 };

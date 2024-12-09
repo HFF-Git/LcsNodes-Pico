@@ -38,7 +38,11 @@ using namespace LCS;
 uint16_t                        debugMask;
 CDC::CdcConfigDesc              cdcConfig;
 LCS::LcsConfigDesc              lcsConfig;
-LcsBlockControllerLogic         *bcLogic;
+LcsBlockTrackDesc               block1Desc;
+LcsBlockTrackDesc               block2Desc;
+
+LcsBlockTrack                   *block1 = nullptr;
+LcsBlockTrack                   *block2 = nullptr;
 
 // ??? other BC specific global data ...
 
@@ -71,7 +75,7 @@ LcsBlockControllerLogic         *bcLogic;
 // pin names used should not change. But we would need to come up with an idea which configuration to use
 // when preparing an image for the base station board.
 //----------------------------------------------------------------------------------------------------------
-void setupConfigInfo( ) {
+uint8_t setupConfigInfo( ) {
 
     cdcConfig = CDC::getConfigDefault( );
     lcsConfig = LCS::getConfigDefault( );
@@ -89,6 +93,11 @@ void setupConfigInfo( ) {
     cdcConfig.DIO_PIN_4             = 19;  
     cdcConfig.DIO_PIN_5             = 18;    
     cdcConfig.DIO_PIN_7             = 4;    
+
+    cdcConfig.PWM_PIN_0             = 21;
+    cdcConfig.PWM_PIN_1             = 20;
+    cdcConfig.PWM_PIN_2             = 19;
+    cdcConfig.PWM_PIN_3             = 18;
 
     cdcConfig.UART_RX_PIN_1         = 13;
     cdcConfig.UART_RX_PIN_2         = 9;
@@ -110,7 +119,58 @@ void setupConfigInfo( ) {
     cdcConfig.EXT_NVM_SIZE          = 4096;
 
     lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG;
+
+    return( ALL_OK );
 }
+
+uint8_t setupBlockDesc1( ) {
+
+    block1Desc.options                         = 0;
+    block1Desc.selPin1                         = cdcConfig.PWM_PIN_0;
+    block1Desc.selPin2                         = cdcConfig.PWM_PIN_1;
+    block1Desc.sensePin                        = cdcConfig.ADC_PIN_0;
+    block1Desc.uartRxPin                       = CDC::UNDEFINED_PIN;
+
+    block1Desc.pwmFrequency                    = 70;
+
+    block1Desc.initCurrentMilliAmp             = 500;
+    block1Desc.limitCurrentMilliAmp            = 1500;
+    block1Desc.maxCurrentMilliAmp              = 2000;
+    block1Desc.milliVoltPerAmp                 = 100 * 11; // ??? opAmp has Factor eleven ...
+
+    block1Desc.startTimeThresholdMillis        = 1000;
+    block1Desc.stopTimeThresholdMillis         = 500;
+    block1Desc.overloadTimeThresholdMillis     = 500;
+    block1Desc.overloadEventThreshold          = 10;
+    block1Desc.overloadRestartThreshold        = 5;
+
+    return( ALL_OK );
+}
+
+uint8_t setupBlockDesc2( ) {
+
+    block1Desc.options                         = 0;
+    block1Desc.selPin1                         = cdcConfig.PWM_PIN_2;
+    block1Desc.selPin2                         = cdcConfig.PWM_PIN_3;
+    block1Desc.sensePin                        = cdcConfig.ADC_PIN_1;
+    block1Desc.uartRxPin                       = CDC::UNDEFINED_PIN;
+
+    block1Desc.pwmFrequency                    = 70;
+
+    block1Desc.initCurrentMilliAmp             = 500;
+    block1Desc.limitCurrentMilliAmp            = 1500;
+    block1Desc.maxCurrentMilliAmp              = 2000;
+    block1Desc.milliVoltPerAmp                 = 100 * 11; // ??? opAmp has Factor eleven ...
+
+    block1Desc.startTimeThresholdMillis        = 1000;
+    block1Desc.stopTimeThresholdMillis         = 500;
+    block1Desc.overloadTimeThresholdMillis     = 500;
+    block1Desc.overloadEventThreshold          = 10;
+    block1Desc.overloadRestartThreshold        = 5;
+
+    return( ALL_OK );
+}
+
 
 //------------------------------------------------------------------------------------------------------------
 // Some little helper functions.
@@ -197,9 +257,7 @@ uint8_t lcsCmdCallback( char *cmdLine ) {
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
     printf( "MsgCallback: ", msg  );
-
-    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
-    printf( "\n" );
+    printLcsMsg( msg );
     return( ALL_OK );
 }
 
@@ -236,6 +294,17 @@ uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t
     return( ALL_OK );
 }
 
+//------------------------------------------------------------------------------------------------------------
+// We need to run the track state machines on a periodic basis.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t tackStateMachine( ) {
+
+    if ( block1 != nullptr ) block1 -> runDccTrackStateMachine( );
+    if ( block2 != nullptr ) block2 -> runDccTrackStateMachine( );
+    return( ALL_OK );
+}
+
 //----------------------------------------------------------------------------------------------------------
 // Init the Runtime.
 //
@@ -244,7 +313,7 @@ uint8_t initLcsRuntime( ) {
 
     setupConfigInfo( );
   
-    uint8_t rStat = LCS::initRuntime( &lcsConfig, &cdcConfig );
+    uint8_t rStat = initRuntime( &lcsConfig, &cdcConfig );
     printf( "LCS Block Controller\n" );
     
     CDC::printConfigInfo( &cdcConfig );
@@ -269,6 +338,7 @@ uint8_t registerCallbacks( ) {
     registerReqCallback( lcsReqCallback );
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
+    registerTaskCallback( tackStateMachine, 10 ); // ?? for testing just use 10ms
    
     return( ALL_OK );
 }
@@ -281,35 +351,53 @@ uint8_t registerCallbacks( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t startBlockController( ) {
 
+    printf( "Start Block controller\n" );
+
     uint8_t rStat = ALL_OK; 
     
-    if ( rStat == ALL_OK ) ; // ??? add block controller objects....
+    block1 = new LcsBlockTrack( );
+    block2 = new LcsBlockTrack( );
 
+   // if ( rStat == ALL_OK ) block1 -> setupBlockTrack( &block1Desc );
+   // if ( rStat == ALL_OK ) block1 -> setupBlockTrack( &block2Desc );
 
     // ??? for the quick test ....
-    printf( "Configure DIO pins" );
-    CDC::configurePwm( cdcConfig.DIO_PIN_2, 70 );
-    CDC::configurePwm( cdcConfig.DIO_PIN_3, 70 );
-    CDC::configurePwm( cdcConfig.DIO_PIN_4, 70 );
-    CDC::configurePwm( cdcConfig.DIO_PIN_5, 70 );
+    printf( "Configure PWM pins\n" );
+    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_0, 70 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
 
-    printf( "Set output to pins" );
-    CDC::writePwm(cdcConfig.DIO_PIN_2, 1 );
-    CDC::writePwm(cdcConfig.DIO_PIN_3, 1 );
-    CDC::writePwm(cdcConfig.DIO_PIN_4, 1 );
-    CDC::writePwm(cdcConfig.DIO_PIN_5, 1 );
+    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_1, 70 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
 
+    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_2, 70 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
 
+    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_3, 70 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
+
+    printf( "Set output to pins\n" );
+    rStat = CDC::writePwm(cdcConfig.PWM_PIN_0, 255 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
+    rStat = CDC::writePwm(cdcConfig.PWM_PIN_1, 255 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
+    rStat = CDC::writePwm(cdcConfig.PWM_PIN_2, 255 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
+    rStat = CDC::writePwm(cdcConfig.PWM_PIN_3, 255 );
+    if ( rStat != ALL_OK ) printStatus( rStat );
+
+    printf( "Block 1 Config:" );
+    if ( block1 != nullptr ) block1 -> printTrackConfig( );
+
+    printf( "Block 2 Config:" );
+    if ( block2 != nullptr ) block2 -> printTrackConfig( );
 
     if ( rStat == ALL_OK ) {
 
-       
         printf( "Ready...\n" );
-    
         startRuntime( );
-  }
+    }
 
-  return( ALL_OK );
+    return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
