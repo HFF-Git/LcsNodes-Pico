@@ -227,16 +227,6 @@ struct LcsMsgBusCAN {
     uint16_t  canId = 0;
 };
 
-//----------------------------------------------------------------------------------------------------------
-// Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
-// pin configuration data. Currently, the CDC config data is set directly by the application. We copy this
-// data to the "cfg" structure. One day, we may store this data in the descriptor. So far, this is more of
-// a place holder.
-//----------------------------------------------------------------------------------------------------------
-struct LcsCdcDesc {
-
-    CDC::CdcConfigDesc cfg;
-};
 
 //----------------------------------------------------------------------------------------------------------
 // Each NVM memory, ie the NVM on the controller board or an extension board, starts with the header data
@@ -258,6 +248,17 @@ struct LcsNvmHeader {
 }; 
 
 //----------------------------------------------------------------------------------------------------------
+// Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
+// pin configuration data. Currently, the CDC config data is set directly by the application. We copy this
+// data to the "cfg" structure. One day, we may store this data in the descriptor. So far, this is more of
+// a place holder.
+//----------------------------------------------------------------------------------------------------------
+struct LcsCdcMap {
+
+    CDC::CdcConfigDesc cfg;
+};
+
+//----------------------------------------------------------------------------------------------------------
 // An LCS node and the ports on the node each have an area of variables that are in memory as well as in 
 // the node NVM. Typical usage examples are configuration items such as a limit value. Upon power up or 
 // reset, the node data from the NVM area is copied to the MEM counterpart. Although the node and port 
@@ -268,70 +269,6 @@ struct LcsNvmHeader {
 struct LcsNodeData {
 
     uint16_t map[ MAX_PORT_MAP_ENTRIES + 1 ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
-};
-
-//----------------------------------------------------------------------------------------------------------
-// The first locations of the NVM area on the controller board NVM chip represent the nodeMap. It is the 
-// heart of all data on the node. When bringing up a node, we read in the node map from the NVM. The first 
-// check is whether the nodeMap read is a valid nodeMap. 
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsNodeMap {
-
-    //------------------------------------------------------------------------------------------------------
-    // NMV header. We read this in first an check for validity.
-    //------------------------------------------------------------------------------------------------------
-    LcsNvmHeader    head;
-    
-    //------------------------------------------------------------------------------------------------------
-    // Node data.
-    //
-    //------------------------------------------------------------------------------------------------------
-    uint16_t        nodeState                       = NS_NIL;
-    uint16_t        nodeOptions                     = 0;
-    uint16_t        nodeFlags                       = 0;
-    uint16_t        nodeId                          = NIL_NODE_ID;
-    uint32_t        nodeUID                         = 0L;
-    uint16_t        nodeType                        = NIL_NODE_TYPE;   
-    uint16_t        nodeSwVersion                   = 0;
-    uint16_t        nodeSwPatchLevel                = 0;
-    uint16_t        nodeRestartCnt                  = 0;
-    uint32_t        nodeSystemTime                  = 0;
-    uint16_t        nodeMapSize                     = sizeof( LcsNodeMap );  
-    char            name[ MAX_NODE_NAME_SIZE ]      = { 0 };
-
-    //------------------------------------------------------------------------------------------------------
-    // Runtime area offsets in the NVM.
-    //
-    //------------------------------------------------------------------------------------------------------
-    uint16_t        nvmNodeMapOfs                   = NVM_NODE_MAP_START;
-    uint16_t        nvmCdcMapOfs                    = NVM_CDC_MAP_START;
-    uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
-    uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
-    uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;
-    uint16_t        nvmuserMapOfs                   = NVM_USER_MAP_START;
-    uint32_t        nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
-
-    //------------------------------------------------------------------------------------------------------
-    // The number of entries in the core areas and a high water mark.
-    //------------------------------------------------------------------------------------------------------
-    uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
-    uint16_t        portMapHwm                      = 0;
-
-    uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
-    uint16_t        eventMapHwm                     = 0;
-
-    uint16_t        taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
-    uint16_t        taskMapHwm                      = 0;
-
-    uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
-    uint16_t        pendingMapHwm                   = 0;
-
-    uint16_t        drvFuncMapEntries               = MAX_DRV_TYPES;
-    uint16_t        drvFuncMapHwm                   = 0;
-
-    uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
-    uint16_t        drvMapHwm                       = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -379,6 +316,84 @@ struct LcsEventMapEntry {
 struct LcsEventMap {
 
     LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
+};
+
+//----------------------------------------------------------------------------------------------------------
+// The first locations of the NVM area on the controller board NVM chip represent the nodeMap. It is the 
+// heart of all data on the node. When bringing up a node, we read in the node map from the NVM. The first 
+// check is whether the nodeMap read is a valid nodeMap. 
+//
+//----------------------------------------------------------------------------------------------------------
+struct LcsNodeMap {
+
+    //------------------------------------------------------------------------------------------------------
+    // NMV header. We read this in first an check for validity.
+    //------------------------------------------------------------------------------------------------------
+    LcsNvmHeader    head;
+    
+    //------------------------------------------------------------------------------------------------------
+    // Node data.
+    //
+    //------------------------------------------------------------------------------------------------------
+    uint16_t        nodeState                       = NS_NIL;
+    uint16_t        nodeOptions                     = 0;
+    uint16_t        nodeFlags                       = 0;
+    uint16_t        nodeId                          = NIL_NODE_ID;
+    uint32_t        nodeUID                         = 0L;
+    uint16_t        nodeType                        = NIL_NODE_TYPE;   
+    uint16_t        nodeSwVersion                   = 0;
+    uint16_t        nodeSwPatchLevel                = 0;
+    uint16_t        nodeRestartCnt                  = 0;
+    uint32_t        nodeSystemTime                  = 0;
+    uint16_t        nodeMapSize                     = sizeof( LcsNodeMap );  
+    char            name[ MAX_NODE_NAME_SIZE ]      = { 0 };
+
+    //------------------------------------------------------------------------------------------------------
+    // Runtime area offsets in the NVM. We also keep track of the data structure sizes and check when we
+    // read in the maps that they match a give library version.
+    //
+    //------------------------------------------------------------------------------------------------------
+    uint16_t        nvmNodeMapOfs                   = NVM_NODE_MAP_START;
+    uint16_t        nvmNodeMapSize                  = sizeof( LcsNodeMap );
+
+    uint16_t        nvmCdcMapOfs                    = NVM_CDC_MAP_START;
+    uint16_t        nvmCdcMapSize                   = sizeof( LcsCdcMap );
+
+    uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
+    int16_t         nvmPortMapSize                  = sizeof( LcsPortMap );
+
+    uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
+    uint16_t        nvmNodeDataSize                 = sizeof( LcsNodeData );
+
+    uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;
+    uint16_t        nvmEventMapSize                 = sizeof( LcsEventMap );
+
+    uint16_t        nvmUserMapOfs                   = NVM_USER_MAP_START;
+    uint16_t        nvmUserMapSize                  = 0;
+    
+    uint32_t        nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
+
+    //------------------------------------------------------------------------------------------------------
+    // The number of entries in the core areas and a high water mark.
+    //
+    //------------------------------------------------------------------------------------------------------
+    uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
+    uint16_t        portMapHwm                      = 0;
+
+    uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
+    uint16_t        eventMapHwm                     = 0;
+
+    uint16_t        taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t        taskMapHwm                      = 0;
+
+    uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
+    uint16_t        pendingMapHwm                   = 0;
+
+    uint16_t        drvFuncMapEntries               = MAX_DRV_TYPES;
+    uint16_t        drvFuncMapHwm                   = 0;
+
+    uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t        drvMapHwm                       = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------

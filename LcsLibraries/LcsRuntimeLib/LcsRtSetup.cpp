@@ -66,20 +66,20 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    uint16_t                    debugMask    = 0;
-    uint16_t                    startOptions = 0;
+    uint16_t                debugMask    = 0;
+    uint16_t                startOptions = 0;
 
-    LCS::LcsCdcDesc             cdcMap;
-    LCS::LcsMsgBusCAN           *msgBus;
-    LCS::LcsNodeData            nodeData;
-    LCS::LcsNodeMap             nodeMap;
-    LCS::LcsPortMap             portMap;
-    LCS::LcsEventMap            eventMap;
-    LCS::LcsCallbackMap         callbackMap;
-    LCS::LcsPendingReqMap       pendingReqMap;
-    LCS::LcsTaskMap             taskMap;
-    LCS::LcsDrvFuncMap          drvFuncMap;
-    LCS::LcsDrvMap              drvMap;
+    LcsCdcMap               cdcMap;
+    LcsMsgBusCAN            *msgBus;
+    LcsNodeData             nodeData;
+    LcsNodeMap              nodeMap;
+    LcsPortMap              portMap;
+    LcsEventMap             eventMap;
+    LcsCallbackMap          callbackMap;
+    LcsPendingReqMap        pendingReqMap;
+    LcsTaskMap              taskMap;
+    LcsDrvFuncMap           drvFuncMap;
+    LcsDrvMap               drvMap;
 }
     
 //------------------------------------------------------------------------------------------------------------
@@ -176,6 +176,7 @@ void buildDefaultNodeData( LcsNodeData *nData ) {
 // "buildNvmRuntimeStructures" initializes a new or corrupt runtime NVM with default data. After successful
 // completion, we will have a valid runtime map.
 //
+// ??? CDC map business ???
 //------------------------------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructures( ) {
 
@@ -184,6 +185,8 @@ uint8_t buildNvmRuntimeStructures( ) {
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures\n" );
 
     rtNvmClearArea( NVM_NODE_MAP_START, NVM_RUNTIME_AREA_SIZE );
+
+    // ??? build default CDC map ?
 
     buildDefaultNodeMap( &nodeMap );
     buildDefaultPortMap( &portMap );
@@ -357,6 +360,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 // heart of any internal board communication. After the I2C channels are initialized, we will configure the
 // NVM library. If all is OK, we can talk to all NVMs on the boards making up the node.
 //
+// ??? should we assume a "architectural" setting of the IC2 channels and not rely on CDC map ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t initNvmChannels( CDC::CdcConfigDesc *ci ) {
 
@@ -392,6 +396,7 @@ uint8_t initNvmChannels( CDC::CdcConfigDesc *ci ) {
 // Next is CAN bus setup. The message bus is the central communication mechanism. If we can also get it up 
 // early we could use it not only for configurations and operations but perhaps for remote troubleshooting. 
 //
+// ??? should we assume a "architectural" setting of the CAN channel and not rely on CDC map ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 
@@ -424,6 +429,7 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 // In any case, the follow-on setup routines can assume a valid data structure to work from and just read 
 // the NVM as normal. If this routine has an error it should be considered as a fatal error.
 //
+// ??? check the sizes of the maps, load CDC map if we only have a board type ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
@@ -451,6 +457,8 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
     if (( nodeMap.head.magicWord1 != NVM_MWORD_1 ) || 
         ( nodeMap.head.magicWord2 != NVM_MWORD_2 ) || 
         ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
+
+            // ??? check the sizes of the maps ???
 
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
             printf( "setupNodeMap: invalid header, re-format\n" );

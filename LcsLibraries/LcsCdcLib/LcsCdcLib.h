@@ -215,6 +215,8 @@ struct CdcConfigDesc {
     uint8_t   PWM_PIN_2;
     uint8_t   PWM_PIN_3;
 
+    // ??? do we need more for quad controller ?
+
     uint8_t   UART_RX_PIN_0;
     uint8_t   UART_TX_PIN_0;
 

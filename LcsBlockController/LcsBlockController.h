@@ -309,16 +309,6 @@ struct LcsBlockTrack {
     void                        printTrackConfig( );
     void                        printTrackStatus( );
 
-    void                        enableLog( bool arg );
-    void                        beginLog( );
-    void                        endLog( );
-    void                        printLog( );
-
-    void                        writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
-    void                        writeLogId( uint8_t id );
-    void                        writeLogTs( );
-    void                        writeLogVal( uint8_t valId, uint16_t val );
-
     private:
 
     uint16_t                    options                         = BT_OPT_DEFAULT_SETTING;
@@ -399,7 +389,7 @@ struct LcsBlockControllerLogic {
 
     LcsBlockControllerLogic( LcsBlockDesc *blockDesc );
 
-    uint8_t setupBlocks( );
+    uint8_t handleLcsRequest( uint8_t *msg );
 
     private:
 

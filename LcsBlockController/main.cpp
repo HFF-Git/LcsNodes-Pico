@@ -99,6 +99,8 @@ uint8_t setupConfigInfo( ) {
     cdcConfig.PWM_PIN_2             = 19;
     cdcConfig.PWM_PIN_3             = 18;
 
+    // ??? more PWM channels ?
+
     cdcConfig.UART_RX_PIN_1         = 13;
     cdcConfig.UART_RX_PIN_2         = 9;
 
@@ -192,6 +194,8 @@ uint8_t printStatus (uint8_t status ) {
   return ( status );
 }
 
+// ??? pass the callbacks to block controller logic ?
+
 //----------------------------------------------------------------------------------------------------------
 // The node and port initialization callback.
 //
@@ -271,6 +275,8 @@ uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *ar
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
     if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
     if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+
+    
     return( ALL_OK );
 }
 

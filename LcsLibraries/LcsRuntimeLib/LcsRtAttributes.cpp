@@ -34,12 +34,12 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t                     debugMask;
-    extern LCS::LcsCdcDesc              cdcMap;
-    extern LCS::LcsNodeMap              nodeMap;
-    extern LCS::LcsNodeData             nodeData;
-    extern LCS::LcsPortMap              portMap;
-    extern LCS::LcsCallbackMap          callbackMap;
+    extern uint16_t                debugMask;
+    extern LcsCdcMap               cdcMap;
+    extern LcsNodeMap              nodeMap;
+    extern LcsNodeData             nodeData;
+    extern LcsPortMap              portMap;
+    extern LcsCallbackMap          callbackMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -449,7 +449,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_DEBUG_MASK: {
 
-                if ( CDC::isConsoleConnected( ))    debugMask = val1;           
+                if ( CDC::isConsoleConnected( ))    debugMask = val1 | DBG_CONFIG;           
                 else                                debugMask = val1 & ~ DBG_CONFIG;
               
                 return( ALL_OK );
@@ -475,7 +475,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_NODE_ID: {
 
-                nodeMap.nodeId = nodeId( val1 );
+                nodeMap.nodeId = val1;
                 return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
             }
 

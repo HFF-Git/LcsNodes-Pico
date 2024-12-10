@@ -21,10 +21,12 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
+
 #include "LcsBlockController.h"
 
 // ??? contains the main code, the setup, the message handler, etc.
 
+using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -35,5 +37,23 @@ LcsBlockControllerLogic::LcsBlockControllerLogic( LcsBlockDesc *blockDesc ) {
     this -> blockDesc = blockDesc;
 
 }
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+ uint8_t LcsBlockControllerLogic::handleLcsRequest( uint8_t *msg ) {
+
+    switch ( msg[ 0 ] ) {
+
+        // ??? define a few request for testing ...
+
+        default: ;
+    }
+
+    return( ALL_OK );
+ }
+
+
 
 

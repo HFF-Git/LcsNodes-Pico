@@ -31,10 +31,10 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t             debugMask;
-    extern LCS::LcsCdcDesc      cdcMap;
-    extern LCS::LcsNodeMap      nodeMap;
-    extern LCS::LcsDrvMap       drvMap;
+    extern uint16_t         debugMask;
+    extern LcsCdcMap        cdcMap;
+    extern LcsNodeMap       nodeMap;
+    extern LcsDrvMap        drvMap;
 };
 
 //------------------------------------------------------------------------------------------------------------

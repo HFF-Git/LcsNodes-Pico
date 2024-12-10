@@ -30,17 +30,17 @@
 //-----------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t                 debugMask;
-    extern LCS::LcsCdcDesc          cdcMap;
-    extern LCS::LcsNodeMap          nodeMap;
-    extern LCS::LcsPortMap          portMap;
-    extern LCS::LcsEventMap         eventMap;
-    extern LCS::LcsCallbackMap      callbackMap;
-    extern LCS::LcsTaskMap          taskMap;
-    extern LCS::LcsPendingReqMap    pendingReqMap;
-    extern LCS::LcsDrvFuncMap       drvFuncMap;
-    extern LCS::LcsDrvMap           drvMap;
-    extern LCS::LcsMsgBusCAN        *msgBus;
+    extern uint16_t             debugMask;
+    extern LcsCdcMap            cdcMap;
+    extern LcsNodeMap           nodeMap;
+    extern LcsPortMap           portMap;
+    extern LcsEventMap          eventMap;
+    extern LcsCallbackMap       callbackMap;
+    extern LcsTaskMap           taskMap;
+    extern LcsPendingReqMap     pendingReqMap;
+    extern LcsDrvFuncMap        drvFuncMap;
+    extern LcsDrvMap            drvMap;
+    extern LcsMsgBusCAN         *msgBus;
 };
 
 //------------------------------------------------------------------------------------------------------------
