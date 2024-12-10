@@ -386,9 +386,9 @@ uint8_t startBlockController( ) {
     if ( rStat != ALL_OK ) printStatus( rStat );
     rStat = CDC::writePwm(cdcConfig.PWM_PIN_1, 255 );
     if ( rStat != ALL_OK ) printStatus( rStat );
-    rStat = CDC::writePwm(cdcConfig.PWM_PIN_2, 255 );
+    rStat = CDC::writePwm(cdcConfig.PWM_PIN_2, 0 );
     if ( rStat != ALL_OK ) printStatus( rStat );
-    rStat = CDC::writePwm(cdcConfig.PWM_PIN_3, 255 );
+    rStat = CDC::writePwm(cdcConfig.PWM_PIN_3, 120 );
     if ( rStat != ALL_OK ) printStatus( rStat );
 
     printf( "Block 1 Config:" );

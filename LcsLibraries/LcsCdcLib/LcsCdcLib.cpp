@@ -69,7 +69,7 @@ using namespace CDC;
 // and tracing of LCS libraries and programs, this library will have to be recompiled to enable debugging.
 //
 //------------------------------------------------------------------------------------------------------------
-#define CDC_DEBUG 1
+#define CDC_DEBUG 0
 
 //------------------------------------------------------------------------------------------------------------  
 // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
@@ -187,11 +187,11 @@ struct AdcInst {
 //------------------------------------------------------------------------------------------------------------
 struct PwmInst {
 
-    bool      configured  = false;
-    uint8_t   pwmPin      = CDC::UNDEFINED_PIN;
-    uint32_t  wrap        = 0;
-
-    // ??? what else to keep around ?
+    bool        configured  = false;
+    uint8_t     pwmPin      = CDC::UNDEFINED_PIN;
+    uint        wrap        = 0;
+    uint        channel     = 0;
+    uint        sliceNum    = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1102,6 +1102,8 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
 
     pwm -> pwmPin  = pwmPin;
     pwm -> wrap    = sysClock * 16 / clkDiv / pwmFreqency - 1;
+    pwm -> sliceNum = pwm_gpio_to_slice_num( pwmPin );
+    pwm -> channel  = pwm_gpio_to_channel( pwmPin );
 
     pwm_config pwmConfig = pwm_get_default_config( );
     gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
@@ -1110,10 +1112,13 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     pwm_config_set_output_polarity( &pwmConfig, inverted, inverted );
     pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
     pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
+    pwm_set_enabled( pwm_gpio_to_slice_num( pwmPin ), true );
 
-    #if CDC_DEBUG == 1
-    printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, clkDiv: % d, wrap: % d \n",
-                pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, clkDiv, pwm -> wrap );
+    #if CDC_DEBUG == 0
+    printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, " 
+            "clkDiv: % d, wrap: %d, sliceNum: %d, channel: %d\n",
+            pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, 
+            clkDiv, pwm -> wrap, pwm -> sliceNum, pwm -> channel );
     #endif
 
     return ( NO_ERR );
@@ -1121,7 +1126,7 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
 
 uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 
-    #if CDC_DEBUG == 1
+    #if CDC_DEBUG == 0
     printf( "Write PWM: Pin: %d, duty: %d\n", pwmPin, dutyCycle );
     #endif
 
@@ -1133,28 +1138,22 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
     else                                return ( PWM_PIN_ERR );
 
-    uint sliceNum = pwm_gpio_to_slice_num( pwmPin );
-    uint channel  = pwm_gpio_to_channel( pwmPin );
-
     if ( dutyCycle == 0 ) {
 
-        pwm_set_enabled( sliceNum, false );
-        gpio_put( pwmPin, false );
+        gpio_set_function( pwm -> pwmPin, GPIO_FUNC_SIO );
+        gpio_set_dir( pwm -> pwmPin, GPIO_OUT );
+        gpio_put( pwm -> pwmPin, 0 );
     }
     else if ( dutyCycle == 255 ) {
 
-        pwm_set_enabled( sliceNum, false );
-
-        #if CDC_DEBUG == 1
-        printf( "Write GPIO true: Pin: %d\n", pwmPin );
-        #endif
-
-        gpio_put( pwmPin, true );
+        gpio_set_function( pwm -> pwmPin, GPIO_FUNC_SIO );
+        gpio_set_dir( pwm -> pwmPin, GPIO_OUT);
+        gpio_put( pwm -> pwmPin, 1 );
     }
     else {
 
-        pwm_set_chan_level( sliceNum, channel, ( pwm -> wrap * dutyCycle / 256 ));
-        pwm_set_enabled( sliceNum, true );
+        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 256 ));
+        pwm_set_enabled( pwm -> sliceNum, true );
     }
 
     return ( NO_ERR );
