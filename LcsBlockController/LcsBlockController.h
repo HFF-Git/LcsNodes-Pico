@@ -113,7 +113,6 @@ enum BlockControllerDebugFlags : uint16_t {
     DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,        // show the incoming LCS messages
     DBG_BC_TRACK_POWER_MGMT        = 1 << 3,        // show the track power measurement data
     DBG_BC_RAILCOM                 = 1 << 4         // show the RailCom activity
-
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -128,9 +127,7 @@ enum BlockControllerErrors : uint8_t {
     ERR_MSG_INTERFACE_SETUP         = BLOCK_CONTROLLER_ERR_BASE + 10,
     ERR_DCC_TRACK_CONFIG            = BLOCK_CONTROLLER_ERR_BASE + 11,
     ERR_PIN_CONFIG                  = BLOCK_CONTROLLER_ERR_BASE + 12,
-
     ERR_TRACK_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 13,
-
 
     ERR_NVM_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 15,
     ERR_PIO_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 16
@@ -191,17 +188,15 @@ const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 //------------------------------------------------------------------------------------------------------------
 enum BlockControllerItems : uint8_t {
 
-   
+    BC_ITEM_SET_TRACK_STATE         = 64,
 
-    BC_ITEM_INIT_CURRENT_VAL      = 140,
-    BC_ITEM_LIMIT_CURRENT_VAL     = 141,
-    BC_ITEM_MAX_CURRENT_VAL       = 142,
-    BC_ITEM_ACTUAL_CURRENT_VAL     = 143,
+    BC_ITEM_INIT_CURRENT_VAL        = 140,
+    BC_ITEM_LIMIT_CURRENT_VAL       = 141,
+    BC_ITEM_MAX_CURRENT_VAL         = 142,
+    BC_ITEM_ACTUAL_CURRENT_VAL      = 143,
 
     // thresholds
-
     // eventID to send for events ?
-
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -231,6 +226,8 @@ struct LcsBlockTrackDesc {
     uint8_t     uartRxPin                       = CDC::UNDEFINED_PIN;
 
     uint16_t    pwmFrequency                    = 70;
+    uint16_t    initialBlockState               = 3;
+    uint16_t    initialBlockSpeed               = 0;
 
     uint16_t    initCurrentMilliAmp             = 0;
     uint16_t    limitCurrentMilliAmp            = 0;
@@ -244,18 +241,6 @@ struct LcsBlockTrackDesc {
     uint16_t    overloadRestartThreshold        = 0;
 };
 
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-struct LcsBlockDesc {
-
-
-
-};
-
 //------------------------------------------------------------------------------------------------------------
 // 
 //
@@ -266,13 +251,11 @@ struct LcsBlockDesc {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBlockTrack {
 
-
     public:
 
     LcsBlockTrack( );
 
     uint8_t                     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
-
     uint8_t                     setBlockTrackState( uint8_t state, uint8_t speed );
     
     uint16_t                    getFlags( );
@@ -325,6 +308,8 @@ struct LcsBlockTrack {
     uint8_t                     uartRxPin                       = CDC::UNDEFINED_PIN;
 
     uint16_t                    pwmFrequency                    = 0;
+    uint16_t                    initialBlockState               = 3;
+    uint16_t                    initialBlockSpeed               = 0;
     uint16_t                    initCurrentMilliAmp             = 0;
     uint16_t                    limitCurrentMilliAmp            = 0;
     uint16_t                    maxCurrentMilliAmp              = 0;

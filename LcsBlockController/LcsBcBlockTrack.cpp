@@ -201,6 +201,8 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     sensePin                    = trackDesc -> sensePin;
     uartRxPin                   = trackDesc -> uartRxPin;
     pwmFrequency                = trackDesc -> pwmFrequency;
+    initialBlockState           = trackDesc -> initialBlockState;
+    initialBlockSpeed           = trackDesc -> initialBlockSpeed;
     initCurrentMilliAmp         = trackDesc -> initCurrentMilliAmp;
     limitCurrentMilliAmp        = trackDesc -> limitCurrentMilliAmp;
     maxCurrentMilliAmp          = trackDesc -> maxCurrentMilliAmp;
@@ -221,24 +223,79 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     lastPwrSamplePerSecTaken    = 0;
     pwrSamplesPerSec            = 0;
 
-    CDC::configurePwm( selPin1, pwmFrequency );
-    CDC::configurePwm( selPin2, pwmFrequency );
-    CDC::configureAdc( sensePin );
+    uint8_t rStat = CDC::configurePwm( selPin1, pwmFrequency );
+    if ( rStat == ALL_OK ) rStat = CDC::configurePwm( selPin2, pwmFrequency );
+    if ( rStat == ALL_OK ) rStat = CDC::configureAdc( sensePin );
+    if ( rStat == ALL_OK ) rStat = setBlockTrackState( initialBlockState, initialBlockSpeed );
 
-    CDC::writePwm( selPin1, 0 );
-    CDC::writePwm( selPin1, 0 );
+    if ( rStat == ALL_OK ) {
 
-    if ( trackDesc -> options & BT_OPT_RAILCOM ) {
+        if ( trackDesc -> options & BT_OPT_RAILCOM ) {
 
-        flags |= BT_F_RAILCOM_MODE_ON;
-        if ( CDC::configureUart( uartRxPin, CDC::UNDEFINED_PIN, 250000, CDC::UART_MODE_8N1 ) != ALL_OK ) {
-
-            flags = BT_F_CONFIG_ERROR;
-            return ( ERR_TRACK_CONFIG );
+            rStat = CDC::configureUart( uartRxPin, CDC::UNDEFINED_PIN, 250000, CDC::UART_MODE_8N1 );
+            if ( rStat == ALL_OK )  flags |= BT_F_RAILCOM_MODE_ON;   
         }
     }
 
-    return ( ALL_OK );
+    if ( rStat != ALL_OK ) flags |= BT_F_CONFIG_ERROR;
+    return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "setBlockTrackState" sets the control output pins for the block controller H-Bridge.
+//
+// ??? assign constants to the numbers....
+//------------------------------------------------------------------------------------------------------------
+uint8_t LcsBlockTrack::setBlockTrackState( uint8_t state, uint8_t speed ) {
+
+    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+
+        printf( "setBlockTrackState: state: %d, speed: %d\n", state, speed );
+    }
+
+    uint8_t rStat;
+
+    switch( state ) {
+
+        case 0: {
+
+            rStat = CDC::writePwm( selPin1, 0 );
+            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
+            return( rStat );
+
+        } break;
+
+        case 1: {
+
+            rStat = CDC::writePwm( selPin1, 0 );
+            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, speed );
+            return( rStat );
+
+        } break;
+
+        case 2: {
+
+            rStat = CDC::writePwm( selPin1, speed );
+            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
+            return( rStat );
+
+        } break;
+
+        case 3: {
+
+            rStat = CDC::writePwm( selPin1, 255 );
+            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 255 );
+            return( rStat );
+
+        } break;
+
+        default: {
+
+            rStat = CDC::writePwm( selPin1, 0 );
+            rStat = CDC::writePwm( selPin2, 0 );
+            return( ALL_OK );                           // ??? an error code ?
+        };
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -571,19 +628,21 @@ void LcsBlockTrack::printTrackConfig( ) {
 
     printf( "DccTrack Config: " );
 
-    printf( " Config options: ( 0x%x ) -> ", flags );
-    
+    printf( "Config options: ( 0x%x ) -> ", flags );
     if ( options & BT_OPT_RAILCOM ) printf( "Railcom " );
     printf( "\n" );
 
-    printf( " Current Initial(mA): %d Current Limit(mA): %d Current Max(mA): %d\n",
-            getInitCurrent( ), getLimitCurrent( ), getMaxCurrent( ));
-    printf( " milliVoltPerAmp: %d\n", milliVoltPerAmp ); 
-    printf( " digitsPerAmp: %d\n", digitsPerAmp );
-    printf( " Limit Digit Value: %d\n", limitCurrentDigitValue );
-   
-    printf( " Sel1 Pin: %d, Sel2 Pin: %d, Sensor Pin: %d, RailCom Pin: %d\n",
+    printf( "Sel1 Pin: %d, Sel2 Pin: %d, Sensor Pin: %d, RailCom Pin: %d\n",
             selPin1, selPin2, sensePin, uartRxPin );
+
+    printf( "Initial Block State: %d, speed: %d\n", initialBlockState, initialBlockSpeed );
+
+    printf( "Current Initial(mA): %d Current Limit(mA): %d Current Max(mA): %d\n",
+            getInitCurrent( ), getLimitCurrent( ), getMaxCurrent( ));
+
+    printf( "milliVoltPerAmp: %d\n", milliVoltPerAmp ); 
+    printf( "digitsPerAmp: %d\n", digitsPerAmp );
+    printf( "Limit Digit Value: %d\n", limitCurrentDigitValue );
 }
 
 //------------------------------------------------------------------------------------------------------------

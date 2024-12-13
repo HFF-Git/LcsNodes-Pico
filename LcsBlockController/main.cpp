@@ -276,7 +276,22 @@ uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *ar
     if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
     if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
 
-    
+    switch( item ) {
+
+        case 64: {
+
+            uint16_t port = npId & 0xF;
+
+            if      ( port == 1 ) block1 -> setBlockTrackState( *arg1 & 0xFF, *arg2 & 0xFF );
+            else if ( port == 2 ) block2 -> setBlockTrackState( *arg1 & 0xFF, *arg2 & 0xFF );
+
+        } break;
+
+        default: {
+
+        }
+    }
+
     return( ALL_OK );
 }
 
@@ -364,9 +379,15 @@ uint8_t startBlockController( ) {
     block1 = new LcsBlockTrack( );
     block2 = new LcsBlockTrack( );
 
-   // if ( rStat == ALL_OK ) block1 -> setupBlockTrack( &block1Desc );
-   // if ( rStat == ALL_OK ) block1 -> setupBlockTrack( &block2Desc );
+    printf( "Configure Block 1\n" );
+    rStat = block1 -> setupBlockTrack( &block1Desc );
+    if ( rStat != ALL_OK ) printStatus( rStat );
 
+    printf( "Configure Block 2\n" );
+    rStat = block1 -> setupBlockTrack( &block2Desc );
+    if ( rStat != ALL_OK ) printStatus( rStat );
+
+    #if 0   
     // ??? for the quick test ....
     printf( "Configure PWM pins\n" );
     rStat = CDC::configurePwm( cdcConfig.PWM_PIN_0, 70 );
@@ -390,6 +411,7 @@ uint8_t startBlockController( ) {
     if ( rStat != ALL_OK ) printStatus( rStat );
     rStat = CDC::writePwm(cdcConfig.PWM_PIN_3, 120 );
     if ( rStat != ALL_OK ) printStatus( rStat );
+    #endif
 
     printf( "Block 1 Config:" );
     if ( block1 != nullptr ) block1 -> printTrackConfig( );
