@@ -4,6 +4,11 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
+//
+//
+// ??? contains the main code, the setup, the message handler, etc.
+//------------------------------------------------------------------------------------------------------------
+// 
 // LCS Block Controller
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
@@ -24,35 +29,22 @@
 
 #include "LcsBlockController.h"
 
-// ??? contains the main code, the setup, the message handler, etc.
-
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
-LcsBlockControllerLogic::LcsBlockControllerLogic(  ) {
 
-   
+//------------------------------------------------------------------------------------------------------------
+LcsBlockControllerNode::LcsBlockControllerNode(  ) {
+
 
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
- uint8_t LcsBlockControllerLogic::handleLcsRequest( uint8_t *msg ) {
 
-    switch ( msg[ 0 ] ) {
+// ??? need a routine who reads in the descriptor data from the NVM.
 
-        // ??? define a few request for testing ...
 
-        default: ;
-    }
-
-    return( ALL_OK );
- }
 
 
 

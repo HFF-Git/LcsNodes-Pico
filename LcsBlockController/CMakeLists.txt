@@ -22,11 +22,13 @@ if ( TARGET tinyusb_device )
     
         LcsBlockController.h 
         main.cpp
+        LcsBcNode.cpp
+        LcsBcControl.cpp 
         LcsBcBlockTrack.cpp 
         LcsBcOccDetect.cpp
         LcsBcSignalControl.cpp
         LcsBcTurnoutControl.cpp
-        LcsBcLogic.cpp 
+        
     )
     
     target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )

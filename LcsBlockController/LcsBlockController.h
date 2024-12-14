@@ -410,39 +410,52 @@ struct LcsRailComDetect {
     // ??? need to remember the extension board ID.
 };
 
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
-// "LcsBlockControllerLogic" manages a set of blocks available in the block controller hardware.
+// "LcsBlockControl" manages a block. A block consists mainly of the tack itself and the optional elements
+// detectors, signal and turnouts. The block logic, i.e. what to do when the next block is occupied, is 
+// handled here.
 //
 //
 // ??? runs the block logic
-// ??? how to manage one to four blocks ?
 // ??? how to assign occ detect an signals to the block ?
 // ??? should message handling be a separate part ?
 // ??? can we build the control logic in such a way that it is configurable via ITEMs ?
 //------------------------------------------------------------------------------------------------------------
-struct LcsBlockControllerLogic {
+struct LcsBlockControl {
 
-
-    LcsBlockControllerLogic(  );
+    LcsBlockControl(  );
 
     uint8_t handleLcsRequest( uint8_t *msg );
 
     private:
 
-    
+    // ??? handles to detect, signal and turnout object.
+
 };
 
-
 //------------------------------------------------------------------------------------------------------------
-// Do we need an object that encompasses all blocks ?
+// A LCS block controller node can host up to four blocks. This object is the main object that manages the
+// blocks on the node.
 //
-// ??? or just an array of block controller logic objects ?
+// ??? the node descriptor is an array of block descriptors. They are kept in the NVM ?
+// ??? manages the LCS messages and forwards them to the target block.
 //------------------------------------------------------------------------------------------------------------
+struct LcsBlockControllerNode {
 
+    public: 
+
+    LcsBlockControllerNode( );
+
+    // ??? setup
+    // ??? targets for the LCS callbacks ?
+
+    private:
+
+    uint16_t    options     = 0;
+    uint16_t    flags       = 0;
+    uint16_t    hwm         = 0;
+
+    LcsBlockControl map[ 4 ];
+};
 
 #endif
