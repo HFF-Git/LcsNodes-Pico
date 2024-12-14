@@ -131,7 +131,6 @@ uint8_t setupBlockDesc1( ) {
     block1Desc.selPin1                         = cdcConfig.PWM_PIN_0;
     block1Desc.selPin2                         = cdcConfig.PWM_PIN_1;
     block1Desc.sensePin                        = cdcConfig.ADC_PIN_0;
-    block1Desc.uartRxPin                       = CDC::UNDEFINED_PIN;
 
     block1Desc.pwmFrequency                    = 70;
 
@@ -155,7 +154,6 @@ uint8_t setupBlockDesc2( ) {
     block1Desc.selPin1                         = cdcConfig.PWM_PIN_2;
     block1Desc.selPin2                         = cdcConfig.PWM_PIN_3;
     block1Desc.sensePin                        = cdcConfig.ADC_PIN_1;
-    block1Desc.uartRxPin                       = CDC::UNDEFINED_PIN;
 
     block1Desc.pwmFrequency                    = 70;
 
@@ -172,7 +170,6 @@ uint8_t setupBlockDesc2( ) {
 
     return( ALL_OK );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // Some little helper functions.
@@ -195,11 +192,14 @@ uint8_t printStatus (uint8_t status ) {
 }
 
 // ??? pass the callbacks to block controller logic ?
+// ??? the object must implement these methods...
 
 //----------------------------------------------------------------------------------------------------------
 // The node and port initialization callback.
 //
 // ??? when we know what ports we actually need / use, disable the rest of the ports.
+// ??? the number of ports / blocks should be note in the block descriptor.
+// ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId ) {
 
@@ -215,6 +215,7 @@ uint8_t lcsInitCallback( uint16_t npId ) {
 //----------------------------------------------------------------------------------------------------------
 // The node or port reset callback.
 //
+// ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsResetCallback( uint16_t npId ) {
 
@@ -230,6 +231,7 @@ uint8_t lcsResetCallback( uint16_t npId ) {
 //----------------------------------------------------------------------------------------------------------
 // The node or port power fail callback.
 //
+// ??? invoke the configured block pfail method in the block controller logic object...
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
@@ -243,20 +245,9 @@ uint8_t lcsPfailCallback( uint16_t npId ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// The base station has also a command line interpreter. The callback is invoked by the core library when
-// there is a command that it does not handle.
-//
-// ??? should we have a block controller specific command interpreter ?
-//----------------------------------------------------------------------------------------------------------
-uint8_t lcsCmdCallback( char *cmdLine ) {
-
-   
-    return( ALL_OK );
-}
-
-//----------------------------------------------------------------------------------------------------------
 // Other LCS message callbacks. All we do is to list their invocation. ( for now )
 //
+// ??? this should go out ....
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
@@ -269,6 +260,7 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 // When the base station node receives a request with an item defined in the user item range or the base
 // station itself issues such a request, the defined callback is invoked.
 //
+// ??? pass to the block controller logic...
 //------------------------------------------------------------------------------------------------------------
 uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
@@ -282,8 +274,8 @@ uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *ar
 
             uint16_t port = npId & 0xF;
 
-            if      ( port == 1 ) block1 -> setBlockTrackState( *arg1 & 0xFF, *arg2 & 0xFF );
-            else if ( port == 2 ) block2 -> setBlockTrackState( *arg1 & 0xFF, *arg2 & 0xFF );
+            if      ( port == 1 ) block1 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
+            else if ( port == 2 ) block2 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
 
         } break;
 
@@ -298,6 +290,7 @@ uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *ar
 //------------------------------------------------------------------------------------------------------------
 // When the base station gets a reply message for a request previously sent, this callback is invoked.
 //
+// ??? pass to the block that requested...
 //------------------------------------------------------------------------------------------------------------
 uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
 
@@ -306,8 +299,9 @@ uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t arg1, uint16_t arg2
 }
 
 //------------------------------------------------------------------------------------------------------------
-// For any event on the LCS system that the base station is interested in, this callback is invoked.
+// For any event on the LCS system that the block controller is interested in, this callback is invoked.
 //
+// ??? what events to listen to ? where are they configured/set ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
 
@@ -318,11 +312,14 @@ uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t
 //------------------------------------------------------------------------------------------------------------
 // We need to run the track state machines on a periodic basis.
 //
+//
+// ??? we actually need an array of track machines ?
+// ??? or should we register each one individually ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t tackStateMachine( ) {
+uint8_t trackStateMachine( ) {
 
-    if ( block1 != nullptr ) block1 -> runDccTrackStateMachine( );
-    if ( block2 != nullptr ) block2 -> runDccTrackStateMachine( );
+    if ( block1 != nullptr ) block1 -> runTrackStateMachine( );
+    if ( block2 != nullptr ) block2 -> runTrackStateMachine( );
     return( ALL_OK );
 }
 
@@ -332,15 +329,15 @@ uint8_t tackStateMachine( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-    setupConfigInfo( );
-  
-    uint8_t rStat = initRuntime( &lcsConfig, &cdcConfig );
     printf( "LCS Block Controller\n" );
-    
+    printf( "initLcsRuntime\n" );
+
+    setupConfigInfo( );
+
+    uint8_t rStat = initRuntime( &lcsConfig, &cdcConfig );
+
     CDC::printConfigInfo( &cdcConfig );
-    
-    printStatus( rStat );
-    return( rStat );
+    return( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -352,16 +349,15 @@ uint8_t registerCallbacks( ) {
     printf( "Registering Callbacks\n" );
 
     registerLcsMsgCallback( lcsMsgCallback );
-    registerCmdCallback( lcsCmdCallback );
     registerInitCallback( lcsInitCallback );
     registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );
     registerReqCallback( lcsReqCallback );
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
-    registerTaskCallback( tackStateMachine, 10 ); // ?? for testing just use 10ms
-   
-    return( ALL_OK );
+    registerTaskCallback( trackStateMachine, TRACK_STATE_TIME_INTERVAL );
+
+    return( printStatus( ALL_OK ));
 }
 
 //----------------------------------------------------------------------------------------------------------

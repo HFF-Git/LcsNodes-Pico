@@ -1,19 +1,20 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Track Power
+// LCS Block Controller - Block Track
+//
+//------------------------------------------------------------------------------------------------------------
+// The Block Controller track power module manages the track of the block. Each block is associated with a
+// port on the node and the this object essentially controls the H-Bridge. At the heart is a state machine 
+// manages the power state. The power consumption is measured on a periodic base and an overload leads to
+// switching the block track off.
+// 
+// The block can operate in two basic modes. The first mode is the DCC mode. The control select pins are set
+// to route the DCC signal from the LCS bus to the H-Bridge. The second mode is the analog mode. There are 
+// two sub modes, which are forward and reverse PWM setting. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
-//
-// ??? contains the code that manage the track power
-//
-// ??? leverage the DCC track module in base station.
-//
-// ??? descriptor has to specify the four pins for each H-Bridge
-//
-//------------------------------------------------------------------------------------------------------------
-//
-// LCS Block Controller - Track Power
+// LCS Block Controller - Block Track
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
@@ -49,35 +50,29 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
-// DCC and RailCom definitions.
-//
-//------------------------------------------------------------------------------------------------------------
-const uint8_t   RAILCOM_BUFFER_SIZE         = 8;
-
-//--------------------------------------------------------------------------------------------------------------
 // Block controller global limits. Perhaps to move to a configurable place...
 //
-//-------------------------------------------------------------------------------------------------------------
-const uint16_t MILLI_VOLT_PER_DIGIT        = 5;
-const uint16_t MILLI_VOLT_PER_AMP          = 1500;
+//------------------------------------------------------------------------------------------------------------
+const uint16_t MILLI_VOLT_PER_DIGIT                  = 5;
+const uint16_t MILLI_VOLT_PER_AMP                   = 1500;
 
 //------------------------------------------------------------------------------------------------------------
-// Block track power management is also a a state machine managing the state of the power track. Maximum 
-// values for the track power start and stop sequence as well as limits for power overload events are defined. 
+// Block track power management is a state machine managing the setting of the power track. Maximum values 
+// for the track power start and stop sequence as well as limits for power overload events are defined. 
 // We also define reasonable default values.
 //
 //------------------------------------------------------------------------------------------------------------
-const uint16_t MAX_START_TIME_THRESHOLD_MILLIS     = 2000;
-const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS      = 1000;
-const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS  = 500;
-const uint16_t MAX_OVERLOAD_EVENT_COUNT            = 10;
-const uint16_t MAX_OVERLOAD_RESTART_COUNT          = 10;
+const uint16_t MAX_START_TIME_THRESHOLD_MILLIS      = 2000;
+const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS       = 1000;
+const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS   = 500;
+const uint16_t MAX_OVERLOAD_EVENT_COUNT             = 10;
+const uint16_t MAX_OVERLOAD_RESTART_COUNT           = 10;
 
-const uint16_t DEF_START_TIME_THRESHOLD_MILLIS     = 1000;
-const uint16_t DEF_STOP_TIME_THRESHOLD_MILLIS      = 500;
-const uint16_t DEF_OVERLOAD_TIME_THRESHOLD_MILLIS  = 300;
-const uint16_t DEF_OVERLOAD_EVENT_COUNT            = 10;
-const uint16_t DEF_OVERLOAD_RESTART_COUNT          = 10;
+const uint16_t DEF_START_TIME_THRESHOLD_MILLIS      = 1000;
+const uint16_t DEF_STOP_TIME_THRESHOLD_MILLIS       = 500;
+const uint16_t DEF_OVERLOAD_TIME_THRESHOLD_MILLIS   = 300;
+const uint16_t DEF_OVERLOAD_EVENT_COUNT             = 10;
+const uint16_t DEF_OVERLOAD_RESTART_COUNT           = 10;
 
 //------------------------------------------------------------------------------------------------------------
 // Track state machine state definitions. See the track state machine routine for an explanation of the 
@@ -173,19 +168,18 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 
     if ((  trackDesc -> selPin1     == CDC::UNDEFINED_PIN ) ||
         (  trackDesc -> selPin2     == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> sensePin    == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> uartRxPin   == CDC::UNDEFINED_PIN )) {
+        (  trackDesc -> sensePin    == CDC::UNDEFINED_PIN )) {
 
         flags = BT_F_CONFIG_ERROR;
         return ( ERR_PIN_CONFIG );
     }
 
-    if (( trackDesc -> initCurrentMilliAmp  > trackDesc -> limitCurrentMilliAmp )                             ||
-        ( trackDesc -> limitCurrentMilliAmp > trackDesc -> maxCurrentMilliAmp )                               ||
-        ( trackDesc -> startTimeThresholdMillis > MAX_START_TIME_THRESHOLD_MILLIS )                           ||
-        ( trackDesc -> stopTimeThresholdMillis > MAX_STOP_TIME_THRESHOLD_MILLIS )                             ||
-        ( trackDesc -> overloadTimeThresholdMillis > MAX_OVERLOAD_TIME_THRESHOLD_MILLIS )                     ||
-        ( trackDesc -> overloadEventThreshold > MAX_OVERLOAD_EVENT_COUNT )                                    ||
+    if (( trackDesc -> initCurrentMilliAmp  > trackDesc -> limitCurrentMilliAmp )                   ||
+        ( trackDesc -> limitCurrentMilliAmp > trackDesc -> maxCurrentMilliAmp )                     ||
+        ( trackDesc -> startTimeThresholdMillis > MAX_START_TIME_THRESHOLD_MILLIS )                 ||
+        ( trackDesc -> stopTimeThresholdMillis > MAX_STOP_TIME_THRESHOLD_MILLIS )                   ||
+        ( trackDesc -> overloadTimeThresholdMillis > MAX_OVERLOAD_TIME_THRESHOLD_MILLIS )           ||
+        ( trackDesc -> overloadEventThreshold > MAX_OVERLOAD_EVENT_COUNT )                          ||
         ( trackDesc -> overloadRestartThreshold > MAX_OVERLOAD_RESTART_COUNT )
         ) {
 
@@ -199,10 +193,9 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     selPin1                     = trackDesc -> selPin1;
     selPin2                     = trackDesc -> selPin2;
     sensePin                    = trackDesc -> sensePin;
-    uartRxPin                   = trackDesc -> uartRxPin;
     pwmFrequency                = trackDesc -> pwmFrequency;
-    initialBlockState           = trackDesc -> initialBlockState;
-    initialBlockSpeed           = trackDesc -> initialBlockSpeed;
+    initialTrackMode            = trackDesc -> initialTrackMode;
+    initialTrackSpeed           = trackDesc -> initialTrackSpeed;
     initCurrentMilliAmp         = trackDesc -> initCurrentMilliAmp;
     limitCurrentMilliAmp        = trackDesc -> limitCurrentMilliAmp;
     maxCurrentMilliAmp          = trackDesc -> maxCurrentMilliAmp;
@@ -226,54 +219,41 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     uint8_t rStat = CDC::configurePwm( selPin1, pwmFrequency );
     if ( rStat == ALL_OK ) rStat = CDC::configurePwm( selPin2, pwmFrequency );
     if ( rStat == ALL_OK ) rStat = CDC::configureAdc( sensePin );
-    if ( rStat == ALL_OK ) rStat = setBlockTrackState( initialBlockState, initialBlockSpeed );
-
-    if ( rStat == ALL_OK ) {
-
-        if ( trackDesc -> options & BT_OPT_RAILCOM ) {
-
-            rStat = CDC::configureUart( uartRxPin, CDC::UNDEFINED_PIN, 250000, CDC::UART_MODE_8N1 );
-            if ( rStat == ALL_OK )  flags |= BT_F_RAILCOM_MODE_ON;   
-        }
-    }
+    if ( rStat == ALL_OK ) rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
 
     if ( rStat != ALL_OK ) flags |= BT_F_CONFIG_ERROR;
     return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setBlockTrackState" sets the control output pins for the block controller H-Bridge.
+// "setBlockTrackState" sets the control output pins for the block controller H-Bridge. The H-Bridge has two
+// half bridge control in puts and an enable input. The setting of these three inputs are encoded into a 
+// pair of select pins with the following settings:
+// 
+//      BT_MODE_OFF         -   both select pins are set to zero. This leads putting the H-Bridge into a high 
+//                              impedance state.
 //
-// ??? assign constants to the numbers....
+//      BT_MODE_PWM_FWD     -   select pin 1 is set to the PWM signal, select pin 2 is set to zero. The 
+//                              speed parameter specifies the duty cycle on a range from 0 to 255.
+//  
+//      BT_MODE_PWM_RE      -   select pin 1 is set to zero, select pin 2 is set to the PWM signal. The 
+//                              speed parameter specifies the duty cycle on a range from 0 to 255.
+//
+//      BT_MODE_DCC         -   both select pins are set to one.
+//
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setBlockTrackState( uint8_t state, uint8_t speed ) {
+uint8_t LcsBlockTrack::setTrackMode( uint16_t state, uint8_t speed ) {
 
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
 
-        printf( "setBlockTrackState: state: %d, speed: %d\n", state, speed );
+        printf( "setTrackMode: mode: %d, speed: %d\n", state, speed );
     }
 
     uint8_t rStat;
 
     switch( state ) {
 
-        case 0: {
-
-            rStat = CDC::writePwm( selPin1, 0 );
-            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
-            return( rStat );
-
-        } break;
-
-        case 1: {
-
-            rStat = CDC::writePwm( selPin1, 0 );
-            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, speed );
-            return( rStat );
-
-        } break;
-
-        case 2: {
+        case BT_MODE_PWM_FWD: {
 
             rStat = CDC::writePwm( selPin1, speed );
             if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
@@ -281,7 +261,15 @@ uint8_t LcsBlockTrack::setBlockTrackState( uint8_t state, uint8_t speed ) {
 
         } break;
 
-        case 3: {
+        case BT_MODE_PWM_REV: {
+
+            rStat = CDC::writePwm( selPin1, 0 );
+            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, speed );
+            return( rStat );
+
+        } break;
+
+        case BT_MODE_DCC: {
 
             rStat = CDC::writePwm( selPin1, 255 );
             if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 255 );
@@ -289,63 +277,64 @@ uint8_t LcsBlockTrack::setBlockTrackState( uint8_t state, uint8_t speed ) {
 
         } break;
 
-        default: {
+        case BT_MODE_OFF:   default: {
 
             rStat = CDC::writePwm( selPin1, 0 );
-            rStat = CDC::writePwm( selPin2, 0 );
-            return( ALL_OK );                           // ??? an error code ?
-        };
+            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
+            return( rStat );
+
+        } break;
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// DCC track power is not just a matter of turning power on or off. To address all the requirements of the
-// standard, the track is managed by a state machine that implements the start and stop sequences. It is also
-// important that we do not really block the progress of the entire base station, so any timing calls are
-// handled by timestamp comparison in state machine WAIT states. The track state machine routine is expected
-// to be called very often.
+// Track power is not just a matter of turning power on or off. To address all the requirements of the DCC
+// standard, the track is managed by a state machine that implements the start and stop sequences. They will 
+// also be executed in analog mode. It is important that we do not really block the progress of the entire
+// block controller, so any timing calls are handled by timestamp comparison in state machine WAIT states. 
+// The track state machine routine is expected to be called very often.
 //
 //  TRACK_POWER_START1    - this is the first state of a start sequence. When the track should be powered
-//                              on, the first activity is to set the status flags and enable the power module.
-//                              We set the power module current consumption to the initial limit configured.
-//                              The next state is TRACK_POWER_START2.
+//                          on, the first activity is to set the status flags and enable the power module.
+//                          We set the power module current consumption to the initial limit configured.
+//                          The next state is TRACK_POWER_START2.
 //
 //  TRACK_POWER_START2    - we stay in this state until the threshold time has passed. Once the threshold
-//                              is reached, the current consumption limit is set to the configured limit.
-//                              Then we move on to TRACK_POWER_ON.
+//                          is reached, the current consumption limit is set to the configured limit.
+//                          Then we move on to TRACK_POWER_ON.
 //
 //  TRACK_POWER_ON        - this is the state when power is on and things are running normal. An overload
-//                              situation is set by the current measurement routines through setting the
-//                              overload status flag. We make sure that we have seen a couple of overloads
-//                              in a row before taking action which is to turn power off and set the
-//                              TRACK_POWER_OVERLOAD state. Otherwise we stay in this state.
+//                          situation is set by the current measurement routines through setting the
+//                          overload status flag. We make sure that we have seen a couple of overloads
+//                          in a row before taking action which is to turn power off and set the
+//                          TRACK_POWER_OVERLOAD state. Otherwise we stay in this state.
 //
 //  TRACK_POWER_OVERLOAD  - with power turned off, we stay in this state until the threshold time has
-//                              passed. If passed, the overload restart count is incremented and checked for
-//                              its threshold. If reached, we have tried to restart several times and failed.
-//                              The track state becomes TRACK_POWER_STOP1, something is wrong on the track.
-//                              If not, we move on to TRACK_POWER_START1.
+//                          passed. If passed, the overload restart count is incremented and checked for
+//                          its threshold. If reached, we have tried to restart several times and failed.
+//                          The track state becomes TRACK_POWER_STOP1, something is wrong on the track.
+//                          If not, we move on to TRACK_POWER_START1.
 //
 //  TRACK_POWER_STOP1     - this state initiates a shutdown sequence. We disable the power module, set
-//                              status flags and advance to the TRACK_POWER_STOP2 state.
+//                          status flags and advance to the TRACK_POWER_STOP2 state.
 //
 //  TRACK_POWER_STOP2     - we stay in this state until the configured threshold has passed. Then we move
-//                              on to TRACK_POWER_OFF. The key reason for this time delay is to implement
-//                              the requirement that track turned off and perhaps switched to another mode,
-//                              should be powerless for one second. Switch track modes becomes simply a matter
-//                              of stopping and then starting again.
+//                          on to TRACK_POWER_OFF. The key reason for this time delay is to implement
+//                          the requirement that track turned off and perhaps switched to another mode,
+//                          should be powerless for one second. Switch track modes becomes simply a matter
+//                          of stopping and then starting again.
 //
 //  TRACK_POWER_OFF       - the track is disabled. We just stay in this state until the state is set to
-//                              a different state from outside.
+//                          a different state from outside.
 //
-// During the power on state, we also append the actual current measurement value to a circular buffer when
-// the time interval for this kind of measurement has passed. The idea is to measure the samples at a more
-// or less constant interval rate and compute the power consumption RMS value from the data in the buffer
-// when requested. In the interest of minimizing the controller load, the calculation is done in digit values
+// During the power on state, we append the actual current measurement value to a circular buffer when the
+// time interval for this kind of measurement has passed. The idea is to measure the samples at a more or
+// less constant interval rate and compute the power consumption RMS value from the data in the buffer when
+// requested. In the interest of minimizing the controller load, the calculation is done in digit values
 // the result is presented in then in milliAmps.
 //
 //------------------------------------------------------------------------------------------------------------
-void LcsBlockTrack::runDccTrackStateMachine( ) {
+void LcsBlockTrack::runTrackStateMachine( ) {
 
     switch ( trackState ) {
 
@@ -359,8 +348,7 @@ void LcsBlockTrack::runDccTrackStateMachine( ) {
             flags                   &= ~BT_F_MEASUREMENT_ON;
             limitCurrentDigitValue  = milliAmpToDigitValue( initCurrentMilliAmp, digitsPerAmp );
 
-            CDC::writePwm( selPin1, 1 ); // ??? default is DCC ?
-            CDC::writePwm( selPin1, 1 );
+            setTrackMode( initialTrackMode, 0 );
             trackState = TRACK_POWER_START2;
 
         }  break;
@@ -376,8 +364,6 @@ void LcsBlockTrack::runDccTrackStateMachine( ) {
                 flags                   |= BT_F_POWER_ON | BT_F_MEASUREMENT_ON;
                 limitCurrentDigitValue  = milliAmpToDigitValue( limitCurrentMilliAmp, digitsPerAmp );
 
-                CDC::writePwm( selPin1, 1 ); // ??? default is DCC ?
-                CDC::writePwm( selPin1, 1 );
                 trackState = TRACK_POWER_ON;
             }
 
@@ -413,7 +399,6 @@ void LcsBlockTrack::runDccTrackStateMachine( ) {
                         printf( "(hwm(mA): %d : limit(mA): %d )\n", 
                                 digitValueToMilliAmp( highWaterMarkDigitValue, digitsPerAmp ),
                                 digitValueToMilliAmp( limitCurrentDigitValue, digitsPerAmp ));
-                        
                         #else
                         printf( "(hwm(dVal): %d  : limit(dVal): %d )\n", highWaterMarkDigitValue, limitCurrentDigitValue );
                         #endif
@@ -424,8 +409,7 @@ void LcsBlockTrack::runDccTrackStateMachine( ) {
                     flags           &= ~BT_F_POWER_ON;
                     flags           &= ~BT_F_MEASUREMENT_ON;
 
-                    CDC::writePwm( selPin1, 0 ); 
-                    CDC::writePwm( selPin1, 0 );
+                    setTrackMode( BT_MODE_OFF );
                     trackState = TRACK_POWER_OVERLOAD;
                 }
             }
@@ -459,8 +443,7 @@ void LcsBlockTrack::runDccTrackStateMachine( ) {
             flags           &= ~BT_F_POWER_OVERLOAD;
             flags           &= ~BT_F_MEASUREMENT_ON;
 
-            CDC::writePwm( selPin1, 0 ); 
-            CDC::writePwm( selPin1, 0 );
+            setTrackMode( BT_MODE_OFF );
             trackState = TRACK_POWER_STOP2;
 
         }  break;
@@ -511,11 +494,6 @@ bool LcsBlockTrack::isPowerOverload( ) {
     return ( flags & BT_F_POWER_OVERLOAD );
 }
 
-bool LcsBlockTrack::isRailComOn( ) {
-
-    return ( flags & BT_F_RAILCOM_MODE_ON );
-}
-
 //------------------------------------------------------------------------------------------------------------
 // Track power management functions. The actual state of track power is kept in the track status field
 // and can be queried or set by setting the respective flag. Starting and stopping track power is done by
@@ -530,16 +508,6 @@ void LcsBlockTrack::powerStart( ) {
 void LcsBlockTrack::powerStop( ) {
 
     trackState = TRACK_POWER_STOP1;
-}
-
-void LcsBlockTrack::railComOn( ) {
-
-    flags |= BT_F_RAILCOM_MODE_ON;
-}
-
-void LcsBlockTrack::railComOff( ) {
-
-    flags &= ~BT_F_RAILCOM_MODE_ON;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -584,7 +552,7 @@ void LcsBlockTrack::setLimitCurrent( uint16_t val ) {
 // The "getRMSCurrent" function returns the power consumption based on the samples taken and stored in the
 // sample buffer. The function computes the square root of the sum of the squares of the array elements. The
 // result is returned in milliAmps. Note that our measurement is based on unsigned 16-bit quantities that come
-// from the controller ADC converter. We compute the RMS based on 16-bit unsigned integers, which compared
+// from the controller ADC hardware. We compute the RMS based on 16-bit unsigned integers, which compared
 // to floating point computation is not really precise. However, for our purpose to just show a rough power
 // consumption, the error should be not a big issue. We will not use RMS values for power overload detection
 // or decoder ACK detection.
@@ -600,11 +568,8 @@ uint16_t LcsBlockTrack::getRMSCurrent( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// This function is called whenever a power measurement operation completes from the analog conversion
-// interrupt handler. This typically takes place on the first half of the DCC "0" bit. If power measurement
-// is enabled, we increment the number of samples taken, check the measured value for an overload situation
-// and also set the high water mark accordingly. Since we are part of an interrupt handler, keep the amount
-// work really short.
+// This function is called whenever we want to measure the power consumption. Typically this routine will be
+// called from an timer or interrupt handler.
 //
 //------------------------------------------------------------------------------------------------------------
 void LcsBlockTrack::powerMeasurement( ) {
@@ -632,10 +597,9 @@ void LcsBlockTrack::printTrackConfig( ) {
     if ( options & BT_OPT_RAILCOM ) printf( "Railcom " );
     printf( "\n" );
 
-    printf( "Sel1 Pin: %d, Sel2 Pin: %d, Sensor Pin: %d, RailCom Pin: %d\n",
-            selPin1, selPin2, sensePin, uartRxPin );
+    printf( "Sel1 Pin: %d, Sel2 Pin: %d, Sensor Pin: %d\n", selPin1, selPin2, sensePin );
 
-    printf( "Initial Block State: %d, speed: %d\n", initialBlockState, initialBlockSpeed );
+    printf( "Initial Block State: %d, speed: %d\n", initialTrackMode, initialTrackSpeed );
 
     printf( "Current Initial(mA): %d Current Limit(mA): %d Current Max(mA): %d\n",
             getInitCurrent( ), getLimitCurrent( ), getMaxCurrent( ));
@@ -656,7 +620,6 @@ void LcsBlockTrack::printTrackStatus( ) {
     if ( flags & BT_F_POWER_ON         ) printf( "PowerOn " );
     if ( flags & BT_F_POWER_OVERLOAD   ) printf( "PowerOverload " );
     if ( flags & BT_F_MEASUREMENT_ON   ) printf( "PowerMeasOn " );
-    if ( flags & BT_F_RAILCOM_MODE_ON  ) printf( "RailcomOn " );
     if ( flags & BT_F_CONFIG_ERROR     ) printf( "ConfigError " );
     printf( "\n" );
 

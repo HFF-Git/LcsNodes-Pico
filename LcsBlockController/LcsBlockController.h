@@ -116,6 +116,25 @@ enum BlockControllerDebugFlags : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// The base station items for nodeInfo and nodeControl calls .... tbd
+//
+// ??? the are mapped in the MEM / NVM range as well as in the USER range.
+// ??? how to do it consistently and understandably ?
+//------------------------------------------------------------------------------------------------------------
+enum BlockControllerItems : uint8_t {
+
+    BC_ITEM_SET_TRACK_STATE         = 64,
+
+    BC_ITEM_INIT_CURRENT_VAL        = 140,
+    BC_ITEM_LIMIT_CURRENT_VAL       = 141,
+    BC_ITEM_MAX_CURRENT_VAL         = 142,
+    BC_ITEM_ACTUAL_CURRENT_VAL      = 143,
+
+    // thresholds
+    // eventID to send for events ?
+};
+
+//------------------------------------------------------------------------------------------------------------
 // Base station errors. Note that they need to be in the assigned to the user number range of errors defined 
 // in the LCS runtime library. 
 //
@@ -165,8 +184,6 @@ enum TrackFlags : uint16_t {
     BT_F_POWER_ON             = 1 << 0,
     BT_F_POWER_OVERLOAD       = 1 << 1,
     BT_F_MEASUREMENT_ON       = 1 << 2,
-    BT_F_RAILCOM_MODE_ON      = 1 << 5,
-    BT_F_RAILCOM_MSG_PENDING  = 1 << 7,
     BT_F_CONFIG_ERROR         = 1 << 15
 };
 
@@ -179,31 +196,23 @@ enum TrackFlags : uint16_t {
 const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
 const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
-
-//------------------------------------------------------------------------------------------------------------
-// The base station items for nodeInfo and nodeControl calls .... tbd
-//
-// ??? the are mapped in the MEM / NVM range as well as in the USER range.
-// ??? how to do it consistently and understandably ?
-//------------------------------------------------------------------------------------------------------------
-enum BlockControllerItems : uint8_t {
-
-    BC_ITEM_SET_TRACK_STATE         = 64,
-
-    BC_ITEM_INIT_CURRENT_VAL        = 140,
-    BC_ITEM_LIMIT_CURRENT_VAL       = 141,
-    BC_ITEM_MAX_CURRENT_VAL         = 142,
-    BC_ITEM_ACTUAL_CURRENT_VAL      = 143,
-
-    // thresholds
-    // eventID to send for events ?
-};
-
 //----------------------------------------------------------------------------------------------------------
-// 
+// The track state machine runs at a time interval.
 //
 //----------------------------------------------------------------------------------------------------------
 const uint32_t TRACK_STATE_TIME_INTERVAL  = 10;
+
+//----------------------------------------------------------------------------------------------------------
+// A block track can be in four states.
+//
+//----------------------------------------------------------------------------------------------------------
+enum BlockTrackMode : uint16_t {
+
+    BT_MODE_OFF        = 0,
+    BT_MODE_PWM_FWD    = 1,
+    BT_MODE_PWM_REV    = 2,
+    BT_MODE_DCC        = 3
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The block controller can contain up to four blocks. Each block track is described by the LcsBlockDesc
@@ -223,11 +232,10 @@ struct LcsBlockTrackDesc {
     uint8_t     selPin1                         = CDC::UNDEFINED_PIN;
     uint8_t     selPin2                         = CDC::UNDEFINED_PIN;
     uint8_t     sensePin                        = CDC::UNDEFINED_PIN;
-    uint8_t     uartRxPin                       = CDC::UNDEFINED_PIN;
 
     uint16_t    pwmFrequency                    = 70;
-    uint16_t    initialBlockState               = 3;
-    uint16_t    initialBlockSpeed               = 0;
+    uint16_t    initialTrackMode                = BT_MODE_OFF;
+    uint16_t    initialTrackSpeed               = 0;
 
     uint16_t    initCurrentMilliAmp             = 0;
     uint16_t    limitCurrentMilliAmp            = 0;
@@ -242,11 +250,12 @@ struct LcsBlockTrackDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// 
-//
-// ??? manages the H-Bridge for one track.
-// ?? pins are sel1, sel2, sense and uart
-// ??? runs the state machine for the track
+// The "LcsBlockTrack" manages the track of a block. This primarily the power management and control of the 
+// H-Bridge settings. There is one object per track block. At the heart of the object is a state machine that
+// is executed very often for measuring the power consumption and overload detection logic. The tack can 
+// operate in digital or analog mode. In digital mode, the DCC signal from the LCS bus is routed though to
+// the H-Bridge, in analog mode a PWM signal is used to set the H-Bridge emitting a PWM signal with a 
+// positive or negative voltage.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsBlockTrack {
@@ -256,21 +265,19 @@ struct LcsBlockTrack {
     LcsBlockTrack( );
 
     uint8_t                     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
-    uint8_t                     setBlockTrackState( uint8_t state, uint8_t speed );
+    uint8_t                     setTrackState( uint16_t state );
+    uint8_t                     setTrackMode( uint16_t mode, uint8_t speed = 0 );
     
     uint16_t                    getFlags( );
     uint16_t                    getOptions( );
 
-    void                        runDccTrackStateMachine( );
+    void                        runTrackStateMachine( );
+
     void                        powerStart( );
     void                        powerStop( );
     bool                        isPowerOn( );
     bool                        isPowerOverload( );
-   
-    void                        railComOn( );
-    void                        railComOff( );
-    bool                        isRailComOn( );
-
+  
     void                        setLimitCurrent( uint16_t val );
     uint16_t                    getLimitCurrent( );
     uint16_t                    getActualCurrent( );
@@ -280,11 +287,6 @@ struct LcsBlockTrack {
 
     void                        checkOverload( );
     void                        powerMeasurement( );
-
-    void                        startRailComIO( );
-    void                        stopRailComIO( );
-    uint8_t                     handleRailComMsg( );
-    uint8_t                     getRailComMsg( uint8_t *buf, uint8_t bufLen );
 
     uint32_t                    getPwrSamplesTaken( );
     uint16_t                    getPwrSamplesPerSec( );
@@ -297,7 +299,9 @@ struct LcsBlockTrack {
     uint16_t                    options                         = BT_OPT_DEFAULT_SETTING;
     volatile uint16_t           flags                           = BT_F_DEFAULT_SETTING;
 
-    volatile uint8_t            trackState                      = 0;
+    volatile uint16_t           trackState                      = 0;
+    volatile uint16_t           trackMode                       = 0;
+    volatile uint16_t           trackSpeed                      = 0;      
     volatile uint32_t           trackTimeStamp                  = 0;
     volatile uint8_t            overloadEventCount              = 0;
     volatile uint8_t            overloadRestartCount            = 0;
@@ -305,11 +309,10 @@ struct LcsBlockTrack {
     uint8_t                     selPin1                         = CDC::UNDEFINED_PIN;
     uint8_t                     selPin2                         = CDC::UNDEFINED_PIN;
     uint8_t                     sensePin                        = CDC::UNDEFINED_PIN;
-    uint8_t                     uartRxPin                       = CDC::UNDEFINED_PIN;
-
+   
     uint16_t                    pwmFrequency                    = 0;
-    uint16_t                    initialBlockState               = 3;
-    uint16_t                    initialBlockSpeed               = 0;
+    uint16_t                    initialTrackMode                = 0;
+    uint16_t                    initialTrackSpeed               = 0;
     uint16_t                    initCurrentMilliAmp             = 0;
     uint16_t                    limitCurrentMilliAmp            = 0;
     uint16_t                    maxCurrentMilliAmp              = 0;
@@ -326,7 +329,7 @@ struct LcsBlockTrack {
     volatile uint16_t           highWaterMarkDigitValue         = 0;
     volatile uint16_t           limitCurrentDigitValue          = 0;
 
-    uint32_t                    totalPwrSamplesTaken            = 0;
+    volatile uint32_t           totalPwrSamplesTaken            = 0;
     uint32_t                    lastPwrSampleTimeStamp          = 0;
 
     uint32_t                    lastPwrSamplePerSecTaken        = 0;
@@ -339,28 +342,81 @@ struct LcsBlockTrack {
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// "LcsOccDetect" manages an Occupancy detector extension board. The track power output of a block controller
+// track is routed to an extension board which implements a set of current detectors. The extension board is
+// access via the extension I2C bus.
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsOccDetect {
 
+    public:
+
+    LcsOccDetect( );
+
+    uint8_t getOccDetectMask( uint16_t *mask );
+
+    private:    
+
+    // ??? need to remember the extension board ID.
 
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// "LcsSignal" manages a signal. A block has a signal for each direction to indicate the state of the next
+// block in a route.
 //
 //------------------------------------------------------------------------------------------------------------
-struct LcsSignal {
+struct LcsSignalControl {
 
+    public:
+
+    LcsSignalControl( );
+
+
+    private:
+
+    // ??? need to remember the extension board ID.
 
 };
 
+//------------------------------------------------------------------------------------------------------------
+// "LcsTurnout" manages the optional turnouts at the end of a block.
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct LcsTurnoutControl {
+
+    public:
+
+    LcsTurnoutControl( );
+
+    private:
+
+    // ??? need to remember the extension board ID.
+};
 
 //------------------------------------------------------------------------------------------------------------
+// "LcsRailComDetect" manages the optional RailCom interface for the block.
 //
+//------------------------------------------------------------------------------------------------------------
+struct LcsRailComDetect {
+
+    public:
+
+    LcsRailComDetect( );
+
+    private:
+
+    // ??? need to remember the extension board ID.
+};
+
+
+
+
+
+
+//------------------------------------------------------------------------------------------------------------
+// "LcsBlockControllerLogic" manages a set of blocks available in the block controller hardware.
 //
 //
 // ??? runs the block logic
@@ -372,15 +428,21 @@ struct LcsSignal {
 struct LcsBlockControllerLogic {
 
 
-    LcsBlockControllerLogic( LcsBlockDesc *blockDesc );
+    LcsBlockControllerLogic(  );
 
     uint8_t handleLcsRequest( uint8_t *msg );
 
     private:
 
-    LcsBlockDesc *blockDesc;
-
+    
 };
+
+
+//------------------------------------------------------------------------------------------------------------
+// Do we need an object that encompasses all blocks ?
+//
+// ??? or just an array of block controller logic objects ?
+//------------------------------------------------------------------------------------------------------------
 
 
 #endif

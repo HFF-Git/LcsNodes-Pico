@@ -195,14 +195,26 @@ enum railComDatagramStatId : uint8_t {
     RC_DG_STAT_ID_TEST      = 12
 };
 
-
-
 //------------------------------------------------------------------------------------------------------------
 // The RailCom buffer size. During the cutout period up to eight bytes of raw data are sent by the decoder if
 // the Railcom option is enabled.
 //
 //------------------------------------------------------------------------------------------------------------
 const uint8_t   RAILCOM_BUF_SIZE = 8;
+
+
+
+struct RailCom {
+
+
+
+    void                        startRailComIO( );
+    void                        stopRailComIO( );
+    uint8_t                     handleRailComMsg( );
+    uint8_t                     getRailComMsg( uint8_t *buf, uint8_t bufLen );
+
+};
+
 
 
 
