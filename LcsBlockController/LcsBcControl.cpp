@@ -46,7 +46,6 @@ LcsBlockControl::LcsBlockControl(  ) {
 
     switch ( msg[ 0 ] ) {
 
-        // ??? define a few request for testing ...
 
         default: ;
     }

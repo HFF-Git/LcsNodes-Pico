@@ -166,6 +166,11 @@ LcsBlockTrack::LcsBlockTrack( ) { }
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 
+    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SETUP )) {
+
+        printf( "setupBlockTrack\n" );
+    }
+
     if ((  trackDesc -> selPin1     == CDC::UNDEFINED_PIN ) ||
         (  trackDesc -> selPin2     == CDC::UNDEFINED_PIN ) ||
         (  trackDesc -> sensePin    == CDC::UNDEFINED_PIN )) {
@@ -222,6 +227,12 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     if ( rStat == ALL_OK ) rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
 
     if ( rStat != ALL_OK ) flags |= BT_F_CONFIG_ERROR;
+
+    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SETUP )) {
+
+        printf( "setupBlockTrack, ret: %d\n", rStat );
+    }
+
     return ( rStat );
 }
 
@@ -277,13 +288,24 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t state, uint8_t speed ) {
 
         } break;
 
-        case BT_MODE_OFF:   default: {
+        case BT_MODE_OFF: {
 
             rStat = CDC::writePwm( selPin1, 0 );
             if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
             return( rStat );
 
         } break;
+
+        default: {
+
+            if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+
+                printf( "setTrackMode: mode: %d invalid\n", state );
+                // ??? for now ...
+            }
+
+            return( 255 ); 
+        }
     }
 }
 

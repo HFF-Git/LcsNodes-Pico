@@ -36,49 +36,7 @@
 
 //------------------------------------------------------------------------------------------------------------
 //
-// Ideas how to use the node data:
 //
-// There is a static data portion, which describes the block. This is data is entered when the block is configured.
-//
-//  - block ID
-//  - block length
-//  - block name
-//  - previous block(s)
-//  - next block(s)
-//
-//  - number of sections
-//  - section lengths
-//  - speed level - slow, middle, high ... 
-//  - support DCC and analog flag
-//  - max current limit
-//  - periodic time to send data
-//  - timeout values of all kinds ?
-//
-//
-// There is a dynamic data portion, which contains the data about the block current state
-//
-//  - mode ( DCC or analog or off )
-//  - actual current
-//  - section occupancy
-//  - section enter / leave timestamps
-//  - 
-//
-// ??? what is retrieved from the dynamic data on a restart ?
-//
-// The node attributes contains data about how many blocks this node contains ( nodeId + portId -> blockId )
-// 
-// Most of the data is stored in attributes for the port.
-// 
-//
-// Finally, there are items that represent commands to the block. 
-// 
-//  - emergency stop
-//  - switch to DCC or analog mode
-//  - block on or off
-//  - signals setting
-//  - turnout setting
-//  - ...
-
 // There are predefined events that the controller node will send.
 // 
 //  - block state change
@@ -116,23 +74,148 @@ enum BlockControllerDebugFlags : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The base station items for nodeInfo and nodeControl calls .... tbd
+// The way to interact with nodes and ports is via ITEM numbers used in GET/PUT/REQ calls. There are defined
+// items at the node level which apply to all ports. Ports represent a block. The majority of items refer to
+// a block. 
 //
-// ??? the are mapped in the MEM / NVM range as well as in the USER range.
-// ??? how to do it consistently and understandably ?
+// There is a static item portion, which configures the block. This is data is entered when the block is
+// configured and stored in the NVM.
+//
+// The dynamic item part will contain values that initially are fed from the NVM but change during operations.
+//
+// The request item part maps to user defined items that control the block operation.
+//
 //------------------------------------------------------------------------------------------------------------
 enum BlockControllerItems : uint8_t {
 
-    BC_ITEM_SET_TRACK_STATE         = 64,
+    //--------------------------------------------------------------------------------------------------------
+    // Configuration items. Static. Store in NVM.
+    //
+    // Option, flags, name come from the port portion...
+    //--------------------------------------------------------------------------------------------------------
+    BC_ITEM_BLOCK_NAME                  = 0,   // maps to port item.
+    BC_ITEM_BLOCK_OPTIONS               = 0,   // maps to port item.
+    BC_ITEM_BLOCK_FLAGS                 = 0,   // maps to port item.
 
-    BC_ITEM_INIT_CURRENT_VAL        = 140,
-    BC_ITEM_LIMIT_CURRENT_VAL       = 141,
-    BC_ITEM_MAX_CURRENT_VAL         = 142,
-    BC_ITEM_ACTUAL_CURRENT_VAL      = 143,
+    BC_ITEM_BLOCK_ID                    = 0,        
+    BC_ITEM_BLOCK_ID_EAST_1             = 0,
+    BC_ITEM_BLOCK_ID_EAST_2             = 0,
+    BC_ITEM_BLOCK_ID_WEST_1             = 0,
+    BC_ITEM_BLOCK_ID_WEST_2             = 0,
+
+    BC_ITEM_BLOCK_LENGTH                = 0,
+    BC_ITEM_SECTIONS                    = 0,
+    BC_ITEM_SECTION_LENGTH_1            = 0,  // more than one necessary ? how to encode more ?
+    BC_ITEM_SECTION_LENGTH_2            = 0, 
+    BC_ITEM_SECTION_LENGTH_3            = 0, 
+    BC_ITEM_SECTION_LENGTH_4            = 0, 
+    BC_ITEM_SECTION_LENGTH_5            = 0,
+    BC_ITEM_SECTION_LENGTH_6            = 0, 
+    BC_ITEM_SECTION_LENGTH_7            = 0, 
+    BC_ITEM_SECTION_LENGTH_8            = 0,  
+
+    BC_ITEM_OCC_DETECT_PATH_1           = 0,  // up to two OCC detect boards ? max 8 sections per block ?
+    BC_ITEM_OCC_DETECT_PATH_2           = 0,
+
+    BC_ITEM_SIGNAL_PATH_EAST_1          = 0,   // a path: boardId:resourceId
+    BC_ITEM_SIGNAL_PATH_EAST_2          = 0,
+    BC_ITEM_SIGNAL_PATH_WEST_1          = 0,
+    BC_ITEM_SIGNAL_PATH_WEST_2          = 0,
+
+    BC_ITEM_TURNOUT_PATH_EAST_1         = 0,
+    BC_ITEM_TURNOUT_PATH_EAST_2         = 0,
+    BC_ITEM_TURNOUT_PATH_WEST_1         = 0,
+    BC_ITEM_TURNOUT_PATH_WEST_2         = 0,
+
+    BC_ITEM_INITIAL_BLOCK_STATE         = 0,
+    BC_ITEM_INITIAL_ROUTE_STATE         = 0,
+
+    BC_ITEM_SPEED_SLOW                  = 0,
+    BC_ITEM_SPEED_MIDDLE                = 0,
+    BC_ITEM_SPEED_HIGH                  = 0,
+
+    BC_UPDATE_DATA_INTERVAL             = 0,
+
+    BC_ITEM_EVENT_ID_STATE_CHANGE       = 0,
+    BC_ITEM_EVENT_ID_OCC_CHANGE         = 0,
+    BC_ITEM_EVENT_ID_OCC_ENTER          = 0,
+    BC_ITEM_EVENT_ID_OCC_EXIT           = 0,
+    BC_ITEM_EVENT_ID_BLOCK_ENTER        = 0,
+    BC_ITEM_EVENT_ID_BLOCK_EXIT         = 0,
+    BC_ITEM_EVENT_ID_BLOCK_OVL          = 0,
+
+    //--------------------------------------------------------------------------------------------------------
+    //
+    // ??? on a per node basis...
+    //--------------------------------------------------------------------------------------------------------
+    BC_ITEM_INIT_CURRENT_MA             = 0,
+    BC_ITEM_LIMIT_CURRENT_MA            = 0,
+    BC_ITEM_MAX_CURRENT_MA              = 0,
+    BC_ITEM_MILLI_VOLT_PER_AMP          = 0,
+
+    BC_ITEM_START_TIME_THRESHOLD        = 0,
+    BC_ITEM_STOP_TIME_THRESHOLD         = 0,
+    BC_ITEM_OVL_TIME_THRESHOLD          = 0,
+    BC_ITEM_OVL_EVENT_THRESHOLD         = 0,
+    BC_ITEM_OVL_RESTART_THRESHOLD       = 0,
+
+    //--------------------------------------------------------------------------------------------------------
+    // Dynamic GET items.
+    //
+    // ??? most of the items will be the result of a REQ item and reflect the state of the block.
+    // ??? we should not use PUT but rather use REQ with callbacks...
+    //--------------------------------------------------------------------------------------------------------
+    BC_ITEM_BLOCK_STATE                 = 64,  // gets state  / REQ to control
+    BC_ITEM_BLOCK_ROUTE                 = 0,   // gets state  / REQ to control
+
+    BC_ITEM_ENTER_BLOCK_TIMESTAMP       = 0,   // get
+    BC_ITEM_EXIT_BLOCK_TIMESTAMP        = 0,   // get 
+    BC_ITEM_BLOCK_OCC_MASK              = 0,   // get 
+
+    BC_ITEM_CURRENT_BLOCK_EAST          = 0,   // get
+    BC_ITEM_CURRENT_BLOCK_WEST          = 0,   // get 
+
+    BC_ITEM_SIGNAL_EAST_1               = 0,   // get 
+    BC_ITEM_SIGNAL_EAST_2               = 0,   // get
+    BC_ITEM_SIGNAL_WEST_1               = 0,   // get
+    BC_ITEM_SIGNAL_WEST_2               = 0,   // get
+
+    BC_ITEM_TURNOUT_EAST_1              = 0,   // get
+    BC_ITEM_TURNOUT_EAST_2              = 0,   // get
+    BC_ITEM_TURNOUT_WEST_1              = 0,   // get
+    BC_ITEM_TURNOUT_WEST_2              = 0,   // get
+
+    BC_ITEM_ACTUAL_CURRENT_VAL          = 143, // get 
+
 
     // thresholds
-    // eventID to send for events ?
+    // dynamic values
+    //  - timeout values of all kinds ?
+
+    //--------------------------------------------------------------------------------------------------------
+    // Request items.
+    //
+    // ??? rather make the slots for GET/PUT ?
+    //--------------------------------------------------------------------------------------------------------
+   
+   
+   // ??? I am not even clear whether we need the signals ?
+
+    BC_ITEM_SET_SIGNAL_EAST_1           = 0,
+    BC_ITEM_SET_SIGNAL_EAST_2           = 0,
+    BC_ITEM_SET_SIGNAL_WEST_1           = 0,
+    BC_ITEM_SET_SIGNAL_WEST_2           = 0,
+
+    // necessary for configuring a route.
+
+    BC_ITEM_SET_TURNOUT_EAST_1          = 0,
+    BC_ITEM_SET_TURNOUT_EAST_2          = 0,
+    BC_ITEM_SET_TURNOUT_WEST_1          = 0,
+    BC_ITEM_SET_TURNOUT_WEST_2          = 0,
+
 };
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Base station errors. Note that they need to be in the assigned to the user number range of errors defined 
