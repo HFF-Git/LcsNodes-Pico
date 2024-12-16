@@ -717,7 +717,8 @@ extern "C" {
 //----------------------------------------------------------------------------------------------------------
 struct LcsConfigDesc {
 
-    uint16_t options  = 0;
+    uint16_t options    = 0;
+    uint16_t boardType  = 0; // ??? later...
 
 };
 
@@ -740,6 +741,7 @@ void                startRuntime( );
 // used to identify whether we refer to a local port or the local node. Accessing a remote node / port is
 // implemented with the LCS library message send calls.
 //
+// ??? how about two routines to get and set a bit. Often we have to modify in a bitmask ...
 //----------------------------------------------------------------------------------------------------------
 uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
 uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
