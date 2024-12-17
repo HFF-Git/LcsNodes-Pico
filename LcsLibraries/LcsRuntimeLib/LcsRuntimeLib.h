@@ -693,8 +693,8 @@ extern "C" {
     typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId );
     typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId );
 
-    typedef uint8_t ( *LcsReqCallback ) ( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
-    typedef uint8_t ( *LcsRepCallback ) ( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
+    typedef uint8_t ( *LcsReqCallback ) ( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+    typedef uint8_t ( *LcsRepCallback ) ( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
 
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }

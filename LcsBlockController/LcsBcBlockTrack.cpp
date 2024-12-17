@@ -169,6 +169,9 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SETUP )) {
 
         printf( "setupBlockTrack\n" );
+
+        printf( "Pins: selPin1: %d, selPin2: %d, sensePin: %d\n", 
+        trackDesc -> selPin1, trackDesc -> selPin2, trackDesc -> sensePin );
     }
 
     if ((  trackDesc -> selPin1     == CDC::UNDEFINED_PIN ) ||
@@ -253,16 +256,16 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 //      BT_MODE_DCC         -   both select pins are set to one.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setTrackMode( uint16_t state, uint8_t speed ) {
+uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
 
-        printf( "setTrackMode: mode: %d, speed: %d\n", state, speed );
+        printf( "setTrackMode: mode: %d, speed: %d\n", mode, speed );
     }
 
     uint8_t rStat;
 
-    switch( state ) {
+    switch( mode ) {
 
         case BT_MODE_PWM_FWD: {
 
@@ -300,7 +303,7 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t state, uint8_t speed ) {
 
             if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
 
-                printf( "setTrackMode: mode: %d invalid\n", state );
+                printf( "setTrackMode: mode: %d invalid\n", mode );
                 // ??? for now ...
             }
 
@@ -613,7 +616,7 @@ void LcsBlockTrack::powerMeasurement( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBlockTrack::printTrackConfig( ) {
 
-    printf( "DccTrack Config: " );
+    printf( "Track Config: \n" );
 
     printf( "Config options: ( 0x%x ) -> ", flags );
     if ( options & BT_OPT_RAILCOM ) printf( "Railcom " );

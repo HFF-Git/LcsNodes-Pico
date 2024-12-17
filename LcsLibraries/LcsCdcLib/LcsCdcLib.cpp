@@ -69,7 +69,7 @@ using namespace CDC;
 // setting of the debug mask.
 //
 //------------------------------------------------------------------------------------------------------------ 
-uint8_t debugMask = 0;
+uint16_t debugMask = DBG_CONFIG | DBG_PWM;
 
 //------------------------------------------------------------------------------------------------------------  
 // The CDC Library version data.
@@ -1153,6 +1153,7 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     }
     else {
 
+        gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
         pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 256 ));
         pwm_set_enabled( pwm -> sliceNum, true );
     }

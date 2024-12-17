@@ -767,10 +767,10 @@ void enterEventCommand( char *s ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "r"  removes a eventId / portId combination from the event map. If the portId is omitted, all eventMap
+// "d" removes a eventId / portId combination from the event map. If the portId is omitted, all eventMap
 // entries with the eventId are removed.
 //
-//      r npId eventId [ portId ]
+//      d npId eventId [ portId ]
 //
 //      npId      - the node and port Id for which the event is added.
 //      eventId   - the eventId.
@@ -997,7 +997,7 @@ void reqNodeCommand( char *s ) {
      
         ret = nodeReq( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node REQ error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", tmpNpId, tmpItem, tmpVal1, tmpVal1 );
+        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 

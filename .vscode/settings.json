@@ -3,7 +3,7 @@
         "PICO_SDK_PATH": "/Users/helmutfieres/pico-sdk"
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "dreq.h": "c",
         "addressmap.h": "c",

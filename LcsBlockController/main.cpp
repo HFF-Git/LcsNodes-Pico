@@ -35,15 +35,16 @@ using namespace LCS;
 // Block Controller global data.
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t                        debugMask;
+uint16_t                        debugMask = DBG_BC_CONFIG | DBG_BC_SETUP | DBG_BC_TRACK_POWER_MGMT;
 CDC::CdcConfigDesc              cdcConfig;
 LCS::LcsConfigDesc              lcsConfig;
 LcsBlockTrackDesc               block1Desc;
 LcsBlockTrackDesc               block2Desc;
 
-LcsBlockControl                 *blockControl;
-LcsBlockTrack                   *block1 = nullptr;
-LcsBlockTrack                   *block2 = nullptr;
+LcsBlockControllerNode          *bcNode         = nullptr;
+LcsBlockControl                 *blockControl   = nullptr;
+LcsBlockTrack                   *block1         = nullptr;
+LcsBlockTrack                   *block2         = nullptr;
 
 // ??? other BC specific global data ...
 
@@ -151,23 +152,23 @@ uint8_t setupBlockDesc1( ) {
 
 uint8_t setupBlockDesc2( ) {
 
-    block1Desc.options                         = 0;
-    block1Desc.selPin1                         = cdcConfig.PWM_PIN_2;
-    block1Desc.selPin2                         = cdcConfig.PWM_PIN_3;
-    block1Desc.sensePin                        = cdcConfig.ADC_PIN_1;
+    block2Desc.options                         = 0;
+    block2Desc.selPin1                         = cdcConfig.PWM_PIN_2;
+    block2Desc.selPin2                         = cdcConfig.PWM_PIN_3;
+    block2Desc.sensePin                        = cdcConfig.ADC_PIN_1;
 
-    block1Desc.pwmFrequency                    = 70;
+    block2Desc.pwmFrequency                    = 70;
 
-    block1Desc.initCurrentMilliAmp             = 500;
-    block1Desc.limitCurrentMilliAmp            = 1500;
-    block1Desc.maxCurrentMilliAmp              = 2000;
-    block1Desc.milliVoltPerAmp                 = 100 * 11; // ??? opAmp has Factor eleven ...
+    block2Desc.initCurrentMilliAmp             = 500;
+    block2Desc.limitCurrentMilliAmp            = 1500;
+    block2Desc.maxCurrentMilliAmp              = 2000;
+    block2Desc.milliVoltPerAmp                 = 100 * 11; // ??? opAmp has Factor eleven ...
 
-    block1Desc.startTimeThresholdMillis        = 1000;
-    block1Desc.stopTimeThresholdMillis         = 500;
-    block1Desc.overloadTimeThresholdMillis     = 500;
-    block1Desc.overloadEventThreshold          = 10;
-    block1Desc.overloadRestartThreshold        = 5;
+    block2Desc.startTimeThresholdMillis        = 1000;
+    block2Desc.stopTimeThresholdMillis         = 500;
+    block2Desc.overloadTimeThresholdMillis     = 500;
+    block2Desc.overloadEventThreshold          = 10;
+    block2Desc.overloadRestartThreshold        = 5;
 
     return( ALL_OK );
 }
@@ -186,80 +187,43 @@ uint8_t printStatus (uint8_t status ) {
 
 //----------------------------------------------------------------------------------------------------------
 // The LCS runtime callback forwards. We register these routines with the runtime. All they do is to 
-// dispatch the incoming callback to the correct block controller object. 
+// dispatch the incoming callback to the block controller node object, which in turn will dispatch to the
+// correct block object.
 //
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId ) {
 
-    return ( blockControl -> handleInitCallback( npId ));
+    return ( bcNode -> handleInitCallback( npId ));
 }
 
 uint8_t lcsResetCallback( uint16_t npId ) {
 
-    return ( blockControl -> handleResetCallback( npId ));
+    return ( bcNode -> handleResetCallback( npId ));
 }
 
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
-    return ( blockControl -> handlePfailCallback( npId ));
+    return ( bcNode -> handlePfailCallback( npId ));
 }
 
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
-    return ( blockControl -> handleLcsMsgCallback( msg ));
+    return ( bcNode -> handleLcsMsgCallback( msg ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-// When the base station node receives a request with an item defined in the user item range or the base
-// station itself issues such a request, the defined callback is invoked.
-//
-// ??? pass to the block controller logic...
-//------------------------------------------------------------------------------------------------------------
-uint8_t lcsReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
-    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
-    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
-
-    switch( item ) {
-
-        case 64: {
-
-            uint16_t port = npId & 0xF;
-
-            if      ( port == 1 ) block1 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
-            else if ( port == 2 ) block2 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
-
-        } break;
-
-        default: {
-
-        }
-    }
-
-    return( ALL_OK );
+    return( bcNode -> handleLcsReqCallback( npId, item, arg1, arg2 ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-// When the base station gets a reply message for a request previously sent, this callback is invoked.
-//
-// ??? pass to the block that requested...
-//------------------------------------------------------------------------------------------------------------
-uint8_t lcsRepCallback( uint8_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
+uint8_t lcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
-    return( ALL_OK );
+    return ( bcNode -> handleLcsRepCallback( npId, item, arg1, arg2, ret ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-// For any event on the LCS system that the block controller is interested in, this callback is invoked.
-//
-// ??? what events to listen to ? where are they configured/set ?
-//------------------------------------------------------------------------------------------------------------
 uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
 
-    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
-    return( ALL_OK );
+    return ( bcNode -> handleLcsEventCallback( npId, eId, eAction, eData ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -324,7 +288,11 @@ uint8_t startBlockController( ) {
     printf( "Start Block controller\n" );
 
     uint8_t rStat = ALL_OK; 
+
+    setupBlockDesc1( );
+    setupBlockDesc2( );
     
+    bcNode          = new LcsBlockControllerNode( );
     blockControl    = new LcsBlockControl( );
     block1          = new LcsBlockTrack( );
     block2          = new LcsBlockTrack( );
@@ -334,7 +302,7 @@ uint8_t startBlockController( ) {
     if ( rStat != ALL_OK ) printStatus( rStat );
 
     printf( "Configure Block 2\n" );
-    rStat = block1 -> setupBlockTrack( &block2Desc );
+    rStat = block2 -> setupBlockTrack( &block2Desc );
     if ( rStat != ALL_OK ) printStatus( rStat );
 
     #if 0   
@@ -363,10 +331,10 @@ uint8_t startBlockController( ) {
     if ( rStat != ALL_OK ) printStatus( rStat );
     #endif
 
-    printf( "Block 1 Config:" );
+    printf( "Block 1 Config:\n" );
     if ( block1 != nullptr ) block1 -> printTrackConfig( );
 
-    printf( "Block 2 Config:" );
+    printf( "Block 2 Config:\n" );
     if ( block2 != nullptr ) block2 -> printTrackConfig( );
 
     if ( rStat == ALL_OK ) {

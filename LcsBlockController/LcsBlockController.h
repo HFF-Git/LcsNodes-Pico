@@ -510,11 +510,7 @@ struct LcsBlockControl {
 
     uint8_t handleLcsRequest( uint8_t *msg );
 
-    uint8_t handleInitCallback( uint16_t npId );
-    uint8_t handleResetCallback( uint16_t npId );
-    uint8_t handlePfailCallback( uint16_t npId );
-    uint8_t handleLcsMsgCallback( uint8_t *msg );
-
+   
     private:
 
     // ??? handles to detect, signal and turnout object.
@@ -534,8 +530,15 @@ struct LcsBlockControllerNode {
 
     LcsBlockControllerNode( );
 
-    // ??? setup
-    // ??? targets for the LCS callbacks ?
+    uint8_t setupBockController( );
+
+    uint8_t handleInitCallback( uint16_t npId );
+    uint8_t handleResetCallback( uint16_t npId );
+    uint8_t handlePfailCallback( uint16_t npId );
+    uint8_t handleLcsMsgCallback( uint8_t *msg );
+    uint8_t handleLcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+    uint8_t handleLcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
+    uint8_t handleLcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 
     private:
 
