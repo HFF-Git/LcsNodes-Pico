@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS Block Controller - Block Track
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2024 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -53,7 +53,7 @@ using namespace LCS;
 // Block controller global limits. Perhaps to move to a configurable place...
 //
 //------------------------------------------------------------------------------------------------------------
-const uint16_t MILLI_VOLT_PER_DIGIT                  = 5;
+const uint16_t MILLI_VOLT_PER_DIGIT                 = 5; // ??? correct value ... rather a float ?
 const uint16_t MILLI_VOLT_PER_AMP                   = 1500;
 
 //------------------------------------------------------------------------------------------------------------

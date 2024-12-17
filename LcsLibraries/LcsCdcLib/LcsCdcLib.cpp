@@ -64,18 +64,12 @@ namespace {
 
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
-// "CDC_DEBUG" is the local define for printing debug information. In contrast to the rest of the debugging
-// and tracing of LCS libraries and programs, this library will have to be recompiled to enable debugging.
-//
-//------------------------------------------------------------------------------------------------------------
-#define CDC_DEBUG 0
-
 //------------------------------------------------------------------------------------------------------------  
 // Debug and Trace support. Instead of conditional compilation, we will print debug messages based on the
-// setting of the debug level.
+// setting of the debug mask.
+//
 //------------------------------------------------------------------------------------------------------------ 
-uint8_t debugLevel = 0;
+uint8_t debugMask = 0;
 
 //------------------------------------------------------------------------------------------------------------  
 // The CDC Library version data.
@@ -514,13 +508,18 @@ uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
 namespace CDC {
 
 //------------------------------------------------------------------------------------------------------------
-// For debugging purposes. Instead of conditional compilations, the debug level will enable the printing of
+// For debugging purposes. Instead of conditional compilations, the debug mask will enable the printing of
 // debug and trace data.
 //
 //------------------------------------------------------------------------------------------------------------
-void setDebugLevel( uint8_t level ) {
+void setDebugMask( uint16_t mask ) {
 
-    debugLevel = level;
+    debugMask = mask;
+}
+
+uint16_t getDebugMask( ) {
+
+    return( debugMask );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1114,22 +1113,24 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
     pwm_set_enabled( pwm_gpio_to_slice_num( pwmPin ), true );
 
-    #if CDC_DEBUG == 0
-    printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, " 
-            "clkDiv: % d, wrap: %d, sliceNum: %d, channel: %d\n",
-            pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, 
-            clkDiv, pwm -> wrap, pwm -> sliceNum, pwm -> channel );
-    #endif
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
+   
+        printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, " 
+                "clkDiv: % d, wrap: %d, sliceNum: %d, channel: %d\n",
+                pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, 
+                clkDiv, pwm -> wrap, pwm -> sliceNum, pwm -> channel );
+    }
 
     return ( NO_ERR );
 }
 
 uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
 
-    #if CDC_DEBUG == 0
-    printf( "Write PWM: Pin: %d, duty: %d\n", pwmPin, dutyCycle );
-    #endif
-
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
+        
+        printf( "Write PWM: Pin: %d, duty: %d\n", pwmPin, dutyCycle );
+    }
+   
     PwmInst *pwm = nullptr;
 
     if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
@@ -1212,25 +1213,25 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
                                         stopBit,
                                         make_timeout_time_ms( i2c -> timeoutValMs ));
 
-    #if CDC_DEBUG == 1
-    printf( "i2cRead: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
-               sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
-    if ( ret == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
-    if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
-    #endif
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_I2C )) {
 
+        printf( "i2cRead: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+                sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+        if ( ret == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
+        if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+    }
+   
     if (( ret == PICO_ERROR_GENERIC ) || ( ret == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
-    
     return ( NO_ERR );
 }
 
 uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-    #if CDC_DEBUG == 1
-    printf( "i2cWrite: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
-             sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
-    #endif
-
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_I2C )) {
+        
+        printf( "i2cWrite: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+                sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+    }
 
     I2CInst *i2c = nullptr;
 
@@ -1245,13 +1246,13 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
                                          stopBit,
                                          make_timeout_time_ms( i2c -> timeoutValMs ));
 
-    #if CDC_DEBUG == 1
-    if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
-    if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
-    #endif
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
+
+        if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
+        if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
+    }
     
     if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
-
     return ( NO_ERR );
 }
 

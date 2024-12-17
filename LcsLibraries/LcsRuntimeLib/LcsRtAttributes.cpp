@@ -587,7 +587,6 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 // "nodeReq" will carry out a node or port function. A function, represented by an item, can be a node or port
 // defined item, or a user defined item. For the latter we will invoke the user defined callback, if any. 
 //
-// ??? have an option to set the debug level ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
@@ -674,5 +673,13 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         }
     }
 }
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+// ??? how about a routine to update a mask ? We often have the case to set / clear a bit in a mask. We 
+// could pass the mask with the bit position set to set or clear the mask word.
+//
+//------------------------------------------------------------------------------------------------------------
 
 } // namespace LCS

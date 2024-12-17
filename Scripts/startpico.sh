@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+#-------------------------------------------------------------------------------------------------------------
 # 
 # StartPico - a shell script to reset a PICO and start it with a screen connected
 #
@@ -6,6 +8,7 @@
 # port number from the address. Next, the PICO is forcefully resetted and a termnal screen is 
 # to connect to the PICO.
 #
+#-------------------------------------------------------------------------------------------------------------
 if [ "$#" -lt 1 ]; 
 then
 	echo "Usage: startpico <usb address>"
@@ -13,10 +16,12 @@ then
 	exit
 fi
 
+#-------------------------------------------------------------------------------------------------------------
 # Function to get the port number given the USB address in substring pattern form. We will get the USB 
 # info from the system profiler descriptors, grep for USB data for attached PICOs and then analyze the
 # Location ID attribute. When the US address matches, we return the port number.
 #
+#-------------------------------------------------------------------------------------------------------------
 get_port_num_by_usb_address() {
 
     local usb_info=$(system_profiler SPUSBDataType | grep -A 10 "Pico:" | grep "Location ID")
@@ -37,20 +42,24 @@ get_port_num_by_usb_address() {
 	done
 }
 
+#-------------------------------------------------------------------------------------------------------------
 # Function to extract a portion of the USB address. This part is needed for the /dev/... file
 # descriptor that is the USB stdio file opened by the PICO. 
 #
+#-------------------------------------------------------------------------------------------------------------
 extract_usb_address_chars() {
 
 	extracted_chars=$(echo "$1" | cut -c 4-6)
 	echo "$extracted_chars"
 }
 
+#-------------------------------------------------------------------------------------------------------------
 # Function to build a device file, based on the address. We concatenate the prefix with the function
 # parameter and append a "1", which seems to be the first stdio port for the pico. The terminal 
 # application used is the "minicom" application. It does a fine job, does not get confused when
 # when the PICO is resetted and we can scroll. Life is good.
 #
+#-------------------------------------------------------------------------------------------------------------
 build_dev_file_name() {
 
     local prefix="/dev/cu.usbmodem"
@@ -58,8 +67,10 @@ build_dev_file_name() {
     echo "$prefix""$1""1"
 }
 
-# reset the PICO
+#-------------------------------------------------------------------------------------------------------------
+# Reset the PICO and connect the trminal to it.
 #
+#-------------------------------------------------------------------------------------------------------------
 port_number=$(get_port_num_by_usb_address "$1")
 
 if [[ -n "$port_number" ]]; then
@@ -67,9 +78,6 @@ if [[ -n "$port_number" ]]; then
     echo "Resetting the PICO at $1"
     picotool reboot --address $port_number -F
 
-    # this seems to be a guessing game what the right time is to give the pico some time...
-    sleep 1
-    
     # simple test of the stdio file is there and a character device.
     while [ ! -c $(build_dev_file_name "$1" ) ]; do
         echo "Wait for the PICO at $1"

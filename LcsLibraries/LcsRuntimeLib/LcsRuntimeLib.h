@@ -741,7 +741,8 @@ void                startRuntime( );
 // used to identify whether we refer to a local port or the local node. Accessing a remote node / port is
 // implemented with the LCS library message send calls.
 //
-// ??? how about two routines to get and set a bit. Often we have to modify in a bitmask ...
+// ??? how about a routine to update a mask ? We often have the case to set / clear a bit in a mask. We 
+// could pass the mask with the bit position set to set or clear the mask word.
 //----------------------------------------------------------------------------------------------------------
 uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
 uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );

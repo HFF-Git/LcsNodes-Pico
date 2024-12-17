@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Block Controller - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// Copyright (C) 2024 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -41,6 +41,7 @@ LCS::LcsConfigDesc              lcsConfig;
 LcsBlockTrackDesc               block1Desc;
 LcsBlockTrackDesc               block2Desc;
 
+LcsBlockControl                 *blockControl;
 LcsBlockTrack                   *block1 = nullptr;
 LcsBlockTrack                   *block2 = nullptr;
 
@@ -175,14 +176,6 @@ uint8_t setupBlockDesc2( ) {
 // Some little helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
-void printLcsMsg( uint8_t *msg ) {
-
-  int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
-
-  for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[i] );
-  printf( "\n" );
-}
-
 uint8_t printStatus (uint8_t status ) {
 
   printf( "Status: " );
@@ -191,69 +184,29 @@ uint8_t printStatus (uint8_t status ) {
   return ( status );
 }
 
-// ??? pass the callbacks to block controller logic ?
-// ??? the object must implement these methods...
-
 //----------------------------------------------------------------------------------------------------------
-// The node and port initialization callback.
+// The LCS runtime callback forwards. We register these routines with the runtime. All they do is to 
+// dispatch the incoming callback to the correct block controller object. 
 //
-// ??? when we know what ports we actually need / use, disable the rest of the ports.
-// ??? the number of ports / blocks should be note in the block descriptor.
-// ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId ) {
 
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Init Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Init Callback: 0x%x\n", npId &  0xF   );
-    } 
-
-    return( ALL_OK );
+    return ( blockControl -> handleInitCallback( npId ));
 }
 
-//----------------------------------------------------------------------------------------------------------
-// The node or port reset callback.
-//
-// ??? invoke the configured block reset method in the block controller logic object...
-//----------------------------------------------------------------------------------------------------------
 uint8_t lcsResetCallback( uint16_t npId ) {
 
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Reset Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Reset Callback: 0x%x\n", npId &  0xF   );
-    } 
-
-    return( ALL_OK );
+    return ( blockControl -> handleResetCallback( npId ));
 }
 
-//----------------------------------------------------------------------------------------------------------
-// The node or port power fail callback.
-//
-// ??? invoke the configured block pfail method in the block controller logic object...
-//----------------------------------------------------------------------------------------------------------
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Power Fail Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Power Fail Callback: 0x%x\n", npId &  0xF   );
-    } 
-
-    return( ALL_OK );
+    return ( blockControl -> handlePfailCallback( npId ));
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Other LCS message callbacks. All we do is to list their invocation. ( for now )
-//
-// ??? this should go out ....
-//----------------------------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
-    printf( "MsgCallback: ", msg  );
-    printLcsMsg( msg );
-    return( ALL_OK );
+    return ( blockControl -> handleLcsMsgCallback( msg ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -372,8 +325,9 @@ uint8_t startBlockController( ) {
 
     uint8_t rStat = ALL_OK; 
     
-    block1 = new LcsBlockTrack( );
-    block2 = new LcsBlockTrack( );
+    blockControl    = new LcsBlockControl( );
+    block1          = new LcsBlockTrack( );
+    block2          = new LcsBlockTrack( );
 
     printf( "Configure Block 1\n" );
     rStat = block1 -> setupBlockTrack( &block1Desc );

@@ -12,7 +12,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS Block Controller
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2024 - 2024  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -509,6 +509,11 @@ struct LcsBlockControl {
     LcsBlockControl(  );
 
     uint8_t handleLcsRequest( uint8_t *msg );
+
+    uint8_t handleInitCallback( uint16_t npId );
+    uint8_t handleResetCallback( uint16_t npId );
+    uint8_t handlePfailCallback( uint16_t npId );
+    uint8_t handleLcsMsgCallback( uint8_t *msg );
 
     private:
 
