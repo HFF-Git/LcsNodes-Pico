@@ -1257,6 +1257,24 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
     return ( NO_ERR );
 }
 
+uint8_t i2cBusreset( uint8_t sclPin ) {
+
+     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_I2C )) {
+
+        printf( "I2C Bus reset, slc: %d\n",sclPin );
+    }
+
+    I2CInst *i2c = nullptr;
+
+    if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
+    else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
+    else return ( I2C_PORT_ERR );
+
+    uint8_t reset_cmd = 0x06;
+    i2c_write_blocking( i2c -> i2cHw, 0x00, &reset_cmd, 1, false); 
+    return ( NO_ERR );
+}
+
 //------------------------------------------------------------------------------------------------------------
 // SPI interface section. The PICO features two SPI HW blocks. We implement a simple SPI interface with a
 // a fixed set of SPI options for frequency, bit order and mode. One day this may change. We do not take 

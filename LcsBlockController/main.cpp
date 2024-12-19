@@ -120,9 +120,9 @@ uint8_t setupConfigInfo( ) {
     cdcConfig.CAN_BUS_DEF_ID        = 100;
 
     cdcConfig.NODE_NVM_SIZE         = 8192;
-    cdcConfig.EXT_NVM_SIZE          = 4096;
+    cdcConfig.EXT_NVM_SIZE          = 512;
 
-    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG;
+    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG | NOPT_DEBUG_DURING_SETUP;
 
     return( ALL_OK );
 }
@@ -304,32 +304,6 @@ uint8_t startBlockController( ) {
     printf( "Configure Block 2\n" );
     rStat = block2 -> setupBlockTrack( &block2Desc );
     if ( rStat != ALL_OK ) printStatus( rStat );
-
-    #if 0   
-    // ??? for the quick test ....
-    printf( "Configure PWM pins\n" );
-    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_0, 70 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-
-    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_1, 70 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-
-    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_2, 70 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-
-    rStat = CDC::configurePwm( cdcConfig.PWM_PIN_3, 70 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-
-    printf( "Set output to pins\n" );
-    rStat = CDC::writePwm(cdcConfig.PWM_PIN_0, 255 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-    rStat = CDC::writePwm(cdcConfig.PWM_PIN_1, 255 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-    rStat = CDC::writePwm(cdcConfig.PWM_PIN_2, 0 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-    rStat = CDC::writePwm(cdcConfig.PWM_PIN_3, 120 );
-    if ( rStat != ALL_OK ) printStatus( rStat );
-    #endif
 
     printf( "Block 1 Config:\n" );
     if ( block1 != nullptr ) block1 -> printTrackConfig( );

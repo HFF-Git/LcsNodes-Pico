@@ -70,39 +70,42 @@ using namespace LCS;
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //------------------------------------------------------------------------------------------------------------
-const uint16_t  BUFFER_BLOCK_SIZE           = 16; // ??? until we remove the M24C04 chip.
+const uint16_t      BUFFER_BLOCK_SIZE           = 16; // ??? until we remove the M24C04 chip.
 
-const uint16_t  M24LC32_PAGE_SIZE           = 32;
-const uint32_t  M24LC32_MAX_SIZE            = 4096;
+const uint16_t      M24LC32_PAGE_SIZE           = 32;
+const uint32_t      M24LC32_MAX_SIZE            = 4096;
 
-const uint16_t  M24LC64_PAGE_SIZE           = 32;
-const uint32_t  M24LC64_MAX_SIZE            = 8192;
+const uint16_t      M24LC64_PAGE_SIZE           = 32;
+const uint32_t      M24LC64_MAX_SIZE            = 8192;
 
-const uint16_t  M24LC128_PAGE_SIZE          = 64;
-const uint32_t  M24LC128_MAX_SIZE           = 16384;
+const uint16_t      M24LC128_PAGE_SIZE          = 64;
+const uint32_t      M24LC128_MAX_SIZE           = 16384;
 
-const uint16_t  M24LC256_PAGE_SIZE          = 64;
-const uint32_t  M24LC256_MAX_SIZE           = 32768;
+const uint16_t      M24LC256_PAGE_SIZE          = 64;
+const uint32_t      M24LC256_MAX_SIZE           = 32768;
 
-const uint16_t  M24LC512_PAGE_SIZE          = 128;
-const uint32_t  M24LC512_MAX_SIZE           = 65536;
+const uint16_t      M24LC512_PAGE_SIZE          = 128;
+const uint32_t      M24LC512_MAX_SIZE           = 65536;
 
-const uint16_t  M24C04_PAGE_SIZE            = 16;
-const uint32_t  M24C04_MAX_SIZE             = 512;
+const uint16_t      M24C04_PAGE_SIZE            = 16;
+const uint32_t      M24C04_MAX_SIZE             = 512;
 
-const uint8_t   NVM_I2C_ADR_ROOT            = 0b1010000;
-const uint8_t   EXT_I2C_ADR_ROOT            = 0b1010000;
+const uint8_t       NVM_I2C_ADR_ROOT            = 0b1010000;
+const uint32_t      NVM_I2C_BAUDRATE            = 100 * 1000;
 
-const uint8_t   NVM_WRITE_DELAY             = 0x05;
+const uint8_t       EXT_I2C_ADR_ROOT            = 0b1010000;
+const uint32_t      EXT_I2C_BAUDRATE            = 50 * 1000;
+
+const uint8_t       NVM_WRITE_DELAY             = 0x05;
 
 //------------------------------------------------------------------------------------------------------------
 // Runtime NVM sizes. The runtime map has a maximum of 8Kb. The maximum size of a NVM chip is 64Kb.  The 
 // maximum size for an extension board NVM chip is 4Kb. 
 //
 //------------------------------------------------------------------------------------------------------------
-const uint32_t  NVM_RUNTIME_MAP_SIZE        = 0x2000;
-const uint32_t  NVM_MAX_NVM_SIZE            = 0x10000;
-const uint32_t  NVM_MAX_EXT_SIZE            = 0x1000;
+const uint32_t      NVM_RUNTIME_MAP_SIZE        = 0x2000;
+const uint32_t      NVM_MAX_NVM_SIZE            = 0x10000;
+const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 
 //------------------------------------------------------------------------------------------------------------
 // Module global data. A LCS node board has two NVM channels. The "NVM" channel refers to the NVM chip on
@@ -119,14 +122,14 @@ const uint32_t  NVM_MAX_EXT_SIZE            = 0x1000;
 // firmware can use as needed.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t    nodeNvmSize                     = 0;
-uint32_t    extNvmSize                      = 0;
+uint32_t    nodeNvmSize                         = 0;
+uint32_t    extNvmSize                          = 0;
 
-uint8_t     nvmSclPin                       = CDC::UNDEFINED_PIN;
-uint8_t     nvmSdaPin                       = CDC::UNDEFINED_PIN;
+uint8_t     nvmSclPin                           = CDC::UNDEFINED_PIN;
+uint8_t     nvmSdaPin                           = CDC::UNDEFINED_PIN;
 
-uint8_t     extSclPin                       = CDC::UNDEFINED_PIN;
-uint8_t     extSdaPin                       = CDC::UNDEFINED_PIN;
+uint8_t     extSclPin                           = CDC::UNDEFINED_PIN;
+uint8_t     extSdaPin                           = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
 // "testNvmChipMemorySize" will check the NVM chip for its size. Since the chip itself has no way of telling

@@ -380,7 +380,7 @@ uint8_t initNvmChannels( CDC::CdcConfigDesc *ci ) {
 
     if (( ci -> EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) && ( ci -> EXT_I2C_SDA_PIN != CDC::UNDEFINED_PIN )) {
 
-        rStat = CDC::configureI2C( ci -> EXT_I2C_SCL_PIN , ci -> EXT_I2C_SDA_PIN );
+        rStat = CDC::configureI2C( ci -> EXT_I2C_SCL_PIN , ci -> EXT_I2C_SDA_PIN, 50 * 1000 );
         if ( rStat != ALL_OK ) return( rStat );
     }
 
