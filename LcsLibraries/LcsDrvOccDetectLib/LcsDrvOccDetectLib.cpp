@@ -140,6 +140,8 @@ uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t
             if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 5, 0xFF );
             if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 6, 0xFF );
             if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 7, 0xFF );
+
+            printf( "Occ Detect RESET: ret: %d\n", rStat );
             return( rStat );
 
         } break;

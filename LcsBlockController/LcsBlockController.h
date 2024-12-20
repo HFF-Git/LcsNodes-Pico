@@ -33,6 +33,7 @@
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
+#include "LcsDrvOccDetectLib.h"
 
 //------------------------------------------------------------------------------------------------------------
 //

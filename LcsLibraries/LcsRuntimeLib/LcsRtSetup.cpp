@@ -771,7 +771,7 @@ uint8_t detectExtensionBoards( ) {
             if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
                 printf( "Extension Board Desc Head: " );
-                for ( int j = 0; j < 16; j++ ) printf( "0x%x ", ptr[ j ] );
+                for ( int j = 0; j < sizeof( LcsNvmHeader ) / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
                 printf( "\n" );
             }
 
@@ -808,93 +808,22 @@ uint8_t detectExtensionBoards( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "lookupDrvFunc" searches the driver function label map. It is called when we setup the extension board.
-// When the type is unknown, a nullptr is returned.
-//
-//------------------------------------------------------------------------------------------------------------
-LcsDrvReqFunc lookupDrvFunc( uint16_t drvType ) {
-
-    for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
-
-        if ( drvFuncMap.map[ i ].drvType == drvType ) return( drvFuncMap.map[ i ].drvFunc );
-    }
-
-    return( nullptr );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// For all detected extension boards, we will first check that the board descriptor at slot "n" is there and
-// that the board descriptor is reasonable. If so, the board type is used to load the respective driver.
-// Note that during normal operations we cannot manipulate the NVM, as it is read protected. The jumper on
-// the extension board needs to be removed for this. When removed, the extension board NVM can be written to
-// with commands from the runtime. 
-//
-// When the driver function is not pre registered, we do not have a function to set in the driver map.
-// In this case the driver is not usable yet. The problem is that we can only make driver registration 
-// calls after LcsInitRuntime. But the all driver boards have been detected. There are two ways. For driver
-// know already, we "pre-register" them. For any other driver, the driver function registration routine will
-// check the driver table for the driver type and the patch the function label. All this should takes place 
-// before the final call to "startRuntime".
-// 
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupExtensionBoards( ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupExtensionBoards\n" );
-
-    uint8_t rStat = ALL_OK;
-
-    for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
-
-        LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
-
-        if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
-
-            LcsDrvReqFunc drvFunc = lookupDrvFunc( drvEntry -> extBoard.head.boardType ); 
-
-            if ( drvFunc != nullptr ) {
-
-                drvEntry -> drvFunc = drvFunc; 
-                drvEntry -> flags   |= BF_EXT_BOARD_READY;
-                drvEntry -> lastErr = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
-
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
-                    
-                    printf( "Driver setup, type: %d, stat: %d\n", 
-                        drvEntry -> extBoard.head.boardType, drvEntry -> lastErr );
-                }
-            }
-            else {
-
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
-
-                    printf( "Driver setup, type not found: %d\n", drvEntry -> extBoard.head.boardType );
-                }
-            }
-        }
-    }
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "setupExtensionBoards, status: %d\n", rStat );
-
-    return ( rStat );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Driver function registration. There is a simple table which maintains extension boards types and the 
 // driver function form them. If the type is already registered, we just overwrite the function signature.
 // Otherwise we find a free entry and use it.
 //
 // The driver function registration can only be called after the initialization of the LCS runtime. By then 
-// the extension boards are however already detected, and if there are no drivers pre-registered no driver 
-// function was registered. The extension board is therefore not ready and was also not reseted. Consequently, 
-// the  registration call will check or detected valid extension boards and patch the driver function label 
-// and invoke the RESET request.
+// the extension boards are detected only. The extension board is therefore not ready and was also issues
+// a RESET command. Consequently, this registration call will check or detected valid extension boards and
+// enter the driver function label and invoke the RESET request.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
         printf( "registerDrvFunc, type: %d, func: %p\n", drvType, drvReqFunction );
+    }
 
     bool found = false;
 
@@ -947,11 +876,16 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
 
             if ( drvEntry -> extBoard.head.boardType == drvType ) {
 
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, set func for driver type: %d\n", drvType );
+
                 drvEntry -> drvFunc     = drvReqFunction;
                 drvEntry -> flags       |= BF_EXT_BOARD_READY;
                 drvEntry -> lastErr     = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
-            }
 
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, set func for driver type, status: %d\n", drvEntry -> lastErr );
+            }
         }
      }
 
@@ -1112,8 +1046,7 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3, rStat );
 
     if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
-    if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
-    if ( rStat != ALL_OK )  printf( "Extension boards setup Setup failed, stat: %d\n", rStat );
+    if ( rStat != ALL_OK )  printf( "Extension boards detect failed, stat: %d\n", rStat );
 
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;

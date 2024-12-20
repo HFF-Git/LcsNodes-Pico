@@ -278,6 +278,20 @@ uint8_t registerCallbacks( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
+// Setup the drivers for extension boards.
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t registerLcsDrvFunctions( ) {
+
+    printf( "Register Extension Board Drivers\n" );
+
+    uint8_t ret = registerDrvFunc( BT_EXT_OCC_DETECT, lcsDrvOccDetect );
+    if ( ret != ALL_OK )  printf( "Registration failed: %d\n, ret ");
+
+    return( ret );
+}
+
+//----------------------------------------------------------------------------------------------------------
 // Fire up the base station. First all base station modules are initialized. If this is OK, the DCC tack
 // signal generation is enabled, i.e. the interrupt driven DCC packet broadcasting starts. Finally, the 
 // track power is turned on and we give control to the LCS runtime for processing events and requests.
@@ -330,5 +344,6 @@ int main( ) {
 
     if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
     if ( rStat == ALL_OK ) rStat = registerCallbacks( );
+    if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );
     if ( rStat == ALL_OK ) return( startBlockController( ));
 }
