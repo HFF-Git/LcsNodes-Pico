@@ -351,6 +351,8 @@ struct LcsBlockTrack {
     uint8_t                     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
     uint8_t                     setTrackState( uint16_t state );
     uint8_t                     setTrackMode( uint16_t mode, uint8_t speed = 0 );
+    uint8_t                     setPwmFrequency( uint16_t frequency );
+
     
     uint16_t                    getFlags( );
     uint16_t                    getOptions( );

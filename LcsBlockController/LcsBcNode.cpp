@@ -145,9 +145,18 @@ uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, uint8_t ite
 
             uint16_t port = npId & 0xF;
 
-           if      ( port == 1 ) block1 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
-           else if ( port == 2 ) block2 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
+            if      ( port == 1 ) block1 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
+            else if ( port == 2 ) block2 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
 
+        } break;
+
+        case 65: {
+
+            uint16_t port = npId & 0xF;
+
+            if      ( port == 1 ) block1 -> setPwmFrequency( *arg1 );
+            else if ( port == 2 ) block2 -> setPwmFrequency( *arg1 );
+        
         } break;
 
         default: {

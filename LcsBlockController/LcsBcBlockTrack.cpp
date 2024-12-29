@@ -287,11 +287,11 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
             rStat = CDC::writePwm( selPin1, 255 );
             if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 255 );
-            return( rStat );
+                return( rStat );
 
-        } break;
+            } break;
 
-        case BT_MODE_OFF: {
+            case BT_MODE_OFF: {
 
             rStat = CDC::writePwm( selPin1, 0 );
             if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
@@ -311,6 +311,27 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
         }
     }
 }
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+// ??? quick hack for debugging analog ...
+//------------------------------------------------------------------------------------------------------------
+uint8_t LcsBlockTrack::setPwmFrequency( uint16_t frequency ) {
+
+    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+
+        printf( "setPwmFrequency: frequency(Hz): %d\n", frequency );
+    }
+
+    if (( frequency >= 50 ) && ( frequency < 30000U )) {
+
+        uint8_t rStat = CDC::configurePwm( selPin1, frequency, true, false );
+        if ( rStat == ALL_OK ) rStat = CDC::configurePwm( selPin2, frequency, true, false );
+        return( rStat );
+    }
+    else return ( 255 );
+} 
 
 //------------------------------------------------------------------------------------------------------------
 // Track power is not just a matter of turning power on or off. To address all the requirements of the DCC

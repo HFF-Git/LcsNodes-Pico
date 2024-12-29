@@ -127,6 +127,8 @@ uint8_t setupConfigInfo( ) {
     return( ALL_OK );
 }
 
+const uint16_t PWM_FREQUENCY = 20000;
+
 uint8_t setupBlockDesc1( ) {
 
     block1Desc.options                         = 0;
@@ -134,7 +136,7 @@ uint8_t setupBlockDesc1( ) {
     block1Desc.selPin2                         = cdcConfig.PWM_PIN_1;
     block1Desc.sensePin                        = cdcConfig.ADC_PIN_0;
 
-    block1Desc.pwmFrequency                    = 70;
+    block1Desc.pwmFrequency                    = PWM_FREQUENCY;
 
     block1Desc.initCurrentMilliAmp             = 500;
     block1Desc.limitCurrentMilliAmp            = 1500;
@@ -157,7 +159,7 @@ uint8_t setupBlockDesc2( ) {
     block2Desc.selPin2                         = cdcConfig.PWM_PIN_3;
     block2Desc.sensePin                        = cdcConfig.ADC_PIN_1;
 
-    block2Desc.pwmFrequency                    = 70;
+    block2Desc.pwmFrequency                    = PWM_FREQUENCY;
 
     block2Desc.initCurrentMilliAmp             = 500;
     block2Desc.limitCurrentMilliAmp            = 1500;
