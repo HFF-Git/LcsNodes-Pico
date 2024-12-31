@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -31,6 +31,7 @@
 namespace LCS {
 
     extern uint16_t             debugMask;
+    extern LcsNvmHeader         headerMap;
     extern LcsCdcMap            cdcMap;
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
@@ -177,7 +178,7 @@ void handleNodePortEvents( ) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
-                callbackMap.eventCallback(  pPtr -> eventNodeId,
+                callbackMap.eventCallback(  pPtr -> eventNpId,
                                             pPtr -> eventId,
                                             pPtr -> eventAction,
                                             pPtr -> eventValue );
@@ -231,7 +232,7 @@ void handleMsgRepNid( uint8_t *msg ) {
         if ( nodeMap.nodeId != nodeId ) {
             
             nodeMap.nodeId = nodeId;
-            uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeId );
+            uint8_t rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), nodeId );
         }
 
         nodeMap.nodeState = NS_OPERATE;
@@ -308,7 +309,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                 if ( nodeMap.nodeState == NS_CONFIG ) {
 
                     if ( nodeId != nodeMap.nodeId ) nodeMap.nodeId = nodeId;
-                    uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeId );
+                    uint8_t rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), nodeId );
 
                     sendAck( nodeId );
                 }
@@ -401,14 +402,13 @@ void handleMsgReqNode( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleMsgEvent" deals with the event messages for inbound ports. For all matching events in the eventMap,
-// the respective port map entry fields are set. The searchEvent function will return us the first matching
-// entry in the sorted event map, if any. From there, we just hop along the eventMap until the eventId does
-// not match any longer. All we do in this routine is to record the event data and the optional future time
-// stamp when the event should result in a callback. The actual event processing is done in the port event 
-// processing routine, which will manage the timely invocation of the event callbacks.
+// "handleMsgEvent" deals with the event messages for inbound ports. If the event is configured in the event
+// map, all bits set in the eventMask will result in recording the event data and the optional future time
+// stamp when the event should result in a callback. Bit 0 of the mask designated all ports. The actual event
+// processing is done in the port event processing routine, which will manage the timely invocation of the 
+// event callbacks. The event mask has a bit for each port. 
 //
-// Note that we also are called from the event sending routine because another port on our node could be 
+// Note that we also are called from the event sending routine because another port on our own node could be 
 // interested in this event. It is up to the firmware programmer to ensure that a port does send itself an
 // event and may trigger an infinite loop.
 //
@@ -420,11 +420,12 @@ void handleMsgEvent( uint8_t *msg ) {
 
     if ( index >= 0 ) {
 
-        uint8_t   opCode            = msg[0];
-        uint16_t  nodeId            = ( msg[1] * 256 ) + msg[2];
-        uint16_t  eventData         = ( msg[5] * 256 ) + msg[6];
-        uint8_t   eventAction       = PEA_EVENT_IDLE;
-        uint32_t  ts                = CDC::getMillis( );
+        uint8_t     opCode          = msg[0];
+        uint16_t    npId            = ( msg[1] * 256 ) + msg[2];
+        uint16_t    eventData       = ( msg[5] * 256 ) + msg[6];
+        uint8_t     eventAction     = PEA_EVENT_IDLE;
+        uint32_t    ts              = CDC::getMillis( );
+        uint16_t    eventMask       = eventMap.map[ index ].eventMask;
 
         switch ( opCode ) {
 
@@ -433,22 +434,23 @@ void handleMsgEvent( uint8_t *msg ) {
             case LCS_OP_EVT:      eventAction = PEA_EVENT_EVT;  break;
         }
 
-        while (( index < nodeMap.eventMapHwm ) && ( eventMap.map[ index ].eventId == eventId )) {
+        for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            LcsPortMapEntry *pPtr = &portMap.map[ index ];
+            LcsPortMapEntry *pPtr = &portMap.map[ i ];
 
             if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
                 ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   )) {
 
-                pPtr -> eventNodeId     = nodeId;
-                pPtr -> eventId         = eventId;
-                pPtr -> eventAction     = eventAction;
-                pPtr -> eventValue      = eventData;
-                pPtr -> eventTimeStamp  = ts + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
-                pPtr -> flags           |= PF_EVENT_PENDING;
-            }
+                if (( eventMask & 0x1 ) || ( eventMask & ( 1 << i ))) {
 
-            index++;
+                    pPtr -> eventNpId       = npId;
+                    pPtr -> eventId         = eventId;
+                    pPtr -> eventAction     = eventAction;
+                    pPtr -> eventValue      = eventData;
+                    pPtr -> eventTimeStamp  = ts + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
+                    pPtr -> flags           |= PF_EVENT_PENDING;
+                }
+            }
         }
     }
 }

@@ -11,7 +11,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -33,6 +33,7 @@
 namespace LCS {
     
     extern uint16_t             debugMask;
+    extern LcsNvmHeader         headerMap;
     extern LcsCdcMap            cdcMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
@@ -233,8 +234,15 @@ void printSummary( ) {
         if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
     }
      
-    printf( "\"\n" );
+    printf( "\", State: %d\n", nodeMap.nodeState );
     printf( "LCS Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
+}
+
+void dumpMemHeaderMap( ) {
+
+    printf( "MEM Header Map: \n\n" );
+    dumpMemData((uint16_t *) &headerMap, sizeof( LcsNvmHeader ), 8, true);
+    printf( "\n" );
 }
 
 void dumpMemNodeMap( ) {
@@ -354,17 +362,24 @@ void dumpMemRuntimeArea( ) {
 // nice to show formatted data. Perhaps one day...
 //
 //------------------------------------------------------------------------------------------------------------
+void dumpNvmHeaderMap( ) {
+
+    printf( "NVM Header Map: \n\n" );
+    dumpNvmData( nodeMap.nvmHeaderMapOfs, sizeof( LcsNvmHeader ), 8, true );
+    printf( "\n" );
+}
+
 void dumpNvmNodeMap( ) {
 
     printf( "NVM Node Map Dump: \n\n" );
-    dumpNvmData( NVM_NODE_MAP_START, sizeof( LcsNodeMap ), 8, true );
+    dumpNvmData( nodeMap.nvmNodeMapOfs, sizeof( LcsNodeMap ), 8, true );
     printf( "\n" );
 }
 
 void dumpNvmCdcMap( ) {
 
     printf( "MEM CDC Map Dump: \n\n" );
-    dumpNvmData( NVM_CDC_MAP_START, sizeof( CDC::CdcConfigDesc ));
+    dumpNvmData( nodeMap.nvmCdcMapOfs , sizeof( CDC::CdcConfigDesc ));
     printf( "\n" );
 }
 
@@ -374,7 +389,7 @@ void dumpNvmPortMap( ) {
     
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        uint32_t ofs = NVM_PORT_MAP_START + ( i * sizeof( LcsPortMapEntry ));
+        uint32_t ofs = nodeMap.nvmPortMapOfs + ( i * sizeof( LcsPortMapEntry ));
 
         printf( "Port %d, NVM ofs: 0x%04x \n", i + 1, ofs );
         dumpNvmData( ofs, sizeof( LcsPortMapEntry ), 8, true );
@@ -390,7 +405,7 @@ void dumpNvmNodeData( ) {
     
     for ( int i  = 0; i < MAX_NODE_DATA_BLOCKS; i++ ) {
 
-        uint32_t ofs = NVM_NODE_DATA_START + ( i * MAX_ATTR_MAP_ENTRIES  * sizeof( uint16_t ));
+        uint32_t ofs = nodeMap.nvmNodeDataOfs + ( i * MAX_ATTR_MAP_ENTRIES  * sizeof( uint16_t ));
 
         printf( "Node data block: %d, NVM ofs: 0x%04x \n", i, ofs );
         dumpNvmData( ofs, MAX_ATTR_MAP_ENTRIES  * sizeof( uint16_t ));
@@ -403,14 +418,14 @@ void dumpNvmNodeData( ) {
 void dumpNvmEventMap( ) {
 
     printf( "NVM Node Event Dump: \n\n" );
-    dumpNvmData( NVM_EVENT_MAP_START, sizeof( LcsEventMap ));
+    dumpNvmData( nodeMap.nvmEventMapOfs, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
 void dumpNvmRuntimeArea( ) {
 
     printf( "NVM Runtime Area Dump: \n\n" );
-    dumpNvmData( 0, NVM_RUNTIME_AREA_SIZE , 8, true );
+    dumpNvmData( 0, nodeMap.nvmMemSize , 8, true );
     printf( "\n" );
 }
 
@@ -434,7 +449,7 @@ void dumpNvmDrvData( uint16_t boardId ) {
 void dumpNvmUserArea( ) {
 
     printf( "NVM Area Dump: \n\n" );
-    dumpNvmData( NVM_USER_MAP_START, usrNvmGetSize( ), 8, true );
+    dumpNvmData( nodeMap.nvmUserMapOfs, usrNvmGetSize( ), 8, true );
     printf( "\n" );
 }
 
@@ -822,7 +837,7 @@ void findEventCommand( char *s ) {
     uint16_t tmpEvent   = (uint16_t) eventId;
     uint16_t tmpPort    = (uint16_t) portId;
 
-    int ret = searchEvent( tmpEvent, tmpPort );
+    int ret = searchEvent( tmpEvent );
     printf( "Event map index: %d", ret );
 }
 
@@ -1144,36 +1159,38 @@ void listStatusCommand( char *s ) {
 
             case 0:     printSummary( );            break;
 
-            case 1:     dumpMemNodeMap( );          break;
-            case 2:     dumpNvmCdcMap( );           break;
-            case 3:     dumpMemPortMap( );          break;
-            case 4:     dumpMemNodeData( );         break;
-            case 5:     dumpMemEventMap( );         break;
-            case 6:     dumpMemPendingReqMap( );    break;
-            case 7:     dumpMemTaskMap( );          break;
-            case 8:     dumpMemCallbackMap( );      break;
-            case 9:     dumpMemDrvFuncMap( );       break;
-            case 10:    dumpMemDrvMap( );           break;
-            case 11:    dumpMemRuntimeArea( );      break;
+            case 1:     dumpMemHeaderMap( );        break;
+            case 2:     dumpMemNodeMap( );          break;
+            case 3:     dumpNvmCdcMap( );           break;
+            case 4:     dumpMemPortMap( );          break;
+            case 5:     dumpMemNodeData( );         break;
+            case 6:     dumpMemEventMap( );         break;
+            case 7:     dumpMemPendingReqMap( );    break;
+            case 8:     dumpMemTaskMap( );          break;
+            case 9:     dumpMemCallbackMap( );      break;
+            case 10:    dumpMemDrvFuncMap( );       break;
+            case 11:    dumpMemDrvMap( );           break;
+            case 12:    dumpMemRuntimeArea( );      break;
 
-            case 21:    dumpNvmNodeMap( );          break;
-            case 22:    dumpNvmCdcMap( );           break;
-            case 23:    dumpNvmPortMap( );          break;
-            case 24:    dumpNvmNodeData( );         break;
-            case 25:    dumpNvmEventMap( );         break;
-            case 26:    dumpNvmRuntimeArea( );      break;
+            case 21:    dumpNvmHeaderMap( );        break;
+            case 22:    dumpNvmNodeMap( );          break;
+            case 23:    dumpNvmCdcMap( );           break;
+            case 24:    dumpNvmPortMap( );          break;
+            case 25:    dumpNvmNodeData( );         break;
+            case 26:    dumpNvmEventMap( );         break;
+            case 27:    dumpNvmRuntimeArea( );      break;
 
-            case 31:    printMemNodeMap( );         break;
-            case 32:    printMemCdcMap( );          break;
-            case 33:    printMemPortMap( );         break;
-            case 35:    printMemEventMap( );        break;
-            case 38:    printMemDrvMap( );          break;
+            case 30:    dumpNvmDrvData( 0 );        break;
+            case 31:    dumpNvmDrvData( 1 );        break;
+            case 32:    dumpNvmDrvData( 2 );        break;
+            case 33:    dumpNvmDrvData( 3 );        break;
+
+            case 41:    printMemNodeMap( );         break;
+            case 42:    printMemCdcMap( );          break;
+            case 43:    printMemPortMap( );         break;
+            case 45:    printMemEventMap( );        break;
+            case 48:    printMemDrvMap( );          break;
             
-            case 40:    dumpNvmDrvData( 0 );        break;
-            case 41:    dumpNvmDrvData( 1 );        break;
-            case 42:    dumpNvmDrvData( 2 );        break;
-            case 43:    dumpNvmDrvData( 3 );        break;
-
             case 50:    listDevicesI2C( );          break;   
 
             default: printf( "Unknown help option, use '?' for help\n" );
@@ -1211,35 +1228,38 @@ void listCoreLibHelpCommand( ) {
    
     printf( "s [ level ] - list status, default is summary\n" );
     printf( "              " " -   0  - summary\n" );
-    printf( "              " " -   1  - MEM Node Map\n" );
-    printf( "              " " -   2  - MEM CDC Map\n" );
-    printf( "              " " -   3  - MEM Port Map\n" );
-    printf( "              " " -   4  - MEM Node Data\n" );
-    printf( "              " " -   5  - MEM Event Map\n" );
-    printf( "              " " -   6  - MEM Pending Request Map\n" );
-    printf( "              " " -   7  - MEM Task Map\n" );
-    printf( "              " " -   8  - MEM Callback Map\n" );
-    printf( "              " " -   9  - MEM Driver Function Map\n" );
-    printf( "              " " -  10  - MEM Driver Map\n" );
-    printf( "              " " -  11  - MEM Runtime Area\n" );
+    printf( "              " " -   1  - MEM Header Map\n" );
+    printf( "              " " -   2  - MEM Node Map\n" );
+    printf( "              " " -   3  - MEM CDC Map\n" );
+    printf( "              " " -   4  - MEM Port Map\n" );
+    printf( "              " " -   5  - MEM Node Data\n" );
+    printf( "              " " -   6  - MEM Event Map\n" );
+    printf( "              " " -   7  - MEM Pending Request Map\n" );
+    printf( "              " " -   8  - MEM Task Map\n" );
+    printf( "              " " -   9  - MEM Callback Map\n" );
+    printf( "              " " -  10  - MEM Driver Function Map\n" );
+    printf( "              " " -  11  - MEM Driver Map\n" );
+    printf( "              " " -  12  - MEM Runtime Area\n" );
 
-    printf( "              " " -  21  - NVM Node Map\n" );
-    printf( "              " " -  22  - NVM CDC Map\n" );
-    printf( "              " " -  23  - NVM Port Map\n" );
-    printf( "              " " -  24  - NVM Node Data\n" );
-    printf( "              " " -  25  - NVM Event Map\n" );
-    printf( "              " " -  26  - NVM Runtime Area\n" );
+    printf( "              " " -  21  - NVM Header Map\n" );      
+    printf( "              " " -  22  - NVM Node Map\n" );
+    printf( "              " " -  23  - NVM CDC Map\n" );
+    printf( "              " " -  24  - NVM Port Map\n" );
+    printf( "              " " -  25  - NVM Node Data\n" );
+    printf( "              " " -  26  - NVM Event Map\n" );
+    printf( "              " " -  27  - NVM Runtime Area\n" );
 
-    printf( "              " " -  31  - MEM Node Map formatted\n" );
-    printf( "              " " -  32  - MEM CDC Map formatted\n" );
-    printf( "              " " -  33  - NVM Port Map formatted\n" );
-    printf( "              " " -  35  - MEM Event Map formatted\n" );
-    printf( "              " " -  38  - MEM Driver Map formatted\n" );
+    printf( "              " " -  30  - NVM Extension Board 0\n" ); 
+    printf( "              " " -  31  - NVM Extension Board 1\n" );
+    printf( "              " " -  32  - NVM Extension Board 2\n" );
+    printf( "              " " -  33  - NVM Extension Board 3\n" );
 
-    printf( "              " " -  40  - NVM Extension Board 0\n" );
-    printf( "              " " -  41  - NVM Extension Board 1\n" );
-    printf( "              " " -  42  - NVM Extension Board 2\n" );
-    printf( "              " " -  43  - NVM Extension Board 3\n" );
+    printf( "              " " -  41  - MEM Header Map formatted\n" );            
+    printf( "              " " -  42  - MEM Node Map formatted\n" );
+    printf( "              " " -  43  - MEM CDC Map formatted\n" );
+    printf( "              " " -  44  - MEM Port Map formatted\n" );
+    printf( "              " " -  46  - MEM Event Map formatted\n" );
+    printf( "              " " -  48  - MEM Driver Map formatted\n" );
 
     printf( "              " " -  50  - I2C Devices\n" );
 }

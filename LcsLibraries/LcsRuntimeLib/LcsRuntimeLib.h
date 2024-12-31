@@ -11,7 +11,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Runtime Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -374,13 +374,14 @@ enum LcsItems : uint8_t {
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
    
-    ITEM_ID_NODE_ID                     = 10,
-    ITEM_ID_NODE_UID                    = 11,
-    ITEM_ID_RESTART_COUNT               = 12,
+    ITEM_ID_NODE_STATE                  = 10,
+    ITEM_ID_NODE_ID                     = 11,
+    ITEM_ID_NODE_UID                    = 12,
+    ITEM_ID_RESTART_COUNT               = 13,
 
-    ITEM_ID_PORT_MAP_ENTRIES            = 13,
-    ITEM_ID_EVENT_MAP_ENTRIES           = 14,
-    ITEM_ID_ATTR_MAP_ENTRIES            = 15,
+    ITEM_ID_PORT_MAP_ENTRIES            = 14,
+    ITEM_ID_EVENT_MAP_ENTRIES           = 15,
+    ITEM_ID_ATTR_MAP_ENTRIES            = 16,
 
     ITEM_ID_NAME_1                      = 17,
     ITEM_ID_NAME_2                      = 18,
@@ -508,12 +509,14 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_TOF              = OPC( 2, 11 ),
 
     LCS_OP_RESET            = OPC( 3, 1 ),
-    LCS_OP_REQ_LOC          = OPC( 3, 2 ),
-    LCS_OP_SET_LCON         = OPC( 3, 3 ),
-    LCS_OP_LOC_FGRP         = OPC( 3, 4 ),
-    LCS_OP_SEND_DCC3        = OPC( 3, 5 ),
-    LCS_OP_DCC_ERR          = OPC( 3, 6 ),
-    LCS_OP_REQ_CVS          = OPC( 3, 7 ),
+    LCS_OP_SYNC             = OPC( 3, 2 ),
+    LCS_OP_REQ_LOC          = OPC( 3, 3 ),
+    LCS_OP_SET_LCON         = OPC( 3, 4 ),
+    LCS_OP_LOC_FGRP         = OPC( 3, 5 ),
+    LCS_OP_SEND_DCC3        = OPC( 3, 6 ),
+    LCS_OP_DCC_ERR          = OPC( 3, 7 ),
+    LCS_OP_REQ_CVS          = OPC( 3, 8 ),
+    
 
     LCS_OP_EVT_ON           = OPC( 4, 1 ),
     LCS_OP_EVT_OFF          = OPC( 4, 2 ),
@@ -566,10 +569,11 @@ enum LcsErrorCodes : uint8_t {
     ERR_MEM_SIZE_EXCEEDED               = 17,
     ERR_NVM_OP_FAILED                   = 18,
 
-    ERR_NODE_NOT_OPS_STATE              = 20,
-    ERR_NODE_NOT_CONFIG_STATE           = 21,
-    ERR_NODE_OUTSTANDING_REQ_LIMIT      = 22,
-    ERR_TASK_MAP_SIZE_EXCEEDED          = 23,
+    ERR_INVALID_OP_FOR_NODE_STATE       = 20,
+    ERR_NODE_NOT_OPS_STATE              = 21,
+    ERR_NODE_NOT_CONFIG_STATE           = 22,
+    ERR_NODE_OUTSTANDING_REQ_LIMIT      = 23,
+    ERR_TASK_MAP_SIZE_EXCEEDED          = 24,
 
     ERR_INVALID_NODE_ID                 = 30,
     ERR_INVALID_PORT_ID                 = 31,
@@ -654,6 +658,7 @@ enum MsgPriority : uint8_t {
 // invoked as the communication back to the firmware layer.
 //
 //      LcsMsgCallback      -   is called with a LCS management message received.
+//
 //      LcsCmdCallback      -   when the command interpreter detects a non LCS command, the command line 
 //                              is passed on to the callback. 
 //      LcsTaskCallback     -   a callback for a previously registered task. The callback is invoked on 
@@ -701,7 +706,9 @@ extern "C" {
 
 //------------------------------------------------------------------------------------------------------------
 // A  driver for an extension board is invoked through this routine signature. During setup, the correct 
-// driver label needs to be set in the driver map.
+// driver label needs to be set in the driver map. Since a driver shares the LCS port services for attributes,
+// only the handler for the REQ call is needed. The boardId maps to the portId in this case, i.e. when there
+// are extension boards, they map to port 1 to 4.
 //
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -719,7 +726,6 @@ struct LcsConfigDesc {
 
     uint16_t options    = 0;
     uint16_t boardType  = 0; // ??? later...
-
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -731,6 +737,7 @@ struct LcsConfigDesc {
 // only structures that are references throughout the library file set are available externally. Perhaps
 // one day, we encapsulate all data in a private structure for security reasons. To be determined.
 // 
+// ??? may have a routine to init the runtime just based on the board type ?
 //------------------------------------------------------------------------------------------------------------
 LcsConfigDesc       getConfigDefault( );
 uint8_t             initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig );
@@ -832,6 +839,7 @@ void                printLcsMs( uint8_t *msgBuf );
 // for the board. Just like for the node / port items, there are routines to GET/SET/REQ driver data and
 // functions. The init function is only called by the library at setup time.
 //
+// ??? they may go away again ... when we map to ports.
 //---------------------------------------------------------------------------------------------------------
 uint8_t             drvInit( uint8_t boardId );
 uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );

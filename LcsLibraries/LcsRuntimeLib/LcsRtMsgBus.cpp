@@ -13,7 +13,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -354,19 +354,20 @@ uint8_t sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendPing( uint16_t npId ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_PING };
-    msgBuf[ 1 ] = highByte( npId );
-    msgBuf[ 2 ] = lowByte( npId );
-    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
-}
-
 uint8_t sendAck( uint16_t npId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ACK };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
+    return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+}
+
+uint8_t sendSync( uint16_t npId, uint8_t item ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_SYNC };
+    msgBuf[ 1 ] = highByte( npId );
+    msgBuf[ 2 ] = lowByte( npId );
+    msgBuf[ 3 ] = item;
     return ( msgBus -> sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
 

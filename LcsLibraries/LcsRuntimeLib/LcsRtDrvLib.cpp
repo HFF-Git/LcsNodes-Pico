@@ -7,6 +7,8 @@
 // that manages an extension board.
 //
 // ??? what else to explain ?
+//
+// ??? this file will go away - replaced by port attributes...
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
@@ -64,6 +66,7 @@ uint8_t highByte( uint16_t arg ) {
     return( arg >> 8 ); 
 }
 
+// ??? needs to be where ?
 //------------------------------------------------------------------------------------------------------------
 // "buildDrvBoardDescArea" will create a default data area and initializes the extension board NVM with this
 // data.
@@ -103,6 +106,7 @@ uint8_t drvInit( ) {
     return ( ALL_OK );
 }
 
+// ??? phase out, replaced by port attributes...
 //------------------------------------------------------------------------------------------------------------
 // "drvGet" returns a value from the driver data array. 
 //
@@ -138,6 +142,7 @@ uint8_t drvGet( uint8_t boardId, uint8_t item, uint16_t *arg ) {
     else return( ERR_INVALID_ITEM_ID ); 
 }
 
+// ??? phase out, replaced by port attributes...
 //------------------------------------------------------------------------------------------------------------
 // "drvPut" sets a value in the driver data array. Note that this is during normal operations only the MEM 
 // portion. The NVM chip on the extension board is write disabled after initial configuration. When the 
@@ -185,6 +190,7 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
     else return( ERR_INVALID_ITEM_ID ); 
 }
 
+// ??? phase out, replaced by port attributes...
 //------------------------------------------------------------------------------------------------------------
 // "drvReq" is the entry point to an extension board. For each extension board type there is driver function.
 // This function is called when we access that extension board. Note that the REQ call will only work when

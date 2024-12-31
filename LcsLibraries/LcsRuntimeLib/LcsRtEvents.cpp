@@ -22,7 +22,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -71,12 +71,10 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 // entry.
 //
 //-------------------------------------------------------------------------------------------------------------
-int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2, uint16_t portId2 ) {
+int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
 
     if      ( e1 -> eventId < eventId2 )  return ( -1 );
     else if ( e1 -> eventId > eventId2 )  return ( 1 );
-    else if ( e1 -> portId < portId2 )    return ( -1 );
-    else if ( e1 -> portId > portId2 )    return ( 1 );
     else return ( 0 );
 }
 
@@ -87,9 +85,40 @@ int compareEventEntry( const LcsEventMapEntry *arg1, const LcsEventMapEntry *arg
 
     if      ( e1 -> eventId < e2 -> eventId )  return ( -1 );
     else if ( e1 -> eventId > e2 -> eventId )  return ( 1 );
-    else if ( e1 -> portId  < e2 -> portId )   return ( -1 );
-    else if ( e1 -> portId  > e2 -> portId )   return ( 1 );
     else return ( 0 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The event map search function performs a binary search of the event map. If the entry cannot be found, a
+// -1 is returned.
+//
+//------------------------------------------------------------------------------------------------------------
+int searchEventMap( uint16_t eventId ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
+        
+        printf( "Search Event Map: %d ", eventId );
+    }
+    
+    int   res   = -1;
+    int   low   = 0;
+    int   high  = nodeMap.eventMapHwm - 1;
+
+    while ( low <= high ) {
+
+        int mid = low + ( high - low + 1 ) / 2;
+
+        if      ( eventMap.map[ mid ].eventId < eventId ) low  = mid + 1;
+        else if ( eventMap.map[ mid ].eventId > eventId ) high = mid - 1;
+        else if ( eventMap.map[ mid ].eventId == eventId ) {
+
+            res   = mid;
+            high  = mid - 1;
+        }
+    }
+    
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "-> %d\n", res );
+    return ( res );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -97,29 +126,36 @@ int compareEventEntry( const LcsEventMapEntry *arg1, const LcsEventMapEntry *arg
 // there is still room in the table, the entry is added in sorted order.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t addToMemEventMap( uint16_t eventId, uint16_t portId ) {
+uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
 
-        printf( "Add to MEM Event Map: %d : %d\n", eventId, portId );
+        printf( "Add to MEM Event Map: %d : 0x%x\n", eventId, eventMask );
     }
 
-    if ( searchEvent( eventId, portId ) >= 0 )    return ( ALL_OK );
+    int index = searchEvent( eventId );
+
+    if ( index >= 0 ) {
+
+        eventMap.map[ index ].eventMask; 
+        return ( ALL_OK );
+    }  
+
     if ( nodeMap.eventMapHwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
 
-    uint16_t index = nodeMap.eventMapHwm;
+    index = nodeMap.eventMapHwm;
 
     if ( nodeMap.eventMapHwm > 0 ) {
 
-        while (( index > 0 ) && ( compareEventEntry( &eventMap.map[ index - 1 ], eventId, portId ) > 0 )) {
+        while (( index > 0 ) && ( compareEventEntry( &eventMap.map[ index - 1 ], eventId ) > 0 )) {
 
             eventMap.map[ index ] = eventMap.map[ index - 1 ];
             index --;
         }
     }
 
-    eventMap.map[ index ].eventId = eventId;
-    eventMap.map[ index ].portId  = portId;
+    eventMap.map[ index ].eventId   = eventId;
+    eventMap.map[ index ].eventMask = eventMask;
     nodeMap.eventMapHwm++;
 
     return ( ALL_OK );
@@ -129,14 +165,14 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t portId ) {
 // "removeFromMemEventMap" removes an entry from the memory event map. The sorted order is maintained.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t removeFromMemEventMap( uint16_t eventId, uint16_t portId ) {
+uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
-        printf( "Remove from MEM Event Map: %d : %d \n", eventId, portId );
+        printf( "Remove from MEM Event Map: %d\n", eventId );
     }
 
-    int index = searchEvent( eventId, portId );
+    int index = searchEvent( eventId );
 
     if ( index >= 0 ) {
 
@@ -158,36 +194,13 @@ uint8_t removeFromMemEventMap( uint16_t eventId, uint16_t portId ) {
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// The "addEvent" routine will add an eventId/portId combination to the event map if not already there. If
-// the portId parameter is a NIL_PORT_ID, the event is added to all portMap entries.
+// The "addEvent" routine will add or update an eventId/eventMask combination in the event map.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
-        
-        printf( "Add Event: event: %d, port: %d\n", eventId, portId );
-    }
-
-    int rStat = ALL_OK;
+uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
-    if ( portId >  MAX_PORT_ID ) return ( ERR_INVALID_PORT_ID );
-
-    if ( portId == NIL_PORT_ID ) {
-
-        for ( uint8_t p = 1; p <= MAX_PORT_MAP_ENTRIES; p++ ) {
-
-            rStat = addToMemEventMap( eventId, p );
-            if ( rStat != ALL_OK ) break;
-        }
-    }
-    else {
-
-        rStat = addToMemEventMap( eventId, portId );
-    }
-
-    return ( rStat );
+    return( addToMemEventMap( eventId, eventMask ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -195,32 +208,10 @@ uint8_t addEvent( uint16_t eventId, uint16_t portId ) {
 // NIL_PORT_ID, all port map entries matching event Id are removed.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t removeEvent( uint16_t eventId, uint16_t portId ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
-        
-        printf( "Remove Event: %d : %d\n", eventId, portId );
-    }
-
-    int rStat = ALL_OK;
+uint8_t removeEvent( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
-
-    if ( portId == NIL_PORT_ID ) {
-
-        for ( uint16_t p = 1; p <= MAX_PORT_MAP_ENTRIES; p++ ) {
-
-            rStat = removeFromMemEventMap( eventId, p );
-            if ( rStat != ALL_OK ) break;
-        }
-    }
-    else if ( isInRangeU( portId, MIN_PORT_ID, MAX_PORT_ID )) {
-
-        rStat = removeFromMemEventMap( eventId, portId );
-    }
-    else rStat = ERR_INVALID_PORT_ID;
-
-    return ( rStat );
+    return( removeFromMemEventMap( eventId ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -229,51 +220,10 @@ uint8_t removeEvent( uint16_t eventId, uint16_t portId ) {
 // same eventId follow. If the entry cannot be found, a -1 is returned.
 //
 //------------------------------------------------------------------------------------------------------------
-int searchEvent( uint16_t eventId, uint16_t portId ) {
+int searchEvent( uint16_t eventId ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
-        
-        printf( "Search Event: %d : %d", eventId, portId );
-    }
-    
-    int   res   = -1;
-    int   low   = 0;
-    int   high  = nodeMap.eventMapHwm - 1;
-
-    if ( portId == NIL_PORT_ID ) {
-
-        while ( low <= high ) {
-
-            int mid = low + ( high - low + 1 ) / 2;
-
-            if      ( eventMap.map[ mid ].eventId < eventId ) low  = mid + 1;
-            else if ( eventMap.map[ mid ].eventId > eventId ) high = mid - 1;
-            else if ( eventMap.map[ mid ].eventId == eventId ) {
-
-                res   = mid;
-                high  = mid - 1;
-            }
-        }
-    }
-    else {
-
-        while ( low <= high ) {
-
-            int mid = low + ( high - low ) / 2;
-            int tst = compareEventEntry( &eventMap.map[ mid ], eventId, portId );
-
-            if      ( tst < 0 ) low   = mid + 1;
-            else if ( tst > 0 ) high  = mid - 1;
-            else {
-
-                res = mid;
-                break;
-            }
-        }
-    }
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "-> %d\n", res );
-    return ( res );
+    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
+    return( searchEventMap( eventId ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -286,13 +236,13 @@ uint8_t syncEventMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "sync EventMap \n" );  
 
-    uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_START, 
+    uint8_t rStat =  rtNvmPutBytes( nodeMap.nvmEventMapOfs, 
                                     (uint8_t *) eventMap.map, 
                                     nodeMap.eventMapHwm * sizeof( LcsEventMapEntry ));
 
     if ( rStat == ALL_OK ) {
 
-        uint32_t ofs = NVM_NODE_MAP_START + offsetof( LcsNodeMap, eventMapHwm );
+        uint32_t ofs = nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, eventMapHwm );
         rStat = rtNvmPutWord( ofs, nodeMap.eventMapHwm );
     }
 
@@ -300,11 +250,11 @@ uint8_t syncEventMap( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "getMemEmapEntry" returns the eventId and portId pair from the MEM event map. It is used by the console
-// command interface and also the LCS message handler to obtain that data. The index starts at 0.
+// "getMemEmapEntry" returns the eventId and event mask pair from the MEM event map. It is used by the console
+// command interface and also the LCS message request handler to obtain that data. The index starts at 0.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId ) {
+uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
         
@@ -313,8 +263,8 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *evId, uint16_t *pId ) {
   
     if ( index <  nodeMap.eventMapHwm ) {
 
-        *evId = eventMap.map[ index ].eventId;
-        *pId  = eventMap.map[ index ].portId;
+        *eventId    = eventMap.map[ index ].eventId;
+        *eventMask  = eventMap.map[ index ].eventMask;
         return ( ALL_OK );
     }
     else return ( ERR_INVALID_EVENT_MAP_INDEX );

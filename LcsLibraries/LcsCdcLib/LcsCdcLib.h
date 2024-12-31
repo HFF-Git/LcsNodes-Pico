@@ -203,8 +203,12 @@ extern "C" {
 // UNDEFINED. The structure is the superset of all possible HW items to configure.
 //
 // In a later runtime version, we may put this structure as constant data into the non-volatile chip on
-// the board. It will then just be read from there.
+// the board. After all the HW pin assignments is linked to the particular board. It will then just be read 
+// from the board NVM.
 //
+// ??? think about a way to just have an array of pin numbers with a pointer to the instance. A constant
+// labels the pin or resource behind it. The array would also need to have a pointer to the instance it
+// belongs to. When an instance needs two pins, like i2c, the array fields point to the same entry.
 //------------------------------------------------------------------------------------------------------------
 struct CdcConfigDesc {
 
@@ -241,8 +245,10 @@ struct CdcConfigDesc {
     uint8_t   PWM_PIN_1;
     uint8_t   PWM_PIN_2;
     uint8_t   PWM_PIN_3;
-
-    // ??? do we need more for quad controller ?
+    uint8_t   PWM_PIN_4;
+    uint8_t   PWM_PIN_5;
+    uint8_t   PWM_PIN_6;
+    uint8_t   PWM_PIN_7;
 
     uint8_t   UART_RX_PIN_0;
     uint8_t   UART_TX_PIN_0;

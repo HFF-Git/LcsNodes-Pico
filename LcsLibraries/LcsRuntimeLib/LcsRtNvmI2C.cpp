@@ -14,7 +14,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS Core library - Non volatile storage based on the M24LCxxx chip family
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -44,7 +44,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t debugMask;
+    extern uint16_t     debugMask;
+    extern LcsNodeMap   nodeMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -561,34 +562,35 @@ uint32_t extNvmGetSize( ) {
 // are routines for getting and setting a word as well as routines to read and  write a buffer. All access 
 // routines are prefixed with "nvm".
 //
+// ??? check that the library is initialized!!!!
 //------------------------------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-    ofs = ofs + NVM_USER_MAP_START;
+    ofs = ofs + nodeMap.nvmUserMapOfs;
     return( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    ofs = ofs + NVM_USER_MAP_START;
+    ofs = ofs + nodeMap.nvmUserMapOfs;
     return( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    ofs = ofs + NVM_USER_MAP_START;
+    ofs = ofs + nodeMap.nvmUserMapOfs;
     return( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    ofs = ofs + NVM_USER_MAP_START;
+    ofs = ofs + nodeMap.nvmUserMapOfs;
     return( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint32_t usrNvmGetSize( ) {
 
-    return ( nodeNvmSize - NVM_USER_MAP_START );
+    return ( nodeMap.nvmUserMapSize );
 }
 
 }; // namespace LCS

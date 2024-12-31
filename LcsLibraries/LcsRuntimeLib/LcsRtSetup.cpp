@@ -35,7 +35,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -69,6 +69,7 @@ namespace LCS {
     uint16_t                debugMask    = 0;
     uint16_t                startOptions = 0;
 
+    LcsNvmHeader            headerMap;
     LcsCdcMap               cdcMap;
     LcsMsgBusCAN            *msgBus;
     LcsNodeData             nodeData;
@@ -119,6 +120,19 @@ uint16_t nodeId( uint16_t npId ) {
 uint16_t portId( uint16_t npId ) {
 
     return( npId & 0xF );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "buildDefaultNodeMap" build a header map with the default values from the declaration structure. The 
+// default header map is used for initializing the memory runtime node map for formatting a new or corrupted
+// runtime NVM.
+//
+//------------------------------------------------------------------------------------------------------------
+void buildDefaultHeaderMap( LcsNvmHeader *hMap ) {
+
+    LcsNvmHeader tmp;
+
+    *hMap = tmp;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -184,19 +198,18 @@ uint8_t buildNvmRuntimeStructures( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures\n" );
 
-    rtNvmClearArea( NVM_NODE_MAP_START, NVM_RUNTIME_AREA_SIZE );
-
     // ??? build default CDC map ?
 
+    buildDefaultHeaderMap( &headerMap );
     buildDefaultNodeMap( &nodeMap );
     buildDefaultPortMap( &portMap );
     buildDefaultEventMap( &eventMap );
     buildDefaultNodeData( &nodeData );
 
-    rStat = rtNvmPutBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
-    if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
-    if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_EVENT_MAP_START, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
-    if ( rStat == ALL_OK ) rtNvmPutBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
+    rStat = rtNvmPutBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    if ( rStat == ALL_OK ) rtNvmPutBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+    if ( rStat == ALL_OK ) rtNvmPutBytes( nodeMap.nvmEventMapOfs, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
+    if ( rStat == ALL_OK ) rtNvmPutBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
@@ -420,16 +433,59 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "setupHeaderMap" sets up the header map. It is the first routine after all the basic hardware settings is
+// in place. If the header is invalid or formatting was requested, a default structure will be created. Either
+//  way we return with a valid NVM structure. 
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupHeaderMap( LcsConfigDesc *cfg ) {
+
+    uint8_t rStat = ALL_OK;
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupHeaderMap\n" );
+
+    if ( startOptions & NOPT_FORMAT_RUNTIME ) {
+
+        rStat = buildNvmRuntimeStructures( );
+    }
+
+    rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &headerMap, sizeof( LcsNvmHeader ));
+    if ( rStat != ALL_OK ) return( rStat );
+
+    if (( headerMap.magicWord1 != NVM_MWORD_1 ) || 
+        ( headerMap.magicWord2 != NVM_MWORD_2 )) {
+
+        // ??? what else to check....
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+            printf( "setupHeaderMap: invalid header, re-format\n" );
+
+        rStat = buildNvmRuntimeStructures( );
+    }
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+        uint16_t *ptr = (uint16_t *) &nodeMap;
+
+        printf( "Header Map: " );
+        for ( int i = 0; i < 16; i++ ) printf( "0x%x ", ptr[ i ] );
+        printf( "\n" );
+    }
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupHeaderMap, status: %d\n", rStat );
+    
+    return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "setupNodeMap" sets up the nodeMap. It is the first routine after all the basic hardware settings is in 
-// place. Unless the start options tell us to just format a new runtime area, we read in the nodeMap from 
-// the node NVM. A quick check of the magic words and the the nodeMap size field will tell us whether this
-// nodeMap was initialized before. If this is not the case, we must assume a corrupt nodeMap or a new board. 
-// The runtime area data structures are created with default values and written to the NVM.
+// place and the NVM contains a valid header. If the header was invalid or formatting was requested, a 
+// default structure was created. Either way we can rely on a default map layout. We fetch the node map and
+// validate the size of each map of NVM. This will catch the case that the library data structures have 
+// changed and the NVM data is therefore invalid.
 //
-// In any case, the follow-on setup routines can assume a valid data structure to work from and just read 
-// the NVM as normal. If this routine has an error it should be considered as a fatal error.
-//
-// ??? check the sizes of the maps, load CDC map if we only have a board type ?
+// ??? load CDC map if we only have a board type ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
@@ -437,36 +493,23 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap\n" );
 
-    if ( startOptions & NOPT_FORMAT_RUNTIME ) {
-
-        rStat = buildNvmRuntimeStructures( );
-    }
-
-    rStat = rtNvmGetBytes( NVM_NODE_MAP_START, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );
 
-     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+    nodeMap.nodeOptions = cfg -> options;
 
-        uint16_t *ptr = (uint16_t *) &nodeMap;
-
-        printf( "NodeMap Head: " );
-        for ( int i = 0; i < 16; i++ ) printf( "0x%x ", ptr[ i ] );
-        printf( "\n" );
-     }
-
-    if (( nodeMap.head.magicWord1 != NVM_MWORD_1 ) || 
-        ( nodeMap.head.magicWord2 != NVM_MWORD_2 ) || 
-        ( nodeMap.nodeMapSize != sizeof( LcsNodeMap ))) {
-
-            // ??? check the sizes of the maps ???
+    if (( nodeMap.nvmHeaderMapSize  != sizeof( LcsNvmHeader )) ||
+        ( nodeMap.nvmNodeMapSize    != sizeof( LcsNodeMap )) ||
+        ( nodeMap.nvmCdcMapSize     != sizeof( LcsCdcMap )) ||
+        ( nodeMap.nvmPortMapSize    != sizeof( LcsPortMap )) ||
+        ( nodeMap.nvmNodeDataSize   != sizeof( LcsNodeData )) ||
+        ( nodeMap.nvmEventMapSize   != sizeof( LcsEventMap ))) {
 
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-            printf( "setupNodeMap: invalid header, re-format\n" );
+            printf( "setupNodeMap: invalid structure size(s), re-format\n" );
 
         rStat = buildNvmRuntimeStructures( );
     }
-
-    nodeMap.nodeOptions = cfg -> options;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "setupNodeMap, status: %d\n", rStat );
@@ -482,7 +525,7 @@ uint8_t setupPortMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPortMap\n" );
 
-    uint8_t rStat = rtNvmGetBytes( NVM_PORT_MAP_START, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+    uint8_t rStat = rtNvmGetBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "setupPortMap, status: %d\n", rStat );
@@ -498,7 +541,7 @@ uint8_t setupNodeDataMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeDataMap\n" );
 
-    uint8_t rStat = rtNvmGetBytes( NVM_NODE_DATA_START, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
+    uint8_t rStat = rtNvmGetBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "setupNodeDataMap, status: %d\n", rStat );
@@ -550,7 +593,7 @@ uint8_t setupEventMap( ) {
 
         for ( uint16_t i = 0; i < nodeMap.eventMapHwm; i++ ) {
 
-            rStat = rtNvmGetBytes(  NVM_EVENT_MAP_START + i * sizeof( LcsEventMapEntry), 
+            rStat = rtNvmGetBytes(  nodeMap.nvmEventMapOfs + i * sizeof( LcsEventMapEntry), 
                                     (uint8_t *) &eventMap.map[ i ], 
                                     sizeof( LcsEventMapEntry ));
         }
@@ -565,13 +608,13 @@ uint8_t setupEventMap( ) {
 
             LcsEventMapEntry eventEntry;
 
-            rStat = rtNvmGetBytes(  NVM_EVENT_MAP_START + i * sizeof(LcsEventMapEntry), 
+            rStat = rtNvmGetBytes(  nodeMap.nvmEventMapOfs + i * sizeof(LcsEventMapEntry), 
                                     (uint8_t *) &eventEntry, 
                                     sizeof(LcsEventMapEntry));
 
             if (( rStat == ALL_OK ) && ( eventEntry.eventId != NIL_EVENT_ID )) {
 
-                addEvent( eventEntry.eventId, eventEntry.portId );
+                addEvent( eventEntry.eventId, eventEntry.eventMask );
             }
         }
 
@@ -908,7 +951,7 @@ uint8_t powerFailHandler( ) {
     uint8_t rStat = ALL_OK;
 
     nodeMap.nodeState = NS_PFAIL;
-    rStat = rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeState ), NS_PFAIL );
+    rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeState ), NS_PFAIL );
     
     if ( callbackMap.pfailCallback != nullptr ) callbackMap.pfailCallback( nodeMap.nodeId );
 
@@ -1031,6 +1074,7 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = initNvmChannels( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2, rStat );
 
+    if ( rStat == ALL_OK )  rStat = setupHeaderMap( lcsConfig );
     if ( rStat == ALL_OK )  rStat = setupNodeMap( lcsConfig );
     if ( rStat == ALL_OK )  rStat = setupCdcMap( cdcConfig );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );

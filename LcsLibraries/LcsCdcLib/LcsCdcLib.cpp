@@ -158,7 +158,6 @@ struct TimerInst {
 
     bool                configured  = false;
     repeating_timer_t   timerData;
-   
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -255,8 +254,8 @@ struct SPIInst {
 //------------------------------------------------------------------------------------------------------------
 struct GpioIsrTable {
 
-    uint16_t                  numOfHandlers = 0;
-    CDC::GpioCallback         gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
+    uint16_t                numOfHandlers = 0;
+    GpioCallback            gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -285,6 +284,10 @@ PwmInst                     CdcPwm0;
 PwmInst                     CdcPwm1;
 PwmInst                     CdcPwm2;
 PwmInst                     CdcPwm3;
+PwmInst                     CdcPwm4;
+PwmInst                     CdcPwm5;
+PwmInst                     CdcPwm6;
+PwmInst                     CdcPwm7;
 
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask

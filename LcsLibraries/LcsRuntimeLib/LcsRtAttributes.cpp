@@ -13,7 +13,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Core Library
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -34,12 +34,13 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t                debugMask;
-    extern LcsCdcMap               cdcMap;
-    extern LcsNodeMap              nodeMap;
-    extern LcsNodeData             nodeData;
-    extern LcsPortMap              portMap;
-    extern LcsCallbackMap          callbackMap;
+    extern uint16_t             debugMask;
+    extern LcsNvmHeader         headerMap;
+    extern LcsCdcMap            cdcMap;
+    extern LcsNodeMap           nodeMap;
+    extern LcsNodeData          nodeData;
+    extern LcsPortMap           portMap;
+    extern LcsCallbackMap       callbackMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -94,7 +95,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        *arg = nodeData.map[ block ][ item - IR_ATTR_MEM_RANGE_START ];
+        *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
         return ( LCS::ALL_OK );
     }
 
@@ -106,7 +107,7 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        nodeData.map[ block ][ item - IR_ATTR_MEM_RANGE_START ] = arg;
+        nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
         return ( LCS::ALL_OK );
     }
 
@@ -123,8 +124,8 @@ namespace {
             printf( "readAttrNvm: block: 0x%x, item: %d\n", block, item );
         }
 
-        uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
-        uint16_t ofs    = NVM_NODE_DATA_START + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        uint16_t index  = item - IR_ATTR_RANGE_START;
+        uint16_t ofs    = nodeMap.nvmNodeDataOfs + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
         printf( "Ofs: 0x%x\n", ofs );
 
@@ -149,8 +150,8 @@ namespace {
             printf( "readAttrNvm: block: 0x%x, item: %d\n", block, item );
         }
 
-        uint16_t index  = item - IR_ATTR_NVM_RANGE_START;
-        uint16_t ofs    = NVM_NODE_DATA_START + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        uint16_t index  = item - IR_ATTR_RANGE_START;
+        uint16_t ofs    = nodeMap.nvmNodeDataOfs + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
         printf( "Ofs: 0x%x\n", ofs );
 
@@ -195,15 +196,19 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-    if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
+    if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
-        return ( readAttrMem( portId( npId ), item, arg1 ));
-    }
-    else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
-
-        return ( readAttrNvm( portId( npId ), item, arg1 ));
-    }
-    else {
+        if ( nodeMap.nodeState == NS_OPERATE ) {
+            
+            return ( readAttrMem( portId( npId ), item, arg1 ));
+        }
+        else if ( nodeMap.nodeState == NS_CONFIG ) {
+        
+            return ( readAttrNvm( portId( npId ), item, arg1 ));
+        }
+        else return( ERR_INVALID_OP_FOR_NODE_STATE );
+        
+    } else {
 
         switch ( item ) {
 
@@ -240,6 +245,13 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );          
             }
 
+            case ITEM_ID_BOARD_VERSION: {
+
+                // ??? board version ...
+                
+                return( 255 );
+            } break;
+
             case ITEM_ID_TYPE: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
@@ -252,9 +264,19 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_CONTROLLER_FAMILY: {
 
+                // ??? controller family should actually become part of the version and board version ...
+
                  if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = nodeMap.head.controllerFamily;
+                *arg1 = headerMap.controllerFamily;
+                return ( ALL_OK );
+            }
+
+            case ITEM_ID_NODE_STATE: {
+
+                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
+
+                *arg1 = nodeMap.nodeState;
                 return ( ALL_OK );
             }
         
@@ -435,15 +457,19 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
         printf( "nodePut: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
     }
 
-   if ( isInRangeU( item, IR_ATTR_MEM_RANGE_START, IR_ATTR_MEM_RANGE_END )) {
+    if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
-        return ( writeAttrMem( portId( npId ), item, val1 ));
-    }
-    else if ( isInRangeU( item, IR_ATTR_NVM_RANGE_START, IR_ATTR_NVM_RANGE_END )) {
-
-        return ( writeAttrNvm( portId( npId ), item, val1 ));
-    }
-    else {
+        if ( nodeMap.nodeState == NS_OPERATE ) {
+            
+             return ( writeAttrMem( portId( npId ), item, val1 ));
+        }
+        else if ( nodeMap.nodeState == NS_CONFIG ) {
+        
+            return ( writeAttrNvm( portId( npId ), item, val1 ));
+        }
+        else return ( ERR_INVALID_OP_FOR_NODE_STATE );
+        
+    } else {
 
         switch ( item ) {
 
@@ -458,25 +484,39 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
             case ITEM_ID_VERSION: {
 
                 nodeMap.nodeSwVersion = val1;
-                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeSwVersion ), val1 ));
+                return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeSwVersion ), val1 ));
             }
+
+            case ITEM_ID_BOARD_VERSION: {
+
+                // ??? board version setting ...
+
+                return( 255 );
+            } break;
+
+            case ITEM_ID_CONTROLLER_FAMILY: {
+
+                // ??? controller family should actually become part of the version and board version ...
+
+                return( 255 );
+            } break;
 
             case ITEM_ID_OPTIONS: {
 
                 nodeMap.nodeOptions = val1;
-                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeOptions ), val1 ));
+                return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeOptions ), val1 ));
             }
 
             case ITEM_ID_FLAGS: {
 
                 nodeMap.nodeFlags = val1;
-                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeFlags ), val1 ));
+                return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeFlags ), val1 ));
             }
 
             case ITEM_ID_NODE_ID: {
 
                 nodeMap.nodeId = val1;
-                return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
+                return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
             }
 
             case ITEM_ID_TYPE: {
@@ -484,13 +524,13 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 if ( portId( npId ) == 0 ) {
 
                     nodeMap.nodeType = lowByte( val1 );
-                    return( rtNvmPutWord( NVM_NODE_MAP_START + offsetof( LcsNodeMap, nodeType ), val1 ));
+                    return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeType ), val1 ));
                 }
                 else {
 
                     portMap.map[ portId( npId ) - 1 ].type = lowByte( val1 );
 
-                    uint16_t ofs =  NVM_PORT_MAP_START +
+                    uint16_t ofs =  nodeMap.nvmPortMapOfs +
                                     offsetof( LcsPortMap, map ) + 
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, type );
@@ -505,7 +545,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                     portMap.map[ portId( npId ) - 1 ].eventDelayTime = val1;
 
-                    uint16_t ofs =  NVM_PORT_MAP_START +
+                    uint16_t ofs =  nodeMap.nvmPortMapOfs +
                                     offsetof( LcsPortMap, map ) + 
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, eventDelayTime );
@@ -525,14 +565,14 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 if ( portId( npId ) == 0 ) {
 
                     memcpy((uint8_t *) nodeMap.name, (uint8_t *)tempName, MAX_NODE_NAME_SIZE );
-                    return( rtNvmPutBytes(  NVM_NODE_MAP_START + offsetof( LcsNodeMap, name ), 
+                    return( rtNvmPutBytes(  nodeMap.nvmNodeMapOfs  + offsetof( LcsNodeMap, name ), 
                                             (uint8_t *)tempName, 
                                             MAX_NODE_NAME_SIZE ));
                 }
                 else {
 
                     memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, (uint8_t *)tempName, MAX_PORT_NAME_SIZE );
-                    uint16_t ofs =  NVM_PORT_MAP_START +
+                    uint16_t ofs =  nodeMap.nvmPortMapOfs  +
                                     offsetof( LcsPortMap, map ) + 
                                     (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                     offsetof( LcsPortMapEntry, name );
@@ -568,16 +608,6 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_NVM_PROTECTED_ACCESS: {
-
-                // ??? access to protected NVM data areas.
-                // ??? arg 1 -> offset
-                // ??? arg 2 -> value
-
-                return ( ALL_OK );
-
-            } break;
-
             default: return ( ERR_INVALID_ITEM_ID );
         }
     }
@@ -599,9 +629,11 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
      if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
+        // ??? if the port is associated to a driver... different call ....
+
         return( invokeUserItemCallback( npId, item, arg1, arg2 ));
-    }
-    else {
+    
+    } else {
 
         switch ( item ) {
 
@@ -611,6 +643,14 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( resetNode( npId ));
             }
 
+            case ITEM_ID_FORMAT: {
+
+                // ??? we need a way to format the extension board area, when needed. 
+                // ??? applies to ports 1 to 4 when they are mapped to a driver...
+
+                return( 255 );
+            } break;
+
             case ITEM_ID_ADD_EVENT_MAP_ENTRY: {
 
                 return ( addEvent( *arg1, *arg2 ));
@@ -618,7 +658,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_DEL_EVENT_MAP_ENTRY: {
 
-                return ( removeEvent( *arg1, *arg2 ));
+                return ( removeEvent( *arg1 ));
             }
 
             case ITEM_ID_SYNC: {
@@ -633,8 +673,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
 
                     nodeMap.nodeId = nodeId( *arg1 );
-                    return( rtNvmPutBytes(  NVM_NODE_MAP_START +
-                                            offsetof( LcsNodeMap, nodeId ), 
+                    return( rtNvmPutBytes(  nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), 
                                             (uint8_t *) &nodeMap.nodeId, 
                                             sizeof( uint16_t )));
                 }
@@ -673,7 +712,6 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         }
     }
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 //
