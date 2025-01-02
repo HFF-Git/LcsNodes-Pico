@@ -33,7 +33,7 @@
 namespace LCS {
     
     extern uint16_t             debugMask;
-    extern LcsNvmHeader         headerMap;
+    extern LcsNvmHeaderMap      nvmHeaderMap;
     extern LcsCdcMap            cdcMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
@@ -43,7 +43,6 @@ namespace LCS {
     extern LcsTaskMap           taskMap;
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
-    extern LcsDrvMap            drvMap;
     extern LcsMsgBusCAN         *msgBus;
 };
 
@@ -241,7 +240,7 @@ void printSummary( ) {
 void dumpMemHeaderMap( ) {
 
     printf( "MEM Header Map: \n\n" );
-    dumpMemData((uint16_t *) &headerMap, sizeof( LcsNvmHeader ), 8, true);
+    dumpMemData((uint16_t *) &nvmHeaderMap, sizeof( LcsNvmHeaderMap ), 8, true);
     printf( "\n" );
 }
 
@@ -324,24 +323,6 @@ void dumpMemDrvFuncMap( ) {
      printf( "\n" );
 }
 
-void dumpMemDrvMap( ) {
-
-    printf( "MEM Driver Map: (Size: %d) \n\n", nodeMap.drvMapEntries );
-
-    for ( int i  = 0; i < MAX_EXT_BOARDS; i++ ) {
-
-        LcsDrvEntry *entry = &drvMap.map[ i ];
-
-        printf( "Board %d: ( Flags: 0x%04x, LastErr: %d, Drv: %p\n", 
-                i, entry -> flags, entry -> lastErr, entry -> drvFunc );
-                
-        dumpMemData(( uint16_t*) &drvMap.map[ i ].extBoard, sizeof( LcsDrvBoardDesc ), 8, true );
-        printf( "\n" );
-    }
-
-     printf( "\n" );
-}
-
 void dumpMemRuntimeArea( ) {
 
     printf( "MEM Area Dump: \n\n" );
@@ -353,7 +334,6 @@ void dumpMemRuntimeArea( ) {
     dumpMemTaskMap( );
     dumpMemCallbackMap( );
     dumpMemDrvFuncMap( );
-    dumpMemDrvMap( );
     printf( "\n" );
 }
 
@@ -364,9 +344,16 @@ void dumpMemRuntimeArea( ) {
 //------------------------------------------------------------------------------------------------------------
 void dumpNvmHeaderMap( ) {
 
-    printf( "NVM Header Map: \n\n" );
+    printf( "NVM Header Map (Node): \n" );
     dumpNvmData( nodeMap.nvmHeaderMapOfs, sizeof( LcsNvmHeader ), 8, true );
     printf( "\n" );
+
+    for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+    
+        printf( "NVM Header Map (Ext %d): \n", i );
+        dumpExtNvmData( i, 0, sizeof( LcsNvmHeader), 8 );
+        printf( "\n") ;
+    }
 }
 
 void dumpNvmNodeMap( ) {
@@ -429,23 +416,6 @@ void dumpNvmRuntimeArea( ) {
     printf( "\n" );
 }
 
-void dumpNvmDrvData( uint16_t boardId ) {
-
-    if ( boardId >= MAX_EXT_BOARD_MAP_ENTRIES ) {
-
-        printf( "Invalid board ID\n" );
-        return;
-    }
-
-    if ( drvMap.map[ boardId ].flags & BF_EXT_BOARD_PRESENT ) {
-
-        printf( "NVM Driver Data( board: %d ): \n\n", boardId );
-        dumpExtNvmData( boardId, 0, sizeof( LcsDrvBoardDesc ));
-        printf( "\n" );
-    }
-    else printf( "No board found \n" );
-}
-
 void dumpNvmUserArea( ) {
 
     printf( "NVM Area Dump: \n\n" );
@@ -462,57 +432,6 @@ void printMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
 
-/*
-    uint16_t        magicWord1                      = NVM_MWORD_1;
-    uint16_t        boardType                       = BT_NIL;
-    uint16_t        boardVersion                    = 0;
-    uint16_t        controllerFamily                = CF_FAM_RPICO;
-    uint16_t        nvmChipFamily                   = CF_FAM_MICROCHIP;
-    uint16_t        reservedArea[ 10 ]               = { 0 };
-    uint16_t        magicWord2                      = NVM_MWORD_2;
-
-    uint16_t        nodeState                       = NS_NIL;
-    uint16_t        nodeOptions                     = 0;
-    uint16_t        nodeFlags                       = 0;
-    uint16_t        nodeId                          = NIL_NODE_ID;
-    uint32_t        nodeUID                         = 0L;
-    uint16_t        nodeType                        = NIL_NODE_TYPE;   
-    uint16_t        nodeSwVersion                   = 0;
-    uint16_t        nodeSwPatchLevel                = 0;
-    uint16_t        nodeRestartCnt                  = 0;
-    uint32_t        nodeSystemTime                  = 0;
-    uint16_t        nodeMapSize                     = sizeof( LcsNodeMap );  
-    char            name[ MAX_NODE_NAME_SIZE ]      = { 0 };
-
-    uint16_t        nvmNodeMapOfs                   = NVM_NODE_MAP_START;
-    uint16_t        nvmCdcMapOfs                    = NVM_CDC_MAP_START;
-    uint16_t        nvmPortMapOfs                   = NVM_PORT_MAP_START;
-    uint16_t        nvmNodeDataOfs                  = NVM_NODE_DATA_START;
-    uint16_t        nvmEventMapOfs                  = NVM_EVENT_MAP_START;
-    uint16_t        nvmUserMapOfs                   = NVM_USER_MAP_START;
-    uint32_t        nvmMemSize                      = NVM_RUNTIME_AREA_SIZE;
-
-    uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
-    uint16_t        portMapHwm                      = 0;
-
-    uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
-    uint16_t        eventMapHwm                     = 0;
-
-    uint16_t        taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
-    uint16_t        taskMapHwm                      = 0;
-
-    uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
-    uint16_t        pendingMapHwm                   = 0;
-
-    uint16_t        drvFuncMapEntries               = MAX_DRV_TYPES;
-    uint16_t        drvFuncMapHwm                   = 0;
-
-    uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
-    uint16_t        drvMapHwm                       = 0;
-
-    // add the node data area ....
-*/
-   
     printf( "\n" );
 }
 
@@ -540,19 +459,6 @@ void printMemPortMap( ) {
                 ptr -> options,
                 ptr -> flags );
 
-        /*
-        uint16_t  eventNodeId                   = NIL_NODE_ID;
-        uint16_t  eventId                       = NIL_EVENT_ID;
-        uint16_t  eventValue                    = 0;
-        uint16_t  eventAction                   = PEA_EVENT_IDLE;
-        uint16_t  eventDelayTime                = 0;
-        uint32_t  eventTimeStamp                = 0L;
-        char      name[ MAX_PORT_NAME_SIZE  ]   = { 0 };
-
-        // add the port data area ?
-        
-        */
-       
         printf( "\n" );
     }
 }
@@ -566,25 +472,6 @@ void printMemEventMap( ) {
     // print the entries up to the HWM, 4 in a row ?
    
     printf( "\n" );
-}
-
-void printMemDrvMap( ) {
-
-    printf( "MEM Driver Map: (Size: %d) \n\n", nodeMap.drvMapEntries );
-
-    for ( int i  = 0; i < MAX_EXT_BOARDS; i++ ) {
-
-        LcsDrvEntry *entry = &drvMap.map[ i ];
-
-        printf( "Board %d: ( Flags: 0x%04x, LastErr: %d, Drv: %p\n", 
-                i, entry -> flags, entry -> lastErr, entry -> drvFunc );
-
-        // add to print the driver data area...
-                
-        printf( "\n" );
-    }
-
-     printf( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1048,6 +935,7 @@ void broadcastLcsMsgCommand( char *s ) {
     else errorArgList( );
 }
 
+#if 0
 //------------------------------------------------------------------------------------------------------------
 // "G" sends a GET request to a driver. The commands will typically work on the MEM image of the driver data. 
 // We will use the same idea of item ranges for MEM and NVM, except that the NVM range will work only if the 
@@ -1140,6 +1028,7 @@ void drvReqCommand( char *s ) {
     if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver REQ error", ret );
     else printf( "Board: %d, item: %d, arg1: 0x%x, arg2: 0x%x\n", tmpBoard, tmpItem, tmpArg1, tmpArg2 );
 }
+#endif
 
 //------------------------------------------------------------------------------------------------------------
 // "s" lists status information. The level argument specifies the what and the detail level.
@@ -1169,7 +1058,6 @@ void listStatusCommand( char *s ) {
             case 8:     dumpMemTaskMap( );          break;
             case 9:     dumpMemCallbackMap( );      break;
             case 10:    dumpMemDrvFuncMap( );       break;
-            case 11:    dumpMemDrvMap( );           break;
             case 12:    dumpMemRuntimeArea( );      break;
 
             case 21:    dumpNvmHeaderMap( );        break;
@@ -1180,16 +1068,10 @@ void listStatusCommand( char *s ) {
             case 26:    dumpNvmEventMap( );         break;
             case 27:    dumpNvmRuntimeArea( );      break;
 
-            case 30:    dumpNvmDrvData( 0 );        break;
-            case 31:    dumpNvmDrvData( 1 );        break;
-            case 32:    dumpNvmDrvData( 2 );        break;
-            case 33:    dumpNvmDrvData( 3 );        break;
-
             case 41:    printMemNodeMap( );         break;
             case 42:    printMemCdcMap( );          break;
             case 43:    printMemPortMap( );         break;
             case 45:    printMemEventMap( );        break;
-            case 48:    printMemDrvMap( );          break;
             
             case 50:    listDevicesI2C( );          break;   
 
@@ -1222,10 +1104,6 @@ void listCoreLibHelpCommand( ) {
 
     printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
 
-    printf( "G board item - send a GET request to an extension board n\n" );
-    printf( "P board item arg - send a PUT request to an extension board n\n" );
-    printf( "R board item [ arg1 [ arg2 ]] - send a REQ request to an extension board n\n" );
-   
     printf( "s [ level ] - list status, default is summary\n" );
     printf( "              " " -   0  - summary\n" );
     printf( "              " " -   1  - MEM Header Map\n" );
@@ -1238,7 +1116,6 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -   8  - MEM Task Map\n" );
     printf( "              " " -   9  - MEM Callback Map\n" );
     printf( "              " " -  10  - MEM Driver Function Map\n" );
-    printf( "              " " -  11  - MEM Driver Map\n" );
     printf( "              " " -  12  - MEM Runtime Area\n" );
 
     printf( "              " " -  21  - NVM Header Map\n" );      
@@ -1249,17 +1126,11 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -  26  - NVM Event Map\n" );
     printf( "              " " -  27  - NVM Runtime Area\n" );
 
-    printf( "              " " -  30  - NVM Extension Board 0\n" ); 
-    printf( "              " " -  31  - NVM Extension Board 1\n" );
-    printf( "              " " -  32  - NVM Extension Board 2\n" );
-    printf( "              " " -  33  - NVM Extension Board 3\n" );
-
     printf( "              " " -  41  - MEM Header Map formatted\n" );            
     printf( "              " " -  42  - MEM Node Map formatted\n" );
     printf( "              " " -  43  - MEM CDC Map formatted\n" );
     printf( "              " " -  44  - MEM Port Map formatted\n" );
     printf( "              " " -  46  - MEM Event Map formatted\n" );
-    printf( "              " " -  48  - MEM Driver Map formatted\n" );
 
     printf( "              " " -  50  - I2C Devices\n" );
 }
@@ -1313,10 +1184,6 @@ uint8_t handleSerialCommand( ) {
                         case 'r': reqNodeCommand( commandBuf + 1 );             break;
 
                         case 'B': broadcastLcsMsgCommand( commandBuf + 1 );     break;
-
-                        case 'G': drvGetCommand( commandBuf + 1 );              break;
-                        case 'P': drvPutCommand( commandBuf + 1 );              break;
-                        case 'R': drvReqCommand( commandBuf + 1 );              break;
 
                         case 's': listStatusCommand( commandBuf + 1 );          break;
                         case '?': listCoreLibHelpCommand( );                    break;

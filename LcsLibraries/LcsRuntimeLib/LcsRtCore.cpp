@@ -31,7 +31,6 @@
 namespace LCS {
 
     extern uint16_t             debugMask;
-    extern LcsNvmHeader         headerMap;
     extern LcsCdcMap            cdcMap;
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
@@ -40,7 +39,6 @@ namespace LCS {
     extern LcsTaskMap           taskMap;
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
-    extern LcsDrvMap            drvMap;
     extern LcsMsgBusCAN         *msgBus;
 };
 
@@ -126,9 +124,16 @@ void registerPfailCallback( LcsInitCallback functionId ) {
     callbackMap.pfailCallback = functionId;
 }
 
-void registerReqCallback( LcsReqCallback functionId ) {
+//-----------------------------------------------------------------------------------------------------------
+//
+//
+//-----------------------------------------------------------------------------------------------------------
+uint8_t registerReqCallback( uint16_t portId, LcsReqCallback functionId ) {
 
-    callbackMap.reqCallback = functionId;
+    if ( ! isInRangeU( portId, MIN_PORT_ID, MAX_PORT_ID )) return( ERR_INVALID_PORT_ID );
+
+    portMap.map[ portId ].reqCallbackFunc = functionId;
+    return( ALL_OK );
 }
 
 void registerRepCallback( LcsRepCallback functionId ) {
@@ -513,7 +518,6 @@ void handleNodeStateInit( ) {
 void handleNodeStateFail( ) {
 
     handleSerialCommand( );
-
 }
 
 //------------------------------------------------------------------------------------------------------------

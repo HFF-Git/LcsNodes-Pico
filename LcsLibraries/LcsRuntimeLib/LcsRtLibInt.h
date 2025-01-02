@@ -86,25 +86,31 @@ namespace LCS {
 // implementation uses fixed sizes  for each map, avoiding configuration complexity.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
-const uint16_t  MAX_ATTR_MAP_ENTRIES            = 64;
-const uint16_t  MAX_PORT_MAP_ENTRIES            = 15;
-const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
-const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
-
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
 const uint16_t  MAX_NODE_NAME_SIZE              = 16;
 const uint16_t  MAX_PORT_NAME_SIZE              = 16;
 const uint16_t  MAX_BOARD_NAME_SIZE             = 16;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 
-const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
+const uint8_t   MAX_EXT_BOARDS                  = 4; 
+
+const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = MAX_EXT_BOARDS + 1;
+const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
+const uint16_t  MAX_ATTR_MAP_ENTRIES            = 64;
+const uint16_t  MAX_PORT_MAP_ENTRIES            = 15;
+const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
+const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES     = 8;
+
+
+
+const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4; // goes away ?
+
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
 const uint8_t   MAX_DRV_TYPES                   = 8;
-const uint8_t   MAX_EXT_BOARDS                  = 4;
-const uint8_t   MAX_DRV_DATA_SIZE               = 64;
+
+const uint8_t   MAX_DRV_DATA_SIZE               = 64; // goes away 
 
 const uint16_t  NVM_MAP_STORAGE_START           = 0;
 
@@ -215,11 +221,14 @@ struct LcsMsgBusCAN {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// Each NVM memory, ie the NVM on the controller board or an extension board, starts with the header data
-// structure. This structure contains information to detect that the NVM was formatted, as well as some
+// Each NVM memory, i.e. the NVM on the main controller board or an extension board, starts with the header
+// data structure. This structure contains information to detect that the NVM was formatted, as well as some
 // hardware specific data to identify the board and relevant chips on it. The data in this header must be
 // "programmed" during a board setup. This is easily accomplished trough console commands and needs of 
-// course only be done once per board. The data structure size is 32 bytes.
+// course only be done once per board. The data structure size is 32 bytes. 
+//
+// The NVM header map stores the NV headers of the boards of the node. There is at least the main controller
+// board NVM and optional up to four extension board NVM headers. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsNvmHeader {
@@ -232,6 +241,11 @@ struct LcsNvmHeader {
     uint16_t    reservedArea[ 10 ]              = { 0 };
     uint16_t    magicWord2                      = NVM_MWORD_2;
 }; 
+
+struct LcsNvmHeaderMap {
+
+    LcsNvmHeader map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
+};
 
 //----------------------------------------------------------------------------------------------------------
 // Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
@@ -267,9 +281,13 @@ struct LcsNodeData {
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-    uint16_t  options                       = 0;
-    uint16_t  flags                         = 0;
-    uint16_t  type                          = 0;
+    uint16_t        options                 = 0;
+    uint16_t        flags                   = 0;
+    uint16_t        type                    = 0;
+
+    LcsReqCallback  reqCallbackFunc         = nullptr;
+
+    // ??? last error field ?
 
     uint16_t  eventNpId                     = 0;
     uint16_t  eventId                       = NIL_EVENT_ID;
@@ -312,12 +330,6 @@ struct LcsEventMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-    //------------------------------------------------------------------------------------------------------
-    // NVM header.
-    //
-    //------------------------------------------------------------------------------------------------------
-   // LcsNvmHeader    head;
-    
     //------------------------------------------------------------------------------------------------------
     // Node data.
     //
@@ -465,74 +477,20 @@ struct LcsPendingReqMap {
     LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
-//------------------------------------------------------------------------------------------------------------
-// Each extension board will have a NVM to store the board configuration data. Similar to the node map of 
-// the controller board, this extension board will have a data structure that is read at initialization time. 
-// The structure of this data is rather simple. We have the common 8-word header which describes the board in 
-// general an area which contains driver relevant information. The board type will tell the setup routines
-// what driver to load for the extension board. The driver data area is entirely driver specific and the 
-// meaning is only know to the driver software. At startup time, all we have to do then is locate the board 
-// type, load the  respective driver and let the driver code do whatever needs to be done according to the 
-// data area content.
-//
-// Note that the extension board NVM data is "read only". To write to it, a jumper is set on the board. The
-// data area is configured and then the jumper should be removed. This does however not mean that that data
-// once it is loaded during setup cannot be changed during operations. For example, the driver area is the 
-// "working area" for the driver to keep temporary values. At node restart, all data is set back to the NVM
-//  data configured on the extension board chip.
-//
-//------------------------------------------------------------------------------------------------------------
-struct LcsDrvBoardDesc {
-
-    LcsNvmHeader    head;
-    uint16_t        driverData[ MAX_DRV_DATA_SIZE ]  = { 0 };
-};
-
 //----------------------------------------------------------------------------------------------------------
 // An extension board is accessed via a dedicated driver. The firmware is required to register the available
-// drivers with the runtime. The type and function label are kept in the driver label map. This data is 
-// used when a board os detected to select the correct driver.
+// drivers with the runtime. The type and function label are kept in the driver function map. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvFuncEntry {
 
     uint16_t        drvType = BT_NIL;
-    LcsDrvReqFunc   drvFunc = nullptr;
+    LcsReqCallback  drvFunc = nullptr;
 };
 
 struct LcsDrvFuncMap {
 
     LcsDrvFuncEntry map[ MAX_DRV_TYPES ] = { 0 };
-};
-
-//----------------------------------------------------------------------------------------------------------
-// The runtime library maintains a driver table, which has for each of the extension boards an entry. The 
-// first board has an index of zero.  While the drivers are set regardless of the order of the extension 
-// boards, the boardId would change with the order of extension boards connected. A firmware either needs
-// to insist on the correct order or map the extension boards regardless of order. 
-// 
-// The entry contains a set of flags about the driver, the procedure label for the driver code and the
-// extension board descriptor, which is read in from the extension board NVM area. During startup all 
-// extension boards will be located, if there are any. For each board the correct driver procedure label
-// will be stored in the driver map entry.
-//
-// If the extension board descriptor is invalid, the driver map entry is marked as failed. We can however
-// still access the data area from configuration tools, when the jumper to enable writing to the board is
-// set.
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsDrvEntry {
-    
-    uint16_t            flags       = 0;
-    uint16_t            lastErr     = 0;
-    LcsDrvReqFunc       drvFunc     = nullptr;
-
-    LcsDrvBoardDesc     extBoard;
-};
-
-struct LcsDrvMap {
- 
-    LcsDrvEntry     map[ MAX_EXT_BOARDS ];
 };
 
 //----------------------------------------------------------------------------------------------------------

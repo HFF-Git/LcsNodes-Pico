@@ -408,7 +408,11 @@ uint8_t registerCallbacks( ) {
     registerInitCallback( lcsInitCallback );
     registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );
-    registerReqCallback( lcsReqCallback );
+   
+   
+   // registerReqCallback( lcsReqCallback );
+    
+    
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
     registerTaskCallback( bsMainTrackCallback, MAIN_TRACK_STATE_TIME_INTERVAL );

@@ -1093,6 +1093,10 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
     else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
     else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
+    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &CdcPwm4;
+    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &CdcPwm5;
+    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &CdcPwm6;
+    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &CdcPwm7;
     else                                return ( PWM_PIN_ERR );
 
     if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
@@ -1140,6 +1144,10 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
     else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
     else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
+    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &CdcPwm4;
+    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &CdcPwm5;
+    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &CdcPwm6;
+    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &CdcPwm7;
     else                                return ( PWM_PIN_ERR );
 
     if ( dutyCycle == 0 ) {

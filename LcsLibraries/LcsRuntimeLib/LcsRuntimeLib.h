@@ -291,18 +291,6 @@ enum LcsControllerFamilyType : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Extension board driver flags. The flag are set when a board is detected and also during board operation.  
-//
-//------------------------------------------------------------------------------------------------------------
-enum LcsBoardFlags : uint16_t {
-
-    BF_NIL                  = 0,
-    BF_EXT_BOARD_PRESENT    = ( 1U << 0 ),
-    BF_EXT_BOARD_VALID      = ( 1U << 1 ),
-    BF_EXT_BOARD_READY      = ( 1U << 2 )
-};
-
-//------------------------------------------------------------------------------------------------------------
 // The configuration descriptor and node map have an option field. The following constants define the
 // options that can be set.
 //
@@ -418,13 +406,22 @@ enum LcsItems : uint8_t {
 //  PF_PORT_EVENT_HANDLING_ENABLED  - the port has event handling enabled
 //  PF_EVENT_PENDING                - an event has been received for this port and is pending.
 //
+//  PF_EXT_BOARD_PRESENT            - there is an extension board associated with the port.
+//  PF_EXT_BOARD_VALID              - there is a valid extension board associated with the port.
+//  PF_EXT_BOARD_READY              - there is a valid extension board ready to be used.
+//
 //----------------------------------------------------------------------------------------------------------
 enum LcsPortFlags : uint16_t {
 
     PF_NIL                          = 0,
-    PF_PORT_ENABLED                 = ( 1 << 15 ),
-    PF_PORT_EVENT_HANDLING_ENABLED  = ( 1 << 14 ),
-    PF_EVENT_PENDING                = ( 1 << 13 )
+
+    PF_PORT_ENABLED                 = ( 1 << 1 ),
+    PF_PORT_EVENT_HANDLING_ENABLED  = ( 1 << 2 ),
+    PF_EVENT_PENDING                = ( 1 << 3 ),
+
+    PF_EXT_BOARD_PRESENT            = ( 1U << 4 ),
+    PF_EXT_BOARD_VALID              = ( 1U << 5 ),
+    PF_EXT_BOARD_READY              = ( 1U << 6 )
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -675,7 +672,9 @@ enum MsgPriority : uint8_t {
 //                              so that the callback can detect wether a port or node is the target.
 // 
 //      LcsReqCallback      -   a callback to invoke for a user request message. The callback is passed 
-//                              the item and a reference to the two input / output arguments.
+//                              the item and a reference to the two input / output arguments. A request
+//                              callback is associated with a port and is either a user defined callback
+//                              or in case of a port associated with a port a driver request function.
 //      
 //      LcsRepCallback      -   a callback to return the reply message for a previous LCS message sent. The
 //                              reply can be a data reply, an ACK or NACK or a timeout error. The arguments 
@@ -703,18 +702,6 @@ extern "C" {
 
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
-
-//------------------------------------------------------------------------------------------------------------
-// A  driver for an extension board is invoked through this routine signature. During setup, the correct 
-// driver label needs to be set in the driver map. Since a driver shares the LCS port services for attributes,
-// only the handler for the REQ call is needed. The boardId maps to the portId in this case, i.e. when there
-// are extension boards, they map to port 1 to 4.
-//
-//------------------------------------------------------------------------------------------------------------
-extern "C" {
-
-    typedef uint8_t ( *LcsDrvReqFunc ) ( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );  
-} 
 
 //----------------------------------------------------------------------------------------------------------
 // "LcsConfigDesc" is the data structure that contains initial data for setting up a node. There is the 
@@ -766,10 +753,10 @@ void                registerInitCallback( LcsInitCallback handler );
 void                registerResetCallback( LcsResetCallback handler );
 void                registerPfailCallback( LcsPfailCallback handler );
 void                registerEventCallback( LcsEventCallback functionId );
-void                registerReqCallback( LcsReqCallback handler );
+uint8_t             registerReqCallback( uint16_t portId, LcsReqCallback handler );
 void                registerRepCallback( LcsRepCallback handler );
 uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
-uint8_t             registerDrvFunc( uint16_t drvType, LcsDrvReqFunc drvReqFunction );
+uint8_t             registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
 
 //----------------------------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.

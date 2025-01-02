@@ -69,9 +69,9 @@ namespace LCS {
     uint16_t                debugMask    = 0;
     uint16_t                startOptions = 0;
 
-    LcsNvmHeader            headerMap;
-    LcsCdcMap               cdcMap;
     LcsMsgBusCAN            *msgBus;
+    LcsNvmHeaderMap         nvmHeaderMap;
+    LcsCdcMap               cdcMap;
     LcsNodeData             nodeData;
     LcsNodeMap              nodeMap;
     LcsPortMap              portMap;
@@ -80,7 +80,6 @@ namespace LCS {
     LcsPendingReqMap        pendingReqMap;
     LcsTaskMap              taskMap;
     LcsDrvFuncMap           drvFuncMap;
-    LcsDrvMap               drvMap;
 }
     
 //------------------------------------------------------------------------------------------------------------
@@ -128,11 +127,22 @@ uint16_t portId( uint16_t npId ) {
 // runtime NVM.
 //
 //------------------------------------------------------------------------------------------------------------
-void buildDefaultHeaderMap( LcsNvmHeader *hMap ) {
+void buildDefaultHeaderMap( LcsNvmHeaderMap *map ) {
 
-    LcsNvmHeader tmp;
+    LcsNvmHeaderMap tmp;
 
-    *hMap = tmp;
+    *map = tmp;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "buildDefaultCdcMap" builds ...
+//
+//------------------------------------------------------------------------------------------------------------
+void buildDefaultCdcMap( LcsCdcMap *map ) {
+
+    LcsCdcMap tmp;
+
+    *map = tmp;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -198,18 +208,18 @@ uint8_t buildNvmRuntimeStructures( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "buildNvmRuntimeStructures\n" );
 
-    // ??? build default CDC map ?
-
-    buildDefaultHeaderMap( &headerMap );
+    buildDefaultHeaderMap( &nvmHeaderMap );
+    buildDefaultCdcMap( &cdcMap );
     buildDefaultNodeMap( &nodeMap );
     buildDefaultPortMap( &portMap );
     buildDefaultEventMap( &eventMap );
     buildDefaultNodeData( &nodeData );
 
-    rStat = rtNvmPutBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
-    if ( rStat == ALL_OK ) rtNvmPutBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
-    if ( rStat == ALL_OK ) rtNvmPutBytes( nodeMap.nvmEventMapOfs, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
-    if ( rStat == ALL_OK ) rtNvmPutBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
+    rStat = rtNvmPutBytes( nodeMap.nvmHeaderMapOfs, (uint8_t *) &nvmHeaderMap.map[ 0 ], sizeof( LcsNvmHeader));      
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmEventMapOfs, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
@@ -217,38 +227,9 @@ uint8_t buildNvmRuntimeStructures( ) {
     return( rStat );
 }
 
+#if 0
 //------------------------------------------------------------------------------------------------------------
-// "buildDefaultBoardDesc" initializes the extension board structure. An extension board has a header
-// structure identical to the nodeMap structure. In addition, there is the driver data area. 
-//
-//------------------------------------------------------------------------------------------------------------
-void buildDefaultBoardDesc( LcsDrvBoardDesc *bDesc ) {
-
-    LcsNvmHeader tmp;
-
-    bDesc -> head = tmp;
-    memset( bDesc -> driverData, 0, MAX_DRV_DATA_SIZE * sizeof( uint16_t ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "buildDefaultDrvMap" initializes the driver map memory structure.
-//
-//------------------------------------------------------------------------------------------------------------
-void buildDefaultDrvMap( LcsDrvMap *drv ) {
-
-    LcsDrvBoardDesc initDesc;
-
-    for ( uint16_t i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i ++ ) {
-
-        drvMap.map[ i ].flags       = 0;
-        drvMap.map[ i ].drvFunc     = nullptr;
-        drvMap.map[ i ].extBoard    = initDesc;
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "buildNvmRuntimeStructures" initializes a new or corrupt runtime NVM with default data. However, the write
-// will only succeed when we have the board write enabled. Otherwise an error is returned.
+// "buildNvmRuntimeStructures" initializes a new or corrupt runtime NVM with default data. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
@@ -271,6 +252,21 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
 
     return( rStat ); // ??? own error constant ?
 }
+#endif
+
+
+//-----------------------------------------------------------------------------------------------------------
+//
+//------------------------------------------------------------------------------------------------------------
+void printNvmHeader( LcsNvmHeader *head ) {
+
+    uint16_t *ptr = (uint16_t *) head;
+
+    printf( "NVM Head: " );
+    for ( int j = 0; j < sizeof( LcsNvmHeader ) / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
+    printf( "\n" );     
+}
+
 
 }; // namespace
 
@@ -433,57 +429,142 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupHeaderMap" sets up the header map. It is the first routine after all the basic hardware settings is
-// in place. If the header is invalid or formatting was requested, a default structure will be created. Either
-//  way we return with a valid NVM structure. 
+// "setupNodeNvmHeader" sets up the main controller header map entry. It is the first routine after all the 
+// basic hardware settings is in place. If the header is invalid or formatting was requested, a default 
+// structure will be created. Either way we return with a valid NVM structure for the node. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupHeaderMap( LcsConfigDesc *cfg ) {
+uint8_t setupNodeNvmHeader( LcsConfigDesc *cfg ) {
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupHeaderMap\n" );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeNvmHeader\n" );
 
     if ( startOptions & NOPT_FORMAT_RUNTIME ) {
 
         rStat = buildNvmRuntimeStructures( );
     }
 
-    rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &headerMap, sizeof( LcsNvmHeader ));
+    LcsNvmHeader *hPtr = &nvmHeaderMap.map[ 0 ];
+
+    rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) hPtr, sizeof( LcsNvmHeader ));
     if ( rStat != ALL_OK ) return( rStat );
 
-    if (( headerMap.magicWord1 != NVM_MWORD_1 ) || 
-        ( headerMap.magicWord2 != NVM_MWORD_2 )) {
+    if (( hPtr -> magicWord1 != NVM_MWORD_1 ) || 
+        ( hPtr -> magicWord2 != NVM_MWORD_2 )) {
 
-        // ??? what else to check....
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+            printNvmHeader( hPtr);
             printf( "setupHeaderMap: invalid header, re-format\n" );
+        }
 
         rStat = buildNvmRuntimeStructures( );
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
-        uint16_t *ptr = (uint16_t *) &nodeMap;
-
-        printf( "Header Map: " );
-        for ( int i = 0; i < 16; i++ ) printf( "0x%x ", ptr[ i ] );
-        printf( "\n" );
+        printNvmHeader( hPtr);
     }
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "setupHeaderMap, status: %d\n", rStat );
+        printf( "setupNodeNvmHeader, status: %d\n", rStat );
     
     return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupNodeMap" sets up the nodeMap. It is the first routine after all the basic hardware settings is in 
-// place and the NVM contains a valid header. If the header was invalid or formatting was requested, a 
-// default structure was created. Either way we can rely on a default map layout. We fetch the node map and
-// validate the size of each map of NVM. This will catch the case that the library data structures have 
-// changed and the NVM data is therefore invalid.
+// With the NVM channels in place and the main controller NVM header valid, it is time read in any potentially 
+// connected extension board NVM header. These header will also be stored in the NVM header map. Entry zero is 
+// always the main controller board NVM header, the optional extension board NVM headers are stored in 
+// entry 1 to 4. If the read fails, there is no board at that location and we set the magic words to zero to 
+// record this fact.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupExtNvmHeaders( LcsConfigDesc *cfg ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupExtNvmHeaders\n" );
+
+    uint8_t rStat = ALL_OK;
+
+    for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+            printf( "setupExtNvmHeaders, boardId: %d\n", i ); 
+        }
+
+        LcsNvmHeader *hPtr = &nvmHeaderMap.map[ i ]; 
+
+        rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( LcsNvmHeader ));
+        if ( rStat == ALL_OK ) {
+
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                printNvmHeader( hPtr );
+            }
+
+            if (( hPtr -> magicWord1 == NVM_MWORD_1 ) && 
+                ( hPtr -> magicWord2 == NVM_MWORD_2 )) {
+
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                    printf( "setupExtNvmHeaders, boardId: %d -> valid\n", i ); 
+                }
+            }
+            else  {
+
+                hPtr -> magicWord1 = 0;
+                hPtr -> magicWord2 = 0;
+
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                    printf( "setupExtNvmHeaders, boardId: %d -> inValid\n", i ); 
+                }
+            }
+        } 
+        else {
+            
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
+                printf( "setupExtNvmHeaders, boardId: %d, rStat: %d\n", i, rStat ); 
+        }          
+    }
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        printf( "setupExtNvmHeaders, status: %d\n", ALL_OK );
+
+    return ( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "setupCdcMap" will read the CDC descriptor from the NVM.
+//
+// ??? we should read it from the NVM, which implies that we need a way to handle vanilla boards...
+// ??? we should also have a file with CDC descriptors for all boards we currently have...
+// ??? if we detect a board with the vanilla board type, we can set the correct board type and the 
+// reboot...
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupCdcMap( CDC::CdcConfigDesc *cdcConfig ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCdcMap\n" );
+
+    uint8_t rStat = ALL_OK;
+
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+        printf( "setupCdcMap, status: %d\n", rStat );
+    }
+
+    return ( rStat );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "setupNodeMap" sets up the nodeMap. It is the routine that is called after we read in the NVM headers. 
+// If the main controller NVM header was invalid or formatting was requested, a default structure was created. 
+// Either way we can rely on a default map layout. We fetch the node map and validate the size of each map of
+// NVM. This will catch the case that the library data structures have changed and the NVM data is therefore 
+// invalid.
 //
 // ??? load CDC map if we only have a board type ?
 //------------------------------------------------------------------------------------------------------------
@@ -505,20 +586,26 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
         ( nodeMap.nvmNodeDataSize   != sizeof( LcsNodeData )) ||
         ( nodeMap.nvmEventMapSize   != sizeof( LcsEventMap ))) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
             printf( "setupNodeMap: invalid structure size(s), re-format\n" );
+        }
 
         rStat = buildNvmRuntimeStructures( );
     }
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
         printf( "setupNodeMap, status: %d\n", rStat );
-    
+    }
+
     return ( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupPortMap" will read the port data the NVM port map data area into the memory counterpart.
+// "setupPortMap" will read the port data the NVM port map data area into the memory counterpart. A node can
+// have up to 15 ports. If there are extension boards connected, the first N ports refer to these boards.
+// We consult the nvmHeaderMap for detected extension boards.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
@@ -527,9 +614,66 @@ uint8_t setupPortMap( ) {
 
     uint8_t rStat = rtNvmGetBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+    for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+
+         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                printf( "Setup Port %d\n", i );
+             }
+
+        LcsNvmHeader *hPtr = &nvmHeaderMap.map[ i ];
+        
+        if (( hPtr -> magicWord1 == NVM_MWORD_1 ) && ( hPtr -> magicWord2 == NVM_MWORD_2 )) {
+
+             if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+                printf( "Valid Extension Board detected\n" );
+             }
+
+            nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
+            nodeMap.drvMapHwm ++;
+
+            portMap.map[ i ].flags              |= PF_EXT_BOARD_PRESENT;
+            portMap.map[ i ].flags              |= PF_EXT_BOARD_VALID;
+            portMap.map[ i ].reqCallbackFunc     = nullptr;
+        }
+    }
+
+    // ??? not sure where and when to set the driver label... yet
+
+    #if 0
+    for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+
+        LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
+
+        if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
+
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, set func for board: %d\n", i );
+
+            if ( drvEntry -> extBoard.head.boardType == drvType ) {
+
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, set func for driver type: %d\n", drvType );
+
+                drvEntry -> drvFunc     = drvReqFunction;
+                drvEntry -> flags       |= BF_EXT_BOARD_READY;
+                drvEntry -> lastErr     = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
+
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+                printf( "registerDrvFunc, set func for driver type, status: %d\n", drvEntry -> lastErr );
+            }
+        }
+     }
+     #endif
+
+
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
         printf( "setupPortMap, status: %d\n", rStat );
-    
+    }
+
     return ( rStat );
 }
 
@@ -543,30 +687,11 @@ uint8_t setupNodeDataMap( ) {
 
     uint8_t rStat = rtNvmGetBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
         printf( "setupNodeDataMap, status: %d\n", rStat );
-    
-    return ( rStat );
-}
+    }
 
-//------------------------------------------------------------------------------------------------------------
-// "setupCdcMap" will read the CDC descriptor from the NVM.
-//
-// ??? we should read it from the NVM, which implies that we need a way to handle vanilla boards...
-// ??? we should also have a file with CDC descriptors for all boards we currently have...
-// ??? if we detect a board with the vanilla board type, we can set the correct board type and the 
-// reboot...
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupCdcMap( CDC::CdcConfigDesc *cdcConfig ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCdcMap\n" );
-
-    uint8_t rStat = ALL_OK;
-
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "setupCdcMap, status: %d\n", rStat );
-    
     return ( rStat );
 }
 
@@ -596,6 +721,7 @@ uint8_t setupEventMap( ) {
             rStat = rtNvmGetBytes(  nodeMap.nvmEventMapOfs + i * sizeof( LcsEventMapEntry), 
                                     (uint8_t *) &eventMap.map[ i ], 
                                     sizeof( LcsEventMapEntry ));
+            if ( rStat != ALL_OK ) break;
         }
     }
     else {
@@ -638,9 +764,11 @@ uint8_t setupUserMap( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
         printf( "setupUserMap, status: %d\n", rStat );
-    
+    }
+
     return ( ALL_OK );
 }
 
@@ -664,7 +792,6 @@ uint8_t setupCallbackMap( ) {
     callbackMap.pfailCallback       = nullptr;
 
     callbackMap.eventCallback       = nullptr;
-    callbackMap.reqCallback         = nullptr;
     callbackMap.repCallback         = nullptr;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
@@ -704,6 +831,9 @@ uint8_t setupTaskMap( ) {
 // "setupPendingReqMap" initializes the pending request map. Currently, we do not use a HWM approach, but 
 // just use all entries when searching the map.
 //
+// ??? what if the pending requests are always linked to a port ?
+// ??? in other words, should we allow that a node with out a portId sends a request or always on behalf
+// of a port ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPendingReqMap( ) {
 
@@ -724,7 +854,7 @@ uint8_t setupPendingReqMap( ) {
 // "setupDrvFuncMap" initializes the driver function label map. This table is used when we need to find the 
 // driver for an extension board type.
 //
-// ??? we could pre register all known drivers... a user could still register a new one and also overwrite
+// ??? we could pre-register all known drivers... a user could still register a new one and also overwrite
 // a pre-registered driver with a new func label.
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupDrvFuncMap( ) {
@@ -736,31 +866,11 @@ uint8_t setupDrvFuncMap( ) {
     nodeMap.drvFuncMapEntries = MAX_DRV_TYPES;
     nodeMap.drvFuncMapHwm     = MAX_DRV_TYPES;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+            
         printf( "setupDrvLabelMap, status: %d\n", rStat );
-    
-    return( rStat );
-}
+    }
 
-//------------------------------------------------------------------------------------------------------------
-// "setupDrvMap" initializes the driver map. For each possible extension board, up to four, there is an
-// entry in this map.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupDrvMap( ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupDrvMap\n" );
-
-    uint8_t rStat = ALL_OK;
-
-    nodeMap.pendingMapEntries   = MAX_PENDING_REQ_MAP_ENTRIES;
-    nodeMap.pendingMapHwm       = MAX_PENDING_REQ_MAP_ENTRIES;
-
-    buildDefaultDrvMap( &drvMap );
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "setupDrvMap, status: %d\n", rStat  );
-    
     return( rStat );
 }
 
@@ -775,93 +885,24 @@ uint8_t registerInternalTasks( ) {
 
     uint8_t rStat = ALL_OK;
 
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "registerInternalTasks, status: %d\n" );
-    
-    return( rStat );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// With the node properly initialized, it is time to see whether we have connected extension boards. An 
-// extension board has also a small NVM on the board that will tell us what the board type is and keep driver
-// configuration data. There can be up to four boards, numbered from 0 to 3. The runtime has a driver map 
-// with four extension descriptor entries. After initializing the driver map, we attempt to read from each 
-// extension NVM on an extension board. If the read fails, there is no board at that location, which will 
-// mark in the flags field. The drvMap HWM will tell us how many board we actually found. Note that the 
-// boards are by hardware always connected in the order 0,1,2 and 3. If for example only two boards are 
-// connected, the HWM would be 2.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t detectExtensionBoards( ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "detectExtensionBoards\n" );
-
-    uint8_t rStat = ALL_OK;
-
-    for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
-
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
-            printf( "detectExtensionBoard, boardId: %d\n", i ); 
-
-        LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
-
-        rStat = extNvmGetBytes( i, 0, (uint8_t *) &drvEntry -> extBoard, sizeof( LcsDrvBoardDesc ));
-        if ( rStat == ALL_OK ) {
-
-            uint16_t *ptr = (uint16_t *) &drvEntry -> extBoard;
-
-            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
-
-                printf( "Extension Board Desc Head: " );
-                for ( int j = 0; j < sizeof( LcsNvmHeader ) / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
-                printf( "\n" );
-            }
-
-            nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
-            nodeMap.drvMapHwm ++; 
-
-            drvEntry -> flags |= BF_EXT_BOARD_PRESENT;
-
-            if (( drvEntry -> extBoard.head.magicWord1 == NVM_MWORD_1 ) && 
-                ( drvEntry -> extBoard.head.magicWord2 == NVM_MWORD_2 )) {
-
-                drvEntry -> flags |= BF_EXT_BOARD_VALID;
-
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
-                    printf( "detectExtensionBoard, boardId: %d -> valid\n", i ); 
-            }
-            else  {
-
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
-                    printf( "detectExtensionBoard, boardId: %d -> inValid\n", i ); 
-            }
-        } 
-        else {
-            
-            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP ))
-                printf( "detectExtensionBoard, boardId: %d, rStat: %d\n", i, rStat ); 
-        }          
     }
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "detectExtensionBoards, status: %d\n", ALL_OK );
-
-    return ( ALL_OK );
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Driver function registration. There is a simple table which maintains extension boards types and the 
 // driver function form them. If the type is already registered, we just overwrite the function signature.
-// Otherwise we find a free entry and use it.
-//
-// The driver function registration can only be called after the initialization of the LCS runtime. By then 
-// the extension boards are detected only. The extension board is therefore not ready and was also issues
-// a RESET command. Consequently, this registration call will check or detected valid extension boards and
-// enter the driver function label and invoke the RESET request.
+// Otherwise we find a free entry and use it. The register driver call is only valid when the LCS runtime is 
+// initialized. When there are ports that have an extension board associated and the driver type matches, the
+// driver request function is set. Note that the driver reset request is issued during LCS start of the 
+// runtime. The sequence is INIT -> register > START.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
+uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -874,9 +915,11 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
 
         if ( drvFuncMap.map[ i ].drvType == drvType ) {
 
-            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                printf( "registerDrvFunc, overwrite: %d\n", i );
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
+                printf( "registerDrvFunc, overwrite: %d\n", i );
+            }
+            
             drvFuncMap.map[ i ].drvFunc = drvReqFunction;
             found = true;
             break;
@@ -889,9 +932,11 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
 
             if ( drvFuncMap.map[ i ].drvType == BT_NIL ) {
 
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                    printf( "registerDrvFunc, allocate: %d\n", i );
+                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
+                    printf( "registerDrvFunc, allocate: %d\n", i );
+                }
+                
                 drvFuncMap.map[ i ].drvType = drvType;
                 drvFuncMap.map[ i ].drvFunc = drvReqFunction;
                 found = true;
@@ -902,38 +947,35 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsDrvReqFunc drvReqFunction ) {
 
     if ( ! found ) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
                 printf( "registerDrvFunc, table full\n" );
-    
+        }
+
         return( ERR_DRV_FUNC_MAP_FULL );
     }
 
     for ( int i = 0; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-        LcsDrvEntry *drvEntry = &drvMap.map[ i ]; 
+        LcsPortMapEntry *hPtr = &portMap.map[ i ]; 
 
-        if (( drvEntry -> flags & BF_EXT_BOARD_PRESENT ) && ( drvEntry -> flags & BF_EXT_BOARD_VALID )) {
+        if (( hPtr -> flags & PF_EXT_BOARD_PRESENT ) && ( hPtr -> flags & PF_EXT_BOARD_VALID ) && 
+            ( nvmHeaderMap.map[ i ].boardType == drvType )) {
 
-            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                printf( "registerDrvFunc, set func for board: %d\n", i );
+            if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
-            if ( drvEntry -> extBoard.head.boardType == drvType ) {
-
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                printf( "registerDrvFunc, set func for driver type: %d\n", drvType );
-
-                drvEntry -> drvFunc     = drvReqFunction;
-                drvEntry -> flags       |= BF_EXT_BOARD_READY;
-                drvEntry -> lastErr     = drvEntry -> drvFunc( i, ITEM_ID_RESET, nullptr, nullptr );
-
-                if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                printf( "registerDrvFunc, set func for driver type, status: %d\n", drvEntry -> lastErr );
+                printf( "registerDrvFunc, set func for board: %d, drvType: %D\n", i, drvType );
             }
-        }
-     }
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-                printf( "registerDrvFunc, ret: ALL_OK\n" );
+            hPtr -> reqCallbackFunc = drvReqFunction;
+            hPtr -> flags       |= PF_EXT_BOARD_READY;
+        }
+    }
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+        printf( "registerDrvFunc, ret: ALL_OK\n" );
+    }
 
     return( ALL_OK );
 }
@@ -1059,6 +1101,7 @@ LcsConfigDesc getConfigDefault( ) {
 //
 // ??? how do we deal wit PFAIL restarts ?
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
+// ??? ensure that this routine is idempotent.
 //------------------------------------------------------------------------------------------------------------
 uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
 
@@ -1074,7 +1117,8 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = initNvmChannels( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CAN bus or NVM Setup failed", 2, rStat );
 
-    if ( rStat == ALL_OK )  rStat = setupHeaderMap( lcsConfig );
+    if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( lcsConfig );
+    if ( rStat == ALL_OK )  rStat = setupExtNvmHeaders( lcsConfig );
     if ( rStat == ALL_OK )  rStat = setupNodeMap( lcsConfig );
     if ( rStat == ALL_OK )  rStat = setupCdcMap( cdcConfig );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
@@ -1085,12 +1129,8 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = setupTaskMap( );
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvFuncMap( );
-    if ( rStat == ALL_OK )  rStat = setupDrvMap( );
     if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Node setup Setup failed", 3, rStat );
-
-    if ( rStat == ALL_OK )  rStat = detectExtensionBoards( );
-    if ( rStat != ALL_OK )  printf( "Extension boards detect failed, stat: %d\n", rStat );
 
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;

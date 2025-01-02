@@ -116,7 +116,7 @@ namespace LCS {
 // Each driver is just a function to handle the request.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     switch( item ) {
 

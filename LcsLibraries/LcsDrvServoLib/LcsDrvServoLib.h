@@ -48,7 +48,7 @@ enum LcsDrvServoItems : uint8_t {
 // Driver function.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t lcsDrvServo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+uint8_t lcsDrvServo( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
 
 } // namespace
 

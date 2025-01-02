@@ -207,7 +207,11 @@ uint8_t registerLcsCallbacks( ) {
     registerInitCallback( lcsInitCallback );
     registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );
-    registerReqCallback( lcsReqCallback );
+   
+   
+   // registerReqCallback( lcsReqCallback );
+   
+   
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
     return( ALL_OK );

@@ -36,7 +36,6 @@ namespace LCS {
     extern uint16_t         debugMask;
     extern LcsCdcMap        cdcMap;
     extern LcsNodeMap       nodeMap;
-    extern LcsDrvMap        drvMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -66,28 +65,6 @@ uint8_t highByte( uint16_t arg ) {
     return( arg >> 8 ); 
 }
 
-// ??? needs to be where ?
-//------------------------------------------------------------------------------------------------------------
-// "buildDrvBoardDescArea" will create a default data area and initializes the extension board NVM with this
-// data.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t buildDrvBoardDescArea( uint8_t boardId ) {
-
-    uint8_t         rStat;
-    LcsDrvBoardDesc tmp;
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "buildDrvBoardDescArea, boardId: %d\n", boardId );
-
-    rStat = extNvmPutBytes( boardId, 0, (uint8_t *) &tmp, sizeof( tmp ));
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "buildDrvBoardDescArea, stat: %d\n", rStat  );
-
-    return( rStat );
-}
-
 } // namespace
 
 
@@ -106,6 +83,7 @@ uint8_t drvInit( ) {
     return ( ALL_OK );
 }
 
+#if 0
 // ??? phase out, replaced by port attributes...
 //------------------------------------------------------------------------------------------------------------
 // "drvGet" returns a value from the driver data array. 
@@ -190,6 +168,7 @@ uint8_t drvPut(uint8_t boardId, uint8_t item, uint16_t arg ) {
     else return( ERR_INVALID_ITEM_ID ); 
 }
 
+
 // ??? phase out, replaced by port attributes...
 //------------------------------------------------------------------------------------------------------------
 // "drvReq" is the entry point to an extension board. For each extension board type there is driver function.
@@ -227,6 +206,8 @@ uint8_t drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) 
         else return( ERR_EXT_BOARD_NOT_VALID );
     }
 }
+
+#endif
 
 } // namespace LCS
 

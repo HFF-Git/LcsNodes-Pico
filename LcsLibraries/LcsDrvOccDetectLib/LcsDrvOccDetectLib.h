@@ -49,7 +49,7 @@ enum LcsDrvOccDetectItems : uint8_t {
 // Driver function. This function is called when there is a "drvReq" call.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t lcsDrvOccDetect( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
+uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
 
 } // namespace 
 

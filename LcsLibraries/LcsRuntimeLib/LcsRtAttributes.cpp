@@ -35,7 +35,7 @@
 namespace LCS {
 
     extern uint16_t             debugMask;
-    extern LcsNvmHeader         headerMap;
+    extern LcsNvmHeaderMap      nvmHeaderMap;
     extern LcsCdcMap            cdcMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
@@ -268,7 +268,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                  if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = headerMap.controllerFamily;
+                *arg1 = nvmHeaderMap.map[ 0 ].controllerFamily;
                 return ( ALL_OK );
             }
 
