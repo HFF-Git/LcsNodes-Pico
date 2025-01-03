@@ -198,11 +198,6 @@ uint8_t lcsInitCallback( uint16_t npId ) {
     return ( bcNode -> handleInitCallback( npId ));
 }
 
-uint8_t lcsResetCallback( uint16_t npId ) {
-
-    return ( bcNode -> handleResetCallback( npId ));
-}
-
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
     return ( bcNode -> handlePfailCallback( npId ));
@@ -269,7 +264,6 @@ uint8_t registerCallbacks( ) {
 
     registerLcsMsgCallback( lcsMsgCallback );
     registerInitCallback( lcsInitCallback );
-    registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );
     
     

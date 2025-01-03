@@ -36,7 +36,6 @@ namespace LCS {
 
     extern uint16_t                 debugMask;
     extern LCS::LcsNodeMap          nodeMap;
-    extern LCS::LcsCallbackMap      callbackMap;
     extern LCS::LcsPendingReqMap    pendingReqMap;
     extern LCS::LcsTaskMap          taskMap;
     extern LCS::LcsMsgBusCAN        *msgBus;
@@ -270,9 +269,9 @@ void processPendingReqMapTimeouts( ) {
 
             if ( pendingReqMap.map[ i ].reqTimeoutTs < ts ) {
 
-                if ( callbackMap.repCallback != nullptr ) {
+                if ( nodeMap.repCallback != nullptr ) {
 
-                    callbackMap.repCallback( pendingReqMap.map[ i ].npId, 0, 0, 0, ERR_REQ_TIMEOUT );                
+                    nodeMap.repCallback( pendingReqMap.map[ i ].npId, 0, 0, 0, ERR_REQ_TIMEOUT );                
                 }
 
                 // ??? clear entry ?

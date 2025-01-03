@@ -169,21 +169,6 @@ uint8_t lcsInitCallback( uint16_t npId ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// The node or port reset callback.
-//
-//----------------------------------------------------------------------------------------------------------
-uint8_t lcsResetCallback( uint16_t npId ) {
-
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Reset Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Reset Callback: 0x%x\n", npId &  0xF   );
-    } 
-
-    return( ALL_OK );
-}
-
-//----------------------------------------------------------------------------------------------------------
 // The node or port power fail callback.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -406,7 +391,6 @@ uint8_t registerCallbacks( ) {
     registerLcsMsgCallback( lcsMsgCallback );
     registerCmdCallback( lcsCmdCallback );
     registerInitCallback( lcsInitCallback );
-    registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );
    
    

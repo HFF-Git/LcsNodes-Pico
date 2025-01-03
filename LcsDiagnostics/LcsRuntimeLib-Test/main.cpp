@@ -150,12 +150,6 @@ uint8_t lcsInitCallback( uint16_t npId ) {
     return( ALL_OK );
 }
 
-uint8_t lcsResetCallback( uint16_t npId ) {
-
-    printf( "Reset Callback: 0x%x\n", npId );
-    return( ALL_OK );
-}
-
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
     printf( "Pfail Callback: 0x%x\n", npId );
@@ -205,7 +199,6 @@ uint8_t registerLcsCallbacks( ) {
     registerTaskCallback( lcsTaskCallback1, 1000 );
     registerTaskCallback( lcsTaskCallback2, 2000 );
     registerInitCallback( lcsInitCallback );
-    registerResetCallback( lcsResetCallback );
     registerPfailCallback( lcsPfailCallback );
    
    

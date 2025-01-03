@@ -319,9 +319,10 @@ enum LcsNodeOptions : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum LcsNodeFlags : uint16_t {
 
-    NFLAGS_NIL                  = 0,
-    NFLAGS_EXT_PRESENT          = ( 1 << 0 ),
-    NFLAGS_NVM_WRITE_ENABLED    = ( 1 << 1 )
+    NF_NIL                      = 0,
+    NF_EXT_PRESENT              = ( 1 << 0 ),
+    NF_NVM_WRITE_ENABLED        = ( 1 << 1 ),
+    NF_EVENT_PENDING            = ( 1 << 2)    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -737,6 +738,10 @@ void                startRuntime( );
 //
 // ??? how about a routine to update a mask ? We often have the case to set / clear a bit in a mask. We 
 // could pass the mask with the bit position set to set or clear the mask word.
+//
+// ??? howe about a scheme where we have blocking calls ? When we send the request, the reply will contain
+// the reply node and port. So, we could filter on that node and port. It would mean however that you will
+// wait ( perhaps with a timeout ) for the outstanding request.
 //----------------------------------------------------------------------------------------------------------
 uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
 uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
@@ -746,15 +751,14 @@ uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullp
 // Function registration routines for callbacks, tasks, driver types, etc.
 //
 //----------------------------------------------------------------------------------------------------------
-void                registerLcsMsgCallback( LcsMsgCallback functionId );
-void                registerDccMsgCallback( LcsMsgCallback functionId );
-void                registerCmdCallback( LcsCmdCallback functionId );
-void                registerInitCallback( LcsInitCallback handler );
-void                registerResetCallback( LcsResetCallback handler );
-void                registerPfailCallback( LcsPfailCallback handler );
-void                registerEventCallback( LcsEventCallback functionId );
+uint8_t             registerLcsMsgCallback( LcsMsgCallback functionId );
+uint8_t             registerDccMsgCallback( LcsMsgCallback functionId );
+uint8_t             registerCmdCallback( LcsCmdCallback functionId );
+uint8_t             registerInitCallback( LcsInitCallback handler );
+uint8_t             registerPfailCallback( LcsPfailCallback handler );
+uint8_t             registerEventCallback( LcsEventCallback functionId );
 uint8_t             registerReqCallback( uint16_t portId, LcsReqCallback handler );
-void                registerRepCallback( LcsRepCallback handler );
+uint8_t             registerRepCallback( LcsRepCallback handler );
 uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
 uint8_t             registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
 
@@ -820,18 +824,6 @@ uint8_t             sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 
 uint8_t             sendRawMsg( uint8_t *msgBuf );
 
 void                printLcsMs( uint8_t *msgBuf );
-
-//----------------------------------------------------------------------------------------------------------
-// The driver interface. The firmware communicated with an extension board by making calls to the driver
-// for the board. Just like for the node / port items, there are routines to GET/SET/REQ driver data and
-// functions. The init function is only called by the library at setup time.
-//
-// ??? they may go away again ... when we map to ports.
-//---------------------------------------------------------------------------------------------------------
-uint8_t             drvInit( uint8_t boardId );
-uint8_t             drvGet( uint8_t boardId, uint8_t item, uint16_t *arg );
-uint8_t             drvPut(uint8_t boardId, uint8_t item, uint16_t arg );
-uint8_t             drvReq( uint8_t boardId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //----------------------------------------------------------------------------------------------------------
 // The User Map interface. The LCS library offers a set of routines for the firmware to access the user

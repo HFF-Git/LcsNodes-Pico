@@ -613,6 +613,32 @@ void fatalErrorMsg( char *str, uint8_t n, uint8_t rStat ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// WatchDog function. We need a way to restart a failed or looping node without going there hitting the 
+// reset button. The idea is that there is a watch dog timer. If the watchDog is not updated every N milli
+// seconds it will reboot the node.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t configureWatchDog( uint32_t millis ) {
+
+    return( NO_ERR );
+}
+
+uint8_t watchDogEnable( bool enable ) {
+
+    return( NO_ERR );
+}
+
+uint8_t watchDogUpdate( ) {
+
+    return( NO_ERR );
+}
+
+bool watchDogCausedReboot( ) {
+
+    return( false );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Processor general values required by the low level LCS core library functions.
 //
 //------------------------------------------------------------------------------------------------------------

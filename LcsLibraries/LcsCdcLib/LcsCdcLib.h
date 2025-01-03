@@ -311,6 +311,16 @@ bool            isConsoleConnected( );
 char            getConsoleChar( uint32_t timeoutVal = 0 );
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t         configureWatchDog( uint32_t millis );
+uint8_t         watchDogEnable( bool enable );
+uint8_t         watchDogUpdate( );
+bool            watchDogCausedReboot( );
+
+//------------------------------------------------------------------------------------------------------------
 // CDC setup and configuration routines. The idea is to help the library write with a default configuration
 // structure. All pins HW that are fixed in their location will be set. A library programmer will just get
 // that default structure and set the values necessary for the particular case.

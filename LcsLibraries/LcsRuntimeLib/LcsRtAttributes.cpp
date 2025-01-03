@@ -40,7 +40,7 @@ namespace LCS {
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
-    extern LcsCallbackMap       callbackMap;
+   // extern LcsCallbackMap       callbackMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -166,9 +166,17 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t invokeUserItemCallback( uint8_t portId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-        if ( callbackMap.reqCallback != nullptr ) {
+        if (( portId == 0 ) && ( nodeMap.reqCallback != nullptr )) { 
 
-            return ( callbackMap.reqCallback( portId, item, arg1, arg2 ));
+            return ( nodeMap.reqCallback( portId, item, arg1, arg2 ));
+        }
+        else if ( isInRangeU( portId, MIN_PORT_ID, MAX_PORT_ID )) {
+
+            if ( portMap.map[ portId ].reqCallbackFunc != nullptr ) {
+
+                return ( portMap.map[ portId ].reqCallbackFunc( portId, item, arg1, arg2 ));
+            }
+            else return( ERR_INVALID_ITEM_ID );
         }
         else return( ERR_INVALID_ITEM_ID );
     }
@@ -639,8 +647,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                debugMask = *arg1;
-                return ( resetNode( npId ));
+                // ??? watchDog business ?
+
+                return( 255 );
             }
 
             case ITEM_ID_FORMAT: {

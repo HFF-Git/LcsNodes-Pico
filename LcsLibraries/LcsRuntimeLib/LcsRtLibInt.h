@@ -89,30 +89,20 @@ namespace LCS {
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
 const uint16_t  MAX_NODE_NAME_SIZE              = 16;
 const uint16_t  MAX_PORT_NAME_SIZE              = 16;
-const uint16_t  MAX_BOARD_NAME_SIZE             = 16;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 
-const uint8_t   MAX_EXT_BOARDS                  = 4; 
-
-const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = MAX_EXT_BOARDS + 1;
+const uint16_t  NVM_MAP_STORAGE_START           = 0;
+const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
 const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
 const uint16_t  MAX_ATTR_MAP_ENTRIES            = 64;
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 15;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
 const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES     = 8;
-
-
-
-const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4; // goes away ?
-
-const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
-
+const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
 const uint8_t   MAX_DRV_TYPES                   = 8;
 
-const uint8_t   MAX_DRV_DATA_SIZE               = 64; // goes away 
-
-const uint16_t  NVM_MAP_STORAGE_START           = 0;
+const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
 //----------------------------------------------------------------------------------------------------------
 // The nodeMap on NVM has two locations with a "magic" word. We simply read in a nodeMap and check these
@@ -162,19 +152,20 @@ enum LcsNodeState : uint16_t {
 // SET - the set routine will use the item numbers to set the value. Note that not all items that can be 
 // read can also be written to. An attempt will result in an error return.
 //
-// REQ - the request call will transmit the request parameters to the node / port / driver where a registered 
+// REQ - the request call will transmit the request parameters to the node / port where a registered 
 // callback or the driver entry point will be invoked. The result is returned via the parameters.
 //
-// One argument is the item. Items range from  0 ... 255 and are defined as follows: 
+// The "item" argument specifies the item that is addressed. Items range from  0 ... 255 and are defined as
+// follows: 
 //
 //   0          -   NIL item, not used
-//   1  ..  63  -   Node / port / driver reserved area items, global items for GET/SET/REQ requests.
+//   1  ..  63  -   Node / port reserved area items, global items for GET/SET/REQ requests.
 //  64  .. 127  -   User defined items, specific meaning, accessed via the REQ routine.
 // 128  .. 255  -   Node / port / driver data attributes returned from MEM for GET/SET in operations mode
 //                  and MEM with updating NVM if in configuration mode.
 // 
-// The items are defined in the external include file. This part here defined the boundaries for internal
-// checking.
+// The specific items are defined in the external include file. This part here defined the boundaries for 
+// internal checking.
 //
 //------------------------------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
@@ -191,13 +182,6 @@ enum ItemRanges : uint8_t {
     IR_ATTR_RANGE_END           = 255,
 
     IR_MAX_ITEMS                = 255,
-
-    // ??? phase out ...
-    IR_ATTR_MEM_RANGE_START     = 128,
-    IR_ATTR_MEM_RANGE_END       = 191,
-
-    IR_ATTR_NVM_RANGE_START     = 192,
-    IR_ATTR_NVM_RANGE_END       = 255,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -225,10 +209,12 @@ struct LcsMsgBusCAN {
 // data structure. This structure contains information to detect that the NVM was formatted, as well as some
 // hardware specific data to identify the board and relevant chips on it. The data in this header must be
 // "programmed" during a board setup. This is easily accomplished trough console commands and needs of 
-// course only be done once per board. The data structure size is 32 bytes. 
+// course only be done once per board. The data structure size is 32 bytes and it is always at NVM offset 
+// zero.
 //
-// The NVM header map stores the NV headers of the boards of the node. There is at least the main controller
-// board NVM and optional up to four extension board NVM headers. 
+// The NVM header map stores the NVM headers of the boards of the node. It is a MEM only structure and will 
+// be filled though reading the NVM headers at init time. There should be at least the main controller board
+// NVM header stored and optional up to four extension board NVM headers. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsNvmHeader {
@@ -238,7 +224,8 @@ struct LcsNvmHeader {
     uint16_t    boardVersion                    = 0;
     uint16_t    controllerFamily                = CF_FAM_RPICO;
     uint16_t    nvmChipFamily                   = CF_FAM_MICROCHIP;
-    uint16_t    reservedArea[ 10 ]              = { 0 };
+    uint16_t    reservedArea[ 9 ]               = { 0 };
+    uint16_t    nodeMapOfs                      = sizeof( LcsNvmHeader );
     uint16_t    magicWord2                      = NVM_MWORD_2;
 }; 
 
@@ -275,8 +262,7 @@ struct LcsNodeData {
 // The port map contains an array of ports, each described by a port map entry. The portMap entry contains 
 // the fields that deal with the actual event received. There are fields for the sending node, the event 
 // and its action. An event can also be invoked with a delay time. The are fifteen entries in the port map.
-// The portMap starts fixed at NVM offset 0x1000. Each port also has an area of attributes, which are 
-// stored in the data block area.
+// Each port also has an area of attributes, which are stored in the data block area.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
@@ -285,9 +271,10 @@ struct LcsPortMapEntry {
     uint16_t        flags                   = 0;
     uint16_t        type                    = 0;
 
-    LcsReqCallback  reqCallbackFunc         = nullptr;
-
     // ??? last error field ?
+
+    // ??? callback labels. Should we also have a reply callback specific to the port?
+    LcsReqCallback  reqCallbackFunc         = nullptr;
 
     uint16_t  eventNpId                     = 0;
     uint16_t  eventId                       = NIL_EVENT_ID;
@@ -323,102 +310,153 @@ struct LcsEventMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The first locations of the NVM area on the controller board NVM chip represent the nodeMap. It is the 
-// heart of all data on the node. When bringing up a node, we read in the node map from the NVM. The first 
-// check is whether the nodeMap read is a valid nodeMap. 
+// The nodeMap is the heart of all data on the node. When bringing up a node, we first read in the NVM
+// headers and then the node map. Once read from the NVM storage, several validity checks are performed.
+// The most important check is to compare the size of the various data structures with the runtime data 
+// size that we know from the compilation. Only when they match can we somewhat trust the rest of the data
+// maps to read. It is therefore crucial that the first locations in the NVM have the same meaning even if
+// we advance to the next SW version. The first part to ensure this requirement is the start of the NVM
+// header and its size. The NVM header also has a pointer to the nodeMap offset. The nodeMap immediately
+// follows this header and starts with the pairs of offsets and lengths. The number of pairs and their
+// order is architected to ensure that the tests will test for the right data structure across versions.
 //
+// The nodeMap is designed as the central structure. Upon initialization, the NVM stored data is read and
+// all work continues from the memory version of the nodeMap. Nevertheless, update to nodeMap fields can
+// also be forward to their NVM counterpart.
+// 
+// ??? clean up "mem only" fields such as callbacks when writing all fields at once ?
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
     //------------------------------------------------------------------------------------------------------
+    // Runtime area offsets and sizes in the NVM. 
+    //
+    //------------------------------------------------------------------------------------------------------
+    uint32_t            nvmMemSize                      =   sizeof( LcsNvmHeader ) 
+                                                            + sizeof( LcsNodeMap ) 
+                                                            + sizeof( LcsCdcMap ) 
+                                                            + sizeof( LcsPortMap )
+                                                            + sizeof( LcsNodeData )
+                                                            + sizeof( LcsEventMap );
+
+    uint16_t            nvmHeaderMapOfs                 = NVM_MAP_STORAGE_START;  
+    uint16_t            nvmHeaderMapSize                = sizeof( LcsNvmHeader ); 
+
+    uint16_t            nvmNodeMapOfs                   = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader );
+    uint16_t            nvmNodeMapSize                  = sizeof( LcsNodeMap );
+
+    uint16_t            nvmCdcMapOfs                    = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
+                                                                                + sizeof( LcsNodeMap );
+    uint16_t            nvmCdcMapSize                   = sizeof( LcsCdcMap );
+
+    uint16_t            nvmPortMapOfs                   = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
+                                                                                + sizeof( LcsNodeMap ) 
+                                                                                + sizeof( LcsCdcMap );
+    int16_t             nvmPortMapSize                  = sizeof( LcsPortMap );
+
+    uint16_t            nvmNodeDataOfs                  = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
+                                                                                + sizeof( LcsNodeMap ) 
+                                                                                + sizeof( LcsCdcMap ) 
+                                                                                + sizeof( LcsPortMap );
+    uint16_t            nvmNodeDataSize                 = sizeof( LcsNodeData );
+
+    uint16_t            nvmEventMapOfs                  = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
+                                                                                + sizeof( LcsNodeMap ) 
+                                                                                + sizeof( LcsCdcMap ) 
+                                                                                + sizeof( LcsPortMap )
+                                                                                + sizeof( LcsNodeData );
+    uint16_t            nvmEventMapSize                 = sizeof( LcsEventMap );
+
+    uint16_t            nvmUserMapOfs                   = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
+                                                                                + sizeof( LcsNodeMap ) 
+                                                                                + sizeof( LcsCdcMap ) 
+                                                                                + sizeof( LcsPortMap )
+                                                                                + sizeof( LcsNodeData )
+                                                                                + sizeof( LcsEventMap );
+    uint16_t            nvmUserMapSize                  = 0;
+
+    uint16_t            reservedMapOfs                  = 0;
+    uint16_t            reservedMapSize                 = 0;
+    
+    //------------------------------------------------------------------------------------------------------
     // Node data.
     //
     //------------------------------------------------------------------------------------------------------
-    uint16_t        nodeState                       = NS_NIL;
-    uint16_t        nodeOptions                     = 0;
-    uint16_t        nodeFlags                       = 0;
-    uint16_t        nodeId                          = NIL_NODE_ID;
-    uint32_t        nodeUID                         = 0L;
-    uint16_t        nodeType                        = NIL_NODE_TYPE;   
-    uint16_t        nodeSwVersion                   = 0;
-    uint16_t        nodeSwPatchLevel                = 0;
-    uint16_t        nodeRestartCnt                  = 0;
-    uint32_t        nodeSystemTime                  = 0;
-    uint16_t        nodeMapSize                     = sizeof( LcsNodeMap );  
-    char            name[ MAX_NODE_NAME_SIZE ]      = { 0 };
-
-    //------------------------------------------------------------------------------------------------------
-    // Runtime area offsets in the NVM. We also keep track of the data structure sizes and check when we
-    // read in the maps that they match a give library version. The main controller NVM layout is built
-    // from the starting off set of the nodeMap, which is currently zero.
-    //
-    //------------------------------------------------------------------------------------------------------
-    uint16_t        nvmHeaderMapOfs                 = NVM_MAP_STORAGE_START;  
-    uint16_t        nvmHeaderMapSize                = sizeof( LcsNvmHeader ); 
-
-    uint16_t        nvmNodeMapOfs                   = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader );
-    uint16_t        nvmNodeMapSize                  = sizeof( LcsNodeMap );
-
-    uint16_t        nvmCdcMapOfs                    = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
-                                                                            + sizeof( LcsNodeMap );
-    uint16_t        nvmCdcMapSize                   = sizeof( LcsCdcMap );
-
-    uint16_t        nvmPortMapOfs                   = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
-                                                                            + sizeof( LcsNodeMap ) 
-                                                                            + sizeof( LcsCdcMap );
-    int16_t         nvmPortMapSize                  = sizeof( LcsPortMap );
-
-    uint16_t        nvmNodeDataOfs                  = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
-                                                                            + sizeof( LcsNodeMap ) 
-                                                                            + sizeof( LcsCdcMap ) 
-                                                                            + sizeof( LcsPortMap );
-    uint16_t        nvmNodeDataSize                 = sizeof( LcsNodeData );
-
-    uint16_t        nvmEventMapOfs                  = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
-                                                                            + sizeof( LcsNodeMap ) 
-                                                                            + sizeof( LcsCdcMap ) 
-                                                                            + sizeof( LcsPortMap )
-                                                                            + sizeof( LcsNodeData );
-    uint16_t        nvmEventMapSize                 = sizeof( LcsEventMap );
-
-    uint16_t        nvmUserMapOfs                   = NVM_MAP_STORAGE_START + sizeof( LcsNvmHeader )
-                                                                            + sizeof( LcsNodeMap ) 
-                                                                            + sizeof( LcsCdcMap ) 
-                                                                            + sizeof( LcsPortMap )
-                                                                            + sizeof( LcsNodeData )
-                                                                            + sizeof( LcsEventMap );
-    uint16_t        nvmUserMapSize                  = 0;
-    
-    uint32_t        nvmMemSize                      =   sizeof( LcsNvmHeader ) 
-                                                        + sizeof( LcsNodeMap ) 
-                                                        + sizeof( LcsCdcMap ) 
-                                                        + sizeof( LcsPortMap )
-                                                        + sizeof( LcsNodeData )
-                                                        + sizeof( LcsEventMap );
+    uint16_t            nodeState                       = NS_NIL;
+    uint16_t            nodeOptions                     = 0;
+    uint16_t            nodeFlags                       = 0;
+    uint16_t            nodeId                          = NIL_NODE_ID;
+    uint32_t            nodeUID                         = 0L;
+    uint16_t            nodeType                        = NIL_NODE_TYPE;   
+    uint16_t            nodeSwVersion                   = 0;
+    uint16_t            nodeSwPatchLevel                = 0;
+    uint16_t            nodeRestartCnt                  = 0;
+    uint32_t            nodeSystemTime                  = 0;
+    uint16_t            nodeMapSize                     = sizeof( LcsNodeMap );  
+    char                name[ MAX_NODE_NAME_SIZE ]      = { 0 };
 
     //------------------------------------------------------------------------------------------------------
     // The number of entries in the core areas and a high water mark.
     //
     //------------------------------------------------------------------------------------------------------
-    uint16_t        portMapEntries                  = MAX_PORT_MAP_ENTRIES;
-    uint16_t        portMapHwm                      = 0;
+    uint16_t            portMapEntries                  = MAX_PORT_MAP_ENTRIES;
+    uint16_t            portMapHwm                      = 0;
 
-    uint16_t        eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
-    uint16_t        eventMapHwm                     = 0;
+    uint16_t            eventMapEntries                 = MAX_EVENT_MAP_ENTRIES;
+    uint16_t            eventMapHwm                     = 0;
 
-    uint16_t        taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
-    uint16_t        taskMapHwm                      = 0;
+    uint16_t            taskMapEntries                  = MAX_TASK_MAP_ENTRIES;
+    uint16_t            taskMapHwm                      = 0;
 
-    uint16_t        pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
-    uint16_t        pendingMapHwm                   = 0;
+    uint16_t            pendingMapEntries               = MAX_PENDING_REQ_MAP_ENTRIES;           
+    uint16_t            pendingMapHwm                   = 0;
 
-    uint16_t        drvFuncMapEntries               = MAX_DRV_TYPES;
-    uint16_t        drvFuncMapHwm                   = 0;
+    uint16_t            drvFuncMapEntries               = MAX_DRV_TYPES;
+    uint16_t            drvFuncMapHwm                   = 0;
 
-    uint16_t        drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
-    uint16_t        drvMapHwm                       = 0;
+    uint16_t            drvMapEntries                   = MAX_EXT_BOARD_MAP_ENTRIES;
+    uint16_t            drvMapHwm                       = 0;
+
+    //------------------------------------------------------------------------------------------------------
+    // The node is considered port zero. As such, it also can react to events. When there is an event 
+    // received and the node has been configured to react to it, the event data is stored here. 
+    //
+    //------------------------------------------------------------------------------------------------------
+    // ??? last error field ?
+
+    uint16_t            eventNpId                       = 0;
+    uint16_t            eventId                         = NIL_EVENT_ID;
+    uint16_t            eventValue                      = 0;
+    uint16_t            eventAction                     = PEA_EVENT_IDLE;
+    uint16_t            eventDelayTime                  = 0;
+    uint32_t            eventTimeStamp                  = 0L;
+
+    //------------------------------------------------------------------------------------------------------
+    // The callback function labels for the node itself.
+    //
+    //------------------------------------------------------------------------------------------------------
+    LcsMsgCallback      lcsMsgCallback                  = nullptr;
+    LcsMsgCallback      dccMsgCallback                  = nullptr;
+    LcsCmdCallback      cmdLineCallback                 = nullptr;
+
+    // ??? should that callback rather be port specific ?
+    LcsEventCallback    eventCallback                   = nullptr;
+
+    // ??? I buy the init callback and the pfail callback. 
+    // ??? the reset callback should be removed. We rather restart the node via a hardware reset...
+    LcsInitCallback     initCallback                    = nullptr;
+    LcsPfailCallback    pfailCallback                   = nullptr;
+
+    // ??? the reqCallback is for the node.
+    LcsReqCallback      reqCallback                     = nullptr;
+
+    // ??? the REP callback under discussion...
+    LcsRepCallback      repCallback                     = nullptr;
+
 };
 
+// ??? this would go away....
+#if 0
 //----------------------------------------------------------------------------------------------------------
 // The LCS runtime communicates back to the firmware via callbacks. There are global callbacks for message
 // receipt and events as well as callbacks for the node and ports that can be registered.
@@ -438,6 +476,7 @@ struct LcsCallbackMap {
     LcsReqCallback          reqCallback             = nullptr;
     LcsRepCallback          repCallback             = nullptr;
 };
+#endif
 
 //----------------------------------------------------------------------------------------------------------
 // The core library maintains an array of periodic task items. To balance the needs of other core library

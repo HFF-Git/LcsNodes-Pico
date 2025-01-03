@@ -39,7 +39,6 @@ namespace LCS {
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
-    extern LcsCallbackMap       callbackMap;
     extern LcsTaskMap           taskMap;
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
@@ -296,13 +295,6 @@ void dumpMemPendingReqMap( ) {
     printf( "\n" );
 }
 
-void dumpMemCallbackMap( ) {
-
-    printf( "MEM Callback Map: \n\n" );
-    dumpMemData((uint16_t *) &callbackMap, sizeof( LcsCallbackMap ));
-    printf( "\n" );
-}
-
 void dumpMemTaskMap( ) {
 
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
@@ -332,7 +324,6 @@ void dumpMemRuntimeArea( ) {
     dumpMemEventMap( );
     dumpMemPendingReqMap( );
     dumpMemTaskMap( );
-    dumpMemCallbackMap( );
     dumpMemDrvFuncMap( );
     printf( "\n" );
 }
@@ -348,7 +339,7 @@ void dumpNvmHeaderMap( ) {
     dumpNvmData( nodeMap.nvmHeaderMapOfs, sizeof( LcsNvmHeader ), 8, true );
     printf( "\n" );
 
-    for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+    for ( int i = 1; i <= 4; i++ ) {
     
         printf( "NVM Header Map (Ext %d): \n", i );
         dumpExtNvmData( i, 0, sizeof( LcsNvmHeader), 8 );
@@ -1056,9 +1047,8 @@ void listStatusCommand( char *s ) {
             case 6:     dumpMemEventMap( );         break;
             case 7:     dumpMemPendingReqMap( );    break;
             case 8:     dumpMemTaskMap( );          break;
-            case 9:     dumpMemCallbackMap( );      break;
-            case 10:    dumpMemDrvFuncMap( );       break;
-            case 12:    dumpMemRuntimeArea( );      break;
+            case 9:     dumpMemDrvFuncMap( );       break;
+            case 10:    dumpMemRuntimeArea( );      break;
 
             case 21:    dumpNvmHeaderMap( );        break;
             case 22:    dumpNvmNodeMap( );          break;
@@ -1114,9 +1104,8 @@ void listCoreLibHelpCommand( ) {
     printf( "              " " -   6  - MEM Event Map\n" );
     printf( "              " " -   7  - MEM Pending Request Map\n" );
     printf( "              " " -   8  - MEM Task Map\n" );
-    printf( "              " " -   9  - MEM Callback Map\n" );
-    printf( "              " " -  10  - MEM Driver Function Map\n" );
-    printf( "              " " -  12  - MEM Runtime Area\n" );
+    printf( "              " " -   9  - MEM Driver Function Map\n" );
+    printf( "              " " -  10  - MEM Runtime Area\n" );
 
     printf( "              " " -  21  - NVM Header Map\n" );      
     printf( "              " " -  22  - NVM Node Map\n" );
@@ -1190,9 +1179,9 @@ uint8_t handleSerialCommand( ) {
 
                         default: {
                             
-                            if ( callbackMap.cmdLineCallback != nullptr ) {
+                            if ( nodeMap.cmdLineCallback != nullptr ) {
 
-                                    callbackMap.cmdLineCallback( commandBuf );
+                                    nodeMap.cmdLineCallback( commandBuf );
                                 }
                             else printf( "<Unknown command, use '?' for help>" );
                         }

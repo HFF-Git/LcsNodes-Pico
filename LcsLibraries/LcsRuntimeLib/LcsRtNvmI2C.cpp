@@ -140,6 +140,7 @@ uint8_t     extSdaPin                           = CDC::UNDEFINED_PIN;
 // hardware uses The chip family M24LCxxx with sizes of 4, 8, 16, 32 and 64Kbytes.
 //
 // ??? not tested yet ...
+// ??? will not work for the smaller then 4K chips. Wait until we only have 4K and higher.
 //------------------------------------------------------------------------------------------------------------
 uint32_t testNvmChipMemorySize( uint8_t sclPin, uint8_t i2cAdr ) {
 

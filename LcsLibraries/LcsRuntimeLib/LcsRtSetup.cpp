@@ -76,7 +76,6 @@ namespace LCS {
     LcsNodeMap              nodeMap;
     LcsPortMap              portMap;
     LcsEventMap             eventMap;
-    LcsCallbackMap          callbackMap;
     LcsPendingReqMap        pendingReqMap;
     LcsTaskMap              taskMap;
     LcsDrvFuncMap           drvFuncMap;
@@ -580,16 +579,40 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
     nodeMap.nodeOptions = cfg -> options;
 
     if (( nodeMap.nvmHeaderMapSize  != sizeof( LcsNvmHeader )) ||
-        ( nodeMap.nvmNodeMapSize    != sizeof( LcsNodeMap )) ||
-        ( nodeMap.nvmCdcMapSize     != sizeof( LcsCdcMap )) ||
-        ( nodeMap.nvmPortMapSize    != sizeof( LcsPortMap )) ||
-        ( nodeMap.nvmNodeDataSize   != sizeof( LcsNodeData )) ||
-        ( nodeMap.nvmEventMapSize   != sizeof( LcsEventMap ))) {
+        ( nodeMap.nvmNodeMapSize    != sizeof( LcsNodeMap   )) ||
+        ( nodeMap.nvmCdcMapSize     != sizeof( LcsCdcMap    )) ||
+        ( nodeMap.nvmPortMapSize    != sizeof( LcsPortMap   )) ||
+        ( nodeMap.nvmNodeDataSize   != sizeof( LcsNodeData  )) ||
+        ( nodeMap.nvmEventMapSize   != sizeof( LcsEventMap  ))) {
 
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
             printf( "setupNodeMap: invalid structure size(s), re-format\n" );
         }
+
+        rStat = buildNvmRuntimeStructures( );
+    }
+ 
+    if (( nodeMap.portMapEntries    != MAX_PORT_MAP_ENTRIES     ) ||
+        ( nodeMap.eventMapEntries   != MAX_EVENT_MAP_ENTRIES    )) {
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+            printf( "setupNodeMap: invalid map size(s), re-format\n" );
+        }
+
+        rStat = buildNvmRuntimeStructures( );
+    }
+
+    if (( nodeMap.portMapHwm    > MAX_PORT_MAP_ENTRIES     ) ||
+        ( nodeMap.eventMapHwm   > MAX_EVENT_MAP_ENTRIES    )) {
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+
+            printf( "setupNodeMap: invalid map HWM size(s), re-format\n" );
+        }
+
+        // ??? a less drastic way to address the issue ?
 
         rStat = buildNvmRuntimeStructures( );
     }
@@ -616,10 +639,10 @@ uint8_t setupPortMap( ) {
 
     for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
-                printf( "Setup Port %d\n", i );
-             }
+            printf( "Setup Port %d\n", i );
+        }
 
         LcsNvmHeader *hPtr = &nvmHeaderMap.map[ i ];
         
@@ -630,7 +653,7 @@ uint8_t setupPortMap( ) {
                 printf( "Valid Extension Board detected\n" );
              }
 
-            nodeMap.nodeFlags |= NFLAGS_EXT_PRESENT;
+            nodeMap.nodeFlags |= NF_EXT_PRESENT;
             nodeMap.drvMapHwm ++;
 
             portMap.map[ i ].flags              |= PF_EXT_BOARD_PRESENT;
@@ -666,8 +689,6 @@ uint8_t setupPortMap( ) {
         }
      }
      #endif
-
-
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -770,34 +791,6 @@ uint8_t setupUserMap( ) {
     }
 
     return ( ALL_OK );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "setupCallbackMap" initializes the callback map. We expect the user to register their callbacks between
-// the runtime init and runtime start routine.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupCallbackMap( ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupCallbackMap\n" );
-
-    uint8_t rStat = ALL_OK;
-
-    callbackMap.lcsMsgCallback      = nullptr;
-    callbackMap.dccMsgCallback      = nullptr;
-    callbackMap.cmdLineCallback     = nullptr;
-
-    callbackMap.initCallback        = nullptr;
-    callbackMap.resetCallback       = nullptr;
-    callbackMap.pfailCallback       = nullptr;
-
-    callbackMap.eventCallback       = nullptr;
-    callbackMap.repCallback         = nullptr;
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
-        printf( "setupCallbackMap, status: %d\n", rStat );
-    
-    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -995,58 +988,11 @@ uint8_t powerFailHandler( ) {
     nodeMap.nodeState = NS_PFAIL;
     rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeState ), NS_PFAIL );
     
-    if ( callbackMap.pfailCallback != nullptr ) callbackMap.pfailCallback( nodeMap.nodeId );
+    if ( nodeMap.pfailCallback != nullptr ) nodeMap.pfailCallback( nodeMap.nodeId );
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "powerFailHandler, status: %d\n", rStat );
     
-    return ( rStat );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "resetNode" restarts a node. We first rebuild the MEM areas from their NVM counterparts. Next, the optional
-// reset call back is invoked. Finally, all ports are reseted as well. 
-//
-// ??? read NVM to MEM.
-// ??? would a node reset clear any outstanding requests ? or do we need to inform potential waiters ?
-// ??? would it just drop all periodic tasks ? who registers them again ?
-// ??? how do we make sure we only cover ports that are used ?
-// ??? or would we need to be a bit more sensible what reset mean ?
-//------------------------------------------------------------------------------------------------------------
-uint8_t resetNode( uint16_t npId ) {
-
-    uint8_t rStat = ALL_OK;
-
-    if ( callbackMap.resetCallback != nullptr ) {
-
-         // ??? load MEM from NVM....
-
-        if ( callbackMap.resetCallback != nullptr ) {
-
-            rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, 0  ));
-        }
-
-        
-    }
-
-    if ( rStat == ALL_OK ) {
-
-        for ( uint8_t i = 1; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-            // ??? load MEM from NVM....
-
-            if ( callbackMap.resetCallback != nullptr ) {
-
-                rStat = callbackMap.resetCallback( buildNpId( nodeMap.nodeId, i ));
-            }
-        }
-    }
-
-    if ( rStat == ALL_OK ) {
-
-        // ??? reset the drivers...
-    }
-
     return ( rStat );
 }
 
@@ -1125,7 +1071,6 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = setupNodeDataMap( );
     if ( rStat == ALL_OK )  rStat = setupEventMap( );
     if ( rStat == ALL_OK )  rStat = setupUserMap( );
-    if ( rStat == ALL_OK )  rStat = setupCallbackMap( );
     if ( rStat == ALL_OK )  rStat = setupTaskMap( );
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvFuncMap( );
