@@ -88,6 +88,18 @@ namespace LCS {
 // General callback registration functions. They just set the function Id field. Straightforward.
 //
 //------------------------------------------------------------------------------------------------------------
+uint8_t registerInitCallback( LcsInitCallback functionId ) {
+
+    nodeMap.initCallback = functionId;
+    return( ALL_OK );
+}
+
+uint8_t registerPfailCallback( LcsInitCallback functionId ) {
+
+    nodeMap.pfailCallback = functionId;
+    return( ALL_OK );
+}
+
 uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
 
     nodeMap.lcsMsgCallback = functionId;
@@ -112,43 +124,33 @@ uint8_t registerEventCallback( LcsEventCallback functionId ) {
     return( ALL_OK );
 }
 
-uint8_t registerInitCallback( LcsInitCallback functionId ) {
-
-    nodeMap.initCallback = functionId;
-    return( ALL_OK );
-}
-
-uint8_t registerPfailCallback( LcsInitCallback functionId ) {
-
-    nodeMap.pfailCallback = functionId;
-    return( ALL_OK );
-}
-
 //-----------------------------------------------------------------------------------------------------------
 //
 //
 //-----------------------------------------------------------------------------------------------------------
-uint8_t registerReqCallback( uint16_t portId, LcsReqCallback functionId ) {
+uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
 
-    if ( portId == 0 ) {
+    for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        nodeMap.reqCallback = functionId;
+        if ( portMask & ( 1 << i )) {
+
+            portMap.map[ i ].reqCallback = functionId;
+        }
     }
-    else if ( isInRangeU( portId, MIN_PORT_ID, MAX_PORT_ID )) {
-        
-        portMap.map[ portId ].reqCallbackFunc = functionId;
-    }
-    else return( ERR_INVALID_PORT_ID );
 
     return( ALL_OK );
 }
 
+uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
 
-// ??? should the reply callback also be separate for nodes, ports ?
+   for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
-uint8_t registerRepCallback( LcsRepCallback functionId ) {
-    
-    nodeMap.repCallback = functionId;
+        if ( portMask & ( 1 << i )) {
+
+            portMap.map[ i ].repCallback = functionId;
+        }
+    }
+
     return( ALL_OK );
 }
 
@@ -190,9 +192,9 @@ void handleNodePortEvents( ) {
 
         LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
-        if (( pPtr -> flags & PF_PORT_ENABLED                 ) &&
-            ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED  ) &&
-            ( pPtr -> flags & PF_EVENT_PENDING                )) {
+        if (( pPtr -> flags & NPF_PORT_ENABLED                 ) &&
+            ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED  ) &&
+            ( pPtr -> flags & NPF_EVENT_PENDING                )) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
@@ -202,7 +204,7 @@ void handleNodePortEvents( ) {
                                         pPtr -> eventValue );
             }
 
-            pPtr -> flags &= ~ PF_EVENT_PENDING;
+            pPtr -> flags &= ~ NPF_EVENT_PENDING;
         }
     }
 }
@@ -394,7 +396,9 @@ void handleMsgRepNode( uint8_t *msg ) {
     uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
     uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
 
-    if ( nodeMap.repCallback != nullptr ) nodeMap.repCallback( npId, item, arg1, arg2, ALL_OK );
+    LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
+
+    if ( pPtr -> repCallback != nullptr ) pPtr -> repCallback( npId, item, arg1, arg2, ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -454,31 +458,19 @@ void handleMsgEvent( uint8_t *msg ) {
 
         for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            if (( i == 0 ) && ( eventMask & 0x1 )) {
+            LcsPortMapEntry *pPtr = &portMap.map[ i ];
 
-                nodeMap.eventNpId       = npId;
-                nodeMap.eventId         = eventId;
-                nodeMap.eventAction     = eventAction;
-                nodeMap.eventValue      = eventData;
-                nodeMap.eventTimeStamp  = ts + ( nodeMap.eventDelayTime * EVENT_DELAY_TICK_MILLIS );
-                nodeMap.nodeFlags       |= NF_EVENT_PENDING;
-            } 
-            else {
+            if (( pPtr -> flags & NPF_PORT_ENABLED                  ) &&
+                ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   )) {
 
-                LcsPortMapEntry *pPtr = &portMap.map[ i ];
+                if ( eventMask & ( 1 << i )) {
 
-                if (( pPtr -> flags & PF_PORT_ENABLED                  ) &&
-                    ( pPtr -> flags & PF_PORT_EVENT_HANDLING_ENABLED   )) {
-
-                    if ( eventMask & ( 1 << i )) {
-
-                        pPtr -> eventNpId       = npId;
-                        pPtr -> eventId         = eventId;
-                        pPtr -> eventAction     = eventAction;
-                        pPtr -> eventValue      = eventData;
-                        pPtr -> eventTimeStamp  = ts + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
-                        pPtr -> flags           |= PF_EVENT_PENDING;
-                    }
+                    pPtr -> eventNpId       = npId;
+                    pPtr -> eventId         = eventId;
+                    pPtr -> eventAction     = eventAction;
+                    pPtr -> eventValue      = eventData;
+                    pPtr -> eventTimeStamp  = ts + ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
+                    pPtr -> flags           |= NPF_EVENT_PENDING;
                 }
             }
         }
@@ -509,7 +501,7 @@ void handleMsgDccMgt( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-    if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_INIT_STEP )) {
+    if ( ! ( portMap.map[ 0 ].options & NPO_SKIP_NODE_INIT_STEP )) {
 
         if ( nodeMap.initCallback != nullptr ) {
 
@@ -520,12 +512,12 @@ void handleNodeStateInit( ) {
 
             if ( nodeMap.initCallback ) nodeMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
 
-            portMap.map[ i ].flags |= PF_PORT_ENABLED;
-            portMap.map[ i ].flags |= PF_PORT_EVENT_HANDLING_ENABLED;
+            portMap.map[ i ].flags |= NPF_PORT_ENABLED;
+            portMap.map[ i ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
         }
     }
 
-    if ( ! ( nodeMap.nodeOptions & NOPT_SKIP_NODE_ID_CONFIG )) {
+    if ( ! ( portMap.map[ 0 ].options & NPO_SKIP_NODE_ID_CONFIG )) {
 
         sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
         timerVal  = CDC::getMillis( );

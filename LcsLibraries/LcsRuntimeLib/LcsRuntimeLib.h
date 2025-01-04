@@ -56,39 +56,14 @@ enum LcsNodeId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A node type can be assigned to a node. NodeId types start with one. The nodeType of zero represents the
-// NIL node type. A node type is arbitrarily defined by the firmware programmer.
-//
-//------------------------------------------------------------------------------------------------------------
-enum LcsNodeTypeId : uint8_t {
-
-    NIL_NODE_TYPE     = 0,
-    MIN_NODE_TYPE_ID  = 1,
-    MAX_NODE_TYPE_ID  = 255
-};
-
-//------------------------------------------------------------------------------------------------------------
 // The port Id identifies the port on a node. Port numbers start with one. The port number zero represents 
 // the NIL port number and usually refers to the node itself. A node can have up to 15 ports.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsPortId : uint8_t {
 
-    NIL_PORT_ID   = 0,
-    MIN_PORT_ID   = 1,
+    MIN_PORT_ID   = 0,
     MAX_PORT_ID   = 15
-};
-
-//------------------------------------------------------------------------------------------------------------
-// A port type can be assigned to a port. Port types start with one. The portType of zero represents the
-// NIL port type. A port type is arbitrarily defied by the firmware programmer.
-//
-//------------------------------------------------------------------------------------------------------------
-  enum LcsPortTypeId : uint8_t {
-
-    NIL_PORT_TYPE     = 0,
-    MIN_PORT_TYPE_ID  = 1,
-    MAX_PORT_TYPE_ID  = 255
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -256,6 +231,33 @@ enum LocoSessionModes : uint8_t {
     LSM_SHARED  = 3
 };
 
+
+// ??? merge node and port types ? can a user set this type ?
+//------------------------------------------------------------------------------------------------------------
+// A node type can be assigned to a node. NodeId types start with one. The nodeType of zero represents the
+// NIL node type. A node type is arbitrarily defined by the firmware programmer.
+//
+//------------------------------------------------------------------------------------------------------------
+enum LcsNodeTypeId : uint8_t {
+
+    NIL_NODE_TYPE     = 0,
+    MIN_NODE_TYPE_ID  = 1,
+    MAX_NODE_TYPE_ID  = 255
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A port type can be assigned to a port. Port types start with one. The portType of zero represents the
+// NIL port type. A port type is arbitrarily defied by the firmware programmer.
+//
+//------------------------------------------------------------------------------------------------------------
+  enum LcsPortTypeId : uint8_t {
+
+    NIL_PORT_TYPE     = 0,
+    MIN_PORT_TYPE_ID  = 1,
+    MAX_PORT_TYPE_ID  = 255
+};
+
+// ??? should we generalize this to just type for nodes and ports ?
 //------------------------------------------------------------------------------------------------------------
 // The defined board types. When the runtime is initialized, the firmware will pass the type to specify what 
 // board it expects. This value is compared to what is actually stored in the NVM of the main controller 
@@ -290,39 +292,63 @@ enum LcsControllerFamilyType : uint16_t {
     CF_FAM_NXP              = 4
 };
 
+
+
+
+
 //------------------------------------------------------------------------------------------------------------
-// The configuration descriptor and node map have an option field. The following constants define the
-// options that can be set.
+// The configuration descriptor and port map have a field for options. The following constants define the
+// options that can be set. There are options that only apply to port zero, which is the node itself.
 //
 //  NOPT_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
+//
 //  NOPT_SKIP_NODE_INIT_STEP - during startup, skip the node initialization step.
+//
 //  NOPT_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
+//
 //  NOPT_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask of nodeMap
 //
 //------------------------------------------------------------------------------------------------------------
-enum LcsNodeOptions : uint16_t {
+enum LcsNodePortOptions : uint16_t {
 
-    NOPT_NIL                    = 0,
-    NOPT_SKIP_NODE_ID_CONFIG    = ( 1 << 0 ),
-    NOPT_SKIP_NODE_INIT_STEP    = ( 1 << 1 ),
-    NOPT_DEBUG_DURING_SETUP     = ( 1 << 2 ),
-    NOPT_FORMAT_RUNTIME         = ( 1 << 3 )
+    NPO_NIL                     = 0,
+    NPO_SKIP_NODE_ID_CONFIG     = ( 1 << 0 ),
+    NPO_SKIP_NODE_INIT_STEP     = ( 1 << 1 ),
+    NPO_DEBUG_DURING_SETUP      = ( 1 << 2 ),
+    NPO_FORMAT_RUNTIME          = ( 1 << 3 )
 };
 
-//------------------------------------------------------------------------------------------------------------
-// Node Flags. Flags are initialized at library startup and represent library state information.
+//----------------------------------------------------------------------------------------------------------
+// The portMap entry has a flag field. The constants defined here indicate the bit positions and fields
+// defined.
 //
-//  NFLAGS_EXT_PRESENT          - extension boards are present.
-//  NFLAGS_NVM_WRITE_ENABLED    - write to the protected NVM areas is enabled.
+//  NPF_PORT_ENABLED                    -   the port is initialized and active. P0 is always enabled.
 //
-// 
-//------------------------------------------------------------------------------------------------------------
-enum LcsNodeFlags : uint16_t {
+//  NPF_PORT_EVENT_HANDLING_ENABLED     -   the port has event handling enabled.
+//
+//  NPF_EVENT_PENDING                   -   an event has been received for this port and is pending.
+//
+//  NPF_EXT_BOARD_PRESENT               -   there is an extension board associated with the port. For P0 
+//                                          this fag indicates that there is an extension board at all.
+//                                          
+//  NPF_EXT_BOARD_VALID                 -   there is a valid extension board associated with the port. 
+//                                          This flag only applies to P1 .. P4.
+//
+//  NPF_EXT_BOARD_READY                 -   there is a valid extension board ready to be used. This flag
+//                                          only applies to P1 .. P4.
+//
+//----------------------------------------------------------------------------------------------------------
+enum LcsNodePortFlags : uint16_t {
 
-    NF_NIL                      = 0,
-    NF_EXT_PRESENT              = ( 1 << 0 ),
-    NF_NVM_WRITE_ENABLED        = ( 1 << 1 ),
-    NF_EVENT_PENDING            = ( 1 << 2)    
+    NPF_NIL                         = 0,
+
+    NPF_PORT_ENABLED                 = ( 1 << 1 ),
+    NPF_PORT_EVENT_HANDLING_ENABLED  = ( 1 << 2 ),
+    NPF_EVENT_PENDING                = ( 1 << 3 ),
+
+    NPF_EXT_BOARD_PRESENT            = ( 1U << 4 ),
+    NPF_EXT_BOARD_VALID              = ( 1U << 5 ),
+    NPF_EXT_BOARD_READY              = ( 1U << 6 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -340,28 +366,29 @@ enum LcsNodeFlags : uint16_t {
 //
 //   0          -   NIL item, not used
 //   1  ..  63  -   Node / port / driver reserved area items, global items for GET/SET/REQ requests.
-//  64  .. 127  -   User defined items, specific meaning, accessed via the REQ routine.
-// 128  .. 191  -   Node / port / driver data attributes returned from MEM for GET/SET.
-// 192  .. 255  -   Node / port / driver data attributes copied from NVM to MEM for GET, copied from MEM to NVM
-//                  for SET. The item range mirrors items 128 - 191. For example, 128 and 192 refer to the same
-//                  attribute. Note that for a SET on a driver the HW needs to be enabled. 
+//  64  .. 127  -   User or driver defined items, specific meaning, accessed via the REQ routine.
+// 128  .. 255  -   Node / port / driver data attributes.
 //
-// The following declarations does just list the item numbers defined. The ranges are defined in the internal
+// The following declarations just list the item numbers defined. The ranges are defined in the internal
 // include file. The ranges as well as the reserved items defined here should not be tampered with.
 //
 // ??? to be sorted when more stable...
 //------------------------------------------------------------------------------------------------------------
 enum LcsItems : uint8_t {
 
-    ITEM_ID_OPTIONS                     = 1,
-    ITEM_ID_FLAGS                       = 2,
-    ITEM_ID_DEBUG_MASK                  = 3,
+    ITEM_ID_DEBUG_MASK                  = 1,    
+    ITEM_ID_OPTIONS                     = 2,
+    ITEM_ID_FLAGS                       = 3,
+    
     ITEM_ID_VERSION                     = 4,
+
     ITEM_ID_TYPE                        = 5,
    
     ITEM_ID_BOARD_VERSION               = 6,
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
+
+
    
     ITEM_ID_NODE_STATE                  = 10,
     ITEM_ID_NODE_ID                     = 11,
@@ -377,8 +404,6 @@ enum LcsItems : uint8_t {
     ITEM_ID_NAME_3                      = 19,
     ITEM_ID_NAME_4                      = 20,
 
-    ITEM_ID_EVENT_DELAY_TICKS           = 21,
-
     ITEM_ID_RESET                       = 22,
     ITEM_ID_SYNC                        = 23,
     ITEM_ID_FORMAT                      = 24,
@@ -386,44 +411,18 @@ enum LcsItems : uint8_t {
     ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
     ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
     ITEM_ID_GET_EVENT_MAP_ENTRY         = 27,
+    ITEM_ID_EVENT_DELAY_TICKS           = 21,
+    ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
     ITEM_ID_SET_READY_LED               = 30,
     ITEM_ID_SET_ACTIVITY_LED            = 31,
     ITEM_ID_TOGGLE_READY_LED            = 32,
     ITEM_ID_TOGGLE_ACTIVITY_LED         = 33,
 
-    ITEM_ID_NVM_PROTECTED_ACCESS        = 35,
-   
-    ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
     
     // ??? add stop and enable periodic processing ?
 };
 
-//----------------------------------------------------------------------------------------------------------
-// The portMap entry has a flag field. The constants defined here indicate the bit positions and fields
-// defined.
-//
-//  PF_PORT_ENABLED                 - the port is initialized and active
-//  PF_PORT_EVENT_HANDLING_ENABLED  - the port has event handling enabled
-//  PF_EVENT_PENDING                - an event has been received for this port and is pending.
-//
-//  PF_EXT_BOARD_PRESENT            - there is an extension board associated with the port.
-//  PF_EXT_BOARD_VALID              - there is a valid extension board associated with the port.
-//  PF_EXT_BOARD_READY              - there is a valid extension board ready to be used.
-//
-//----------------------------------------------------------------------------------------------------------
-enum LcsPortFlags : uint16_t {
-
-    PF_NIL                          = 0,
-
-    PF_PORT_ENABLED                 = ( 1 << 1 ),
-    PF_PORT_EVENT_HANDLING_ENABLED  = ( 1 << 2 ),
-    PF_EVENT_PENDING                = ( 1 << 3 ),
-
-    PF_EXT_BOARD_PRESENT            = ( 1U << 4 ),
-    PF_EXT_BOARD_VALID              = ( 1U << 5 ),
-    PF_EXT_BOARD_READY              = ( 1U << 6 )
-};
 
 //----------------------------------------------------------------------------------------------------------
 // The port event action. When an event is received, it will be of the type shown below. There is an 
@@ -515,7 +514,6 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_DCC_ERR          = OPC( 3, 7 ),
     LCS_OP_REQ_CVS          = OPC( 3, 8 ),
     
-
     LCS_OP_EVT_ON           = OPC( 4, 1 ),
     LCS_OP_EVT_OFF          = OPC( 4, 2 ),
     LCS_OP_SEND_DCC4        = OPC( 4, 3 ),
@@ -655,16 +653,6 @@ enum MsgPriority : uint8_t {
 // Core library callback function signatures. Callbacks are registered by the firmware at setup time and
 // invoked as the communication back to the firmware layer.
 //
-//      LcsMsgCallback      -   is called with a LCS management message received.
-//
-//      LcsCmdCallback      -   when the command interpreter detects a non LCS command, the command line 
-//                              is passed on to the callback. 
-//      LcsTaskCallback     -   a callback for a previously registered task. The callback is invoked on 
-//                              the configured periodic basis.
-//
-//      LcsResetCallback    -   a callback invoked when a reset is performed. The npId is passed so that
-//                              the callback can detect wether a port or node is the target.
-//
 //      LcsInitCallback     -   a callback called at initialization time, as part of "startRuntime". The
 //                              npId is passed so that the callback can detect wether a port or node is 
 //                              the target.
@@ -672,6 +660,13 @@ enum MsgPriority : uint8_t {
 //      LcsPfailCallback    -   a callback when a power fail situation is detected. The npId is passed 
 //                              so that the callback can detect wether a port or node is the target.
 // 
+//      LcsMsgCallback      -   is called with a LCS management message received.
+//
+//      LcsCmdCallback      -   when the command interpreter detects a non LCS command, the command line 
+//                              is passed on to the callback. 
+//      LcsTaskCallback     -   a callback for a previously registered task. The callback is invoked on 
+//                              the configured periodic basis.
+//
 //      LcsReqCallback      -   a callback to invoke for a user request message. The callback is passed 
 //                              the item and a reference to the two input / output arguments. A request
 //                              callback is associated with a port and is either a user defined callback
@@ -690,14 +685,12 @@ enum MsgPriority : uint8_t {
 //----------------------------------------------------------------------------------------------------------
 extern "C" {
 
+    typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId );
+    typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId );
     typedef uint8_t ( *LcsMsgCallback ) ( uint8_t *msg );
     typedef uint8_t ( *LcsCmdCallback ) ( char *cmdLine );
     typedef uint8_t ( *LcsTaskCallback ) ( void );
-
-    typedef uint8_t ( *LcsResetCallback ) ( uint16_t npId );
-    typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId );
-    typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId );
-
+    
     typedef uint8_t ( *LcsReqCallback ) ( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
     typedef uint8_t ( *LcsRepCallback ) ( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
 
@@ -751,15 +744,16 @@ uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullp
 // Function registration routines for callbacks, tasks, driver types, etc.
 //
 //----------------------------------------------------------------------------------------------------------
+uint8_t             registerInitCallback( LcsInitCallback handler );
+uint8_t             registerPfailCallback( LcsPfailCallback handler );
 uint8_t             registerLcsMsgCallback( LcsMsgCallback functionId );
 uint8_t             registerDccMsgCallback( LcsMsgCallback functionId );
 uint8_t             registerCmdCallback( LcsCmdCallback functionId );
-uint8_t             registerInitCallback( LcsInitCallback handler );
-uint8_t             registerPfailCallback( LcsPfailCallback handler );
-uint8_t             registerEventCallback( LcsEventCallback functionId );
-uint8_t             registerReqCallback( uint16_t portId, LcsReqCallback handler );
-uint8_t             registerRepCallback( LcsRepCallback handler );
 uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
+uint8_t             registerEventCallback( LcsEventCallback functionId );
+uint8_t             registerReqCallback( LcsReqCallback handler, uint16_t portMask = 0xFFFF );
+uint8_t             registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
+
 uint8_t             registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
 
 //----------------------------------------------------------------------------------------------------------

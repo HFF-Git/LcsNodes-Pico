@@ -227,9 +227,12 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 void printSummary( ) {
 
     printf( "LCS Node: \"" );
+
+    LcsPortMapEntry *pPtr = &portMap.map[ 0 ];
+
     for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ ) {
  
-        if ( nodeMap.name[ i ] != 0 ) printf( "%c", nodeMap.name[ i ] );
+        if ( pPtr -> name[ i ] != 0 ) printf( "%c", pPtr -> name[ i ] );
     }
      
     printf( "\", State: %d\n", nodeMap.nodeState );
@@ -637,9 +640,9 @@ void switchToOperationsCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void enterEventCommand( char *s ) {
 
-    int  npId      = NIL_NODE_ID;
+    int  npId      = 0;
     int  eventId   = NIL_EVENT_ID;
-    int  portId    = NIL_PORT_ID;
+    int  portId    = 0;
 
     if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 2 ) return( errorArgList( ));
 
@@ -672,9 +675,9 @@ void enterEventCommand( char *s ) {
 //------------------------------------------------------------------------------------------------------------
 void removeEventCommand( char *s ) {
 
-    int  npId      = NIL_NODE_ID;
+    int  npId      = 0;
     int  eventId   = NIL_EVENT_ID;
-    int  portId    = NIL_PORT_ID;
+    int  portId    = 0;
 
     if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 1 ) return( errorArgList( ));
 
@@ -708,7 +711,7 @@ void removeEventCommand( char *s ) {
 void findEventCommand( char *s ) {
 
     int  eventId   = NIL_EVENT_ID;
-    int  portId    = NIL_PORT_ID;
+    int  portId    = 0;
 
     if ( sscanf( s, "%i %i ", &eventId, &portId ) < 1 ) return( errorArgList( ));
 

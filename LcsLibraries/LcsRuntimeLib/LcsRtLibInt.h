@@ -95,7 +95,7 @@ const uint16_t  NVM_MAP_STORAGE_START           = 0;
 const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
 const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
 const uint16_t  MAX_ATTR_MAP_ENTRIES            = 64;
-const uint16_t  MAX_PORT_MAP_ENTRIES            = 15;
+const uint16_t  MAX_PORT_MAP_ENTRIES            = 16;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
 const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES     = 8;
@@ -261,29 +261,31 @@ struct LcsNodeData {
 //----------------------------------------------------------------------------------------------------------
 // The port map contains an array of ports, each described by a port map entry. The portMap entry contains 
 // the fields that deal with the actual event received. There are fields for the sending node, the event 
-// and its action. An event can also be invoked with a delay time. The are fifteen entries in the port map.
-// Each port also has an area of attributes, which are stored in the data block area.
+// and its action. An event can also be invoked with a delay time. The are 16 entries in the port map. 
+// Port zero refers to the entire node, i.e. the node itself. When node data such as the node type is 
+// accessed it is actually taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition
+// P1 to P4 are optionally associated with an extension board if one is detected during startup. Each port
+//  has an area of attributes, which are stored in the data block area.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-    uint16_t        options                 = 0;
-    uint16_t        flags                   = 0;
-    uint16_t        type                    = 0;
+    uint16_t        options                     = 0;
+    uint16_t        flags                       = 0;
+    uint16_t        type                        = 0;
+    uint16_t        lastErr                     = 0;
+   
+    LcsReqCallback  reqCallback                 = nullptr;
+    LcsRepCallback  repCallback                 = nullptr;
 
-    // ??? last error field ?
+    uint16_t        eventNpId                   = 0;
+    uint16_t        eventId                     = NIL_EVENT_ID;
+    uint16_t        eventValue                  = 0;
+    uint16_t        eventAction                 = PEA_EVENT_IDLE;
+    uint16_t        eventDelayTime              = 0;
+    uint32_t        eventTimeStamp              = 0L;
 
-    // ??? callback labels. Should we also have a reply callback specific to the port?
-    LcsReqCallback  reqCallbackFunc         = nullptr;
-
-    uint16_t  eventNpId                     = 0;
-    uint16_t  eventId                       = NIL_EVENT_ID;
-    uint16_t  eventValue                    = 0;
-    uint16_t  eventAction                   = PEA_EVENT_IDLE;
-    uint16_t  eventDelayTime                = 0;
-    uint32_t  eventTimeStamp                = 0L;
-
-    char      name[ MAX_PORT_NAME_SIZE  ]   = { 0 };
+    char            name[ MAX_PORT_NAME_SIZE ]  = { 0 };
 };
 
 struct LcsPortMap {
@@ -322,7 +324,10 @@ struct LcsEventMap {
 //
 // The nodeMap is designed as the central structure. Upon initialization, the NVM stored data is read and
 // all work continues from the memory version of the nodeMap. Nevertheless, update to nodeMap fields can
-// also be forward to their NVM counterpart.
+// also be forward to their NVM counterpart. Since a node has port zero as the docking for node wide 
+// operations, the portMap entry 0 is also considered part of the node map.
+// 
+// ??? read in nodeMap and portMap in one swoop or just nodeMap and portMap 0 ?
 // 
 // ??? clean up "mem only" fields such as callbacks when writing all fields at once ?
 //----------------------------------------------------------------------------------------------------------
@@ -383,18 +388,13 @@ struct LcsNodeMap {
     //
     //------------------------------------------------------------------------------------------------------
     uint16_t            nodeState                       = NS_NIL;
-    uint16_t            nodeOptions                     = 0;
-    uint16_t            nodeFlags                       = 0;
     uint16_t            nodeId                          = NIL_NODE_ID;
     uint32_t            nodeUID                         = 0L;
-    uint16_t            nodeType                        = NIL_NODE_TYPE;   
     uint16_t            nodeSwVersion                   = 0;
     uint16_t            nodeSwPatchLevel                = 0;
     uint16_t            nodeRestartCnt                  = 0;
     uint32_t            nodeSystemTime                  = 0;
-    uint16_t            nodeMapSize                     = sizeof( LcsNodeMap );  
-    char                name[ MAX_NODE_NAME_SIZE ]      = { 0 };
-
+   
     //------------------------------------------------------------------------------------------------------
     // The number of entries in the core areas and a high water mark.
     //
@@ -418,23 +418,11 @@ struct LcsNodeMap {
     uint16_t            drvMapHwm                       = 0;
 
     //------------------------------------------------------------------------------------------------------
-    // The node is considered port zero. As such, it also can react to events. When there is an event 
-    // received and the node has been configured to react to it, the event data is stored here. 
-    //
-    //------------------------------------------------------------------------------------------------------
-    // ??? last error field ?
-
-    uint16_t            eventNpId                       = 0;
-    uint16_t            eventId                         = NIL_EVENT_ID;
-    uint16_t            eventValue                      = 0;
-    uint16_t            eventAction                     = PEA_EVENT_IDLE;
-    uint16_t            eventDelayTime                  = 0;
-    uint32_t            eventTimeStamp                  = 0L;
-
-    //------------------------------------------------------------------------------------------------------
     // The callback function labels for the node itself.
     //
     //------------------------------------------------------------------------------------------------------
+    LcsInitCallback     initCallback                    = nullptr;
+    LcsPfailCallback    pfailCallback                   = nullptr;
     LcsMsgCallback      lcsMsgCallback                  = nullptr;
     LcsMsgCallback      dccMsgCallback                  = nullptr;
     LcsCmdCallback      cmdLineCallback                 = nullptr;
@@ -442,41 +430,7 @@ struct LcsNodeMap {
     // ??? should that callback rather be port specific ?
     LcsEventCallback    eventCallback                   = nullptr;
 
-    // ??? I buy the init callback and the pfail callback. 
-    // ??? the reset callback should be removed. We rather restart the node via a hardware reset...
-    LcsInitCallback     initCallback                    = nullptr;
-    LcsPfailCallback    pfailCallback                   = nullptr;
-
-    // ??? the reqCallback is for the node.
-    LcsReqCallback      reqCallback                     = nullptr;
-
-    // ??? the REP callback under discussion...
-    LcsRepCallback      repCallback                     = nullptr;
-
 };
-
-// ??? this would go away....
-#if 0
-//----------------------------------------------------------------------------------------------------------
-// The LCS runtime communicates back to the firmware via callbacks. There are global callbacks for message
-// receipt and events as well as callbacks for the node and ports that can be registered.
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsCallbackMap {
-
-    LcsMsgCallback          lcsMsgCallback          = nullptr;
-    LcsMsgCallback          dccMsgCallback          = nullptr;
-    LcsCmdCallback          cmdLineCallback         = nullptr;
-    LcsEventCallback        eventCallback           = nullptr;
-
-    LcsInitCallback         initCallback            = nullptr;
-    LcsResetCallback        resetCallback           = nullptr;
-    LcsPfailCallback        pfailCallback           = nullptr;
-
-    LcsReqCallback          reqCallback             = nullptr;
-    LcsRepCallback          repCallback             = nullptr;
-};
-#endif
 
 //----------------------------------------------------------------------------------------------------------
 // The core library maintains an array of periodic task items. To balance the needs of other core library
@@ -543,17 +497,9 @@ uint8_t     rtNvmPutWord( uint32_t ofs, uint16_t word );
 uint8_t     rtNvmGetWord( uint32_t ofs, uint16_t *word );
 uint8_t     rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t     rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val = 0 );  
-uint32_t    rtNvmGetSize( );
 
-uint8_t     extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word );
 uint8_t     extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
-uint8_t     extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t     extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val = 0 ); 
-uint32_t    extNvmGetSize( );
-
-uint8_t     resetNode( uint16_t npId );
 
 uint8_t     syncEventMap( );
 uint8_t     addEvent( uint16_t eventId, uint16_t eventMask );

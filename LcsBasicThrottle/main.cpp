@@ -117,7 +117,7 @@ uint8_t initLcsRuntime( ) {
     cdcConfig.NODE_NVM_SIZE         = 8192;
     cdcConfig.EXT_NVM_SIZE          = 512;
 
-    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG | NOPT_DEBUG_DURING_SETUP;
+    lcsConfig.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
 
     printf( "LCS Basic Throttle\n" );
 

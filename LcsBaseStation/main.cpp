@@ -129,7 +129,7 @@ void setupConfigInfo( ) {
     cdcConfig.NODE_NVM_SIZE         = 8192;
     cdcConfig.EXT_NVM_SIZE          = 4096;
 
-    lcsConfig.options               |= NOPT_SKIP_NODE_ID_CONFIG;
+    lcsConfig.options               |= NPO_SKIP_NODE_ID_CONFIG;
 }
 
 //------------------------------------------------------------------------------------------------------------

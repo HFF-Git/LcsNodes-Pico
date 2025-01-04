@@ -153,7 +153,8 @@ void buildDefaultNodeMap( LcsNodeMap *nMap ) {
 
     LcsNodeMap tmp;
 
-    snprintf( tmp.name, MAX_NODE_NAME_SIZE, "Node" );
+    // ??? need to set it in P0
+    // snprintf( tmp.name, MAX_NODE_NAME_SIZE, "Node" );
     tmp.nodeUID = CDC::createUid( );
 
     *nMap = tmp;
@@ -323,7 +324,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
                 printf( "Starting - normal mode\n" );
 
                 debugMask       &= ~ DBG_CONFIG;
-                startOptions    = NOPT_NIL;
+                startOptions    = NPO_NIL;
                 return( ALL_OK );
             }
             else if (( ch == 'D' ) || ( ch == 'd' )) {
@@ -331,7 +332,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
                  printf( "Starting - debug mode\n" );
 
                 debugMask       = DBG_CONFIG | DBG_SETUP | DBG_EVENTS;
-                startOptions    = NOPT_NIL;
+                startOptions    = NPO_NIL;
                 return( ALL_OK );
             }
             else if (( ch == 'F' ) || ( ch == 'f' )) {
@@ -342,7 +343,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
                 debugMask       = DBG_CONFIG | DBG_SETUP | DBG_NVM_ACCESS;
                 
-                startOptions    = NOPT_FORMAT_RUNTIME;
+                startOptions    = NPO_FORMAT_RUNTIME;
                 return( ALL_OK );
             }
             else if ( ch == '?' ) {
@@ -358,7 +359,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
     else {
         
         debugMask       &= ~ DBG_CONFIG;
-        startOptions    = NOPT_NIL;
+        startOptions    = NPO_NIL;
         return ( ALL_OK );
     }
 }
@@ -439,7 +440,7 @@ uint8_t setupNodeNvmHeader( LcsConfigDesc *cfg ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeNvmHeader\n" );
 
-    if ( startOptions & NOPT_FORMAT_RUNTIME ) {
+    if ( startOptions & NPO_FORMAT_RUNTIME ) {
 
         rStat = buildNvmRuntimeStructures( );
     }
@@ -558,6 +559,9 @@ uint8_t setupCdcMap( CDC::CdcConfigDesc *cdcConfig ) {
     return ( rStat );
 }
 
+
+// ???? since P0 is part of node Map ..... rework !!!!!
+
 //------------------------------------------------------------------------------------------------------------
 // "setupNodeMap" sets up the nodeMap. It is the routine that is called after we read in the NVM headers. 
 // If the main controller NVM header was invalid or formatting was requested, a default structure was created. 
@@ -576,7 +580,7 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
     rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );
 
-    nodeMap.nodeOptions = cfg -> options;
+    portMap.map[ 0 ].options = cfg -> options;
 
     if (( nodeMap.nvmHeaderMapSize  != sizeof( LcsNvmHeader )) ||
         ( nodeMap.nvmNodeMapSize    != sizeof( LcsNodeMap   )) ||
@@ -617,6 +621,8 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
         rStat = buildNvmRuntimeStructures( );
     }
 
+    // ??? read in entry zero of port map ?
+
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
         printf( "setupNodeMap, status: %d\n", rStat );
@@ -630,6 +636,7 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 // have up to 15 ports. If there are extension boards connected, the first N ports refer to these boards.
 // We consult the nvmHeaderMap for detected extension boards.
 //
+// ??? only read in P1 to P15.
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
 
@@ -653,12 +660,12 @@ uint8_t setupPortMap( ) {
                 printf( "Valid Extension Board detected\n" );
              }
 
-            nodeMap.nodeFlags |= NF_EXT_PRESENT;
+            portMap.map[ 0 ].flags |= NPF_EXT_BOARD_PRESENT;
             nodeMap.drvMapHwm ++;
 
-            portMap.map[ i ].flags              |= PF_EXT_BOARD_PRESENT;
-            portMap.map[ i ].flags              |= PF_EXT_BOARD_VALID;
-            portMap.map[ i ].reqCallbackFunc     = nullptr;
+            portMap.map[ i ].flags          |= NPF_EXT_BOARD_PRESENT;
+            portMap.map[ i ].flags          |= NPF_EXT_BOARD_VALID;
+            portMap.map[ i ].reqCallback     = nullptr;
         }
     }
 
@@ -952,7 +959,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
         LcsPortMapEntry *hPtr = &portMap.map[ i ]; 
 
-        if (( hPtr -> flags & PF_EXT_BOARD_PRESENT ) && ( hPtr -> flags & PF_EXT_BOARD_VALID ) && 
+        if (( hPtr -> flags & NPF_EXT_BOARD_PRESENT ) && ( hPtr -> flags & NPF_EXT_BOARD_VALID ) && 
             ( nvmHeaderMap.map[ i ].boardType == drvType )) {
 
             if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
@@ -960,8 +967,8 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
                 printf( "registerDrvFunc, set func for board: %d, drvType: %D\n", i, drvType );
             }
 
-            hPtr -> reqCallbackFunc = drvReqFunction;
-            hPtr -> flags       |= PF_EXT_BOARD_READY;
+            hPtr -> reqCallback = drvReqFunction;
+            hPtr -> flags       |= NPF_EXT_BOARD_READY;
         }
     }
 

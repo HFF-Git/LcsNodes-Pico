@@ -34,11 +34,12 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t                 debugMask;
-    extern LCS::LcsNodeMap          nodeMap;
-    extern LCS::LcsPendingReqMap    pendingReqMap;
-    extern LCS::LcsTaskMap          taskMap;
-    extern LCS::LcsMsgBusCAN        *msgBus;
+    extern uint16_t             debugMask;
+    extern LcsNodeMap           nodeMap;
+    extern LcsPortMap           portMap;
+    extern LcsPendingReqMap     pendingReqMap;
+    extern LcsTaskMap           taskMap;
+    extern LcsMsgBusCAN         *msgBus;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -256,7 +257,7 @@ void printLcsMsg( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 // "processPendingReqMapTimeouts" is part of the periodic processing of the node. It will check wether any
 // requests waiting for a reply have timed out. In this case, we should invoke the reply callback with an 
-// error code.
+// error code and clear the entry.
 //
 //------------------------------------------------------------------------------------------------------------
 void processPendingReqMapTimeouts( ) {
@@ -265,18 +266,19 @@ void processPendingReqMapTimeouts( ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
-        if ( pendingReqMap.map[ i ].reqTimeoutTs != 0 ) {
+        LcsPendingReqEntry *tPtr = &pendingReqMap.map[ i ];
 
-            if ( pendingReqMap.map[ i ].reqTimeoutTs < ts ) {
+        if (( tPtr -> reqTimeoutTs != 0 ) && ( tPtr -> reqTimeoutTs < ts )) {
 
-                if ( nodeMap.repCallback != nullptr ) {
+            LcsPortMapEntry *pPtr = &portMap.map[ portId( tPtr -> npId ) ];
 
-                    nodeMap.repCallback( pendingReqMap.map[ i ].npId, 0, 0, 0, ERR_REQ_TIMEOUT );                
-                }
+            if ( pPtr -> repCallback != nullptr ) {
 
-                // ??? clear entry ?
-
+                pPtr -> repCallback( pendingReqMap.map[ i ].npId, 0, 0, 0, ERR_REQ_TIMEOUT );                
             }
+
+            tPtr -> reqTimeoutTs    = 0;
+            tPtr -> npId            = 0;
         } 
     }
 }
