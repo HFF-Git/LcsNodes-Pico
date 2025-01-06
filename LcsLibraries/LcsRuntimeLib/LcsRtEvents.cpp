@@ -45,7 +45,6 @@
 namespace LCS {
 
     extern uint16_t             debugMask;
-    extern LCS::LcsNodeMap      nodeMap;
     extern LCS::LcsEventMap     eventMap;
 };
 
@@ -102,7 +101,7 @@ int searchEventMap( uint16_t eventId ) {
     
     int   res   = -1;
     int   low   = 0;
-    int   high  = nodeMap.eventMapHwm - 1;
+    int   high  = eventMap.mapHwm - 1;
 
     while ( low <= high ) {
 
@@ -141,11 +140,11 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
         return ( ALL_OK );
     }  
 
-    if ( nodeMap.eventMapHwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
+    if ( eventMap.mapHwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
 
-    index = nodeMap.eventMapHwm;
+    index = eventMap.mapHwm;
 
-    if ( nodeMap.eventMapHwm > 0 ) {
+    if ( eventMap.mapHwm > 0 ) {
 
         while (( index > 0 ) && ( compareEventEntry( &eventMap.map[ index - 1 ], eventId ) > 0 )) {
 
@@ -156,7 +155,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 
     eventMap.map[ index ].eventId   = eventId;
     eventMap.map[ index ].eventMask = eventMask;
-    nodeMap.eventMapHwm++;
+    eventMap.mapHwm++;
 
     return ( ALL_OK );
 }
@@ -176,9 +175,9 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
     if ( index >= 0 ) {
 
-        nodeMap.eventMapHwm--;
+        eventMap.mapHwm--;
 
-        for ( uint16_t i = index; i < nodeMap.eventMapHwm; i++ )
+        for ( uint16_t i = index; i < eventMap.mapHwm; i++ )
             eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
@@ -236,14 +235,14 @@ uint8_t syncEventMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "sync EventMap \n" );  
 
-    uint8_t rStat =  rtNvmPutBytes( nodeMap.nvmEventMapOfs, 
+    uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
                                     (uint8_t *) eventMap.map, 
-                                    nodeMap.eventMapHwm * sizeof( LcsEventMapEntry ));
+                                    eventMap.mapHwm * sizeof( LcsEventMapEntry ));
 
     if ( rStat == ALL_OK ) {
 
-        uint32_t ofs = nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, eventMapHwm );
-        rStat = rtNvmPutWord( ofs, nodeMap.eventMapHwm );
+        uint32_t ofs = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm );
+        rStat = rtNvmPutWord( ofs, eventMap.mapHwm );
     }
 
     return ( rStat );
@@ -261,7 +260,7 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask 
         printf( "Get Emap Entry: %d\n", index );
     }
   
-    if ( index <  nodeMap.eventMapHwm ) {
+    if ( index <  eventMap.mapHwm ) {
 
         *eventId    = eventMap.map[ index ].eventId;
         *eventMask  = eventMap.map[ index ].eventMask;

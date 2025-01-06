@@ -567,31 +567,31 @@ uint32_t extNvmGetSize( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-    ofs = ofs + nodeMap.nvmUserMapOfs;
+    ofs = ofs + NVM_USER_MAP_OFS;
     return( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    ofs = ofs + nodeMap.nvmUserMapOfs;
+    ofs = ofs + NVM_USER_MAP_OFS;
     return( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    ofs = ofs + nodeMap.nvmUserMapOfs;
+    ofs = ofs + NVM_USER_MAP_OFS;
     return( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    ofs = ofs + nodeMap.nvmUserMapOfs;
+    ofs = ofs + NVM_USER_MAP_OFS;
     return( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint32_t usrNvmGetSize( ) {
 
-    return ( nodeMap.nvmUserMapSize );
+    return ( 0 ); // for now...
 }
 
 }; // namespace LCS

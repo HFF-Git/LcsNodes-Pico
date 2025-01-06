@@ -233,6 +233,15 @@ enum LocoSessionModes : uint8_t {
 
 
 // ??? merge node and port types ? can a user set this type ?
+
+// there are SW and board types ....
+
+// a 16-bit word: 4bits controller family, 6 bits type and 6 bits subtype.
+
+// a 16-bit word: 4bits controller family, 6 bits major and 6 bits minor version.
+
+// ??? should we in addition also have a user defined type/version word  ?
+
 //------------------------------------------------------------------------------------------------------------
 // A node type can be assigned to a node. NodeId types start with one. The nodeType of zero represents the
 // NIL node type. A node type is arbitrarily defined by the firmware programmer.
@@ -302,8 +311,6 @@ enum LcsControllerFamilyType : uint16_t {
 //
 //  NOPT_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
 //
-//  NOPT_SKIP_NODE_INIT_STEP - during startup, skip the node initialization step.
-//
 //  NOPT_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
 //
 //  NOPT_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask of nodeMap
@@ -313,9 +320,8 @@ enum LcsNodePortOptions : uint16_t {
 
     NPO_NIL                     = 0,
     NPO_SKIP_NODE_ID_CONFIG     = ( 1 << 0 ),
-    NPO_SKIP_NODE_INIT_STEP     = ( 1 << 1 ),
-    NPO_DEBUG_DURING_SETUP      = ( 1 << 2 ),
-    NPO_FORMAT_RUNTIME          = ( 1 << 3 )
+    NPO_DEBUG_DURING_SETUP      = ( 1 << 1 ),
+    NPO_FORMAT_RUNTIME          = ( 1 << 2 )
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -340,15 +346,16 @@ enum LcsNodePortOptions : uint16_t {
 //----------------------------------------------------------------------------------------------------------
 enum LcsNodePortFlags : uint16_t {
 
-    NPF_NIL                         = 0,
+    NPF_NIL                             = 0,
 
-    NPF_PORT_ENABLED                 = ( 1 << 1 ),
-    NPF_PORT_EVENT_HANDLING_ENABLED  = ( 1 << 2 ),
-    NPF_EVENT_PENDING                = ( 1 << 3 ),
+    NPF_PORT_PRESENT                    = ( 1 << 15 ),            
+    NPF_PORT_ENABLED                    = ( 1 << 14 ),
+    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1 << 13 ),
+    NPF_EVENT_PENDING                   = ( 1 << 12 ),
 
-    NPF_EXT_BOARD_PRESENT            = ( 1U << 4 ),
-    NPF_EXT_BOARD_VALID              = ( 1U << 5 ),
-    NPF_EXT_BOARD_READY              = ( 1U << 6 )
+    NPF_EXT_BOARD_PRESENT               = ( 1U << 8 ),
+    NPF_EXT_BOARD_VALID                 = ( 1U << 7 ),
+    NPF_EXT_BOARD_READY                 = ( 1U << 6 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -380,13 +387,14 @@ enum LcsItems : uint8_t {
     ITEM_ID_OPTIONS                     = 2,
     ITEM_ID_FLAGS                       = 3,
     
+    // ??? merge ?
     ITEM_ID_VERSION                     = 4,
-
     ITEM_ID_TYPE                        = 5,
    
     ITEM_ID_BOARD_VERSION               = 6,
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
+
 
 
    

@@ -57,7 +57,7 @@ using namespace LCS;
 // The command line buffer.
 //
 //------------------------------------------------------------------------------------------------------------  
-char  commandBuf [ MAX_COMMAND_LINE_SIZE ];
+char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
 //------------------------------------------------------------------------------------------------------------
 // "dumpMemData" lists the memory data content of the storage area passed. The data is displayed in 16-bit 
@@ -230,7 +230,7 @@ void printSummary( ) {
 
     LcsPortMapEntry *pPtr = &portMap.map[ 0 ];
 
-    for ( uint8_t i = 0; i < MAX_NODE_NAME_SIZE; i++ ) {
+    for ( uint8_t i = 0; i < MAX_NODE_PORT_NAME_SIZE; i++ ) {
  
         if ( pPtr -> name[ i ] != 0 ) printf( "%c", pPtr -> name[ i ] );
     }
@@ -256,13 +256,13 @@ void dumpMemNodeMap( ) {
 void dumpMemCdcMap( ) {
 
     printf( "MEM CDC Map: \n\n" );
-    // dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ));
+    dumpMemData((uint16_t *) &cdcMap, sizeof( LcsCdcMap ));
     printf( "\n" );
 }
 
 void dumpMemPortMap( ) {
 
-    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", nodeMap.portMapEntries, nodeMap.portMapHwm );
+    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -286,30 +286,30 @@ void dumpMemNodeData( ) {
 
 void dumpMemEventMap( ) {
 
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
     dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
 void dumpMemPendingReqMap( ) {
 
-    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", nodeMap.pendingMapEntries, nodeMap.pendingMapHwm );
+    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", MAX_PENDING_REQ_MAP_ENTRIES, pendingReqMap.mapHwm );
     dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
     printf( "\n" );
 }
 
 void dumpMemTaskMap( ) {
 
-    printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", nodeMap.taskMapEntries, nodeMap.taskMapHwm );
+    printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", MAX_TASK_MAP_ENTRIES, taskMap.map );
     dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
     printf( "\n" );
 }
 
 void dumpMemDrvFuncMap( ) {
 
-    printf( "MEM Driver Function Map: (Size: %d) \n\n", nodeMap.drvFuncMapEntries );
+    printf( "MEM Driver Function Map: (Size: %d, Hwm: %d) \n\n", MAX_DRV_TYPE_MAP_ENTRIES, drvFuncMap.mapHwm );
 
-    for ( int i  = 0; i < MAX_DRV_TYPES; i++ ) {
+    for ( int i  = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
         LcsDrvFuncEntry *entry = &drvFuncMap.map[ i ];
         printf( "%d: Type: %d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
@@ -339,7 +339,7 @@ void dumpMemRuntimeArea( ) {
 void dumpNvmHeaderMap( ) {
 
     printf( "NVM Header Map (Node): \n" );
-    dumpNvmData( nodeMap.nvmHeaderMapOfs, sizeof( LcsNvmHeader ), 8, true );
+    dumpNvmData( NVM_NODE_MAP_OFS, sizeof( LcsNvmHeader), 8, true );
     printf( "\n" );
 
     for ( int i = 1; i <= 4; i++ ) {
@@ -353,67 +353,49 @@ void dumpNvmHeaderMap( ) {
 void dumpNvmNodeMap( ) {
 
     printf( "NVM Node Map Dump: \n\n" );
-    dumpNvmData( nodeMap.nvmNodeMapOfs, sizeof( LcsNodeMap ), 8, true );
+    dumpNvmData( NVM_NODE_MAP_OFS, NVM_NODE_MAP_SIZE, 8, true );
     printf( "\n" );
 }
 
 void dumpNvmCdcMap( ) {
 
     printf( "MEM CDC Map Dump: \n\n" );
-    dumpNvmData( nodeMap.nvmCdcMapOfs , sizeof( CDC::CdcConfigDesc ));
+    dumpNvmData( NVM_CDC_MAP_OFS , NVM_CDC_MAP_SIZE );
     printf( "\n" );
 }
 
 void dumpNvmPortMap( ) {
 
     printf( "NVM Port Map Dump: \n\n" );
-    
-    for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
-
-        uint32_t ofs = nodeMap.nvmPortMapOfs + ( i * sizeof( LcsPortMapEntry ));
-
-        printf( "Port %d, NVM ofs: 0x%04x \n", i + 1, ofs );
-        dumpNvmData( ofs, sizeof( LcsPortMapEntry ), 8, true );
-        printf( "\n" );
-    }
-
+    dumpNvmData( NVM_PORT_MAP_OFS , NVM_PORT_MAP_SIZE );
     printf( "\n" );
 }
 
 void dumpNvmNodeData( ) {
 
-    printf( "NVM Port Map Dump: \n\n" );
-    
-    for ( int i  = 0; i < MAX_NODE_DATA_BLOCKS; i++ ) {
-
-        uint32_t ofs = nodeMap.nvmNodeDataOfs + ( i * MAX_ATTR_MAP_ENTRIES  * sizeof( uint16_t ));
-
-        printf( "Node data block: %d, NVM ofs: 0x%04x \n", i, ofs );
-        dumpNvmData( ofs, MAX_ATTR_MAP_ENTRIES  * sizeof( uint16_t ));
-        printf( "\n" );
-    }
-
+    printf( "NVM Node Data Dump: \n\n" );
+    dumpNvmData( NVM_NODE_DATA_OFS , NVM_NODE_DATA_SIZE );
     printf( "\n" );
 }
 
 void dumpNvmEventMap( ) {
 
     printf( "NVM Node Event Dump: \n\n" );
-    dumpNvmData( nodeMap.nvmEventMapOfs, sizeof( LcsEventMap ));
+    dumpNvmData( NVM_EVENT_MAP_OFS, NVM_EVENT_MAP_SIZE );
     printf( "\n" );
 }
 
 void dumpNvmRuntimeArea( ) {
 
     printf( "NVM Runtime Area Dump: \n\n" );
-    dumpNvmData( 0, nodeMap.nvmMemSize , 8, true );
+    dumpNvmData( NVM_MAP_STORAGE_START, NVM_RUNTIME_MAPS_SIZE, 8, true );
     printf( "\n" );
 }
 
 void dumpNvmUserArea( ) {
 
     printf( "NVM Area Dump: \n\n" );
-    dumpNvmData( nodeMap.nvmUserMapOfs, usrNvmGetSize( ), 8, true );
+    dumpNvmData( NVM_USER_MAP_OFS , usrNvmGetSize( ), 8, true );
     printf( "\n" );
 }
 
@@ -441,7 +423,7 @@ void printMemCdcMap( ) {
 
 void printMemPortMap( ) {
 
-    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", nodeMap.portMapEntries, nodeMap.portMapHwm );
+    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -459,7 +441,7 @@ void printMemPortMap( ) {
  
 void printMemEventMap( ) {
 
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
 
     // print my entries, hwm 
 

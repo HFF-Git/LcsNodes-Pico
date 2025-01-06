@@ -85,7 +85,20 @@ uint16_t portId( uint16_t npId ) {
 namespace LCS { 
 
 //------------------------------------------------------------------------------------------------------------
-// General callback registration functions. They just set the function Id field. Straightforward.
+// General callback registration functions.
+//
+//      INIT    -   Callback invoked for each port when the node starts, i.e. when the firmware calls
+//                  "startRuntime".
+//
+//      PFAIL   -   Called when we are about to loose power. Time for saving important data to NVM.
+//
+//      LCS_MSG -   Callback for general LCS messages.
+//
+//      DCC_MSG -   Callback for LCS messages that are directed to the DCC subsystem.
+//
+//      CMD     -   Callback for command input that is not recognized as a LCS command.
+//
+//      EVENT   -   Callback when an event is received that the node / port is interested in.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t registerInitCallback( LcsInitCallback functionId ) {
@@ -125,7 +138,9 @@ uint8_t registerEventCallback( LcsEventCallback functionId ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-//
+// The request callback is invoked for REQ items received. The reply callback is invoked upon receiving a 
+// reply message to a previously issued request. The callback mask will set the callback function for ports
+// set in the mask. Bit zero refers to the node itself, bit 1 to 1t to the ports. 
 //
 //-----------------------------------------------------------------------------------------------------------
 uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
@@ -159,36 +174,32 @@ uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
 // pTaskMap. We only add entries, never remove them. A high water mark is used to record the highest entry
 // used, so that processing will not run through empty entries.
 //
-// ??? perhaps this needs to be reworked to use HW driven timers. 
 //-----------------------------------------------------------------------------------------------------------
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
-    if ( nodeMap.taskMapHwm < MAX_TASK_MAP_ENTRIES ) {
+    if ( taskMap.mapHwm < MAX_TASK_MAP_ENTRIES ) {
 
-        taskMap.map[ nodeMap.taskMapHwm ].task       = task;
-        taskMap.map[ nodeMap.taskMapHwm ].interval   = interval;
-        taskMap.map[ nodeMap.taskMapHwm ].timeStamp  = CDC::getMillis( );
-        nodeMap.taskMapHwm ++;
+        taskMap.map[ taskMap.mapHwm ].task       = task;
+        taskMap.map[ taskMap.mapHwm ].interval   = interval;
+        taskMap.map[ taskMap.mapHwm ].timeStamp  = CDC::getMillis( );
+        taskMap.mapHwm ++;
         return ( ALL_OK );
 
     } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "handleNodePortEvents" will be called for processing inbound port events on each loop iteration. Note that
-// it does not matter where the events came from, i.e. whether another node sends an event or the event was
-// created by a firmware call on this node. The event callback can be delayed with a timer value.
+// "handleNodePortEvents" will be called for processing inbound port events on each runtime loop iteration. 
+// Note that it does not matter where the events came from, i.e. whether another node sends an event or the 
+// event was created by a firmware call on this node. The event callback can optionally be delayed with a 
+// timer value.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodePortEvents( ) {
 
     uint32_t ts = CDC::getMillis( );
 
-
-    // ??? handle node event too....
-
-
-    for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i ++ ) {
+    for ( int i = 0; i < eventMap.mapHwm; i ++ ) {
 
         LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
@@ -221,7 +232,7 @@ void handlePeriodicTasks( ) {
 
     uint32_t ts = CDC::getMillis( );
 
-    for ( int i = 0; i < nodeMap.taskMapHwm; i++ ) {
+    for ( int i = 0; i < taskMap.mapHwm; i++ ) {
 
         LcsPTaskMapEntry *thisEntry = &taskMap.map[ i ];
 
@@ -252,7 +263,7 @@ void handleMsgRepNid( uint8_t *msg ) {
         if ( nodeMap.nodeId != nodeId ) {
             
             nodeMap.nodeId = nodeId;
-            uint8_t rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), nodeId );
+            uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeId );
         }
 
         nodeMap.nodeState = NS_OPERATE;
@@ -328,7 +339,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                 if ( nodeMap.nodeState == NS_CONFIG ) {
 
                     if ( nodeId != nodeMap.nodeId ) nodeMap.nodeId = nodeId;
-                    uint8_t rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), nodeId );
+                    uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeId );
 
                     sendAck( nodeId );
                 }
@@ -490,30 +501,32 @@ void handleMsgDccMgt( uint8_t *msg ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Node state INIT. This is the first state after the initial library setup. The runtime init call created
-// all memory areas and initialized the data structures. After a successful init call, the state is INIT and 
-// the firmware programmer can register the necessary callback functions and do other firmware specific work. 
-// Eventually, the runtime loop method is called. If the "init" option is set, the node init and port init 
-// callback routine will be invoked. If the nodeId validation option is set, the node will request a nodeId 
-// and enter the state SETUP. Otherwise the next state is OPERATE.
-//
-// ??? idea: a port init call could return a status that says "this port is not used". This way we could
-// set a better HWM.
+// all memory areas and initialized the data structures. After a successful runtime init call, the state is 
+// INIT and  the firmware programmer can register the necessary callback functions and do other firmware 
+// specific work. Eventually, the runtime start function is called. Each port with a successful return code
+// will be enabled and the high water mark adjusted accordingly.
+// 
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-    if ( ! ( portMap.map[ 0 ].options & NPO_SKIP_NODE_INIT_STEP )) {
+    uint8_t rStat = ALL_OK;
 
-        if ( nodeMap.initCallback != nullptr ) {
+    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            if ( nodeMap.initCallback ) nodeMap.initCallback( nodeMap.nodeId << 4 );
+        if ( nodeMap.initCallback ) {
+                
+            rStat = nodeMap.initCallback(( nodeMap.nodeId << 4 ) | i );
+            if ( rStat == ALL_OK ) portMap.map[ i ].flags |= NPF_PORT_PRESENT;
         }
+    }
 
-        for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-            if ( nodeMap.initCallback ) nodeMap.initCallback(( nodeMap.nodeId << 4 ) | i + 1 );
+        if ( portMap.map[ i ].flags & NPF_PORT_PRESENT ) {
 
             portMap.map[ i ].flags |= NPF_PORT_ENABLED;
             portMap.map[ i ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
+            portMap.mapHwm = i + 1;
         }
     }
 
@@ -548,11 +561,6 @@ void handleNodeStatePfail( ) {
     if ( nodeMap.pfailCallback != nullptr ) {
 
         nodeMap.pfailCallback( nodeMap.nodeId << 4 );
-    }
-
-    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
-
-        nodeMap.pfailCallback(( nodeMap.nodeId << 4 ) | i + 1 );
     }
 
     CDC::watchDogUpdate( );

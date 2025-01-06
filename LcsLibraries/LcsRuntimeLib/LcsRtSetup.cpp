@@ -171,7 +171,7 @@ void buildDefaultPortMap( LcsPortMap *pMap ) {
 
         LcsPortMapEntry pEntry;
 
-        snprintf( pEntry.name, MAX_PORT_NAME_SIZE, "Port-%d", i + 1 );
+        snprintf( pEntry.name, MAX_NODE_PORT_NAME_SIZE, "Port-%d", i + 1 );
         pMap -> map[ i ] = pEntry;
     }
 }
@@ -215,11 +215,11 @@ uint8_t buildNvmRuntimeStructures( ) {
     buildDefaultEventMap( &eventMap );
     buildDefaultNodeData( &nodeData );
 
-    rStat = rtNvmPutBytes( nodeMap.nvmHeaderMapOfs, (uint8_t *) &nvmHeaderMap.map[ 0 ], sizeof( LcsNvmHeader));      
-    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
-    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
-    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmEventMapOfs, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
-    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
+    rStat = rtNvmPutBytes(  NVM_NODE_MAP_OFS, (uint8_t *) &nvmHeaderMap.map[ 0 ], sizeof( LcsNvmHeader));      
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( NVM_NODE_MAP_OFS, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( NVM_PORT_MAP_OFS, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( NVM_EVENT_MAP_OFS, (uint8_t *) &eventMap, sizeof( LcsEventMap ));
+    if ( rStat == ALL_OK ) rStat = rtNvmPutBytes( NVM_NODE_DATA_OFS, (uint8_t *) &nodeData, sizeof( LcsNodeData ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "buildNvmRuntimeStructures, stat: %d\n", rStat  );
@@ -447,11 +447,10 @@ uint8_t setupNodeNvmHeader( LcsConfigDesc *cfg ) {
 
     LcsNvmHeader *hPtr = &nvmHeaderMap.map[ 0 ];
 
-    rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) hPtr, sizeof( LcsNvmHeader ));
+    rStat = rtNvmGetBytes( NVM_NODE_MAP_OFS, (uint8_t *) hPtr, sizeof( LcsNvmHeader ));
     if ( rStat != ALL_OK ) return( rStat );
 
-    if (( hPtr -> magicWord1 != NVM_MWORD_1 ) || 
-        ( hPtr -> magicWord2 != NVM_MWORD_2 )) {
+    if ( hPtr -> magicWord != NVM_MWORD_NODE_HEADER ) {
 
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -504,8 +503,7 @@ uint8_t setupExtNvmHeaders( LcsConfigDesc *cfg ) {
                 printNvmHeader( hPtr );
             }
 
-            if (( hPtr -> magicWord1 == NVM_MWORD_1 ) && 
-                ( hPtr -> magicWord2 == NVM_MWORD_2 )) {
+            if ( hPtr -> magicWord == NVM_MWORD_EXT_HEADER ) {
 
                 if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -514,8 +512,7 @@ uint8_t setupExtNvmHeaders( LcsConfigDesc *cfg ) {
             }
             else  {
 
-                hPtr -> magicWord1 = 0;
-                hPtr -> magicWord2 = 0;
+                hPtr -> magicWord = 0;
 
                 if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -577,50 +574,12 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeMap\n" );
 
-    rStat = rtNvmGetBytes( nodeMap.nvmNodeMapOfs, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
+    rStat = rtNvmGetBytes( NVM_NODE_MAP_OFS, (uint8_t *) &nodeMap, sizeof( LcsNodeMap ));
     if ( rStat != ALL_OK ) return( rStat );
 
     portMap.map[ 0 ].options = cfg -> options;
 
-    if (( nodeMap.nvmHeaderMapSize  != sizeof( LcsNvmHeader )) ||
-        ( nodeMap.nvmNodeMapSize    != sizeof( LcsNodeMap   )) ||
-        ( nodeMap.nvmCdcMapSize     != sizeof( LcsCdcMap    )) ||
-        ( nodeMap.nvmPortMapSize    != sizeof( LcsPortMap   )) ||
-        ( nodeMap.nvmNodeDataSize   != sizeof( LcsNodeData  )) ||
-        ( nodeMap.nvmEventMapSize   != sizeof( LcsEventMap  ))) {
-
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
-
-            printf( "setupNodeMap: invalid structure size(s), re-format\n" );
-        }
-
-        rStat = buildNvmRuntimeStructures( );
-    }
- 
-    if (( nodeMap.portMapEntries    != MAX_PORT_MAP_ENTRIES     ) ||
-        ( nodeMap.eventMapEntries   != MAX_EVENT_MAP_ENTRIES    )) {
-
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
-
-            printf( "setupNodeMap: invalid map size(s), re-format\n" );
-        }
-
-        rStat = buildNvmRuntimeStructures( );
-    }
-
-    if (( nodeMap.portMapHwm    > MAX_PORT_MAP_ENTRIES     ) ||
-        ( nodeMap.eventMapHwm   > MAX_EVENT_MAP_ENTRIES    )) {
-
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
-
-            printf( "setupNodeMap: invalid map HWM size(s), re-format\n" );
-        }
-
-        // ??? a less drastic way to address the issue ?
-
-        rStat = buildNvmRuntimeStructures( );
-    }
-
+   
     // ??? read in entry zero of port map ?
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
@@ -633,8 +592,8 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "setupPortMap" will read the port data the NVM port map data area into the memory counterpart. A node can
-// have up to 15 ports. If there are extension boards connected, the first N ports refer to these boards.
-// We consult the nvmHeaderMap for detected extension boards.
+// have up to 15 ports. Port 0 is the node itself. If there are extension boards connected, the first N ports
+// refer to these boards. We consult the nvmHeaderMap for detected extension boards.
 //
 // ??? only read in P1 to P15.
 //------------------------------------------------------------------------------------------------------------
@@ -642,7 +601,7 @@ uint8_t setupPortMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPortMap\n" );
 
-    uint8_t rStat = rtNvmGetBytes( nodeMap.nvmPortMapOfs, (uint8_t *) &portMap, sizeof( LcsPortMap ));
+    uint8_t rStat = rtNvmGetBytes( NVM_PORT_MAP_OFS, (uint8_t *) &portMap, sizeof( LcsPortMap ));
 
     for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
@@ -653,7 +612,7 @@ uint8_t setupPortMap( ) {
 
         LcsNvmHeader *hPtr = &nvmHeaderMap.map[ i ];
         
-        if (( hPtr -> magicWord1 == NVM_MWORD_1 ) && ( hPtr -> magicWord2 == NVM_MWORD_2 )) {
+        if ( hPtr -> magicWord == NVM_MWORD_EXT_HEADER ) {
 
              if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -661,7 +620,6 @@ uint8_t setupPortMap( ) {
              }
 
             portMap.map[ 0 ].flags |= NPF_EXT_BOARD_PRESENT;
-            nodeMap.drvMapHwm ++;
 
             portMap.map[ i ].flags          |= NPF_EXT_BOARD_PRESENT;
             portMap.map[ i ].flags          |= NPF_EXT_BOARD_VALID;
@@ -713,7 +671,7 @@ uint8_t setupNodeDataMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupNodeDataMap\n" );
 
-    uint8_t rStat = rtNvmGetBytes( nodeMap.nvmNodeDataOfs, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
+    uint8_t rStat = rtNvmGetBytes( NVM_NODE_DATA_OFS, (uint8_t *) &nodeData.map, sizeof( nodeData.map ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -737,16 +695,17 @@ uint8_t setupEventMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
         
-        printf( "setupEventMap, entries: %d, HWM: %d\n", nodeMap.eventMapEntries, nodeMap.eventMapHwm );
+        printf( "setupEventMap, entries: %d, HWM: %d\n", MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
     }
    
     uint8_t rStat = ALL_OK;
 
-    if ( nodeMap.eventMapHwm <= MAX_EVENT_MAP_ENTRIES ) {
+    if ( eventMap.mapHwm <= MAX_EVENT_MAP_ENTRIES ) {
 
-        for ( uint16_t i = 0; i < nodeMap.eventMapHwm; i++ ) {
+        for ( uint16_t i = 0; i < eventMap.mapHwm; i++ ) {
 
-            rStat = rtNvmGetBytes(  nodeMap.nvmEventMapOfs + i * sizeof( LcsEventMapEntry), 
+            rStat = rtNvmGetBytes(  NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
+                                    i * sizeof( LcsEventMapEntry), 
                                     (uint8_t *) &eventMap.map[ i ], 
                                     sizeof( LcsEventMapEntry ));
             if ( rStat != ALL_OK ) break;
@@ -755,14 +714,14 @@ uint8_t setupEventMap( ) {
     else {
 
         LcsEventMapEntry e;
-        for ( uint16_t i = 0; i < nodeMap.eventMapEntries; i++ ) eventMap.map[ i ] = e;
+        for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) eventMap.map[ i ] = e;
 
-        nodeMap.eventMapHwm = 0;
-        for ( uint16_t i = 0; i < nodeMap.eventMapEntries; i++ ) {
+        eventMap.mapHwm = 0;
+        for ( uint16_t i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
 
             LcsEventMapEntry eventEntry;
 
-            rStat = rtNvmGetBytes(  nodeMap.nvmEventMapOfs + i * sizeof(LcsEventMapEntry), 
+            rStat = rtNvmGetBytes(  NVM_EVENT_MAP_OFS + i * sizeof(LcsEventMapEntry), 
                                     (uint8_t *) &eventEntry, 
                                     sizeof(LcsEventMapEntry));
 
@@ -811,8 +770,7 @@ uint8_t setupTaskMap( ) {
 
     uint8_t rStat = ALL_OK;
 
-    nodeMap.taskMapEntries  = MAX_TASK_MAP_ENTRIES;
-    nodeMap.taskMapHwm      = 0;
+    taskMap.mapHwm = 0;
 
     for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) {
 
@@ -841,8 +799,7 @@ uint8_t setupPendingReqMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "setupPendingReqMap\n" );
 
-    nodeMap.pendingMapEntries   = MAX_PENDING_REQ_MAP_ENTRIES;
-    nodeMap.pendingMapHwm       = MAX_PENDING_REQ_MAP_ENTRIES;
+    pendingReqMap.mapHwm = 0;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) 
         printf( "setupPendingReqMap, status: %d\n", rStat );
@@ -863,8 +820,7 @@ uint8_t setupDrvFuncMap( ) {
 
     uint8_t rStat = ALL_OK;
 
-    nodeMap.drvFuncMapEntries = MAX_DRV_TYPES;
-    nodeMap.drvFuncMapHwm     = MAX_DRV_TYPES;
+    pendingReqMap.mapHwm = 0;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
             
@@ -911,7 +867,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
     bool found = false;
 
-    for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
+    for ( int i = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
         if ( drvFuncMap.map[ i ].drvType == drvType ) {
 
@@ -928,7 +884,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
     if ( ! found ) {
 
-        for ( int i = 0; i < MAX_DRV_TYPES; i++ ) {
+        for ( int i = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
             if ( drvFuncMap.map[ i ].drvType == BT_NIL ) {
 
@@ -993,7 +949,7 @@ uint8_t powerFailHandler( ) {
     uint8_t rStat = ALL_OK;
 
     nodeMap.nodeState = NS_PFAIL;
-    rStat = rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeState ), NS_PFAIL );
+    rStat = rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeState ), NS_PFAIL );
     
     if ( nodeMap.pfailCallback != nullptr ) nodeMap.pfailCallback( nodeMap.nodeId );
 

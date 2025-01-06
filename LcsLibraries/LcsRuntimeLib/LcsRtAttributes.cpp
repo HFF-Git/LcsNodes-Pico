@@ -40,7 +40,7 @@ namespace LCS {
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
-   // extern LcsCallbackMap       callbackMap;
+    extern LcsEventMap          eventMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ namespace {
     // temporary buffer and set the name when all parts are received.
     //
     //--------------------------------------------------------------------------------------------------------
-    char tempName[ MAX_NODE_NAME_SIZE + 1 ] = { 0 };
+    char tempName[ MAX_NODE_PORT_NAME_SIZE + 1 ] = { 0 };
 
     //--------------------------------------------------------------------------------------------------------
     // Utility routines.
@@ -125,7 +125,8 @@ namespace {
         }
 
         uint16_t index  = item - IR_ATTR_RANGE_START;
-        uint16_t ofs    = nodeMap.nvmNodeDataOfs + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
+                            (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
         printf( "Ofs: 0x%x\n", ofs );
         uint8_t rStat = rtNvmGetWord( ofs, &nodeData.map[ block ][ index ] );
@@ -154,7 +155,8 @@ namespace {
         }
 
         uint16_t index  = item - IR_ATTR_RANGE_START;
-        uint16_t ofs    = nodeMap.nvmNodeDataOfs + (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
+                            (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
         printf( "Ofs: 0x%x\n", ofs );
         nodeData.map[ block ][ index ] = arg;
@@ -185,6 +187,24 @@ namespace {
             else return( ERR_INVALID_ITEM_ID );
         }
         else return( ERR_INVALID_ITEM_ID );
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    uint8_t handleSyncCommand( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
+
+        // ??? options what to sync ? For now it is only the event map...
+        // ??? use arg 1 as an option number... ?
+
+        // arg1 -> sync command ( e.g. sync eventMap or sync to NVM )
+        // arg2 -> 128 to 255 variable item
+
+        syncEventMap( ); // just a quick test ....
+
+        return( ALL_OK );
     }
     
 } // namespace
@@ -324,8 +344,8 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = nodeMap.portMapEntries;
-                *arg2 = nodeMap.portMapHwm;
+                *arg1 = MAX_PORT_MAP_ENTRIES;
+                *arg2 = portMap.mapHwm;
                 return ( ALL_OK );
             }
 
@@ -334,8 +354,8 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
                 if ( arg2 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = nodeMap.eventMapEntries;
-                *arg2 = nodeMap.eventMapHwm;
+                *arg1 = MAX_EVENT_MAP_ENTRIES;
+                *arg2 = eventMap.mapHwm;
                 return ( ALL_OK );
             }
 
@@ -455,7 +475,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 portMap.map[ 0 ].options = val1;
 
-                uint16_t ofs =  nodeMap.nvmPortMapOfs +
+                uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
                                 ( portId( npId ) * sizeof( LcsPortMapEntry )) +
                                 offsetof( LcsPortMapEntry, options );
@@ -467,7 +487,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 portMap.map[ 0 ].flags = val1;
 
-                uint16_t ofs =  nodeMap.nvmPortMapOfs +
+                uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
                                 ( portId( npId ) * sizeof( LcsPortMapEntry )) +
                                 offsetof( LcsPortMapEntry, options );
@@ -479,7 +499,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 portMap.map[ portId( npId ) - 1 ].type = lowByte( val1 );
 
-                uint16_t ofs =  nodeMap.nvmPortMapOfs +
+                uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
                                 (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                 offsetof( LcsPortMapEntry, type );
@@ -493,7 +513,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
             case ITEM_ID_VERSION: {
 
                 nodeMap.nodeSwVersion = val1;
-                return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeSwVersion ), val1 ));
+                return( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeSwVersion ), val1 ));
             }
 
             case ITEM_ID_BOARD_VERSION: {
@@ -520,7 +540,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
             case ITEM_ID_NODE_ID: {
 
                 nodeMap.nodeId = val1;
-                return( rtNvmPutWord( nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
+                return( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
             }
 
             
@@ -529,7 +549,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 portMap.map[ portId( npId ) - 1 ].eventDelayTime = val1;
 
-                uint16_t ofs =  nodeMap.nvmPortMapOfs +
+                uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
                                 (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                 offsetof( LcsPortMapEntry, eventDelayTime );
@@ -544,13 +564,13 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 tempName[ 2 ] = highByte( val2 );
                 tempName[ 3 ] = lowByte( val2 );
 
-                memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, (uint8_t *)tempName, MAX_PORT_NAME_SIZE );
-                uint16_t ofs =  nodeMap.nvmPortMapOfs  +
+                memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, (uint8_t *)tempName, MAX_NODE_PORT_NAME_SIZE );
+                uint16_t ofs =  NVM_PORT_MAP_OFS  +
                                 offsetof( LcsPortMap, map ) + 
                                 (( portId( npId ) - 1 ) * sizeof( LcsPortMapEntry )) +
                                 offsetof( LcsPortMapEntry, name );
                 
-                return( rtNvmPutBytes( ofs, (uint8_t *)tempName, MAX_PORT_NAME_SIZE ));
+                return( rtNvmPutBytes( ofs, (uint8_t *)tempName, MAX_NODE_PORT_NAME_SIZE ));
             }
 
             case ITEM_ID_NAME_2: {
@@ -573,7 +593,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_NAME_4: {
 
-                memset( tempName, 0, MAX_NODE_NAME_SIZE );
+                memset( tempName, 0, MAX_NODE_PORT_NAME_SIZE );
                 tempName[ 12 ]  = highByte( val1 );
                 tempName[ 13 ]  = lowByte( val1 );
                 tempName[ 14 ]  = highByte( val2 );
@@ -635,9 +655,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_SYNC: {
 
-                // ??? options what to sync ? For now it is only the event map...
-                // ??? use arg 1 as an option number... ?
-                return( syncEventMap( ));
+                return( handleSyncCommand( npId, item, *arg1, *arg2 ));
             }
 
             case ITEM_ID_NODE_ID: {
@@ -645,7 +663,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
 
                     nodeMap.nodeId = nodeId( *arg1 );
-                    return( rtNvmPutBytes(  nodeMap.nvmNodeMapOfs + offsetof( LcsNodeMap, nodeId ), 
+                    return( rtNvmPutBytes(  NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
                                             (uint8_t *) &nodeMap.nodeId, 
                                             sizeof( uint16_t )));
                 }
