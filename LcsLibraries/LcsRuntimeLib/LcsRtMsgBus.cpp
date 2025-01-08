@@ -40,6 +40,8 @@ namespace LCS {
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsTaskMap           taskMap;
     extern LcsMsgBusCAN         *msgBus;
+
+    extern void                 handleMsgEvent( uint8_t *msg );
 };
 
 //------------------------------------------------------------------------------------------------------------

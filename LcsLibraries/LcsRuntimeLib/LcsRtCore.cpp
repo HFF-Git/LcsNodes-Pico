@@ -39,6 +39,11 @@ namespace LCS {
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
     extern LcsMsgBusCAN         *msgBus;
+
+    extern uint8_t              handleSerialCommand( );
+    extern uint8_t              setupDriverFunctions( );
+    extern int                  searchEvent( uint16_t eventId );
+    extern uint8_t              rtNvmPutWord( uint32_t ofs, uint16_t word );
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -322,10 +327,10 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_RESET: {
 
             uint16_t npId = (( msg[1] << 8 ) + msg[2] );
-            LCS::sendAck( npId );
-            
-            // ?? now watchDog time out...       
+            sendAck( npId );
 
+            CDC::sleepMillis( 10000 );
+            
         } break;
 
         case LCS_OP_SET_NID: {
@@ -416,7 +421,6 @@ void handleMsgRepNode( uint8_t *msg ) {
 // "handleMsgReqNode" processes an incoming request for a node or port. The REQ message request will result
 // in invoking the register firmware callback. We send a confirmation message.
 //
-// ??? what npID should we use ? our own, this was the requestor would know what to wait for ?
 //------------------------------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
@@ -437,9 +441,9 @@ void handleMsgReqNode( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgEvent" deals with the event messages for inbound ports. If the event is configured in the event
 // map, all bits set in the eventMask will result in recording the event data and the optional future time
-// stamp when the event should result in a callback. Bit 0 of the mask designated all ports. The actual event
-// processing is done in the port event processing routine, which will manage the timely invocation of the 
-// event callbacks. The event mask has a bit for each port. 
+// stamp when the event should result in a callback. The actual event processing is done in the port event 
+// processing routine, which will manage the timely invocation of the event callbacks. The event mask has a
+// bit for each port. 
 //
 // Note that we also are called from the event sending routine because another port on our own node could be 
 // interested in this event. It is up to the firmware programmer to ensure that a port does send itself an
@@ -489,7 +493,7 @@ void handleMsgEvent( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// We received a DCC subsystem message. These messages are handler solely by firmware, which is typically
+// We received a DCC subsystem message. These messages are handled solely by firmware, which is typically
 // the base station, a handheld, or a decoder alike device. All we do is to pass the message to the call 
 // back routine. One day, we could decode the message a bit more and invoke more specialized callback.
 //
@@ -503,18 +507,17 @@ void handleMsgDccMgt( uint8_t *msg ) {
 // Node state INIT. This is the first state after the initial library setup. The runtime init call created
 // all memory areas and initialized the data structures. After a successful runtime init call, the state is 
 // INIT and  the firmware programmer can register the necessary callback functions and do other firmware 
-// specific work. Eventually, the runtime start function is called. Each port with a successful return code
-// will be enabled and the high water mark adjusted accordingly.
+// specific work. Eventually, the runtime start function is called. First, any drivers mapped to P1 to P4 are
+// sent a RESET request, so that any hardware initialization can be done. Any other port with a registered
+// callback is handled next. Each port with a successful return code will finally be enabled and the high 
+// water mark adjusted accordingly.
 // 
-// 
-// ??? should we issue the driver reset here before calling all the inits ?
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
     uint8_t rStat = ALL_OK;
 
-
-
+    setupDriverFunctions( );
 
     for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -546,14 +549,11 @@ void handleNodeStateInit( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Node State FAIL. This is the state after the node startup failed. 
+// Node State FAIL. This is the state after the node startup failed. We simply stay in this state.
 //
-// ??? would we ever come here ? if the INIT failed, the firmware programmer should do what ?
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
-    CDC::watchDogUpdate( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -567,9 +567,6 @@ void handleNodeStatePfail( ) {
 
         nodeMap.pfailCallback( nodeMap.nodeId << 4 );
     }
-
-    CDC::watchDogUpdate( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -596,9 +593,6 @@ void handleNodeStateRegister( ) {
              }
         }
     }
-
-    CDC::watchDogUpdate( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -615,9 +609,6 @@ void handleNodeStateCollision( ) {
         case LCS_OP_RESET:
         case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
     }
-
-    CDC::watchDogUpdate( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -634,9 +625,6 @@ void handleNodeStateHalted( ) {
         case LCS_OP_BON:
         case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
     }
-
-    CDC::watchDogUpdate( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -665,10 +653,8 @@ void handleNodeStateConfig( ) {
         case LCS_OP_NODE_REQ:       handleMsgReqNode( msg );              break;
     }
 
-    CDC::watchDogUpdate( );
     handlePeriodicTasks( );
     handleNodePortEvents( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -729,10 +715,8 @@ void handleNodeStateOperations( ) {
         case LCS_OP_DCC_ERR:        handleMsgDccMgt( msg );               break;
     }
 
-    CDC::watchDogUpdate( );
     handlePeriodicTasks( );
     handleNodePortEvents( );
-    handleSerialCommand( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -744,6 +728,9 @@ void handleNodeStateOperations( ) {
 void handleNodeState( ) {
 
     while ( true ) {
+
+        CDC::watchDogUpdate( );
+        handleSerialCommand( );
 
         switch ( nodeMap.nodeState ) {
 
@@ -759,4 +746,16 @@ void handleNodeState( ) {
     }
 }
 
-}; // namespace
+//-----------------------------------------------------------------------------------------------------------
+// "startRuntime" is the main routine of the node activity processing. All it does is to call the node
+// state machine.
+//
+//------------------------------------------------------------------------------------------------------------
+void startRuntime( ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n");
+
+    handleNodeState( );
+}
+
+}; // namespace LCS

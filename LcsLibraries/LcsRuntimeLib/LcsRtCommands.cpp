@@ -43,6 +43,11 @@ namespace LCS {
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
     extern LcsMsgBusCAN         *msgBus;
+
+    extern void                 handleMsgLcsMgt( uint8_t *msg );
+    extern uint8_t              extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
+    extern int                  searchEvent( uint16_t eventId );
+    extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
 };
 
 //------------------------------------------------------------------------------------------------------------

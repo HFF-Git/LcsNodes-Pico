@@ -243,6 +243,7 @@ struct LcsNvmHeaderMap {
 // pin configuration data. Currently, the CDC config data is set directly by the application. We copy this
 // data to the "cfg" structure. One day, we may store this data in the descriptor. So far, this is more of
 // a place holder.
+//
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcMap {
 
@@ -436,13 +437,14 @@ struct LcsDrvFuncMap {
 // memory, we might as well define the maps statically.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint32_t  NVM_MAP_STORAGE_START       =   0;
 const uint32_t  NVM_HEADER_MAP_SIZE         =   sizeof( LcsNvmHeader ); 
 const uint32_t  NVM_CDC_MAP_SIZE            =   sizeof( LcsCdcMap );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
 const uint32_t  NVM_PORT_MAP_SIZE           =   sizeof( LcsPortMap );
 const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
 const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
+
+const uint32_t  NVM_MAP_STORAGE_START       =   0;
 
 const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_HEADER_MAP_SIZE + 
                                                 NVM_CDC_MAP_SIZE    + 
@@ -496,35 +498,6 @@ const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START +
                                                 NVM_NODE_DATA_SIZE    +
                                                 NVM_EVENT_MAP_SIZE;
 
-//----------------------------------------------------------------------------------------------------------
-// The LCS runtime routine signatures of routines used across the different source files.
-//
-// ??? keep this list short... maybe keep local to each file....
-//----------------------------------------------------------------------------------------------------------
-uint8_t     configNvm( CDC::CdcConfigDesc *ci );
-
-uint8_t     rtNvmPutWord( uint32_t ofs, uint16_t word );
-uint8_t     rtNvmGetWord( uint32_t ofs, uint16_t *word );
-uint8_t     rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-
-uint8_t     extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
-uint8_t     extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
-
-uint8_t     syncEventMap( );
-uint8_t     addEvent( uint16_t eventId, uint16_t eventMask );
-uint8_t     removeEvent( uint16_t eventId );
-int         searchEvent( uint16_t eventId );
-uint8_t     getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask );
-
-void        handleMsgLcsMgt( uint8_t *msg );
-void        handleMsgEvent( uint8_t *msg );
-
-uint8_t     setupSerialCommand( );
-uint8_t     handleSerialCommand( );
-
-void        handleNodeState( );
 
 } // namespace LCS
 

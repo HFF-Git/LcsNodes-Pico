@@ -44,8 +44,12 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t             debugMask;
-    extern LCS::LcsEventMap     eventMap;
+    extern uint16_t         debugMask;
+    extern LcsEventMap      eventMap;
+
+    extern int              searchEvent( uint16_t eventId );
+    extern uint8_t          rtNvmPutWord( uint32_t ofs, uint16_t word );
+    extern uint8_t          rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 };
 
 //------------------------------------------------------------------------------------------------------------

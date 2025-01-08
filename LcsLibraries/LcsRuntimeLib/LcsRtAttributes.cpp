@@ -41,6 +41,14 @@ namespace LCS {
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
+
+    extern uint8_t              addEvent( uint16_t eventId, uint16_t eventMask );
+    extern uint8_t              removeEvent( uint16_t eventId );
+    extern uint8_t              syncEventMap( );
+    extern uint8_t              getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask );
+    extern uint8_t              rtNvmPutWord( uint32_t ofs, uint16_t word );
+    extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
+    extern uint8_t              rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 };
 
 //------------------------------------------------------------------------------------------------------------

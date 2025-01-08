@@ -79,6 +79,15 @@ namespace LCS {
     LcsPendingReqMap        pendingReqMap;
     LcsTaskMap              taskMap;
     LcsDrvFuncMap           drvFuncMap;
+
+    extern uint8_t          configNvm( CDC::CdcConfigDesc *ci );
+    extern uint8_t          extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
+    extern uint8_t          extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
+    extern uint8_t          addEvent( uint16_t eventId, uint16_t eventMask );
+    extern uint8_t          syncEventMap( );
+    extern uint8_t          rtNvmPutWord( uint32_t ofs, uint16_t word );
+    extern uint8_t          rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+    extern uint8_t          rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 }
     
 //------------------------------------------------------------------------------------------------------------
@@ -93,8 +102,6 @@ using namespace LCS;
 // Utility routines and constants.
 //
 //------------------------------------------------------------------------------------------------------------
-const char  *nodeDefName  = "Node Name";
-
 uint16_t roundup( uint16_t elements, uint16_t alignSize ) {
 
     return ((( elements + alignSize - 1 ) / alignSize ) * alignSize );
@@ -758,7 +765,7 @@ uint8_t setupTaskMap( ) {
 
     taskMap.mapHwm = 0;
 
-    for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) taskMap[ i ] = tmp;
+    for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) taskMap.map[ i ] = tmp;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
@@ -871,11 +878,11 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
             if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
-                printf( "registerDrvFunc, allocate: %d\n", i );
+                printf( "registerDrvFunc, allocate: %d\n", drvFuncMap.mapHwm );
             }
                 
-            drvFuncMap.map[ i ].drvType = drvType;
-            drvFuncMap.map[ i ].drvFunc = drvReqFunction;
+            drvFuncMap.map[ drvFuncMap.mapHwm ].drvType = drvType;
+            drvFuncMap.map[ drvFuncMap.mapHwm ].drvFunc = drvReqFunction;
             drvFuncMap.mapHwm ++;
         }
         else {
@@ -915,17 +922,17 @@ uint8_t setupDriverFunctions( ) {
 
         if (( pPtr -> flags & NPF_EXT_BOARD_PRESENT ) && ( pPtr -> flags & NPF_EXT_BOARD_VALID )) {
 
-            for ( int j = 0; j < MAX_DRV_TYPE_MAP_ENTRIES j++ ) {
+            for ( int j = 0; j < MAX_DRV_TYPE_MAP_ENTRIES; j++ ) {
 
-                if ( nvmHeaderMap.map[ i ].boardType == drvFuncMap.map[ j ] ) {
+                if ( nvmHeaderMap.map[ i ].boardType == drvFuncMap.map[ j ].drvType ) {
 
                     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) {
 
                         printf( "setupDriverFunctions, board: %d, drvType entry: %d\n", i, j );
                     }
 
-                    pPtr -> reqCallback = drvReqFunction;
-                    hpPtr -> flags       |= NPF_EXT_BOARD_READY;
+                    pPtr -> reqCallback = drvFuncMap.map[ j ].drvFunc;
+                    pPtr -> flags      |= NPF_EXT_BOARD_READY;
                 }
             }
         }
@@ -1057,17 +1064,6 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     return ( rStat );
 }
 
-//-----------------------------------------------------------------------------------------------------------
-// "startRuntime" is the main routine of the node activity processing. All it does is to call the node
-// state machine.
-//
-//------------------------------------------------------------------------------------------------------------
-void startRuntime( ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n");
-
-    setupDriverFunctions( );
-    handleNodeState( );
-}
 
 }; // namespace LCS
