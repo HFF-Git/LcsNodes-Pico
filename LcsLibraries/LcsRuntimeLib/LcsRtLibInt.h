@@ -214,7 +214,7 @@ struct LcsMsgBusCAN {
 // Each NVM memory, i.e. the NVM on the main controller board or an extension board, starts with the header
 // data structure. This structure contains information to detect that the NVM was formatted, as well as some
 // hardware specific data to identify the board and relevant chips on it. The data in this header must be
-// "programmed" during a board setup. This is easily accomplished trough console commands and needs of 
+// "programmed" during a board setup. This is easily accomplished through console commands and needs of 
 // course only be done once per board. The data structure size is 32 bytes and it is always at NVM offset 
 // zero.
 //
@@ -248,7 +248,7 @@ struct LcsCdcMap {
 
     uint32_t                magicWord   = NVM_MWORD_CDC_MAP;
     uint32_t                nvmOfs      = 0;
-    uint32_t                nvmSize     = 0;
+    uint32_t                nvmSize     = sizeof( LcsCdcMap );
     
     CDC::CdcConfigDesc      cfg;
 };
@@ -274,7 +274,7 @@ struct LcsNodeMap {
 
     uint32_t            magicWord   = NVM_MWORD_NODE_MAP;
     uint32_t            nvmOfs      = 0;
-    uint32_t            nvmSize     = 0;
+    uint32_t            nvmSize     = sizeof( LcsNodeMap );
 
     uint16_t            nodeState                       = NS_NIL;
     uint16_t            nodeId                          = NIL_NODE_ID;
@@ -326,7 +326,7 @@ struct LcsPortMap {
 
     uint32_t        magicWord   = NVM_MWORD_PORT_MAP;
     uint32_t        nvmOfs      = 0;
-    uint32_t        nvmSize     = 0;
+    uint32_t        nvmSize     = sizeof( LcsPortMap );
     uint32_t        mapHwm      = 0;
    
     LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
@@ -344,7 +344,7 @@ struct LcsNodeData {
 
     uint32_t    magicWord   = NVM_MWORD_NODE_DATA_MAP;
     uint32_t    nvmOfs      = 0;
-    uint32_t    nvmSize     = 0;    
+    uint32_t    nvmSize     = sizeof( LcsNodeData );    
 
     uint16_t    map[ MAX_PORT_MAP_ENTRIES + 1 ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
 };
@@ -366,7 +366,7 @@ struct LcsEventMap {
 
     uint32_t            magicWord   = NVM_MWORD_EVENT_MAP;
     uint32_t            nvmOfs      = 0;
-    uint32_t            nvmSize     = 0;
+    uint32_t            nvmSize     = sizeof( LcsEventMap );
     uint32_t            mapHwm      = 0;
 
     LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
@@ -510,6 +510,7 @@ uint8_t     rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 
 uint8_t     extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
 uint8_t     extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
 
 uint8_t     syncEventMap( );
 uint8_t     addEvent( uint16_t eventId, uint16_t eventMask );

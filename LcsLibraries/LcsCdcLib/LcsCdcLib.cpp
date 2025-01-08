@@ -43,6 +43,7 @@
 #include "hardware/regs/usb.h"
 #include "hardware/regs/rosc.h"
 #include "hardware/regs/addressmap.h"
+#include "hardware/watchdog.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
@@ -149,6 +150,16 @@ const uint32_t SPI_FREQUENCY              = 10000000L;
 
 const uint16_t  MAX_CPU_CORE              = 2;
 const uint16_t  MAX_INT_PIN               = 24;
+
+//------------------------------------------------------------------------------------------------------------
+// Watchdog Instance.
+//
+//------------------------------------------------------------------------------------------------------------
+struct WatchDogInst {
+
+    bool        configured  = false;
+    uint32_t    intervalMillis = 0;
+};
 
 //------------------------------------------------------------------------------------------------------------
 // A timer instance. We currently support inly one HW timer.
@@ -268,26 +279,27 @@ CDC::CdcConfigDesc          cfg;
 CDC::TimerCallback          timerCallback = nullptr;
 GpioIsrTable                cdcIntHandlers;
 repeating_timer_t           timerData;
-AdcInst                     CdcAdc0;
-AdcInst                     CdcAdc1;
-AdcInst                     CdcAdc2;
-AdcInst                     CdcAdc3;
-I2CInst                     CdcI2C0;
-I2CInst                     CdcI2C1;
-SPIInst                     CdcSPI0;
-SPIInst                     CdcSPI1;
-UartInst                    CdcUart0;
-UartInst                    CdcUart1;
-UartInst                    CdcUart2;
-UartInst                    CdcUart3;
-PwmInst                     CdcPwm0;
-PwmInst                     CdcPwm1;
-PwmInst                     CdcPwm2;
-PwmInst                     CdcPwm3;
-PwmInst                     CdcPwm4;
-PwmInst                     CdcPwm5;
-PwmInst                     CdcPwm6;
-PwmInst                     CdcPwm7;
+WatchDogInst                cdcWatchDog;
+AdcInst                     cdcAdc0;
+AdcInst                     cdcAdc1;
+AdcInst                     cdcAdc2;
+AdcInst                     cdcAdc3;
+I2CInst                     cdcI2C0;
+I2CInst                     cdcI2C1;
+SPIInst                     cdcSPI0;
+SPIInst                     cdcSPI1;
+UartInst                    cdcUart0;
+UartInst                    cdcUart1;
+UartInst                    cdcUart2;
+UartInst                    cdcUart3;
+PwmInst                     cdcPwm0;
+PwmInst                     cdcPwm1;
+PwmInst                     cdcPwm2;
+PwmInst                     cdcPwm3;
+PwmInst                     cdcPwm4;
+PwmInst                     cdcPwm5;
+PwmInst                     cdcPwm6;
+PwmInst                     cdcPwm7;
 
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
@@ -383,7 +395,7 @@ void uartRxCallback0( ) {
     while ( uart_is_readable( uart0 )) {
 
         uint8_t ch = uart_getc( uart0 );
-        if ( CdcUart0.rxBufIndex < MAX_UART_BUF_SIZE ) CdcUart0.rxDataBuf[CdcUart0.rxBufIndex++ ] = ch;
+        if ( cdcUart0.rxBufIndex < MAX_UART_BUF_SIZE ) cdcUart0.rxDataBuf[cdcUart0.rxBufIndex++ ] = ch;
     }
 }
 
@@ -392,7 +404,7 @@ void uartRxCallback1( ) {
     while ( uart_is_readable( uart1 )) {
 
         uint8_t ch = uart_getc( uart1 );
-        if ( CdcUart1.rxBufIndex < MAX_UART_BUF_SIZE ) CdcUart1.rxDataBuf[ CdcUart1.rxBufIndex++ ] = ch;
+        if ( cdcUart1.rxBufIndex < MAX_UART_BUF_SIZE ) cdcUart1.rxDataBuf[ cdcUart1.rxBufIndex++ ] = ch;
     }
 }
 
@@ -620,22 +632,26 @@ void fatalErrorMsg( char *str, uint8_t n, uint8_t rStat ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureWatchDog( uint32_t millis ) {
 
+    cdcWatchDog.intervalMillis = millis;
+    cdcWatchDog.configured     = true;
     return( NO_ERR );
 }
 
 uint8_t watchDogEnable( bool enable ) {
 
+    watchdog_enable( cdcWatchDog.intervalMillis, 1 );
     return( NO_ERR );
 }
 
 uint8_t watchDogUpdate( ) {
 
+    watchdog_update( );
     return( NO_ERR );
 }
 
 bool watchDogCausedReboot( ) {
 
-    return( false );
+    return( watchdog_caused_reboot( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -909,20 +925,20 @@ uint8_t configureAdc( uint8_t adcPin ) {
 
     if ( adcPin == cfg.ADC_PIN_0 ) {
 
-        tmp = &CdcAdc0;
+        tmp = &cdcAdc0;
         tmp -> adcPin = adcPin;
         tmp -> adcNum = 0;
         
     }
      else if ( adcPin == cfg.ADC_PIN_1 ) {
 
-        tmp = &CdcAdc1;
+        tmp = &cdcAdc1;
         tmp -> adcPin = adcPin;
         tmp -> adcNum = 1;
     }
     else if ( adcPin == cfg.ADC_PIN_2 ) {
 
-        tmp = &CdcAdc2;
+        tmp = &cdcAdc2;
         tmp -> adcPin = adcPin;
         tmp -> adcNum = 2;
     }
@@ -949,10 +965,13 @@ uint16_t readAdc( uint8_t adcPin ) {
 
     AdcInst *tmp = nullptr;
 
-    if      ( adcPin == CdcAdc0.adcPin ) tmp = &CdcAdc0;
-    else if ( adcPin == CdcAdc1.adcPin ) tmp = &CdcAdc1;
-    else if ( adcPin == CdcAdc2.adcPin ) tmp = &CdcAdc2;
-    else return ( 0 );
+    if      ( adcPin == cdcAdc0.adcPin ) tmp = &cdcAdc0;
+    else if ( adcPin == cdcAdc1.adcPin ) tmp = &cdcAdc1;
+    else if ( adcPin == cdcAdc2.adcPin ) tmp = &cdcAdc2;
+    else return ( ADC_PIN_ERR );
+
+    if ( ! tmp -> configured ) return ( ADC_PIN_ERR );
+
     adc_select_input( tmp -> adcNum );
     return ( adc_read( ) >> 2 );
 }
@@ -980,7 +999,7 @@ uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode
 
         if (( validPin( rxPin, VALID_UART_0_RX_PINS )) && ( validPin( txPin, VALID_UART_0_TX_PINS ))) {
 
-            uart                = &CdcUart0;
+            uart                = &cdcUart0;
             uart -> uartMode    = mode;
             uart -> rxPin       = rxPin;
             uart -> txPin       = txPin;
@@ -992,7 +1011,7 @@ uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode
         }
         else if (( validPin( rxPin, VALID_UART_1_RX_PINS )) && ( validPin( txPin, VALID_UART_1_TX_PINS ))) {
 
-            uart                = &CdcUart1;
+            uart                = &cdcUart1;
             uart -> uartMode    = mode;
             uart -> rxPin       = rxPin;
             uart -> txPin       = txPin;
@@ -1015,10 +1034,11 @@ uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode
         else if ( uart -> uartIrq == UART1_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback1 );
 
         irq_set_enabled( uart -> uartIrq, true );
-
         return ( NO_ERR );
     }
     else if ( mode == UART_MODE_8N1_PIO ) {
+
+        // ??? this is the place where we deal with a PIO version of the UART.
 
         return ( NOT_SUPPORTED );
     }
@@ -1029,11 +1049,13 @@ uint8_t startUartRead( uint8_t rxPin ) {
 
     UartInst *uart = nullptr;
 
-    if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
-    else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
-    else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
-    else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
-    else                                return ( CDC::UART_PORT_ERR );
+    if      ( rxPin == cdcUart0.rxPin ) uart = &cdcUart0;
+    else if ( rxPin == cdcUart1.rxPin ) uart = &cdcUart1;
+    else if ( rxPin == cdcUart2.rxPin ) uart = &cdcUart2;
+    else if ( rxPin == cdcUart3.rxPin ) uart = &cdcUart3;
+    else                                return ( UART_PORT_ERR );
+
+    if ( ! uart -> configured ) return( UART_PORT_ERR );
 
     if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1 )) {
 
@@ -1052,17 +1074,20 @@ uint8_t stopUartRead( uint8_t rxPin ) {
 
     UartInst *uart = nullptr;
 
-    if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
-    else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
-    else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
-    else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
+    if      ( rxPin == cdcUart0.rxPin ) uart = &cdcUart0;
+    else if ( rxPin == cdcUart1.rxPin ) uart = &cdcUart1;
+    else if ( rxPin == cdcUart2.rxPin ) uart = &cdcUart2;
+    else if ( rxPin == cdcUart3.rxPin ) uart = &cdcUart3;
+    else                                return ( UART_PORT_ERR );
 
-    if (( uart != nullptr ) && ( uart ->uartMode == UART_MODE_8N1 )) {
+    if ( ! uart -> configured ) return( UART_PORT_ERR );
+
+    if ( uart ->uartMode == UART_MODE_8N1 ) {
 
         uart_set_irq_enables( uart -> uartHw, false, false );
         return ( NO_ERR );
     }
-    else if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1_PIO )) {
+    else if ( uart -> uartMode == UART_MODE_8N1_PIO ) {
 
         return ( NOT_SUPPORTED );
     }
@@ -1073,13 +1098,15 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 
     UartInst *uart = nullptr;
 
-    if      ( rxPin == CdcUart0.rxPin ) uart = &CdcUart0;
-    else if ( rxPin == CdcUart1.rxPin ) uart = &CdcUart1;
-    else if ( rxPin == CdcUart2.rxPin ) uart = &CdcUart2;
-    else if ( rxPin == CdcUart3.rxPin ) uart = &CdcUart3;
-    else                                return ( 0 );
+    if      ( rxPin == cdcUart0.rxPin ) uart = &cdcUart0;
+    else if ( rxPin == cdcUart1.rxPin ) uart = &cdcUart1;
+    else if ( rxPin == cdcUart2.rxPin ) uart = &cdcUart2;
+    else if ( rxPin == cdcUart3.rxPin ) uart = &cdcUart3;
+    else                                return ( UART_PORT_ERR );
 
-    if (( uart != nullptr ) && ( uart -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
+    if ( ! uart -> configured ) return( UART_PORT_ERR );
+
+    if (( uart -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
 
         uint8_t i = 0;
         while (( i < uart -> rxBufIndex ) && ( i < bufLen )) {
@@ -1107,22 +1134,21 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 //
 // To do .... ( there is a way via the pwm_Config CSR field... )
 //
-// ??? should we have also a kind of PWM pair ? Is that even possible ?
-// ??? do we need more PWM pins ? The PICO is really flexible ?
 // ??? combine DIO and PWM somehow ?
+// ??? there must be a way to set 0 and full duty cycle without glitches...
 //------------------------------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
     PwmInst *pwm = nullptr;
 
-    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
-    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
-    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
-    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
-    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &CdcPwm4;
-    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &CdcPwm5;
-    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &CdcPwm6;
-    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &CdcPwm7;
+    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &cdcPwm0;
+    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &cdcPwm1;
+    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &cdcPwm2;
+    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &cdcPwm3;
+    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &cdcPwm4;
+    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &cdcPwm5;
+    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &cdcPwm6;
+    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &cdcPwm7;
     else                                return ( PWM_PIN_ERR );
 
     if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
@@ -1142,9 +1168,10 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     pwm_config_set_wrap( &pwmConfig, pwm -> wrap );
     pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
     pwm_config_set_output_polarity( &pwmConfig, inverted, inverted );
-    pwm_init ( pwm_gpio_to_slice_num( pwm -> pwmPin ), &pwmConfig, false );
-    pwm_set_clkdiv_int_frac( pwm_gpio_to_slice_num( pwm -> pwmPin ), clkDiv / 16, clkDiv & 0xF );
-    pwm_set_enabled( pwm_gpio_to_slice_num( pwmPin ), true );
+    pwm_init( pwm -> sliceNum, &pwmConfig, false );
+    pwm_set_clkdiv_int_frac( pwm -> sliceNum, clkDiv / 16, clkDiv & 0xF );
+    pwm_set_enabled( pwm -> sliceNum, true );
+    pwm -> configured = true;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
    
@@ -1166,15 +1193,17 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
    
     PwmInst *pwm = nullptr;
 
-    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &CdcPwm0;
-    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &CdcPwm1;
-    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &CdcPwm2;
-    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &CdcPwm3;
-    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &CdcPwm4;
-    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &CdcPwm5;
-    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &CdcPwm6;
-    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &CdcPwm7;
+    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &cdcPwm0;
+    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &cdcPwm1;
+    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &cdcPwm2;
+    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &cdcPwm3;
+    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &cdcPwm4;
+    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &cdcPwm5;
+    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &cdcPwm6;
+    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &cdcPwm7;
     else                                return ( PWM_PIN_ERR );
+
+    if ( ! pwm -> configured ) return( PWM_PIN_ERR );
 
     if ( dutyCycle == 0 ) {
 
@@ -1209,12 +1238,12 @@ uint8_t configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
 
     if ((( 1 << sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_0_SDA_PINS )) {
 
-        i2c = &CdcI2C0;
+        i2c = &cdcI2C0;
         i2c -> i2cHw = i2c0;
     }
     else if ((( 1 << sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
-        i2c = &CdcI2C1;
+        i2c = &cdcI2C1;
         i2c -> i2cHw = i2c1;
     }
     else return ( CDC::I2C_PORT_ERR );
@@ -1240,9 +1269,11 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
 
     I2CInst *i2c = nullptr;
 
-    if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
-    else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
+    if      (( cdcI2C0.sclPin == sclPin ) && ( cdcI2C0.configured )) i2c = &cdcI2C0;
+    else if (( cdcI2C1.sclPin == sclPin ) && ( cdcI2C1.configured )) i2c = &cdcI2C1;
     else return ( I2C_PORT_ERR );
+
+    if ( ! i2c -> configured ) return( I2C_PORT_ERR );
 
     auto ret = i2c_read_blocking_until( i2c -> i2cHw,
                                         i2cAdr,
@@ -1273,9 +1304,11 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 
     I2CInst *i2c = nullptr;
 
-    if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
-    else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
+    if      (( cdcI2C0.sclPin == sclPin ) && ( cdcI2C0.configured )) i2c = &cdcI2C0;
+    else if (( cdcI2C1.sclPin == sclPin ) && ( cdcI2C1.configured )) i2c = &cdcI2C1;
     else return ( I2C_PORT_ERR );
+
+    if ( ! i2c -> configured ) return( I2C_PORT_ERR );
 
     auto ret = i2c_write_blocking_until( i2c -> i2cHw,
                                          i2cAdr,
@@ -1303,9 +1336,11 @@ uint8_t i2cBusreset( uint8_t sclPin ) {
 
     I2CInst *i2c = nullptr;
 
-    if      (( CdcI2C0.sclPin == sclPin ) && ( CdcI2C0.configured )) i2c = &CdcI2C0;
-    else if (( CdcI2C1.sclPin == sclPin ) && ( CdcI2C1.configured )) i2c = &CdcI2C1;
+    if      (( cdcI2C0.sclPin == sclPin ) && ( cdcI2C0.configured )) i2c = &cdcI2C0;
+    else if (( cdcI2C1.sclPin == sclPin ) && ( cdcI2C1.configured )) i2c = &cdcI2C1;
     else return ( I2C_PORT_ERR );
+
+    if ( ! i2c -> configured ) return( I2C_PORT_ERR );
 
     uint8_t reset_cmd = 0x06;
     i2c_write_blocking( i2c -> i2cHw, 0x00, &reset_cmd, 1, false); 
@@ -1326,14 +1361,14 @@ uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_
          (( 1 << mosiPin ) & VALID_SPI_0_TX_PINS  ) &&
          (( 1 << misoPin ) & VALID_SPI_0_RX_PINS  )) {
 
-        spi = &CdcSPI0;
+        spi = &cdcSPI0;
         spi -> spiHw = spi0;
     }
     else if ((( 1 << sclkPin ) & VALID_SPI_1_SCK_PINS ) && 
              (( 1 << mosiPin ) & VALID_SPI_1_TX_PINS  ) &&
              (( 1 << misoPin ) & VALID_SPI_1_RX_PINS  )) {
 
-        spi = &CdcSPI1;
+        spi = &cdcSPI1;
         spi -> spiHw = spi1;
     }  
     else return ( SPI_PORT_ERR );
@@ -1364,9 +1399,11 @@ uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
     SPIInst *spi = nullptr;
 
-    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
+    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
+
+    if ( ! spi -> configured ) return( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 
@@ -1388,9 +1425,11 @@ uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
     SPIInst *spi = nullptr;
 
-    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
+    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
+
+    if ( ! spi -> configured ) return( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 
@@ -1411,9 +1450,11 @@ uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 
     SPIInst *spi = nullptr;
 
-    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
+    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
+
+    if ( ! spi -> configured ) return( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 
@@ -1427,9 +1468,11 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 
     SPIInst *spi = nullptr;
 
-    if      (( CdcSPI0.sclkPin == sclkPin ) && ( CdcSPI0.configured )) spi = &CdcSPI0;
-    else if (( CdcSPI1.sclkPin == sclkPin ) && ( CdcSPI1.configured )) spi = &CdcSPI1;
+    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
+    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
+
+    if ( ! spi -> configured ) return( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 

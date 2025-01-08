@@ -235,7 +235,7 @@ uint8_t syncEventMap( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "sync EventMap \n" );  
 
-    uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
+    uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
                                     (uint8_t *) eventMap.map, 
                                     eventMap.mapHwm * sizeof( LcsEventMapEntry ));
 

@@ -212,9 +212,6 @@ uint8_t setupMsgBus( ) {
 // else happened and no further message processing is required. We also maintain a request / reply map to
 // keep track of outstanding requests transparently to the caller.
 //
-// ??? should we have a pre-filter for message ID and nodeId match ? this would be perhaps useful, when we 
-// run CAN bus on two cores on the pico. Then the checking would run on the interrupt handler processor.
-// However, the pending request map is then accessed by two cores and we need to sync the access.
 //------------------------------------------------------------------------------------------------------------
 uint8_t receiveLcsMsg( uint8_t *msg ) {
 
@@ -285,12 +282,13 @@ void processPendingReqMapTimeouts( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Some messages are requests that expect a reply. We maintain a pending request map which keeps track of 
-// outstanding requests.
+// outstanding requests. In addition we can pass a timeout value to handle cases where no reply is received
+// in a given time interval.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout ) {
+uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout = 0 ) {
 
-    if ( addToPendingReqMap( npId ) == ALL_OK ) {
+    if ( addToPendingReqMap( npId , timeout ) == ALL_OK ) {
 
         return ( msgBus -> sendLcsMsg( msg, msgPri ));
     }

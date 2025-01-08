@@ -506,10 +506,15 @@ void handleMsgDccMgt( uint8_t *msg ) {
 // specific work. Eventually, the runtime start function is called. Each port with a successful return code
 // will be enabled and the high water mark adjusted accordingly.
 // 
+// 
+// ??? should we issue the driver reset here before calling all the inits ?
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
     uint8_t rStat = ALL_OK;
+
+
+
 
     for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 

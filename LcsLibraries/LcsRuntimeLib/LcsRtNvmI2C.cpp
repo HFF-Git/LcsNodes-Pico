@@ -100,11 +100,10 @@ const uint32_t      EXT_I2C_BAUDRATE            = 50 * 1000;
 const uint8_t       NVM_WRITE_DELAY             = 0x05;
 
 //------------------------------------------------------------------------------------------------------------
-// Runtime NVM sizes. The runtime map has a maximum of 8Kb. The maximum size of a NVM chip is 64Kb.  The 
-// maximum size for an extension board NVM chip is 4Kb. 
+// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The maximum size for an extension board NVM 
+// chip is 4Kb. 
 //
 //------------------------------------------------------------------------------------------------------------
-const uint32_t      NVM_RUNTIME_MAP_SIZE        = 0x2000;
 const uint32_t      NVM_MAX_NVM_SIZE            = 0x10000;
 const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 
@@ -114,13 +113,11 @@ const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 // each extension board there is again a small NVM chip with configuration data. Besides the hardware pins
 // there are the sizes of the chips. 
 //
-// There is no easy way to determine the size of the actual chip. By convention, the extension board NVM 
-// chip has a fixed 4 Kbytes. The NVM chip on the main controller board is at least 8Kbytes, which is the 
-// architected runtime data structures size. The maximum size is 64 Kbytes. All the chips are from a hardware
-// perspective identical. When we start a node, the nodeMap structure, i.e. the first few hundred bytes, 
-// contains a field that holds the actual size configured for the chip on the particular board. The difference
-// between the runtime map size and the particular NVM chip maximum is considered "user NVM space" which the
-// firmware can use as needed.
+// There is no easy way to determine the size of the actual chip. By convention, the extension board NVM chip
+// has a fixed 4 Kbytes. The NVM chip on the main controller board is at least 16Kbyte. The maximum size is 
+// 64 Kbytes. All the chips are from a hardware perspective identical. The difference between the runtime map
+// size and the particular NVM chip maximum is considered "user NVM space" which the firmware can use as 
+// needed.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t    nodeNvmSize                         = 0;
@@ -209,20 +206,12 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The nvmSize in buffer size blocks.
-//
-//------------------------------------------------------------------------------------------------------------
-uint16_t nvmSizeInBlocks( uint32_t nvmSize ) {
-
-    return( nvmSize / BUFFER_BLOCK_SIZE );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. Although a read can 
 // cross a page boundary, we follow the same principle as we do for writes when it comes to page boundaries.
 // The read is send ing the address with retaining the bus. The PICO library will then use the restart
 // condition. Just like we did in the write buffer counterpart, we need to send the address as one buffer.
 //
+// ??? one day we take out the M24C04
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
@@ -270,6 +259,7 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
 // quite some debugging to figure this out. We will have a local buffer where we combine the address and
 // data and then send it.
 //
+// ??? one day we take out the M24C04
 //------------------------------------------------------------------------------------------------------------
 uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
@@ -511,7 +501,7 @@ uint8_t rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val ) {
 
 uint32_t rtNvmGetSize( ) { 
 
-    return( NVM_RUNTIME_MAP_SIZE );
+    return( nodeNvmSize );
 }
 
 //------------------------------------------------------------------------------------------------------------
