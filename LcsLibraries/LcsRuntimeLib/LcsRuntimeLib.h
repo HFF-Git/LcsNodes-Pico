@@ -752,10 +752,9 @@ uint8_t             registerLcsMsgCallback( LcsMsgCallback functionId );
 uint8_t             registerDccMsgCallback( LcsMsgCallback functionId );
 uint8_t             registerCmdCallback( LcsCmdCallback functionId );
 uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
-uint8_t             registerEventCallback( LcsEventCallback functionId );
+uint8_t             registerEventCallback( LcsEventCallback functionId, uint16_t portMask = 0xFFFF );
 uint8_t             registerReqCallback( LcsReqCallback handler, uint16_t portMask = 0xFFFF );
 uint8_t             registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
-
 uint8_t             registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
 
 //----------------------------------------------------------------------------------------------------------
@@ -818,7 +817,6 @@ uint8_t             sendDccAck( );
 uint8_t             sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
 uint8_t             sendRawMsg( uint8_t *msgBuf );
-
 void                printLcsMs( uint8_t *msgBuf );
 
 //----------------------------------------------------------------------------------------------------------

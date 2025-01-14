@@ -96,13 +96,14 @@ void handleNodePortEvents( ) {
 
         LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
-        if (( pPtr -> flags & NPF_PORT_ENABLED                 ) &&
-            ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED  ) &&
-            ( pPtr -> flags & NPF_EVENT_PENDING                )) {
+        if (( pPtr -> flags & NPF_PORT_ENABLED                  ) &&
+            ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
+            ( pPtr -> flags & NPF_EVENT_PENDING                 ) && 
+            ( pPtr -> eventCallback != nullptr                  )) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
 
-                nodeMap.eventCallback(  pPtr -> eventNpId,
+                pPtr -> eventCallback(  pPtr -> eventNpId,
                                         pPtr -> eventId,
                                         pPtr -> eventAction,
                                         pPtr -> eventValue );
@@ -112,7 +113,6 @@ void handleNodePortEvents( ) {
         }
     }
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a 
@@ -137,8 +137,6 @@ void handlePeriodicTasks( ) {
         }
     }
 }
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our node in response to a nodeId
@@ -246,8 +244,6 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     }
 }
 
-
-
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgGetNode" processes an incoming GET message for a node or port attribute. We construct the 
 // reply message with the requested data.
@@ -331,7 +327,6 @@ void handleMsgReqNode( uint8_t *msg ) {
     }
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgEvent" deals with the event messages for inbound ports. If the event is configured in the event
 // map, all bits set in the eventMask will result in recording the event data and the optional future time
@@ -339,7 +334,7 @@ void handleMsgReqNode( uint8_t *msg ) {
 // processing routine, which will manage the timely invocation of the event callbacks. The event mask has a
 // bit for each port. 
 //
-// Note that we also are called from the event sending routine because another port on our own node could be 
+// Note that we also are called from the event sending routine when another port on our own node would be 
 // interested in this event. It is up to the firmware programmer to ensure that a port does send itself an
 // event and may trigger an infinite loop.
 //
@@ -370,7 +365,8 @@ void handleMsgEvent( uint8_t *msg ) {
             LcsPortMapEntry *pPtr = &portMap.map[ i ];
 
             if (( pPtr -> flags & NPF_PORT_ENABLED                  ) &&
-                ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   )) {
+                ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   )
+                ( pPtr -> eventCallback != nullptr                  )) {
 
                 if ( eventMask & ( 1 << i )) {
 
@@ -396,9 +392,6 @@ void handleMsgDccMgt( uint8_t *msg ) {
 
     if ( nodeMap.dccMsgCallback != NULL ) nodeMap.dccMsgCallback( msg );
 }
-
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // Node state INIT. This is the first state after the initial library setup. The runtime init call created
@@ -492,7 +485,6 @@ void handleNodeStateRegister( ) {
     }
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // Node State COLLISION. This is the state after the node receiver routine detected a nodeId collision. We
 // will stay in this state and only react to RESET and SET_NID messages.
@@ -524,7 +516,6 @@ void handleNodeStateHalted( ) {
         case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
     }
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // Node State CONFIG. A node can be placed into configuration state. We process any LCS message, handle the
@@ -717,12 +708,15 @@ uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
     return( ALL_OK );
 }
 
-// ??? a mask as argument to select on a node / port basis ?
-uint8_t registerEventCallback( LcsEventCallback functionId ) {
+uint8_t registerEventCallback( LcsEventCallback functionId, uint16_t portMask ) {
 
    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
 
-    nodeMap.eventCallback = functionId;
+    for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        if ( portMask & ( 1 << i )) portMap.map[ i ].eventCallback = functionId;
+    }
+
     return( ALL_OK );
 }
 

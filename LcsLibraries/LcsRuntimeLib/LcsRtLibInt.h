@@ -8,7 +8,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Core Library
+// LCS - Runtime Library
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -37,10 +37,11 @@
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-//
+// 
 //
 // ??? how do we encode a version ? family, major, minor ?
 // ??? do we really need a patch level ?
+// ???rather have it in a separate file ?
 //------------------------------------------------------------------------------------------------------------
 const uint16_t LCS_RT_LIB_VERSION       = 100;  // ??? for now...
 const uint16_t LCS_RT_LIB_PATCH_LEVEL   = 0;
@@ -300,7 +301,6 @@ struct LcsNodeMap {
     LcsMsgCallback      lcsMsgCallback                  = nullptr;
     LcsMsgCallback      dccMsgCallback                  = nullptr;
     LcsCmdCallback      cmdLineCallback                 = nullptr;
-    LcsEventCallback    eventCallback                   = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -315,22 +315,23 @@ struct LcsNodeMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-    uint16_t        options                             = 0;
-    uint16_t        flags                               = 0;
-    uint16_t        type                                = 0;
-    uint16_t        lastErr                             = 0;
+    uint16_t            options                             = 0;
+    uint16_t            flags                               = 0;
+    uint16_t            type                                = 0;
+    uint16_t            lastErr                             = 0;
    
-    LcsReqCallback  reqCallback                         = nullptr;
-    LcsRepCallback  repCallback                         = nullptr;
+    LcsReqCallback      reqCallback                         = nullptr;
+    LcsRepCallback      repCallback                         = nullptr;
+    LcsEventCallback    eventCallback                       = nullptr;
 
-    uint16_t        eventNpId                           = 0;
-    uint16_t        eventId                             = NIL_EVENT_ID;
-    uint16_t        eventValue                          = 0;
-    uint16_t        eventAction                         = PEA_EVENT_IDLE;
-    uint16_t        eventDelayTime                      = 0;
-    uint32_t        eventTimeStamp                      = 0L;
+    uint16_t            eventNpId                           = 0;
+    uint16_t            eventId                             = NIL_EVENT_ID;
+    uint16_t            eventValue                          = 0;
+    uint16_t            eventAction                         = PEA_EVENT_IDLE;
+    uint16_t            eventDelayTime                      = 0;
+    uint32_t            eventTimeStamp                      = 0L;
 
-    char            name[ MAX_NODE_PORT_NAME_SIZE ]     = { 0 };
+    char                name[ MAX_NODE_PORT_NAME_SIZE ]     = { 0 };
 };
 
 struct LcsPortMap {
@@ -357,7 +358,7 @@ struct LcsNodeData {
     uint32_t    nvmOfs      = 0;
     uint32_t    nvmSize     = sizeof( LcsNodeData );    
 
-    uint16_t    map[ MAX_PORT_MAP_ENTRIES + 1 ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
+    uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
 };
 
 //----------------------------------------------------------------------------------------------------------
