@@ -194,6 +194,7 @@ struct PwmInst {
     bool        configured  = false;
     uint8_t     pwmPin      = CDC::UNDEFINED_PIN;
     uint        wrap        = 0;
+    bool        inverted    = false;
     uint        channel     = 0;
     uint        sliceNum    = 0;
 };
@@ -1125,41 +1126,56 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 // There is the frequency which set during configuration and there is the write operation which set the duty
 // cycle. The calculations are best described in the PICO C++ SDK. We do the setting of phase, wrap count,
 // etc. once when we configure the PWM channel. All the "writePwm" function then will do is to manipulate the
-// duty cycle. In other words, when we change the frequency we need to configure again.
+// duty cycle. In other words, when we change the frequency we need to configure again. In addition to writing
+// to a single pwmPin, there is a write to a PWM pair routine. If the two PWM pins are in the same hardware
+// slice, they two duty cycle values are set at the same time.
 //
-// There is one small issue left. Channel come in pairs. For some reason there is no call to individually 
-// set the "inverted" option on a channel. When we set the inverted option for a pin, we currently also set
-//  the inverted option for the other channel since we just don't know better. To be correct, all possible 
-// PWM pins and their "inverted" option would need to be stored somewhere.
+// Note that although the PICO is quite flexible, the wrap and phase parameters are set for the slice and 
+// not a single channel. When you configure a pwmPin on a channel and the other pin on the slice, these 
+// parameters are overwritten. This is normally not an issue unless you want to have separate frequencies and 
+// phase mode.
 //
-// To do .... ( there is a way via the pwm_Config CSR field... )
-//
-// ??? combine DIO and PWM somehow ?
-// ??? there must be a way to set 0 and full duty cycle without glitches...
+// Another issue is the signal inverter. It is set for both channels with one function. Unfortunately there
+// is no library function to find out the current slice settings that I know off. We will check the pair
+// PWM pin. If it is already configured, then we get the inverted parameter from the PWM instance, else we
+// set both inverted options to the parameter passed.
+// 
 //------------------------------------------------------------------------------------------------------------
+PwmInst *lookupPwmInst( uint8_t pwmPin ) {
+
+    if      ( pwmPin == cfg.PWM_PIN_0 ) return( &cdcPwm0 );
+    else if ( pwmPin == cfg.PWM_PIN_1 ) return( &cdcPwm1 );
+    else if ( pwmPin == cfg.PWM_PIN_2 ) return( &cdcPwm2 );
+    else if ( pwmPin == cfg.PWM_PIN_3 ) return( &cdcPwm3 );
+    else if ( pwmPin == cfg.PWM_PIN_4 ) return( &cdcPwm4 );
+    else if ( pwmPin == cfg.PWM_PIN_5 ) return( &cdcPwm5 );
+    else if ( pwmPin == cfg.PWM_PIN_6 ) return( &cdcPwm6 );
+    else if ( pwmPin == cfg.PWM_PIN_7 ) return( &cdcPwm7 );
+    else                                return ( nullptr );
+}
+
+PwmInst *lookupPairPinInst( uint8_t pwmPin ) {
+
+    if ( pwm_gpio_to_channel( pwmPin )) return( lookupPwmInst( pwmPin + 1 ));
+    else                                return( lookupPwmInst( pwmPin - 1 ));
+}
+
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
-    PwmInst *pwm = nullptr;
+    PwmInst *pwm = lookupPwmInst( pwmPin );
+    if ( pwm == nullptr ) return( PWM_PIN_ERR );
 
-    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &cdcPwm0;
-    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &cdcPwm1;
-    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &cdcPwm2;
-    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &cdcPwm3;
-    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &cdcPwm4;
-    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &cdcPwm5;
-    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &cdcPwm6;
-    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &cdcPwm7;
-    else                                return ( PWM_PIN_ERR );
+    PwmInst *pwmPair = lookupPairPinInst( pwm -> pwmPin );
 
     if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
     uint32_t sysClock = getCpuFrequency( );
     uint32_t clkDiv   = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
-    
     if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
-    pwm -> pwmPin  = pwmPin;
-    pwm -> wrap    = sysClock * 16 / clkDiv / pwmFreqency - 1;
+    pwm -> pwmPin   = pwmPin;
+    pwm -> wrap     = sysClock * 16 / clkDiv / pwmFreqency - 1;
+    pwm -> inverted = inverted;
     pwm -> sliceNum = pwm_gpio_to_slice_num( pwmPin );
     pwm -> channel  = pwm_gpio_to_channel( pwmPin );
 
@@ -1167,7 +1183,20 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
     pwm_config_set_wrap( &pwmConfig, pwm -> wrap );
     pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
-    pwm_config_set_output_polarity( &pwmConfig, inverted, inverted );
+
+    if ( pwmPair == nullptr ) {
+
+        pwm_config_set_output_polarity( &pwmConfig, pwm -> inverted, pwm -> inverted );
+    }
+    else {
+
+        if ( pwm -> channel == 0 )
+
+            pwm_config_set_output_polarity( &pwmConfig, pwm -> inverted, pwmPair -> inverted );
+        else 
+            pwm_config_set_output_polarity( &pwmConfig, pwmPair -> inverted, pwm -> inverted );
+    }
+
     pwm_init( pwm -> sliceNum, &pwmConfig, false );
     pwm_set_clkdiv_int_frac( pwm -> sliceNum, clkDiv / 16, clkDiv & 0xF );
     pwm_set_enabled( pwm -> sliceNum, true );
@@ -1191,20 +1220,24 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
         printf( "Write PWM: Pin: %d, duty: %d\n", pwmPin, dutyCycle );
     }
    
-    PwmInst *pwm = nullptr;
+    PwmInst *pwm = lookupPwmInst( pwmPin );
+    if (( pwm == nullptr ) && ( ! pwm -> configured )) return( PWM_PIN_ERR );
 
-    if      ( pwmPin == cfg.PWM_PIN_0 ) pwm = &cdcPwm0;
-    else if ( pwmPin == cfg.PWM_PIN_1 ) pwm = &cdcPwm1;
-    else if ( pwmPin == cfg.PWM_PIN_2 ) pwm = &cdcPwm2;
-    else if ( pwmPin == cfg.PWM_PIN_3 ) pwm = &cdcPwm3;
-    else if ( pwmPin == cfg.PWM_PIN_4 ) pwm = &cdcPwm4;
-    else if ( pwmPin == cfg.PWM_PIN_5 ) pwm = &cdcPwm5;
-    else if ( pwmPin == cfg.PWM_PIN_6 ) pwm = &cdcPwm6;
-    else if ( pwmPin == cfg.PWM_PIN_7 ) pwm = &cdcPwm7;
-    else                                return ( PWM_PIN_ERR );
+#if 0
+    // ??? may be even simpler... zero is zero, dutyCycle/255 is one. 
+    if ( dutyCycle == 0 ) {     
 
-    if ( ! pwm -> configured ) return( PWM_PIN_ERR );
+        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, 0 );
+    }
+    else if ( dutyCycle == 255 ) {
 
+        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, pwm -> wrap );
+    }
+    else {
+
+        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 255 ));
+    }
+#else
     if ( dutyCycle == 0 ) {
 
         gpio_set_function( pwm -> pwmPin, GPIO_FUNC_SIO );
@@ -1220,8 +1253,37 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     else {
 
         gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
-        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 256 ));
+        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 255 ));
         pwm_set_enabled( pwm -> sliceNum, true );
+    }
+#endif
+
+    return ( NO_ERR );
+}
+
+uint8_t writePwmPair( uint8_t pwmPin1, uint8_t dutyCycle1, uint8_t pwmPin2, uint8_t dutyCycle2 ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
+        
+        printf( "Write PWM Pair: Pin: %d,%d, duty: %d,%d\n", pwmPin1, pwmPin2, dutyCycle1, dutyCycle2  );
+    }
+   
+    PwmInst *pwm1 = lookupPwmInst( pwmPin1 );
+    PwmInst *pwm2 = lookupPwmInst( pwmPin2 );
+
+    if (( pwm1 == nullptr ) || ( pwm2 == nullptr ) || 
+        ( ! pwm1 -> configured ) || ( ! pwm2 -> configured )) return ( PWM_PIN_ERR );
+
+    if ( pwm1 -> sliceNum == pwm2 -> sliceNum ) {
+
+        pwm_set_both_levels( pwm1 -> sliceNum, 
+                             pwm1 -> wrap * dutyCycle1 / 255,
+                             pwm2 -> wrap * dutyCycle2 / 255 );     
+    }
+    else {
+
+        pwm_set_chan_level( pwm1 -> sliceNum, pwm1 -> channel, ( pwm1 -> wrap * dutyCycle1 / 255 ));
+        pwm_set_chan_level( pwm2 -> sliceNum, pwm2 -> channel, ( pwm2 -> wrap * dutyCycle2 / 255 ));
     }
 
     return ( NO_ERR );

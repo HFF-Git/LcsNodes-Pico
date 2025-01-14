@@ -422,7 +422,9 @@ enum LcsItems : uint8_t {
     ITEM_ID_EVENT_DELAY_TICKS           = 21,
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
-    ITEM_ID_SET_READY_LED               = 30,
+    ITEM_ID_CTRL_LEDS                   = 34,
+
+    ITEM_ID_SET_READY_LED2              = 30,
     ITEM_ID_SET_ACTIVITY_LED            = 31,
     ITEM_ID_TOGGLE_READY_LED            = 32,
     ITEM_ID_TOGGLE_ACTIVITY_LED         = 33,
