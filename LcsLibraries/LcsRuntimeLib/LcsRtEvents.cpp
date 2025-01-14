@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Core Library
+// LCS - Runtime Library
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -78,16 +78,6 @@ int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
 
     if      ( e1 -> eventId < eventId2 )  return ( -1 );
     else if ( e1 -> eventId > eventId2 )  return ( 1 );
-    else return ( 0 );
-}
-
-int compareEventEntry( const LcsEventMapEntry *arg1, const LcsEventMapEntry *arg2 ) {
-
-    LcsEventMapEntry *e1 = (LcsEventMapEntry *)  arg1;
-    LcsEventMapEntry *e2 = (LcsEventMapEntry *)  arg2;
-
-    if      ( e1 -> eventId < e2 -> eventId )  return ( -1 );
-    else if ( e1 -> eventId > e2 -> eventId )  return ( 1 );
     else return ( 0 );
 }
 

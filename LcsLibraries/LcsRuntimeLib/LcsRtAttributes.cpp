@@ -12,7 +12,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Core Library
+// LCS - Runtime Library
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -104,7 +104,7 @@ namespace {
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
         *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
-        return ( LCS::ALL_OK );
+        return ( ALL_OK );
     }
 
     //----------------------------------------------------------------------------------------------------------
@@ -116,7 +116,7 @@ namespace {
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
         nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
-        return ( LCS::ALL_OK );
+        return ( ALL_OK );
     }
 
     //--------------------------------------------------------------------------------------------------------
@@ -178,6 +178,40 @@ namespace {
         return( rStat );
     }
 
+    //----------------------------------------------------------------------------------------------------------
+    // "syncAttrToMem" will copy the NVM attribute value to the MEM counterpart. All we do is just reading the
+    // NVM value again.
+    //
+    //----------------------------------------------------------------------------------------------------------
+    uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+
+            printf( "syncAttrToMem: block: 0x%x, item: %d\n", block, item );
+        }
+
+        uint16_t arg = 0;
+        return( readAttrNvm( block, item, &arg ));
+    }
+
+    //--------------------------------------------------------------------------------------------------------
+    // "syncAttrToNvm" will take the MEM attribute value of an item and writes it to the NVM counterpart.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
+
+         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+
+            printf( "syncAttrToNvm: block: 0x%x, item: %d\n", block, item );
+        }
+
+        uint16_t    arg     = 0;
+        uint8_t     rStat   = readAttrMem( block, item, &arg );
+
+        if ( rStat == ALL_OK ) rStat = writeAttrNvm( block, item, arg );
+        return( rStat );
+    }
+
     //--------------------------------------------------------------------------------------------------------
     // User callback function invocation routine. Items 64 to 127 are user defined items. We will simply
     // invoke a previously registered callback passing the arguments. Note that a user call back and a driver
@@ -198,19 +232,37 @@ namespace {
     }
 
     //--------------------------------------------------------------------------------------------------------
+    // "handleSyncCommand" is the handler for SYNC options. Arg1 will contain the command, Arg2 the optional
+    // argument.
     //
-    //
-    //
+    // ??? define named constants for the options ?
     //--------------------------------------------------------------------------------------------------------
-    uint8_t handleSyncCommand( uint8_t portId, uint8_t item, uint16_t arg1, uint16_t arg2 ) {
+    uint8_t handleSyncCommand( uint8_t npId, uint16_t arg1, uint16_t arg2 ) {
 
-        // ??? options what to sync ? For now it is only the event map...
-        // ??? use arg 1 as an option number... ?
+        switch ( arg1 ) {
 
-        // arg1 -> sync command ( e.g. sync eventMap or sync to NVM )
-        // arg2 -> 128 to 255 variable item
+            case 1:  return( syncEventMap( )); 
 
-        syncEventMap( ); // just a quick test ....
+            case 2: {
+
+                if ( isInRangeU( arg2, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
+
+                   return( syncAttrToMem( portId( npId ), arg2 ));
+                } 
+                else return( ERR_INVALID_ITEM_ID );
+            }
+
+            case 3: {
+
+                if ( isInRangeU( arg2, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
+
+                   return( syncAttrToNvm( portId( npId ), arg2 ));
+                } 
+                else return( ERR_INVALID_ITEM_ID );
+            }
+
+            default: ;
+        }
 
         return( ALL_OK );
     }
@@ -241,14 +293,18 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
+    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) return( ERR_LIB_NOT_READY );
+    
     if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
             
+            if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
             return ( readAttrMem(  portId( npId ), item, arg1 ));
         }
         else if ( nodeMap.nodeState == NS_CONFIG ) {
         
+            if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );  
             return ( readAttrNvm(  portId( npId ), item, arg1 ));
         }
         else return( ERR_INVALID_OP_FOR_NODE_STATE );
@@ -284,11 +340,11 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG ); 
 
-                *arg1 = portMap.map[  portId( npId ) ].flags;
+                *arg1 = portMap.map[  portId( npId ) ].type;
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_VERSION: {
+            case ITEM_ID_SW_VERSION: {
 
                 if ( arg1 == nullptr ) return( ERR_INVALID_ATTR_ARG );
 
@@ -296,7 +352,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );          
             }
 
-            case ITEM_ID_BOARD_VERSION: {
+            case ITEM_ID_HW_VERSION: {
 
                 if (( arg1 == nullptr ) || ( ! isInRangeU( *arg1, 0, 4 ))) return( ERR_INVALID_ATTR_ARG );
 
@@ -455,6 +511,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
         printf( "nodePut: 0x%x:%d:%d:%d\n", npId, item, val1, val2  );
     }
 
+    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) return( ERR_LIB_NOT_READY );
+    
     if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
@@ -515,28 +573,27 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( rtNvmPutWord( ofs, portMap.map[ portId( npId ) - 1 ].type ));
             }
 
+            case ITEM_ID_NODE_ID: {
 
+                nodeMap.nodeId = val1;
+                return( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
+            }
 
-            
-            case ITEM_ID_VERSION: {
+            case ITEM_ID_SW_VERSION: {
 
                 nodeMap.nodeSwVersion = val1;
                 return( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeSwVersion ), val1 ));
             }
 
-            case ITEM_ID_BOARD_VERSION: {
+            case ITEM_ID_HW_VERSION: {
+
+                if ( ! isInRangeU( val1, 0, 4 )) return( ERR_INVALID_ATTR_ARG );
 
                 // ??? board version setting ...
+                // ??? not clear what we would exactly do for the NVM header changes / config ?
 
                 return( 255 );
             } break;
-
-            // case ITEM_ID_BOARD_TYPE: {
-
-                // ??? board version setting ...
-
-               // return( 255 );
-            // }
 
             case ITEM_ID_CONTROLLER_FAMILY: {
 
@@ -544,14 +601,6 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 return( 255 );
             }
-
-            case ITEM_ID_NODE_ID: {
-
-                nodeMap.nodeId = val1;
-                return( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId ));
-            }
-
-            
 
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
@@ -628,7 +677,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-     if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) return( ERR_LIB_NOT_READY );
+    
+    if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         return( invokeUserItemCallback( npId, item, arg1, arg2 ));
     
@@ -638,9 +689,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                // ??? watchDog business ?
-
-                return( 255 );
+                CDC::sleepMillis( 10000 );
+                return( ALL_OK );
             }
 
             case ITEM_ID_FORMAT: {
@@ -663,7 +713,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_SYNC: {
 
-                return( handleSyncCommand( npId, item, *arg1, *arg2 ));
+                return( handleSyncCommand( npId, *arg1, *arg2 ));
             }
 
             case ITEM_ID_NODE_ID: {
@@ -686,24 +736,23 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_SET_READY_LED: {
+            case ITEM_ID_CTRL_LEDS: {
 
-                return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, *arg1 ));
-            }
+                int option = (( arg2 == nullptr ) ? 0 : *arg2 );
 
-            case ITEM_ID_SET_ACTIVITY_LED: {
+                if (( *arg1 == 1 ) || ( *arg1 == 3 )) {
 
-                return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, *arg1 ));
-            }
+                    if      ( *arg2 == 1 )  return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, true ));
+                    else if ( *arg2 == 2 )  return ( CDC::toggleDio( cdcMap.cfg.READY_LED_PIN ));
+                    else                    return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false ));
+                }
 
-            case ITEM_ID_TOGGLE_READY_LED:  {
+                if (( *arg1 == 2 ) || ( *arg1 == 3 )) {
 
-                return ( CDC::toggleDio( cdcMap.cfg.READY_LED_PIN ));
-            }
-
-            case ITEM_ID_TOGGLE_ACTIVITY_LED: {
-
-                return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
+                    if      ( *arg2 == 1 )  return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true ));
+                    else if ( *arg2 == 2 )  return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
+                    else                    return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false ));
+                }
             }
 
             default: return ( ERR_INVALID_ITEM_ID );

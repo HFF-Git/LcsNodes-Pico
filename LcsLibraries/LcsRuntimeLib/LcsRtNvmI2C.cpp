@@ -13,7 +13,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Core library - Non volatile storage based on the M24LCxxx chip family
+// LCS Runtime library - Non volatile storage based on the M24LCxxx chip family
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General

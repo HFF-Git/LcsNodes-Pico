@@ -348,10 +348,11 @@ enum LcsNodePortFlags : uint16_t {
 
     NPF_NIL                             = 0,
 
-    NPF_PORT_PRESENT                    = ( 1 << 15 ),            
-    NPF_PORT_ENABLED                    = ( 1 << 14 ),
-    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1 << 13 ),
-    NPF_EVENT_PENDING                   = ( 1 << 12 ),
+    NPF_PORT_PRESENT                    = ( 1 << 12 ),            
+    NPF_PORT_ENABLED                    = ( 1 << 11 ),
+    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1 << 10 ),
+    
+    NPF_EVENT_PENDING                   = ( 1 << 9  ),
 
     NPF_EXT_BOARD_PRESENT               = ( 1U << 8 ),
     NPF_EXT_BOARD_VALID                 = ( 1U << 7 ),
@@ -386,17 +387,13 @@ enum LcsItems : uint8_t {
     ITEM_ID_DEBUG_MASK                  = 1,    
     ITEM_ID_OPTIONS                     = 2,
     ITEM_ID_FLAGS                       = 3,
-    
-    // ??? merge ?
-    ITEM_ID_VERSION                     = 4,
-    ITEM_ID_TYPE                        = 5,
+
+    ITEM_ID_HW_VERSION                  = 5,
+    ITEM_ID_SW_VERSION                  = 4,
+    ITEM_ID_TYPE                        = 6,
    
-    ITEM_ID_BOARD_VERSION               = 6,
     ITEM_ID_CONTROLLER_FAMILY           = 7,
     ITEM_ID_NVM_CHIP_FAMILY             = 8,
-
-
-
    
     ITEM_ID_NODE_STATE                  = 10,
     ITEM_ID_NODE_ID                     = 11,
@@ -423,12 +420,6 @@ enum LcsItems : uint8_t {
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
     ITEM_ID_CTRL_LEDS                   = 34,
-
-    ITEM_ID_SET_READY_LED2              = 30,
-    ITEM_ID_SET_ACTIVITY_LED            = 31,
-    ITEM_ID_TOGGLE_READY_LED            = 32,
-    ITEM_ID_TOGGLE_ACTIVITY_LED         = 33,
-
     
     // ??? add stop and enable periodic processing ?
 };
@@ -563,6 +554,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_NOT_IMPLEMENTED                 = 1,
     ERR_NOT_SUPPORTED                   = 2,
     ERR_LIB_NOT_INITIALIZED             = 3,
+    ERR_LIB_NOT_READY                   = 4,
 
     ERR_CDC_SETUP                       = 10,
     ERR_NVM_SETUP                       = 11,
@@ -732,7 +724,7 @@ struct LcsConfigDesc {
 //------------------------------------------------------------------------------------------------------------
 LcsConfigDesc       getConfigDefault( );
 uint8_t             initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig );
-void                startRuntime( );
+uint8_t             startRuntime( );
 
 //----------------------------------------------------------------------------------------------------------
 // Access the node local GET/SET/REQ items. Although we pass the node/port Id, only the port Id is actually

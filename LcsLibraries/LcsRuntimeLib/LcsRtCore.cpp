@@ -8,7 +8,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Core Library
+// LCS - Runtime Library
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -81,118 +81,6 @@ uint16_t portId( uint16_t npId ) {
     return( npId & 0xF );
 }
 
-} // namespace
-
-//------------------------------------------------------------------------------------------------------------
-//  The LCS name space routines declared in this file.
-//
-//------------------------------------------------------------------------------------------------------------
-namespace LCS { 
-
-//------------------------------------------------------------------------------------------------------------
-// General callback registration functions.
-//
-//      INIT    -   Callback invoked for each port when the node starts, i.e. when the firmware calls
-//                  "startRuntime".
-//
-//      PFAIL   -   Called when we are about to loose power. Time for saving important data to NVM.
-//
-//      LCS_MSG -   Callback for general LCS messages.
-//
-//      DCC_MSG -   Callback for LCS messages that are directed to the DCC subsystem.
-//
-//      CMD     -   Callback for command input that is not recognized as a LCS command.
-//
-//      EVENT   -   Callback when an event is received that the node / port is interested in.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t registerInitCallback( LcsInitCallback functionId ) {
-
-    nodeMap.initCallback = functionId;
-    return( ALL_OK );
-}
-
-uint8_t registerPfailCallback( LcsInitCallback functionId ) {
-
-    nodeMap.pfailCallback = functionId;
-    return( ALL_OK );
-}
-
-uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
-
-    nodeMap.lcsMsgCallback = functionId;
-    return( ALL_OK );
-}
-
-uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
-
-    nodeMap.dccMsgCallback = functionId;
-    return( ALL_OK );
-}
-
-uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
-
-    nodeMap.cmdLineCallback = functionId;
-    return( ALL_OK );
-}
-
-uint8_t registerEventCallback( LcsEventCallback functionId ) {
-
-    nodeMap.eventCallback = functionId;
-    return( ALL_OK );
-}
-
-//-----------------------------------------------------------------------------------------------------------
-// The request callback is invoked for REQ items received. The reply callback is invoked upon receiving a 
-// reply message to a previously issued request. The callback mask will set the callback function for ports
-// set in the mask. Bit zero refers to the node itself, bit 1 to 1t to the ports. 
-//
-//-----------------------------------------------------------------------------------------------------------
-uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
-
-    for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
-
-        if ( portMask & ( 1 << i )) {
-
-            portMap.map[ i ].reqCallback = functionId;
-        }
-    }
-
-    return( ALL_OK );
-}
-
-uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
-
-   for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-        if ( portMask & ( 1 << i )) {
-
-            portMap.map[ i ].repCallback = functionId;
-        }
-    }
-
-    return( ALL_OK );
-}
-
-//-----------------------------------------------------------------------------------------------------------
-// The core library features a very simple periodic task system. This routine adds a task callback to the
-// pTaskMap. We only add entries, never remove them. A high water mark is used to record the highest entry
-// used, so that processing will not run through empty entries.
-//
-//-----------------------------------------------------------------------------------------------------------
-uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
-
-    if ( taskMap.mapHwm < MAX_TASK_MAP_ENTRIES ) {
-
-        taskMap.map[ taskMap.mapHwm ].task       = task;
-        taskMap.map[ taskMap.mapHwm ].interval   = interval;
-        taskMap.map[ taskMap.mapHwm ].timeStamp  = CDC::getMillis( );
-        taskMap.mapHwm ++;
-        return ( ALL_OK );
-
-    } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
-}
-
 //------------------------------------------------------------------------------------------------------------
 // "handleNodePortEvents" will be called for processing inbound port events on each runtime loop iteration. 
 // Note that it does not matter where the events came from, i.e. whether another node sends an event or the 
@@ -225,6 +113,7 @@ void handleNodePortEvents( ) {
     }
 }
 
+
 //------------------------------------------------------------------------------------------------------------
 // "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a 
 // lot of periodic processing that needs to be one by any firmware implementation. Instead of the firmware
@@ -248,6 +137,8 @@ void handlePeriodicTasks( ) {
         }
     }
 }
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our node in response to a nodeId
@@ -355,6 +246,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     }
 }
 
+
+
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgGetNode" processes an incoming GET message for a node or port attribute. We construct the 
 // reply message with the requested data.
@@ -438,6 +331,7 @@ void handleMsgReqNode( uint8_t *msg ) {
     }
 }
 
+
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgEvent" deals with the event messages for inbound ports. If the event is configured in the event
 // map, all bits set in the eventMask will result in recording the event data and the optional future time
@@ -502,6 +396,9 @@ void handleMsgDccMgt( uint8_t *msg ) {
 
     if ( nodeMap.dccMsgCallback != NULL ) nodeMap.dccMsgCallback( msg );
 }
+
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Node state INIT. This is the first state after the initial library setup. The runtime init call created
@@ -595,6 +492,7 @@ void handleNodeStateRegister( ) {
     }
 }
 
+
 //------------------------------------------------------------------------------------------------------------
 // Node State COLLISION. This is the state after the node receiver routine detected a nodeId collision. We
 // will stay in this state and only react to RESET and SET_NID messages.
@@ -626,6 +524,7 @@ void handleNodeStateHalted( ) {
         case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
     }
 }
+
 
 //------------------------------------------------------------------------------------------------------------
 // Node State CONFIG. A node can be placed into configuration state. We process any LCS message, handle the
@@ -746,16 +645,152 @@ void handleNodeState( ) {
     }
 }
 
-//-----------------------------------------------------------------------------------------------------------
-// "startRuntime" is the main routine of the node activity processing. All it does is to call the node
-// state machine.
+} // namespace
+
+//------------------------------------------------------------------------------------------------------------
+// The LCS name space routines declared in this file. These routines are callable from the user firmware
+// and thus need to check whether the library was already initialized.
 //
 //------------------------------------------------------------------------------------------------------------
-void startRuntime( ) {
+namespace LCS { 
+
+//------------------------------------------------------------------------------------------------------------
+// General callback registration functions.
+//
+//      INIT    -   Callback invoked for each port when the node starts, i.e. when the firmware calls
+//                  "startRuntime".
+//
+//      PFAIL   -   Called when we are about to loose power. Time for saving important data to NVM.
+//
+//      LCS_MSG -   Callback for general LCS messages.
+//
+//      DCC_MSG -   Callback for LCS messages that are directed to the DCC subsystem.
+//
+//      CMD     -   Callback for command input that is not recognized as a LCS command.
+//
+//      EVENT   -   Callback when an event is received that the node / port is interested in.
+//
+//      REQ     -   Callback when REQ item message was received that the node / port registered for.
+//
+//      REP     -   Callback for a reply message for a previous request hat the node / port registered for.
+//
+//      TASK    -   Callback for a period task registered.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t registerInitCallback( LcsInitCallback functionId ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    nodeMap.initCallback = functionId;
+    return( ALL_OK );
+}
+
+uint8_t registerPfailCallback( LcsInitCallback functionId ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    nodeMap.pfailCallback = functionId;
+    return( ALL_OK );
+}
+
+uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    nodeMap.lcsMsgCallback = functionId;
+    return( ALL_OK );
+}
+
+uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    nodeMap.dccMsgCallback = functionId;
+    return( ALL_OK );
+}
+
+uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    nodeMap.cmdLineCallback = functionId;
+    return( ALL_OK );
+}
+
+// ??? a mask as argument to select on a node / port basis ?
+uint8_t registerEventCallback( LcsEventCallback functionId ) {
+
+   if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    nodeMap.eventCallback = functionId;
+    return( ALL_OK );
+}
+
+uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
+
+   if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        if ( portMask & ( 1 << i )) portMap.map[ i ].reqCallback = functionId;
+    }
+
+    return( ALL_OK );
+}
+
+uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        if ( portMask & ( 1 << i )) portMap.map[ i ].repCallback = functionId;
+    }
+
+    return( ALL_OK );
+}
+
+uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
+
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+
+    if ( taskMap.mapHwm < MAX_TASK_MAP_ENTRIES ) {
+
+        taskMap.map[ taskMap.mapHwm ].task       = task;
+        taskMap.map[ taskMap.mapHwm ].interval   = interval;
+        taskMap.map[ taskMap.mapHwm ].timeStamp  = CDC::getMillis( );
+        taskMap.mapHwm ++;
+        return ( ALL_OK );
+
+    } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// "localMsgEvent" is called by the event message send routines to cover the case where we send an event
+// and we detect it needs to also be broadcasted to other ports on the same node. In other words, the 
+// nodeId of the sending node and our node are the same.
+//
+//-----------------------------------------------------------------------------------------------------------
+uint8_t localMsgEvent( uint8_t *msg ) {
+
+    if ( nodeMap.nodeState != NS_OPERATE ) return ( ERR_LIB_NOT_INITIALIZED );
+    handleMsgEvent( msg );
+    return( ALL_OK );
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// "startRuntime" is the main routine of the node activity processing. We check that the library was 
+// initialized properly and mark the nodeMap flag "READY". And then we are in business.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t startRuntime( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n");
 
+    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    
     handleNodeState( );
+    return( ALL_OK );
 }
 
 }; // namespace LCS

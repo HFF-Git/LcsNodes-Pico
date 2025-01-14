@@ -10,7 +10,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Core Library
+// LCS - Runtime Library
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -44,7 +44,6 @@ namespace LCS {
     extern LcsDrvFuncMap        drvFuncMap;
     extern LcsMsgBusCAN         *msgBus;
 
-    extern void                 handleMsgLcsMgt( uint8_t *msg );
     extern uint8_t              extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
     extern int                  searchEvent( uint16_t eventId );
     extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
@@ -576,8 +575,7 @@ void switchToConfigCommand( char *s ) {
 
     if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
-        uint8_t msg[ 8 ] = { LCS_OP_CFG };
-        handleMsgLcsMgt( msg );
+       nodeMap.nodeState = NS_CONFIG;
     }
     else {
 
@@ -604,8 +602,7 @@ void switchToOperationsCommand( char *s ) {
 
     if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
-        uint8_t msg[ 8 ] = { LCS_OP_OPS };
-        handleMsgLcsMgt( msg );
+        nodeMap.nodeState = NS_OPERATE;
     }
     else {
 

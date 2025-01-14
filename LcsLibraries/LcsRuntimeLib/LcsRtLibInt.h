@@ -37,6 +37,16 @@
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+// ??? how do we encode a version ? family, major, minor ?
+// ??? do we really need a patch level ?
+//------------------------------------------------------------------------------------------------------------
+const uint16_t LCS_RT_LIB_VERSION       = 100;  // ??? for now...
+const uint16_t LCS_RT_LIB_PATCH_LEVEL   = 0;
+
+
+//------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
 // data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas 
 // are initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from 
@@ -273,14 +283,14 @@ struct LcsCdcMap {
 //----------------------------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-    uint32_t            magicWord   = NVM_MWORD_NODE_MAP;
-    uint32_t            nvmOfs      = 0;
-    uint32_t            nvmSize     = sizeof( LcsNodeMap );
+    uint32_t            magicWord                       = NVM_MWORD_NODE_MAP;
+    uint32_t            nvmOfs                          = 0;
+    uint32_t            nvmSize                         = sizeof( LcsNodeMap );
 
     uint16_t            nodeState                       = NS_NIL;
     uint16_t            nodeId                          = NIL_NODE_ID;
     uint32_t            nodeUID                         = 0L;
-    uint16_t            nodeSwVersion                   = 0;
+    uint16_t            nodeSwVersion                   = LCS_RT_LIB_VERSION;
     uint16_t            nodeSwPatchLevel                = 0;
     uint16_t            nodeRestartCnt                  = 0;
     uint32_t            nodeSystemTime                  = 0;
