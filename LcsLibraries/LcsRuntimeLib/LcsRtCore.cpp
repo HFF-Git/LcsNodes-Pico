@@ -141,7 +141,7 @@ void handlePeriodicTasks( ) {
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our node in response to a nodeId
 // setup request. If the UID matches, the message is for our node and we update our nodeId accordingly in 
-// MEM and NVM. The next node state is OPERATE.
+// MEM and NVM. The next node state is OPERATE. Optionally, we enable the watchdog feature.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNid( uint8_t *msg ) {
@@ -158,6 +158,11 @@ void handleMsgRepNid( uint8_t *msg ) {
             
             nodeMap.nodeId = nodeId;
             uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeId );
+        }
+
+        if ( ! ( portMap.map[ 0 ].options & NPO_DISABLE_WATCHDOG )) {
+
+            // ?? enable watchdog ...
         }
 
         nodeMap.nodeState = NS_OPERATE;
@@ -365,7 +370,7 @@ void handleMsgEvent( uint8_t *msg ) {
             LcsPortMapEntry *pPtr = &portMap.map[ i ];
 
             if (( pPtr -> flags & NPF_PORT_ENABLED                  ) &&
-                ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   )
+                ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
                 ( pPtr -> eventCallback != nullptr                  )) {
 
                 if ( eventMask & ( 1 << i )) {
@@ -434,8 +439,15 @@ void handleNodeStateInit( ) {
         timerVal  = CDC::getMillis( );
 
         nodeMap.nodeState = NS_REGISTER;
+        return;
+    } 
+    
+    if ( ! ( portMap.map[ 0 ].options & NPO_DISABLE_WATCHDOG )) {
 
-    } else nodeMap.nodeState = NS_OPERATE;
+        // ?? enable watchdog ...
+    }
+
+    nodeMap.nodeState = NS_OPERATE;
 }
 
 //------------------------------------------------------------------------------------------------------------

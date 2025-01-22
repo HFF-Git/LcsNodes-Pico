@@ -1016,7 +1016,7 @@ LcsConfigDesc getConfigDefault( ) {
 // The overall logic of the startup routine code below is that if there is a fault, the follow on steps are
 // simply  skipped and the node is put into the FAIL state. Note that we still are able to access the node
 // via the USB console and one day also via diagnostic LCS messages. The idea is to allow the correct 
-// configuration  of the nodeMap, so that we can restart with a correct nodeMap. 
+// configuration of the nodeMap, so that we can restart with a correct nodeMap. 
 //
 // ??? how do we deal wit PFAIL restarts ?
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
@@ -1063,7 +1063,5 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "init LCS runtime, status: %d \n", rStat );
     return ( rStat );
 }
-
-
 
 }; // namespace LCS

@@ -321,7 +321,9 @@ enum LcsNodePortOptions : uint16_t {
     NPO_NIL                     = 0,
     NPO_SKIP_NODE_ID_CONFIG     = ( 1 << 0 ),
     NPO_DEBUG_DURING_SETUP      = ( 1 << 1 ),
-    NPO_FORMAT_RUNTIME          = ( 1 << 2 )
+    NPO_DISABLE_WATCHDOG        = ( 1 << 2 ),
+    NPO_FORMAT_RUNTIME          = ( 1 << 3 ),
+
 };
 
 //----------------------------------------------------------------------------------------------------------
