@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Layout Control System - node access routines.
+// Layout Control System - Runtime attribute management
 //
 //------------------------------------------------------------------------------------------------------------
 // The file contains the LCS runtime routines that implement node access. There are three routines that allow
@@ -12,7 +12,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Runtime Library
+// LCS - Runtime attribute management
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
