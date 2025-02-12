@@ -1154,10 +1154,21 @@ PwmInst *lookupPwmInst( uint8_t pwmPin ) {
     else                                return ( nullptr );
 }
 
+
+// ??? what do we do here exactly ?
+
 PwmInst *lookupPairPinInst( uint8_t pwmPin ) {
+
+    // ??? need to find the channel. If channel is zero then we are the lower pin number...
 
     if ( pwm_gpio_to_channel( pwmPin )) return( lookupPwmInst( pwmPin + 1 ));
     else                                return( lookupPwmInst( pwmPin - 1 ));
+}
+
+// ??? should we rather have a function to configure a pair ?
+uint8_t configurePwmPair( uint8_t pwmPin1, uint8_t pwmPin2, uint32_t pwmFreqency, bool phaseCorrect, bool inverted  ) {
+
+    return( NO_ERR );
 }
 
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
@@ -1288,6 +1299,20 @@ uint8_t writePwmPair( uint8_t pwmPin1, uint8_t dutyCycle1, uint8_t pwmPin2, uint
 
     return ( NO_ERR );
 }
+
+// ??? need a way to sync the PWM output with the LCS overall sync signal...
+// ??? make sure that the syncPwm is not called too often, as it would interrupt the PWM waveform...
+
+uint8_t syncPwm( uint8_t pwmPin ) {
+
+    PwmInst *pwm = lookupPwmInst( pwmPin );
+    if (( pwm == nullptr ) && ( ! pwm -> configured )) return( PWM_PIN_ERR );
+
+    pwm_set_counter( pwm ->sliceNum, 0);
+    
+    return( NO_ERR );
+}
+
 
 //------------------------------------------------------------------------------------------------------------
 // I2C Section. The PICO has two HW blocks for I2C interfaces. The interface implements a simple read and
