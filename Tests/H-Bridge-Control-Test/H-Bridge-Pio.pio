@@ -1,0 +1,76 @@
+; code needs to bevised for the new bridge control signals
+;
+;
+
+.program h_bridge_control
+.side_set 2  ; Two output pins (REQUIRED for each instruction)
+
+start:
+    pull side 0b00         ; Get select value from CPU
+    mov x, osr side 0b00   ; Store select in X register
+
+    jmp x--, case_0 side 0b00
+    jmp x--, case_1 side 0b00
+    jmp x--, case_2 side 0b00
+    jmp case_3 side 0b00   ; No need to decrement for last case
+
+; Case 0: Both outputs are 0
+case_0:
+    set pins, 0 side 0b00
+    pull block side 0b00  ; Wait for new select value
+    jmp start side 0b00
+
+; Case 1: One output 0, the other is PWM (hardware PWM handles this)
+case_1:
+    set pins, 0b01 side 0b01
+    pull block side 0b00
+    jmp start side 0b00
+
+; Case 2: Swap zero/PWM outputs
+case_2:
+    set pins, 0b10 side 0b10
+    pull block side 0b00
+    jmp start side 0b00
+
+; Case 3: Track input pins, but delay 4 µs if both inputs are 0
+case_3:
+    in pins, 2 side 0b00   ; Read 2-bit input
+    mov y, isr side 0b00
+
+    mov x, y side 0b00      ; Move y into x (to use x--)
+    jmp x--, track_inputs side 0b00  ; If x (y) is NOT zero, jump to track_inputs
+
+    set pins, 0 side 0b00  ; Force outputs to 0 for 4 µs
+    set x, 14 side 0b00  ; Delay (~4 µs at 125 MHz)
+delay_loop:
+    jmp x--, delay_loop side 0b00
+
+track_inputs:
+    out pins, 2 side 0b00  ; Output = input values
+    pull block side 0b00  ; Wait for a new select value
+    jmp start side 0b00
+
+% c-sdk {
+void  h_bridge_control_program_init(PIO pio, uint sm, uint offset, uint out0, uint out1, uint in0, uint in1) {
+    pio_sm_config c = pio_get_default_sm_config();
+    sm_config_set_out_pins(&c, out0, 2);
+    sm_config_set_in_pins(&c, in0);
+    sm_config_set_sideset_pins(&c, out0);
+    sm_config_set_clkdiv(&c, 1.0);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    sm_config_set_wrap(&c, offset, offset + 9);
+
+    pio_gpio_init(pio, out0);
+    pio_gpio_init(pio, out1);
+    pio_gpio_init(pio, in0);
+    pio_gpio_init(pio, in1);
+    
+    gpio_set_dir(out0, true);
+    gpio_set_dir(out1, true);
+    gpio_set_dir(in0, false);
+    gpio_set_dir(in1, false);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

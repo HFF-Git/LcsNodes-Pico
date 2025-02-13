@@ -43,3 +43,5 @@ add_subdirectory(LcsLibraries/LcsUIElementsLib)
 add_subdirectory(LcsLibraries/LcsLcdDisplayLib)
 add_subdirectory(LcsLibraries/LcsOledDisplayLib)
 
+add_subdirectory(Tests/H-Bridge-Control-Test)
+
