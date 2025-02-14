@@ -1,5 +1,34 @@
-// Main Idea: move bridge control logic into thePIO state machine.
-
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS Block Controller - Bridge Test program for PIO driven Bridge.
+//
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS Block Controller
+// Copyright (C) 2025 - 2025  Helmut Fieres
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// http://www.gnu.org/licenses
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
+//------------------------------------------------------------------------------------------------------------
+// The LCS block controller manage a a couple of H-Bridges. In order to save elaborate external control logic
+// hardware, let the PICO PIO state machine do the work. A bridge is controlled by 4 command codes.
+//
+//   0 - put the bridge into a disconnected state. ( Out: 0b11 )
+//   1 - put the bridge in PWM forward mode. ( Out: 0b01, first pin controlled by PWM ) 
+//   2 - put the bridge in PWM forward mode. ( Out: 0b10, second pin controlled by PWM )  
+//   3 - put the bridge in DCC tracking mode. ( Out: 0b00 )
+//
 // Changes: bridge is controlled via two bits:
 //
 //      - 00 - short circuit outputs to ground
@@ -7,126 +36,171 @@
 //      - 10 - Bridge "-"
 //      - 11 - Bridge "Z"
 // 
-// there is a NAND Gate to detect "11" and set the enable Pin to low. This way the L6205 goes high impedance.
+// There is a NAND Gate to detect "11" and set the enable Pin to low. This way the L6205 goes high impedance.
 //
-// The software control of the bridge stays as is:
-//
-//      - 00 - bridge off ( "Z" )
-//      - 01 - bridge "+"
-//      - 10 - bridge "-"
-//      - 11  bridge tracks DCC
-//
-// The short "Z" gap on entering "00" in DCC mode, will be handled by the state machine code.
-//
-
-
+//------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <stdint.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/pwm.h"
 #include "H-Bridge-Pio.pio.h"
 
-#define NUM_INSTANCES 4  // 4 instances of the logic
+//------------------------------------------------------------------------------------------------------------
+// Globals. 
+//
+//------------------------------------------------------------------------------------------------------------
+const int   MAX_BRIDGE_INSTANCES        = 4;
+PIO         pio                         = pio0;
+uint        sm[ MAX_BRIDGE_INSTANCES ]  = { 0 };
 
-const uint OUTPUT_PINS[NUM_INSTANCES][2] = {
-    {2, 3}, {4, 5}, {6, 7}, {8, 9}  // Adjust as needed
-};
-const uint INPUT_PINS[NUM_INSTANCES][2] = {
-    {10, 11}, {12, 13}, {14, 15}, {16, 17}  // Adjust as needed
+const uint OUTPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
+
+    {6, 7}, {8, 9}, {18,19}, {20, 21}
 };
 
-void setup_pwm(uint gpio, uint slice, uint channel) {
-    gpio_set_function(gpio, GPIO_FUNC_PWM);
-    pwm_set_wrap(slice, 255);  // 8-bit resolution
-    pwm_set_chan_level(slice, channel, 128);  // 50% duty cycle
+const uint INPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
+    
+    {4, 5}, {4, 5}, {4, 5}, {4, 5}  
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Setup a PWM channel. ( 8-bit resolution, 50% duty cycle )
+//
+//------------------------------------------------------------------------------------------------------------
+void setupPwm( uint gpio, uint slice, uint channel ) {
+
+    gpio_set_function( gpio, GPIO_FUNC_PWM );
+    pwm_set_wrap(slice, 255);                   
+    pwm_set_chan_level(slice, channel, 128 );
     pwm_set_enabled(slice, true);
 }
 
-#if 0
-// PIO and PWM need to share the same pin. For PWM modes, the PWM has control, else PIO
-
-// switching can be done in PIO
-// set pindirs 1   ; PIO takes control of the pin
-// set pindirs 0   ; PWM takes control of the pin
-
-// Example:
-
-// .program my_pio_program
-//.side_set 2 opt
-
-// loop:
-//    set pindirs 1 side 0b01  ; PIO takes control
-//    set pins, 1
-//    nop [10]
-//    set pins, 0
-//    nop [10]
-
-//    set pindirs 0 side 0b00  ; PWM takes control
-//    jmp loop
-
-// or in C;
+//------------------------------------------------------------------------------------------------------------
+// Switching routines when going from PIO control to PWM control of a pin and back.
 //
+//------------------------------------------------------------------------------------------------------------
+void switchToPwm( uint gpio ) {
 
-void switch_to_pwm() {
-    gpio_set_function(PWM_PIN, GPIO_FUNC_PWM);  // Give control to PWM
+    printf( "switchToPwm: %d/n", gpio );
+    gpio_set_function( gpio, GPIO_FUNC_PWM );
 }
 
-void switch_to_pio() {
-    gpio_set_function(PWM_PIN, GPIO_FUNC_PIO0); // Give control to PIO
+void switchToPio( uint gpio ) {
+
+    printf( "switchToPio: %d/n", gpio );
+    gpio_set_function( gpio, GPIO_FUNC_PIO0 );
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Configure a Bridge PIO instance.
+//
+//------------------------------------------------------------------------------------------------------------
+void setupPioProgramInstance ( int index ) {
 
+    printf( "setupPioProgramInstance: index: %d\n", index );
 
-void setup_pio() {
-    PIO pio = pio0;
-    uint sm = 0;  // State machine 0
+    uint offset = pio_add_program( pio, & h_bridge_control_program );
+    sm[ index ] = pio_claim_unused_sm( pio, true );
 
-    uint offset = pio_add_program(pio, &my_pio_program);
-    pio_sm_config c = my_pio_program_get_default_config(offset);
-    
-    sm_config_set_out_pins(&c, PWM_PIN, 1);  // Assign the same pin to PIO
-    sm_config_set_set_pins(&c, PWM_PIN, 1);
-    pio_gpio_init(pio, PWM_PIN);
-
-    pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_enabled(pio, sm, true);
+    h_bridge_control_program_init(  pio, 
+                                    sm[ index ], 
+                                    offset, 
+                                    OUTPUT_PINS[ index ][ 0 ], 
+                                    OUTPUT_PINS[ index ][ 1], 
+                                    INPUT_PINS[ index ][ 0 ], 
+                                    INPUT_PINS[ index ][ 1] 
+                                );
 }
 
-#endif
+//------------------------------------------------------------------------------------------------------------
+// Configure a Bridge PWM instance.
+//
+//------------------------------------------------------------------------------------------------------------
+void setupPwmChannelInstance( int index ) {
 
+    printf( "setupPwm: index: %d, channel: 0\n", index );
 
+    uint slice      = pwm_gpio_to_slice_num( OUTPUT_PINS[ index ][ 0 ]);  
+    uint channel    = pwm_gpio_to_channel( OUTPUT_PINS[ index ][ 0 ]);
+    setupPwm( OUTPUT_PINS[ index ][ 0 ], slice, channel);
 
+    printf( "setupPwm: index: %d, channel: 1\n", index );
 
+    slice      = pwm_gpio_to_slice_num( OUTPUT_PINS[ index ][ 1 ]);  
+    channel    = pwm_gpio_to_channel( OUTPUT_PINS[ index ][ 1 ]);
+    setupPwm( OUTPUT_PINS[ index ][ 1 ], slice, channel);
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Set up all PIO state machines.
+//
+//------------------------------------------------------------------------------------------------------------
+void setupPio( ) {
+
+    printf( "setupPio\n");
+
+    for ( int i = 0; i < MAX_BRIDGE_INSTANCES; i++ ) {
+
+        setupPioProgramInstance( i );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Setup all PWM instances.
+//
+//------------------------------------------------------------------------------------------------------------
+void setupPwm( ) {
+
+    printf( "setupPwm\n");
+
+    for ( int i = 0; i < MAX_BRIDGE_INSTANCES; i++ ) {
+
+        setupPwmChannelInstance( i );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Control the Bridge. We have to claim the PWM if needed and release it later on.
+//
+//------------------------------------------------------------------------------------------------------------
+void setPioSelect( int index, int sel ) {
+
+    printf( "setPioSelect: index: %d, sel: %d\n", index, sel );
+
+    if      ( sel == 1 ) switchToPwm( OUTPUT_PINS[ index % 2 ] [ 0 ] );
+    else if ( sel == 2 ) switchToPwm( OUTPUT_PINS[ index % 2 ] [ 1 ] );
+       
+    pio_sm_put( pio, sm[ index % 2 ], sel % 2 ); 
+
+    if      ( sel == 1 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 0 ] );
+    else if ( sel == 2 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 1 ] );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Here we go...
+//
+//------------------------------------------------------------------------------------------------------------
 int main() {
-    stdio_init_all();
 
-    PIO pio = pio0;
-    uint sm[NUM_INSTANCES];
+    printf( "Bridge Test Program for Bridge-via-PIO\n" );
+    
+    stdio_init_all( );
+    setupPio( );
+    setupPwm( );
+   
+    while ( 1 ) {
 
-    for (int i = 0; i < NUM_INSTANCES; i++) {
-        uint offset = pio_add_program(pio, & h_bridge_control_program);
-        sm[i] = pio_claim_unused_sm(pio, true);
-        
-        h_bridge_control_program_init(pio, sm[i], offset, OUTPUT_PINS[i][0], OUTPUT_PINS[i][1], INPUT_PINS[i][0], INPUT_PINS[i][1]);
+        sleep_ms(2000);
 
-        uint slice = pwm_gpio_to_slice_num(OUTPUT_PINS[i][1]);  
-        uint channel = pwm_gpio_to_channel(OUTPUT_PINS[i][1]);
-        setup_pwm(OUTPUT_PINS[i][1], slice, channel);
-    }
+        for ( int sel = 0; sel < 3; sel++ ) { 
 
-    // Set initial select value for each instance
-    for (int i = 0; i < NUM_INSTANCES; i++) {
-        pio_sm_put(pio, sm[i], 0);  // Start in Select 0
-    }
+            for ( int i = 0; i < MAX_BRIDGE_INSTANCES; i++ ) {
 
-    sleep_ms(2000);
-
-    // Now cycle through select values
-    while (1) {
-        for (int sel = 1; sel <= 3; sel++) {
-            for (int i = 0; i < NUM_INSTANCES; i++) {
-                pio_sm_put(pio, sm[i], sel);  // Send new select value
+                setPioSelect( i, sel );
+                sleep_ms(2000);
             }
-            sleep_ms(2000);  // Stay in each mode for 2 seconds
+            sleep_ms( 2000 ); 
         }
     }
 

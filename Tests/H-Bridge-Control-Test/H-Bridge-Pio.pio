@@ -1,26 +1,23 @@
 ;-------------------------------------------------------------------------------------------------------------
-; need to really understand this.
-;
-;
-;   - we have two input pins for the DCC input.
-;   - we have two output pins for controlling the bridge.
-;
-; We wait on the input FIFO for a command. 
+; The LCS block controller manage a a couple of H-Bridges. In order to save elaborate external control logic
+; hardware, let the PICO PIO state machine do the work. A bridge is controlled by 4 command codes.
 ;
 ;   0 - put the bridge into a disconnected state. ( Out: 0b11 )
 ;   1 - put the bridge in PWM forward mode. ( Out: 0b01, first pin controlled by PWM ) 
 ;   2 - put the bridge in PWM forward mode. ( Out: 0b10, second pin controlled by PWM )  
 ;   3 - put the bridge in DCC tracking mode. ( Out: 0b00 )
 ;
-; DCC tracking mode has an additinal requirement. When the DCC signal input is 0b00, the bridge is placed 
+; The state machine program has two input pins for the DCC signal input. There are two output pins for 
+; controlling the bridge. Outside of the PICO, a simple NAND gate derives the enable signal for setting
+; H-Bridge in high impedance mode. 
+;  
+; DCC tracking mode has an additional requirement. When the DCC signal input is 0b00, the bridge is placed 
 ; for a short period in disconnected state, followed by just tracking the DCC input.
 ;
-; We use set pindirs to gain and release control of an ouput pin for PWM. The software must ensure that 
-; the PWM is configired before giving up control by the PIO. 
-; ( e.g. gpio_set_function(pwm_pin, GPIO_FUNC_PWM); // sets the pin as PWM output )
+; We use "set pindirs" to gain and release control of an output pin for PWM. The software must ensure that 
+; the PWM is configured before giving up PIO control. ( e.g. gpio_set_function(pwm_pin, GPIO_FUNC_PWM); )
 ;
 ;-------------------------------------------------------------------------------------------------------------
-
 .program h_bridge_control
 .side_set 2 opt             ; Optional side-set (allows skipping side-set on some instructions)
 
@@ -49,10 +46,10 @@ case_0:
     jmp start 
 
 ;-------------------------------------------------------------------------------------------------------------
-; Case 1: Put the bridge in PWM forward mode. The first pin will be driven by tge PWM generater, the second 
+; Case 1: Put the bridge in PWM forward mode. The first pin will be driven by the PWM generator, the second 
 ; is always one. The bridge will then toggle between "0b01" and "0b11", i.e first half active and second 
-; half disconneted. Note that the PWM signal is an inverted signal. The PIO released control of the pins 
-; while still seting the output pins to a value.
+; half disconnected. Note that the PWM signal is an inverted signal. The PIO released control of the pins 
+; while still setting the output pins to a value.
 ;
 ;-------------------------------------------------------------------------------------------------------------
 case_1:
@@ -61,10 +58,10 @@ case_1:
     jmp start
 
 ;-------------------------------------------------------------------------------------------------------------
-; Case 2: Put the bridge in PWM reverse mode. The first pin is always one, teh second pin will be driven by 
-; the PWM generater. The bridge will then toggle between "0b10" and "0b11", i.e first half active and second 
-; half disconneted. Note that the PWM signal is an inverted signal. The PIO released control of the pins 
-; while still seting the output pins to a value.
+; Case 2: Put the bridge in PWM reverse mode. The first pin is always one, the second pin will be driven by 
+; the PWM generator. The bridge will then toggle between "0b10" and "0b11", i.e first half active and second 
+; half disconnected. Note that the PWM signal is an inverted signal. The PIO released control of the pins 
+; while still setting the output pins to a value.
 ;
 ;-------------------------------------------------------------------------------------------------------------
 case_2:
@@ -73,56 +70,73 @@ case_2:
     jmp start 
 
 ;-------------------------------------------------------------------------------------------------------------
-; Case 3: Track input pins, but delay 4 µs when going from a non-zero setting for the input pins to a zero
-; value for both input pins. 
+; Case 3: Track input pins, but delay 4 µs when going from a non-zero setting input to a zero input value. 
+; We first just copy the input to the output. When the input is non-zero, all done, back to start. If not, 
+; delay for some microseconds and then wait for the non-zero transition. On the transition, jump back to 
+; start.
 ;
-; ??? how can we ensure that the change is only done when "00" starts ?
-; ??? should we make the test at the end ?
 ;-------------------------------------------------------------------------------------------------------------
 case_3:
 
     in pins, 2                          ; Read 2-bit input
-    mov x, isr                          ; move to X register
+    out pins, 2                         ; Output = input values
 
-    jmp x--, track_inputs side 0b00     ; If x (y) is NOT zero, jump to track_inputs
+    mov x, pins                         ; move to X register
+    jmp x--, start                      ; If x (y) is NOT zero, jump to start, else continue
 
-    set pins, 0 side 0b00               ; Force outputs to 0 for 4 µs
-    set x, 14 side 0b00                 ; Delay (~4 µs at 125 MHz)
+    set pins, 0 side 0b11               ; Set outputs to 0b11 for 4 µs
+    set x, 14                           ; Delay (~4 µs at 125 MHz)
 
 delay_loop:
 
-    jmp x--, delay_loop side 0b11
+    jmp x--, delay_loop                 ; delay loop
+    set pins, 0 side 0b00               ; Delay done, set outputs to 0b00.
 
-; Assume side-set uses 2 bits, mapped to `y[1:0]`
-track_inputs:
-        
-    out pins, 2 side 0b00               ; Output = input values, but side-set is fixed
-    out pindirs, 2                      ; Set directions for these outputs
+wait_for_non_zero:
 
-    pull block                          ; Wait for new select value
-    jmp start 
+    in pins, 2                          ; Read 2-bit input pins
+    mov y, pins                         ; Store new input state in y register
+    jmp y--, start                      ; If non-zero jump to start
+    jmp wait_for_non_zero               ; else stay in the loop
 
+;-------------------------------------------------------------------------------------------------------------
+;
+;
+;
+;
+;
+;-------------------------------------------------------------------------------------------------------------
 % c-sdk {
-void  h_bridge_control_program_init(PIO pio, uint sm, uint offset, uint out0, uint out1, uint in0, uint in1) {
-    pio_sm_config c = pio_get_default_sm_config();
-    sm_config_set_out_pins(&c, out0, 2);
-    sm_config_set_in_pins(&c, in0);
-    sm_config_set_sideset_pins(&c, out0);
-    sm_config_set_clkdiv(&c, 1.0);
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
-    sm_config_set_wrap(&c, offset, offset + 9);
 
-    pio_gpio_init(pio, out0);
-    pio_gpio_init(pio, out1);
-    pio_gpio_init(pio, in0);
-    pio_gpio_init(pio, in1);
+#include <stdio.h>
+#include <stdint.h>
+
+void  h_bridge_control_program_init( PIO pio, uint sm, uint offset, uint out0, uint out1, uint in0, uint in1 ) {
+
+
+    printf( "setupPioProgramInstance: offset: %d\n", offset );
+        
+
+    pio_sm_config c = pio_get_default_sm_config( );
+    sm_config_set_out_pins( &c, out0, 2 );
+    sm_config_set_in_pins( &c, in0 );
+    sm_config_set_sideset_pins( &c, out0 );
+    sm_config_set_clkdiv( &c, 1.0 );
+    sm_config_set_fifo_join( &c, PIO_FIFO_JOIN_RX );
+    sm_config_set_wrap( &c, offset, offset + 23 );
+
+    pio_gpio_init( pio, out0 );
+    pio_gpio_init( pio, out1 );
+    pio_gpio_init( pio, in0 );
+    pio_gpio_init( pio, in1 );
     
-    gpio_set_dir(out0, true);
-    gpio_set_dir(out1, true);
-    gpio_set_dir(in0, false);
-    gpio_set_dir(in1, false);
+    gpio_set_dir( out0, true );
+    gpio_set_dir( out1, true );
+    gpio_set_dir( in0, false );
+    gpio_set_dir( in1, false );
 
-    pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_enabled(pio, sm, true);
+    pio_sm_init( pio, sm, offset, &c );
+    pio_sm_set_enabled( pio, sm, true );
 }
+
 %}
