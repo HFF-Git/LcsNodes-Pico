@@ -1,54 +1,106 @@
-; code needs to bevised for the new bridge control signals
+;-------------------------------------------------------------------------------------------------------------
+; need to really understand this.
 ;
 ;
+;   - we have two input pins for the DCC input.
+;   - we have two output pins for controlling the bridge.
+;
+; We wait on the input FIFO for a command. 
+;
+;   0 - put the bridge into a disconnected state. ( Out: 0b11 )
+;   1 - put the bridge in PWM forward mode. ( Out: 0b01, first pin controlled by PWM ) 
+;   2 - put the bridge in PWM forward mode. ( Out: 0b10, second pin controlled by PWM )  
+;   3 - put the bridge in DCC tracking mode. ( Out: 0b00 )
+;
+; DCC tracking mode has an additinal requirement. When the DCC signal input is 0b00, the bridge is placed 
+; for a short period in disconnected state, followed by just tracking the DCC input.
+;
+; We use set pindirs to gain and release control of an ouput pin for PWM. The software must ensure that 
+; the PWM is configired before giving up control by the PIO. 
+; ( e.g. gpio_set_function(pwm_pin, GPIO_FUNC_PWM); // sets the pin as PWM output )
+;
+;-------------------------------------------------------------------------------------------------------------
 
 .program h_bridge_control
-.side_set 2  ; Two output pins (REQUIRED for each instruction)
+.side_set 2 opt             ; Optional side-set (allows skipping side-set on some instructions)
 
+;-------------------------------------------------------------------------------------------------------------
+; Get the command input. We read from the input FIFO and branch to the command selected.
+;
+;-------------------------------------------------------------------------------------------------------------
 start:
-    pull side 0b00         ; Get select value from CPU
-    mov x, osr side 0b00   ; Store select in X register
 
-    jmp x--, case_0 side 0b00
-    jmp x--, case_1 side 0b00
-    jmp x--, case_2 side 0b00
-    jmp case_3 side 0b00   ; No need to decrement for last case
+    pull block              ; Get select value from CPU
+    mov x, osr              ; Store select in X register
 
-; Case 0: Both outputs are 0
+    jmp x--, case_0 
+    jmp x--, case_1 
+    jmp x--, case_2 
+    jmp      case_3         
+
+;-------------------------------------------------------------------------------------------------------------
+; Case 0: Put the bridge in to disconnected state. We just set the putput pins to 0b11 and branch back to the 
+; command input section.
+;
+;-------------------------------------------------------------------------------------------------------------
 case_0:
-    set pins, 0 side 0b00
-    pull block side 0b00  ; Wait for new select value
-    jmp start side 0b00
 
-; Case 1: One output 0, the other is PWM (hardware PWM handles this)
+    set pins, 0 side 0b11
+    jmp start 
+
+;-------------------------------------------------------------------------------------------------------------
+; Case 1: Put the bridge in PWM forward mode. The first pin will be driven by tge PWM generater, the second 
+; is always one. The bridge will then toggle between "0b01" and "0b11", i.e first half active and second 
+; half disconneted. Note that the PWM signal is an inverted signal. The PIO released control of the pins 
+; while still seting the output pins to a value.
+;
+;-------------------------------------------------------------------------------------------------------------
 case_1:
-    set pins, 0b01 side 0b01
-    pull block side 0b00
-    jmp start side 0b00
 
-; Case 2: Swap zero/PWM outputs
+    set pindirs, 0b10 side 0b01   ; Release pin 0 (let PWM take over), keep pin 1 under PIO control
+    jmp start
+
+;-------------------------------------------------------------------------------------------------------------
+; Case 2: Put the bridge in PWM reverse mode. The first pin is always one, teh second pin will be driven by 
+; the PWM generater. The bridge will then toggle between "0b10" and "0b11", i.e first half active and second 
+; half disconneted. Note that the PWM signal is an inverted signal. The PIO released control of the pins 
+; while still seting the output pins to a value.
+;
+;-------------------------------------------------------------------------------------------------------------
 case_2:
-    set pins, 0b10 side 0b10
-    pull block side 0b00
-    jmp start side 0b00
 
-; Case 3: Track input pins, but delay 4 µs if both inputs are 0
+    set pindirs, 0b01 side 0b10   ; Release pin 1 (let PWM take over), keep pin 0 under PIO control
+    jmp start 
+
+;-------------------------------------------------------------------------------------------------------------
+; Case 3: Track input pins, but delay 4 µs when going from a non-zero setting for the input pins to a zero
+; value for both input pins. 
+;
+; ??? how can we ensure that the change is only done when "00" starts ?
+; ??? should we make the test at the end ?
+;-------------------------------------------------------------------------------------------------------------
 case_3:
-    in pins, 2 side 0b00   ; Read 2-bit input
-    mov y, isr side 0b00
 
-    mov x, y side 0b00      ; Move y into x (to use x--)
-    jmp x--, track_inputs side 0b00  ; If x (y) is NOT zero, jump to track_inputs
+    in pins, 2                          ; Read 2-bit input
+    mov x, isr                          ; move to X register
 
-    set pins, 0 side 0b00  ; Force outputs to 0 for 4 µs
-    set x, 14 side 0b00  ; Delay (~4 µs at 125 MHz)
+    jmp x--, track_inputs side 0b00     ; If x (y) is NOT zero, jump to track_inputs
+
+    set pins, 0 side 0b00               ; Force outputs to 0 for 4 µs
+    set x, 14 side 0b00                 ; Delay (~4 µs at 125 MHz)
+
 delay_loop:
-    jmp x--, delay_loop side 0b00
 
+    jmp x--, delay_loop side 0b11
+
+; Assume side-set uses 2 bits, mapped to `y[1:0]`
 track_inputs:
-    out pins, 2 side 0b00  ; Output = input values
-    pull block side 0b00  ; Wait for a new select value
-    jmp start side 0b00
+        
+    out pins, 2 side 0b00               ; Output = input values, but side-set is fixed
+    out pindirs, 2                      ; Set directions for these outputs
+
+    pull block                          ; Wait for new select value
+    jmp start 
 
 % c-sdk {
 void  h_bridge_control_program_init(PIO pio, uint sm, uint offset, uint out0, uint out1, uint in0, uint in1) {

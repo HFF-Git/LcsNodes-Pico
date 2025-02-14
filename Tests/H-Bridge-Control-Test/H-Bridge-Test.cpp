@@ -41,6 +41,61 @@ void setup_pwm(uint gpio, uint slice, uint channel) {
     pwm_set_enabled(slice, true);
 }
 
+#if 0
+// PIO and PWM need to share the same pin. For PWM modes, the PWM has control, else PIO
+
+// switching can be done in PIO
+// set pindirs 1   ; PIO takes control of the pin
+// set pindirs 0   ; PWM takes control of the pin
+
+// Example:
+
+// .program my_pio_program
+//.side_set 2 opt
+
+// loop:
+//    set pindirs 1 side 0b01  ; PIO takes control
+//    set pins, 1
+//    nop [10]
+//    set pins, 0
+//    nop [10]
+
+//    set pindirs 0 side 0b00  ; PWM takes control
+//    jmp loop
+
+// or in C;
+//
+
+void switch_to_pwm() {
+    gpio_set_function(PWM_PIN, GPIO_FUNC_PWM);  // Give control to PWM
+}
+
+void switch_to_pio() {
+    gpio_set_function(PWM_PIN, GPIO_FUNC_PIO0); // Give control to PIO
+}
+
+
+
+void setup_pio() {
+    PIO pio = pio0;
+    uint sm = 0;  // State machine 0
+
+    uint offset = pio_add_program(pio, &my_pio_program);
+    pio_sm_config c = my_pio_program_get_default_config(offset);
+    
+    sm_config_set_out_pins(&c, PWM_PIN, 1);  // Assign the same pin to PIO
+    sm_config_set_set_pins(&c, PWM_PIN, 1);
+    pio_gpio_init(pio, PWM_PIN);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+#endif
+
+
+
+
 int main() {
     stdio_init_all();
 

@@ -17,7 +17,9 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "atomic": "cpp",
-        "*.pio": "cpp"
+        "*.pio": "cpp",
+        "*.tcc": "cpp",
+        "typeinfo": "cpp"
     },
     "spellright.language": [
         "en"
