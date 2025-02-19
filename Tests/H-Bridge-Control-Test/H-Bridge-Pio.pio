@@ -1,3 +1,57 @@
+; NOTE !!!!!!!! This will not work. Just a first try and error with PIO programs.
+;
+; The case statement is just wring. It needs to be something along the lines:
+; Load the value from the CPU (e.g., x = 3)
+; pull block         ; Get the select value from CPU
+; mov x, osr         ; Store select value in X register
+
+; Test for x == 0 (first jmp x--)
+; jmp x--, skip_0    ; If x != 0, skip the inline case_0 code
+; Case 0: Code for x == 0
+    ; Handle case for x == 0
+    ; dir3ctl 8n     ; Case 0 logic, direct control (no jump needed)
+    ; jmp start      ; Return to start
+
+; skip_0:
+; Test for x == 1 (second jmp x--)
+; jmp x--, skip_1    ; If x != 1, skip the inline case_1 code
+; Case 1: Code for x == 1
+    ; Handle case for x == 1
+    ; dir3ctl 9n     ; Case 1 logic, direct control (no jump needed)
+    ; jmp start      ; Return to start
+
+; skip_1:
+; Test for x == 2 (third jmp x--)
+; jmp x--, skip_2    ; If x != 2, skip the inline case_2 code
+; Case 2: Code for x == 2
+    ; Handle case for x == 2
+    ; dir3ctl 10n    ; Case 2 logic, direct control (no jump needed)
+    ; jmp start      ; Return to start
+
+; skip_2:
+; Final case (x == 3)
+; Case 3: Code for x == 3
+    ; dir3ctl 11n    ; Case 3 logic, direct control (no jump needed)
+    ; jmp start      ; Return to start
+
+
+;
+; NOTE !!!! the pull is not the right idea. We do not want to put constantly somthin into the FIFO.
+; perhaps a way of modiyfing the first instruction with a "MOV X, <num>" is a better idea.
+;
+
+; Finally, we coudl completely leave the "bridge off" and PWM handling to the C-Code. Only for DCC
+; the PIO would be necessary. The challenge is that there may not be enough pins for the quad 
+; controller. 
+
+; I would also like to like to add the RailCom Reading, such that a 2040 with two PIO blocks could 
+; be used too. One PIO block is for the CAN bus, the other for the DCC work.
+;
+; Perhaps give up on the "CUT" input and one LED putput. Then we have two more two pins magcally :-). They
+; will be the DCC signal input.
+;
+
+
 ;-------------------------------------------------------------------------------------------------------------
 ; The LCS block controller manage a a couple of H-Bridges. In order to save elaborate external control logic
 ; hardware, let the PICO PIO state machine do the work. A bridge is controlled by 4 command codes.
