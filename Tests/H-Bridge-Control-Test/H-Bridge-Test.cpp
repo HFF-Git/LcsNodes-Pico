@@ -100,10 +100,10 @@ void setupPioProgramInstance ( int index ) {
 
     printf( "setupPioProgramInstance: index: %d\n", index );
 
-    uint offset = pio_add_program( pio, & h_bridge_control_program );
+    uint offset = pio_add_program( pio, & dcc_h_bridge_control_program );
     sm[ index ] = pio_claim_unused_sm( pio, true );
 
-    h_bridge_control_program_init(  pio, 
+    dcc_h_bridge_control_program_init(  pio, 
                                     sm[ index ], 
                                     offset, 
                                     OUTPUT_PINS[ index ][ 0 ], 
