@@ -71,7 +71,6 @@ uint8_t setupConfigInfo( CDC::CdcConfigDesc *cfg ) {
 
     cfg -> PFAIL_PIN             = 7;
     cfg -> EXT_INT_PIN           = 22;
-    cfg -> READY_LED_PIN         = 14;
     cfg -> ACTIVE_LED_PIN        = 15;
 
     cfg -> DIO_PIN_0             = 9;

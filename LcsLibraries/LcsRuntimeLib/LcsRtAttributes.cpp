@@ -736,23 +736,13 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( ALL_OK );
             }
 
-            case ITEM_ID_CTRL_LEDS: {
+            case ITEM_ID_ACTIVE_LED: {
 
-                int option = (( arg2 == nullptr ) ? 0 : *arg2 );
+                int option = (( arg1 == nullptr ) ? 0 : *arg1 );
 
-                if (( *arg1 == 1 ) || ( *arg1 == 3 )) {
-
-                    if      ( *arg2 == 1 )  return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, true ));
-                    else if ( *arg2 == 2 )  return ( CDC::toggleDio( cdcMap.cfg.READY_LED_PIN ));
-                    else                    return ( CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false ));
-                }
-
-                if (( *arg1 == 2 ) || ( *arg1 == 3 )) {
-
-                    if      ( *arg2 == 1 )  return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true ));
-                    else if ( *arg2 == 2 )  return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
-                    else                    return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false ));
-                }
+                if      ( *arg1 == 1 )  return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true ));
+                else if ( *arg1 == 2 )  return ( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN ));
+                else                    return ( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false ));
             }
 
             default: return ( ERR_INVALID_ITEM_ID );

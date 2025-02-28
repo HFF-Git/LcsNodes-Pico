@@ -55,7 +55,6 @@ void setupConfigInfo( ) {
 
   cfg.PFAIL_PIN             = 7;
   cfg.EXT_INT_PIN           = 22;
-  cfg.READY_LED_PIN         = 14;
   cfg.ACTIVE_LED_PIN        = 15;
 
   cfg.DIO_PIN_0             = 9;
@@ -145,8 +144,8 @@ void testPfail( ) {
   CDC::configureDio( cfg.PFAIL_PIN, CDC::IN );
   CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::EVT_LOW, pfailCallback );
   
-  CDC::configureDio( cfg.READY_LED_PIN, CDC::OUT );
-  CDC::writeDio( cfg.READY_LED_PIN, true );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
+  CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
   
   printf( "testPfail -> unplug the power cord \n" );
 }
@@ -159,17 +158,13 @@ void testLeds( ) {
 
   printf( "testLeds\n" );
 
-  CDC::configureDio( cfg.READY_LED_PIN, CDC::OUT );
   CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
 
   while ( true ) {
 
-    CDC::writeDio( cfg.READY_LED_PIN, true );
-    CDC::sleepMillis( 500 );
     CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
     CDC::sleepMillis( 500 );
-
-    CDC::writeDio( cfg.READY_LED_PIN, false );
+    
     CDC::writeDio( cfg.ACTIVE_LED_PIN, false );
     CDC::sleepMillis( 500 );
   }

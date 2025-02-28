@@ -96,7 +96,6 @@ enum CdcStatus : uint8_t {
 
     MEM_SIZE_ERR        = 10,
 
-    READY_LED_PIN_ERR   = 12,
     ACTIVE_LED_PIN_ERR  = 13,
     BUTTON_PIN_ERR      = 14,
     PFAIL_PIN_ERR       = 15,
@@ -216,7 +215,6 @@ struct CdcConfigDesc {
 
     uint8_t   PFAIL_PIN;
     uint8_t   EXT_INT_PIN;
-    uint8_t   READY_LED_PIN;
     uint8_t   ACTIVE_LED_PIN;
 
     uint8_t   DIO_PIN_0;

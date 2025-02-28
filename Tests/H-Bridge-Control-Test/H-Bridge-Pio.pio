@@ -98,7 +98,7 @@ wait_for_non_zero:
 ; - interrupt the CPU when datagram is received.
 ; - IN pin 0 and JMP pin are both mapped to the GPIO used as UART RX.
 ;
-; - assembles all 6 bytes of the datagram packet
+; - assembles all 8 bytes of the datagram packet
 ;
 ;
 ; 
@@ -106,6 +106,7 @@ wait_for_non_zero:
 .program railcom_datagram_rx
 
 start:
+
     wait 0 pin 0
     set x, 7    [10]
 
@@ -141,7 +142,7 @@ good_stop:
 
 start:
     wait 0 pin 0           ; Wait for start bit
-    set x, 5    [10]      ; Expect 6 characters (0-5)
+    set x, 8    [10]      ; Expect 6 characters (0-5)
 
 bitloop:
     set y, 7             ; 8 bits per character

@@ -322,12 +322,11 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
     CDC::init( ci );
 
-    if ( ci -> READY_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> READY_LED_PIN, CDC::OUT );
     if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
 
     if ( CDC::isConsoleConnected( )) {
 
-        CDC::writeDio( ci -> READY_LED_PIN, true );
+        CDC::writeDio( ci -> ACTIVE_LED_PIN, true );
 
         while ( true ) {
 
@@ -1029,7 +1028,6 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
     if ( rStat == ALL_OK )  rStat = initCdcLayer( cdcConfig );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1, rStat );
 
-    CDC::writeDio( cdcConfig -> READY_LED_PIN, false );
     CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, true );
 
     if ( rStat == ALL_OK )  rStat = initCanBus( cdcConfig );
@@ -1053,12 +1051,8 @@ uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
 
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;
-
-    if ( rStat == ALL_OK )  {
         
-        CDC::writeDio( cdcConfig -> READY_LED_PIN, true );
-        CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, false );
-    }
+    CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, ( rStat == ALL_OK ));
 
     if ( debugMask & ( DBG_CONFIG && DBG_SETUP )) printf( "init LCS runtime, status: %d \n", rStat );
     return ( rStat );

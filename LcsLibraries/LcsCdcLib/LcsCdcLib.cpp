@@ -436,7 +436,6 @@ CDC::CdcConfigDesc getConfigDefaultRP2040( ) {
     // ??? controller family ?
     // ??? what other characteristics ? ( e.g. mem size ? )
 
-    tmp.READY_LED_PIN       = CDC::UNDEFINED_PIN;
     tmp.ACTIVE_LED_PIN      = CDC::UNDEFINED_PIN;
 
     tmp.EXT_INT_PIN         = CDC::UNDEFINED_PIN;
@@ -1579,7 +1578,7 @@ void printConfigInfo( CdcConfigDesc *ci ) {
 
     printf( "Pfail pin: %2d, ExtInt pin: %2d \n", ci -> PFAIL_PIN, ci -> EXT_INT_PIN );
 
-    printf( "ReadyLed pin: %2d, ActiveLed pin: %2d \n", ci -> READY_LED_PIN, ci -> ACTIVE_LED_PIN );
+    printf( "ActiveLed pin: %2d \n", ci -> ACTIVE_LED_PIN );
 
     printf( "DIO pins ( 0 .. 7 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
             ci -> DIO_PIN_0, ci -> DIO_PIN_1, ci -> DIO_PIN_2, ci -> DIO_PIN_3,

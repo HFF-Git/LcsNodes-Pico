@@ -54,7 +54,6 @@ uint8_t initLcsRuntime( ) {
 
     cdcConfig = CDC::getConfigDefault( );
 
-    cdcConfig.READY_LED_PIN         = 14;
     cdcConfig.ACTIVE_LED_PIN        = 15;
     
     cdcConfig.ADC_PIN_0             = 26;

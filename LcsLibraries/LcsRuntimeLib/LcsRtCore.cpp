@@ -195,7 +195,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_BON: {
 
-            CDC::writeDio( cdcMap.cfg.READY_LED_PIN, true );
+            CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true );
             nodeMap.nodeState = NS_OPERATE;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
 
@@ -203,7 +203,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_BOF: {
 
-            CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false );
+            CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false );
             nodeMap.nodeState = NS_HALTED;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
 
@@ -211,8 +211,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_NCOL: {
 
-            CDC::writeDio( cdcMap.cfg.READY_LED_PIN, false );
-            CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true );
+            CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false );
             nodeMap.nodeState = NS_COLLISION;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
 

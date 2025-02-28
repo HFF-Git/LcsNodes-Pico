@@ -421,7 +421,7 @@ enum LcsItems : uint8_t {
     ITEM_ID_EVENT_DELAY_TICKS           = 21,
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
-    ITEM_ID_CTRL_LEDS                   = 34,
+    ITEM_ID_ACTIVE_LED                  = 34,
     
     // ??? add stop and enable periodic processing ?
 };

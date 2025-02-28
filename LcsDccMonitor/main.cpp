@@ -180,7 +180,6 @@ void setupConfigInfo( ) {
   cfg = CDC::getConfigDefault( );
 
   cfg.EXT_INT_PIN           = 22;
-  cfg.READY_LED_PIN         = 14;
   cfg.ACTIVE_LED_PIN        = 15;
 
   CDC::printConfigInfo( &cfg );

@@ -87,8 +87,7 @@ uint8_t setupConfigInfo( ) {
 
     cdcConfig.PFAIL_PIN             = 5;
     cdcConfig.EXT_INT_PIN           = 22;
-    cdcConfig.READY_LED_PIN         = 14;
-    cdcConfig.ACTIVE_LED_PIN        = 15;
+    cdcConfig.ACTIVE_LED_PIN        = 14;
 
     cdcConfig.DIO_PIN_2             = 21; 
     cdcConfig.DIO_PIN_3             = 20;       
