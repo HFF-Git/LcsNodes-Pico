@@ -141,35 +141,40 @@ good_stop:
 .program railcom_datagram_rx_new
 
 start:
-    wait 0 pin 0           ; Wait for start bit
-    set x, 8    [10]      ; Expect 6 characters (0-5)
+    wait 0 pin 0            ; Wait for start bit
+    set x, 7    [10]       ; Expect 8 characters (0-7)
 
 bitloop:
-    set y, 7             ; 8 bits per character
-    in null, 32         ; Clear ISR to prepare for new character
+    set y, 7              ; 8 bits per character
+    in null, 32           ; Clear ISR to prepare for new character
 
 bit_read:
-    in pins, 1          ; Shift data bit into ISR
+    in pins, 1            ; Shift data bit into ISR
     jmp y-- bit_read [6]
 
     ; Check stop bit
-    wait 1 pin 0        ; Wait for stop bit
+    wait 1 pin 0          ; Wait for stop bit
     jmp pin good_stop
 
     ; Error condition
-    irq 5 rel           ; Fire IRQ 5 for error
-    ; set isr, 0x1F     ; Set sticky error flag --- why? just give up the FIFO...
-    push                ; Push the error code to the FIFO
+    mov isr, !null        ; Load 0xFF as error code
+    irq 5 rel             ; Fire IRQ 5 for error
+    push                  ; Push error code to FIFO
     jmp start
 
 
 good_stop:
-    push                ; Push valid character to FIFO
-    jmp x-- bitloop     ; Loop for the next character
+    push                  ; Push valid character to FIFO
+    irq 6 rel             ; Signal partial data available
+    jmp x-- wait_next     ; Wait for next start bit if more characters needed
+
+wait_next:
+    wait 0 pin 0          ; Wait for the next start bit
+    jmp bitloop
 
     ; All characters received
-    irq 4 rel           ; Fire IRQ 4 for completion
-    jmp start           ; Restart
+    irq 4 rel             ; Fire IRQ 4 for full completion
+    jmp start             ; Restart
 
 .wrap
 
