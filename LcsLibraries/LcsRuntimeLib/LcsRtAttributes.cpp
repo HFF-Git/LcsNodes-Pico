@@ -154,15 +154,15 @@ namespace {
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
                             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
-        uint8_t rStat = rtNvmGetWord( ofs, arg );
-        if ( rStat == ALL_OK ) rStat = writeAttrMem( block, item, *arg );
-        
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
 
             printf( "readAttrNvm: block: 0x%x, item: %d, nvm-ofs: 0x%x, data: 0x%x\n",
-                    block, item, ofs, *arg );
+                                        block, item, ofs, *arg );
         }
 
+        uint8_t rStat = rtNvmGetWord( ofs, arg );
+        if ( rStat == ALL_OK ) rStat = writeAttrMem( block, item, *arg );
+        
         return ( errStat( rStat ));
     }
 
@@ -179,15 +179,15 @@ namespace {
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
                             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
         
-        uint8_t rStat = rtNvmPutWord( ofs, arg );
-        if ( rStat == ALL_OK ) rStat = writeAttrMem( block, item, arg );
-
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
 
             printf( "writeAttrNvm: block: 0x%x, item: %d, nvm-ofs: 0x%x, ret: %d, data: 0x%x\n",
-                block, item, ofs, rStat, arg );
+                    block, item, ofs, rStat, arg );
         }
 
+        uint8_t rStat = rtNvmPutWord( ofs, arg );
+        if ( rStat == ALL_OK ) rStat = writeAttrMem( block, item, arg );
+        
         return ( errStat( rStat ));
     }
 
