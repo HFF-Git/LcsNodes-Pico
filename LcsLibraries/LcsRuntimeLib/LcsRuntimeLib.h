@@ -45,7 +45,7 @@ namespace LCS {
 // A node is identified through the node number. Node numbers start with one. The nodeId of zero represents
 // the NIL node Id. The node Id is a 12-bit number, so up to 4095 nodes can be addressed. The nodeId, a
 // unique Id for the LCS nodes in a layout, is also used as the canId used for the CAN bus. Keep in mind
-// that a CAN bus nevertheless can reasonably handle about 127 nodes at the same time.
+// that a CAN bus can reasonably handle about 127 nodes at the same time.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsNodeId : uint16_t {
@@ -56,8 +56,10 @@ enum LcsNodeId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The port Id identifies the port on a node. Port numbers start with one. The port number zero represents 
-// the NIL port number and usually refers to the node itself. A node can have up to 15 ports.
+// Nodes have ports. The port Id identifies the port on a given node. Port numbers start with one. The port 
+// number zero represents the NIL port number and usually refers to the node itself. A node can have up to
+// 15 ports. Often the library functions expect a "node/portId". Which is the concatenation of the 12-bit 
+// node Id with the 4-bit port Id.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsPortId : uint8_t {
@@ -81,7 +83,6 @@ enum LcsEventId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Each locomotive has a type. There are STEAM, DIESEL and ELECTRIC engines so far.
 //
-// ??? additional types ?
 //------------------------------------------------------------------------------------------------------------
 enum DccLocoType : uint8_t {
 
@@ -108,8 +109,8 @@ enum DccSessionId : uint8_t {
 // The cabId is the locomotive number or address. For DCC type locomotives, there is a short and long address
 // for a decoder. The short address ranges from 1 .. 127, the long address from 1 .. to 10239. However, most 
 // base stations support just up to 9999 locomotives IDs and so do we. Analog engines do not really have a 
-// cabId. When an analog engines is introduced to the system by telling the base station about the engine and
-// lo cation, the base station assign a cabId. Refer to the book for the details.
+// cabId. Still, they should have a cabId assigned distinct from any DCC capId used. Refer to the book for 
+// the details.
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccCabId : uint16_t {
@@ -132,7 +133,23 @@ enum DccCvId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A locomotive decoder features up to 69 functions Ids. They are numbered from 0 to 68.
+// "CvModeOptions" is used by the DCC CV variables access routines to specify the access mode. Only options
+// 0 and 1 are supported. The others are there for historic reasons, the functionality was found in older
+// decoders and should not be supported anymore.
+//
+//------------------------------------------------------------------------------------------------------------
+enum DccCvModeOptions : uint8_t {
+
+    CVM_BYTE      = 0,
+    CVM_BIT       = 1,
+    CVM_PAGE      = 2,
+    CVM_REGISTER  = 3,
+    CVM_ADR_ONLY  = 4
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A locomotive decoder features up to 69 functions Ids. They are numbered from 0 to 68. The function Id
+// 255 is used to indicate a NIL function Id. 
 //
 //------------------------------------------------------------------------------------------------------------
 enum DccFuncId : uint8_t {
@@ -155,32 +172,22 @@ enum DccFuncGroupId : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 // DCC decoder function mapping Ids. The LCS system defines a set of functions used by the handhelds such
 // as horn, lights and so on. These identifiers are standardized for our handhelds and mapped to the DCC 
-// function. 
+// function. Note that decoders also feature a function map. This is not to be confused with this mapping. 
 //
+// ??? align with the cabHandheld functions buttons, etc.
 //------------------------------------------------------------------------------------------------------------
 enum LcsDccFuncId : uint8_t {
 
-    NIL_LCS_DCC_FUNC_ID = 0,
-    MIN_LCS_DCC_FUNC_ID = 1,
+    NIL_LCS_DCC_FUNC_ID     = 0,
+    MIN_LCS_DCC_FUNC_ID     = 1,
+
+    LCS_DCC_FUNC_ID_HORN    = 1,
+    LCS_DCC_FUNC_ID_BELL    = 2,
+    LCS_DCC_FUNC_ID_LIGHTS  = 3,
 
     // ??? function IDs go here...
 
-    MAX_LCS_DCC_FUNC_ID = 68
-};
-
-//------------------------------------------------------------------------------------------------------------
-// "CvModeOptions" is used by the DCC CV variables access routines to specify the access mode. Only options
-// 0 and 1 are supported. The others are there for historic reasons, the functionality was found in older
-// decoders and should not be supported anymore.
-//
-//------------------------------------------------------------------------------------------------------------
-enum DccCvModeOptions : uint8_t {
-
-    CVM_BYTE      = 0,
-    CVM_BIT       = 1,
-    CVM_PAGE      = 2,
-    CVM_REGISTER  = 3,
-    CVM_ADR_ONLY  = 4
+    MAX_LCS_DCC_FUNC_ID     = 68
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -201,7 +208,7 @@ enum DccSpeedSteps : uint8_t {
 // to 0 and back. For analog engines, we keep this scheme and map it to the respective power levels.
 //
 //------------------------------------------------------------------------------------------------------------
-enum LocSpeed : uint8_t {
+enum LocoSpeed : uint8_t {
 
     MIN_LOCO_SPEED      = 0,
     ESTOP_LOCO_SPEED    = 1,
@@ -221,7 +228,8 @@ enum LocoDirection : uint8_t {
 
 //------------------------------------------------------------------------------------------------------------
 // "LocSessionModes" specify the options when creating a session for the loco. Besides creating a normal
-// session an existing session can be taken over or even shared among multiple handhelds.
+// session an existing session can be taken over or even shared among multiple handhelds. The base station
+// session management will keep track of the session mode.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LocoSessionModes : uint8_t {
@@ -233,33 +241,15 @@ enum LocoSessionModes : uint8_t {
 
 
 // ??? merge node and port types ? can a user set this type ?
-
-// there are SW and board types ....
-
-// a 16-bit word: 4bits controller family, 6 bits type and 6 bits subtype.
-
 // a 16-bit word: 4bits controller family, 6 bits major and 6 bits minor version.
-
-// ??? should we in addition also have a user defined type/version word  ?
-
-//------------------------------------------------------------------------------------------------------------
-// A node type can be assigned to a node. NodeId types start with one. The nodeType of zero represents the
-// NIL node type. A node type is arbitrarily defined by the firmware programmer.
-//
-//------------------------------------------------------------------------------------------------------------
-enum LcsNodeTypeId : uint8_t {
-
-    NIL_NODE_TYPE     = 0,
-    MIN_NODE_TYPE_ID  = 1,
-    MAX_NODE_TYPE_ID  = 255
-};
 
 //------------------------------------------------------------------------------------------------------------
 // A port type can be assigned to a port. Port types start with one. The portType of zero represents the
-// NIL port type. A port type is arbitrarily defied by the firmware programmer.
+// NIL port type. A port type is arbitrarily defined by the firmware programmer. The port type for port 
+// zero represents the node type.
 //
 //------------------------------------------------------------------------------------------------------------
-  enum LcsPortTypeId : uint8_t {
+  enum LcsPortTypeId : uint16_t {
 
     NIL_PORT_TYPE     = 0,
     MIN_PORT_TYPE_ID  = 1,
@@ -301,34 +291,35 @@ enum LcsControllerFamilyType : uint16_t {
     CF_FAM_NXP              = 4
 };
 
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
-// The configuration descriptor and port map have a field for options. The following constants define the
-// options that can be set. There are options that only apply to port zero, which is the node itself.
+// The node and ports have field in the portMap for configuration options that can be set. Most options apply
+// only to port zero, which is the node itself. The constants defined here indicate the bit positions and fields
+// defined.
 //
-//  NOPT_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
+//  NPO_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
 //
-//  NOPT_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
+//  NPO_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
 //
-//  NOPT_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask of nodeMap
+//  NPO_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask of nodeMap
+//
+//  NPO_DISABLE_WATCHDOG    - disable the watch dog timer.
+//
+//  NPO_FORMAT_RUNTIME      - format the non-volatile runtime structures in any case.
 //
 //------------------------------------------------------------------------------------------------------------
 enum LcsNodePortOptions : uint16_t {
 
     NPO_NIL                     = 0,
     NPO_SKIP_NODE_ID_CONFIG     = ( 1 << 0 ),
-    NPO_DEBUG_DURING_SETUP      = ( 1 << 1 ),
+    NPO_DEBUG_DURING_SETUP      = ( 1 << 1 )
     NPO_DISABLE_WATCHDOG        = ( 1 << 2 ),
     NPO_FORMAT_RUNTIME          = ( 1 << 3 ),
 
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The portMap entry has a flag field. The constants defined here indicate the bit positions and fields
-// defined.
+// The portMap entry has a flag field. Again, the flags in port zero refers to the node flags. The constants
+// defined here indicate the bit positions and fields defined.
 //
 //  NPF_PORT_ENABLED                    -   the port is initialized and active. P0 is always enabled.
 //
@@ -361,6 +352,23 @@ enum LcsNodePortFlags : uint16_t {
     NPF_EXT_BOARD_READY                 = ( 1U << 6 )
 };
 
+//----------------------------------------------------------------------------------------------------------
+// The port event action. When an event is received, it will be of the type shown below. 
+//
+//  PEA_EVENT_IDLE                - the port is idle.
+//  PEA_EVENT_ON                  - an "ON" event was received.
+//  PEA_EVENT_OFF                 - an "OFF" event was received.
+//  PEA_EVENT_EVT                 - an event with additional arguments was received.
+//
+//----------------------------------------------------------------------------------------------------------
+enum LcsPortEventAction : uint8_t {
+
+    PEA_EVENT_IDLE    = 0,
+    PEA_EVENT_ON      = 1,
+    PEA_EVENT_OFF     = 2,
+    PEA_EVENT_EVT     = 3
+};
+
 //------------------------------------------------------------------------------------------------------------
 // Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. 
 //
@@ -383,6 +391,7 @@ enum LcsNodePortFlags : uint16_t {
 // include file. The ranges as well as the reserved items defined here should not be tampered with.
 //
 // ??? to be sorted when more stable...
+// ??? how about an item that allows to set / clear a bit in a mask ?
 //------------------------------------------------------------------------------------------------------------
 enum LcsItems : uint8_t {
 
@@ -426,32 +435,12 @@ enum LcsItems : uint8_t {
     // ??? add stop and enable periodic processing ?
 };
 
-
-//----------------------------------------------------------------------------------------------------------
-// The port event action. When an event is received, it will be of the type shown below. There is an 
-// optional port specific time delay configured between the actual receipt of an event message and the 
-// invocation of the event callback.
-//
-//  PEA_EVENT_IDLE                - the port is idle.
-//  PEA_EVENT_ON                  - an "ON" event was received.
-//  PEA_EVENT_OFF                 - an "OFF" event was received.
-//  PEA_EVENT_EVT                 - an event with additional arguments was received.
-//
-//----------------------------------------------------------------------------------------------------------
-enum LcsPortEventAction : uint8_t {
-
-    PEA_EVENT_IDLE    = 0,
-    PEA_EVENT_ON      = 1,
-    PEA_EVENT_OFF     = 2,
-    PEA_EVENT_EVT     = 3
-};
-
 //------------------------------------------------------------------------------------------------------------
 // The debug mask. The library has a debug mask where each major part of the library has a flag. There could 
-// also be flags reserved for the firmware. There is an ITEM to read and set this mask. Wherever debugging is
-// needed, the bit mask will be used to determine whether to print debugging data or not. From a performance 
-// perspective, the test will take just a few instructions. In other words we do not take out debugging code 
-// when going into production. Never liked this approach of conditional debug anyway.
+// also be flags reserved for the firmware. There is an ITEM request code to read and set this mask. Wherever
+// debugging is needed, the bit mask will be used to determine whether to print debugging data or not. From
+// a performance perspective, the test will take just a few instructions. In other words we do not take out
+// debugging code when going into production. Never liked this approach of conditional debug code anyway.
 //
 // The usage of the debug mask is generally: 
 //
@@ -548,7 +537,6 @@ enum LcsMsgOpCodes : uint8_t {
 // The numbers are grouped in a LCS library portion and a user firmware portion. The LCS library portion
 // ranges from 1 to 127, the user portion from 128 to 255. The value of zero is generally an "OK".
 //
-// ??? add NVM errors, also CDC errors ?
 //----------------------------------------------------------------------------------------------------------
 enum LcsErrorCodes : uint8_t {
 
@@ -613,7 +601,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_CAN_ID_COLLISION                = 87,
     ERR_CAN_ID_CHANGED                  = 88,
 
-    ERR_EXT_BOARD_NOT_VALID             = 254,
+    ERR_EXT_BOARD_NOT_VALID             = 90,
 
     ERR_USER_SPECIFIC_BASE              = 128
 };
@@ -653,9 +641,9 @@ enum MsgPriority : uint8_t {
     MSG_PRI_LOW         = 3
 };
 
-//----------------------------------------------------------------------------------------------------------
-// Core library callback function signatures. Callbacks are registered by the firmware at setup time and
-// invoked as the communication back to the firmware layer.
+//------------------------------------------------------------------------------------------------------------
+// Core library callback function signatures. The entire runtime works with a set of APIs to invoke a 
+// function and callbacks to get any results. Callbacks are registered by the firmware at setup time.
 //
 //      LcsInitCallback     -   a callback called at initialization time, as part of "startRuntime". The
 //                              npId is passed so that the callback can detect wether a port or node is 
@@ -686,7 +674,7 @@ enum MsgPriority : uint8_t {
 //          
 // All callback functions need to return a status, which is ALL_OK if the callback was successful.
 // 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 extern "C" {
 
     typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId );
@@ -701,12 +689,12 @@ extern "C" {
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // "LcsConfigDesc" is the data structure that contains initial data for setting up a node. There is the 
 // option field with bits.
 //
 // ??? also add the CAN bus mode ?
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 struct LcsConfigDesc {
 
     uint16_t options    = 0;
@@ -715,39 +703,31 @@ struct LcsConfigDesc {
 
 //------------------------------------------------------------------------------------------------------------
 // Library functions. The main function are the initialization and start of the LCS runtime. Between "init"
-// and "start", the firmware should do its own setup and register the required callbacks. We will not return
-// from the "start" routine. All call a plain C style library calls. Since we have only one instance of this
-// library, there is not really a need to encapsulate the internal data and function pointers in a structure
-// that is passed to each call. However, data structures are kept wherever possible local to the file and
-// only structures that are references throughout the library file set are available externally. Perhaps
-// one day, we encapsulate all data in a private structure for security reasons. To be determined.
+// and "start", the firmware should do its own setup and register the necessary callbacks. We will not return
+// from the "start" routine. All calls are a plain C style library calls. 
 // 
-// ??? may have a routine to init the runtime just based on the board type ?
 //------------------------------------------------------------------------------------------------------------
 LcsConfigDesc       getConfigDefault( );
 uint8_t             initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig );
 uint8_t             startRuntime( );
 
-//----------------------------------------------------------------------------------------------------------
-// Access the node local GET/SET/REQ items. Although we pass the node/port Id, only the port Id is actually
-// used to identify whether we refer to a local port or the local node. Accessing a remote node / port is
-// implemented with the LCS library message send calls.
-//
-// ??? how about a routine to update a mask ? We often have the case to set / clear a bit in a mask. We 
-// could pass the mask with the bit position set to set or clear the mask word.
+//------------------------------------------------------------------------------------------------------------
+// Routines to access the node/port GET/SET/REQ items. The first argument is the node/port Id. A node Id of 
+// zero refers to the local node and the calls are direct procedure calls. A non-zero node will refer to
+// another node, and a message is broadcasted.
 //
 // ??? howe about a scheme where we have blocking calls ? When we send the request, the reply will contain
 // the reply node and port. So, we could filter on that node and port. It would mean however that you will
 // wait ( perhaps with a timeout ) for the outstanding request.
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
 uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
 uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // Function registration routines for callbacks, tasks, driver types, etc.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 uint8_t             registerInitCallback( LcsInitCallback handler );
 uint8_t             registerPfailCallback( LcsPfailCallback handler );
 uint8_t             registerLcsMsgCallback( LcsMsgCallback functionId );
@@ -759,10 +739,10 @@ uint8_t             registerReqCallback( LcsReqCallback handler, uint16_t portMa
 uint8_t             registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
 uint8_t             registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 uint8_t             sendCfg( uint16_t npId );
 uint8_t             sendOps( uint16_t npId );
 uint8_t             sendReset( uint16_t npId );
