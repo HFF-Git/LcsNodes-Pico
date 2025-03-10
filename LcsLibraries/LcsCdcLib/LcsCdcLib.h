@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <cstring>
+#include "LcsCdcLibVersion.h"
 
 //------------------------------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.

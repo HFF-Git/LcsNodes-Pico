@@ -3,14 +3,14 @@
 // Layout Control System - Runtime Library Firmware Update.
 //
 //------------------------------------------------------------------------------------------------------------
-// This file contains the part of he runtime library that deals with the remote firmware update.
+// This file contains the part of the runtime library that deals with the remote firmware update.
 //
 //
 // ??? highly processor family dependent... what to abstract ?
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Runtime Library Firmware Update.
-// Copyright (C) 2021 - 2025  Helmut Fieres
+// Layout Control System - Runtime Library Firmware Update.
+// Copyright (C) 2025 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -26,13 +26,12 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// External declaration to global structures defined in "LcsRtSetup".
+/// The implementation file local declarations and routines.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
     using namespace LCS;
-
 
     //--------------------------------------------------------------------------------------------------------
     // "crc16_ccitt" is used to build a CRC-16 checksum over the data block.
@@ -56,7 +55,6 @@ namespace LCS {
         return crc;
     }
 
-
     //--------------------------------------------------------------------------------------------------------
     // "crc32_update" is used to build a checksum over a series of blocks, since we can only handle one
     // block transfer at a time.
@@ -77,6 +75,21 @@ namespace LCS {
         
         return crc;
     }
+
+} // namespace
+
+
+//------------------------------------------------------------------------------------------------------------
+// The LCS name space routines declared in this file.
+//
+// ??? a lot of work ahead, explain the ideas and concepts.
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace LCS {
+
+
 
     #if 0
 
@@ -110,15 +123,6 @@ namespace LCS {
     // now, all we need is to define LCS messages that send the data in 8-byte messages, 
     // accumulate the data in 1Kbyte data blocks, verify the block checksum, update the
     // CRC32 checksum and finally test the overall checksum.
-
-} // namespace
-
-
-//------------------------------------------------------------------------------------------------------------
-// The LCS name space routines declared in this file.
-//
-//------------------------------------------------------------------------------------------------------------
-namespace LCS {
 
 
 } // LCS namespace

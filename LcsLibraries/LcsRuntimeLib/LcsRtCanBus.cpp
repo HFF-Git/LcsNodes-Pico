@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// "LcsMsgBusCAN" - CAN Bus Interface for Raspberry PI Pico
+// Layout Control System - Can Bus Interface Library, based on "can2040" library
 //
 //------------------------------------------------------------------------------------------------------------
 // The "LcsMsgBusCAN" object implements the LCS message bus as a CAN bus. The CAN bus is a widely established
@@ -15,7 +15,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Can Bus Interface Library
+// Layout Control System - Can Bus Interface Library, based on "can2040" library
 // Copyright (C) 2022 - 2025,  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -99,6 +99,20 @@ struct Can2040ConfigDesc {
 Can2040ConfigDesc       cfg;
 struct can2040          cBus;
 queue_t                 rxQueue;
+
+//------------------------------------------------------------------------------------------------------------
+// Utility functions.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t errStat( uint8_t errId ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+
+        printf( "Ret: %d\n", errId );
+    }
+
+    return ( errId );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes the canId itself and
@@ -224,10 +238,13 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
 
-        printf( "Init Can Bus -> Node: %d, Rx: %d, Tx: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
+        printf( "Init Can Bus -> Node: 0x%x, RxPin: %d, TxPin: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
     }
 
-    if (( rxPin == CDC::UNDEFINED_PIN ) || ( txPin == CDC::UNDEFINED_PIN )) return ( ERR_CAN_BUS_INIT );
+    if (( rxPin == CDC::UNDEFINED_PIN ) || ( txPin == CDC::UNDEFINED_PIN )) {
+    
+        return ( errStat( ERR_CAN_BUS_INIT ));
+    }
 
     this -> canId = canId;
 
@@ -267,7 +284,7 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
         else canBusCore( );
     }
 
-    return (( cfg.mcSetupOK ) ? ALL_OK : ERR_CAN_BUS_INIT );
+    return (( cfg.mcSetupOK ) ? errStat( ALL_OK ) : errStat( ERR_CAN_BUS_INIT ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -301,7 +318,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
         if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
         else                              return ( ERR_CAN_MSG_SEND );
 
-    } else return ( ALL_OK );
+    } else return ( errStat( ALL_OK ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -339,7 +356,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
         if (( remoteCanId == canId ) && ( msg.dlc > 0 )) {
 
-            return ( ERR_CAN_ID_COLLISION );
+            return ( errStat( ERR_CAN_ID_COLLISION ));
         }
         else if ( rtrFlag ) {
 
@@ -349,15 +366,15 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
             msg.data32[ 1 ] = 0;
 
             can2040_transmit( &cBus, &msg );
-            return ( ERR_CAN_MSG_NO_MSG );
+            return ( errStat( ERR_CAN_MSG_NO_MSG ));
         }
         else {
 
             memcpy( msgBuf, msg.data, msg.dlc );
-            return ( ALL_OK );
+            return ( errStat( ALL_OK ));
         }
     }
-    else return ( ERR_CAN_MSG_NO_MSG );
+    else return ( errStat( ERR_CAN_MSG_NO_MSG ));
 }
 
 }; // namespace LCS

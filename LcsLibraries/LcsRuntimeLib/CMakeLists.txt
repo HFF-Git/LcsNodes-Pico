@@ -18,6 +18,8 @@ set( CMAKE_CXX_STANDARD 17 )
 # available as only source files. Not very elegant yet. But it works.
 
 add_library( ${PROJECT_NAME} STATIC    
+
+    LcsRtLibVersion.h
     LcsRuntimeLib.h 
     LcsRtLibInt.h 
     LcsRtAttributes.cpp 

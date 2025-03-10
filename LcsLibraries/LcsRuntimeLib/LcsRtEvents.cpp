@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Layout Control System - implementation file.
+// Layout Control System - Event processing.
 //
 //------------------------------------------------------------------------------------------------------------
 // The file contains the part of the LCS Runtime Library that implements the node event handling. At the
@@ -21,7 +21,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Runtime Library
+// Layout Control System - Event processing.
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -39,7 +39,7 @@
 #include <stdlib.h>
 
 //------------------------------------------------------------------------------------------------------------
-// External declaration to global structures defined in "LcsRtSetup".
+// External declaration to global structures and functions.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
@@ -61,12 +61,22 @@ namespace {
 using namespace LCS;
 
 //------------------------------------------------------------------------------------------------------------
-// Utility routines for number range check.
+// Utility routines.
 //
 //------------------------------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
+}
+
+uint8_t errStat( uint8_t errId ) {
+
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
+
+        printf( "Ret: %d\n", errId );
+    }
+
+    return ( errId );
 }
 
 //-------------------------------------------------------------------------------------------------------------
@@ -110,7 +120,11 @@ int searchEventMap( uint16_t eventId ) {
         }
     }
     
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "-> %d\n", res );
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) {
+        
+        printf( "-> %d\n", res );
+    }
+
     return ( res );
 }
 
@@ -131,10 +145,10 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     if ( index >= 0 ) {
 
         eventMap.map[ index ].eventMask; 
-        return ( ALL_OK );
+        return ( errStat( ALL_OK ));
     }  
 
-    if ( eventMap.mapHwm >= MAX_EVENT_MAP_ENTRIES )  return ( ERR_EVENT_MAP_FULL );
+    if ( eventMap.mapHwm >= MAX_EVENT_MAP_ENTRIES ) return ( errStat( ERR_EVENT_MAP_FULL ));
 
     index = eventMap.mapHwm;
 
@@ -151,7 +165,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     eventMap.map[ index ].eventMask = eventMask;
     eventMap.mapHwm++;
 
-    return ( ALL_OK );
+    return ( errStat( ALL_OK ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -175,7 +189,7 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
             eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
-    return ( ALL_OK );
+    return ( errStat( ALL_OK ));
 }
 
 } // namespace
@@ -192,8 +206,8 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 
-    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
-    return( addToMemEventMap( eventId, eventMask ));
+    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( errStat( ERR_INVALID_EVENT_ID ));
+    return ( errStat( addToMemEventMap( eventId, eventMask )));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -203,8 +217,8 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId ) {
 
-    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
-    return( removeFromMemEventMap( eventId ));
+    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( errStat( ERR_INVALID_EVENT_ID ));
+    return ( errStat( removeFromMemEventMap( eventId )));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -215,8 +229,8 @@ uint8_t removeEvent( uint16_t eventId ) {
 //------------------------------------------------------------------------------------------------------------
 int searchEvent( uint16_t eventId ) {
 
-    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( ERR_INVALID_EVENT_ID );
-    return( searchEventMap( eventId ));
+    if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( errStat( ERR_INVALID_EVENT_ID ));
+    return ( searchEventMap( eventId ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -227,7 +241,10 @@ int searchEvent( uint16_t eventId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) printf( "sync EventMap \n" );  
+    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_EVENTS )) { 
+        
+        printf( "sync EventMap \n" );  
+    }
 
     uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
                                     (uint8_t *) eventMap.map, 
@@ -239,7 +256,7 @@ uint8_t syncEventMap( ) {
         rStat = rtNvmPutWord( ofs, eventMap.mapHwm );
     }
 
-    return ( rStat );
+    return ( errStat( rStat ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -258,9 +275,9 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask 
 
         *eventId    = eventMap.map[ index ].eventId;
         *eventMask  = eventMap.map[ index ].eventMask;
-        return ( ALL_OK );
+        return ( errStat( ALL_OK ));
     }
-    else return ( ERR_INVALID_EVENT_MAP_INDEX );
+    else return ( errStat( ERR_INVALID_EVENT_MAP_INDEX ));
 }
 
 };

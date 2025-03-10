@@ -19,7 +19,9 @@
         "atomic": "cpp",
         "*.pio": "pio",
         "*.tcc": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
     },
     "spellright.language": [
         "en"

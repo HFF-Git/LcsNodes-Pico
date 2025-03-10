@@ -65,27 +65,27 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
 uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
 
-    return(( nodeId << 4 ) | ( portId & 0xF ));
+    return (( nodeId << 4 ) | ( portId & 0xF ));
 }
 
 uint16_t nodeId( uint16_t npId ) {
 
-    return( npId >> 4 );
+    return ( npId >> 4 );
 }
 
 uint16_t portId( uint16_t npId ) {
 
-    return( npId & 0xF );
+    return ( npId & 0xF );
 }
 
 uint8_t lowByte( uint16_t arg ) { 
     
-    return( arg & 0xFF ); 
+    return ( arg & 0xFF ); 
 }
 
 uint8_t highByte( uint16_t arg ) { 
     
-    return( arg >> 8 ); 
+    return ( arg >> 8 ); 
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -181,8 +181,8 @@ void processPendingReqMapTimeouts( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return( ERR_LIB_NOT_READY );
-    return( msgBus -> sendLcsMsg( msg, msgPri ));
+    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    return ( msgBus -> sendLcsMsg( msg, msgPri ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -314,13 +314,13 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t npId ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_CFG };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
 
-    return( sendTimedReq( npId, msgBuf,  MSG_PRI_HIGH , 0 ));
+    return ( sendTimedReq( npId, msgBuf,  MSG_PRI_HIGH , 0 ));
 }
 
 uint8_t sendOps( uint16_t npId ) {
@@ -329,7 +329,7 @@ uint8_t sendOps( uint16_t npId ) {
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
 
-    return( sendTimedReq( npId, msgBuf,  MSG_PRI_HIGH , 0 ));
+    return ( sendTimedReq( npId, msgBuf,  MSG_PRI_HIGH , 0 ));
 }
 
 uint8_t sendReset( uint16_t npId ) {
@@ -440,7 +440,7 @@ uint8_t sendGetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
     msgBuf[ 5 ] = lowByte( val1 );
     msgBuf[ 6 ] = highByte( val2 );
     msgBuf[ 7 ] = lowByte( val2 );
-    return( sendTimedReq( npId, msgBuf,  MSG_PRI_NORMAL, 0 ));
+    return ( sendTimedReq( npId, msgBuf,  MSG_PRI_NORMAL, 0 ));
 }
 
 uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
@@ -453,7 +453,7 @@ uint8_t sendSetNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
     msgBuf[ 5 ] = lowByte( val1 );
     msgBuf[ 6 ] = highByte( val2 );
     msgBuf[ 7 ] = lowByte( val2 );
-    return( sendTimedReq( npId, msgBuf,  MSG_PRI_NORMAL, 0 ));
+    return ( sendTimedReq( npId, msgBuf,  MSG_PRI_NORMAL, 0 ));
 }
 
 uint8_t sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
@@ -466,7 +466,7 @@ uint8_t sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 )
     msgBuf[ 5 ] = lowByte( val1 );
     msgBuf[ 6 ] = highByte( val2 );
     msgBuf[ 7 ] = lowByte( val2 );
-    return( sendTimedReq( npId, msgBuf,  MSG_PRI_LOW, 0 ));
+    return ( sendTimedReq( npId, msgBuf,  MSG_PRI_LOW, 0 ));
 }
 
 uint8_t sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
@@ -489,9 +489,9 @@ uint8_t sendEventOn( uint16_t npId, uint16_t eventId ) {
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
-    
-    if ( nodeId( npId ) == nodeMap.nodeId ) return( localMsgEvent( msgBuf ));
-    else                                    return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+
+    localMsgEvent( msgBuf );
+    return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));                                  
 }
 
 uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
@@ -502,8 +502,8 @@ uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
     msgBuf[ 3 ] = highByte( eventId );
     msgBuf[ 4 ] = lowByte( eventId );
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) return( localMsgEvent( msgBuf ));
-    else                                    return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+    localMsgEvent( msgBuf );
+    return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));  
 }
 
 uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
@@ -516,8 +516,8 @@ uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
     msgBuf[ 5 ] = highByte( arg );
     msgBuf[ 6 ] = lowByte( arg );
 
-    if ( nodeId( npId ) == nodeMap.nodeId ) return( localMsgEvent( msgBuf ));
-    else                                    return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));
+    localMsgEvent( msgBuf );
+    return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));  
 }
 
 uint8_t sendTrackOn( ) {
@@ -744,5 +744,7 @@ uint8_t sendDccErr( uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
     msgBuf[ 3 ] = arg2;
     return ( sendLcsMsg( msgBuf, MSG_PRI_LOW ));
 }
+
+// ??? add firmware update messages...
 
 }; // namespace LCS

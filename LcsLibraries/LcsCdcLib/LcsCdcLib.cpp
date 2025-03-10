@@ -135,7 +135,7 @@ const uint32_t VALID_SPI_1_PINS     = VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS
 //
 //----------------------------------------------------------------------------------------------------------
 const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO;
-const uint32_t CHIP_MEM_SIZE              = 264 * 1024;
+const uint32_t CHIP_MEM_SIZE              = 264 * 1024;         // ??? not true for RP2350
 const uint32_t CHIP_NVM_SIZE              = 0;
 
 const uint16_t ADC_DIGIT_RANGE            = 1024;
@@ -198,6 +198,9 @@ struct PwmInst {
     uint        channel     = 0;
     uint        sliceNum    = 0;
 };
+
+// ??? have a PWM pair instance ? would make things a bit easier ...
+// ??? or just havea PWM instance with two pins, one of them optinal...
 
 //------------------------------------------------------------------------------------------------------------
 // A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two
@@ -347,12 +350,12 @@ uint32_t mapGpioIntEvent( uint8_t event ) {
 
     switch ( event ) {
 
-        case CDC::EVT_LOW:     return( GPIO_IRQ_LEVEL_LOW );
-        case CDC::EVT_HIGH:    return( GPIO_IRQ_LEVEL_HIGH );
-        case CDC::EVT_FALL:    return( GPIO_IRQ_EDGE_FALL );
-        case CDC::EVT_RISE:    return( GPIO_IRQ_EDGE_RISE );
-        case CDC::EVT_CHANGE:  return( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
-        default:      return( 0 );
+        case CDC::EVT_LOW:     return ( GPIO_IRQ_LEVEL_LOW );
+        case CDC::EVT_HIGH:    return ( GPIO_IRQ_LEVEL_HIGH );
+        case CDC::EVT_FALL:    return ( GPIO_IRQ_EDGE_FALL );
+        case CDC::EVT_RISE:    return ( GPIO_IRQ_EDGE_RISE );
+        case CDC::EVT_CHANGE:  return ( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
+        default:      return ( 0 );
     }
 }
 
@@ -364,11 +367,11 @@ uint8_t mapPicoGpioEvent( uint32_t event ) {
 
     switch ( event ) {
 
-        case GPIO_IRQ_LEVEL_LOW:  return( CDC::EVT_LOW );
-        case GPIO_IRQ_LEVEL_HIGH: return( CDC::EVT_HIGH );
-        case GPIO_IRQ_EDGE_FALL:  return( CDC::EVT_FALL );
-        case GPIO_IRQ_EDGE_RISE:  return( CDC::EVT_RISE );
-        default:                  return( 0 );
+        case GPIO_IRQ_LEVEL_LOW:  return ( CDC::EVT_LOW );
+        case GPIO_IRQ_LEVEL_HIGH: return ( CDC::EVT_HIGH );
+        case GPIO_IRQ_EDGE_FALL:  return ( CDC::EVT_FALL );
+        case GPIO_IRQ_EDGE_RISE:  return ( CDC::EVT_RISE );
+        default:                  return ( 0 );
     }
 }
 
@@ -534,7 +537,7 @@ void setDebugMask( uint16_t mask ) {
 
 uint16_t getDebugMask( ) {
 
-    return( debugMask );
+    return ( debugMask );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -634,24 +637,24 @@ uint8_t configureWatchDog( uint32_t millis ) {
 
     cdcWatchDog.intervalMillis = millis;
     cdcWatchDog.configured     = true;
-    return( NO_ERR );
+    return ( NO_ERR );
 }
 
 uint8_t watchDogEnable( bool enable ) {
 
     watchdog_enable( cdcWatchDog.intervalMillis, 1 );
-    return( NO_ERR );
+    return ( NO_ERR );
 }
 
 uint8_t watchDogUpdate( ) {
 
     watchdog_update( );
-    return( NO_ERR );
+    return ( NO_ERR );
 }
 
 bool watchDogCausedReboot( ) {
 
-    return( watchdog_caused_reboot( ));
+    return ( watchdog_caused_reboot( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -741,12 +744,12 @@ uint32_t createUid( ) {
 // Finally, there is a routine to get a character for the command interfaces. Since the function just reads
 // in a character, optionally with a timeout how long to wait for any inout.
 //
-// PS: The USB check way would be "return( stdio_usb_connected( ));" instead of the GPIO check.
+// PS: The USB check way would be "return ( stdio_usb_connected( ));" instead of the GPIO check.
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureConsoleIO( ) {
 
     stdio_init_all( );
-    return( NO_ERR );
+    return ( NO_ERR );
 }
 
 bool isConsoleConnected( ) {
@@ -754,13 +757,13 @@ bool isConsoleConnected( ) {
     gpio_init( PICO_VBUS_PIN );
     gpio_set_dir( PICO_VBUS_PIN, GPIO_IN );
 
-    return( gpio_get( PICO_VBUS_PIN ));
+    return ( gpio_get( PICO_VBUS_PIN ));
 }
   
 char getConsoleChar( uint32_t timeoutVal ) {
 
     int ch = getchar_timeout_us( timeoutVal );
-    return(( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
+    return (( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1055,7 +1058,7 @@ uint8_t startUartRead( uint8_t rxPin ) {
     else if ( rxPin == cdcUart3.rxPin ) uart = &cdcUart3;
     else                                return ( UART_PORT_ERR );
 
-    if ( ! uart -> configured ) return( UART_PORT_ERR );
+    if ( ! uart -> configured ) return ( UART_PORT_ERR );
 
     if (( uart != nullptr ) && ( uart -> uartMode == UART_MODE_8N1 )) {
 
@@ -1080,7 +1083,7 @@ uint8_t stopUartRead( uint8_t rxPin ) {
     else if ( rxPin == cdcUart3.rxPin ) uart = &cdcUart3;
     else                                return ( UART_PORT_ERR );
 
-    if ( ! uart -> configured ) return( UART_PORT_ERR );
+    if ( ! uart -> configured ) return ( UART_PORT_ERR );
 
     if ( uart ->uartMode == UART_MODE_8N1 ) {
 
@@ -1104,7 +1107,7 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
     else if ( rxPin == cdcUart3.rxPin ) uart = &cdcUart3;
     else                                return ( UART_PORT_ERR );
 
-    if ( ! uart -> configured ) return( UART_PORT_ERR );
+    if ( ! uart -> configured ) return ( UART_PORT_ERR );
 
     if (( uart -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
 
@@ -1142,14 +1145,14 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 //------------------------------------------------------------------------------------------------------------
 PwmInst *lookupPwmInst( uint8_t pwmPin ) {
 
-    if      ( pwmPin == cfg.PWM_PIN_0 ) return( &cdcPwm0 );
-    else if ( pwmPin == cfg.PWM_PIN_1 ) return( &cdcPwm1 );
-    else if ( pwmPin == cfg.PWM_PIN_2 ) return( &cdcPwm2 );
-    else if ( pwmPin == cfg.PWM_PIN_3 ) return( &cdcPwm3 );
-    else if ( pwmPin == cfg.PWM_PIN_4 ) return( &cdcPwm4 );
-    else if ( pwmPin == cfg.PWM_PIN_5 ) return( &cdcPwm5 );
-    else if ( pwmPin == cfg.PWM_PIN_6 ) return( &cdcPwm6 );
-    else if ( pwmPin == cfg.PWM_PIN_7 ) return( &cdcPwm7 );
+    if      ( pwmPin == cfg.PWM_PIN_0 ) return ( &cdcPwm0 );
+    else if ( pwmPin == cfg.PWM_PIN_1 ) return ( &cdcPwm1 );
+    else if ( pwmPin == cfg.PWM_PIN_2 ) return ( &cdcPwm2 );
+    else if ( pwmPin == cfg.PWM_PIN_3 ) return ( &cdcPwm3 );
+    else if ( pwmPin == cfg.PWM_PIN_4 ) return ( &cdcPwm4 );
+    else if ( pwmPin == cfg.PWM_PIN_5 ) return ( &cdcPwm5 );
+    else if ( pwmPin == cfg.PWM_PIN_6 ) return ( &cdcPwm6 );
+    else if ( pwmPin == cfg.PWM_PIN_7 ) return ( &cdcPwm7 );
     else                                return ( nullptr );
 }
 
@@ -1160,20 +1163,20 @@ PwmInst *lookupPairPinInst( uint8_t pwmPin ) {
 
     // ??? need to find the channel. If channel is zero then we are the lower pin number...
 
-    if ( pwm_gpio_to_channel( pwmPin )) return( lookupPwmInst( pwmPin + 1 ));
-    else                                return( lookupPwmInst( pwmPin - 1 ));
+    if ( pwm_gpio_to_channel( pwmPin )) return ( lookupPwmInst( pwmPin + 1 ));
+    else                                return ( lookupPwmInst( pwmPin - 1 ));
 }
 
 // ??? should we rather have a function to configure a pair ?
 uint8_t configurePwmPair( uint8_t pwmPin1, uint8_t pwmPin2, uint32_t pwmFreqency, bool phaseCorrect, bool inverted  ) {
 
-    return( NO_ERR );
+    return ( NO_ERR );
 }
 
 uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
 
     PwmInst *pwm = lookupPwmInst( pwmPin );
-    if ( pwm == nullptr ) return( PWM_PIN_ERR );
+    if ( pwm == nullptr ) return ( PWM_PIN_ERR );
 
     PwmInst *pwmPair = lookupPairPinInst( pwm -> pwmPin );
 
@@ -1231,7 +1234,7 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     }
    
     PwmInst *pwm = lookupPwmInst( pwmPin );
-    if (( pwm == nullptr ) && ( ! pwm -> configured )) return( PWM_PIN_ERR );
+    if (( pwm == nullptr ) && ( ! pwm -> configured )) return ( PWM_PIN_ERR );
 
 #if 0
     // ??? may be even simpler... zero is zero, dutyCycle/255 is one. 
@@ -1305,11 +1308,11 @@ uint8_t writePwmPair( uint8_t pwmPin1, uint8_t dutyCycle1, uint8_t pwmPin2, uint
 uint8_t syncPwm( uint8_t pwmPin ) {
 
     PwmInst *pwm = lookupPwmInst( pwmPin );
-    if (( pwm == nullptr ) && ( ! pwm -> configured )) return( PWM_PIN_ERR );
+    if (( pwm == nullptr ) && ( ! pwm -> configured )) return ( PWM_PIN_ERR );
 
     pwm_set_counter( pwm ->sliceNum, 0);
     
-    return( NO_ERR );
+    return ( NO_ERR );
 }
 
 
@@ -1359,7 +1362,7 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
     else if (( cdcI2C1.sclPin == sclPin ) && ( cdcI2C1.configured )) i2c = &cdcI2C1;
     else return ( I2C_PORT_ERR );
 
-    if ( ! i2c -> configured ) return( I2C_PORT_ERR );
+    if ( ! i2c -> configured ) return ( I2C_PORT_ERR );
 
     auto ret = i2c_read_blocking_until( i2c -> i2cHw,
                                         i2cAdr,
@@ -1394,7 +1397,7 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
     else if (( cdcI2C1.sclPin == sclPin ) && ( cdcI2C1.configured )) i2c = &cdcI2C1;
     else return ( I2C_PORT_ERR );
 
-    if ( ! i2c -> configured ) return( I2C_PORT_ERR );
+    if ( ! i2c -> configured ) return ( I2C_PORT_ERR );
 
     auto ret = i2c_write_blocking_until( i2c -> i2cHw,
                                          i2cAdr,
@@ -1426,7 +1429,7 @@ uint8_t i2cBusreset( uint8_t sclPin ) {
     else if (( cdcI2C1.sclPin == sclPin ) && ( cdcI2C1.configured )) i2c = &cdcI2C1;
     else return ( I2C_PORT_ERR );
 
-    if ( ! i2c -> configured ) return( I2C_PORT_ERR );
+    if ( ! i2c -> configured ) return ( I2C_PORT_ERR );
 
     uint8_t reset_cmd = 0x06;
     i2c_write_blocking( i2c -> i2cHw, 0x00, &reset_cmd, 1, false); 
@@ -1489,7 +1492,7 @@ uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
     else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
 
-    if ( ! spi -> configured ) return( SPI_PORT_ERR );
+    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 
@@ -1515,7 +1518,7 @@ uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
     else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
 
-    if ( ! spi -> configured ) return( SPI_PORT_ERR );
+    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 
@@ -1540,7 +1543,7 @@ uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
     else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
 
-    if ( ! spi -> configured ) return( SPI_PORT_ERR );
+    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 
@@ -1558,7 +1561,7 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
     else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
     else return ( SPI_PORT_ERR );
 
-    if ( ! spi -> configured ) return( SPI_PORT_ERR );
+    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
 
     if ( spi -> active ) {
 

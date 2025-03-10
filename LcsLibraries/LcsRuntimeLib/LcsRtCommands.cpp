@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Runtime - command line interface.
+// Layout Control System - Command Interpreter
 //
 //------------------------------------------------------------------------------------------------------------
 // Based on the Raspberry Pi PICO controller USB interface, the LCS node has an option to accept commands and
@@ -10,7 +10,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Runtime Library
+// Layout Control System - Command Interpreter
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -27,7 +27,7 @@
 #include "LcsRtLibInt.h"
 
 //-----------------------------------------------------------------------------------------------------------
-// External declaration to global structures defined in "LcsRtSetup".
+// External declaration to global structures and functions.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
@@ -412,6 +412,8 @@ void printMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
 
+    // ??? to do ...
+
     printf( "\n" );
 }
 
@@ -420,7 +422,6 @@ void printMemCdcMap( ) {
     printf( "MEM CDC Map: \n\n" );
 
     // resort to CDC::printInfo command ?
-    
     
     printf( "\n" );
 }
@@ -446,8 +447,6 @@ void printMemPortMap( ) {
 void printMemEventMap( ) {
 
     printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
-
-    // print my entries, hwm 
 
     // print the entries up to the HWM, 4 in a row ?
    
@@ -508,27 +507,27 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
 uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
 
-    return(( nodeId << 4 ) | ( portId & 0xF ));
+    return (( nodeId << 4 ) | ( portId & 0xF ));
 }
 
 uint16_t nodeId( uint16_t npId ) {
 
-    return( npId >> 4 );
+    return ( npId >> 4 );
 }
 
 uint16_t portId( uint16_t npId ) {
 
-    return( npId & 0xF );
+    return ( npId & 0xF );
 }
 
 uint8_t lowByte( uint16_t arg ) { 
     
-    return( arg & 0xFF ); 
+    return ( arg & 0xFF ); 
 }
 
 uint8_t highByte( uint16_t arg ) { 
     
-    return( arg >> 8 ); 
+    return ( arg >> 8 ); 
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -569,7 +568,7 @@ void switchToConfigCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%i", &npId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) < 1 ) return ( errorArgList( ));
 
     uint16_t tmpNpId = (uint16_t) npId;
 
@@ -596,7 +595,7 @@ void switchToOperationsCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%i", &npId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) < 1 ) return ( errorArgList( ));
 
     uint16_t tmpNpId = (uint16_t) npId;
 
@@ -628,7 +627,7 @@ void enterEventCommand( char *s ) {
     int  eventId   = NIL_EVENT_ID;
     int  portId    = 0;
 
-    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 2 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 2 ) return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint16_t tmpEvent   = (uint16_t) eventId;
@@ -663,7 +662,7 @@ void removeEventCommand( char *s ) {
     int  eventId   = NIL_EVENT_ID;
     int  portId    = 0;
 
-    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 1 ) return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint16_t tmpEvent   = (uint16_t) eventId;
@@ -697,7 +696,7 @@ void findEventCommand( char *s ) {
     int  eventId   = NIL_EVENT_ID;
     int  portId    = 0;
 
-    if ( sscanf( s, "%i %i ", &eventId, &portId ) < 1 ) return( errorArgList( ));
+    if ( sscanf( s, "%i %i ", &eventId, &portId ) < 1 ) return ( errorArgList( ));
 
     uint16_t tmpEvent   = (uint16_t) eventId;
     uint16_t tmpPort    = (uint16_t) portId;
@@ -734,7 +733,7 @@ void sendEventCommand( char *s ) {
     uint16_t tmpEvent   = (uint16_t) eventId;
     uint16_t tmpArg     = (uint16_t) arg;
 
-    if ( len < 3 ) return( errorArgList( ));
+    if ( len < 3 ) return ( errorArgList( ));
 
     msg[ 0 ] = 0;
     msg[ 1 ] = highByte( tmpNpId );
@@ -784,7 +783,7 @@ void getNodeCommand( char *s ) {
     int     arg2    = 0;
     uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) return( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t) item;
@@ -824,7 +823,7 @@ void putNodeCommand( char *s ) {
     int     val2    = 0;
     uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -866,7 +865,7 @@ void reqNodeCommand( char *s ) {
     int     val2    = 0;
     uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -912,101 +911,6 @@ void broadcastLcsMsgCommand( char *s ) {
     }
     else errorArgList( );
 }
-
-#if 0
-//------------------------------------------------------------------------------------------------------------
-// "G" sends a GET request to a driver. The commands will typically work on the MEM image of the driver data. 
-// We will use the same idea of item ranges for MEM and NVM, except that the NVM range will work only if the 
-// extension board is write-enabled.
-//
-//    G board item
-//
-//    board - the extension board the driver handles.
-//    item  - the driver specific item which is the requested operation.
-//
-//------------------------------------------------------------------------------------------------------------
-void drvGetCommand( char *s ) {
-
-    int  boardId    = 0;
-    int  item       = 0;
-    int  arg        = 0;
-    int  ret        = ALL_OK;
-
-    if ( sscanf( s, "%i %i", &boardId, &item ) < 2 ) return( errorArgList( ));
-
-    uint16_t tmpBoard   = (uint8_t) boardId;
-    uint8_t  tmpItem    = (uint8_t)  item;
-    uint16_t tmpArg     = (uint16_t) arg;
-  
-    ret = drvGet( tmpBoard, tmpItem, &tmpArg );
-
-    if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver GET error", ret );
-    else printf( "Board: %d, item: %d, arg: 0x%x\n", tmpBoard, tmpItem, tmpArg );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "P" sends a PUT request to a driver. The commands will typically work on the MEM image of the driver data. 
-// We will use the same idea of item ranges for MEM and NVM, except that the NVM range will work only if the 
-// extension board is write-enabled.
-//
-//    P board item arg
-//
-//    board - the extension board the driver handles.
-//    item  - the driver specific item which is the requested operation.
-//    arg   - the data argument to the driver.
-//
-//------------------------------------------------------------------------------------------------------------
-void drvPutCommand( char *s ) {
-
-    int  boardId    = 0;
-    int  item       = 0;
-    int  val        = 0;
-    int  ret        = ALL_OK;
-
-    if ( sscanf( s, "%i %i %i", &boardId, &item, &val ) < 3 ) return( errorArgList( ));
-
-    uint16_t tmpBoard   = (uint8_t) boardId;
-    uint8_t  tmpItem    = (uint8_t)  item;
-    uint16_t tmpVal     = (uint16_t) val;
-
-    ret = drvPut( tmpBoard, tmpItem, tmpVal );
-    
-    if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver PUT error", ret );
-    else printf( "Board: %d, item: %d, arg: 0x%x\n", tmpBoard, tmpItem, tmpVal );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "R" sends a REQ request to a driver.
-//
-//    R board item arg1 [ arg 2 ]
-//
-//    board - the extension board the driver handles.
-//    item  - the driver specific item which is the requested operation.
-//    arg1  - the first argument to the driver.
-//    arg2  - the optional second argument to the driver and also output from the driver.
-//
-//------------------------------------------------------------------------------------------------------------
-void drvReqCommand( char *s ) {
-
-    int     boardId  = 0;
-    int     item     = 0;
-    int     arg1     = 0;
-    int     arg2     = 0;
-    uint8_t ret      = ALL_OK;
-
-    if ( sscanf( s, "%i %i %i %i", &boardId, &item, &arg1, &arg2 ) < 2 ) return( errorArgList( ));
-
-    uint16_t tmpBoard   = (uint8_t) boardId;
-    uint8_t  tmpItem    = (uint8_t)  item;
-    uint16_t tmpArg1     = (uint16_t) arg1;
-    uint16_t tmpArg2     = (uint16_t) arg2;
-
-    ret = drvReq( tmpBoard, tmpItem, &tmpArg1, &tmpArg2 );
-
-    if ( ret != ALL_OK ) errorStatusMsg((char *) "Driver REQ error", ret );
-    else printf( "Board: %d, item: %d, arg1: 0x%x, arg2: 0x%x\n", tmpBoard, tmpItem, tmpArg1, tmpArg2 );
-}
-#endif
 
 //------------------------------------------------------------------------------------------------------------
 // "s" lists status information. The level argument specifies the what and the detail level.
@@ -1128,7 +1032,7 @@ uint8_t setupSerialCommand( ) {
 // characters until a carriage return is received. The first character is the command. If it is not a 
 // command we know and there is a callback, the callback gets his chance to handle the input string.
 // Since we are pretty basic on a character by character basis, we also add a bit of luxury and echo back 
-// the  what was typed in as well as process the backspace character.
+// what was typed and also process the backspace character.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
@@ -1195,7 +1099,7 @@ uint8_t handleSerialCommand( ) {
         }
     }
 
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 }; // namespace LCS

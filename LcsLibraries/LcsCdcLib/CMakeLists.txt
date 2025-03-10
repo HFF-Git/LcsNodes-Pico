@@ -17,6 +17,7 @@ set( CMAKE_CXX_STANDARD 17 )
 # add the hw library files
 add_library( ${PROJECT_NAME} STATIC 
     
+    LcsCdcLibVersion.h
     LcsCdcLib.h 
     LcsCdcLib.cpp
 ) 

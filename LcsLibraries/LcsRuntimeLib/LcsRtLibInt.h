@@ -3,7 +3,7 @@
 // Layout Control System - Runtime Library internals include file
 //
 //------------------------------------------------------------------------------------------------------------
-// The LCS library internal definitions are all grouped in this include file. A firmware write needs to only
+// The LCS library internal definitions are all grouped in this include file. A firmware writer needs to only
 // include the external include file. There is nothing in here that is needed outside.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -32,24 +32,14 @@
 #include <stdint.h>
 #include <ctype.h>
 #include "LcsCdcLib.h"
+#include "LcsRtLibVersion.h"
 #include "LcsRuntimeLib.h"
 
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// 
-//
-// ??? how do we encode a version ? family, major, minor ?
-// ??? do we really need a patch level ?
-// ???rather have it in a separate file ?
-//------------------------------------------------------------------------------------------------------------
-const uint16_t LCS_RT_LIB_VERSION       = 100;  // ??? for now...
-const uint16_t LCS_RT_LIB_PATCH_LEVEL   = 0;
-
-
-//------------------------------------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
-// data areas are stored in the NVM and shadowed by a memory copy. Upon reset or power up the memory areas 
+// data areas are stored in the NVM and mirrored by a memory copy. Upon reset or power up the memory areas 
 // are initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from 
 // memory to NVM so that it is the initial value on the next restart. All data is stored in controller native 
 // endianness. Only the messages exchanged via the LcsMsgBus are transmitted in big endian order.
@@ -58,9 +48,13 @@ const uint16_t LCS_RT_LIB_PATCH_LEVEL   = 0;
 // follow. Their starting offset is the sum of the size of the previous structures starting. The system area
 // needs to be at least the size of the declared structures up to the use map. The optional user map occupies
 // all the remaining bytes in the NVM. A firmware programmer can access the system as well as the user map
-// areas. However, note that dangerous things can be done when modifying the system area directly.
+// areas. However, note that dangerous things can be done when modifying the system areas directly.
 //
 //          :-------------------------------------------:           NVM_NODE_MAP_START 
+//          :                                           :
+//          :       NVM Header Map                      :
+//          :                                           :
+//          :-------------------------------------------:           + 32bytes 
 //          :                                           :
 //          :       Node Map                            :
 //          :                                           :
@@ -91,16 +85,12 @@ const uint16_t LCS_RT_LIB_PATCH_LEVEL   = 0;
 //          :-------------------------------------------:           0xNNNN  
 //
 // All data areas have a fixed size which is the maximum size for the particular map. For example, there is 
-// room for 15 ports, even if the firmware would only use let's say 4. In general each of the runtime map
-// could have also been designed in a way that they are dynamically configurable in size. Considering the 
+// room for 16 ports, even if the firmware would only use let's say 4. In general, each of the runtime map
+// also could have been designed in a way that they are dynamically configurable in size. Considering the 
 // size and price of NVM chips as well as the memory size of the supported controller platforms, the current 
-// implementation uses fixed sizes  for each map, avoiding configuration complexity.
+// implementation uses fixed sizes for each map, avoiding configuration complexity.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t  MAX_LCS_MSG_SIZE                = 8;
-const uint16_t  MAX_NODE_PORT_NAME_SIZE         = 16;
-const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
-
 const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 16;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
@@ -110,6 +100,9 @@ const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
 const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
 const uint16_t  MAX_ATTR_MAP_ENTRIES            = 128;
 const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
+const uint16_t  MAX_LCS_MSG_SIZE                = 8;
+const uint16_t  MAX_NODE_PORT_NAME_SIZE         = 16;
+const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
@@ -139,10 +132,10 @@ const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 //
 //  NS_NIL            -   NIL.
 //  NS_FAIL           -   The node startup failed.
-//  NS_PFAIL          -   The node startup detected that we come up after a power fail.
+//  NS_PFAIL          -   The node startup detected that we ended in a power fauilure before.
 //  NS_INIT           -   The node entered the startup state.
-//  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId.
-//  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus.
+//  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId check or new nodeId.
+//  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus and stopped.
 //  NS_HALTED         -   The node was halted.
 //  NS_CONFIG         -   The node is in configuration mode.
 //  NS_OPERATE        -   The node is on operations mode.
@@ -223,15 +216,11 @@ struct LcsMsgBusCAN {
 
 //----------------------------------------------------------------------------------------------------------
 // Each NVM memory, i.e. the NVM on the main controller board or an extension board, starts with the header
-// data structure. This structure contains information to detect that the NVM was formatted, as well as some
-// hardware specific data to identify the board and relevant chips on it. The data in this header must be
-// "programmed" during a board setup. This is easily accomplished through console commands and needs of 
+// data structure. This structure contains information to detect that the NVM was formatted, as well as 
+// some hardware specific data to identify the board and relevant chips on it. The data in this header must 
+// be "programmed" during a board setup. This is easily accomplished through console commands and needs of 
 // course only be done once per board. The data structure size is 32 bytes and it is always at NVM offset 
 // zero.
-//
-// The NVM header map stores the NVM headers of the boards of the node. It is a MEM only structure and will 
-// be filled though reading the NVM headers at init time. There should be at least the main controller board
-// NVM header stored and optional up to four extension board NVM headers. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsNvmHeader {
@@ -244,6 +233,13 @@ struct LcsNvmHeader {
     uint16_t    reservedArea[ 10 ]              = { 0 };
 }; 
 
+//----------------------------------------------------------------------------------------------------------
+// The NVM header map stores the NVM headers of the node board and the optional extension boards found. It 
+// is a MEM only structure and will be filled though reading the NVM headers at startup time. There should 
+// be at least the main controller board NVM header stored and optional up to four extension board NVM 
+// headers. 
+//
+//----------------------------------------------------------------------------------------------------------
 struct LcsNvmHeaderMap {
 
     LcsNvmHeader map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
@@ -251,9 +247,9 @@ struct LcsNvmHeaderMap {
 
 //----------------------------------------------------------------------------------------------------------
 // Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
-// pin configuration data. Currently, the CDC config data is set directly by the application. We copy this
-// data to the "cfg" structure. One day, we may store this data in the descriptor. So far, this is more of
-// a place holder.
+// pin configuration data and is passed through the "initRunTime" routine. We copy this data to the "cfg" 
+// structure. One day, we may store this data in the descriptor. So far, this is more of a place holder.
+// One day, we may just construct the CDC data directly from the board type.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsCdcMap {
@@ -271,8 +267,8 @@ struct LcsCdcMap {
 // The most important check is to compare the size of the various data structures with the runtime data 
 // size that we know from the compilation. Only when they match can we somewhat trust the rest of the data
 // maps to read. It is therefore crucial that the first locations in the NVM have the same meaning even if
-// we advance to the next SW version. The first part to ensure this requirement is the start of the NVM
-// header and its size. The NVM header also has a pointer to the nodeMap offset. The nodeMap immediately
+// we advance to the next major SW version. The first part to ensure this requirement is the start of the 
+// NVM header and its size. The NVM header also has a pointer to the nodeMap offset. The nodeMap immediately
 // follows this header and starts with the pairs of offsets and lengths. The number of pairs and their
 // order is architected to ensure that the tests will test for the right data structure across versions.
 //
@@ -292,7 +288,7 @@ struct LcsNodeMap {
     uint16_t            nodeId                          = NIL_NODE_ID;
     uint32_t            nodeUID                         = 0L;
     uint16_t            nodeSwVersion                   = LCS_RT_LIB_VERSION;
-    uint16_t            nodeSwPatchLevel                = 0;
+    uint16_t            nodeSwPatchLevel                = LCS_RT_LIB_PATCH_LEVEL;
     uint16_t            nodeRestartCnt                  = 0;
     uint32_t            nodeSystemTime                  = 0;
    
@@ -304,14 +300,16 @@ struct LcsNodeMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The port map contains an array of ports, each described by a port map entry. The portMap entry contains 
-// the fields that deal with the actual event received. There are fields for the sending node, the event 
-// and its action. An event can also be invoked with a delay time. The are 16 entries in the port map. 
-// Port zero refers to the entire node, i.e. the node itself. When node data such as the node type is 
-// accessed it is actually taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition
+// The port map contains an array of ports, each described by a port map entry. There are 16 entries in the
+// port map. Port zero refers to the entire node, i.e. the node itself. When node data such as the node type
+// is accessed it is actually taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition
 // P1 to P4 are optionally associated with an extension board if one is detected during startup. Each port
-//  has an area of attributes, which are stored in the data block area.
+// has an area of attributes, which are stored in the data block area. They map to ITEM numbers 128 to 255.
 //
+// The portMap entry also contains the fields that deal with the actual event received. There are fields 
+// for the sending node, the event and its action. An event can also be invoked with a delay time.
+//
+// ??? what does an event mean for P0  as the node port, or P1 to P4 when extensions are configured ? 
 //----------------------------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
@@ -362,10 +360,9 @@ struct LcsNodeData {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The event map entry contains the mapping from eventId to portId. Every port interested in a certain event
-// will have an entry in the event map. It is a sorted table of event and port pairs. A port id of zero 
-// refers to all ports with the event Id. This table is searched for an incoming event to find the ports 
-// that are interested in the event. 
+// The event map entry contains the mapping from eventId to portId. When a node or port is interested in an 
+// event, there will be an entry with event Id and the port mask, where each port has a bit. The map is 
+// sorted by event Id and  searched for an incoming event to find the ports that are interested in the event. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsEventMapEntry {
@@ -385,11 +382,9 @@ struct LcsEventMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// The core library maintains an array of periodic task items. To balance the needs of other core library
-// internal periodic tasks, such as checking for incoming messages, the periodic tasks are run one at a 
-// time, round robin, with the other internal tasks interleaving. The structure maintains the task procedure
-// label, the time it ran the last time, and the interval between invocations. Note that the timing is not
-// very accurate, but it is guaranteed that a task will eventually run when the interval is reached.
+// The core library maintains an array of periodic task items. The structure maintains the task procedure
+// label, the time it ran the last time, and the minimum interval between invocations. Note that the timing
+// is not very accurate, but it is guaranteed that a task will eventually run when the interval is reached.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPTaskMapEntry {
@@ -407,8 +402,8 @@ struct LcsTaskMap {
 
 //----------------------------------------------------------------------------------------------------------
 // The pending request map keeps track of outstanding requests to another node. We add an entry when our
-// node sends a "REQ" type packet and clear the entry when the reply comes in. The idea is that we only 
-// invoke the callback when we expect a reply. Additionally, there is a timeout value, so that we can
+// node sends a "REQ" type packet and clear the entry when the matching reply comes in. The idea is that 
+// we only invoke the callback when we expect a reply. Additionally, there is a timeout value, so that we
 // can invoke the reply callback with a timeout message if requested.
 //
 //----------------------------------------------------------------------------------------------------------
@@ -425,8 +420,10 @@ struct LcsPendingReqMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// An extension board is accessed via a dedicated driver. The firmware is required to register the available
-// drivers with the runtime. The type and function label are kept in the driver function map. 
+// An extension board is first of all mapped to a port. Attributes are naturally accessed via the GET/PUT
+// calls then. The extension board specific functions are accessed via the REQ calls. The firmware is 
+// required to register a callback, i.e. driver, with the runtime. The type and function label are kept in
+// the driver function map. 
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvFuncEntry {
@@ -443,9 +440,7 @@ struct LcsDrvFuncMap {
 
 //----------------------------------------------------------------------------------------------------------
 // The layout of the NVM storage is fixed. There are the header and the maps allocated in a given order and
-// size. We can easily define the relevant offsets and sizes as constants. The initial design had some of 
-// the maps as dynamically configurable maps. However, with the capacities of the chips and the controller
-// memory, we might as well define the maps statically.
+// size. We can easily define the relevant offsets and sizes as constants.
 //
 //----------------------------------------------------------------------------------------------------------
 const uint32_t  NVM_HEADER_MAP_SIZE         =   sizeof( LcsNvmHeader ); 

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Layout Control System - runtime core.
+// Layout Control System - Runtime library core.
 //
 //------------------------------------------------------------------------------------------------------------
 // The file contains the runtime core routines. They implement the node state machine that reacts to messages
@@ -8,7 +8,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Runtime Library
+// Layout Control System - Runtime library core.
 // Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -25,7 +25,7 @@
 #include "LcsRtLibInt.h"
 
 //------------------------------------------------------------------------------------------------------------
-// External declaration to global structures defined in "LcsRtSetup".
+// External declaration to global structures and functions.
 //
 //-----------------------------------------------------------------------------------------------------------
 namespace LCS {
@@ -68,17 +68,17 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
 uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
 
-    return(( nodeId << 4 ) | ( portId & 0xF ));
+    return (( nodeId << 4 ) | ( portId & 0xF ));
 }
 
 uint16_t nodeId( uint16_t npId ) {
 
-    return( npId >> 4 );
+    return ( npId >> 4 );
 }
 
 uint16_t portId( uint16_t npId ) {
 
-    return( npId & 0xF );
+    return ( npId & 0xF );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ void handleNodePortEvents( ) {
 
     uint32_t ts = CDC::getMillis( );
 
-    for ( int i = 0; i < eventMap.mapHwm; i ++ ) {
+    for ( int i = 0; i < portMap.mapHwm; i ++ ) {
 
         LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
@@ -141,7 +141,7 @@ void handlePeriodicTasks( ) {
 //------------------------------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our node in response to a nodeId
 // setup request. If the UID matches, the message is for our node and we update our nodeId accordingly in 
-// MEM and NVM. The next node state is OPERATE. Optionally, we enable the watchdog feature.
+// MEM and NVM. The next node state is OPERATE.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgRepNid( uint8_t *msg ) {
@@ -160,11 +160,6 @@ void handleMsgRepNid( uint8_t *msg ) {
             uint8_t rStat = rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeId );
         }
 
-        if ( ! ( portMap.map[ 0 ].options & NPO_DISABLE_WATCHDOG )) {
-
-            // ?? enable watchdog ...
-        }
-
         nodeMap.nodeState = NS_OPERATE;
     }
 }
@@ -172,7 +167,6 @@ void handleMsgRepNid( uint8_t *msg ) {
 //------------------------------------------------------------------------------------------------------------
 // LCS management deals with messages concerning the general LCS management. If there is a callback defined
 // it will be invoked. Then the node state is changed accordingly. Most updates are just to the MEM nodeMap.
-// In addition, the READY and ACTIVITY LEDs are set.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleMsgLcsMgt( uint8_t *msg ) {
@@ -196,6 +190,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_BON: {
 
             CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true );
+
             nodeMap.nodeState = NS_OPERATE;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
 
@@ -204,6 +199,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_BOF: {
 
             CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false );
+
             nodeMap.nodeState = NS_HALTED;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
 
@@ -212,6 +208,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_NCOL: {
 
             CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false );
+
             nodeMap.nodeState = NS_COLLISION;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
 
@@ -326,7 +323,7 @@ void handleMsgReqNode( uint8_t *msg ) {
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
         uint8_t   ret   = nodeReq( npId, item, &arg1, &arg2 );
 
-        if ( ret == ALL_OK )  sendAck( npId );
+        if ( ret == ALL_OK )  sendRepNode( npId, item, arg1, arg2 );
         else                  sendErr( npId, ret, 0, 0 );
     }
 }
@@ -338,14 +335,10 @@ void handleMsgReqNode( uint8_t *msg ) {
 // processing routine, which will manage the timely invocation of the event callbacks. The event mask has a
 // bit for each port. 
 //
-// Note that we also are called from the event sending routine when another port on our own node would be 
-// interested in this event. It is up to the firmware programmer to ensure that a port does send itself an
-// event and may trigger an infinite loop.
-//
 //------------------------------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
-    uint16_t  eventId = ( msg[3] * 256 ) + msg[4];
+    uint16_t  eventId = ( msg[3] << 8 ) + msg[4];
     int       index   = searchEvent( eventId );
 
     if ( index >= 0 ) {
@@ -415,20 +408,17 @@ void handleNodeStateInit( ) {
 
     for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        if ( nodeMap.initCallback ) {
+        if ( nodeMap.initCallback != nullptr ) {
                 
             rStat = nodeMap.initCallback(( nodeMap.nodeId << 4 ) | i );
-            if ( rStat == ALL_OK ) portMap.map[ i ].flags |= NPF_PORT_PRESENT;
-        }
-    }
+            if ( rStat == ALL_OK ) {
+                
+                portMap.map[ i ].flags |= NPF_PORT_PRESENT;
+                portMap.map[ i ].flags |= NPF_PORT_ENABLED;
+                portMap.map[ i ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
 
-    for ( uint8_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
-
-        if ( portMap.map[ i ].flags & NPF_PORT_PRESENT ) {
-
-            portMap.map[ i ].flags |= NPF_PORT_ENABLED;
-            portMap.map[ i ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
-            portMap.mapHwm = i + 1;
+                portMap.mapHwm = i + 1;
+            }
         }
     }
 
@@ -441,11 +431,6 @@ void handleNodeStateInit( ) {
         return;
     } 
     
-    if ( ! ( portMap.map[ 0 ].options & NPO_DISABLE_WATCHDOG )) {
-
-        // ?? enable watchdog ...
-    }
-
     nodeMap.nodeState = NS_OPERATE;
 }
 
@@ -681,83 +666,83 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t registerInitCallback( LcsInitCallback functionId ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.initCallback = functionId;
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerPfailCallback( LcsInitCallback functionId ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.pfailCallback = functionId;
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.lcsMsgCallback = functionId;
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.dccMsgCallback = functionId;
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.cmdLineCallback = functionId;
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerEventCallback( LcsEventCallback functionId, uint16_t portMask ) {
 
-   if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+   if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         if ( portMask & ( 1 << i )) portMap.map[ i ].eventCallback = functionId;
     }
 
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
 
-   if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+   if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         if ( portMask & ( 1 << i )) portMap.map[ i ].reqCallback = functionId;
     }
 
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
 
         if ( portMask & ( 1 << i )) portMap.map[ i ].repCallback = functionId;
     }
 
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     if ( taskMap.mapHwm < MAX_TASK_MAP_ENTRIES ) {
 
@@ -770,6 +755,7 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
     } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
 
+// ??? perhaps in msgBus ?
 //-----------------------------------------------------------------------------------------------------------
 // "localMsgEvent" is called by the event message send routines to cover the case where we send an event
 // and we detect it needs to also be broadcasted to other ports on the same node. In other words, the 
@@ -780,7 +766,7 @@ uint8_t localMsgEvent( uint8_t *msg ) {
 
     if ( nodeMap.nodeState != NS_OPERATE ) return ( ERR_LIB_NOT_INITIALIZED );
     handleMsgEvent( msg );
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -792,10 +778,10 @@ uint8_t startRuntime( ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "Start LCS runtime\n");
 
-    if ( nodeMap.nodeState != NS_INIT ) return( ERR_LIB_NOT_INITIALIZED );
+    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
     
     handleNodeState( );
-    return( ALL_OK );
+    return ( ALL_OK );
 }
 
 }; // namespace LCS

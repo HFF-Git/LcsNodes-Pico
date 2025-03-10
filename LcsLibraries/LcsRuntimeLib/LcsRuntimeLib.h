@@ -311,7 +311,7 @@ enum LcsNodePortOptions : uint16_t {
 
     NPO_NIL                     = 0,
     NPO_SKIP_NODE_ID_CONFIG     = ( 1 << 0 ),
-    NPO_DEBUG_DURING_SETUP      = ( 1 << 1 )
+    NPO_DEBUG_DURING_SETUP      = ( 1 << 1 ),
     NPO_DISABLE_WATCHDOG        = ( 1 << 2 ),
     NPO_FORMAT_RUNTIME          = ( 1 << 3 ),
 
@@ -693,12 +693,12 @@ extern "C" {
 // "LcsConfigDesc" is the data structure that contains initial data for setting up a node. There is the 
 // option field with bits.
 //
-// ??? also add the CAN bus mode ?
 //------------------------------------------------------------------------------------------------------------
 struct LcsConfigDesc {
 
-    uint16_t options    = 0;
-    uint16_t boardType  = 0; // ??? later...
+    uint16_t options        = 0;
+    uint16_t boardType      = 0; // ??? later...
+    uint16_t msgBusMode     = 0; // ??? also add the CAN bus mode ?
 };
 
 //------------------------------------------------------------------------------------------------------------
