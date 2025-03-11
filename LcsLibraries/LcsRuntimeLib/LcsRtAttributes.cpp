@@ -181,8 +181,8 @@ namespace {
         
         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
 
-            printf( "writeAttrNvm: block: 0x%x, item: %d, nvm-ofs: 0x%x, ret: %d, data: 0x%x\n",
-                    block, item, ofs, rStat, arg );
+            printf( "writeAttrNvm: block: 0x%x, item: %d, nvm-ofs: 0x%x, data: 0x%x\n",
+                    block, item, ofs, arg );
         }
 
         uint8_t rStat = rtNvmPutWord( ofs, arg );

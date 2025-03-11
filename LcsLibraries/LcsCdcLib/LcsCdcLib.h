@@ -114,6 +114,7 @@ enum CdcStatus : uint8_t {
     SPI_CONFIG_ERR      = 26,
     SPI_WRITE_ERR       = 27,
     SPI_READ_ERR        = 28,
+    SPI_NOT_ACTIVE_ERR  = 29,
 
     I2C_PORT_ERR        = 30,
     I2C_CONFIG_ERR      = 31,
@@ -179,6 +180,16 @@ enum UartMode : uint8_t {
     UART_MODE_UNDEFINED = 0,
     UART_MODE_8N1       = 1,
     UART_MODE_8N1_PIO   = 2
+};
+
+//------------------------------------------------------------------------------------------------------------
+// PWM duty cycle.
+//
+//------------------------------------------------------------------------------------------------------------
+enum PwmDutyCycle : uint8_t {
+
+    MIN_DUTY_CCYCLE     = 0,
+    MAX_DUTY_CYCLE      = 255
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -248,6 +259,14 @@ struct CdcConfigDesc {
     uint8_t   PWM_PIN_5;
     uint8_t   PWM_PIN_6;
     uint8_t   PWM_PIN_7;
+    uint8_t   PWM_PIN_8;
+    uint8_t   PWM_PIN_9;
+    uint8_t   PWM_PIN_10;
+    uint8_t   PWM_PIN_11;
+    uint8_t   PWM_PIN_12;
+    uint8_t   PWM_PIN_13;
+    uint8_t   PWM_PIN_14;
+    uint8_t   PWM_PIN_15;
 
     uint8_t   UART_RX_PIN_0;
     uint8_t   UART_TX_PIN_0;
@@ -277,13 +296,15 @@ struct CdcConfigDesc {
     uint8_t   EXT_I2C_SDA_PIN;
     uint8_t   EXT_I2C_ADR_ROOT;
 
+    // ??? still uneasy whether NVM sizes should be here...
     uint32_t  NODE_NVM_SIZE;
     uint32_t  EXT_NVM_SIZE;
 
+    // ??? should control mode and default ID be here ? Pins we need of course...
     uint8_t   CAN_BUS_CTRL_MODE;
+    uint32_t  CAN_BUS_DEF_ID;
     uint8_t   CAN_BUS_RX_PIN;
     uint8_t   CAN_BUS_TX_PIN;
-    uint32_t  CAN_BUS_DEF_ID;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -391,13 +412,14 @@ uint8_t         writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool 
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configurePwm(   uint8_t   pwmPin,
+uint8_t         configurePwm(   uint8_t   pwmPinA,
+                                uint8_t   pwmPinB,
                                 uint32_t  pwmFreqency,
                                 bool      phaseCorrect  = true,
                                 bool      inverted      = false
                             );
 
-uint8_t         writePwm( uint8_t pwmPin, uint8_t dutyCycle );
+uint8_t         writePwm( uint8_t pwmPin, uint8_t dutyCycleA, uint8_t dutyCycleB );
 
 //------------------------------------------------------------------------------------------------------------
 // Serial IO routines.

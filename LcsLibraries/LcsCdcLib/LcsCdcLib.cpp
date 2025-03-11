@@ -186,21 +186,21 @@ struct AdcInst {
 
 //------------------------------------------------------------------------------------------------------------
 // A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM output related data is
-// kept in this instance.
+// kept in this instance. The PICO features a set of PWM slices, each of which has two channels. We will 
+// use the two channels for our PWM signal, where one pin is the PWM signal while the other is held low.
 //
 //------------------------------------------------------------------------------------------------------------
 struct PwmInst {
 
     bool        configured  = false;
-    uint8_t     pwmPin      = CDC::UNDEFINED_PIN;
+    uint8_t     pwmPinA     = CDC::UNDEFINED_PIN;
+    uint8_t     pwmPinB     = CDC::UNDEFINED_PIN;
     uint        wrap        = 0;
     bool        inverted    = false;
-    uint        channel     = 0;
+    uint        channelA    = 0;
+    uint        channelB    = 0;
     uint        sliceNum    = 0;
 };
-
-// ??? have a PWM pair instance ? would make things a bit easier ...
-// ??? or just have a PWM instance with two pins, one of them optional...
 
 //------------------------------------------------------------------------------------------------------------
 // A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two
@@ -954,16 +954,6 @@ uint8_t configureAdc( uint8_t adcPin ) {
     return ( NO_ERR );
 }
 
-uint16_t getAdcRefVoltage( ) {
-
-    return ( ADC_REF_VOLTAGE_MILLI_VOLT );
-}
-
-uint16_t getAdcDigitRange( ) {
-
-    return ( ADC_DIGIT_RANGE );
-}
-
 uint16_t readAdc( uint8_t adcPin ) {
 
     AdcInst *tmp = nullptr;
@@ -977,6 +967,16 @@ uint16_t readAdc( uint8_t adcPin ) {
 
     adc_select_input( tmp -> adcNum );
     return ( adc_read( ) >> 2 );
+}
+
+uint16_t getAdcRefVoltage( ) {
+
+    return ( ADC_REF_VOLTAGE_MILLI_VOLT );
+}
+
+uint16_t getAdcDigitRange( ) {
+
+    return ( ADC_DIGIT_RANGE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1127,20 +1127,14 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 // PWM section. The PICO is quite flexible when it comes to PWM signals. We implement a simple PWM capability.
 // There is the frequency which set during configuration and there is the write operation which set the duty
 // cycle. The calculations are best described in the PICO C++ SDK. We do the setting of phase, wrap count,
-// etc. once when we configure the PWM channel. All the "writePwm" function then will do is to manipulate the
-// duty cycle. In other words, when we change the frequency we need to configure again. In addition to writing
-// to a single pwmPin, there is a write to a PWM pair routine. If the two PWM pins are in the same hardware
-// slice, they two duty cycle values are set at the same time.
+// etc. once when we configure the PWM channels. Our PWM configuration supports the simultaneous level setting
+// of the two associated pins. This way we can model a two pin PWM signal, where either pin contains the 
+// PWM signal and  the other is set to low. Note that although the PICO is quite flexible, the wrap and phase
+// parameters are set for the slice and not a single channel. The same is true for the signal inverter. This
+// is normally not an issue unless you want to have separate frequencies, phase mode and so on. 
 //
-// Note that although the PICO is quite flexible, the wrap and phase parameters are set for the slice and 
-// not a single channel. When you configure a pwmPin on a channel and the other pin on the slice, these 
-// parameters are overwritten. This is normally not an issue unless you want to have separate frequencies and 
-// phase mode.
-//
-// Another issue is the signal inverter. It is set for both channels with one function. Unfortunately there
-// is no library function to find out the current slice settings that I know off. We will check the pair
-// PWM pin. If it is already configured, then we get the inverted parameter from the PWM instance, else we
-// set both inverted options to the parameter passed.
+// The "writePwm" function will just manipulate the duty cycle. When we need to change the frequency we need
+// to configure again. 
 // 
 //------------------------------------------------------------------------------------------------------------
 PwmInst *lookupPwmInst( uint8_t pwmPin ) {
@@ -1156,29 +1150,19 @@ PwmInst *lookupPwmInst( uint8_t pwmPin ) {
     else                                return ( nullptr );
 }
 
+uint8_t configurePwm(   uint8_t     pwmPinA, 
+                        uint8_t     pwmPinB, 
+                        uint32_t    pwmFreqency, 
+                        bool        phaseCorrect,
+                        bool        inverted ) {
 
-// ??? what do we do here exactly ?
-
-PwmInst *lookupPairPinInst( uint8_t pwmPin ) {
-
-    // ??? need to find the channel. If channel is zero then we are the lower pin number...
-
-    if ( pwm_gpio_to_channel( pwmPin )) return ( lookupPwmInst( pwmPin + 1 ));
-    else                                return ( lookupPwmInst( pwmPin - 1 ));
-}
-
-// ??? should we rather have a function to configure a pair ?
-uint8_t configurePwmPair( uint8_t pwmPin1, uint8_t pwmPin2, uint32_t pwmFreqency, bool phaseCorrect, bool inverted  ) {
-
-    return ( NO_ERR );
-}
-
-uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, bool inverted ) {
-
-    PwmInst *pwm = lookupPwmInst( pwmPin );
+    PwmInst *pwm = lookupPwmInst( pwmPinA );
     if ( pwm == nullptr ) return ( PWM_PIN_ERR );
 
-    PwmInst *pwmPair = lookupPairPinInst( pwm -> pwmPin );
+    if ( pwmPinB != UNDEFINED_PIN ) {
+
+        if ( pwm_gpio_to_slice_num( pwmPinA ) != ( pwm_gpio_to_slice_num( pwmPinB ))) return ( PWM_PIN_ERR );
+    }
 
     if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
@@ -1186,71 +1170,54 @@ uint8_t configurePwm( uint8_t pwmPin, uint32_t pwmFreqency, bool phaseCorrect, b
     uint32_t clkDiv   = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
     if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
-    pwm -> pwmPin   = pwmPin;
-    pwm -> wrap     = sysClock * 16 / clkDiv / pwmFreqency - 1;
-    pwm -> inverted = inverted;
-    pwm -> sliceNum = pwm_gpio_to_slice_num( pwmPin );
-    pwm -> channel  = pwm_gpio_to_channel( pwmPin );
+    pwm -> pwmPinA      = pwmPinA;
+    pwm -> pwmPinB      = pwmPinB;
+    pwm -> wrap         = sysClock * 16 / clkDiv / pwmFreqency - 1;
+    pwm -> inverted     = inverted;
+
+    pwm -> sliceNum     = pwm_gpio_to_slice_num( pwmPinA );
+    pwm -> channelA     = pwm_gpio_to_channel( pwmPinA );
+    if ( pwmPinB != UNDEFINED_PIN ) pwm -> channelB = pwm_gpio_to_channel( pwmPinB );
 
     pwm_config pwmConfig = pwm_get_default_config( );
-    gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
+    gpio_set_function( pwm -> pwmPinA, GPIO_FUNC_PWM );
+    if ( pwmPinB != UNDEFINED_PIN ) gpio_set_function( pwm -> pwmPinB, GPIO_FUNC_PWM );
     pwm_config_set_wrap( &pwmConfig, pwm -> wrap );
     pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
-
-    if ( pwmPair == nullptr ) {
-
-        pwm_config_set_output_polarity( &pwmConfig, pwm -> inverted, pwm -> inverted );
-    }
-    else {
-
-        if ( pwm -> channel == 0 )
-
-            pwm_config_set_output_polarity( &pwmConfig, pwm -> inverted, pwmPair -> inverted );
-        else 
-            pwm_config_set_output_polarity( &pwmConfig, pwmPair -> inverted, pwm -> inverted );
-    }
-
+    pwm_config_set_output_polarity( &pwmConfig, pwm -> inverted, pwm -> inverted );
     pwm_init( pwm -> sliceNum, &pwmConfig, false );
     pwm_set_clkdiv_int_frac( pwm -> sliceNum, clkDiv / 16, clkDiv & 0xF );
     pwm_set_enabled( pwm -> sliceNum, true );
+
     pwm -> configured = true;
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
    
-        printf( "PWM Pin: % d, fPwm: % d, phase: % d, inverted: % d, " 
-                "clkDiv: % d, wrap: %d, sliceNum: %d, channel: %d\n",
-                pwm -> pwmPin, pwmFreqency,  phaseCorrect, inverted, 
-                clkDiv, pwm -> wrap, pwm -> sliceNum, pwm -> channel );
+        printf( "pinA: % d, pinB: %d, fPwm: % d, phase: % d, inverted: % d, " 
+                "clkDiv: % d, wrap: %d, sliceNum: %d, channelA: %d, channelB: %d\n",
+                pwm -> pwmPinA, pwm -> pwmPinB, pwmFreqency, phaseCorrect, inverted, 
+                clkDiv, pwm -> wrap, pwm -> sliceNum, pwm -> channelA, pwm -> channelB );
     }
 
     return ( NO_ERR );
 }
 
-uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
+uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
         
-        printf( "Write PWM: Pin: %d, duty: %d\n", pwmPin, dutyCycle );
+        printf( "Write PWM: Pin: %d, dutyA: %d, dutyB: %d\n", pwmPin, dutyCycleA, dutyCycleB );
     }
    
     PwmInst *pwm = lookupPwmInst( pwmPin );
     if (( pwm == nullptr ) && ( ! pwm -> configured )) return ( PWM_PIN_ERR );
 
-#if 0
-    // ??? may be even simpler... zero is zero, dutyCycle/255 is one. 
-    if ( dutyCycle == 0 ) {     
+#if 1
 
-        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, 0 );
-    }
-    else if ( dutyCycle == 255 ) {
-
-        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, pwm -> wrap );
-    }
-    else {
-
-        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 255 ));
-    }
+        pwm_set_both_levels( pwm -> sliceNum, dutyCycleA, dutyCycleB );
 #else
+
+    // will go away. 
     if ( dutyCycle == 0 ) {
 
         gpio_set_function( pwm -> pwmPin, GPIO_FUNC_SIO );
@@ -1274,47 +1241,15 @@ uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
     return ( NO_ERR );
 }
 
-uint8_t writePwmPair( uint8_t pwmPin1, uint8_t dutyCycle1, uint8_t pwmPin2, uint8_t dutyCycle2 ) {
-
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
-        
-        printf( "Write PWM Pair: Pin: %d,%d, duty: %d,%d\n", pwmPin1, pwmPin2, dutyCycle1, dutyCycle2  );
-    }
-   
-    PwmInst *pwm1 = lookupPwmInst( pwmPin1 );
-    PwmInst *pwm2 = lookupPwmInst( pwmPin2 );
-
-    if (( pwm1 == nullptr ) || ( pwm2 == nullptr ) || 
-        ( ! pwm1 -> configured ) || ( ! pwm2 -> configured )) return ( PWM_PIN_ERR );
-
-    if ( pwm1 -> sliceNum == pwm2 -> sliceNum ) {
-
-        pwm_set_both_levels( pwm1 -> sliceNum, 
-                             pwm1 -> wrap * dutyCycle1 / 255,
-                             pwm2 -> wrap * dutyCycle2 / 255 );     
-    }
-    else {
-
-        pwm_set_chan_level( pwm1 -> sliceNum, pwm1 -> channel, ( pwm1 -> wrap * dutyCycle1 / 255 ));
-        pwm_set_chan_level( pwm2 -> sliceNum, pwm2 -> channel, ( pwm2 -> wrap * dutyCycle2 / 255 ));
-    }
-
-    return ( NO_ERR );
-}
-
-// ??? need a way to sync the PWM output with the LCS overall sync signal...
-// ??? make sure that the syncPwm is not called too often, as it would interrupt the PWM waveform...
-
 uint8_t syncPwm( uint8_t pwmPin ) {
 
     PwmInst *pwm = lookupPwmInst( pwmPin );
     if (( pwm == nullptr ) && ( ! pwm -> configured )) return ( PWM_PIN_ERR );
 
-    pwm_set_counter( pwm ->sliceNum, 0);
+    pwm_set_counter( pwm ->sliceNum, 0 );
     
     return ( NO_ERR );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // I2C Section. The PICO has two HW blocks for I2C interfaces. The interface implements a simple read and
@@ -1375,8 +1310,12 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
 
         printf( "i2cRead: scl: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
                 sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
-        if ( ret == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
-        if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_I2C )) {
+            
+            if ( ret == PICO_ERROR_GENERIC ) printf( "I2C read, PICO generic error\n" );
+            if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C read, PICO timeout error\n" );
+        }
     }
    
     if (( ret == PICO_ERROR_GENERIC ) || ( ret == PICO_ERROR_TIMEOUT )) return ( I2C_READ_ERR );
@@ -1408,8 +1347,11 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
 
-        if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
-        if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
+        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_I2C )) {
+
+            if ( ret == PICO_ERROR_GENERIC ) printf( "I2C write, PICO generic error\n" );
+            if ( ret == PICO_ERROR_TIMEOUT ) printf( "I2C write, PICO timeout error\n" );
+        }
     }
     
     if (( ret == PICO_ERROR_TIMEOUT) || ( ret == PICO_ERROR_GENERIC ) || ( ret != len )) return ( I2C_WRITE_ERR );
@@ -1441,6 +1383,7 @@ uint8_t i2cBusreset( uint8_t sclPin ) {
 // a fixed set of SPI options for frequency, bit order and mode. One day this may change. We do not take 
 // care of the chip select stuff and expect that the caller manages the select pin.
 //
+// ??? untested !!!!
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
 
@@ -1528,11 +1471,9 @@ uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
     
         spi -> active     = false;
         spi -> selectPin  = UNDEFINED_PIN;
-    
         return ( NO_ERR );
-
     }
-    else return ( NO_ERR ); // ???  "error "  not active...
+    else return ( SPI_NOT_ACTIVE_ERR );
 }
 
 uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
@@ -1550,7 +1491,7 @@ uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
         int bytesRead = spi_read_blocking( spi -> spiHw, 0, buf, len );
         return ( NO_ERR );
 
-    } else return ( NO_ERR ); // ??? fix : not active ...
+    } else return ( SPI_NOT_ACTIVE_ERR );
 }
 
 uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
@@ -1568,7 +1509,7 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
         spi_write_blocking( spi -> spiHw, buf, len );
         return ( NO_ERR );
 
-    } else return ( NO_ERR ); // ??? fix : not active ...
+    } else return ( SPI_NOT_ACTIVE_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1594,8 +1535,13 @@ void printConfigInfo( CdcConfigDesc *ci ) {
     printf( "ADC pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
             ci -> ADC_PIN_0, ci -> ADC_PIN_1, ci -> ADC_PIN_2, ci -> ADC_PIN_3 );
 
-    printf( "PWM pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-            ci -> PWM_PIN_0, ci -> PWM_PIN_1, ci -> PWM_PIN_2, ci -> PWM_PIN_3 );
+    printf( "PWM pins ( 0 .. 7 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
+            ci -> PWM_PIN_0, ci -> PWM_PIN_1, ci -> PWM_PIN_2, ci -> PWM_PIN_3,
+            ci -> PWM_PIN_4, ci -> PWM_PIN_5, ci -> PWM_PIN_6, ci -> PWM_PIN_7 );
+
+    printf( "PWM pins ( 8 .. 15 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
+            ci -> PWM_PIN_8, ci -> PWM_PIN_9, ci -> PWM_PIN_10, ci -> PWM_PIN_11,
+            ci -> PWM_PIN_12, ci -> PWM_PIN_13, ci -> PWM_PIN_14, ci -> PWM_PIN_15 );
 
     printf( "UART RX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
             ci -> UART_RX_PIN_0, ci -> UART_RX_PIN_1, ci -> UART_RX_PIN_2, ci -> UART_RX_PIN_3 );

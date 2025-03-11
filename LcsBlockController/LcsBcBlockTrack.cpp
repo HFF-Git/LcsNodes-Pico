@@ -224,8 +224,7 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     lastPwrSamplePerSecTaken    = 0;
     pwrSamplesPerSec            = 0;
 
-    uint8_t rStat = CDC::configurePwm( selPin1, pwmFrequency );
-    if ( rStat == ALL_OK ) rStat = CDC::configurePwm( selPin2, pwmFrequency );
+    uint8_t rStat = CDC::configurePwm( selPin1, selPin2, pwmFrequency );
     if ( rStat == ALL_OK ) rStat = CDC::configureAdc( sensePin );
     if ( rStat == ALL_OK ) rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
 
@@ -269,32 +268,28 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
         case BT_MODE_PWM_FWD: {
 
-            rStat = CDC::writePwm( selPin1, speed );
-            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
+            rStat = CDC::writePwm( selPin1, speed, 0 );
             return( rStat );
 
         } break;
 
         case BT_MODE_PWM_REV: {
 
-            rStat = CDC::writePwm( selPin1, 0 );
-            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, speed );
+            rStat = CDC::writePwm( selPin1, 0, speed );
             return( rStat );
 
         } break;
 
         case BT_MODE_DCC: {
 
-            rStat = CDC::writePwm( selPin1, 255 );
-            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 255 );
-                return( rStat );
+            rStat = CDC::writePwm( selPin1, 255, 255 );
+            return( rStat );
 
             } break;
 
             case BT_MODE_OFF: {
 
-            rStat = CDC::writePwm( selPin1, 0 );
-            if ( rStat == ALL_OK ) rStat = CDC::writePwm( selPin2, 0 );
+            rStat = CDC::writePwm( selPin1, 0, 0 );
             return( rStat );
 
         } break;

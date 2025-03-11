@@ -405,21 +405,17 @@ void testPWMFixed( ) {
 
   uint32_t fPWM = 100;
 
-  CDC::configurePwm( cfg.DIO_PIN_6, fPWM, true, false );
-  CDC::configurePwm( cfg.DIO_PIN_7, fPWM, true, false );
+  CDC::configurePwm( cfg.DIO_PIN_6, cfg.DIO_PIN_7, fPWM );
 
   while ( true ) {
 
-    CDC::writePwm( cfg.DIO_PIN_6, 127 );
-    CDC::writePwm( cfg.DIO_PIN_7, 63 );
+    CDC::writePwm( cfg.DIO_PIN_6, 127, 63 );
     CDC::sleepMillis( 2000 );
 
-    CDC::writePwm( cfg.DIO_PIN_6, 192 );
-    CDC::writePwm( cfg.DIO_PIN_7, 127 );
+    CDC::writePwm( cfg.DIO_PIN_6, 192, 127 );
     CDC::sleepMillis( 2000 );
 
-    CDC::writePwm( cfg.DIO_PIN_6, 63 );
-    CDC::writePwm( cfg.DIO_PIN_7, 192 );
+    CDC::writePwm( cfg.DIO_PIN_6, 63, 192 );
     CDC::sleepMillis( 2000 );
   }
 }
@@ -439,9 +435,8 @@ void testPWMWithAnalogInput( ) {
   uint16_t minimalThreshold = 6;
 
   CDC::configureAdc( cfg.ADC_PIN_0 );
-  CDC::configurePwm( cfg.DIO_PIN_6, fPWM, true, false );
-  CDC::configurePwm( cfg.DIO_PIN_7, fPWM, true, false );
-
+  CDC::configurePwm( cfg.DIO_PIN_6, cfg.DIO_PIN_7, fPWM );
+  
   while ( true ) {
 
     dutyCycle = CDC::readAdc( cfg.ADC_PIN_0 );
@@ -449,8 +444,7 @@ void testPWMWithAnalogInput( ) {
     if ( dutyCycle < minimalThreshold ) dutyCycle = 0;
     if ( dutyCycle > 255 )              dutyCycle = 255;
 
-    CDC::writePwm( cfg.DIO_PIN_6, dutyCycle );
-    CDC::writePwm( cfg.DIO_PIN_7, dutyCycle );
+    CDC::writePwm( cfg.DIO_PIN_6, dutyCycle, 0 );
     CDC::sleepMillis( 100 );
   }
 }
