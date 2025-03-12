@@ -46,6 +46,11 @@
 #include "hardware/pwm.h"
 #include "H-Bridge-Pio.pio.h"
 
+
+// ??? clean up .... !!!!!!
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // Globals. 
 //
@@ -100,8 +105,13 @@ void setupPioProgramInstance ( int index ) {
 
     printf( "setupPioProgramInstance: index: %d\n", index );
 
+    #if 0
+
     uint offset = pio_add_program( pio, & dcc_h_bridge_control_program );
     sm[ index ] = pio_claim_unused_sm( pio, true );
+
+   
+    start_dcc_booster_program( pio, uint sm, uint pin_in, uint pin_out)
 
     dcc_h_bridge_control_program_init(  pio, 
                                     sm[ index ], 
@@ -111,7 +121,11 @@ void setupPioProgramInstance ( int index ) {
                                     INPUT_PINS[ index ][ 0 ], 
                                     INPUT_PINS[ index ][ 1] 
                                 );
-}
+#endif
+
+                            }
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Configure a Bridge PWM instance.
