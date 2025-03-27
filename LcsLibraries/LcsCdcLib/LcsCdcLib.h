@@ -124,6 +124,12 @@ enum CdcStatus : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+const uint16_t  MAX_INST_DESC_ENTRIES = 32;
+
+//------------------------------------------------------------------------------------------------------------
 // Controller pin related definitions. A pin can be valid, undefined or illegal. An undefined pin for a pin
 // field in the configuration structure indicates that  the pin has not been used by the firmware
 // implementation but is a pin that the particular controller would support. An illegal pin means that the
@@ -190,6 +196,110 @@ enum PwmDutyCycle : uint8_t {
 
     MIN_DUTY_CCYCLE     = 0,
     MAX_DUTY_CYCLE      = 255
+};
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct WatchDogInstDesc {
+
+    uint32_t    intervalMillis = 0;
+};
+
+struct TimerInstDesc {
+
+    // ??? what to set ...
+    uint32_t    intervalMillis = 0;
+
+};
+
+struct GpioInstDesc {
+
+    // ??? input output mode, pull-up option?
+
+    uint8_t     pin             = UNDEFINED_PIN;
+};
+
+struct AdcInstDesc {
+
+    uint8_t     adcPin          = CDC::UNDEFINED_PIN;
+};
+
+struct PwmInstDesc {
+
+    // ??? frequency ?
+
+    uint8_t     pwmPinA         = CDC::UNDEFINED_PIN;
+    uint8_t     pwmPinB         = CDC::UNDEFINED_PIN;
+    uint32_t    wrap            = 0;
+    bool        inverted        = false;
+};
+
+struct UartInstDesc {
+
+    // ??? baudRate ?
+
+    uint8_t     rxPin           = CDC::UNDEFINED_PIN;
+    uint8_t     txPin           = CDC::UNDEFINED_PIN;
+    uint16_t    baudSetting     = 0;
+    uint8_t     dataBits        = 8;
+    uint8_t     parityMode      = 0;
+    uint8_t     stopBits        = 1;
+};
+
+struct I2CInstDesc {
+
+    uint8_t     sclPin          = CDC::UNDEFINED_PIN;
+    uint8_t     sdaPin          = CDC::UNDEFINED_PIN;
+    uint32_t    baudRate        = 0;
+    uint32_t    timeoutValMs    = 0;
+};
+
+struct SPIInstDesc {
+
+    uint8_t     selectPin       = CDC::UNDEFINED_PIN;
+    uint8_t     mosiPin         = CDC::UNDEFINED_PIN;
+    uint8_t     misoPin         = CDC::UNDEFINED_PIN;
+    uint8_t     sclkPin         = CDC::UNDEFINED_PIN;
+    uint32_t    frequency       = 0;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A CDC configuration descriptor is the counterpart to the instances. A descriptor for a given instance type
+// will contain all the information to configure that instance. An instance can be configured with the 
+// configure routine and its parameter list or based on the data in this descriptor. It should be possible to
+// configure the entire board based on an array of such descriptors. The idea is that each board can be 
+// uniquely described with such an array.
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcInstanceConfigDesc {
+
+    uint16_t type;
+
+    union {
+
+        WatchDogInstDesc    wd;
+        TimerInstDesc       timer;
+        GpioInstDesc        gpio;
+        PwmInstDesc         pwm;
+        UartInstDesc        uart;
+        AdcInstDesc         adc;
+        I2CInstDesc         i2c;
+        SPIInstDesc         spi;
+    };
+};
+
+//------------------------------------------------------------------------------------------------------------
+// 
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcInstanceDescMap {
+
+    uint16_t flags;
+    uint16_t size;
+
+    CdcInstanceConfigDesc map[ MAX_INST_DESC_ENTRIES ];
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -318,6 +428,10 @@ struct CdcConfigDesc {
 // case one of the HW pins, see the function documentation, will serve as the handle to the resource.
 //
 //------------------------------------------------------------------------------------------------------------
+
+
+// ??? need routines to lookup resources... etc.
+
 
 //------------------------------------------------------------------------------------------------------------
 // The console IO functions. We will provide a serial IO via the USB connector of the PICO. The files 

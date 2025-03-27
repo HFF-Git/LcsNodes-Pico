@@ -5,11 +5,18 @@
 //------------------------------------------------------------------------------------------------------------
 // This source file contains the the RP2040 controller family hardware library code. The idea of this library
 // is to shield the actual hardware of processor and board implementation from the upper layers but still keep
-// the flexibility and performance of the underlying hardware. The library works with the concept of HW pins,
-// which are identifiers for an HW entity. This is easy for a GPIO pin, where the mapping is directly one to
-// one. For more complex HW entries such as the I2C or UART hardware, one pin is selected as the identifier to
-// that entity. For each complex entity an instance variable is maintained where all the relevant data is kept.
+// the flexibility and performance of the underlying hardware. We also need to provide a handle from the 
+// defined hardware elements to the particular board. 
+
+
+// ??? rework text ....
+// The library works with the concept of HW pins, which are identifiers for an HW entity. This is easy for a 
+// GPIO pin, where the mapping is directly one to one. For more complex HW entries such as the I2C or UART 
+// hardware, one pin is selected as the identifier to that entity. For each complex entity an instance variable
+// is maintained where all the relevant data is kept.
 //
+
+
 // A historic note. The original LCS code was written for Atmega and Pico. With the complete shift to PICO,
 // the CDC library just serves as a simple interface to the PICO functions. One day, we may see more different
 // controllers and controller families. The idea is that the LCS runtime is shielded from them.
@@ -17,7 +24,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -93,63 +100,80 @@ const uint8_t CDC_LIB_MINOR_VERSION = 0;
 //------------------------------------------------------------------------------------------------------------
 const uint8_t  MAX_PIN_NUM          = 28;
 
-const uint32_t VALID_GPIO_PINS      = 0x1FFFFFFF;
-const uint32_t VALID_PWM_PINS       = 0x1FFFFFFF;
-const uint32_t VALID_ADC_PINS       = ( 1 << 26 ) | ( 1 << 27 ) | ( 1 << 28 );
+const uint32_t VALID_GPIO_PINS      =   0x1FFFFFFF;
+const uint32_t VALID_PWM_PINS       =   0x1FFFFFFF;
+const uint32_t VALID_ADC_PINS       =   ( 1 << 26 ) | ( 1 << 27 ) | ( 1 << 28 );
 
-const uint32_t VALID_I2C_0_SDA_PINS = ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 8  ) |
-                                    ( 1 << 12 ) | ( 1 << 16 ) | ( 1 << 20 );
-const uint32_t VALID_I2C_0_SCL_PINS = ( 1 << 1  ) | ( 1 << 5  ) | ( 1 << 9  ) |
-                                    ( 1 << 13 ) | ( 1 << 17 ) | ( 1 << 21 );
+const uint32_t VALID_I2C_0_SDA_PINS =   ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 8  ) |
+                                        ( 1 << 12 ) | ( 1 << 16 ) | ( 1 << 20 );
+const uint32_t VALID_I2C_0_SCL_PINS =   ( 1 << 1  ) | ( 1 << 5  ) | ( 1 << 9  ) |
+                                        ( 1 << 13 ) | ( 1 << 17 ) | ( 1 << 21 );
 
-const uint32_t VALID_I2C_1_SDA_PINS = ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 10 ) |
-                                    ( 1 << 14 ) | ( 1 << 18 ) | ( 1 << 26 );
-const uint32_t VALID_I2C_1_SCL_PINS = ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 11 ) |
-                                    ( 1 << 15 ) | ( 1 << 19 ) | ( 1 << 27 );
+const uint32_t VALID_I2C_1_SDA_PINS =   ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 10 ) |
+                                        ( 1 << 14 ) | ( 1 << 18 ) | ( 1 << 26 );
+const uint32_t VALID_I2C_1_SCL_PINS =   ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 11 ) |
+                                        ( 1 << 15 ) | ( 1 << 19 ) | ( 1 << 27 );
 
-const uint32_t VALID_UART_0_TX_PINS = ( 1 << 0  ) | ( 1 << 12 ) | ( 1 << 16 );
-const uint32_t VALID_UART_0_RX_PINS = ( 1 << 1  ) | ( 1 << 13 ) | ( 1 << 17 );
+const uint32_t VALID_UART_0_TX_PINS =   ( 1 << 0  ) | ( 1 << 12 ) | ( 1 << 16 );
+const uint32_t VALID_UART_0_RX_PINS =   ( 1 << 1  ) | ( 1 << 13 ) | ( 1 << 17 );
 
-const uint32_t VALID_UART_1_TX_PINS = ( 1 << 4  ) | ( 1 << 8  );
-const uint32_t VALID_UART_1_RX_PINS = ( 1 << 5  ) | ( 1 << 9  );
+const uint32_t VALID_UART_1_TX_PINS =   ( 1 << 4  ) | ( 1 << 8  );
+const uint32_t VALID_UART_1_RX_PINS =   ( 1 << 5  ) | ( 1 << 9  );
 
-const uint32_t VALID_SPI_0_SCK_PINS = ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 18 );
-const uint32_t VALID_SPI_0_TX_PINS  = ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 19 );
-const uint32_t VALID_SPI_0_RX_PINS  = ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 16 );
+const uint32_t VALID_SPI_0_SCK_PINS =   ( 1 << 2  ) | ( 1 << 6  ) | ( 1 << 18 );
+const uint32_t VALID_SPI_0_TX_PINS  =   ( 1 << 3  ) | ( 1 << 7  ) | ( 1 << 19 );
+const uint32_t VALID_SPI_0_RX_PINS  =   ( 1 << 0  ) | ( 1 << 4  ) | ( 1 << 16 );
 
-const uint32_t VALID_SPI_1_SCK_PINS = ( 1 << 10 ) | ( 1 << 14 );
-const uint32_t VALID_SPI_1_TX_PINS  = ( 1 << 11 ) | ( 1 << 15 );
-const uint32_t VALID_SPI_1_RX_PINS  = ( 1 << 8  ) | ( 1 << 12 );
+const uint32_t VALID_SPI_1_SCK_PINS =   ( 1 << 10 ) | ( 1 << 14 );
+const uint32_t VALID_SPI_1_TX_PINS  =   ( 1 << 11 ) | ( 1 << 15 );
+const uint32_t VALID_SPI_1_RX_PINS  =   ( 1 << 8  ) | ( 1 << 12 );
 
-const uint32_t VALID_I2C_0_PINS     = VALID_I2C_0_SDA_PINS | VALID_I2C_0_SCL_PINS;
-const uint32_t VALID_I2C_1_PINS     = VALID_I2C_1_SDA_PINS | VALID_I2C_1_SCL_PINS;
+const uint32_t VALID_I2C_0_PINS     =   VALID_I2C_0_SDA_PINS | VALID_I2C_0_SCL_PINS;
+const uint32_t VALID_I2C_1_PINS     =   VALID_I2C_1_SDA_PINS | VALID_I2C_1_SCL_PINS;
 
-const uint32_t VALID_UART_0_PINS    = VALID_UART_0_TX_PINS | VALID_UART_0_RX_PINS;
-const uint32_t VALID_UART_1_PINS    = VALID_UART_1_TX_PINS | VALID_UART_1_RX_PINS;
+const uint32_t VALID_UART_0_PINS    =   VALID_UART_0_TX_PINS | VALID_UART_0_RX_PINS;
+const uint32_t VALID_UART_1_PINS    =   VALID_UART_1_TX_PINS | VALID_UART_1_RX_PINS;
 
-const uint32_t VALID_SPI_0_PINS     = VALID_SPI_0_SCK_PINS | VALID_SPI_0_TX_PINS | VALID_SPI_0_RX_PINS;
-const uint32_t VALID_SPI_1_PINS     = VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS | VALID_SPI_1_RX_PINS;
+const uint32_t VALID_SPI_0_PINS     =   VALID_SPI_0_SCK_PINS | VALID_SPI_0_TX_PINS | VALID_SPI_0_RX_PINS;
+const uint32_t VALID_SPI_1_PINS     =   VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PINS | VALID_SPI_1_RX_PINS;
 
 //----------------------------------------------------------------------------------------------------------
 // Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint16_t CONTROLLER_FAMILY          = CDC::CF_RP_PICO;
-const uint32_t CHIP_MEM_SIZE              = 264 * 1024;         // ??? not true for RP2350
-const uint32_t CHIP_NVM_SIZE              = 0;
+const uint16_t CONTROLLER_FAMILY            = CDC::CF_RP_PICO;
+const uint32_t CHIP_MEM_SIZE                = 264 * 1024;         // ??? not true for RP2350
+const uint32_t CHIP_NVM_SIZE                = 0;
 
-const uint16_t ADC_DIGIT_RANGE            = 1024;
-const uint16_t ADC_REF_VOLTAGE_MILLI_VOLT = 3300;
+const uint16_t ADC_DIGIT_RANGE              = 1024;
+const uint16_t ADC_REF_VOLTAGE_MILLI_VOLT   = 3300;
 
-const uint8_t  MAX_UART_BUF_SIZE          = 8;
+const uint8_t  MAX_UART_BUF_SIZE            = 8;
 
-const uint32_t I2C_FREQUENCY              = 100 * 1000;
-const uint32_t I2C_TIME_OUT_IN_MS         = 250;
+const uint32_t I2C_FREQUENCY                = 100 * 1000;
+const uint32_t I2C_TIME_OUT_IN_MS           = 250;
 
-const uint32_t SPI_FREQUENCY              = 10000000L;
+const uint32_t SPI_FREQUENCY                = 10000000L;
 
-const uint16_t  MAX_CPU_CORE              = 2;
-const uint16_t  MAX_INT_PIN               = 24;
+const uint16_t  MAX_CPU_CORE                = 2;
+const uint16_t  MAX_INT_PIN                 = 24;
+
+const uint16_t  MAX_INST_ENTRIES            = 32;
+
+//------------------------------------------------------------------------------------------------------------
+// Controller dependent code uses a set of hardware instances structures to control the controller hardware. 
+// When a particular instance, e.g. an I2C channel, is configured all further access is done with a handle
+// to this instance. The instance structure takes care of isolating the controller hardware from the runtime
+// library and user firmware. There is a counter part to the instance structure, which contains the defined
+// parameters for that instance. The parameters are used in the configuration process. The key difference
+// between the two structure is that the instance structure contains controller hardware specific data 
+// fields not exported to the user of the CDC library.
+//
+// We should be able to define all the hardware instances that a particular board offers in an array of 
+// instance descriptors. Perhaps we could one day have an include file which contains for each board the
+// instance descriptors array. 
+//
+//------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
 // Watchdog Instance.
@@ -162,7 +186,7 @@ struct WatchDogInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A timer instance. We currently support inly one HW timer.
+// A timer instance. We currently support inly one HW timer and Configuration Descriptor.
 //
 //------------------------------------------------------------------------------------------------------------
 struct TimerInst {
@@ -172,9 +196,19 @@ struct TimerInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
+// A GPIO instance is the most basic digital IO channel.
+//
+//------------------------------------------------------------------------------------------------------------
+struct GpioInst {
+
+    bool                configured  = false;
+    uint8_t             pin         = UNDEFINED_PIN;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding 
 // instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
-// instance.
+//  instance.
 //
 //------------------------------------------------------------------------------------------------------------
 struct AdcInst {
@@ -185,9 +219,9 @@ struct AdcInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM output related data is
-// kept in this instance. The PICO features a set of PWM slices, each of which has two channels. We will 
-// use the two channels for our PWM signal, where one pin is the PWM signal while the other is held low.
+// A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM output related data is kept
+// in this instance. The PICO features a set of PWM slices, each of which has two channels. We will use the 
+// two channels for our PWM signal, where one pin is the PWM signal while the other is held low.
 //
 //------------------------------------------------------------------------------------------------------------
 struct PwmInst {
@@ -203,8 +237,8 @@ struct PwmInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two
-// hardware based UART instances, or up to four software defined instances. The instance also keeps a small
+// A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two 
+// hardware based UART instances, or up to four software defined instances. The instance also keeps a small 
 // buffer where the data is read into. We also keep the PICO UART HW instance used.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -227,7 +261,7 @@ struct UartInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The I2C instance. The PICO features two HW instances of an I2C port. The instance data contains the
+// The I2C instance. The PICO features two HW instances of an I2C port. The instance data contains the 
 // assigned GPIO pins, the baud rate and a timeout. We also keep the I2C HW instance used.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -243,8 +277,8 @@ struct I2CInst {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The SPI instance. The PICO features two SPI HW instances. We keep the assigned GPIO pins for the SPI
-// interface as well as the PICO HW instance. Since the SPI protocol explicitly sets the selected HW select
+// The SPI instance. The PICO features two SPI HW instances. We keep the assigned GPIO pins for the SPI 
+// interface as well as the PICO HW instance. Since the SPI protocol explicitly sets the selected HW select 
 // pin, we remember that we are in a transaction with perhaps more than one call to the SPI routines.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -274,10 +308,56 @@ struct GpioIsrTable {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// Hardware is configured via Instances. An instance groups a function with all settings and hardware pins
+// it may need. Instances are referred by the CDC routines with an index into the instance array. This array
+// is populated during initial configuration. An application can locate this index by using the lookup 
+// function which accepts an identifier name. For example, PWM_INST_0, is the resId for a PWM channel that
+// was configured using this name.
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcInstance {
+
+uint16_t type;
+uint16_t resIdName;
+
+    union {
+
+        WatchDogInst    wd;
+        TimerInst       timer;
+        GpioInst        gpio;
+        PwmInst         pwm;
+        UartInst        uart;
+        AdcInst         adc;
+        I2CInst         i2c;
+        SPIInst         spi;
+    };
+};
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+CdcInstance instanceMap[ MAX_INST_ENTRIES ] = { 0 };
+
+
+// ??? we need a configure routine for each instance type
+// ??? we need a lookup function to fund the instance by "instance name"
+// ??? we need a function to take an array of instance descriptors and execute the config routines...
+
+// ??? the instance descriptors can be grouped based on the board/version as a constant data structure.
+// ??? we could store a board type in the board NVM to fund the board descriptor. 
+// ??? there is a default descriptor ( minimum data, such as NVM I2C, etc. ) to prepare a board and 
+// let it react to config commands.
+
+
+
+
+//------------------------------------------------------------------------------------------------------------
 // Local variables. We maintain an instance variable for each of the possible HW entities, such as an I2C
 // interface or a UART. Note that not all are used at the same time. The instance variables map from the
 // simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
 //
+// ??? this will be reworked and moistly disappear...
 //------------------------------------------------------------------------------------------------------------
 CDC::CdcConfigDesc          cfg;
 CDC::TimerCallback          timerCallback = nullptr;
@@ -429,6 +509,7 @@ void uartRxCallback1( ) {
 // The configuration structure does not replace the actual configuration calls to make to the CDC library.
 // It is just a mapping of reserved names to actual GPIO pins.
 //
+// ??? this will change ....
 //------------------------------------------------------------------------------------------------------------
 CDC::CdcConfigDesc getConfigDefaultRP2040( ) {
 
@@ -508,6 +589,7 @@ CDC::CdcConfigDesc getConfigDefaultRP2040( ) {
 // The PICO is very flexible when it comes to what a pin can do. However, there are still some rules to 
 // follow. Also, we have dedicated settings for at least the I2C channels and the CAN bus IO pins.
 //
+// ??? still needed, but done internally...
 //------------------------------------------------------------------------------------------------------------
 uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
 
@@ -520,7 +602,7 @@ uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// Bane CDC. All routines and definitions exported are in this name space.
+// Name space CDC. All routines and definitions exported are in this name space.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace CDC {
@@ -1465,8 +1547,6 @@ uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
 
     if ( spi -> active ) {
 
-        // ??? check that this is the correct pin ?
-        
         CDC::writeDio( csPin, true );
     
         spi -> active     = false;
@@ -1515,6 +1595,7 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 //------------------------------------------------------------------------------------------------------------
 // Print out the Config Structure.
 //
+// ??? this will for sure change ... we will print out the array of instances....
 //------------------------------------------------------------------------------------------------------------
 void printConfigInfo( CdcConfigDesc *ci ) {
 
