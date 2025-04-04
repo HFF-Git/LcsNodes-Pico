@@ -59,6 +59,7 @@
 #include "hardware/i2c.h"
 #include "hardware/spi.h"
 
+#include "LcsBoardDescriptors.h"
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------

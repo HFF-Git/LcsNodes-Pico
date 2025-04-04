@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------------------------------------
-#  LCS - LcsNodes cmake file at the LcsCdcLib directory level
+#  LCS - LcsNodes cmake file at the LcsBoardDescriptor directroy
 #
-#  Copyright (C) 2024 - 2024  Helmut Fieres
+#  Copyright (C) 2024 - 2025  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
 #
 # 
@@ -9,17 +9,15 @@
 # ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.19 )
 
-project( LcsCdcLib C CXX ASM )
+project( LcsBoardDescriptors C CXX ASM )
 
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 ) 
 
-# add the cdc library files
+# add the library files
 add_library( ${PROJECT_NAME} STATIC 
     
-    LcsCdcLibVersion.h
-    LcsCdcLib.h 
-    LcsCdcLib.cpp
+    LcsBoardDescriptors.h
 ) 
 
 target_include_directories( ${PROJECT_NAME} PRIVATE ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include)
@@ -28,7 +26,6 @@ target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 
 # list the library dependencies. This is primarily the PICO standard and dedicated hardware libraries.
 target_link_libraries( ${PROJECT_NAME} 
-
     pico_stdlib 
     hardware_gpio
     hardware_i2c 
@@ -37,7 +34,4 @@ target_link_libraries( ${PROJECT_NAME}
     hardware_pwm
     hardware_uart
     hardware_spi
-
-    LcsBoardDescriptors
     )
-

@@ -31,8 +31,9 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
 #include <ctype.h>
-#include "LcsCdcLib.h"
 #include "LcsRtLibVersion.h"
+#include "LcsBoardDescriptors.h"
+#include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 
 namespace LCS {
@@ -132,7 +133,7 @@ const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 //
 //  NS_NIL            -   NIL.
 //  NS_FAIL           -   The node startup failed.
-//  NS_PFAIL          -   The node startup detected that we ended in a power fauilure before.
+//  NS_PFAIL          -   The node startup detected that we ended in a power failure before.
 //  NS_INIT           -   The node entered the startup state.
 //  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId check or new nodeId.
 //  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus and stopped.
