@@ -20,7 +20,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Include file
-// Copyright (C) 2022 - 2024  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -97,6 +97,10 @@ enum CdcStatus : uint8_t {
 
     MEM_SIZE_ERR        = 10,
 
+    INVALID_HANDLE_ERR  = 11,
+    MAX_RES_ID_ERR      = 12,
+
+
     ACTIVE_LED_PIN_ERR  = 13,
     BUTTON_PIN_ERR      = 14,
     PFAIL_PIN_ERR       = 15,
@@ -127,7 +131,7 @@ enum CdcStatus : uint8_t {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-const uint16_t  MAX_INST_DESC_ENTRIES = 32;
+const uint16_t  MAX_INST_DESC_ENTRIES = 64;
 
 //------------------------------------------------------------------------------------------------------------
 // Controller pin related definitions. A pin can be valid, undefined or illegal. An undefined pin for a pin
@@ -136,8 +140,27 @@ const uint16_t  MAX_INST_DESC_ENTRIES = 32;
 // pin is not offered by this controller and cannot be assigned at all.
 //
 //------------------------------------------------------------------------------------------------------------
-const uint8_t UNDEFINED_PIN   = 255;
-const uint8_t ILLEGAL_PIN     = 254;
+const uint8_t UNDEFINED_PIN     = 255;
+const uint8_t ILLEGAL_PIN       = 254;
+
+//------------------------------------------------------------------------------------------------------------
+// The CDC instances have a type which tells us what the particular instance is.
+//
+//------------------------------------------------------------------------------------------------------------
+enum CdcInstanceType : uint16_t {
+
+    CDC_IT_UNDEFINED    = 0,
+    CDC_IT_CONTROLLER   = 1,
+    CDC_IT_WATCHDOG     = 2,
+    CDC_IT_TIMER        = 3,
+    CDC_IT_GPIO         = 4,
+    CDC_IT_ADC          = 5,
+    CDC_IT_PWM          = 6,
+    CDC_IT_UART         = 7,
+    CDC_IT_I2C          = 8,
+    CDC_IT_SPI          = 9,
+    CDC_IT_CAN_BUS      = 10
+};
 
 //------------------------------------------------------------------------------------------------------------
 // The controller families. Currently, there is only the Raspberry PI Pico models.
@@ -145,8 +168,9 @@ const uint8_t ILLEGAL_PIN     = 254;
 //------------------------------------------------------------------------------------------------------------
 enum ControllerFamily : uint8_t {
 
-    CF_UNDEFINED    = 0,
-    CF_RP_PICO      = 1
+    CDC_CF_UNDEFINED    = 0,
+    CDC_CF_RP_PICO_2040 = 1,
+    CDC_CF_RP_PICO_2350 = 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -157,9 +181,9 @@ enum ControllerFamily : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum dioMode : uint8_t {
 
-    IN            = 0,
-    OUT           = 1,
-    IN_PULLUP     = 2
+    DIO_IN              = 0,
+    DIO_OUT             = 1,
+    DIO_IN_PULLUP       = 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -168,12 +192,12 @@ enum dioMode : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum intEventTyp : uint8_t {
 
-    EVT_NONE    = 0,
-    EVT_LOW     = 1,
-    EVT_HIGH    = 2,
-    EVT_FALL    = 3,
-    EVT_RISE    = 4,
-    EVT_CHANGE  = 5
+    EVT_NONE            = 0,
+    EVT_LOW             = 1,
+    EVT_HIGH            = 2,
+    EVT_FALL            = 3,
+    EVT_RISE            = 4,
+    EVT_CHANGE          = 5
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -199,7 +223,21 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// The controller instance type. The controller itself has parameters we can set.
 //
+// ??? letÄs see where this takes us...
+//------------------------------------------------------------------------------------------------------------
+struct ControllerDesc {
+
+    ControllerFamily    cFamily         = CDC_CF_UNDEFINED;
+    uint32_t            memorySize      = 0;
+    uint32_t            internalNvmSize = 0;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The controller features a watchdog facility. The idea is that when the controller software hangs, it will
+// be restarted. To avoid the automatic restarting, the software periodically needs to reset the watchdog 
+// timer. The interval timer specifies the maximum time without resetting the watchdog timer.
 //
 //------------------------------------------------------------------------------------------------------------
 struct WatchDogInstDesc {
@@ -207,47 +245,72 @@ struct WatchDogInstDesc {
     uint32_t    intervalMillis = 0;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// Timer instances descriptor.
+// 
+// ??? option to specify whether the timer should restart while the interrupt is served or after.
+//------------------------------------------------------------------------------------------------------------
 struct TimerInstDesc {
 
-    // ??? what to set ...
     uint32_t    intervalMillis = 0;
-
 };
 
+//------------------------------------------------------------------------------------------------------------
+// A GPIO instance descriptor declares the pin(s) and their mode. Note that the mode can be changed later via
+// the config routine.
+//
+// ??? should we also have a concept to have a pin mask for multiple pins ?
+//------------------------------------------------------------------------------------------------------------
 struct GpioInstDesc {
 
-    // ??? input output mode, pull-up option?
-
-    uint8_t     pin             = UNDEFINED_PIN;
+    uint8_t     pinA            = UNDEFINED_PIN;
+    uint8_t     pinB            = UNDEFINED_PIN;
+    dioMode     pinAMode        = DIO_IN;
+    dioMode     pinBMode        = DIO_IN;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The ADC instance descriptor declares analog input.
+//
+//------------------------------------------------------------------------------------------------------------
 struct AdcInstDesc {
 
     uint8_t     adcPin          = CDC::UNDEFINED_PIN;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The PWM instance declares the pins(s) and the PWM options, such as frequency.
+//
+// ??? range to specify ? or always 0 .. 255 ?
+//------------------------------------------------------------------------------------------------------------
 struct PwmInstDesc {
-
-    // ??? frequency ?
 
     uint8_t     pwmPinA         = CDC::UNDEFINED_PIN;
     uint8_t     pwmPinB         = CDC::UNDEFINED_PIN;
+    uint32_t    pwmFreqency     = 0;
     uint32_t    wrap            = 0;
     bool        inverted        = false;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The UART instance descriptor declares a serial IO interface. We need the Rx and Tx pins and the UART
+// options.
+//
+//------------------------------------------------------------------------------------------------------------
 struct UartInstDesc {
-
-    // ??? baudRate ?
 
     uint8_t     rxPin           = CDC::UNDEFINED_PIN;
     uint8_t     txPin           = CDC::UNDEFINED_PIN;
-    uint16_t    baudSetting     = 0;
+    uint32_t    baudRate        = 0;
     uint8_t     dataBits        = 8;
     uint8_t     parityMode      = 0;
     uint8_t     stopBits        = 1;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The I2C instance descriptor declares an I2C channel.
+// 
+//------------------------------------------------------------------------------------------------------------
 struct I2CInstDesc {
 
     uint8_t     sclPin          = CDC::UNDEFINED_PIN;
@@ -256,6 +319,10 @@ struct I2CInstDesc {
     uint32_t    timeoutValMs    = 0;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The SPI instance descriptor declares an SPI channel.
+//
+//------------------------------------------------------------------------------------------------------------
 struct SPIInstDesc {
 
     uint8_t     selectPin       = CDC::UNDEFINED_PIN;
@@ -263,6 +330,20 @@ struct SPIInstDesc {
     uint8_t     misoPin         = CDC::UNDEFINED_PIN;
     uint8_t     sclkPin         = CDC::UNDEFINED_PIN;
     uint32_t    frequency       = 0;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The CAN Bus instance descriptor declares an the necessary CAN bus data.
+// 
+//------------------------------------------------------------------------------------------------------------
+struct CanBusInstDesc {
+
+    uint8_t     canPin1         = CDC::UNDEFINED_PIN;
+    uint8_t     canPin2         = CDC::UNDEFINED_PIN;
+    uint32_t    baudRate        = 0;
+    
+    // ??? options for can2040 specifics ?
+    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -275,10 +356,11 @@ struct SPIInstDesc {
 //------------------------------------------------------------------------------------------------------------
 struct CdcInstanceConfigDesc {
 
-    uint16_t type;
+    CdcInstanceType type;
 
     union {
 
+        ControllerDesc      ctl;
         WatchDogInstDesc    wd;
         TimerInstDesc       timer;
         GpioInstDesc        gpio;
@@ -287,17 +369,20 @@ struct CdcInstanceConfigDesc {
         AdcInstDesc         adc;
         I2CInstDesc         i2c;
         SPIInstDesc         spi;
+        CanBusInstDesc      can;
     };
 };
 
 //------------------------------------------------------------------------------------------------------------
-// 
+// The CDC instance map is the data structure that has an entry for each declared instance.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CdcInstanceDescMap {
 
     uint16_t flags;
     uint16_t size;
+    
+    // ??? boardId ?
 
     CdcInstanceConfigDesc map[ MAX_INST_DESC_ENTRIES ];
 };
@@ -312,6 +397,75 @@ extern "C" {
     typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
 }
 
+
+//------------------------------------------------------------------------------------------------------------
+// Each resource has a unique ID. The ID is used in the configuration routines to create and locate the 
+// particular entry. The IDs are used by the upper layers to obtain the handle that was created when the 
+// resource was configured. From thereon, the handle is the key argument to pass for a configured resource.
+//
+//------------------------------------------------------------------------------------------------------------
+enum CdcResIdNames {
+
+    CDC_RID_UNDEFINED   = 0,
+    CDC_RID_WATCHDOG    = 1,
+    CDC_RID_CONTROLLER  = 2,
+    CDC_RID_TIMER_0     = 3,
+
+    CDC_RID_DIO_0       = 10,
+    CDC_RID_DIO_1       = 11,
+    CDC_RID_DIO_2       = 12,
+    CDC_RID_DIO_3       = 13,
+    CDC_RID_DIO_4       = 14,
+    CDC_RID_DIO_5       = 15,
+    CDC_RID_DIO_6       = 16,
+    CDC_RID_DIO_7       = 17,
+    CDC_RID_DIO_8       = 18,
+    CDC_RID_DIO_9       = 19,
+    CDC_RID_DIO_10      = 20,
+    CDC_RID_DIO_11      = 21,
+    CDC_RID_DIO_12      = 22,
+    CDC_RID_DIO_13      = 23,
+    CDC_RID_DIO_14      = 24,
+    CDC_RID_DIO_16      = 25,
+
+    CDC_RID_ADC_0       = 30,
+    CDC_RID_ADC_1       = 31,
+    CDC_RID_ADC_2       = 32,
+    CDC_RID_ADC_3       = 33,
+
+    CDC_RID_PWM_0       = 40,
+    CDC_RID_PWM_1       = 41,
+    CDC_RID_PWM_2       = 42,
+    CDC_RID_PWM_3       = 43,
+    CDC_RID_PWM_4       = 44,
+    CDC_RID_PWM_5       = 45,
+    CDC_RID_PWM_6       = 46,
+    CDC_RID_PWM_7       = 47,
+    CDC_RID_PWM_8       = 48,
+    CDC_RID_PWM_9       = 49,
+    CDC_RID_PWM_10      = 50,
+    CDC_RID_PWM_11      = 51,
+    CDC_RID_PWM_12      = 52,
+    CDC_RID_PWM_13      = 53,
+    CDC_RID_PWM_14      = 54,
+    CDC_RID_PWM_16      = 55,
+
+    CDC_RID_UART_0      = 60,
+    CDC_RID_UART_1      = 61,
+    CDC_RID_UART_2      = 62,
+    CDC_RID_UART_3      = 63,
+   
+    CDC_RID_SPI_0       = 65, 
+    CDC_RID_SPI_1       = 66,
+
+    CDC_RID_I2C_NVM     = 70,
+    CDC_RID_I2C_EXT     = 71,
+
+    CDC_RID_CAN_BUS     = 75,
+
+};
+
+// ??? this will go away...
 //------------------------------------------------------------------------------------------------------------
 // CDC features a data structure that records all HW specific pins and flags. The values are set by the
 // initialization code in a project and are validated. All modules in a project will then just use the
@@ -418,20 +572,31 @@ struct CdcConfigDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The routines that make up the hardware abstraction layer. The routines expect hardware pin numbers.
-// To recap, the CDC layer offers a set of reserved resource names, such as "DIO_PIN_0", which describes
-// the resource containing the hardware pin and some flags. The configuration routines in this layer will use
-// these pins and other data stored to configure the hardware. Under the defined resource name name all
-// upper layers refer to the hardware using the to the configured IO capabilities.
-//
-// Complex resources, such as the UART or SPI interface, have more than one HW pin they will use. In this
-// case one of the HW pins, see the function documentation, will serve as the handle to the resource.
-//
+// The routines that make up the hardware abstraction layer. In general, there are routines that are just 
+// basic utility routines common to all controller implementations. The majority of routines provide the 
+// interface to the controller resources. Each resource type has a name and a set of routines for accessing
+// it. The idea is that at startup, the resources are configured and a handle is provided to the upper layer.
+// 
 //------------------------------------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------------------------------------
+// Basic init and error handling.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t         init( CdcConfigDesc *ci );
+void            fatalError( uint8_t n );
+void            fatalErrorMsg( char *str, uint8_t n, uint8_t rStat );
+void            setDebugLevel( uint8_t level = 0 );
 
-// ??? need routines to lookup resources... etc.
-
+//------------------------------------------------------------------------------------------------------------
+// General utility routines.
+//
+//------------------------------------------------------------------------------------------------------------
+uint32_t        getMillis( );
+uint32_t        getMicros( );
+void            sleepMillis( uint32_t val );
+void            sleepMicros( uint32_t val );
+uint32_t        createUid( );
 
 //------------------------------------------------------------------------------------------------------------
 // The console IO functions. We will provide a serial IO via the USB connector of the PICO. The files 
@@ -445,54 +610,52 @@ bool            isConsoleConnected( );
 char            getConsoleChar( uint32_t timeoutVal = 0 );
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
-//
+// CDC high level setup and configuration routines. In addition to setting up the individual resources, the
+// particular mappings for a LCS Nodes board need to be provided. This is where the "CdcInstanceDescMap"
+// will be used. It is basically an array of resource descriptors and each board has its unique descriptor.
+// There is an include file which contains the descriptor for each board type and board version designed.
+// Nevertheless, an given resource configuration routine can be called any time, to either overwrite or 
+// replace the use of the descriptor information in the board descriptor array.
+// 
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureWatchDog( uint32_t millis );
-uint8_t         watchDogEnable( bool enable );
-uint8_t         watchDogUpdate( );
-bool            watchDogCausedReboot( );
+uint8_t         configureCdcSubSytem( CdcInstanceDescMap *map );
+void            printCdcSubSystemInfo( CdcInstanceDescMap *map );
+
+// ??? individual print routines for each type ?
 
 //------------------------------------------------------------------------------------------------------------
-// CDC setup and configuration routines. The idea is to help the library write with a default configuration
-// structure. All pins HW that are fixed in their location will be set. A library programmer will just get
-// that default structure and set the values necessary for the particular case.
+// General controller info routines.
 //
 //------------------------------------------------------------------------------------------------------------
-CdcConfigDesc   getConfigDefault( );
-CdcConfigDesc   *getConfigActual( );
-void            printConfigInfo( CdcConfigDesc *ci );
-void            setDebugLevel( uint8_t level = 0 );
-
-uint8_t         init( CdcConfigDesc *ci );
-void            fatalError( uint8_t n );
-void            fatalErrorMsg( char *str, uint8_t n, uint8_t rStat );
+uint8_t         configureController( uint8_t *handle );
+uint8_t         getFamily( uint8_t handle, ControllerFamily *family );
+uint8_t         getVersion( uint8_t handle, uint32_t *version );
+uint8_t         getChipMemSize( uint8_t handle, uint32_t *size );
+uint8_t         getChipNvmSize( uint8_t handle, uint32_t *size );
+uint8_t         getCpuFrequency( uint8_t handle, uint32_t *frequency );
 
 //------------------------------------------------------------------------------------------------------------
-// General controller routines.
+// The watchdog facility. There are routines to configure the time interval, enabling and disabling the 
+// watchdog timer, updating it periodically, as well as detecting that we came from a watchdog restart 
+// when restarting.
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t        getFamily( );
-uint32_t        getVersion( );
-uint32_t        getChipMemSize( );
-uint32_t        getChipNvmSize( );
-uint32_t        getCpuFrequency( );
-uint32_t        getMillis( );
-uint32_t        getMicros( );
-void            sleepMillis( uint32_t val );
-void            sleepMicros( uint32_t val );
-
-//------------------------------------------------------------------------------------------------------------
-// The LCS runtime needs to build a unique ID for the node.
-//
-//------------------------------------------------------------------------------------------------------------
-uint32_t        createUid( );
+uint8_t         configureWatchDog( uint8_t *handle, uint32_t millis );
+uint8_t         watchDogEnable( uint8_t handle, bool enable );
+uint8_t         watchDogUpdate( uint8_t handle );
+uint8_t         watchDogCausedReboot( uint8_t handle, bool *reboot );
 
 //------------------------------------------------------------------------------------------------------------
 // Timer management routines.
 //
 //------------------------------------------------------------------------------------------------------------
+uint8_t         configureTimer( uint8_t *handle, TimerCallback functionId );
+uint8_t         startRepeatingTimer( uint8_t handle, uint32_t val );
+uint8_t         setRepeatingTimerLimit( uint8_t handle, uint32_t val );
+uint32_t        getRepeatingTimerLimit( uint8_t handle );
+void            stopRepeatingTimer( uint8_t handle );
+
+// phase out...
 void            onTimerEvent( TimerCallback functionId );
 void            startRepeatingTimer( uint32_t val );
 void            setRepeatingTimerLimit( uint32_t val );
@@ -512,7 +675,7 @@ uint16_t        readAdc( uint8_t adcPin );
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureDio( uint8_t dioPin, uint8_t Mode = IN );
+uint8_t         configureDio( uint8_t dioPin, uint8_t Mode = DIO_IN );
 void            registerDioCallback( uint8_t dioPin, uint8_t event, CDC::GpioCallback func );
 void            unregisterDioCallback( uint8_t dioPin );
 bool            readDio( uint8_t dioPin );
@@ -562,6 +725,18 @@ uint8_t         spiBeginTransaction( uint8_t sclkPin, uint8_t csPin );
 uint8_t         spiEndTransaction( uint8_t sclkPin, uint8_t csPin );
 uint8_t         spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len );
 uint8_t         spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len );
+
+
+
+
+// ??? to phase out ....
+
+void            printConfigInfo( CdcConfigDesc *ci );               // goes away...
+CdcConfigDesc   getConfigDefault( );                                // goes away
+CdcConfigDesc   *getConfigActual( );                                // goes away
+
+
+
 
 };
 

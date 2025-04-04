@@ -21,7 +21,8 @@
         "*.tcc": "cpp",
         "typeinfo": "cpp",
         "string": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "__config": "cpp"
     },
     "spellright.language": [
         "en"

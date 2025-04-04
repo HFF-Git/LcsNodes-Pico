@@ -105,8 +105,8 @@ uint8_t initLcsRuntime( ) {
 uint8_t setupPinsForExtBoardTests( ) {
 
     uint8_t rStat = ALL_OK;
-    if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_0, CDC::OUT );
-    if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_1, CDC::OUT );
+    if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_0, CDC::DIO_OUT );
+    if ( rStat == ALL_OK ) CDC::configureDio( cdcConfig.DIO_PIN_1, CDC::DIO_OUT );
     if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_0, false  );
     if ( rStat == ALL_OK ) CDC::writeDio( cdcConfig.DIO_PIN_1, true );
 

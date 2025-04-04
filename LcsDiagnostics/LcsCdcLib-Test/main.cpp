@@ -103,7 +103,7 @@ void initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
-  CDC::configureDio( 25, CDC::OUT );
+  CDC::configureDio( 25, CDC::DIO_OUT );
   CDC::writeDio( 25, true );
   CDC::sleepMillis( 1000 );
 
@@ -141,10 +141,10 @@ void pfailCallback( uint8_t pin, uint8_t event ) {
 
 void testPfail( ) {
 
-  CDC::configureDio( cfg.PFAIL_PIN, CDC::IN );
+  CDC::configureDio( cfg.PFAIL_PIN, CDC::DIO_IN );
   CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::EVT_LOW, pfailCallback );
   
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
   CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
   
   printf( "testPfail -> unplug the power cord \n" );
@@ -158,7 +158,7 @@ void testLeds( ) {
 
   printf( "testLeds\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
 
   while ( true ) {
 
@@ -190,15 +190,15 @@ void testDioInput( ) {
 
   printf( "testDioInput\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_1, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_2, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_3, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_4, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_5, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_6, CDC::IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_7, CDC::IN_PULLUP );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_1, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_2, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_3, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_4, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_5, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_6, CDC::DIO_IN_PULLUP );
+  CDC::configureDio( cfg.DIO_PIN_7, CDC::DIO_IN_PULLUP );
 
   while ( true ) {
 
@@ -225,15 +225,15 @@ void testDioOutput( ) {
 
   printf( "testDioOutput\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_1, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_2, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_3, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_4, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_5, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_6, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_7, CDC::OUT );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_1, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_2, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_3, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_4, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_5, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_6, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_7, CDC::DIO_OUT );
 
   while ( true ) {
 
@@ -276,15 +276,15 @@ void testDioOutputPair( ) {
 
   printf( "testDioOutputPair\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_1, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_2, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_3, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_4, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_5, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_6, CDC::OUT );
-  CDC::configureDio( cfg.DIO_PIN_7, CDC::OUT );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_1, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_2, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_3, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_4, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_5, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_6, CDC::DIO_OUT );
+  CDC::configureDio( cfg.DIO_PIN_7, CDC::DIO_OUT );
 
   while ( true ) {
 
@@ -480,7 +480,7 @@ void testRepeatingTimerWithDio( ) {
   printf( "testRepeatingTimerWithDio\n" );
 
   CDC::onTimerEvent( timerRepeatingCallback );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::OUT );
+  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_OUT );
   CDC::startRepeatingTimer( 58 );
 
   while ( true ) { }

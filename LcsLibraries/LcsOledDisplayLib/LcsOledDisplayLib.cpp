@@ -263,7 +263,7 @@ namespace {
 
         if ( rstPin != CDC::UNDEFINED_PIN ) {
 
-            rStat = CDC::configureDio( rstPin, CDC::OUT );
+            rStat = CDC::configureDio( rstPin, CDC::DIO_OUT );
             if ( rStat != CDC::NO_ERR ) return( rStat );
 
             CDC::writeDio( rstPin, false );

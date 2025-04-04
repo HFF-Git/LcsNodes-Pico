@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
+#include "hardware/clocks.h"
 #include "pico/util/queue.h"
 #include "pico/multicore.h"
 
@@ -252,7 +253,7 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
     cfg.mcRxPin         = rxPin;
     cfg.mcTxPin         = txPin;
     cfg.mcRxCallback    = canBusEventCallback;
-    cfg.mcSysClock      = CDC::getCpuFrequency( );
+    cfg.mcSysClock      = clock_get_hz( clk_sys );
     cfg.mcPioNum        = 0;
     cfg.mcRxQueueSize   = RX_QUEUE_SIZE;
 

@@ -615,7 +615,7 @@ void handleNodeState( ) {
 
     while ( true ) {
 
-        CDC::watchDogUpdate( );
+       //  CDC::watchDogUpdate( ); // fix when we have handles...
         handleSerialCommand( );
 
         switch ( nodeMap.nodeState ) {

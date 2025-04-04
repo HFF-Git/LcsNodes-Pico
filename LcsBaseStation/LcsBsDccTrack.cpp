@@ -828,9 +828,9 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     lastPwrSamplePerSecTaken  = 0;
     pwrSamplesPerSec          = 0;
 
-    CDC::configureDio( enablePin, CDC::OUT );
-    CDC::configureDio( dccSigPin1, CDC::OUT );
-    CDC::configureDio( dccSigPin2, CDC::OUT );
+    CDC::configureDio( enablePin, CDC::DIO_OUT );
+    CDC::configureDio( dccSigPin1, CDC::DIO_OUT );
+    CDC::configureDio( dccSigPin2, CDC::DIO_OUT );
     CDC::configureAdc( sensePin );
 
     CDC::writeDio( enablePin, false );

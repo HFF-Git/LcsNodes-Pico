@@ -267,7 +267,7 @@ void startBitDetection( ) {
   bitBufHead = 1;
   bitBufTail = 0;
 
-  CDC::configureDio( cfg.EXT_INT_PIN, CDC::IN );
+  CDC::configureDio( cfg.EXT_INT_PIN, CDC::DIO_IN );
   CDC::registerDioCallback( cfg.EXT_INT_PIN, CDC::EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );

@@ -325,7 +325,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 
     CDC::init( ci );
 
-    if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::OUT );
+    if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::DIO_OUT );
 
     if ( CDC::isConsoleConnected( )) {
 

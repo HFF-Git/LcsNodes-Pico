@@ -73,22 +73,22 @@ UIButton      *encoderButton              = nullptr;
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
 
-    CDC::configureDio( MENU_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( SELECT_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( UP_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( DOWN_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( HORN_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( BELL_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( FWD_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( REV_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( F1_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( F2_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( F3_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( F4_BUTTON_ID, CDC::IN_PULLUP );
-    CDC::configureDio( ENCODER_BUTTON_ID, CDC::IN_PULLUP );
+    CDC::configureDio( MENU_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( SELECT_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( UP_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( DOWN_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( HORN_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( BELL_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( FWD_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( REV_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( F1_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( F2_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( F3_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( F4_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( ENCODER_BUTTON_ID, CDC::DIO_IN_PULLUP );
 
-    CDC::configureDio( ENCODER_ID_A, CDC::IN_PULLUP );
-    CDC::configureDio( ENCODER_ID_B, CDC::IN_PULLUP );
+    CDC::configureDio( ENCODER_ID_A, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( ENCODER_ID_B, CDC::DIO_IN_PULLUP );
 
     return ( LCS::ALL_OK );
 }

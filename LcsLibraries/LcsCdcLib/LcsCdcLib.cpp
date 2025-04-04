@@ -139,9 +139,9 @@ const uint32_t VALID_SPI_1_PINS     =   VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PI
 
 //----------------------------------------------------------------------------------------------------------
 // Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
-//
+// 
+// ??? these elements should go where ?
 //----------------------------------------------------------------------------------------------------------
-const uint16_t CONTROLLER_FAMILY            = CDC::CF_RP_PICO;
 const uint32_t CHIP_MEM_SIZE                = 264 * 1024;         // ??? not true for RP2350
 const uint32_t CHIP_NVM_SIZE                = 0;
 
@@ -158,7 +158,7 @@ const uint32_t SPI_FREQUENCY                = 10000000L;
 const uint16_t  MAX_CPU_CORE                = 2;
 const uint16_t  MAX_INT_PIN                 = 24;
 
-const uint16_t  MAX_INST_ENTRIES            = 32;
+const uint16_t  MAX_INST_ENTRIES            = 64;
 
 //------------------------------------------------------------------------------------------------------------
 // Controller dependent code uses a set of hardware instances structures to control the controller hardware. 
@@ -176,13 +176,25 @@ const uint16_t  MAX_INST_ENTRIES            = 32;
 //------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
+// The controller instance describes the actual controller.
+//
+//------------------------------------------------------------------------------------------------------------
+struct ControllerInst {
+
+    ControllerFamily    family;
+    uint32_t            memorySize;
+    uint32_t            internalNvmSize;
+    uint16_t            cores;
+};
+
+//------------------------------------------------------------------------------------------------------------
 // Watchdog Instance.
 //
 //------------------------------------------------------------------------------------------------------------
 struct WatchDogInst {
 
-    bool        configured  = false;
-    uint32_t    intervalMillis = 0;
+    bool        configured;
+    uint32_t    intervalMillis;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -191,7 +203,7 @@ struct WatchDogInst {
 //------------------------------------------------------------------------------------------------------------
 struct TimerInst {
 
-    bool                configured  = false;
+    bool                configured;
     repeating_timer_t   timerData;
 };
 
@@ -201,8 +213,8 @@ struct TimerInst {
 //------------------------------------------------------------------------------------------------------------
 struct GpioInst {
 
-    bool                configured  = false;
-    uint8_t             pin         = UNDEFINED_PIN;
+    bool    configured;
+    uint8_t pin;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -213,9 +225,9 @@ struct GpioInst {
 //------------------------------------------------------------------------------------------------------------
 struct AdcInst {
 
-    bool      configured  = false;
-    uint8_t   adcPin      = CDC::UNDEFINED_PIN;
-    uint8_t   adcNum      = 0;
+    bool      configured;
+    uint8_t   adcPin;
+    uint8_t   adcNum;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -226,14 +238,14 @@ struct AdcInst {
 //------------------------------------------------------------------------------------------------------------
 struct PwmInst {
 
-    bool        configured  = false;
-    uint8_t     pwmPinA     = CDC::UNDEFINED_PIN;
-    uint8_t     pwmPinB     = CDC::UNDEFINED_PIN;
-    uint        wrap        = 0;
-    bool        inverted    = false;
-    uint        channelA    = 0;
-    uint        channelB    = 0;
-    uint        sliceNum    = 0;
+    bool        configured;
+    uint8_t     pwmPinA;
+    uint8_t     pwmPinB;
+    uint        wrap;
+    bool        inverted;
+    uint        channelA;
+    uint        channelB;
+    uint        sliceNum;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -244,20 +256,20 @@ struct PwmInst {
 //------------------------------------------------------------------------------------------------------------
 struct UartInst {
 
-    bool              configured    = false;
-    uint8_t           rxPin         = CDC::UNDEFINED_PIN;
-    uint8_t           txPin         = CDC::UNDEFINED_PIN;
-    uint16_t          baudSetting   = 0;
-    uint8_t           dataBits      = 8;
-    uart_parity_t     parityMode    = UART_PARITY_NONE;
-    uint8_t           stopBits      = 1;
-    int               uartIrq       = 0;
-    uint8_t           uartMode      = 0;
+    bool              configured;
+    uint8_t           rxPin;
+    uint8_t           txPin;
+    uint16_t          baudSetting;
+    uint8_t           dataBits;
+    uart_parity_t     parityMode;
+    uint8_t           stopBits;
+    int               uartIrq;
+    uint8_t           uartMode;
 
-    volatile uint8_t  rxBufIndex    = 0;
-    volatile uint8_t  rxDataBuf[ MAX_UART_BUF_SIZE ] = { 0 };
+    volatile uint8_t  rxBufIndex;
+    volatile uint8_t  rxDataBuf[ MAX_UART_BUF_SIZE ];
 
-    uart_inst_t       *uartHw       = nullptr;
+    uart_inst_t       *uartHw;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -267,13 +279,13 @@ struct UartInst {
 //------------------------------------------------------------------------------------------------------------
 struct I2CInst {
 
-    bool        configured    = false;
-    uint8_t     sclPin        = CDC::UNDEFINED_PIN;
-    uint8_t     sdaPin        = CDC::UNDEFINED_PIN;
-    uint32_t    baudRate      = I2C_FREQUENCY;
-    uint32_t    timeoutValMs  = I2C_TIME_OUT_IN_MS;
+    bool        configured;
+    uint8_t     sclPin;
+    uint8_t     sdaPin;
+    uint32_t    baudRate;
+    uint32_t    timeoutValMs;
 
-    i2c_inst_t  *i2cHw        = nullptr;
+    i2c_inst_t  *i2cHw;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -284,15 +296,28 @@ struct I2CInst {
 //------------------------------------------------------------------------------------------------------------
 struct SPIInst {
 
-    bool        configured  = false;
-    bool        active      = false;
-    uint8_t     selectPin   = CDC::UNDEFINED_PIN;
-    uint8_t     mosiPin     = CDC::UNDEFINED_PIN;
-    uint8_t     misoPin     = CDC::UNDEFINED_PIN;
-    uint8_t     sclkPin     = CDC::UNDEFINED_PIN;
-    uint32_t    frequency   = SPI_FREQUENCY;
+    bool        configured;
+    bool        active;
+    uint8_t     selectPin;
+    uint8_t     mosiPin;
+    uint8_t     misoPin;
+    uint8_t     sclkPin;
+    uint32_t    frequency;
 
-    spi_inst_t  *spiHw      = nullptr;
+    spi_inst_t  *spiHw;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The CAN bus instance. Although our current controller do not feature a CAN bus, the instance described 
+// the hardware elements needed from the controller. Currently, we use a software version based on a PIO
+// program to implement the CAN bus. 
+// 
+//------------------------------------------------------------------------------------------------------------
+struct CanBusInst {
+
+    uint8_t     canPin1;
+    uint8_t     canPin2;
+    uint32_t    baudRate;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -308,20 +333,22 @@ struct GpioIsrTable {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Hardware is configured via Instances. An instance groups a function with all settings and hardware pins
-// it may need. Instances are referred by the CDC routines with an index into the instance array. This array
-// is populated during initial configuration. An application can locate this index by using the lookup 
-// function which accepts an identifier name. For example, PWM_INST_0, is the resId for a PWM channel that
-// was configured using this name.
+// Controller hardware is configured via Instances. An instance groups a hardware peripheral function with 
+// all settings and hardware pins it may need. These instances are then referred by the CDC routines with an
+// index into the instance array. This array is populated during initial configuration. An application can 
+// locate this index by using the lookup function which accepts an identifier name. For example, PWM_INST_0,
+// is the resId for a PWM channel that was configured using this name.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CdcInstance {
 
-uint16_t type;
-uint16_t resIdName;
+    bool            configured;
+    uint16_t        resId;
+    CdcInstanceType type;
 
     union {
 
+        ControllerInst  ctl;
         WatchDogInst    wd;
         TimerInst       timer;
         GpioInst        gpio;
@@ -330,6 +357,7 @@ uint16_t resIdName;
         AdcInst         adc;
         I2CInst         i2c;
         SPIInst         spi;
+        CanBusInst      can;
     };
 };
 
@@ -337,7 +365,12 @@ uint16_t resIdName;
 //
 //
 //------------------------------------------------------------------------------------------------------------
-CdcInstance instanceMap[ MAX_INST_ENTRIES ] = { 0 };
+struct CdcInstanceMap {
+
+    uint16_t    size;
+    CdcInstance map[ MAX_INST_ENTRIES ];
+};
+
 
 
 // ??? we need a configure routine for each instance type
@@ -357,8 +390,13 @@ CdcInstance instanceMap[ MAX_INST_ENTRIES ] = { 0 };
 // interface or a UART. Note that not all are used at the same time. The instance variables map from the
 // simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
 //
-// ??? this will be reworked and moistly disappear...
+// ??? this will be reworked and mostly disappear...
 //------------------------------------------------------------------------------------------------------------
+CdcInstanceMap instanceMap;
+
+
+
+
 CDC::CdcConfigDesc          cfg;
 CDC::TimerCallback          timerCallback = nullptr;
 GpioIsrTable                cdcIntHandlers;
@@ -492,6 +530,13 @@ void uartRxCallback1( ) {
     }
 }
 
+
+
+
+
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // The default configuration descriptor. The Application program fills in such a structure, which can be
 // seen as the HW pin assignments for the PICO controllers and the particular board on which the application
@@ -598,6 +643,52 @@ uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
     return ( NO_ERR ); // for now....
 }
 
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void initInstanceMap( ) {
+
+    instanceMap.size = MAX_INST_ENTRIES;
+   
+    for ( int i = 0; i < MAX_INST_ENTRIES; i++ ) {
+
+        CdcInstance *entry = &instanceMap.map[ i ];
+
+        entry -> configured = false;
+        entry -> type       = CDC_IT_UNDEFINED;
+        entry -> resId      = 0;
+    }
+}
+
+CdcInstance *getFreeInstance( ) {
+
+    for ( uint16_t i = 0; i < instanceMap.size; i++ ) {
+
+        if ( instanceMap.map[ i ].type == CDC_IT_UNDEFINED ) return( &instanceMap.map[ i ] );
+    } 
+
+    return( nullptr );
+}
+
+CdcInstance *getInstanceByResId( uint16_t resId ) {
+
+    for ( uint16_t i = 0; i < instanceMap.size; i++ ) {
+
+        if ( instanceMap.map[ i ].resId == resId ) return( &instanceMap.map[ i ] );
+    } 
+
+    return( nullptr );
+}
+
+CdcInstance *getInstanceByHandle( uint8_t handle, CdcInstanceType type ) {
+
+    CdcInstance *entry = &instanceMap.map[ handle ];
+    return((( entry -> configured ) && ( entry -> type == type )) ? entry : nullptr );
+}
+
 }; // namespace
 
 
@@ -622,6 +713,7 @@ uint16_t getDebugMask( ) {
     return ( debugMask );
 }
 
+// ??? goes away...
 //------------------------------------------------------------------------------------------------------------
 // "getConfigDefault" initializes a configuration structure and sets the pre-assigned values. A typical
 // sequence for an application start sequence would be to create an initial structure this way and then set
@@ -633,6 +725,7 @@ CdcConfigDesc getConfigDefault( ) {
    return ( getConfigDefaultRP2040( ));
 }
 
+// ??? goes away...
 //------------------------------------------------------------------------------------------------------------
 // "getConfigActual" will return a pointer to the copy we kept when calling the init routine with the config
 // structure to use. There is no need for the upper layers to keep the structure used at initialization time.
@@ -656,7 +749,20 @@ uint8_t init( CdcConfigDesc *ci ) {
     initIsrTable( );
     configureConsoleIO( );
 
+    // ??? set up instance table ...
+
     return ( validateConfigRP20040( ci ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// - a routine to take the descriptor array and just configure all the instances...
+//
+// 
+//------------------------------------------------------------------------------------------------------------
+uint8_t configureCdcSubSytem( CdcInstanceDescMap *map ) {
+
+
+    return( 0 ); // for now ...
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -710,64 +816,9 @@ void fatalErrorMsg( char *str, uint8_t n, uint8_t rStat ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// WatchDog function. We need a way to restart a failed or looping node without going there hitting the 
-// reset button. The idea is that there is a watch dog timer. If the watchDog is not updated every N milli
-// seconds it will reboot the node.
-//
+// Simple timestamp functions.
+// 
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureWatchDog( uint32_t millis ) {
-
-    cdcWatchDog.intervalMillis = millis;
-    cdcWatchDog.configured     = true;
-    return ( NO_ERR );
-}
-
-uint8_t watchDogEnable( bool enable ) {
-
-    watchdog_enable( cdcWatchDog.intervalMillis, 1 );
-    return ( NO_ERR );
-}
-
-uint8_t watchDogUpdate( ) {
-
-    watchdog_update( );
-    return ( NO_ERR );
-}
-
-bool watchDogCausedReboot( ) {
-
-    return ( watchdog_caused_reboot( ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Processor general values required by the low level LCS core library functions.
-//
-//------------------------------------------------------------------------------------------------------------
-uint16_t getFamily( ) {
-
-    return ( CONTROLLER_FAMILY );
-}
-
-uint32_t getVersion( ) {
-
-    return ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
-}
-
-uint32_t getChipMemSize( ) {
-
-    return ( CHIP_MEM_SIZE );
-}
-
-uint32_t getChipNvmSize( ) {
-
-    return ( CHIP_NVM_SIZE   );
-}
-
-uint32_t getCpuFrequency( ) {
-
-    return ( clock_get_hz( clk_sys ));
-}
-
 uint32_t getMillis( ) {
 
     return ( to_ms_since_boot( get_absolute_time( )));
@@ -789,9 +840,8 @@ void sleepMicros( uint32_t val ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "createUid" is the routine that produces a unique ID for the node. The scheme is still based on a random
-// number. This is the PICO version for creating a random number. Alternatively we could use the unique
-// flash chip ID on the board. TBD ...
+// "createUid" is the routine that produces a unique ID for the node. The scheme is based on a random number. 
+// Alternatively we could use the unique flash chip ID on the board. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t createUid( ) {
@@ -808,6 +858,118 @@ uint32_t createUid( ) {
 
     return ( rVal );
 }
+
+
+//------------------------------------------------------------------------------------------------------------
+// WatchDog function. We need a way to restart a failed or looping node without going there hitting the 
+// reset button. The idea is that there is a watch dog timer. If the watchDog is not updated every N milli
+// seconds it will reboot the node. 
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t configureWatchDog( uint8_t *handle, uint32_t millis ) {
+
+    CdcInstance *ptr = getInstanceByResId( CDC_RID_WATCHDOG );
+
+    if ( ptr == nullptr ) {
+
+        ptr = getFreeInstance( );
+        if ( ptr == nullptr ) return( MAX_RES_ID_ERR );
+    }
+
+    ptr -> configured = true;
+    ptr -> wd.intervalMillis = millis;
+
+    *handle = ( ptr - instanceMap.map ) + 1;
+    return ( NO_ERR );
+}
+
+uint8_t watchDogEnable( uint8_t handle, bool enable ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_WATCHDOG );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    watchdog_enable( ptr -> wd.intervalMillis, 1 );
+    return ( NO_ERR );
+}
+
+uint8_t watchDogUpdate( uint8_t handle ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_WATCHDOG );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    watchdog_update( );
+    return ( NO_ERR );
+}
+
+uint8_t watchDogCausedReboot( uint8_t handle, bool *reboot ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_WATCHDOG );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    return ( watchdog_caused_reboot( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Processor general values required by the low level LCS core library functions. A controller is configured
+// just like any other resource, although we cannot set most of the values. For example, main memory size
+// is a given. Since these values are still not that easy to get from the controller chip directly, we
+// provide a little help through "configuring" these values.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t configureController( uint8_t *handle ) {  
+
+    // ??? what parameters can we actually configure ?
+    // ??? to do ...
+
+    return( NO_ERR );
+}
+
+uint8_t getFamily( uint8_t handle, ControllerFamily *family ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    *family = CDC_CF_RP_PICO_2040;
+    return ( NO_ERR );
+}
+
+uint8_t getVersion( uint8_t handle, uint32_t *version ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    *version = ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
+    return ( NO_ERR );
+}
+
+uint8_t getChipMemSize( uint8_t handle, uint32_t *size ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    *size = CHIP_MEM_SIZE;
+    return ( NO_ERR );
+}
+
+uint8_t getChipNvmSize( uint8_t handle, uint32_t *size ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    *size = CHIP_NVM_SIZE;
+    return ( NO_ERR );
+}
+
+uint8_t getCpuFrequency( uint8_t handle, uint32_t *frequency ) {
+
+    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    *frequency = clock_get_hz( clk_sys );
+    return ( NO_ERR );
+}
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Console IO section. We set up the stdio via the USB connector. As part of the CDC init call, the configure
@@ -910,15 +1072,15 @@ uint8_t configureDio( uint8_t dioPin, uint8_t mode ) {
 
     switch ( mode ) {
 
-        case IN:  gpio_set_dir( dioPin, false );  break;
-        case OUT: {
+        case DIO_IN:  gpio_set_dir( dioPin, false );  break;
+        case DIO_OUT: {
 
             gpio_set_dir( dioPin, true );
             gpio_set_drive_strength ( dioPin, GPIO_DRIVE_STRENGTH_12MA );
 
         }  break;
 
-        case IN_PULLUP: {
+        case DIO_IN_PULLUP: {
 
             gpio_set_dir( dioPin, false );
             gpio_pull_up( dioPin );
@@ -1248,7 +1410,7 @@ uint8_t configurePwm(   uint8_t     pwmPinA,
 
     if ( phaseCorrect ) pwmFreqency = pwmFreqency * 2;
 
-    uint32_t sysClock = getCpuFrequency( );
+    uint32_t sysClock = clock_get_hz( clk_sys );
     uint32_t clkDiv   = sysClock / pwmFreqency / 4096 + ( sysClock % ( pwmFreqency * 4096 ) != 0 );
     if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
@@ -1597,6 +1759,12 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 //
 // ??? this will for sure change ... we will print out the array of instances....
 //------------------------------------------------------------------------------------------------------------
+void printCdcSubSystemInfo( CdcInstanceDescMap *map ) {
+
+
+}
+
+
 void printConfigInfo( CdcConfigDesc *ci ) {
 
     printf( "CDC Pin Configuration Info ( status %d ): \n", ci -> CFG_STATUS );

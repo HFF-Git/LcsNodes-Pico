@@ -155,15 +155,11 @@ static inline void railcom_datagram_rx_program_init( PIO pio, uint sm, uint offs
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Example how to read the entire datagram via an interrupt signaled by the PIO state machine.
 //
 //
 //------------------------------------------------------------------------------------------------------------
 /*
-
-// Example how to access from C
-
-
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "railcom_datagram_rx.pio.h"
