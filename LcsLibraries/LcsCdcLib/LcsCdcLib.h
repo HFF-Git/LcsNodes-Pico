@@ -131,6 +131,16 @@ enum CdcStatus : uint8_t {
 
 };
 
+//------------------------------------------------------------------------------------------------------------
+// Callback functions signatures.
+//
+//------------------------------------------------------------------------------------------------------------
+extern "C" {
+
+    typedef void ( *TimerCallback ) ( uint32_t timerVal );
+    typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
+}
+
 
 
 
@@ -257,20 +267,20 @@ struct CdcConfigDesc {
 // Basic init and error handling.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         init( CdcConfigDesc *ci );
-void            fatalError( uint8_t n );
-void            fatalErrorMsg( char *str, uint8_t n, uint8_t rStat );
-void            setDebugLevel( uint8_t level = 0 );
+uint8_t     init( CdcConfigDesc *ci );
+void        fatalError( uint8_t n );
+void        fatalErrorMsg( char *str, uint8_t n, uint8_t rStat );
+void        setDebugLevel( uint8_t level = 0 );
 
 //------------------------------------------------------------------------------------------------------------
 // General utility routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t        getMillis( );
-uint32_t        getMicros( );
-void            sleepMillis( uint32_t val );
-void            sleepMicros( uint32_t val );
-uint32_t        createUid( );
+uint32_t    getMillis( );
+uint32_t    getMicros( );
+void        sleepMillis( uint32_t val );
+void        sleepMicros( uint32_t val );
+uint32_t    createUid( );
 
 //------------------------------------------------------------------------------------------------------------
 // The console IO functions. We will provide a serial IO via the USB connector of the PICO. The files 
@@ -279,9 +289,9 @@ uint32_t        createUid( );
 // and returns immediately when there is none.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureConsoleIO( );
-bool            isConsoleConnected( );
-char            getConsoleChar( uint32_t timeoutVal = 0 );
+uint8_t     configureConsoleIO( );
+bool        isConsoleConnected( );
+char        getConsoleChar( uint32_t timeoutVal = 0 );
 
 //------------------------------------------------------------------------------------------------------------
 // CDC high level setup and configuration routines. In addition to setting up the individual resources, the
@@ -292,8 +302,8 @@ char            getConsoleChar( uint32_t timeoutVal = 0 );
 // replace the use of the descriptor information in the board descriptor array.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureCdcSubSytem( CdcInstanceDescMap *map );
-void            printCdcSubSystemInfo( CdcInstanceDescMap *map );
+uint8_t     configureCdcSubSytem( CdcInstanceDescMap *map );
+void        printCdcSubSystemInfo( CdcInstanceDescMap *map );
 
 // ??? individual print routines for each type ?
 
@@ -301,40 +311,31 @@ void            printCdcSubSystemInfo( CdcInstanceDescMap *map );
 // General controller info routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureController( uint8_t *handle );
-uint8_t         getFamily( uint8_t handle, ControllerFamily *family );
-uint8_t         getVersion( uint8_t handle, uint32_t *version );
-uint8_t         getChipMemSize( uint8_t handle, uint32_t *size );
-uint8_t         getChipNvmSize( uint8_t handle, uint32_t *size );
-uint8_t         getCpuFrequency( uint8_t handle, uint32_t *frequency );
+uint8_t     configureController(    uint8_t *handle, 
+                                    uint16_t family, 
+                                    uint16_t processor,
+                                    uint32_t memorySize,
+                                    uint32_t internalNvmSize,
+                                    uint32_t watchDogMillis );
 
-//------------------------------------------------------------------------------------------------------------
-// The watchdog facility. There are routines to configure the time interval, enabling and disabling the 
-// watchdog timer, updating it periodically, as well as detecting that we came from a watchdog restart 
-// when restarting.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t         configureWatchDog( uint8_t *handle, uint32_t millis );
-uint8_t         watchDogEnable( uint8_t handle, bool enable );
-uint8_t         watchDogUpdate( uint8_t handle );
-uint8_t         watchDogCausedReboot( uint8_t handle, bool *reboot );
+uint8_t     getFamily( uint8_t handle, ControllerFamily *family );
+uint8_t     getVersion( uint8_t handle, uint32_t *version );
+uint8_t     getChipMemSize( uint8_t handle, uint32_t *size );
+uint8_t     getChipNvmSize( uint8_t handle, uint32_t *size );
+uint8_t     getCpuFrequency( uint8_t handle, uint32_t *frequency );
+uint8_t     watchDogEnable( uint8_t handle, bool enable );
+uint8_t     watchDogUpdate( uint8_t handle );
+uint8_t     watchDogCausedReboot( uint8_t handle, bool *reboot );
 
 //------------------------------------------------------------------------------------------------------------
 // Timer management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureTimer( uint8_t *handle, TimerCallback functionId );
-uint8_t         startRepeatingTimer( uint8_t handle, uint32_t val );
-uint8_t         setRepeatingTimerLimit( uint8_t handle, uint32_t val );
-uint32_t        getRepeatingTimerLimit( uint8_t handle );
-void            stopRepeatingTimer( uint8_t handle );
-
-// phase out...
-void            onTimerEvent( TimerCallback functionId );
-void            startRepeatingTimer( uint32_t val );
-void            setRepeatingTimerLimit( uint32_t val );
-uint32_t        getRepeatingTimerLimit( );
-void            stopRepeatingTimer( );
+uint8_t     configureTimer( uint8_t *handle, TimerCallback functionId );
+uint8_t     startRepeatingTimer( uint8_t handle, uint32_t val );
+uint8_t     setRepeatingTimerLimit( uint8_t handle, uint32_t val );
+uint8_t     getRepeatingTimerLimit( uint8_t handle, uint32_t *val );
+uint8_t     stopRepeatingTimer( uint8_t handle );
 
 //------------------------------------------------------------------------------------------------------------
 // Analog input routines.

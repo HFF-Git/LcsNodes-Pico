@@ -3,23 +3,22 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains the the RP2040 controller family hardware library code. The idea of this library
-// is to shield the actual hardware of processor and board implementation from the upper layers but still keep
-// the flexibility and performance of the underlying hardware. We also need to provide a handle from the 
-// defined hardware elements to the particular board. 
-
-
-// ??? rework text ....
-// The library works with the concept of HW pins, which are identifiers for an HW entity. This is easy for a 
-// GPIO pin, where the mapping is directly one to one. For more complex HW entries such as the I2C or UART 
-// hardware, one pin is selected as the identifier to that entity. For each complex entity an instance variable
-// is maintained where all the relevant data is kept.
+// This source file contains the the Raspberry Pi controller family hardware library code. The idea of this
+// library is to shield the actual hardware of processor and board implementation from the upper layers but 
+// still keep the flexibility and performance of the underlying hardware. We also need to provide a handle 
+// from the defined hardware elements to the particular board. 
 //
-
-
+// The library works with a concept of "resources". During startup, the resources are configured based on 
+// data from the board descriptor. They can locate a resources by a unique resource ID name, which is used
+// to lookup the resource handle. From thereon the handle is used to access that particular resource. An 
+// application is thus written assigning the predefined resource names to the function it needs. 
+//
+// Boards are free to use whatever names, there is however a convention to name the controller resource 
+// descriptor "Controller". 
+//
 // A historic note. The original LCS code was written for Atmega and Pico. With the complete shift to PICO,
 // the CDC library just serves as a simple interface to the PICO functions. One day, we may see more different
-// controllers and controller families. The idea is that the LCS runtime is shielded from them.
+// controllers and controller families. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -159,63 +158,51 @@ const uint32_t SPI_FREQUENCY                = 10000000L;
 const uint16_t  MAX_CPU_CORE                = 2;
 const uint16_t  MAX_INT_PIN                 = 24;
 
-const uint16_t  MAX_INST_ENTRIES            = 64;
+const uint16_t  MAX_RESOURCE_ENTRIES        = 64;
 
 //------------------------------------------------------------------------------------------------------------
 // Controller dependent code uses a set of hardware instances structures to control the controller hardware. 
 // When a particular instance, e.g. an I2C channel, is configured all further access is done with a handle
 // to this instance. The instance structure takes care of isolating the controller hardware from the runtime
 // library and user firmware. There is a counter part to the instance structure, which contains the defined
-// parameters for that instance. The parameters are used in the configuration process. The key difference
-// between the two structure is that the instance structure contains controller hardware specific data 
-// fields not exported to the user of the CDC library.
-//
-// We should be able to define all the hardware instances that a particular board offers in an array of 
-// instance descriptors. Perhaps we could one day have an include file which contains for each board the
-// instance descriptors array. 
+// parameters for that resource. The parameters are used in the configuration process. 
 //
 //------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
-// The controller instance describes the actual controller.
+// The controller resource describes the actual controller attributes.
 //
 //------------------------------------------------------------------------------------------------------------
-struct ControllerInst {
+struct ControllerResource {
 
-    ControllerFamily    family;
-    uint32_t            memorySize;
-    uint32_t            internalNvmSize;
-    uint16_t            cores;
+    uint16_t    controllerFamily;
+    uint16_t    controllerChip;
+    uint32_t    memorySize;
+    uint32_t    internalNvmSize;
+    uint16_t    cpuCores;
+    uint32_t    watchDogIntervallMillis;
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Watchdog Instance.
+// A timer resource.
 //
 //------------------------------------------------------------------------------------------------------------
-struct WatchDogInst {
+struct TimerResource {
 
-    bool        configured;
-    uint32_t    intervalMillis;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// A timer instance. We currently support inly one HW timer and Configuration Descriptor.
-//
-//------------------------------------------------------------------------------------------------------------
-struct TimerInst {
-
-    bool                configured;
     repeating_timer_t   timerData;
+    TimerCallback       timerCallback;
 };
 
 //------------------------------------------------------------------------------------------------------------
 // A GPIO instance is the most basic digital IO channel.
 //
 //------------------------------------------------------------------------------------------------------------
-struct GpioInst {
+struct GpioResource {
 
-    bool    configured;
-    uint8_t pin;
+    uint8_t pinA;
+    uint8_t pinB;
+    uint8_t pinModeA;
+    uint8_t pinModeB;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -224,9 +211,8 @@ struct GpioInst {
 //  instance.
 //
 //------------------------------------------------------------------------------------------------------------
-struct AdcInst {
+struct AdcResource {
 
-    bool      configured;
     uint8_t   adcPin;
     uint8_t   adcNum;
 };
@@ -237,9 +223,8 @@ struct AdcInst {
 // two channels for our PWM signal, where one pin is the PWM signal while the other is held low.
 //
 //------------------------------------------------------------------------------------------------------------
-struct PwmInst {
+struct PwmResource {
 
-    bool        configured;
     uint8_t     pwmPinA;
     uint8_t     pwmPinB;
     uint        wrap;
@@ -255,9 +240,8 @@ struct PwmInst {
 // buffer where the data is read into. We also keep the PICO UART HW instance used.
 //
 //------------------------------------------------------------------------------------------------------------
-struct UartInst {
+struct UartResource {
 
-    bool              configured;
     uint8_t           rxPin;
     uint8_t           txPin;
     uint16_t          baudSetting;
@@ -266,10 +250,8 @@ struct UartInst {
     uint8_t           stopBits;
     int               uartIrq;
     uint8_t           uartMode;
-
     volatile uint8_t  rxBufIndex;
     volatile uint8_t  rxDataBuf[ MAX_UART_BUF_SIZE ];
-
     uart_inst_t       *uartHw;
 };
 
@@ -278,14 +260,12 @@ struct UartInst {
 // assigned GPIO pins, the baud rate and a timeout. We also keep the I2C HW instance used.
 //
 //------------------------------------------------------------------------------------------------------------
-struct I2CInst {
+struct I2CResource {
 
-    bool        configured;
     uint8_t     sclPin;
     uint8_t     sdaPin;
     uint32_t    baudRate;
     uint32_t    timeoutValMs;
-
     i2c_inst_t  *i2cHw;
 };
 
@@ -295,16 +275,14 @@ struct I2CInst {
 // pin, we remember that we are in a transaction with perhaps more than one call to the SPI routines.
 //
 //------------------------------------------------------------------------------------------------------------
-struct SPIInst {
+struct SPIResource {
 
-    bool        configured;
     bool        active;
     uint8_t     selectPin;
     uint8_t     mosiPin;
     uint8_t     misoPin;
     uint8_t     sclkPin;
     uint32_t    frequency;
-
     spi_inst_t  *spiHw;
 };
 
@@ -314,7 +292,7 @@ struct SPIInst {
 // program to implement the CAN bus. 
 // 
 //------------------------------------------------------------------------------------------------------------
-struct CanBusInst {
+struct CanBusResource {
 
     uint8_t     canPin1;
     uint8_t     canPin2;
@@ -329,100 +307,53 @@ struct CanBusInst {
 //------------------------------------------------------------------------------------------------------------
 struct GpioIsrTable {
 
-    uint16_t                numOfHandlers = 0;
-    GpioCallback            gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
+    uint16_t        numOfHandlers = 0;
+    GpioCallback    gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Controller hardware is configured via Instances. An instance groups a hardware peripheral function with 
-// all settings and hardware pins it may need. These instances are then referred by the CDC routines with an
-// index into the instance array. This array is populated during initial configuration. An application can 
-// locate this index by using the lookup function which accepts an identifier name. For example, PWM_INST_0,
-// is the resId for a PWM channel that was configured using this name.
+// Controller hardware is configured via "Resources". An resource groups a hardware peripheral function with 
+// all settings and hardware pins it may need. These resources are then referred by the CDC routines with an
+// index into the resource array. This array is populated during initial configuration. An application can 
+// locate this index by using the assigned name.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcInstance {
+struct CdcResource {
 
     bool            configured;
-    uint16_t        resId;
-    CdcInstanceType type;
+    char            name[ MAX_RES_ID_NAME ];
+    CdcResourceType type;
 
     union {
 
-        ControllerInst  ctl;
-        WatchDogInst    wd;
-        TimerInst       timer;
-        GpioInst        gpio;
-        PwmInst         pwm;
-        UartInst        uart;
-        AdcInst         adc;
-        I2CInst         i2c;
-        SPIInst         spi;
-        CanBusInst      can;
+        ControllerResource  ctl;
+        TimerResource       timer;
+        GpioResource        gpio;
+        PwmResource         pwm;
+        UartResource        uart;
+        AdcResource         adc;
+        I2CResource         i2c;
+        SPIResource         spi;
+        CanBusResource      can;
     };
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
+// The resource map. The map is allocated at startup. Each configured resource will have an entry in this map.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcInstanceMap {
+struct CdcResourceMap {
 
     uint16_t    size;
-    CdcInstance map[ MAX_INST_ENTRIES ];
+    CdcResource map[ MAX_RESOURCE_ENTRIES ];
 };
 
-
-
-// ??? we need a configure routine for each instance type
-// ??? we need a lookup function to fund the instance by "instance name"
-// ??? we need a function to take an array of instance descriptors and execute the config routines...
-
-// ??? the instance descriptors can be grouped based on the board/version as a constant data structure.
-// ??? we could store a board type in the board NVM to fund the board descriptor. 
-// ??? there is a default descriptor ( minimum data, such as NVM I2C, etc. ) to prepare a board and 
-// let it react to config commands.
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
-// Local variables. We maintain an instance variable for each of the possible HW entities, such as an I2C
-// interface or a UART. Note that not all are used at the same time. The instance variables map from the
-// simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
+// Local variables. 
 //
-// ??? this will be reworked and mostly disappear...
 //------------------------------------------------------------------------------------------------------------
-CdcInstanceMap instanceMap;
-
-
-
-
-CDC::CdcConfigDesc          cfg;
-CDC::TimerCallback          timerCallback = nullptr;
-GpioIsrTable                cdcIntHandlers;
-repeating_timer_t           timerData;
-WatchDogInst                cdcWatchDog;
-AdcInst                     cdcAdc0;
-AdcInst                     cdcAdc1;
-AdcInst                     cdcAdc2;
-AdcInst                     cdcAdc3;
-I2CInst                     cdcI2C0;
-I2CInst                     cdcI2C1;
-SPIInst                     cdcSPI0;
-SPIInst                     cdcSPI1;
-UartInst                    cdcUart0;
-UartInst                    cdcUart1;
-UartInst                    cdcUart2;
-UartInst                    cdcUart3;
-PwmInst                     cdcPwm0;
-PwmInst                     cdcPwm1;
-PwmInst                     cdcPwm2;
-PwmInst                     cdcPwm3;
-PwmInst                     cdcPwm4;
-PwmInst                     cdcPwm5;
-PwmInst                     cdcPwm6;
-PwmInst                     cdcPwm7;
+CdcResourceMap  resourceMap;
+GpioIsrTable    cdcIntHandlers;
 
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
@@ -507,11 +438,15 @@ void gpioCallback( uint gpioPin, uint32_t event ) {
     cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] ( gpioPin, mapPicoGpioEvent( event ));
 }
 
+// ??? how to locate the handler ?
+
 bool repeatingTimerAlarm( repeating_timer_t *rt ) {
 
     if ( timerCallback != nullptr ) timerCallback((uint32_t) ( - timerData.delay_us ));
     return ( true );
 }
+
+// ??? how to locate the handler ?
 
 void uartRxCallback0( ) {
 
@@ -521,6 +456,8 @@ void uartRxCallback0( ) {
         if ( cdcUart0.rxBufIndex < MAX_UART_BUF_SIZE ) cdcUart0.rxDataBuf[cdcUart0.rxBufIndex++ ] = ch;
     }
 }
+
+// ??? how to locate the handler ?
 
 void uartRxCallback1( ) {
 
@@ -532,12 +469,7 @@ void uartRxCallback1( ) {
 }
 
 
-
-
-
-
-
-
+// ??? out ....
 //------------------------------------------------------------------------------------------------------------
 // The default configuration descriptor. The Application program fills in such a structure, which can be
 // seen as the HW pin assignments for the PICO controllers and the particular board on which the application
@@ -630,6 +562,7 @@ CDC::CdcConfigDesc getConfigDefaultRP2040( ) {
     return ( tmp );
 }
 
+// ??? rather done in the respective config routines ...
 //------------------------------------------------------------------------------------------------------------
 // Validate a configuration structure. This routine will do basic checking of the pin configuration passed.
 // The PICO is very flexible when it comes to what a pin can do. However, there are still some rules to 
@@ -650,23 +583,25 @@ uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void initInstanceMap( ) {
+void initResourceMap( ) {
 
-    instanceMap.size = MAX_INST_ENTRIES;
+    resourceMap.size = MAX_RESOURCE_ENTRIES;
    
-    for ( int i = 0; i < MAX_INST_ENTRIES; i++ ) {
+    for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
-        CdcInstance *entry = &instanceMap.map[ i ];
+        CdcResource *entry = &resourceMap.map[ i ];
 
         entry -> configured = false;
         entry -> type       = CDC_IT_UNDEFINED;
-        entry -> resId      = 0;
+        entry -> name[ 0 ]  = '\0';
     }
 }
 
-CdcInstance *getFreeInstance( ) {
+// ??? should we pass the intended name and check for duplicates of a given type ?
 
-    for ( uint16_t i = 0; i < instanceMap.size; i++ ) {
+CdcResource *getFreeInstance( ) {
+
+    for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
 
         if ( instanceMap.map[ i ].type == CDC_IT_UNDEFINED ) return( &instanceMap.map[ i ] );
     } 
@@ -674,19 +609,21 @@ CdcInstance *getFreeInstance( ) {
     return( nullptr );
 }
 
-CdcInstance *getInstanceByResId( uint16_t resId ) {
+// ??? should we also pass type ?
 
-    for ( uint16_t i = 0; i < instanceMap.size; i++ ) {
+CdcResource *getInstanceByName( char *name ) {
 
-        if ( instanceMap.map[ i ].resId == resId ) return( &instanceMap.map[ i ] );
+    for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
+
+        if ( strncmp( name, instanceMap.map[ i ].name, MAX_RES_ID_NAME ) == 0 ) return( &instanceMap.map[ i ] );
     } 
 
     return( nullptr );
 }
 
-CdcInstance *getInstanceByHandle( uint8_t handle, CdcInstanceType type ) {
+CdcResource *getInstanceByHandle( uint8_t handle, CdcResourceType type ) {
 
-    CdcInstance *entry = &instanceMap.map[ handle ];
+    CdcResource *entry = &resourceMap.map[ handle ];
     return((( entry -> configured ) && ( entry -> type == type )) ? entry : nullptr );
 }
 
@@ -734,7 +671,7 @@ CdcConfigDesc getConfigDefault( ) {
 //------------------------------------------------------------------------------------------------------------
 CdcConfigDesc *getConfigActual( ) {
 
-   return ( &cfg );
+   return ( nullptr );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -760,7 +697,7 @@ uint8_t init( CdcConfigDesc *ci ) {
 //
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureCdcSubSytem( CdcInstanceDescMap *map ) {
+uint8_t configureCdcSubSytem( CdcResourceDescMap *map ) {
 
 
     return( 0 ); // for now ...
@@ -860,16 +797,21 @@ uint32_t createUid( ) {
     return ( rVal );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
-// WatchDog function. We need a way to restart a failed or looping node without going there hitting the 
-// reset button. The idea is that there is a watch dog timer. If the watchDog is not updated every N milli
-// seconds it will reboot the node. 
+// Processor general values required by the low level LCS core library functions. A controller is configured
+// just like any other resource. Although most of the controller parameters are fixed we take the values from
+// the descriptor array, since some of them are not that easy to get. 
 //
+// ??? cross check values ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureWatchDog( uint8_t *handle, uint32_t millis ) {
+uint8_t configureController(    uint8_t *handle, 
+                                uint16_t family, 
+                                uint16_t processor,
+                                uint32_t memorySize,
+                                uint32_t internalNvmSize,
+                                uint32_t watchDogMillis ) {
 
-    CdcInstance *ptr = getInstanceByResId( CDC_RID_WATCHDOG );
+    CdcResource *ptr = getInstanceByName((char *) "Controller" );
 
     if ( ptr == nullptr ) {
 
@@ -877,66 +819,29 @@ uint8_t configureWatchDog( uint8_t *handle, uint32_t millis ) {
         if ( ptr == nullptr ) return( MAX_RES_ID_ERR );
     }
 
-    ptr -> configured = true;
-    ptr -> wd.intervalMillis = millis;
+    strncpy( ptr -> name, ((char *) "controller" ), MAX_RES_ID_NAME );           
+    ptr -> ctl.controllerFamily         = family;
+    ptr -> ctl.controllerChip           = processor;
+    ptr -> ctl.memorySize               = memorySize;
+    ptr -> ctl.internalNvmSize          = internalNvmSize;
+    ptr -> ctl.watchDogIntervallMillis  = watchDogMillis;
+    ptr -> configured                   = true; 
 
-    *handle = ( ptr - instanceMap.map ) + 1;
     return ( NO_ERR );
-}
-
-uint8_t watchDogEnable( uint8_t handle, bool enable ) {
-
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_WATCHDOG );
-    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
-
-    watchdog_enable( ptr -> wd.intervalMillis, 1 );
-    return ( NO_ERR );
-}
-
-uint8_t watchDogUpdate( uint8_t handle ) {
-
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_WATCHDOG );
-    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
-
-    watchdog_update( );
-    return ( NO_ERR );
-}
-
-uint8_t watchDogCausedReboot( uint8_t handle, bool *reboot ) {
-
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_WATCHDOG );
-    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
-
-    return ( watchdog_caused_reboot( ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Processor general values required by the low level LCS core library functions. A controller is configured
-// just like any other resource, although we cannot set most of the values. For example, main memory size
-// is a given. Since these values are still not that easy to get from the controller chip directly, we
-// provide a little help through "configuring" these values.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t configureController( uint8_t *handle ) {  
-
-    // ??? what parameters can we actually configure ?
-    // ??? to do ...
-
-    return( NO_ERR );
 }
 
 uint8_t getFamily( uint8_t handle, ControllerFamily *family ) {
 
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
     if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
-    *family = CDC_CF_RP_PICO_2040;
+    *family = CDC_CF_RP_PICO;
     return ( NO_ERR );
 }
 
 uint8_t getVersion( uint8_t handle, uint32_t *version ) {
 
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
     if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
     *version = ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
@@ -945,7 +850,7 @@ uint8_t getVersion( uint8_t handle, uint32_t *version ) {
 
 uint8_t getChipMemSize( uint8_t handle, uint32_t *size ) {
 
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
     if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
     *size = CHIP_MEM_SIZE;
@@ -954,7 +859,7 @@ uint8_t getChipMemSize( uint8_t handle, uint32_t *size ) {
 
 uint8_t getChipNvmSize( uint8_t handle, uint32_t *size ) {
 
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
     if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
     *size = CHIP_NVM_SIZE;
@@ -963,14 +868,38 @@ uint8_t getChipNvmSize( uint8_t handle, uint32_t *size ) {
 
 uint8_t getCpuFrequency( uint8_t handle, uint32_t *frequency ) {
 
-    CdcInstance *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
     if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
     *frequency = clock_get_hz( clk_sys );
     return ( NO_ERR );
 }
 
+uint8_t watchDogEnable( uint8_t handle, bool enable ) {
 
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    watchdog_enable( ptr -> ctl.watchDogIntervallMillis, 1 );
+    return ( NO_ERR );
+}
+
+uint8_t watchDogUpdate( uint8_t handle ) {
+
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    watchdog_update( );
+    return ( NO_ERR );
+}
+
+uint8_t watchDogCausedReboot( uint8_t handle, bool *reboot ) {
+
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_CONTROLLER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    return ( watchdog_caused_reboot( ));
+}
 
 //------------------------------------------------------------------------------------------------------------
 // Console IO section. We set up the stdio via the USB connector. As part of the CDC init call, the configure
@@ -1022,33 +951,71 @@ char getConsoleChar( uint32_t timeoutVal ) {
 // offers two timestamp routines to get the number of milliseconds and number of microseconds since system
 // start.
 //
-// ??? would we one day need more than one timer instance ?
+// ??? check for duplicate names ?
 //------------------------------------------------------------------------------------------------------------
-void startRepeatingTimer( uint32_t val ) {
+uint8_t configureTimer( uint8_t *handle, char *name, uint32_t intervalMillis ) {
+
+    CdcResource *ptr = getInstanceByName((char *) name );
+
+    if ( ptr == nullptr ) {
+
+        ptr = getFreeInstance( );
+        if ( ptr == nullptr ) return( MAX_RES_ID_ERR );
+    }
+
+    strncpy( ptr -> name, name, MAX_RES_ID_NAME );  
+
+    ptr -> configured           = true;
+    ptr -> timer.timerCallback  = nullptr;
+   
+    return( NO_ERR );
+}
+
+uint8_t startRepeatingTimer( uint8_t handle, uint32_t val ) {
+
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_TIMER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
     int64_t limit = val;
-    add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &timerData );
+    add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &ptr -> timer.timerData );
+    return( NO_ERR );
 }
 
-void stopRepeatingTimer( ) {
+uint8_t stopRepeatingTimer( uint8_t handle ) {
 
-    cancel_repeating_timer( &timerData );
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_TIMER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    cancel_repeating_timer( &ptr -> timer.timerData );
+    return( NO_ERR );
 }
 
-uint32_t getRepeatingTimerLimit( ) {
+uint8_t getRepeatingTimerLimit( uint8_t handle, uint32_t *val ) {
 
-    return ((uint32_t) ( - timerData.delay_us ));
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_TIMER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    *val = (uint32_t) ( - ptr -> timer.timerData.delay_us );
+    return ( NO_ERR );
 }
 
-void setRepeatingTimerLimit( uint32_t val ) {
+uint8_t setRepeatingTimerLimit( uint8_t handle, uint32_t val ) {
+
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_TIMER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
 
     int64_t limit = val;
-    timerData.delay_us = ((int64_t) - limit );
+    ptr -> timer.timerData.delay_us = ((int64_t) - limit );
+    return( NO_ERR );
 }
 
-void onTimerEvent( CDC::TimerCallback functionId ) {
+uint8_t onTimerEvent( uint8_t handle, CDC::TimerCallback functionId ) {
 
-    timerCallback = functionId;
+    CdcResource *ptr = getInstanceByHandle( handle, CDC_IT_TIMER );
+    if ( ptr == nullptr ) return ( INVALID_HANDLE_ERR );
+
+    ptr -> timer.timerCallback = functionId;
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1760,7 +1727,7 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 //
 // ??? this will for sure change ... we will print out the array of instances....
 //------------------------------------------------------------------------------------------------------------
-void printCdcSubSystemInfo( CdcInstanceDescMap *map ) {
+void printCdcSubSystemInfo( CdcResourceDescMap *map ) {
 
 
 }

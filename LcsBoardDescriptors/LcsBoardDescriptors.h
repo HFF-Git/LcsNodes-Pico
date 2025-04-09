@@ -3,12 +3,18 @@
 // LCS - Board Descriptors - Include file
 //
 //------------------------------------------------------------------------------------------------------------
-// 
+// Board descriptors define the controller / board pin and function mapping. While the CDC layer abstracts
+// the various hardware functions, the board descriptor table defines the pin mapping and a few other values
+// for the particular board. The hardware functions are called resources and define the pins and other 
+// attributes used. For example, a UART instance needs the receive and transmit pins, as well as what data
+// length, stop bits, and so on are set. There are also software resources such as a repeating timer. Each
+// board has a type and a unique ID by which the correct descriptor map can be located. Upon library start,
+// each instance is configured from this descriptor data.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Controller Dependent Code - Include file
-// Copyright (C) 2024 - 2025  Helmut Fieres
+// LCS - Board Descriptors - Include file
+// Copyright (C) 2025 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -29,26 +35,21 @@
 
 namespace CDC {
 
-
-const int MAX_INST_DESC_ENTRIES = 64;
+//------------------------------------------------------------------------------------------------------------
+// Common constants.
+// 
+//------------------------------------------------------------------------------------------------------------
+const int       MAX_INST_DESC_ENTRIES   = 64;
+const int       MAX_RES_ID_NAME         = 16;
+const uint8_t   UNDEFINED_PIN           = 255;
+const uint8_t   ILLEGAL_PIN             = 254;
 
 //------------------------------------------------------------------------------------------------------------
-// Controller pin related definitions. A pin can be valid, undefined or illegal. An undefined pin for a pin
-// field in the configuration structure indicates that  the pin has not been used by the firmware
-// implementation but is a pin that the particular controller would support. An illegal pin means that the
-// pin is not offered by this controller and cannot be assigned at all.
+// The CDC resources have a type which tells us what the particular instance is. Note that the are "real"
+// hardware resources such as a GPIO pin, but also logical resources such as a software timer.
 //
 //------------------------------------------------------------------------------------------------------------
-const uint8_t UNDEFINED_PIN     = 255;
-const uint8_t ILLEGAL_PIN       = 254;
-
-
-
-//------------------------------------------------------------------------------------------------------------
-// The CDC instances have a type which tells us what the particular instance is.
-//
-//------------------------------------------------------------------------------------------------------------
-enum CdcInstanceType : uint8_t {
+enum CdcResourceType : uint16_t {
 
     CDC_IT_UNDEFINED    = 0,
     CDC_IT_CONTROLLER   = 1,
@@ -64,14 +65,24 @@ enum CdcInstanceType : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The controller families. Currently, there is only the Raspberry PI Pico models.
+// The controller families. Currently, there is only the Raspberry PI Pico family models.
 //
 //------------------------------------------------------------------------------------------------------------
-enum ControllerFamily : uint8_t {
+enum ControllerFamily : uint16_t {
 
     CDC_CF_UNDEFINED    = 0,
-    CDC_CF_RP_PICO_2040 = 1,
-    CDC_CF_RP_PICO_2350 = 2
+    CDC_CF_RP_PICO      = 1,
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The controller chips in a family. Currently, there is only the Raspberry PI Pico models RP2040 and RP2350.
+//
+//------------------------------------------------------------------------------------------------------------
+enum ControllerChip : uint16_t {
+
+    CDC_CF_C_UNDEFINED  = 0,
+    CDC_CF_C_RP_2040    = 1,
+    CDC_CF_C_RP_2350    = 2,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -123,18 +134,7 @@ enum PwmDutyCycle : uint8_t {
     MAX_DUTY_CYCLE      = 255
 };
 
-
-//------------------------------------------------------------------------------------------------------------
-// Callback functions signatures.
-//
-//------------------------------------------------------------------------------------------------------------
-extern "C" {
-
-    typedef void ( *TimerCallback ) ( uint32_t timerVal );
-    typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
-}
-
-
+#if 0
 //------------------------------------------------------------------------------------------------------------
 // Each resource has a unique ID. The ID is used in the configuration routines to create and locate the 
 // particular entry. The IDs are used by the upper layers to obtain the handle that was created when the 
@@ -199,31 +199,21 @@ enum CdcResIdNames {
     CDC_RID_I2C_EXT     = 71,
 
     CDC_RID_CAN_BUS     = 75,
-
 };
-
+#endif
 
 //------------------------------------------------------------------------------------------------------------
 // The controller instance type. The controller itself has parameters we can set.
 //
-// ??? letÄs see where this takes us...
 //------------------------------------------------------------------------------------------------------------
 struct ControllerDesc {
 
-    uint16_t    cFamily;
+    uint16_t    controllerFamily;
+    uint16_t    controllerChip;
+    uint16_t    cpuCores;
     uint32_t    memorySize;
     uint32_t    internalNvmSize;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The controller features a watchdog facility. The idea is that when the controller software hangs, it will
-// be restarted. To avoid the automatic restarting, the software periodically needs to reset the watchdog 
-// timer. The interval timer specifies the maximum time without resetting the watchdog timer.
-//
-//------------------------------------------------------------------------------------------------------------
-struct WatchDogInstDesc {
-
-    uint32_t intervalMillis;
+    uint32_t    watchDogIntervallMillis;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -256,7 +246,9 @@ struct GpioInstDesc {
 //------------------------------------------------------------------------------------------------------------
 struct AdcInstDesc {
 
-    uint8_t adcPin;
+    uint8_t     adcPin;
+    uint16_t    adcDigitRange;
+    uint16_t    adcRefVoltageMilliVolt;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -337,13 +329,13 @@ struct CanBusInstDesc {
 //------------------------------------------------------------------------------------------------------------
 struct CdcInstanceConfigDesc {
 
-    uint8_t     type;
-    uint8_t     resId;
-
+    bool        configured;
+    char        name[ MAX_RES_ID_NAME ];
+    uint16_t    type;
+  
     union {
 
         ControllerDesc      ctl;
-        WatchDogInstDesc    wd;
         TimerInstDesc       timer;
         GpioInstDesc        gpio;
         PwmInstDesc         pwm;
@@ -385,21 +377,42 @@ const struct CdcInstanceDescMap test = {
     
     .map = {
 
-        {   .type   = CDC_IT_ADC,
-            .resId  = CDC_RID_ADC_0,
-
-            .adc    =  {   
+        {
+            .name   = "GPIO-Channel-0",
+            .type   = CDC_IT_GPIO,
             
-                .adcPin     = 0 
+            .gpio = {
+
+                .pinA       = 0,
+                .pinB       = 0,
+                .pinAMode   = DIO_IN,
+                .pinBMode   = DIO_IN,
+            }
+        },
+
+        {   
+            .name   = "ADC-Channel-0",
+            .type   = CDC_IT_ADC,
+
+            .adc =  {   
+            
+                .adcPin                 = 0, 
+                .adcDigitRange          = 1024,
+                .adcRefVoltageMilliVolt = 3300
             }   
         },
 
-        {   .type   = CDC_IT_ADC,
-            .resId  = CDC_RID_ADC_1,
-
-            .adc    =  {   
+        {   
             
-                .adcPin     = 0 
+            .name   = "ADC-Channel-1",
+            .type   = CDC_IT_ADC,
+           
+
+            .adc =  {   
+            
+                .adcPin                 = 0, 
+                .adcDigitRange          = 1024,
+                .adcRefVoltageMilliVolt = 3300
             }   
         }
 
