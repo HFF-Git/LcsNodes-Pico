@@ -9,16 +9,12 @@
 // The controller dependent code layer concentrates all processor dependent code into one library. The idea
 // is twofold. First, there needs to be a way to isolate the controller specific hardware from the LCS runtime
 // Library as well as the extension module firmware. The Raspberry PI Pico offers a C++ SDK with a set of
-// libraries to invoke the desired function rather than access to registers.The Pico also offers a great
+// libraries to invoke the desired function rather than access to registers. The Pico also offers a great
 // flexibility of pin assignment for the hardware IO functions. Second, within the hardware IO boundaries of
 // the controller family the individual hardware pin assignment used may vary from board to board design.
-// Nevertheless, the Extension Connector layout and basic functions available should be the same for all
-// controllers used. For the upper software layers, the CDC library offers a structured way to describe
-// the possible pins assignments.
-//
-// Note that this layer is not a generic HW abstraction. The layer is very specific to the LCS controller
-// boards described in the book. Nevertheless, some pins can vary, depending on the board version. Currently,
-// only the Raspberry PI Pico Board is supported.
+// This include file and the board descriptor include file implement the CDC layer from a hardware function 
+// and board configuration perspective. Note that the CDC layer is not a generic HW abstraction. The layer
+// is very specific to the LCS controller boards described in the book. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -260,7 +256,6 @@ struct CdcConfigDesc {
 // 
 //------------------------------------------------------------------------------------------------------------
 
-
 // ??? configure routines take values from board descriptors....
 
 //------------------------------------------------------------------------------------------------------------
@@ -304,8 +299,6 @@ char        getConsoleChar( uint32_t timeoutVal = 0 );
 //------------------------------------------------------------------------------------------------------------
 uint8_t     configureCdcSubSytem( CdcInstanceDescMap *map );
 void        printCdcSubSystemInfo( CdcInstanceDescMap *map );
-
-// ??? individual print routines for each type ?
 
 //------------------------------------------------------------------------------------------------------------
 // General controller info routines.

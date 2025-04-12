@@ -161,16 +161,18 @@ const uint16_t  MAX_INT_PIN                 = 24;
 const uint16_t  MAX_RESOURCE_ENTRIES        = 64;
 
 //------------------------------------------------------------------------------------------------------------
-// Controller dependent code uses a set of hardware instances structures to control the controller hardware. 
-// When a particular instance, e.g. an I2C channel, is configured all further access is done with a handle
-// to this instance. The instance structure takes care of isolating the controller hardware from the runtime
-// library and user firmware. There is a counter part to the instance structure, which contains the defined
-// parameters for that resource. The parameters are used in the configuration process. 
+// Controller dependent code uses a set of hardware resource structures to control the controller hardware. 
+// When a particular resource, e.g. an I2C channel, is configured all further access is done with a handle
+// to it. The resource structure takes care of isolating the controller hardware from the runtime library 
+// and user firmware. There is a counter part to the resource structure, which contains the configured
+// parameters values for that resource. These values are used in the initial configuration process. At any 
+// time later, the configure routine for a given resource can be called to change these values, but not the
+// type.
 //
 //------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
-// The controller resource describes the actual controller attributes.
+// The controller specific attributes.
 //
 //------------------------------------------------------------------------------------------------------------
 struct ControllerResource {
@@ -184,7 +186,7 @@ struct ControllerResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A timer resource.
+// Timer specific attributes.
 //
 //------------------------------------------------------------------------------------------------------------
 struct TimerResource {
@@ -194,8 +196,11 @@ struct TimerResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A GPIO instance is the most basic digital IO channel.
+// GPIO specific attributes. Almost all IO pins can be used as general purposes IO pins. Our resource will
+// in addition allow to configure a pair of digital IO pins. This is used for controlling the H-Bridge 
+// signals.
 //
+// ??? interrupt handler ?
 //------------------------------------------------------------------------------------------------------------
 struct GpioResource {
 
@@ -206,22 +211,24 @@ struct GpioResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding 
-// instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
-//  instance.
+// ADC specific fields. The PICO has 3 externally available adc inputs. We describe for each ADC input the
+// defined digit range and the reference voltage.
 //
 //------------------------------------------------------------------------------------------------------------
 struct AdcResource {
 
-    uint8_t   adcPin;
-    uint8_t   adcNum;
+    uint8_t     adcPin;
+    uint8_t     adcNum;
+    uint16_t    adcDigitRange;
+    uint16_t    adcRefVoltageMilliVolt;
 };
 
 //------------------------------------------------------------------------------------------------------------
 // A PWM output instance. GPIO pins can also be used as PWM output pins. The PWM output related data is kept
 // in this instance. The PICO features a set of PWM slices, each of which has two channels. We will use the 
-// two channels for our PWM signal, where one pin is the PWM signal while the other is held low.
+// two channels for our H-Bridge PWM signal, where one pin is the PWM signal while the other is held low. 
 //
+// ??? pwm instance data ?
 //------------------------------------------------------------------------------------------------------------
 struct PwmResource {
 
@@ -235,9 +242,8 @@ struct PwmResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. There can be two 
-// hardware based UART instances, or up to four software defined instances. The instance also keeps a small 
-// buffer where the data is read into. We also keep the PICO UART HW instance used.
+// A UART instance. UARTS are used to read in a serial stream from the RailCom detectors. The PICO features 
+// two hardware based UART blocks. The resource also keeps a small buffer where the data is read into. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct UartResource {
@@ -256,8 +262,7 @@ struct UartResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The I2C instance. The PICO features two HW instances of an I2C port. The instance data contains the 
-// assigned GPIO pins, the baud rate and a timeout. We also keep the I2C HW instance used.
+// The I2C specific data. The PICO features two HW instances of an I2C port. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct I2CResource {
@@ -270,9 +275,9 @@ struct I2CResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The SPI instance. The PICO features two SPI HW instances. We keep the assigned GPIO pins for the SPI 
-// interface as well as the PICO HW instance. Since the SPI protocol explicitly sets the selected HW select 
-// pin, we remember that we are in a transaction with perhaps more than one call to the SPI routines.
+// SPI specific data. The PICO features two SPI HW instances. Since the SPI protocol explicitly sets the 
+// selected HW select pin, we remember that we are in a transaction with perhaps more than one call to the
+// SPI routines.
 //
 //------------------------------------------------------------------------------------------------------------
 struct SPIResource {
@@ -287,9 +292,9 @@ struct SPIResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CAN bus instance. Although our current controller do not feature a CAN bus, the instance described 
-// the hardware elements needed from the controller. Currently, we use a software version based on a PIO
-// program to implement the CAN bus. 
+// The CAN bus instance. Although our current controller does not feature a CAN bus, the instance described 
+// the hardware elements needed. Currently, we use a software version based on a PIO program to implement the
+// CAN bus. 
 // 
 //------------------------------------------------------------------------------------------------------------
 struct CanBusResource {
@@ -297,6 +302,9 @@ struct CanBusResource {
     uint8_t     canPin1;
     uint8_t     canPin2;
     uint32_t    baudRate;
+
+    // ??? mode ?
+    // ??? separate cores ?
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -304,6 +312,7 @@ struct CanBusResource {
 // allocate a table where a handler can be set for each pin. When an interrupt comes in and there is a 
 // handler configured, it will be called.
 //
+// ??? do we need to map the HW pin to the resource it is assigned to ?
 //------------------------------------------------------------------------------------------------------------
 struct GpioIsrTable {
 
@@ -314,8 +323,8 @@ struct GpioIsrTable {
 //------------------------------------------------------------------------------------------------------------
 // Controller hardware is configured via "Resources". An resource groups a hardware peripheral function with 
 // all settings and hardware pins it may need. These resources are then referred by the CDC routines with an
-// index into the resource array. This array is populated during initial configuration. An application can 
-// locate this index by using the assigned name.
+// index into the resource array, called a handle. This array is populated during initial configuration. An
+// application can  locate this index by using the assigned name.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CdcResource {
@@ -344,6 +353,7 @@ struct CdcResource {
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceMap {
 
+    char        name[ MAX_DESC_NAME ];
     uint16_t    size;
     CdcResource map[ MAX_RESOURCE_ENTRIES ];
 };
@@ -400,12 +410,12 @@ uint32_t mapGpioIntEvent( uint8_t event ) {
 
     switch ( event ) {
 
-        case CDC::EVT_LOW:     return ( GPIO_IRQ_LEVEL_LOW );
-        case CDC::EVT_HIGH:    return ( GPIO_IRQ_LEVEL_HIGH );
-        case CDC::EVT_FALL:    return ( GPIO_IRQ_EDGE_FALL );
-        case CDC::EVT_RISE:    return ( GPIO_IRQ_EDGE_RISE );
-        case CDC::EVT_CHANGE:  return ( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
-        default:      return ( 0 );
+        case CDC::EVT_LOW:      return ( GPIO_IRQ_LEVEL_LOW );
+        case CDC::EVT_HIGH:     return ( GPIO_IRQ_LEVEL_HIGH );
+        case CDC::EVT_FALL:     return ( GPIO_IRQ_EDGE_FALL );
+        case CDC::EVT_RISE:     return ( GPIO_IRQ_EDGE_RISE );
+        case CDC::EVT_CHANGE:   return ( GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL );
+        default:                return ( 0 );
     }
 }
 
@@ -435,12 +445,16 @@ uint8_t mapPicoGpioEvent( uint32_t event ) {
 //------------------------------------------------------------------------------------------------------------
 void gpioCallback( uint gpioPin, uint32_t event ) {
 
+    // ??? add the handle somehow ... this is what we are interested in ...
+
     cdcIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin] ( gpioPin, mapPicoGpioEvent( event ));
 }
 
 // ??? how to locate the handler ?
 
 bool repeatingTimerAlarm( repeating_timer_t *rt ) {
+
+    // there could be more than one timer.... check if we can pass an argument, such as our handle...
 
     if ( timerCallback != nullptr ) timerCallback((uint32_t) ( - timerData.delay_us ));
     return ( true );
@@ -579,12 +593,13 @@ uint8_t validateConfigRP20040( CDC::CdcConfigDesc *ci ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// The resource map is the dynamic structure that contains all the configured resources. 
 //
 //
 //------------------------------------------------------------------------------------------------------------
 void initResourceMap( ) {
 
+    resourceMap.name[ 0 ] = '\0';
     resourceMap.size = MAX_RESOURCE_ENTRIES;
    
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
@@ -598,12 +613,13 @@ void initResourceMap( ) {
 }
 
 // ??? should we pass the intended name and check for duplicates of a given type ?
+// ??? rather call it allocateResource...
 
 CdcResource *getFreeInstance( ) {
 
     for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
 
-        if ( instanceMap.map[ i ].type == CDC_IT_UNDEFINED ) return( &instanceMap.map[ i ] );
+        if ( resourceMap.map[ i ].type == CDC_IT_UNDEFINED ) return( &resourceMap.map[ i ] );
     } 
 
     return( nullptr );
@@ -615,7 +631,7 @@ CdcResource *getInstanceByName( char *name ) {
 
     for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
 
-        if ( strncmp( name, instanceMap.map[ i ].name, MAX_RES_ID_NAME ) == 0 ) return( &instanceMap.map[ i ] );
+        if ( strncmp( name, resourceMap.map[ i ].name, MAX_RES_ID_NAME ) == 0 ) return( &resourceMap.map[ i ] );
     } 
 
     return( nullptr );
@@ -626,6 +642,32 @@ CdcResource *getInstanceByHandle( uint8_t handle, CdcResourceType type ) {
     CdcResource *entry = &resourceMap.map[ handle ];
     return((( entry -> configured ) && ( entry -> type == type )) ? entry : nullptr );
 }
+
+CdcResource *allocateResource( char *name, CdcResourceType rTyp ) {
+
+    CdcResource *ptr = getResourceByName( name );
+
+    if ( ptr == nullptr ) {
+
+        for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
+
+            ptr = resourceMap.map[ i ];
+            
+            if ( resourceMap.map[ i ].type == CDC_IT_UNDEFINED ) {
+
+                strncpy( ptr -> name, name, MAX_RES_ID_NAME );
+                ptr -> type         = rTyp;
+                ptr -> configured   = false;
+                return( ptr );
+            }
+        } 
+    }
+
+    return( nullptr );
+}
+
+
+
 
 }; // namespace
 

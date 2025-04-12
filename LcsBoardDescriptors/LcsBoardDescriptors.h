@@ -40,6 +40,7 @@ namespace CDC {
 // 
 //------------------------------------------------------------------------------------------------------------
 const int       MAX_INST_DESC_ENTRIES   = 64;
+const int       MAX_DESC_NAME           = 64;
 const int       MAX_RES_ID_NAME         = 16;
 const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
@@ -221,7 +222,7 @@ struct ControllerDesc {
 // 
 // ??? option to specify whether the timer should restart while the interrupt is served or after.
 //------------------------------------------------------------------------------------------------------------
-struct TimerInstDesc {
+struct TimerResourceDesc {
 
     uint32_t intervalMillis;
 };
@@ -232,7 +233,7 @@ struct TimerInstDesc {
 //
 // ??? should we also have a concept to have a pin mask for multiple pins ?
 //------------------------------------------------------------------------------------------------------------
-struct GpioInstDesc {
+struct GpioResourceDesc {
 
     uint8_t     pinA;
     uint8_t     pinB;
@@ -244,7 +245,7 @@ struct GpioInstDesc {
 // The ADC instance descriptor declares analog input.
 //
 //------------------------------------------------------------------------------------------------------------
-struct AdcInstDesc {
+struct AdcResourceDesc {
 
     uint8_t     adcPin;
     uint16_t    adcDigitRange;
@@ -256,7 +257,7 @@ struct AdcInstDesc {
 //
 // ??? range to specify ? or always 0 .. 255 ?
 //------------------------------------------------------------------------------------------------------------
-struct PwmInstDesc {
+struct PwmResourceDesc {
 
     uint8_t     pwmPinA;
     uint8_t     pwmPinB;
@@ -270,7 +271,7 @@ struct PwmInstDesc {
 // options.
 //
 //------------------------------------------------------------------------------------------------------------
-struct UartInstDesc {
+struct UartResourceDesc {
 
     uint8_t     rxPin;
     uint8_t     txPin;
@@ -284,7 +285,7 @@ struct UartInstDesc {
 // The I2C instance descriptor declares an I2C channel.
 // 
 //------------------------------------------------------------------------------------------------------------
-struct I2CInstDesc {
+struct I2CResourceDesc {
 
     uint8_t     sclPin;
     uint8_t     sdaPin;
@@ -296,7 +297,7 @@ struct I2CInstDesc {
 // The SPI instance descriptor declares an SPI channel.
 //
 //------------------------------------------------------------------------------------------------------------
-struct SPIInstDesc {
+struct SPIResourceDesc {
 
     uint8_t     selectPin;
     uint8_t     mosiPin;
@@ -309,7 +310,7 @@ struct SPIInstDesc {
 // The CAN Bus instance descriptor declares an the necessary CAN bus data.
 // 
 //------------------------------------------------------------------------------------------------------------
-struct CanBusInstDesc {
+struct CanBusResourceDesc {
 
     uint8_t     canPinH;
     uint8_t     canPinL;
@@ -336,14 +337,14 @@ struct CdcInstanceConfigDesc {
     union {
 
         ControllerDesc      ctl;
-        TimerInstDesc       timer;
-        GpioInstDesc        gpio;
-        PwmInstDesc         pwm;
-        UartInstDesc        uart;
-        AdcInstDesc         adc;
-        I2CInstDesc         i2c;
-        SPIInstDesc         spi;
-        CanBusInstDesc      can;
+        TimerResourceDesc       timer;
+        GpioResourceDesc        gpio;
+        PwmResourceDesc         pwm;
+        UartResourceDesc        uart;
+        AdcResourceDesc         adc;
+        I2CResourceDesc         i2c;
+        SPIResourceDesc         spi;
+        CanBusResourceDesc      can;
     };
 };
 
@@ -353,10 +354,11 @@ struct CdcInstanceConfigDesc {
 //------------------------------------------------------------------------------------------------------------
 struct CdcInstanceDescMap {
 
-    uint16_t flags;
-    uint16_t size;
+    char        name[ MAX_DESC_NAME ];
+    uint16_t    flags;
+    uint16_t    size;
     
-    // ??? boardId ?
+    // ??? boardId ? version ?
 
     CdcInstanceConfigDesc map[ MAX_INST_DESC_ENTRIES ];
 };
@@ -372,6 +374,7 @@ struct CdcInstanceDescMap {
 //------------------------------------------------------------------------------------------------------------
 const struct CdcInstanceDescMap test = {
 
+    .name  = "A little test board name",
     .flags = 0,
     .size  = 0,
     
