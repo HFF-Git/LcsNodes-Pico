@@ -91,9 +91,12 @@ enum DebugOtions : uint16_t {
 enum CdcStatus : uint8_t {
 
     NO_ERR              = 0,
-    INIT_PENDING        = 1,
-    NOT_SUPPORTED       = 2,
-    NOT_IMPLEMENTED     = 3,
+    NOT_SUPPORTED_ERR   = 1,
+    NOT_IMPLEMENTED_ERR = 2,
+    NOT_INITIALIZED_ERR = 4,
+    NOT_CONFIGURED_ERR  = 5,
+
+    INVALID_RES_ID_ERR  = 6,
 
     MEM_SIZE_ERR        = 10,
 
@@ -266,9 +269,10 @@ struct CdcConfigDesc {
 // Basic init and error handling.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     init( CdcConfigDesc *ci );
-void        fatalError( uint8_t n );
-void        fatalErrorMsg( char *str, uint8_t n, uint8_t rStat );
+uint8_t     cdcInit( );
+uint8_t     getVersion( uint32_t *version );
+void        fatalError( uint8_t errNum );
+void        fatalErrorMsg( char *str, uint8_t errNum, uint8_t rStat );
 void        setDebugLevel( uint8_t level = 0 );
 
 //------------------------------------------------------------------------------------------------------------
@@ -307,9 +311,9 @@ void        printCdcSubSystemInfo( CdcResourceDescMap *map );
 //------------------------------------------------------------------------------------------------------------
 // General controller info routines.
 //
+//
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureController(    uint8_t             *handle, 
-                                    char                *name,
+uint8_t     configureController(    uint8_t             resId,
                                     ControllerFamily    family, 
                                     ControllerChip      processor,
                                     uint32_t            memorySize,
@@ -318,101 +322,85 @@ uint8_t     configureController(    uint8_t             *handle,
                                     uint16_t            adcRefVoltage, 
                                     uint16_t            adcDigitRange  );
 
-uint8_t     getFamily( uint8_t handle, ControllerFamily *family );
-uint8_t     getControllerChip( uint8_t handle, ControllerChip *chip );
-uint8_t     getVersion( uint8_t handle, uint32_t *version );
-uint8_t     getChipMemSize( uint8_t handle, uint32_t *size );
-uint8_t     getChipNvmSize( uint8_t handle, uint32_t *size );
-uint8_t     getCpuFrequency( uint8_t handle, uint32_t *frequency );
-uint8_t     watchDogEnable( uint8_t handle, bool enable );
-uint8_t     watchDogUpdate( uint8_t handle );
-uint8_t     watchDogCausedReboot( uint8_t handle, bool *reboot );
+uint8_t     getFamily( uint8_t resId, ControllerFamily *family );
+uint8_t     getControllerChip( uint8_t resId, ControllerChip *chip );
+uint8_t     getChipMemSize( uint8_t resId, uint32_t *size );
+uint8_t     getChipNvmSize( uint8_t resId, uint32_t *size );
+uint8_t     getCpuFrequency( uint8_t resId, uint32_t *frequency );
+
+uint8_t     watchDogEnable( uint8_t resId, bool enable );
+uint8_t     watchDogUpdate( uint8_t resId );
+uint8_t     watchDogCausedReboot( uint8_t resId, bool *reboot );
 
 //------------------------------------------------------------------------------------------------------------
 // Timer management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureTimer( uint8_t *handle, char * name, TimerCallback functionId );
-uint8_t     startRepeatingTimer( uint8_t handle, uint32_t val );
-uint8_t     setRepeatingTimerLimit( uint8_t handle, uint32_t val );
-uint8_t     getRepeatingTimerLimit( uint8_t handle, uint32_t *val );
-uint8_t     stopRepeatingTimer( uint8_t handle );
+uint8_t     configureTimer( uint8_t resId, char * name, TimerCallback functionId );
+uint8_t     startRepeatingTimer( uint8_t resId, uint32_t val );
+uint8_t     setRepeatingTimerLimit( uint8_t resId, uint32_t val );
+uint8_t     getRepeatingTimerLimit( uint8_t resId, uint32_t *val );
+uint8_t     stopRepeatingTimer( uint8_t resId );
 
 //------------------------------------------------------------------------------------------------------------
 // Analog input routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureAdc(   uint8_t  *handle, 
-                            char     *name, 
+uint8_t     configureAdc(   uint8_t  resId, 
                             uint8_t  adcPin, 
                             uint16_t refVoltage, 
                             uint16_t digitRange );
-uint8_t     readAdc( uint8_t *handle, uint16_t *val );
+
+uint8_t     readAdc( uint8_t resId, uint16_t *val );
 
 //------------------------------------------------------------------------------------------------------------
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureDio(   uint8_t *handle, 
-                            char    *name, 
-                            uint8_t pin, 
-                            uint8_t mode = CDC_DIO_IN );
+uint8_t     configureDio(   uint8_t resId, 
+                            uint8_t pinA, 
+                            uint8_t pinB, 
+                            uint8_t mode );
 
-uint8_t     registerDioCallback( uint8_t handle, uint8_t event, CDC::GpioCallback func );
-uint8_t     unregisterDioCallback( uint8_t handle );
-uint8_t     readDio( uint8_t handle, bool *val );
-uint8_t     writeDio( uint8_t handle, bool val );
-uint8_t     toggleDio( uint8_t handle );
-
-uint8_t     configureDioPair(   uint8_t *handle, 
-                                char    *name, 
-                                uint8_t pinA, 
-                                uint8_t pinB,
-                                uint8_t mode = CDC_DIO_IN );
-                                
-uint8_t     writeDioPair( uint8_t handle, bool valA, bool valB );
+uint8_t     registerDioCallback( uint8_t resId, uint8_t event, GpioCallback func );
+uint8_t     unregisterDioCallback( uint8_t resId );
+uint8_t     readDio( uint8_t resId, bool *val );
+uint8_t     writeDio( uint8_t resId, bool val );
+uint8_t     writeDio( uint8_t resId, bool valA, bool valB );
+uint8_t     toggleDio( uint8_t resId );
 
 //------------------------------------------------------------------------------------------------------------
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configurePwm(   uint8_t   *handle, 
-                            char      *name, 
-                            uint8_t   pwmPin,
-                            uint32_t  pwmFreqency,
+uint8_t     configurePwm(   uint8_t   resId, 
+                            uint8_t   pinA,
+                            uint8_t   pinB,
+                            uint32_t  freqency,
                             bool      phaseCorrect  = true,
                             bool      inverted      = false
                         );
 
-uint8_t     writePwm( uint8_t handle, uint8_t dutyCycleA, uint8_t dutyCycleB );
-
-uint8_t     configurePwmPair(   uint8_t   *handle, 
-                                char      *name, 
-                                uint8_t   pwmPin,
-                                uint32_t  pwmFreqency,
-                                bool      phaseCorrect  = true,
-                                bool      inverted      = false
-);
-
-uint8_t     writePwmPair( uint8_t handle1, uint8_t dutyCycle1, uint8_t handle2, uint8_t dutyCycle2 );
+uint8_t     writePwm( uint8_t resId, uint8_t dutyCycleA, uint8_t dutyCycleB );
+uint8_t     syncPwm( uint8_t resId );
 
 //------------------------------------------------------------------------------------------------------------
 // Serial IO routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, UartMode mode );
-uint8_t     startUartRead( uint8_t rxPin );
-uint8_t     stopUartRead( uint8_t rxPin );
-uint8_t     getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen );
+uint8_t     configureUart( uint8_t resId, uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
+uint8_t     startUartRead( uint8_t resId );
+uint8_t     stopUartRead( uint8_t resId );
+uint8_t     getUartBuffer( uint8_t resId, uint8_t *buf, uint8_t bufLen );
 
 //------------------------------------------------------------------------------------------------------------
 // I2C management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
-uint8_t         i2cBusreset( uint8_t sclPin );
-uint8_t         i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
-uint8_t         i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+uint8_t     configureI2C( uint8_t resId, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
+uint8_t     i2cBusreset( uint8_t resId );
+uint8_t     i2cWrite( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+uint8_t     i2cRead( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 
 //------------------------------------------------------------------------------------------------------------
 // SPI management routines.

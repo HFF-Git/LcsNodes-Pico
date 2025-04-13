@@ -139,7 +139,7 @@ enum PwmDutyCycle : uint8_t {
     CDC_MAX_DUTY_CYCLE      = 255
 };
 
-#if 0
+
 //------------------------------------------------------------------------------------------------------------
 // Each resource has a unique ID. The ID is used in the configuration routines to create and locate the 
 // particular entry. The IDs are used by the upper layers to obtain the handle that was created when the 
@@ -149,9 +149,12 @@ enum PwmDutyCycle : uint8_t {
 enum CdcResIdNames {
 
     CDC_RID_UNDEFINED   = 0,
-    CDC_RID_WATCHDOG    = 1,
     CDC_RID_CONTROLLER  = 2,
+
     CDC_RID_TIMER_0     = 3,
+    CDC_RID_TIMER_1     = 4,
+    CDC_RID_TIMER_2     = 5,
+    CDC_RID_TIMER_3     = 6,
 
     CDC_RID_DIO_0       = 10,
     CDC_RID_DIO_1       = 11,
@@ -168,7 +171,7 @@ enum CdcResIdNames {
     CDC_RID_DIO_12      = 22,
     CDC_RID_DIO_13      = 23,
     CDC_RID_DIO_14      = 24,
-    CDC_RID_DIO_16      = 25,
+    CDC_RID_DIO_15      = 25,
 
     CDC_RID_ADC_0       = 30,
     CDC_RID_ADC_1       = 31,
@@ -183,14 +186,6 @@ enum CdcResIdNames {
     CDC_RID_PWM_5       = 45,
     CDC_RID_PWM_6       = 46,
     CDC_RID_PWM_7       = 47,
-    CDC_RID_PWM_8       = 48,
-    CDC_RID_PWM_9       = 49,
-    CDC_RID_PWM_10      = 50,
-    CDC_RID_PWM_11      = 51,
-    CDC_RID_PWM_12      = 52,
-    CDC_RID_PWM_13      = 53,
-    CDC_RID_PWM_14      = 54,
-    CDC_RID_PWM_16      = 55,
 
     CDC_RID_UART_0      = 60,
     CDC_RID_UART_1      = 61,
@@ -205,7 +200,6 @@ enum CdcResIdNames {
 
     CDC_RID_CAN_BUS     = 75,
 };
-#endif
 
 //------------------------------------------------------------------------------------------------------------
 // The controller resource type. The controller itself has parameters we can set. We also have parameters
@@ -388,6 +382,72 @@ struct CdcResourceDescMap {
 };
 
 
+//------------------------------------------------------------------------------------------------------------
+// This may be a better approach ?
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcResourceDescMapNew {
+
+    char name[ MAX_DESC_NAME ];
+    // ??? boardId ? version ?  
+
+    ControllerDesc      ctl;
+
+    TimerResourceDesc   timer0;
+    TimerResourceDesc   timer1;
+    TimerResourceDesc   timer2;
+    TimerResourceDesc   timer3;
+
+    GpioResourceDesc    dio0;
+    GpioResourceDesc    dio1;
+    GpioResourceDesc    dio2;
+    GpioResourceDesc    dio3;
+    GpioResourceDesc    dio4;
+    GpioResourceDesc    dio5;
+    GpioResourceDesc    dio6;
+    GpioResourceDesc    dio7;
+    GpioResourceDesc    dio8;
+    GpioResourceDesc    dio9;
+    GpioResourceDesc    dio10;
+    GpioResourceDesc    dio11;
+    GpioResourceDesc    dio12;
+    GpioResourceDesc    dio13;
+    GpioResourceDesc    dio14;
+    GpioResourceDesc    dio15;
+
+    PwmResourceDesc     pwm0;
+    PwmResourceDesc     pwm1;
+    PwmResourceDesc     pwm2;
+    PwmResourceDesc     pwm3;
+    PwmResourceDesc     pwm4;
+    PwmResourceDesc     pwm5;
+    PwmResourceDesc     pwm6;
+    PwmResourceDesc     pwm7;
+
+    AdcResourceDesc     adc0;
+    AdcResourceDesc     adc1;
+    AdcResourceDesc     adc2;
+    AdcResourceDesc     adc3;
+
+    UartResourceDesc    uart0;
+    UartResourceDesc    uart1;
+    UartResourceDesc    uart2;
+    UartResourceDesc    uart3;
+
+    I2CResourceDesc     i2cNVM;
+    I2CResourceDesc     i2cEXT;
+
+    SPIResourceDesc     spi0;
+    SPIResourceDesc     spi1;
+
+    CanBusResourceDesc  can;
+
+
+
+};
+
+
+#include "LcsBoardTest.h"
 
 
 }; // namespace CDC
