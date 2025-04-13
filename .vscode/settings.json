@@ -22,7 +22,14 @@
         "typeinfo": "cpp",
         "string": "cpp",
         "string_view": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "charconv": "cpp",
+        "complex": "cpp",
+        "ratio": "cpp",
+        "variant": "cpp",
+        "__hash_table": "cpp",
+        "forward_list": "cpp",
+        "limits": "cpp"
     },
     "spellright.language": [
         "en"

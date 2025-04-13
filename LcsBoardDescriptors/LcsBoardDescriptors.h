@@ -6,10 +6,10 @@
 // Board descriptors define the controller / board pin and function mapping. While the CDC layer abstracts
 // the various hardware functions, the board descriptor table defines the pin mapping and a few other values
 // for the particular board. The hardware functions are called resources and define the pins and other 
-// attributes used. For example, a UART instance needs the receive and transmit pins, as well as what data
+// attributes used. For example, a UART resource needs the receive and transmit pins, as well as what data
 // length, stop bits, and so on are set. There are also software resources such as a repeating timer. Each
 // board has a type and a unique ID by which the correct descriptor map can be located. Upon library start,
-// each instance is configured from this descriptor data.
+// each resource is configured from this descriptor data.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -46,7 +46,7 @@ const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
 
 //------------------------------------------------------------------------------------------------------------
-// The CDC resources have a type which tells us what the particular instance is. Note that the are "real"
+// The CDC resources have a type which tells us what the particular resource is. Note that the are "real"
 // hardware resources such as a GPIO pin, but also logical resources such as a software timer.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -62,7 +62,10 @@ enum CdcResourceType : uint16_t {
     CDC_IT_UART         = 7,
     CDC_IT_I2C          = 8,
     CDC_IT_SPI          = 9,
-    CDC_IT_CAN_BUS      = 10
+    CDC_IT_CAN_BUS      = 10,
+
+    CDC_IT_GPIO_PAIR    = 100,
+    CDC_IT_PWM_PAIR     = 101,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -94,9 +97,9 @@ enum ControllerChip : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum dioMode : uint8_t {
 
-    DIO_IN              = 0,
-    DIO_OUT             = 1,
-    DIO_IN_PULLUP       = 2
+    CDC_DIO_IN              = 0,
+    CDC_DIO_OUT             = 1,
+    CDC_DIO_IN_PULLUP       = 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -105,14 +108,15 @@ enum dioMode : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum intEventTyp : uint8_t {
 
-    EVT_NONE            = 0,
-    EVT_LOW             = 1,
-    EVT_HIGH            = 2,
-    EVT_FALL            = 3,
-    EVT_RISE            = 4,
-    EVT_CHANGE          = 5
+    CDC_EVT_NONE            = 0,
+    CDC_EVT_LOW             = 1,
+    CDC_EVT_HIGH            = 2,
+    CDC_EVT_FALL            = 3,
+    CDC_EVT_RISE            = 4,
+    CDC_EVT_CHANGE          = 5
 };
 
+// ??? to think about, just keep it for HW Uarts... ?
 //------------------------------------------------------------------------------------------------------------
 // The UART modes. There are two implementations. The PICO offers two hardware UARTS. We use them with 8 
 // bits with a parity bit. The second type UART is a software implementation based on the PICO PIO blocks.
@@ -131,8 +135,8 @@ enum UartMode : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum PwmDutyCycle : uint8_t {
 
-    MIN_DUTY_CCYCLE     = 0,
-    MAX_DUTY_CYCLE      = 255
+    CDC_MIN_DUTY_CCYCLE     = 0,
+    CDC_MAX_DUTY_CYCLE      = 255
 };
 
 #if 0
@@ -204,7 +208,8 @@ enum CdcResIdNames {
 #endif
 
 //------------------------------------------------------------------------------------------------------------
-// The controller instance type. The controller itself has parameters we can set.
+// The controller resource type. The controller itself has parameters we can set. We also have parameters
+// such as the ADC voltage, that applies to the controller chip ADC subsystem.
 //
 //------------------------------------------------------------------------------------------------------------
 struct ControllerDesc {
@@ -215,10 +220,14 @@ struct ControllerDesc {
     uint32_t    memorySize;
     uint32_t    internalNvmSize;
     uint32_t    watchDogIntervallMillis;
+    uint16_t    adcRefVoltage;
+    uint16_t    adcDigitRange;
+
+    // ??? perhaps more to come what is the same across all resources...
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Timer instances descriptor.
+// Timer resources descriptor.
 // 
 // ??? option to specify whether the timer should restart while the interrupt is served or after.
 //------------------------------------------------------------------------------------------------------------
@@ -228,21 +237,26 @@ struct TimerResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A GPIO instance descriptor declares the pin(s) and their mode. Note that the mode can be changed later via
+// A GPIO resource descriptor declares the pin(s) and their mode. Note that the mode can be changed later via
 // the config routine.
 //
 // ??? should we also have a concept to have a pin mask for multiple pins ?
 //------------------------------------------------------------------------------------------------------------
 struct GpioResourceDesc {
 
+    uint8_t     pin;
+    uint8_t     pinMode;
+};
+
+struct GpioPairResourceDesc {
+
     uint8_t     pinA;
     uint8_t     pinB;
-    uint8_t     pinAMode;
-    uint8_t     pinBMode;
+    uint8_t     pinMode;
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The ADC instance descriptor declares analog input.
+// The ADC resource descriptor declares analog input.
 //
 //------------------------------------------------------------------------------------------------------------
 struct AdcResourceDesc {
@@ -253,11 +267,13 @@ struct AdcResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The PWM instance declares the pins(s) and the PWM options, such as frequency.
+// The PWM resource declares the pins(s) and the PWM options, such as frequency.
 //
 // ??? range to specify ? or always 0 .. 255 ?
 //------------------------------------------------------------------------------------------------------------
 struct PwmResourceDesc {
+
+    // ??? pin and frequency would be enough ...
 
     uint8_t     pwmPinA;
     uint8_t     pwmPinB;
@@ -266,8 +282,15 @@ struct PwmResourceDesc {
     bool        inverted;
 };
 
+struct PwmPairResource {
+
+    uint8_t     pwmPinA;
+    uint8_t     pwmPinB;
+    uint32_t    pwmFreqency;
+};
+
 //------------------------------------------------------------------------------------------------------------
-// The UART instance descriptor declares a serial IO interface. We need the Rx and Tx pins and the UART
+// The UART resource descriptor declares a serial IO interface. We need the Rx and Tx pins and the UART
 // options.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -282,7 +305,7 @@ struct UartResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The I2C instance descriptor declares an I2C channel.
+// The I2C resource descriptor declares an I2C channel.
 // 
 //------------------------------------------------------------------------------------------------------------
 struct I2CResourceDesc {
@@ -294,7 +317,7 @@ struct I2CResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The SPI instance descriptor declares an SPI channel.
+// The SPI resource descriptor declares an SPI channel.
 //
 //------------------------------------------------------------------------------------------------------------
 struct SPIResourceDesc {
@@ -307,7 +330,7 @@ struct SPIResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CAN Bus instance descriptor declares an the necessary CAN bus data.
+// The CAN Bus resource descriptor declares an the necessary CAN bus data.
 // 
 //------------------------------------------------------------------------------------------------------------
 struct CanBusResourceDesc {
@@ -321,17 +344,17 @@ struct CanBusResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A CDC configuration descriptor is the counterpart to the instances. A descriptor for a given instance type
-// will contain all the information to configure that instance. An instance can be configured with the 
+// A CDC configuration descriptor is the counterpart to the resources. A descriptor for a given resource type
+// will contain all the information to configure that resource. An resource can be configured with the 
 // configure routine and its parameter list or based on the data in this descriptor. It should be possible to
 // configure the entire board based on an array of such descriptors. The idea is that each board can be 
 // uniquely described with such an array.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcInstanceConfigDesc {
+struct CdcResourceConfigDesc {
 
-    bool        configured;
     char        name[ MAX_RES_ID_NAME ];
+    bool        configured;
     uint16_t    type;
   
     union {
@@ -339,7 +362,9 @@ struct CdcInstanceConfigDesc {
         ControllerDesc      ctl;
         TimerResourceDesc       timer;
         GpioResourceDesc        gpio;
+        GpioPairResourceDesc    gpioP;
         PwmResourceDesc         pwm;
+        PwmPairResource         pwmP;
         UartResourceDesc        uart;
         AdcResourceDesc         adc;
         I2CResourceDesc         i2c;
@@ -349,78 +374,21 @@ struct CdcInstanceConfigDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CDC instance map is the data structure that has an entry for each declared instance.
+// The CDC resource map is the data structure that has an entry for each declared resource. Each map is 
+// uniquely associated with a board.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcInstanceDescMap {
+struct CdcResourceDescMap {
 
-    char        name[ MAX_DESC_NAME ];
-    uint16_t    flags;
-    uint16_t    size;
-    
+    char name[ MAX_DESC_NAME ];
+   
     // ??? boardId ? version ?
 
-    CdcInstanceConfigDesc map[ MAX_INST_DESC_ENTRIES ];
+    CdcResourceConfigDesc map[ MAX_INST_DESC_ENTRIES ];
 };
 
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-// a little test ...
-// ??? perhaps a separate file for each board and just include it here.... 
-//
-//------------------------------------------------------------------------------------------------------------
-const struct CdcInstanceDescMap test = {
 
-    .name  = "A little test board name",
-    .flags = 0,
-    .size  = 0,
-    
-    .map = {
-
-        {
-            .name   = "GPIO-Channel-0",
-            .type   = CDC_IT_GPIO,
-            
-            .gpio = {
-
-                .pinA       = 0,
-                .pinB       = 0,
-                .pinAMode   = DIO_IN,
-                .pinBMode   = DIO_IN,
-            }
-        },
-
-        {   
-            .name   = "ADC-Channel-0",
-            .type   = CDC_IT_ADC,
-
-            .adc =  {   
-            
-                .adcPin                 = 0, 
-                .adcDigitRange          = 1024,
-                .adcRefVoltageMilliVolt = 3300
-            }   
-        },
-
-        {   
-            
-            .name   = "ADC-Channel-1",
-            .type   = CDC_IT_ADC,
-           
-
-            .adc =  {   
-            
-                .adcPin                 = 0, 
-                .adcDigitRange          = 1024,
-                .adcRefVoltageMilliVolt = 3300
-            }   
-        }
-
-    }
-};
 
 }; // namespace CDC
 
