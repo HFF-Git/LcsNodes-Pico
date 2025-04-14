@@ -177,7 +177,6 @@ const uint16_t  MAX_RESOURCE_ENTRIES        = 64;
 //------------------------------------------------------------------------------------------------------------
 struct ControllerResource {
 
-    bool                    configured;
     ControllerFamily        controllerFamily;
     ControllerChip          controllerChip;
     uint32_t                memorySize;
@@ -186,6 +185,8 @@ struct ControllerResource {
     uint32_t                watchDogIntervallMillis;
     uint16_t                adcRefVoltage;
     uint16_t                adcDigitRange;
+    uint8_t                 ledPin;
+    uint8_t                 pFailPin;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -194,7 +195,6 @@ struct ControllerResource {
 //------------------------------------------------------------------------------------------------------------
 struct TimerResource {
 
-    bool                configured;
     uint32_t            timerIntervalMicros;
     repeating_timer_t   timerData;
     TimerCallback       timerCallback;
@@ -207,11 +207,8 @@ struct TimerResource {
 //------------------------------------------------------------------------------------------------------------
 struct AdcResource {
 
-    bool        configured;
     uint8_t     adcPin;
     uint8_t     adcNum;
-    uint16_t    adcDigitRange;
-    uint16_t    adcRefVoltageMilliVolt;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -223,7 +220,6 @@ struct AdcResource {
 //------------------------------------------------------------------------------------------------------------
 struct GpioResource {
 
-    bool            configured;
     uint8_t         pinA;
     uint8_t         pinB;
     uint8_t         pinMode;
@@ -240,7 +236,6 @@ struct GpioResource {
 //------------------------------------------------------------------------------------------------------------
 struct PwmResource {
 
-    bool        configured;
     uint8_t     pinA;
     uint8_t     pinB;
     uint        wrap;
@@ -257,7 +252,6 @@ struct PwmResource {
 //------------------------------------------------------------------------------------------------------------
 struct UartResource {
 
-    bool                configured;
     uint8_t             rxPin;
     uint8_t             txPin;
     uint16_t            baudSetting;
@@ -315,69 +309,7 @@ struct CanBusResource {
     uint8_t         canPin1;
     uint8_t         canPin2;
     uint32_t        baudRate;
-    bool            seprateCore;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// This may be a better approach ?
-//
-//------------------------------------------------------------------------------------------------------------
-struct CdcResourceMapNew {
-
-    char                name[ MAX_DESC_NAME ];
-    bool                initialized;
-    // ??? boardId ? version ?  
-
-    ControllerResource  ctl;
-
-    TimerResource       timer0;
-    TimerResource       timer1;
-    TimerResource       timer2;
-    TimerResource       timer3;
-
-    GpioResource        dio0;
-    GpioResource        dio1;
-    GpioResource        dio2;
-    GpioResource        dio3;
-    GpioResource        dio4;
-    GpioResource        dio5;
-    GpioResource        dio6;
-    GpioResource        dio7;
-    GpioResource        dio8;
-    GpioResource        dio9;
-    GpioResource        dio10;
-    GpioResource        dio11;
-    GpioResource        dio12;
-    GpioResource        dio13;
-    GpioResource        dio14;
-    GpioResource        dio15;
-
-    PwmResource         pwm0;
-    PwmResource         pwm1;
-    PwmResource         pwm2;
-    PwmResource         pwm3;
-    PwmResource         pwm4;
-    PwmResource         pwm5;
-    PwmResource         pwm6;
-    PwmResource         pwm7;
-
-    AdcResource         adc0;
-    AdcResource         adc1;
-    AdcResource         adc2;
-    AdcResource         adc3;
-
-    UartResource        uart0;
-    UartResource        uart1;
-    UartResource        uart2;
-    UartResource        uart3;
-
-    I2CResource         i2cNVM;
-    I2CResource         i2cEXT;
-
-    SPIResource         spi0;
-    SPIResource         spi1;
-
-    CanBusResource      can;
+    bool            twoCores;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -393,7 +325,6 @@ struct GpioIsrTable {
     GpioCallback    gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
 };
 
-// ??? we take this out again ...
 //------------------------------------------------------------------------------------------------------------
 // Controller hardware is configured via "Resources". An resource groups a hardware peripheral function with 
 // all settings and hardware pins it may need. These resources are then referred by the CDC routines with an
@@ -405,15 +336,13 @@ struct CdcResource {
 
     char            name[ MAX_RES_ID_NAME ];
     CdcResourceType type;
-    bool            configured;
-
+   
     union {
 
         ControllerResource  ctl;
         TimerResource       timer;
         GpioResource        gpio;
         PwmResource         pwm;
-        PwmPairResource     pwmP;
         UartResource        uart;
         AdcResource         adc;
         I2CResource         i2c;
@@ -422,7 +351,6 @@ struct CdcResource {
     };
 };
 
-// ??? take out ...
 //------------------------------------------------------------------------------------------------------------
 // The resource map. The map is allocated at startup. Each configured resource will have an entry in this map.
 //
@@ -430,7 +358,6 @@ struct CdcResource {
 struct CdcResourceMap {
 
     char        name[ MAX_DESC_NAME ];
-    uint16_t    size; // ??? needed ?
     CdcResource map[ MAX_RESOURCE_ENTRIES ];
 };
 
@@ -438,13 +365,11 @@ struct CdcResourceMap {
 // Local variables. 
 //
 //------------------------------------------------------------------------------------------------------------
-CdcResourceMapNew   resMap;
+bool                initialized     = false;
+UartResource        *uartResource0  = nullptr;
+UartResource        *uartResource1  = nullptr;
 CdcResourceMap      resourceMap;
 GpioIsrTable        cdcIntHandlers;
-
-UartResource        *uartResource0 = nullptr;
-UartResource        *uartResource1 = nullptr;
-
 
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
@@ -601,43 +526,36 @@ void setGpioMode( uint8_t pin, uint8_t mode ) {
     }
 }
 
-// ??? we would need a good way to initialize the resMap.
-
-void initResMap( ) {
-
-
-}
-
 //------------------------------------------------------------------------------------------------------------
 // The resource map is the dynamic structure that contains all the configured resources. 
-//
 //
 //------------------------------------------------------------------------------------------------------------
 void initResourceMap( ) {
 
     resourceMap.name[ 0 ] = '\0';
-    resourceMap.size = MAX_RESOURCE_ENTRIES;
    
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
         CdcResource *entry = &resourceMap.map[ i ];
 
-        entry -> configured = false;
         entry -> type       = CDC_IT_UNDEFINED;
         entry -> name[ 0 ]  = '\0';
     }
 }
 
-uint8_t resourcePtrToIndex( CdcResource *inst ) {
+uint8_t resourcePtrToIndex( CdcResource *res ) {
 
-    return ( inst - resourceMap.map );
+    return ( res - resourceMap.map );
 }
 
 CdcResource *getFreeResource( ) {
 
-    for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
+    if ( !initialized ) return( nullptr );
 
-        if ( resourceMap.map[ i ].type == CDC_IT_UNDEFINED ) return( &resourceMap.map[ i ] );
+    for ( uint16_t i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
+
+        CdcResource *entry = &resourceMap.map[ i ];
+        if ( entry -> type == CDC_IT_UNDEFINED ) return( entry );
     } 
 
     return ( nullptr );
@@ -645,41 +563,45 @@ CdcResource *getFreeResource( ) {
 
 CdcResource *getResourceByName( char *name ) {
 
-    for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
+    if ( !initialized ) return( nullptr );
 
-        if ( strncmp( name, resourceMap.map[ i ].name, MAX_RES_ID_NAME ) == 0 ) return( &resourceMap.map[ i ] );
+    for ( uint16_t i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
+
+        CdcResource *entry = &resourceMap.map[ i ];
+        if ( strncmp( name, entry -> name, MAX_RES_ID_NAME ) == 0 ) return( entry );
     } 
 
     return ( nullptr );
 }
 
-CdcResource *getResourceByHandle( uint8_t handle, CdcResourceType type ) {
+CdcResource *getResourceByHandle( uint8_t resId, CdcResourceType rTyp ) {
 
-    CdcResource *entry = &resourceMap.map[ handle ];
-    return((( entry -> configured ) && ( entry -> type == type )) ? entry : nullptr );
+    if ( !initialized ) return( nullptr );
+
+    CdcResource *entry = &resourceMap.map[ resId % MAX_RESOURCE_ENTRIES ];
+    return (( entry -> type == rTyp ) ? entry : nullptr );
 }
 
 CdcResource *allocateResource( char *name, CdcResourceType rTyp ) {
 
-    CdcResource *ptr = getResourceByName( name );
+    if ( !initialized ) return( nullptr );
 
-    if ( ptr == nullptr ) {
+    CdcResource *entry = getResourceByName( name );
 
-        for ( uint16_t i = 0; i < resourceMap.size; i++ ) {
+    if ( entry == nullptr ) {
 
-            ptr = resourceMap.map[ i ];
-            
-            if ( resourceMap.map[ i ].type == CDC_IT_UNDEFINED ) {
+        entry = getFreeResource( );
+        if ( entry == nullptr ) return ( nullptr );
 
-                strncpy( ptr -> name, name, MAX_RES_ID_NAME );
-                ptr -> type         = rTyp;
-                ptr -> configured   = false;
-                return( ptr );
-            }
-        } 
+        strncpy( entry -> name, name, MAX_RES_ID_NAME - 1 );
+        entry -> type = rTyp;
+        return( entry );
     }
+    else {
 
-    return( nullptr );
+        if ( entry -> type == rTyp ) return( entry );
+        else return( nullptr );
+    }
 }
 
 }; // namespace
@@ -714,16 +636,19 @@ uint16_t getDebugMask( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t cdcInit(  ) {
 
-    if ( ! resMap.initialized ) {
+    if ( ! initialized ) {
 
-        // ??? set up int handlers ?
-
+        initResourceMap( );
+        initIsrTable( );
     }
 
     return ( NO_ERR );
 }
 
-
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
 uint8_t getVersion( uint32_t *version ) {
 
     *version = ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
@@ -870,54 +795,56 @@ char getConsoleChar( uint32_t timeoutVal ) {
 // the descriptor array, since some of them are not that easy to get. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureController(    uint8_t             resId,
+uint8_t configureController(    uint8_t             *resId,
+                                char                *name,
                                 ControllerFamily    family, 
                                 ControllerChip      processor,
                                 uint32_t            memorySize,
                                 uint32_t            internalNvmSize,
                                 uint32_t            watchDogMillis,
                                 uint16_t            adcRefVoltage, 
-                                uint16_t            adcDigitRange ) {
+                                uint16_t            adcDigitRange,
+                                uint8_t             ledPin,
+                                uint8_t             pFailPin ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
+    CdcResource *entry = allocateResource( name, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
-    resMap.ctl.controllerFamily         = family;
-    resMap.ctl.controllerChip           = processor;
-    resMap.ctl.memorySize               = memorySize;
-    resMap.ctl.internalNvmSize          = internalNvmSize;
-    resMap.ctl.watchDogIntervallMillis  = watchDogMillis;
-    resMap.ctl.adcRefVoltage            = adcRefVoltage;
-    resMap.ctl.adcDigitRange            = adcDigitRange;
-    resMap.ctl.configured               = true;
+    entry -> ctl.controllerFamily           = family;
+    entry -> ctl.controllerChip             = processor;
+    entry -> ctl.memorySize                 = memorySize;
+    entry -> ctl.internalNvmSize            = internalNvmSize;
+    entry -> ctl.watchDogIntervallMillis    = watchDogMillis;
+    entry -> ctl.adcRefVoltage              = adcRefVoltage;
+    entry -> ctl.adcDigitRange              = adcDigitRange;
+    entry -> ctl.ledPin                     = ledPin;
+    entry -> ctl.pFailPin                   = pFailPin;   
+    *resId                                  = resourcePtrToIndex( entry );
     return ( NO_ERR );
 }
 
 uint8_t getFamily( uint8_t resId, ControllerFamily *family ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
-   
-    *family = resMap.ctl.controllerFamily;
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
+
+    *family = entry -> ctl.controllerFamily;
     return ( NO_ERR );
 }
 
 uint8_t getChipMemSize( uint8_t resId, uint32_t *size ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    *size = resMap.ctl.memorySize;
+    *size = entry -> ctl.memorySize;
     return ( NO_ERR );
 }
 
 uint8_t getChipNvmSize( uint8_t resId, uint32_t *size ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     *size = CHIP_NVM_SIZE;
     return ( NO_ERR );
@@ -925,9 +852,8 @@ uint8_t getChipNvmSize( uint8_t resId, uint32_t *size ) {
 
 uint8_t getCpuFrequency( uint8_t resId, uint32_t *frequency ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     *frequency = clock_get_hz( clk_sys );
     return ( NO_ERR );
@@ -935,19 +861,17 @@ uint8_t getCpuFrequency( uint8_t resId, uint32_t *frequency ) {
 
 uint8_t watchDogEnable( uint8_t resId, bool enable ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    watchdog_enable( resMap.ctl.watchDogIntervallMillis, 1 );
+    watchdog_enable( entry -> ctl.watchDogIntervallMillis, 1 );
     return ( NO_ERR );
 }
 
 uint8_t watchDogUpdate( uint8_t resId ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     watchdog_update( );
     return ( NO_ERR );
@@ -955,9 +879,8 @@ uint8_t watchDogUpdate( uint8_t resId ) {
 
 uint8_t watchDogCausedReboot( uint8_t resId, bool *reboot ) {
 
-    if ( ! resMap.initialized )         return( NOT_INITIALIZED_ERR );
-    if ( resId != CDC_RID_CONTROLLER )  return( INVALID_RES_ID_ERR );
-    if ( ! resMap.ctl.configured )      return( NOT_CONFIGURED_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_CONTROLLER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     return ( watchdog_caused_reboot( ));
 }
@@ -974,77 +897,60 @@ uint8_t watchDogCausedReboot( uint8_t resId, bool *reboot ) {
 // start.
 //
 //------------------------------------------------------------------------------------------------------------
-TimerResource *lookupTimerResource( uint8_t resId ) {
+uint8_t configureTimer( uint8_t *resId, char *name ) {
 
-    if ( ! resMap.initialized ) return( nullptr );
+    CdcResource *entry = allocateResource( name, CDC_IT_TIMER );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
-    switch ( resId ) {
-
-        case CDC_RID_TIMER_0: return (( resMap.timer0.configured ) ? ( &resMap.timer0 ) : ( nullptr )); 
-        case CDC_RID_TIMER_1: return (( resMap.timer1.configured ) ? ( &resMap.timer1 ) : ( nullptr )); 
-        case CDC_RID_TIMER_2: return (( resMap.timer2.configured ) ? ( &resMap.timer2 ) : ( nullptr )); 
-        case CDC_RID_TIMER_3: return (( resMap.timer3.configured ) ? ( &resMap.timer3 ) : ( nullptr )); 
-        default: return( nullptr );
-    }
-}
-
-uint8_t configureTimer( uint8_t resId, char *name ) {
-
-    TimerResource *ptr = lookupTimerResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
-
-    ptr -> timerCallback  = nullptr;
-    ptr -> configured     = true; 
-    ptr -> timerCallback  = nullptr;
-    ptr -> configured     = true;
+    *resId = resourcePtrToIndex( entry );
     return( NO_ERR );
 }
 
 uint8_t startRepeatingTimer( uint8_t resId, uint32_t val ) {
 
-    TimerResource *ptr = lookupTimerResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_TIMER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     int64_t limit = val;
-    add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &ptr -> timerData );
+    add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &entry -> timer.timerData );
     return( NO_ERR );
 }
 
 uint8_t stopRepeatingTimer( uint8_t resId ) {
 
-    TimerResource *ptr = lookupTimerResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_TIMER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    cancel_repeating_timer( &ptr -> timerData );
+    cancel_repeating_timer( &entry -> timer.timerData );
     return( NO_ERR );
 }
 
 uint8_t getRepeatingTimerLimit( uint8_t resId, uint32_t *val ) {
 
-    TimerResource *ptr = lookupTimerResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_TIMER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    *val = (uint32_t) ( - ptr -> timerData.delay_us );
+    *val = (uint32_t) ( - entry -> timer.timerData.delay_us );
     return ( NO_ERR );
 }
 
 uint8_t setRepeatingTimerLimit( uint8_t resId, uint32_t val ) {
 
-    TimerResource *ptr = lookupTimerResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_TIMER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     int64_t limit = val;
-    ptr -> timerData.delay_us = ((int64_t) - limit );
+    entry -> timer.timerData.delay_us = ((int64_t) - limit );
     return( NO_ERR );
 }
 
 uint8_t onTimerEvent( uint8_t resId, TimerCallback functionId ) {
 
-    TimerResource *ptr = lookupTimerResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_TIMER );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    ptr -> timerCallback          = functionId;
-    ptr -> timerData.user_data    = (void *) &ptr;
+    entry -> timer.timerCallback          = functionId;
+    entry -> timer.timerData.user_data    = (void *) entry;
     return( NO_ERR );
 }
 
@@ -1055,47 +961,31 @@ uint8_t onTimerEvent( uint8_t resId, TimerCallback functionId ) {
 // ADC value scaled down to a 10-bit resolution.
 //
 //------------------------------------------------------------------------------------------------------------
-AdcResource *lookupAdcResource( uint8_t resId ) {
+uint8_t configureAdc( uint8_t *resId, char *name, uint8_t adcPin ) {
 
-    if ( ! resMap.initialized ) return ( nullptr );
-
-    switch ( resId ) {
-
-        case CDC_RID_ADC_0: return ( &resMap.adc0 );
-        case CDC_RID_ADC_1: return ( &resMap.adc1 ); 
-        case CDC_RID_ADC_2: return ( &resMap.adc2 ); 
-        case CDC_RID_ADC_3: return ( &resMap.adc3 );
-        default: return( nullptr );
-    }
-}
-
-uint8_t configureAdc(   uint8_t  resId, 
-                        uint8_t  adcPin, 
-                        uint16_t refVoltage, 
-                        uint16_t digitRange ) {
-
-    AdcResource *ptr = lookupAdcResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = allocateResource( name, CDC_IT_TIMER );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
     // ??? is there a PICO lib function to map pin to num ?
-    if      ( adcPin == 26 ) ptr -> adcNum = 0;
-    else if ( adcPin == 27 ) ptr -> adcNum = 1;
-    else if ( adcPin == 28 ) ptr -> adcNum = 2;
+    entry -> adc.adcPin = adcPin;
+
+    if      ( adcPin == 26 ) entry -> adc.adcNum = 0;
+    else if ( adcPin == 27 ) entry -> adc.adcNum = 1;
+    else if ( adcPin == 28 ) entry -> adc.adcNum = 2;
 
     adc_init( );
     adc_gpio_init( adcPin );
     
-    ptr -> configured = true;
+    *resId = resourcePtrToIndex( entry );
     return ( NO_ERR );
 }
 
 uint8_t readAdc( uint8_t resId, uint16_t *val ) {
 
-    AdcResource *ptr = lookupAdcResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
-    
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_ADC );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    adc_select_input( ptr -> adcNum );
+    adc_select_input( entry -> adc.adcNum );
     *val = ( adc_read( ) >> 2 );
     
     return ( NO_ERR );
@@ -1115,76 +1005,57 @@ uint8_t readAdc( uint8_t resId, uint16_t *val ) {
 // handler and enable the GPIO pin for interrupts.
 //
 //------------------------------------------------------------------------------------------------------------
-GpioResource *lookupGpioResource( uint8_t resId ) {
+uint8_t configureDio( uint8_t *resId, char *name, uint8_t pinA, uint8_t pinB, uint8_t pinMode ) {
 
-    if ( ! resMap.initialized ) return ( nullptr );
+    CdcResource *entry = allocateResource( name, CDC_IT_GPIO );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
-    switch ( resId ) {
-
-        case CDC_RID_DIO_0: return ( &resMap.dio0 );
-        case CDC_RID_DIO_1: return ( &resMap.dio1 ); 
-        case CDC_RID_DIO_2: return ( &resMap.dio2 ); 
-        case CDC_RID_DIO_3: return ( &resMap.dio3 ); 
-        case CDC_RID_DIO_4: return ( &resMap.dio4 ); 
-        case CDC_RID_DIO_5: return ( &resMap.dio5 ); 
-        case CDC_RID_DIO_6: return ( &resMap.dio6 );  
-        case CDC_RID_DIO_7: return ( &resMap.dio7 ); 
-        case CDC_RID_DIO_8: return ( &resMap.dio8 ); 
-        case CDC_RID_DIO_9: return ( &resMap.dio9 ); 
-        case CDC_RID_DIO_10: return ( &resMap.dio10 ); 
-        case CDC_RID_DIO_11: return ( &resMap.dio11 ); 
-        case CDC_RID_DIO_12: return ( &resMap.dio12 ); 
-        case CDC_RID_DIO_13: return ( &resMap.dio13 ); 
-        case CDC_RID_DIO_14: return ( &resMap.dio14 ); 
-        case CDC_RID_DIO_15: return ( &resMap.dio15 ); 
-        default: return( nullptr );
-    }
-}
-
-uint8_t configureDio( uint8_t resId, uint8_t pinA, uint8_t pinB, uint8_t pinMode ) {
-
-    GpioResource *ptr = lookupGpioResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
-
-    ptr -> pinA         = pinA;
-    ptr -> pinB         = pinB;
-    ptr -> pinMode      = pinMode;
-    ptr -> configured   = true;
-
+    entry -> gpio.pinA         = pinA;
+    entry -> gpio.pinB         = pinB;
+    entry -> gpio.pinMode      = pinMode;
+    
     gpio_init( pinA );
     setGpioMode( pinA, pinMode );
     if ( pinB != UNDEFINED_PIN )  setGpioMode( pinA, pinMode );
     if ( pinB != UNDEFINED_PIN )  setGpioMode( pinB, pinMode );
+
+    *resId = resourcePtrToIndex( entry );
     return ( NO_ERR );
 }
 
 uint8_t registerDioCallback( uint8_t resId, uint8_t event, GpioCallback func ) {
 
-    GpioResource *ptr = lookupGpioResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_GPIO );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    ptr -> handler = func;
+    entry -> gpio.handler = func;
 
-    if ( ptr -> pinA <= MAX_INT_PIN ) {
+    if ( entry -> gpio.pinA <= MAX_INT_PIN ) {
 
-        if ( cdcIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( ptr -> pinA, mapGpioIntEvent( event ), true, func );
-        else
-            gpio_set_irq_enabled( ptr -> pinA, mapGpioIntEvent( event ), true );
+        if ( cdcIntHandlers.numOfHandlers == 0 ) {
+
+            gpio_set_irq_enabled_with_callback( entry -> gpio.pinA, mapGpioIntEvent( event ), true, gpioCallback );
+
+        }
+        else { 
+
+            gpio_set_irq_enabled( entry -> gpio.pinA, mapGpioIntEvent( event ), true );
+
+        }
     
-        cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ ptr -> pinA ] = func;
+        cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ entry -> gpio.pinA ] = func;
         cdcIntHandlers.numOfHandlers ++;
     }
     else return ( DIO_INT_HANDLER_ERR );
 
-    if ( ptr -> pinB <= MAX_INT_PIN ) {
+    if ( entry -> gpio.pinB <= MAX_INT_PIN ) {
 
         if ( cdcIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( ptr -> pinB, mapGpioIntEvent( event ), true, func );
+            gpio_set_irq_enabled_with_callback( entry -> gpio.pinB, mapGpioIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( ptr -> pinB, mapGpioIntEvent( event ), true );
+            gpio_set_irq_enabled( entry -> gpio.pinB, mapGpioIntEvent( event ), true );
     
-        cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ ptr -> pinB ] = func;
+        cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ entry -> gpio.pinB ] = func;
         cdcIntHandlers.numOfHandlers ++;
     }
     else return ( DIO_INT_HANDLER_ERR );
@@ -1194,27 +1065,27 @@ uint8_t registerDioCallback( uint8_t resId, uint8_t event, GpioCallback func ) {
 
 uint8_t unregisterDioCallback( uint8_t resId ) {
 
-    GpioResource *ptr = lookupGpioResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_GPIO );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    ptr -> handler = nullptr;
+    entry -> gpio.handler = nullptr;
 
-    if (( ptr -> pinA != UNDEFINED_PIN ) && ( ptr -> pinA <= MAX_INT_PIN )) {
+    if (( entry -> gpio.pinA != UNDEFINED_PIN ) && ( entry -> gpio.pinA <= MAX_INT_PIN )) {
 
-        if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ ptr -> pinA ] != nullptr ) {
+        if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ entry -> gpio.pinA ] != nullptr ) {
 
-            gpio_set_irq_enabled( ptr -> pinA, 0, false );
-            cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ ptr -> pinA ] = dummyIsrHandler;
+            gpio_set_irq_enabled( entry -> gpio.pinA, 0, false );
+            cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ entry -> gpio.pinA ] = dummyIsrHandler;
             cdcIntHandlers.numOfHandlers --;
         }
     }
 
-    if (( ptr -> pinB != UNDEFINED_PIN ) && ( ptr -> pinB <= MAX_INT_PIN )) {
+    if (( entry -> gpio.pinB != UNDEFINED_PIN ) && ( entry -> gpio.pinB <= MAX_INT_PIN )) {
 
-        if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ ptr -> pinB ] != nullptr ) {
+        if ( cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ entry -> gpio.pinB ] != nullptr ) {
 
-            gpio_set_irq_enabled( ptr -> pinB, 0, false );
-            cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ ptr -> pinB ] = dummyIsrHandler;
+            gpio_set_irq_enabled( entry -> gpio.pinB, 0, false );
+            cdcIntHandlers.gpioIsrTable[ get_core_num( ) ][ entry -> gpio.pinB ] = dummyIsrHandler;
             cdcIntHandlers.numOfHandlers --;
         }
     }
@@ -1224,30 +1095,31 @@ uint8_t unregisterDioCallback( uint8_t resId ) {
 
 uint8_t readDio( uint8_t resId, bool *val ) {
 
-    GpioResource *ptr = lookupGpioResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_GPIO );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    *val = gpio_get( ptr -> pinA );
+    *val = gpio_get( entry -> gpio.pinA );
     return ( NO_ERR );
 }
 
 uint8_t writeDio( uint8_t resId, bool val ) {
 
-    GpioResource *ptr = lookupGpioResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_GPIO );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    gpio_put( ptr -> pinA, val );
+    gpio_put( entry -> gpio.pinA, val );
     return ( NO_ERR );
 }
 
 uint8_t toggleDio( uint8_t resId ) {
 
-    GpioResource *ptr = lookupGpioResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
-    if ( ptr -> pinMode != CDC_DIO_OUT ) return( DIO_MODE_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_GPIO );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    gpio_put( ptr -> pinA, ! gpio_get( ptr -> pinA ));
-    if ( ptr -> pinB != UNDEFINED_PIN ) gpio_put( ptr -> pinB, ! gpio_get( ptr -> pinB ));
+    if ( entry -> gpio.pinMode != CDC_DIO_OUT ) return( DIO_MODE_ERR );
+
+    gpio_put( entry -> gpio.pinA, ! gpio_get( entry -> gpio.pinA ));
+    if ( entry -> gpio.pinB != UNDEFINED_PIN ) gpio_put( entry -> gpio.pinB, ! gpio_get( entry -> gpio.pinB ));
     return ( NO_ERR );
 }
 
@@ -1255,49 +1127,27 @@ uint8_t toggleDio( uint8_t resId ) {
 //------------------------------------------------------------------------------------------------------------
 // PWM section. The PICO is quite flexible when it comes to PWM signals. We implement a simple PWM capability.
 // There is the frequency which set during configuration and there is the write operation which set the duty
-// cycle. The calculations are best described in the PICO C++ SDK. We do the setting of phase, wrap count,
-// etc. once when we configure the PWM channels. 
-
-
-
-// Our PWM configuration supports the simultaneous level setting
-// of the two associated pins. This way we can model a two pin PWM signal, where either pin contains the 
-// PWM signal and  the other is set to low. Note that although the PICO is quite flexible, the wrap and phase
-// parameters are set for the slice and not a single channel. The same is true for the signal inverter. This
-// is normally not an issue unless you want to have separate frequencies, phase mode and so on. 
+// cycle. The calculations are best described in the PICO C++ SDK. Our PWM configuration supports the 
+// simultaneous level setting of the two associated pins. This way we can model a two pin PWM signal, where 
+// either pin contains the PWM signal and  the other is set to low. Note that although the PICO is quite 
+// flexible, the wrap and phase parameters are set for the slice and not a single channel. The same is true
+// for the signal inverter. This is normally not an issue unless you want to have separate frequencies, phase
+// mode and so on. 
 //
 // The "writePwm" function will just manipulate the duty cycle. When we need to change the frequency we need
 // to configure again. 
 // 
 //------------------------------------------------------------------------------------------------------------
-PwmResource *lookupPwmResource( uint8_t resId ) {
-
-    if ( ! resMap.initialized ) return ( nullptr );
-
-    switch ( resId ) {
-
-        case CDC_RID_PWM_0: return ( &resMap.pwm0 );
-        case CDC_RID_PWM_1: return ( &resMap.pwm1 ); 
-        case CDC_RID_PWM_2: return ( &resMap.pwm2 ); 
-        case CDC_RID_PWM_3: return ( &resMap.pwm3 ); 
-        case CDC_RID_PWM_4: return ( &resMap.pwm4 ); 
-        case CDC_RID_PWM_5: return ( &resMap.pwm5 ); 
-        case CDC_RID_PWM_6: return ( &resMap.pwm6 );  
-        case CDC_RID_PWM_7: return ( &resMap.pwm7 ); 
-        default: return( nullptr );
-    }
-}
-
-uint8_t configurePwm(   uint8_t     resId, 
+uint8_t configurePwm(   uint8_t     *resId, 
+                        char        *name,
                         uint8_t     pinA, 
                         uint8_t     pinB, 
                         uint32_t    frequency, 
                         bool        phaseCorrect,
                         bool        inverted ) {
 
-
-    PwmResource *ptr = lookupPwmResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = allocateResource( name, CDC_IT_PWM );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
     if ( pinB != UNDEFINED_PIN ) {
 
@@ -1310,35 +1160,34 @@ uint8_t configurePwm(   uint8_t     resId,
     uint32_t clkDiv   = sysClock / frequency / 4096 + ( sysClock % ( frequency * 4096 ) != 0 );
     if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
-    ptr -> pinA         = pinA;
-    ptr -> pinB         = pinB;
-    ptr -> wrap         = sysClock * 16 / clkDiv / frequency - 1;
-    ptr -> inverted     = inverted;
+    entry -> pwm.pinA         = pinA;
+    entry -> pwm.pinB         = pinB;
+    entry -> pwm.wrap         = sysClock * 16 / clkDiv / frequency - 1;
+    entry -> pwm.inverted     = inverted;
 
-    ptr -> sliceNum     = pwm_gpio_to_slice_num( pinA );
-    ptr -> channelA     = pwm_gpio_to_channel( pinA );
-    if ( pinB != UNDEFINED_PIN ) ptr -> channelB = pwm_gpio_to_channel( pinB );
+    entry -> pwm.sliceNum     = pwm_gpio_to_slice_num( pinA );
+    entry -> pwm.channelA     = pwm_gpio_to_channel( pinA );
+    if ( pinB != UNDEFINED_PIN ) entry -> pwm.channelB = pwm_gpio_to_channel( pinB );
 
     pwm_config pwmConfig = pwm_get_default_config( );
-    gpio_set_function( ptr -> pinA, GPIO_FUNC_PWM );
-    if ( pinB != UNDEFINED_PIN ) gpio_set_function( ptr -> pinB, GPIO_FUNC_PWM );
-    pwm_config_set_wrap( &pwmConfig, ptr -> wrap );
+    gpio_set_function( entry -> pwm.pinA, GPIO_FUNC_PWM );
+    if ( entry -> pwm.pinB != UNDEFINED_PIN ) gpio_set_function( entry -> pwm.pinB, GPIO_FUNC_PWM );
+    pwm_config_set_wrap( &pwmConfig, entry -> pwm.wrap );
     pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
-    pwm_config_set_output_polarity( &pwmConfig, ptr -> inverted, ptr -> inverted );
-    pwm_init( ptr -> sliceNum, &pwmConfig, false );
-    pwm_set_clkdiv_int_frac( ptr -> sliceNum, clkDiv / 16, clkDiv & 0xF );
-    pwm_set_enabled( ptr -> sliceNum, true );
-
-    ptr -> configured = true;
+    pwm_config_set_output_polarity( &pwmConfig, entry -> pwm.inverted, entry -> pwm.inverted );
+    pwm_init( entry -> pwm.sliceNum, &pwmConfig, false );
+    pwm_set_clkdiv_int_frac( entry -> pwm.sliceNum, clkDiv / 16, clkDiv & 0xF );
+    pwm_set_enabled( entry -> pwm.sliceNum, true );
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
    
         printf( "pinA: % d, pinB: %d, fPwm: % d, phase: % d, inverted: % d, " 
                 "clkDiv: % d, wrap: %d, sliceNum: %d, channelA: %d, channelB: %d\n",
-                ptr -> pinA, ptr -> pinB, frequency, phaseCorrect, inverted, 
-                clkDiv, ptr -> wrap, ptr -> sliceNum, ptr -> channelA, ptr -> channelB );
+                entry -> pwm.pinA, entry -> pwm.pinB, frequency, phaseCorrect, inverted, 
+                clkDiv, entry -> pwm.wrap, entry -> pwm.sliceNum, entry -> pwm.channelA, entry -> pwm.channelB );
     }
 
+    *resId = resourcePtrToIndex( entry );
     return ( NO_ERR );
 }
 
@@ -1349,15 +1198,16 @@ uint8_t writePwm( uint8_t resId, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
         printf( "Write PWM: resId: %d, dutyA: %d, dutyB: %d\n", resId, dutyCycleA, dutyCycleB );
     }
 
-    PwmResource *ptr = lookupPwmResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_PWM );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
+
   
 #if 1
-    if ( ptr -> pinA != UNDEFINED_PIN ) 
+    if ( entry -> pwm.pinB != UNDEFINED_PIN ) 
 
-        pwm_set_both_levels( ptr -> sliceNum, dutyCycleA, dutyCycleB );
+        pwm_set_both_levels( entry -> pwm.sliceNum, dutyCycleA, dutyCycleB );
     else 
-        pwm_set_gpio_level( ptr -> pinA, dutyCycleA );
+        pwm_set_gpio_level( entry -> pwm.pinA, dutyCycleA );
 #else
 
     // will go away. -- not changed ....
@@ -1386,10 +1236,10 @@ uint8_t writePwm( uint8_t resId, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
 
 uint8_t syncPwm( uint8_t resId ) {
 
-    PwmResource *ptr = lookupPwmResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_PWM );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    pwm_set_counter( ptr ->sliceNum, 0 );
+    pwm_set_counter( entry -> pwm.sliceNum, 0 );
     
     return ( NO_ERR );
 }
@@ -1409,91 +1259,86 @@ uint8_t syncPwm( uint8_t resId ) {
 // controller. Looking forward to it ...:-)
 //
 //------------------------------------------------------------------------------------------------------------
-UartResource *lookupUartResource( uint8_t resId ) {
+uint8_t configureUart( uint8_t *resId, char *name, uint8_t rxPin, uint8_t txPin, uint32_t baudRate ) {
 
-    if ( ! resMap.initialized ) return ( nullptr );
-
-    switch ( resId ) {
-
-        case CDC_RID_UART_0: return ( &resMap.uart0 );
-        case CDC_RID_UART_1: return ( &resMap.uart1 ); 
-        case CDC_RID_UART_2: return ( &resMap.uart2 ); 
-        case CDC_RID_UART_3: return ( &resMap.uart3 ); 
-        default: return( nullptr );
-    }
-}
-
-uint8_t configureUart( uint8_t resId, uint8_t rxPin, uint8_t txPin, uint32_t baudRate ) {
-
-    UartResource *ptr = lookupUartResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = allocateResource( name, CDC_IT_UART );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
     if (( validPin( rxPin, VALID_UART_0_RX_PINS )) && ( validPin( txPin, VALID_UART_0_TX_PINS ))) {
 
-        ptr -> rxPin       = rxPin;
-        ptr -> txPin       = txPin;
-        ptr -> dataBits    = 8;
-        ptr -> stopBits    = 1;
-        ptr -> parityMode  = UART_PARITY_NONE;
-        ptr -> uartHw      = uart0;
-        ptr -> uartIrq     = UART0_IRQ;
+        entry -> uart.rxPin         = rxPin;
+        entry -> uart.txPin         = txPin;
+        entry -> uart.dataBits      = 8;
+        entry -> uart.stopBits      = 1;
+        entry -> uart.parityMode    = UART_PARITY_NONE;
+        entry -> uart.uartHw        = uart0;
+        entry -> uart.uartIrq       = UART0_IRQ;
+
+        uartResource0               = &entry -> uart;
     }
     else if (( validPin( rxPin, VALID_UART_1_RX_PINS )) && ( validPin( txPin, VALID_UART_1_TX_PINS ))) {
        
-        ptr -> rxPin       = rxPin;
-        ptr -> txPin       = txPin;
-        ptr -> dataBits    = 8;
-        ptr -> stopBits    = 1;
-        ptr -> parityMode  = UART_PARITY_NONE;
-        ptr -> uartHw      = uart1;
-        ptr -> uartIrq     = UART1_IRQ;
+        entry -> uart.rxPin         = rxPin;
+        entry -> uart.txPin         = txPin;
+        entry -> uart.dataBits      = 8;
+        entry -> uart.stopBits      = 1;
+        entry -> uart.parityMode    = UART_PARITY_NONE;
+        entry -> uart.uartHw        = uart1;
+        entry -> uart.uartIrq       = UART1_IRQ;
+
+        uartResource1               =  &entry -> uart;
     }
     else return ( UART_PORT_ERR );
 
-    uart_init( ptr -> uartHw, baudRate );
-    gpio_set_function( rxPin, GPIO_FUNC_UART );
-    gpio_set_function( txPin, GPIO_FUNC_UART );
-    uart_set_hw_flow( ptr -> uartHw, false, false );
-    uart_set_format( ptr -> uartHw, ptr -> dataBits, ptr -> stopBits, ptr -> parityMode );
-    uart_set_fifo_enabled( ptr -> uartHw, false );
+    uart_init( entry -> uart.uartHw, baudRate );
+    gpio_set_function( entry -> uart.rxPin, GPIO_FUNC_UART );
+    gpio_set_function( entry -> uart.txPin, GPIO_FUNC_UART );
+    uart_set_hw_flow( entry -> uart.uartHw, false, false );
+    uart_set_format( entry -> uart.uartHw, 
+                     entry -> uart.dataBits, 
+                     entry -> uart.stopBits, 
+                     entry -> uart.parityMode );
+    uart_set_fifo_enabled( entry -> uart.uartHw, false );
 
-    if      ( ptr -> uartIrq == UART0_IRQ ) irq_set_exclusive_handler( ptr -> uartIrq, uartRxCallback0 );
-    else if ( ptr -> uartIrq == UART1_IRQ ) irq_set_exclusive_handler( ptr -> uartIrq, uartRxCallback1 );
+    if      ( entry -> uart.uartIrq == UART0_IRQ ) irq_set_exclusive_handler( entry -> uart.uartIrq, uartRxCallback0 );
+    else if ( entry -> uart.uartIrq == UART1_IRQ ) irq_set_exclusive_handler( entry -> uart.uartIrq, uartRxCallback1 );
 
-    irq_set_enabled( ptr -> uartIrq, true );
+    irq_set_enabled( entry -> uart.uartIrq, true );
+
+    *resId = resourcePtrToIndex( entry );
     return ( NO_ERR );
 }
 
 uint8_t startUartRead( uint8_t resId ) {
 
-    UartResource *ptr = lookupUartResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_UART );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    uart_set_irq_enables( ptr -> uartHw, true, false );
-    ptr -> rxBufIndex = 0;
+    uart_set_irq_enables( entry -> uart.uartHw, true, false );
+    entry -> uart.rxBufIndex = 0;
     return ( NO_ERR );
 }
 
 uint8_t stopUartRead( uint8_t resId ) {
 
-    UartResource *ptr = lookupUartResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_UART );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
     
-    uart_set_irq_enables( ptr -> uartHw, false, false );
+    uart_set_irq_enables( entry -> uart.uartHw, false, false );
     return ( NO_ERR );
 }
 
 uint8_t getUartBuffer( uint8_t resId, uint8_t *buf, uint8_t bufLen ) {
 
-    UartResource *ptr = lookupUartResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_UART );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    if (( ptr -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
+    if (( entry -> uart.rxBufIndex > 0 ) && ( bufLen > 0 )) {
 
         uint8_t i = 0;
-        while (( i < ptr -> rxBufIndex ) && ( i < bufLen )) {
+        while (( i < entry -> uart.rxBufIndex ) && ( i < bufLen )) {
 
-            buf[ i ] = ptr -> rxDataBuf[ i ];
+            buf[ i ] = entry -> uart.rxDataBuf[ i ];
             i++;
         }
     
@@ -1502,64 +1347,54 @@ uint8_t getUartBuffer( uint8_t resId, uint8_t *buf, uint8_t bufLen ) {
     else return ( 0 );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // I2C Section. The PICO has two HW blocks for I2C interfaces. The interface implements a simple read and
 // write access to an I2C element. There is a timeout to avoid waiting forever on an operation.
 //
 //------------------------------------------------------------------------------------------------------------
-I2CResource *lookupI2cResource( uint8_t resId ) {
+uint8_t configureI2C( uint8_t *resId, char *name, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
 
-    if ( ! resMap.initialized ) return ( nullptr );
-
-    if      ( resId == CDC_RID_I2C_NVM )    return( &resMap.i2cNVM );
-    else if ( resId == CDC_RID_I2C_EXT )    return( &resMap.i2cEXT );
-    else                                    return( nullptr );
-}
-
-
-uint8_t configureI2C( uint8_t resId, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
-
-    I2CResource *ptr = lookupI2cResource( resId );
-    if ( ptr == nullptr ) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = allocateResource( name, CDC_IT_I2C );
+    if ( entry == nullptr ) return( RES_ID_ALLOCATE_ERR );
 
     if ((( 1 << sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_0_SDA_PINS )) {
 
-        ptr -> i2cHw = i2c0;
+        entry -> i2c.i2cHw = i2c0;
     }
     else if ((( 1 << sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
-        ptr -> i2cHw = i2c1;
+        entry -> i2c.i2cHw = i2c1;
     }
     else return ( I2C_PORT_ERR );
 
-    ptr -> sclPin       = sclPin;
-    ptr -> sdaPin       = sdaPin;
-    ptr -> baudRate     = baudRate;
-    ptr -> timeoutValMs = I2C_TIME_OUT_IN_MS;
-    ptr -> configured   = true;
-
-    i2c_init( ptr -> i2cHw, ptr -> baudRate );
-    i2c_set_slave_mode( ptr -> i2cHw, false, 0 );
+    entry -> i2c.sclPin       = sclPin;
+    entry -> i2c.sdaPin       = sdaPin;
+    entry -> i2c.baudRate     = baudRate;
+    entry -> i2c.timeoutValMs = I2C_TIME_OUT_IN_MS;
+   
+    i2c_init( entry -> i2c.i2cHw, entry -> i2c.baudRate );
+    i2c_set_slave_mode( entry -> i2c.i2cHw, false, 0 );
     
-    gpio_set_function( ptr -> sclPin, GPIO_FUNC_I2C );
-    gpio_set_function( ptr -> sdaPin, GPIO_FUNC_I2C);
-    gpio_pull_up( ptr -> sclPin );
-    gpio_pull_up( ptr -> sdaPin );
+    gpio_set_function( entry -> i2c.sclPin, GPIO_FUNC_I2C );
+    gpio_set_function( entry -> i2c.sdaPin, GPIO_FUNC_I2C);
+    gpio_pull_up( entry -> i2c.sclPin );
+    gpio_pull_up( entry -> i2c.sdaPin );
+
+    *resId = resourcePtrToIndex( entry );
     return ( NO_ERR );
 }
 
 uint8_t i2cRead( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-    I2CResource *ptr = lookupI2cResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_I2C );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    auto ret = i2c_read_blocking_until( ptr -> i2cHw,
+    auto ret = i2c_read_blocking_until( entry -> i2c.i2cHw,
                                         i2cAdr,
                                         buf,
                                         len,
                                         stopBit,
-                                        make_timeout_time_ms( ptr -> timeoutValMs ));
+                                        make_timeout_time_ms( entry -> i2c.timeoutValMs ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_I2C )) {
 
@@ -1585,15 +1420,15 @@ uint8_t i2cWrite( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
                 resId, i2cAdr, buf, buf[0], buf[1], len, stopBit );
     }
 
-    I2CResource *ptr = lookupI2cResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_I2C );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
-    auto ret = i2c_write_blocking_until( ptr -> i2cHw,
+    auto ret = i2c_write_blocking_until( entry -> i2c.i2cHw,
                                          i2cAdr,
                                          buf,
                                          len,
                                          stopBit,
-                                         make_timeout_time_ms( ptr -> timeoutValMs ));
+                                         make_timeout_time_ms( entry -> i2c.timeoutValMs ));
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_PWM )) {
 
@@ -1615,149 +1450,12 @@ uint8_t i2cBusreset( uint8_t resId ) {
         printf( "I2C Bus reset, resId: %d\n", resId );
     }
 
-    I2CResource *ptr = lookupI2cResource( resId );
-    if (( ptr == nullptr ) && ( ! ptr -> configured )) return ( INVALID_RES_ID_ERR );
+    CdcResource *entry = getResourceByHandle( resId, CDC_IT_I2C );
+    if ( entry == nullptr ) return ( INVALID_RES_ID_ERR );
 
     uint8_t reset_cmd = 0x06;
-    i2c_write_blocking( ptr -> i2cHw, 0x00, &reset_cmd, 1, false); 
+    i2c_write_blocking( entry -> i2c.i2cHw, 0x00, &reset_cmd, 1, false); 
     return ( NO_ERR );
-}
-
-
-
-
-
-
-//------------------------------------------------------------------------------------------------------------
-// SPI interface section. The PICO features two SPI HW blocks. We implement a simple SPI interface with a
-// a fixed set of SPI options for frequency, bit order and mode. One day this may change. We do not take 
-// care of the chip select stuff and expect that the caller manages the select pin.
-//
-// ??? untested !!!!
-//------------------------------------------------------------------------------------------------------------
-uint8_t configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate ) {
-
-    SPIInst *spi = nullptr;
-
-     if ((( 1 << sclkPin ) & VALID_SPI_0_SCK_PINS ) && 
-         (( 1 << mosiPin ) & VALID_SPI_0_TX_PINS  ) &&
-         (( 1 << misoPin ) & VALID_SPI_0_RX_PINS  )) {
-
-        spi = &cdcSPI0;
-        spi -> spiHw = spi0;
-    }
-    else if ((( 1 << sclkPin ) & VALID_SPI_1_SCK_PINS ) && 
-             (( 1 << mosiPin ) & VALID_SPI_1_TX_PINS  ) &&
-             (( 1 << misoPin ) & VALID_SPI_1_RX_PINS  )) {
-
-        spi = &cdcSPI1;
-        spi -> spiHw = spi1;
-    }  
-    else return ( SPI_PORT_ERR );
-
-    spi -> mosiPin     = mosiPin;
-    spi -> misoPin     = misoPin;
-    spi -> sclkPin     = sclkPin;
-    spi -> frequency   = SPI_FREQUENCY;
-    spi -> configured  = true;
-    spi -> active      = false;
-
-    spi_init( spi -> spiHw, SPI_FREQUENCY );
-
-    spi_set_format( spi -> spiHw,     // SPI instance
-                    8,                // Number of bits per transfer
-                    SPI_CPOL_1,       // Polarity (CPOL)
-                    SPI_CPHA_1,       // Phase (CPHA)
-                    SPI_MSB_FIRST );
-
-    gpio_set_function( sclkPin, GPIO_FUNC_SPI );
-    gpio_set_function( mosiPin, GPIO_FUNC_SPI );
-    gpio_set_function( misoPin, GPIO_FUNC_SPI );
-
-    return ( NO_ERR );
-}
-
-uint8_t  spiBeginTransaction( uint8_t sclkPin, uint8_t csPin ) {
-
-    SPIInst *spi = nullptr;
-
-    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
-    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
-    else return ( SPI_PORT_ERR );
-
-    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
-
-    if ( spi -> active ) {
-
-        // ??? should we check who is active and just ignore when the same ? else "error " ?
-
-        return ( NO_ERR );
-
-    } else {
-
-        spi -> active     = true;
-        spi -> selectPin  = csPin;
-
-        CDC::writeDio( csPin, false );
-        return ( NO_ERR );
-    }
-}
-
-uint8_t spiEndTransaction( uint8_t sclkPin, uint8_t csPin ) {
-
-    SPIInst *spi = nullptr;
-
-    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
-    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
-    else return ( SPI_PORT_ERR );
-
-    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
-
-    if ( spi -> active ) {
-
-        CDC::writeDio( csPin, true );
-    
-        spi -> active     = false;
-        spi -> selectPin  = UNDEFINED_PIN;
-        return ( NO_ERR );
-    }
-    else return ( SPI_NOT_ACTIVE_ERR );
-}
-
-uint8_t spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
-
-    SPIInst *spi = nullptr;
-
-    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
-    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
-    else return ( SPI_PORT_ERR );
-
-    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
-
-    if ( spi -> active ) {
-
-        int bytesRead = spi_read_blocking( spi -> spiHw, 0, buf, len );
-        return ( NO_ERR );
-
-    } else return ( SPI_NOT_ACTIVE_ERR );
-}
-
-uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
-
-    SPIInst *spi = nullptr;
-
-    if      (( cdcSPI0.sclkPin == sclkPin ) && ( cdcSPI0.configured )) spi = &cdcSPI0;
-    else if (( cdcSPI1.sclkPin == sclkPin ) && ( cdcSPI1.configured )) spi = &cdcSPI1;
-    else return ( SPI_PORT_ERR );
-
-    if ( ! spi -> configured ) return ( SPI_PORT_ERR );
-
-    if ( spi -> active ) {
-
-        spi_write_blocking( spi -> spiHw, buf, len );
-        return ( NO_ERR );
-
-    } else return ( SPI_NOT_ACTIVE_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1765,9 +1463,58 @@ uint8_t spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len ) {
 //
 // ??? this will for sure change ... we will print out the array of resources....
 //------------------------------------------------------------------------------------------------------------
-void printCdcSubSystemInfo( CdcResourceDescMap *map ) {
+void printCdcSubSystemInfo( CdcResourceMap *cMap ) {
 
+    printf( "CDC Resource Map\n" );
+    printf( "Name: %s\n\n", cMap -> name );
 
+    CdcResource *entry = cMap -> map;
+
+    while ( entry -> type != CDC_IT_UNDEFINED ) {
+
+        printf( "(%2d), Name: %s, type: %d\n", resourcePtrToIndex( entry ), entry -> name, entry -> type  );
+
+        switch ( entry -> type ) {
+
+            case CDC_IT_CONTROLLER: {
+                
+            } break;
+            
+            case CDC_IT_TIMER: {
+                
+            } break;
+
+            case CDC_IT_ADC: {
+                
+            } break;
+
+            case CDC_IT_GPIO: { 
+                
+            } break;
+
+            case CDC_IT_PWM: { 
+                
+            } break;
+
+            case CDC_IT_I2C: {
+                
+            } break;
+
+            case CDC_IT_CAN_BUS: {
+                
+            } break;
+
+            case CDC_IT_UART: {
+                
+            } break;
+
+            default: {
+                
+            };
+        }
+
+        entry ++;
+    }
 }
 
 

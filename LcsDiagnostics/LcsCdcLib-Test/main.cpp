@@ -103,7 +103,7 @@ void initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
-  CDC::configureDio( 25, CDC::DIO_OUT );
+  CDC::configureDio( 25, CDC::CDC_DIO_OUT );
   CDC::writeDio( 25, true );
   CDC::sleepMillis( 1000 );
 
@@ -141,10 +141,10 @@ void pfailCallback( uint8_t pin, uint8_t event ) {
 
 void testPfail( ) {
 
-  CDC::configureDio( cfg.PFAIL_PIN, CDC::DIO_IN );
-  CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::EVT_LOW, pfailCallback );
+  CDC::configureDio( cfg.PFAIL_PIN, CDC::CDC_DIO_IN );
+  CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::CDC_EVT_LOW, pfailCallback );
   
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
+  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::CDC_DIO_OUT );
   CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
   
   printf( "testPfail -> unplug the power cord \n" );

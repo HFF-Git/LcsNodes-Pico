@@ -42,65 +42,49 @@ const struct CdcResourceDescMap test = {
     .map = {
 
         {
+            .name                   = "Controller",
+            .type                   = CDC_IT_CONTROLLER,
+            .ctl {
+
+                .controllerFamily           = 0,
+                .controllerChip             = 0,
+                .cpuCores                   = 0,
+                .memorySize                 = 0,
+                .internalNvmSize            = 0,
+                .watchDogIntervallMillis    = 0,
+                .adcRefVoltageMillis        = 3300,
+                .adcDigitRange              = 1024,
+                .ledPin                     = UNDEFINED_PIN,
+                .pFailPin                   = UNDEFINED_PIN
+            }
+        },
+
+        {
             .name   = "GPIO-Channel-0",
             .type   = CDC_IT_GPIO,
-            
             .gpio = {
 
-                .pin        = ,
-                .pinAMode   = CDC_DIO_IN,
-                .pinBMode   = CDC_DIO_IN,
+                .pinA       = UNDEFINED_PIN,
+                .pinB       = UNDEFINED_PIN,
+                .pinMode    = CDC_DIO_IN
             }
         },
 
         {   
             .name   = "ADC-Channel-0",
             .type   = CDC_IT_ADC,
-
-            .adc =  {   
-            
-                .adcPin                 = 0, 
-                .adcDigitRange          = 1024,
-                .adcRefVoltageMilliVolt = 3300
-            }   
+            .adc    =  { .adcPin = 26 }   
         },
 
         {   
             
             .name   = "ADC-Channel-1",
             .type   = CDC_IT_ADC,
-            
-
-            .adc =  {   
-            
-                .adcPin                 = 0, 
-                .adcDigitRange          = 1024,
-                .adcRefVoltageMilliVolt = 3300
-            }   
+            .adc    = { .adcPin = 27 }
         }
-
     }
 };
 
-
-const struct CdcResourceDescMapNew test2 = {
-
-    .name  = "A little test board name",
-
-    .adc0 =  {   
-            
-        .adcPin                 = 0, 
-        .adcDigitRange          = 1024,
-        .adcRefVoltageMilliVolt = 3300
-    },
-    
-    .adc1 =  {   
-            
-        .adcPin                 = 0, 
-        .adcDigitRange          = 1024,
-        .adcRefVoltageMilliVolt = 3300
-    } 
-};
 
 }; // namespace
 

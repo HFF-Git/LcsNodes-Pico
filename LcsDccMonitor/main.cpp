@@ -219,7 +219,7 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
 
   uint32_t  edgeChangeTs  = CDC::getMicros( );
 
-  if ( event == CDC::EVT_RISE ) {
+  if ( event == CDC::CDC_EVT_RISE ) {
 
     lastRisingTs = edgeChangeTs;
   }
@@ -267,8 +267,8 @@ void startBitDetection( ) {
   bitBufHead = 1;
   bitBufTail = 0;
 
-  CDC::configureDio( cfg.EXT_INT_PIN, CDC::DIO_IN );
-  CDC::registerDioCallback( cfg.EXT_INT_PIN, CDC::EVT_CHANGE, dccEdgeChange );
+  CDC::configureDio( cfg.EXT_INT_PIN, CDC::CDC_DIO_IN );
+  CDC::registerDioCallback( cfg.EXT_INT_PIN, CDC::CDC_EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );

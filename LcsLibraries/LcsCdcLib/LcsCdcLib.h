@@ -93,6 +93,9 @@ enum CdcStatus : uint8_t {
     NO_ERR              = 0,
     NOT_SUPPORTED_ERR   = 1,
     NOT_IMPLEMENTED_ERR = 2,
+
+    RES_ID_ALLOCATE_ERR = 3,
+
     NOT_INITIALIZED_ERR = 4,
     NOT_CONFIGURED_ERR  = 5,
 
@@ -143,8 +146,6 @@ extern "C" {
     typedef void ( *TimerCallback ) ( uint32_t timerVal );
     typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
 }
-
-
 
 
 
@@ -263,8 +264,6 @@ struct CdcConfigDesc {
 // 
 //------------------------------------------------------------------------------------------------------------
 
-// ??? configure routines take values from board descriptors....
-
 //------------------------------------------------------------------------------------------------------------
 // Basic init and error handling.
 //
@@ -313,14 +312,17 @@ void        printCdcSubSystemInfo( CdcResourceDescMap *map );
 //
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureController(    uint8_t             resId,
+uint8_t     configureController(    uint8_t             *resId,
+                                    char                *name,
                                     ControllerFamily    family, 
                                     ControllerChip      processor,
                                     uint32_t            memorySize,
                                     uint32_t            internalNvmSize,
                                     uint32_t            watchDogMillis,
                                     uint16_t            adcRefVoltage, 
-                                    uint16_t            adcDigitRange  );
+                                    uint16_t            adcDigitRange, 
+                                    uint8_t             ledPin,
+                                    uint8_t             pFailPin );
 
 uint8_t     getFamily( uint8_t resId, ControllerFamily *family );
 uint8_t     getControllerChip( uint8_t resId, ControllerChip *chip );
@@ -336,7 +338,7 @@ uint8_t     watchDogCausedReboot( uint8_t resId, bool *reboot );
 // Timer management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureTimer( uint8_t resId, char * name, TimerCallback functionId );
+uint8_t     configureTimer( uint8_t *resId, char *name, TimerCallback functionId );
 uint8_t     startRepeatingTimer( uint8_t resId, uint32_t val );
 uint8_t     setRepeatingTimerLimit( uint8_t resId, uint32_t val );
 uint8_t     getRepeatingTimerLimit( uint8_t resId, uint32_t *val );
@@ -346,21 +348,18 @@ uint8_t     stopRepeatingTimer( uint8_t resId );
 // Analog input routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureAdc(   uint8_t  resId, 
-                            uint8_t  adcPin, 
-                            uint16_t refVoltage, 
-                            uint16_t digitRange );
-
+uint8_t     configureAdc( uint8_t *resId, char *name, uint8_t adcPin );
 uint8_t     readAdc( uint8_t resId, uint16_t *val );
 
 //------------------------------------------------------------------------------------------------------------
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureDio(   uint8_t resId, 
-                            uint8_t pinA, 
-                            uint8_t pinB, 
-                            uint8_t mode );
+uint8_t     configureDio(   uint8_t     *resId,
+                            char        *name, 
+                            uint8_t     pinA, 
+                            uint8_t     pinB, 
+                            uint8_t     pinMode );
 
 uint8_t     registerDioCallback( uint8_t resId, uint8_t event, GpioCallback func );
 uint8_t     unregisterDioCallback( uint8_t resId );
@@ -373,12 +372,13 @@ uint8_t     toggleDio( uint8_t resId );
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configurePwm(   uint8_t   resId, 
-                            uint8_t   pinA,
-                            uint8_t   pinB,
-                            uint32_t  freqency,
-                            bool      phaseCorrect  = true,
-                            bool      inverted      = false
+uint8_t     configurePwm(   uint8_t     *resId,
+                            char        *name, 
+                            uint8_t     pinA,
+                            uint8_t     pinB,
+                            uint32_t    freqency,
+                            bool        phaseCorrect  = true,
+                            bool        inverted      = false
                         );
 
 uint8_t     writePwm( uint8_t resId, uint8_t dutyCycleA, uint8_t dutyCycleB );
@@ -388,7 +388,7 @@ uint8_t     syncPwm( uint8_t resId );
 // Serial IO routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureUart( uint8_t resId, uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
+uint8_t     configureUart( uint8_t *resId, char *name, uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
 uint8_t     startUartRead( uint8_t resId );
 uint8_t     stopUartRead( uint8_t resId );
 uint8_t     getUartBuffer( uint8_t resId, uint8_t *buf, uint8_t bufLen );
@@ -397,32 +397,10 @@ uint8_t     getUartBuffer( uint8_t resId, uint8_t *buf, uint8_t bufLen );
 // I2C management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureI2C( uint8_t resId, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
+uint8_t     configureI2C( uint8_t *resId, char *name, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
 uint8_t     i2cBusreset( uint8_t resId );
 uint8_t     i2cWrite( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 uint8_t     i2cRead( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
-
-//------------------------------------------------------------------------------------------------------------
-// SPI management routines.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t         configureSPI( uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin, uint32_t baudRate = 10 * 1000 * 1000 );
-uint8_t         spiBeginTransaction( uint8_t sclkPin, uint8_t csPin );
-uint8_t         spiEndTransaction( uint8_t sclkPin, uint8_t csPin );
-uint8_t         spiRead( uint8_t sclkPin, uint8_t *buf, uint32_t len );
-uint8_t         spiWrite( uint8_t sclkPin, uint8_t *buf, uint32_t len );
-
-
-
-
-// ??? to phase out ....
-
-void            printConfigInfo( CdcConfigDesc *ci );               // goes away...
-CdcConfigDesc   getConfigDefault( );                                // goes away
-CdcConfigDesc   *getConfigActual( );                                // goes away
-
-
-
 
 };
 

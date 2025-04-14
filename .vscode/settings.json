@@ -29,7 +29,8 @@
         "variant": "cpp",
         "__hash_table": "cpp",
         "forward_list": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "chrono": "cpp"
     },
     "spellright.language": [
         "en"
