@@ -4,8 +4,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // Board descriptors define the controller / board pin and function mapping. While the CDC layer abstracts
-// the various hardware functions, the board descriptor table defines the pin mapping and a few other values
-// for the particular board. The hardware functions are called resources and define the pins and other 
+// the various hardware functions, the board descriptor table defines the resource mapping and a few other 
+// values for the particular board. The hardware functions are called resources and define the pins and other 
 // attributes used. For example, a UART resource needs the receive and transmit pins, as well as what data
 // length, stop bits, and so on are set. There are also software resources such as a repeating timer. Each
 // board has a type and a unique ID by which the correct descriptor map can be located. Upon library start,
@@ -35,54 +35,50 @@
 
 namespace CDC {
 
-const struct CdcResourceDescMap test = {
+const CdcResourceDesc test[ ] = {
 
-    .name  = "A little test board name",
-    
-    .map = {
+    {   .resId  = 0,
+        .type   = CDC_IT_CONTROLLER,
+        
+        .ctl {
 
-        {
-            .name                   = "Controller",
-            .type                   = CDC_IT_CONTROLLER,
-            .ctl {
-
-                .controllerFamily           = 0,
-                .controllerChip             = 0,
-                .cpuCores                   = 0,
-                .memorySize                 = 0,
-                .internalNvmSize            = 0,
-                .watchDogIntervallMillis    = 0,
-                .adcRefVoltageMillis        = 3300,
-                .adcDigitRange              = 1024,
-                .ledPin                     = UNDEFINED_PIN,
-                .pFailPin                   = UNDEFINED_PIN
-            }
-        },
-
-        {
-            .name   = "GPIO-Channel-0",
-            .type   = CDC_IT_GPIO,
-            .gpio = {
-
-                .pinA       = UNDEFINED_PIN,
-                .pinB       = UNDEFINED_PIN,
-                .pinMode    = CDC_DIO_IN
-            }
-        },
-
-        {   
-            .name   = "ADC-Channel-0",
-            .type   = CDC_IT_ADC,
-            .adc    =  { .adcPin = 26 }   
-        },
-
-        {   
-            
-            .name   = "ADC-Channel-1",
-            .type   = CDC_IT_ADC,
-            .adc    = { .adcPin = 27 }
+            .controllerFamily           = 0,
+            .controllerChip             = 0,
+            .cpuCores                   = 0,
+            .memorySize                 = 0,
+            .internalNvmSize            = 0,
+            .watchDogIntervallMillis    = 0,
+            .adcRefVoltageMillis        = 3300,
+            .adcDigitRange              = 1024,
+            .ledPin                     = UNDEFINED_PIN,
+            .pFailPin                   = UNDEFINED_PIN
         }
-    }
+    },
+
+    {   .resId  = 1, 
+        .type   = CDC_IT_GPIO,
+        
+        .gpio = {
+
+            .pinA       = UNDEFINED_PIN,
+            .pinB       = UNDEFINED_PIN,
+            .pinMode    = CDC_DIO_IN
+        }
+    },
+
+    {   
+        .resId   = 15,
+        .type   = CDC_IT_ADC,
+        
+        .adc    =  { .adcPin = 26 }   
+    },
+
+    {   
+        .resId   = 16,
+        .type   = CDC_IT_ADC,
+        
+        .adc    =  { .adcPin = 27 }   
+    },
 };
 
 

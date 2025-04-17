@@ -40,8 +40,6 @@ namespace CDC {
 // 
 //------------------------------------------------------------------------------------------------------------
 const int       MAX_INST_DESC_ENTRIES   = 64;
-const int       MAX_DESC_NAME           = 64;
-const int       MAX_RES_ID_NAME         = 16;
 const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
 
@@ -230,9 +228,9 @@ struct CanBusResourceDesc {
 // uniquely described with such an array.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcResourceConfigDesc {
+struct CdcResourceDesc {
 
-    char        name[ MAX_RES_ID_NAME ];
+    uint8_t     resId;
     uint16_t    type;
   
     union {
@@ -246,17 +244,6 @@ struct CdcResourceConfigDesc {
         I2CResourceDesc         i2c;
         CanBusResourceDesc      can;
     };
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The CDC resource map is the data structure that has an entry for each declared resource. Each map is 
-// uniquely associated with a board.
-//
-//------------------------------------------------------------------------------------------------------------
-struct CdcResourceDescMap {
-
-    char name[ MAX_DESC_NAME ];
-    CdcResourceConfigDesc map[ MAX_INST_DESC_ENTRIES ];
 };
 
 //------------------------------------------------------------------------------------------------------------
