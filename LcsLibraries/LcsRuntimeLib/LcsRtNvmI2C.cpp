@@ -123,11 +123,11 @@ const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 uint32_t    nodeNvmSize                         = 0;
 uint32_t    extNvmSize                          = 0;
 
-uint8_t     nvmSclPin                           = CDC::UNDEFINED_PIN;
-uint8_t     nvmSdaPin                           = CDC::UNDEFINED_PIN;
+uint8_t     nodeNvmSclPin                       = CDC::UNDEFINED_PIN;
+uint8_t     nodeNvmSdaPin                       = CDC::UNDEFINED_PIN;
 
-uint8_t     extSclPin                           = CDC::UNDEFINED_PIN;
-uint8_t     extSdaPin                           = CDC::UNDEFINED_PIN;
+uint8_t     extNvmSclPin                        = CDC::UNDEFINED_PIN;
+uint8_t     extNvmSdaPin                        = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -237,7 +237,7 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
                 sclPin, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
 
     if ( nvmSize == M24C04_MAX_SIZE ) {
 
@@ -281,7 +281,7 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
         sclPin, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
 
     if ( nvmSize == M24C04_MAX_SIZE ) {
 
@@ -320,7 +320,7 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
                 sclPin, i2cAdr, ofs, (uint32_t) buf, len );
     }
 
-    uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
     uint32_t  bytesLeft     = len;
@@ -364,7 +364,7 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
         printf( "nvmPutBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", sclPin, i2cAdr, ofs, buf, len );
      }
 
-    uint32_t nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
     uint32_t  bytesLeft     = len;
@@ -404,7 +404,7 @@ uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len
 
     uint8_t     tmpBuf[ BUFFER_BLOCK_SIZE ];
     uint8_t     rStat   = ALL_OK;
-    uint32_t    nvmSize = (( sclPin == nvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t    nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
     uint32_t    limit   = ofs + len;
 
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
@@ -438,18 +438,22 @@ uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len
 namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
-// "configNvm" will setup the module local variables. We copy the I2C hardware pins and the NVM related data
-// from the CDC descriptors. The CDC descriptor also contains the configured sizes for the NVM chips. 
+// "configNvm" will setup the module local variables. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configNvm( CDC::CdcConfigDesc *ci ) {
+uint8_t configNvm(  uint8_t     nvmSclPin, 
+                    uint8_t     nvmSdaPin,
+                    uint32_t    nvmSize, 
+                    uint8_t     extSclPin,
+                    uint8_t     extSdaPin,
+                    uint32_t    extSize ) {
 
-    nvmSclPin     = ci -> NVM_I2C_SCL_PIN;
-    nvmSdaPin     = ci -> NVM_I2C_SDA_PIN;
-    extSclPin     = ci -> EXT_I2C_SCL_PIN;
-    extSdaPin     = ci -> EXT_I2C_SDA_PIN;
-    nodeNvmSize   = ci -> NODE_NVM_SIZE;
-    extNvmSize    = ci -> EXT_NVM_SIZE;
+    nodeNvmSclPin   = nvmSclPin;
+    nodeNvmSdaPin   = nvmSdaPin;
+    extNvmSclPin    = extSclPin;
+    extNvmSdaPin    = extSdaPin;
+    nodeNvmSize     = nvmSize;
+    extNvmSize      = extSize;
 
     if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
     if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
@@ -465,27 +469,27 @@ uint8_t configNvm( CDC::CdcConfigDesc *ci ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-    return ( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t rtNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    return ( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    return ( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    return ( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val ) {
 
-    return ( nvmClearArea( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, len, val ));
+    return ( nvmClearArea( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, len, val ));
 }
 
 uint32_t rtNvmGetSize( ) { 
@@ -504,31 +508,31 @@ uint32_t rtNvmGetSize( ) {
 uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmPutBytes( extSclPin, i2cAdr, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( extNvmSclPin, i2cAdr, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmGetBytes( extSclPin, i2cAdr, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( extNvmSclPin, i2cAdr, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmPutBytes( extSclPin, i2cAdr, ofs, buf, len ));
+    return ( nvmPutBytes( extNvmSclPin, i2cAdr, ofs, buf, len ));
 }
 
 uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmGetBytes( extSclPin, i2cAdr, ofs, buf, len ));
+    return ( nvmGetBytes( extNvmSclPin, i2cAdr, ofs, buf, len ));
 }
 
 uint8_t extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmClearArea( extSclPin, i2cAdr, ofs, len, val ));
+    return ( nvmClearArea( extNvmSclPin, i2cAdr, ofs, len, val ));
 }
 
 uint32_t extNvmGetSize( ) {
@@ -548,7 +552,7 @@ uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
@@ -556,7 +560,7 @@ uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
@@ -564,7 +568,7 @@ uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
@@ -572,7 +576,7 @@ uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( nvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint32_t usrNvmGetSize( ) {

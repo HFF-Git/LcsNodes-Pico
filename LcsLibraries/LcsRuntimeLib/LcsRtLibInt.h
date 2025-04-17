@@ -259,7 +259,7 @@ struct LcsCdcMap {
     uint32_t                nvmOfs      = 0;
     uint32_t                nvmSize     = sizeof( LcsCdcMap );
     
-    CDC::CdcConfigDesc      cfg;
+    // ??? what would we store in the NVM for CDC ?
 };
 
 //----------------------------------------------------------------------------------------------------------

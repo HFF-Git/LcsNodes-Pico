@@ -86,55 +86,34 @@ enum DebugOtions : uint16_t {
 // validate the input for correctness. If they are not correct, the call is simply not performed and an
 // error is returned.
 //
-// ??? clean up a little ... what is really needed ?
 //------------------------------------------------------------------------------------------------------------
 enum CdcStatus : uint8_t {
 
     NO_ERR              = 0,
+
     NOT_SUPPORTED_ERR   = 1,
     NOT_IMPLEMENTED_ERR = 2,
-
     RES_ID_ALLOCATE_ERR = 3,
+    INVALID_RES_ID_ERR  = 4,
 
-    NOT_INITIALIZED_ERR = 4,
-    NOT_CONFIGURED_ERR  = 5,
+    DIO_PIN_ERR         = 10,
+    ADC_PIN_ERR         = 11,
+    PWM_PIN_ERR         = 12,
+    UART_PIN_ERR        = 13,
+    I2C_PIN_ERR         = 14,
 
-    INVALID_RES_ID_ERR  = 6,
+    DIO_MODE_ERR        = 20,
+    DIO_INT_HANDLER_ERR = 21,
 
-    MEM_SIZE_ERR        = 10,
+    UART_PORT_ERR       = 30,
+    UART_CONFIG_ERR     = 31,
+    UART_WRITE_ERR      = 32,
+    UAT_READ_ERR        = 33,
 
-    INVALID_HANDLE_ERR      = 110,
-    INVALID_NAME_TYPE_ERR   = 120,
-    MAX_RES_ID_ERR          = 130,
-
-    DIO_MODE_ERR            = 140,
-    DIO_INT_HANDLER_ERR     = 150,
-
-
-    ACTIVE_LED_PIN_ERR  = 13,
-    BUTTON_PIN_ERR      = 14,
-    PFAIL_PIN_ERR       = 15,
-    EXT_INT_PIN_ERR     = 16,
-    DIO_PIN_ERR         = 17,
-    ADC_PIN_ERR         = 18,
-    PWM_PIN_ERR         = 19,
-
-    UART_PORT_ERR       = 20,
-    UART_CONFIG_ERR     = 21,
-    UART_WRITE_ERR      = 22,
-    UAT_READ_ERR        = 23,
-
-    SPI_PORT_ERR        = 25,
-    SPI_CONFIG_ERR      = 26,
-    SPI_WRITE_ERR       = 27,
-    SPI_READ_ERR        = 28,
-    SPI_NOT_ACTIVE_ERR  = 29,
-
-    I2C_PORT_ERR        = 30,
-    I2C_CONFIG_ERR      = 31,
-    I2C_WRITE_ERR       = 32,
-    I2C_READ_ERR        = 33
-
+    I2C_PORT_ERR        = 40,
+    I2C_CONFIG_ERR      = 41,
+    I2C_WRITE_ERR       = 42,
+    I2C_READ_ERR        = 43
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -147,116 +126,15 @@ extern "C" {
     typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
 }
 
-
-
-
-// ??? this will go away...
-#if 0
 //------------------------------------------------------------------------------------------------------------
-// CDC features a data structure that records all HW specific pins and flags. The values are set by the
-// initialization code in a project and are validated. All modules in a project will then just use the
-// data structure fields using the data for calls to the Hal layer. For example, an application that
-// uses DIO_PIN_0 and DIO_PIN_1 will set the HW pin numbers of the controller / board combination used
-// in a config data structure "cfg". A call to write a value to the DIO pin, will then just use
-// "cfg.DIO_PIN_1" as argument in the "writeDio" call. The "writeDio" call itself will not check the
-// value of the configured DIO pin, all it will do is to ensure that it is not UNDEFINED. Note that the
-// structure has more pins defined that a potential controller may have. If so, these fields are set to
-// UNDEFINED. The structure is the superset of all possible HW items to configure.
 //
-// In a later runtime version, we may put this structure as constant data into the non-volatile chip on
-// the board. After all the HW pin assignments is linked to the particular board. It will then just be read 
-// from the board NVM.
 //
-// ??? think about a way to just have an array of pin numbers with a pointer to the instance. A constant
-// labels the pin or resource behind it. The array would also need to have a pointer to the instance it
-// belongs to. When an instance needs two pins, like i2c, the array fields point to the same entry.
+//
 //------------------------------------------------------------------------------------------------------------
-struct CdcConfigDesc {
+enum CdcResIdNumbers : uint8_t {
 
-    uint8_t   CFG_STATUS;
-
-    uint8_t   PFAIL_PIN;
-    uint8_t   EXT_INT_PIN;
-    uint8_t   ACTIVE_LED_PIN;
-
-    uint8_t   DIO_PIN_0;
-    uint8_t   DIO_PIN_1;
-    uint8_t   DIO_PIN_2;
-    uint8_t   DIO_PIN_3;
-    uint8_t   DIO_PIN_4;
-    uint8_t   DIO_PIN_5;
-    uint8_t   DIO_PIN_6;
-    uint8_t   DIO_PIN_7;
-    uint8_t   DIO_PIN_8;
-    uint8_t   DIO_PIN_9;
-    uint8_t   DIO_PIN_10;
-    uint8_t   DIO_PIN_11;
-    uint8_t   DIO_PIN_12;
-    uint8_t   DIO_PIN_13;
-    uint8_t   DIO_PIN_14;
-    uint8_t   DIO_PIN_15;
-
-    uint8_t   ADC_PIN_0;
-    uint8_t   ADC_PIN_1;
-    uint8_t   ADC_PIN_2;
-    uint8_t   ADC_PIN_3;
-
-    uint8_t   PWM_PIN_0;
-    uint8_t   PWM_PIN_1;
-    uint8_t   PWM_PIN_2;
-    uint8_t   PWM_PIN_3;
-    uint8_t   PWM_PIN_4;
-    uint8_t   PWM_PIN_5;
-    uint8_t   PWM_PIN_6;
-    uint8_t   PWM_PIN_7;
-    uint8_t   PWM_PIN_8;
-    uint8_t   PWM_PIN_9;
-    uint8_t   PWM_PIN_10;
-    uint8_t   PWM_PIN_11;
-    uint8_t   PWM_PIN_12;
-    uint8_t   PWM_PIN_13;
-    uint8_t   PWM_PIN_14;
-    uint8_t   PWM_PIN_15;
-
-    uint8_t   UART_RX_PIN_0;
-    uint8_t   UART_TX_PIN_0;
-
-    uint8_t   UART_RX_PIN_1;
-    uint8_t   UART_TX_PIN_1;
-
-    uint8_t   UART_RX_PIN_2;
-    uint8_t   UART_TX_PIN_2;
-
-    uint8_t   UART_RX_PIN_3;
-    uint8_t   UART_TX_PIN_3;
-
-    uint8_t   SPI_MOSI_PIN_0;
-    uint8_t   SPI_MISO_PIN_0;
-    uint8_t   SPI_SCLK_PIN_0;
-
-    uint8_t   SPI_MOSI_PIN_1;
-    uint8_t   SPI_MISO_PIN_1;
-    uint8_t   SPI_SCLK_PIN_1;
-
-    uint8_t   NVM_I2C_SCL_PIN;
-    uint8_t   NVM_I2C_SDA_PIN;
-    uint8_t   NVM_I2C_ADR_ROOT;
-
-    uint8_t   EXT_I2C_SCL_PIN;
-    uint8_t   EXT_I2C_SDA_PIN;
-    uint8_t   EXT_I2C_ADR_ROOT;
-
-    // ??? still uneasy whether NVM sizes should be here...
-    uint32_t  NODE_NVM_SIZE;
-    uint32_t  EXT_NVM_SIZE;
-
-    // ??? should control mode and default ID be here ? Pins we need of course...
-    uint8_t   CAN_BUS_CTRL_MODE;
-    uint32_t  CAN_BUS_DEF_ID;
-    uint8_t   CAN_BUS_RX_PIN;
-    uint8_t   CAN_BUS_TX_PIN;
+    // ??? what can we predefine as resource numbers ? Should we even do this ?
 };
-#endif
 
 //------------------------------------------------------------------------------------------------------------
 // The routines that make up the hardware abstraction layer. In general, there are routines that are just 
@@ -333,6 +211,7 @@ uint8_t     getCpuFrequency( uint32_t *frequency );
 uint8_t     watchDogEnable( bool enable );
 uint8_t     watchDogUpdate( );
 uint8_t     watchDogCausedReboot( bool *reboot );
+
 
 //------------------------------------------------------------------------------------------------------------
 // Timer management routines.

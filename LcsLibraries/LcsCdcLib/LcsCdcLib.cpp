@@ -523,12 +523,13 @@ void initResourceMap( ) {
 CdcResource *allocateResourceById( uint8_t resId, CdcResourceType rTyp ) {
 
     if ( ! initialized ) return( nullptr );
+    if (( resId < 1 ) ||( resId >= MAX_INST_DESC_ENTRIES - 1 )) return( nullptr );
 
     CdcResource *entry = &resMap[ resId % MAX_RESOURCE_ENTRIES ];
 
     if ( entry -> type == CDC_IT_UNDEFINED ) {
 
-        entry -> type = rType;
+        entry -> type = rTyp;
         return ( entry );
     }
     else return (( entry -> type == rTyp ) ? entry : nullptr );

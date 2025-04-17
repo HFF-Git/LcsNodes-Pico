@@ -215,8 +215,8 @@ struct I2CResourceDesc {
 //------------------------------------------------------------------------------------------------------------
 struct CanBusResourceDesc {
 
-    uint8_t     canPinH;
-    uint8_t     canPinL;
+    uint8_t     canPinRx;
+    uint8_t     canPinTx;
     uint32_t    baudRate;
     bool        twoCores;
 };
@@ -246,11 +246,20 @@ struct CdcResourceDesc {
     };
 };
 
+struct CdcResourceDescMap {
+
+    uint16_t        options         = 0;
+    uint16_t        entries         = 0;
+    char            name[ 64 ]      = { 0 };
+
+    CdcResourceDesc map[ 64 ];
+};
+
 //------------------------------------------------------------------------------------------------------------
 //
 //
 //------------------------------------------------------------------------------------------------------------
-#include "LcsBoardTest.h"
+#include "LcsBoardGenericRtLib.h"
 
 
 }; // namespace CDC

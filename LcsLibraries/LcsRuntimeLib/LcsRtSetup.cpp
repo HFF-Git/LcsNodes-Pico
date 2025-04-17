@@ -80,7 +80,16 @@ namespace LCS {
     LcsTaskMap              taskMap;
     LcsDrvFuncMap           drvFuncMap;
 
-    extern uint8_t          configNvm( CDC::CdcConfigDesc *ci );
+    extern uint8_t          configNvm(  uint8_t     nvmSclPin, 
+                                        uint8_t     nvmSdaPin,
+                                        uint32_t    nvmSize, 
+
+                                        uint8_t     extNvmSclPin    = CDC::UNDEFINED_PIN,
+                                        uint8_t     extNvmSdaPin    = CDC::UNDEFINED_PIN,
+                                        uint32_t    extNvmSize      = 0 );
+        
+        
+        CDC::CdcConfigDesc *ci );
     extern uint8_t          extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
     extern uint8_t          extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len );
     extern uint8_t          addEvent( uint16_t eventId, uint16_t eventMask );
@@ -316,20 +325,17 @@ namespace LCS {
 // Perhaps one day, this routine could be enhanced to allow commands to pile up the start options followed
 // by the final start command to get the show going. especially the debug mask would be a candidate.
 //
+//
+// ??? should we configure from the resource desc map or individually ?
+// ??? it would be nice to already use the ledPin ...
 //------------------------------------------------------------------------------------------------------------
-uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
+uint8_t initCdcLayer( CDC::CdcResourceDescMap *dMap ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
-    cdcMap.cfg = *ci;
-
-    CDC::init( ci );
-
-    if ( ci -> ACTIVE_LED_PIN != CDC::UNDEFINED_PIN ) CDC::configureDio( ci -> ACTIVE_LED_PIN, CDC::DIO_OUT );
+    CDC::cdcInit( );
 
     if ( CDC::isConsoleConnected( )) {
-
-        CDC::writeDio( ci -> ACTIVE_LED_PIN, true );
 
         while ( true ) {
 
@@ -389,7 +395,7 @@ uint8_t initCdcLayer( CDC::CdcConfigDesc *ci ) {
 //
 // ??? should we assume an "architectural" setting of the IC2 channels and not rely on CDC map ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t initNvmChannels( CDC::CdcConfigDesc *ci ) {
+uint8_t initNvmChannels( CDC::CdcResourceDescMap *dMap ) {
 
    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) { 
 
@@ -422,7 +428,7 @@ uint8_t initNvmChannels( CDC::CdcConfigDesc *ci ) {
 //
 // ??? should we assume a "architectural" setting of the CAN channel and not rely on CDC map ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
+uint8_t initCanBus( CDC::CdcResourceDescMap *dMap ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) printf( "initCanBus\n" );
     
@@ -446,7 +452,7 @@ uint8_t initCanBus( CDC::CdcConfigDesc *ci ) {
 // default structure will be created. Either way we return with a valid NVM structure for the node. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupNodeNvmHeader( LcsConfigDesc *cfg ) {
+uint8_t setupNodeNvmHeader( CDC::CdcResourceDescMap *dMap ) {
 
     uint8_t rStat = ALL_OK;
 
@@ -491,7 +497,7 @@ uint8_t setupNodeNvmHeader( LcsConfigDesc *cfg ) {
 // read fails, there is no board at that location and we set the magic word to zero to record this fact.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupExtNvmHeaders( LcsConfigDesc *cfg ) {
+uint8_t setupExtNvmHeaders( CDC::CdcResourceDescMap *dMap ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) { 
         
@@ -549,7 +555,7 @@ uint8_t setupExtNvmHeaders( LcsConfigDesc *cfg ) {
 // ??? if we detect a board with the vanilla board type, we can set the correct board type and the 
 // reboot...
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupCdcMap( CDC::CdcConfigDesc *cdcConfig ) {
+uint8_t setupCdcMap( CCDC::CdcResourceDescMap *dMap ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) { 
         
@@ -566,7 +572,7 @@ uint8_t setupCdcMap( CDC::CdcConfigDesc *cdcConfig ) {
 // is the port for the node itself. We will store these items in the port setup routine.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
+uint8_t setupNodeMap( CDC::CdcResourceDescMap *dMap ) {
 
     uint8_t rStat = ALL_OK;
 
@@ -585,7 +591,7 @@ uint8_t setupNodeMap( LcsConfigDesc *cfg ) {
 // refer to these boards. We consult the nvmHeaderMap for detected extension boards.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupPortMap( LcsConfigDesc *cfg ) {
+uint8_t setupPortMap( CDC::CdcResourceDescMap *dMap ) {
 
     if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_SETUP )) { 
         
@@ -978,11 +984,11 @@ LcsConfigDesc getConfigDefault( ) {
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
 // ??? ensure that this routine is idempotent.
 //------------------------------------------------------------------------------------------------------------
-uint8_t initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig ) {
+uint8_t initRuntime( CdcResourceDescMap *dMap ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK )  rStat = initCdcLayer( cdcConfig );
+    if ( rStat == ALL_OK )  rStat = initCdcLayer( dMap );
     if ( rStat != ALL_OK )  CDC::fatalErrorMsg((char *) "Fatal: CDC Setup failed", 1, rStat );
 
     CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, true );

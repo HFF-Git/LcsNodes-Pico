@@ -32,6 +32,7 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
 #include <inttypes.h>
+#include "LcsBoardDescriptors.h"
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -690,25 +691,15 @@ extern "C" {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "LcsConfigDesc" is the data structure that contains initial data for setting up a node. There is the 
-// option field with bits.
-//
-//------------------------------------------------------------------------------------------------------------
-struct LcsConfigDesc {
-
-    uint16_t options        = 0;
-    uint16_t boardType      = 0; // ??? later...
-    uint16_t msgBusMode     = 0; // ??? also add the CAN bus mode ?
-};
-
-//------------------------------------------------------------------------------------------------------------
 // Library functions. The main function are the initialization and start of the LCS runtime. Between "init"
 // and "start", the firmware should do its own setup and register the necessary callbacks. We will not return
 // from the "start" routine. All calls are a plain C style library calls. 
+//
+// The "initRuntime" routine is passed the resource descriptor map. Important. All there is to know about the
+// particular board and resources to configure comes from this map.
 // 
 //------------------------------------------------------------------------------------------------------------
-LcsConfigDesc       getConfigDefault( );
-uint8_t             initRuntime( LcsConfigDesc *lcsConfig, CDC::CdcConfigDesc *cdcConfig );
+uint8_t             initRuntime( CDC::CdcResourceDescMap *dMap );
 uint8_t             startRuntime( );
 
 //------------------------------------------------------------------------------------------------------------
