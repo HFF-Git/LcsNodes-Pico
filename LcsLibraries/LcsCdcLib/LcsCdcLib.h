@@ -92,14 +92,14 @@ enum CdcStatus : uint8_t {
 
     NOT_SUPPORTED_ERR   = 1,
     NOT_IMPLEMENTED_ERR = 2,
-    RES_ID_ALLOCATE_ERR = 3,
-    INVALID_RES_ID_ERR  = 4,
-
-    DIO_PIN_ERR         = 10,
-    ADC_PIN_ERR         = 11,
-    PWM_PIN_ERR         = 12,
-    UART_PIN_ERR        = 13,
-    I2C_PIN_ERR         = 14,
+    NOT_INITIALZED_ERR  = 3,
+   
+    TIMER_RES_ERR       = 10,
+    DIO_PIN_ERR         = 11,
+    ADC_PIN_ERR         = 12,
+    PWM_PIN_ERR         = 13,
+    UART_PIN_ERR        = 14,
+    I2C_PIN_ERR         = 15,
 
     DIO_MODE_ERR        = 20,
     DIO_INT_HANDLER_ERR = 21,
@@ -123,18 +123,8 @@ extern "C" {
 
     typedef void ( *TimerCallback ) ( uint32_t timerVal );
     typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
+    typedef void ( *PfailCallback ) ( );
 }
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-enum CdcResIdNumbers : uint8_t {
-
-    // ??? what can we predefine as resource numbers ? Should we even do this ?
-};
-
 
 //------------------------------------------------------------------------------------------------------------
 // Common constants.
@@ -222,151 +212,87 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The controller resource type. The controller itself has parameters we can set. We also have parameters
-// such as the ADC voltage, that applies to the controller chip ADC subsystem. There are also two DIO pins
-// that are used for the activity LED and the power fail detection input. 
+// CDC Layer resource map. The map is a structure containing the hardware mapping for the particular controller
+// and board. There are a lot of fields, not all of them are set for a particular board. The firmware program
+// needs to provide a this map with the values set for the particular board. The data is used in the configure
+// routines but also for the layer routines. For example, a GPIO pin value is directly the hardware pin on the
+// controller. A PIN pin refers also to a pin and will be used internally to find the complementary data that
+// the controller hardware defines for a PWM hardware block. For convenience, a default resource map is 
+// provided which has for all fields reasonable values set.
 //
 //------------------------------------------------------------------------------------------------------------
-struct ControllerDesc {
+struct CdcResourceMap {
 
-    uint16_t    controllerFamily;
-    uint16_t    controllerChip;
+    uint16_t    options;
+    uint16_t    debugMask;
+    uint16_t    cFamily;
+    uint16_t    cType;
     uint16_t    cpuCores;
     uint32_t    memorySize;
     uint32_t    internalNvmSize;
     uint32_t    watchDogIntervallMillis;
+
     uint16_t    adcRefVoltageMillis;
     uint16_t    adcDigitRange;
+
     uint8_t     ledPin;
     uint8_t     pFailPin;
 
-    // ??? perhaps more to come what is the same across all resources...
-};
+    uint8_t     adcPin_0;
+    uint8_t     adcPin_1;
+    uint8_t     adcPin_2;
+    uint8_t     adcPin_3;
 
-//------------------------------------------------------------------------------------------------------------
-// Timer resources descriptor.
-// 
-// ??? option to specify whether the timer should restart while the interrupt is served or after.
-//------------------------------------------------------------------------------------------------------------
-struct TimerResourceDesc {
+    uint8_t     dioPin_0;
+    uint8_t     dioPin_1;
+    uint8_t     dioPin_2;
+    uint8_t     dioPin_3;
+    uint8_t     dioPin_4;
+    uint8_t     dioPin_5;
+    uint8_t     dioPin_6;
+    uint8_t     dioPin_7;
+    uint8_t     dioPin_8;
+    uint8_t     dioPin_9;
+    uint8_t     dioPin_10;
+    uint8_t     dioPin_11;
+    uint8_t     dioPin_12;
+    uint8_t     dioPin_13;
+    uint8_t     dioPin_14;
+    uint8_t     dioPin_15;
 
-    uint32_t    intervalMillis;
-};
+    uint8_t     pwmPin_0;
+    uint8_t     pwmPin_1;
+    uint8_t     pwmPin_2;
+    uint8_t     pwmPin_3;
+    uint8_t     pwmPin_4;
+    uint8_t     pwmPin_5;
+    uint8_t     pwmPin_6;
+    uint8_t     pwmPin_7;
+    
+    uint8_t     i2cSclPin_0;
+    uint8_t     i2cSdaPin_0;
+    uint8_t     i2cBaudrate_0;
 
-//------------------------------------------------------------------------------------------------------------
-// A GPIO resource descriptor declares the pin(s) and their mode. Note that the mode can be changed later via
-// the config routine. Optionally, two pins can be set simultaneously.
-//
-//------------------------------------------------------------------------------------------------------------
-struct GpioResourceDesc {
+    uint8_t     i2cSclPin_1;
+    uint8_t     i2cSdaPin_2;
+    uint8_t     i2cBaudrate_3;
 
-    uint8_t     pinA;
-    uint8_t     pinB;
-    uint8_t     pinMode;
-};
+    uint8_t     uartRxPin_0;
+    uint8_t     uartTxPin_0;
+    uint8_t     uartBaudrate_0;
 
-//------------------------------------------------------------------------------------------------------------
-// The ADC resource descriptor declares analog input.
-//
-//------------------------------------------------------------------------------------------------------------
-struct AdcResourceDesc {
-
-    uint8_t     adcPin;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The PWM resource declares the pins(s) and the PWM frequency.
-//
-//------------------------------------------------------------------------------------------------------------
-struct PwmResourceDesc {
-
-    uint8_t     pinA;
-    uint8_t     pinB;
-    uint32_t    freqency;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The UART resource descriptor declares a serial IO interface. We need the Rx and Tx pins and the UART
-// options.
-//
-//------------------------------------------------------------------------------------------------------------
-struct UartResourceDesc {
-
-    uint8_t     rxPin;
-    uint8_t     txPin;
-    uint32_t    baudRate;
-    uint8_t     dataBits;
-    uint8_t     parityMode;
-    uint8_t     stopBits;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The I2C resource descriptor declares an I2C channel.
-// 
-//------------------------------------------------------------------------------------------------------------
-struct I2CResourceDesc {
-
-    uint8_t     sclPin;
-    uint8_t     sdaPin;
-    uint32_t    baudRate;
-    uint32_t    timeoutValMs;
-};
-
-// ??? do we need NVM descriptors too ????
-
-//------------------------------------------------------------------------------------------------------------
-// The CAN Bus resource descriptor declares an the necessary CAN bus data.
-// 
-//------------------------------------------------------------------------------------------------------------
-struct CanBusResourceDesc {
+    uint8_t     uartRxPin_1;
+    uint8_t     uartTxPin_1;
+    uint8_t     uartBaudrate_1;
 
     uint8_t     canPinRx;
     uint8_t     canPinTx;
-    uint32_t    baudRate;
-    bool        twoCores;
+    uint32_t    canBaudRate;
+    bool        canTwoCores;
+
+    uint32_t    extNvmSize;
 };
 
-//------------------------------------------------------------------------------------------------------------
-// A CDC configuration descriptor contains all the information to configure a resource. An resource will be 
-// configured with the resource configure routine using the data in this descriptor. It should be possible to
-// configure the entire board based on an array of such descriptors. The idea is that each board can be 
-// uniquely described with such an array.
-//
-//------------------------------------------------------------------------------------------------------------
-struct CdcResourceDesc {
-
-    uint8_t     resId;
-    uint16_t    type;
-  
-    union {
-
-        ControllerDesc          ctl;
-        TimerResourceDesc       timer;
-        GpioResourceDesc        gpio;
-        PwmResourceDesc         pwm;
-        UartResourceDesc        uart;
-        AdcResourceDesc         adc;
-        I2CResourceDesc         i2c;
-        CanBusResourceDesc      can;
-    };
-};
-
-//------------------------------------------------------------------------------------------------------------
-// A board descriptor contains the relevant configurations for the particular board. The idea is that the 
-// the firmware downloaded to the board will contain such a descriptor map from which the libraries are 
-// configured.
-//
-// ??? we need to get to a resource quick...
-// ??? we need to make it rather easy to find a resource...
-//------------------------------------------------------------------------------------------------------------
-struct CdcResourceDescMap {
-
-    uint16_t        options         = 0;
-    uint16_t        entries         = 0;
-    char            name[ 64 ]      = { 0 };
-
-    CdcResourceDesc map[ 64 ];
-};
 
 //------------------------------------------------------------------------------------------------------------
 // The routines that make up the hardware abstraction layer. In general, there are routines that are just 
@@ -381,21 +307,27 @@ struct CdcResourceDescMap {
 // Basic init and error handling.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     cdcInit( );
-uint8_t     getVersion( uint32_t *version );
-void        fatalError( uint8_t errNum );
-void        fatalErrorMsg( char *str, uint8_t errNum, uint8_t rStat );
-void        setDebugLevel( uint8_t level = 0 );
+uint8_t         cdcInit( CdcResourceMap *dMap );
+
+CdcResourceMap  getDefaultResourceMap( );
+CdcResourceMap  *getResourceMap( );
+void            printResourceMap( );
+
+uint8_t         getVersion( uint32_t *version );
+void            fatalError( uint8_t errNum, char *str = nullptr,  uint8_t rStat = NO_ERR );
+
+uint16_t        getDebugMask( );
+void            setDebugMask( uint16_t mask = 0 );
 
 //------------------------------------------------------------------------------------------------------------
 // General utility routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t    getMillis( );
-uint32_t    getMicros( );
-void        sleepMillis( uint32_t val );
-void        sleepMicros( uint32_t val );
-uint32_t    createUid( );
+uint32_t        getMillis( );
+uint32_t        getMicros( );
+void            sleepMillis( uint32_t val );
+void            sleepMicros( uint32_t val );
+uint32_t        createUid( );
 
 //------------------------------------------------------------------------------------------------------------
 // The console IO functions. We will provide a serial IO via the USB connector of the PICO. The files 
@@ -404,122 +336,88 @@ uint32_t    createUid( );
 // and returns immediately when there is none.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureConsoleIO( );
-bool        isConsoleConnected( );
-char        getConsoleChar( uint32_t timeoutVal = 0 );
-
-//------------------------------------------------------------------------------------------------------------
-// CDC high level setup and configuration routines. In addition to setting up the individual resources, the
-// particular mappings for a LCS Nodes board need to be provided. This is where the "CdcInstanceDescMap"
-// will be used. It is basically an array of resource descriptors and each board has its unique descriptor.
-// There is an include file which contains the descriptor for each board type and board version designed.
-// Nevertheless, an given resource configuration routine can be called any time, to either overwrite or 
-// replace the use of the descriptor information in the board descriptor array.
-// 
-//------------------------------------------------------------------------------------------------------------
-CdcResource *lookupResourceById( uint8_t resId, CdcResourceType rTyp );
-uint8_t     configureCdcResource( CdcResourceDesc *desc );
-
-void        printCdcResource( CdcResourceDesc *desc );
-void        printCdcLayerInfo( CdcResourceDesc *map );
+uint8_t         configureConsoleIO( );
+bool            isConsoleConnected( );
+char            getConsoleChar( uint32_t timeoutVal = 0 );
 
 //------------------------------------------------------------------------------------------------------------
 // General controller info routines.
 //
-// ??? should LED and PFAIL be in this resource ? and if so, what else ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureController(    ControllerFamily    family, 
-                                    ControllerChip      processor,
-                                    uint32_t            memorySize,
-                                    uint32_t            internalNvmSize,
-                                    uint32_t            watchDogMillis,
-                                    uint16_t            adcRefVoltage, 
-                                    uint16_t            adcDigitRange, 
-                                    uint8_t             ledPin,
-                                    uint8_t             pFailPin );
+uint8_t         getFamily( ControllerFamily *family );
+uint8_t         getControllerChip( ControllerChip *chip );
+uint8_t         getChipMemSize( uint32_t *size );
+uint8_t         getChipNvmSize( uint32_t *size );
+uint8_t         getCpuFrequency( uint32_t *frequency );
 
-uint8_t     getFamily( ControllerFamily *family );
-uint8_t     getControllerChip( ControllerChip *chip );
-uint8_t     getChipMemSize( uint32_t *size );
-uint8_t     getChipNvmSize( uint32_t *size );
-uint8_t     getCpuFrequency( uint32_t *frequency );
+uint8_t         watchDogEnable( bool enable );
+uint8_t         watchDogUpdate( );
+uint8_t         watchDogCausedReboot( bool *reboot );
 
-uint8_t     watchDogEnable( bool enable );
-uint8_t     watchDogUpdate( );
-uint8_t     watchDogCausedReboot( bool *reboot );
-
+uint8_t         setPfailHandler( PfailCallback functionId );
 
 //------------------------------------------------------------------------------------------------------------
 // Timer management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureTimer( uint8_t resId, TimerCallback functionId );
-uint8_t     startRepeatingTimer( uint8_t resId, uint32_t val );
-uint8_t     setRepeatingTimerLimit( uint8_t resId, uint32_t val );
-uint8_t     getRepeatingTimerLimit( uint8_t resId, uint32_t *val );
-uint8_t     stopRepeatingTimer( uint8_t resId );
+uint8_t         configureTimer( uint8_t timerId, TimerCallback functionId );
+uint8_t         startRepeatingTimer( uint8_t timerId, uint32_t val );
+uint8_t         stopRepeatingTimer( uint8_t timerId );
+uint8_t         setRepeatingTimerLimit( uint8_t timerId, uint32_t val );
+uint8_t         getRepeatingTimerLimit( uint8_t timerId, uint32_t *val );
+uint8_t         stopRepeatingTimer( uint8_t timerId );
 
 //------------------------------------------------------------------------------------------------------------
 // Analog input routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureAdc( uint8_t resId, uint8_t adcPin );
-uint8_t     readAdc( uint8_t resId, uint16_t *val );
+uint8_t         configureAdc( uint8_t adcPin );
+uint8_t         readAdc( uint8_t adcPin, uint16_t *val );
 
 //------------------------------------------------------------------------------------------------------------
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureDio(   uint8_t     resId,
-                            uint8_t     pinA, 
-                            uint8_t     pinB, 
-                            uint8_t     pinMode );
-
-uint8_t     registerDioCallback( uint8_t resId, uint8_t event, GpioCallback func );
-uint8_t     unregisterDioCallback( uint8_t resId );
-uint8_t     readDio( uint8_t resId, bool *val );
-uint8_t     writeDio( uint8_t resId, bool val );
-uint8_t     writeDio( uint8_t resId, bool valA, bool valB );
-uint8_t     toggleDio( uint8_t resId );
+uint8_t         configureDio( uint8_t dioPin, uint8_t pinMode );
+uint8_t         readDio( uint8_t dioPin, bool *val );
+uint8_t         writeDio( uint8_t dioPin, bool val );
+uint8_t         writeDioPair( uint8_t dioPin1, bool valA, uint8_t dioPin2, bool valB );
+uint8_t         toggleDio( uint8_t dioPin );
+uint8_t         registerDioCallback( uint8_t dioPin, uint8_t event, GpioCallback func );
+uint8_t         unregisterDioCallback( uint8_t dioPin );
 
 //------------------------------------------------------------------------------------------------------------
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configurePwm(   uint8_t     resId,
-                            uint8_t     pinA,
-                            uint8_t     pinB,
-                            uint32_t    freqency,
-                            bool        phaseCorrect  = true,
-                            bool        inverted      = false
-                        );
-
-uint8_t     writePwm( uint8_t resId, uint8_t dutyCycleA, uint8_t dutyCycleB );
-uint8_t     syncPwm( uint8_t resId );
+uint8_t         configurePwm(   uint8_t pwmPin, uint32_t    freqency );
+uint8_t         writePwm( uint8_t pwmPin, uint8_t dutyCycle );
+uint8_t         writePwmPair(uint8_t pwmPin, uint8_t dutyCycleA, uint8_t dutyCycleB ); 
+uint8_t         syncPwm( uint8_t pwmPin );
 
 //------------------------------------------------------------------------------------------------------------
 // Serial IO routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureUart( uint8_t resId, uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
-uint8_t     startUartRead( uint8_t resId );
-uint8_t     stopUartRead( uint8_t resId );
-uint8_t     getUartBuffer( uint8_t resId, uint8_t *buf, uint8_t bufLen );
+uint8_t         configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
+uint8_t         startUartRead( uint8_t rxPin );
+uint8_t         stopUartRead( uint8_t rxPin );
+uint8_t         getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen );
 
 //------------------------------------------------------------------------------------------------------------
 // I2C management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureI2C( uint8_t resId, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
-uint8_t     i2cBusreset( uint8_t resId );
-uint8_t     i2cWrite( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
-uint8_t     i2cRead( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+uint8_t         configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
+uint8_t         i2cBusreset( uint8_t sclPin );
+uint8_t         i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+uint8_t         i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 
 //------------------------------------------------------------------------------------------------------------
 // CAN Bus hardware routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureCanBus( uint8_t resId, uint8_t pinH, uint8_t pinL, uint32_t baudRate );
+uint8_t         configureCanBus( uint8_t pinRx, uint8_t pinTx, uint32_t baudRate, bool twoCores );
 
 };
 

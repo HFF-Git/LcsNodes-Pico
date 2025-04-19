@@ -698,7 +698,7 @@ extern "C" {
 // particular board and resources to configure comes from this map.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t             initRuntime( CDC::CdcResourceDescMap *dMap );
+uint8_t             initRuntime( CDC::CdcResourceMap *cMap );
 uint8_t             startRuntime( );
 
 //------------------------------------------------------------------------------------------------------------
