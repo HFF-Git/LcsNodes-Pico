@@ -45,7 +45,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <cstring>
-#include "LcsBoardDescriptors.h"
 #include "LcsCdcLibVersion.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -72,13 +71,13 @@ namespace CDC {
 //------------------------------------------------------------------------------------------------------------
 enum DebugOtions : uint16_t {
 
-    DBG_CONFIG      = ( 1U << 15 ),
-    DBG_SETUP       = ( 1U << 0 ),
-    DBG_I2C         = ( 1U << 1 ),
-    DBG_SPI         = ( 1U << 2 ),
-    DBG_PWM         = ( 1U << 3 ),
-    DBG_UART        = ( 1U << 4 ),
-    DBG_GPIO        = ( 1U << 5 )
+    CDC_DBG_CONFIG      = ( 1U << 15 ),
+    CDC_DBG_SETUP       = ( 1U << 0 ),
+    CDC_DBG_I2C         = ( 1U << 1 ),
+    CDC_DBG_SPI         = ( 1U << 2 ),
+    CDC_DBG_PWM         = ( 1U << 3 ),
+    CDC_DBG_UART        = ( 1U << 4 ),
+    CDC_DBG_GPIO        = ( 1U << 5 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -136,12 +135,246 @@ enum CdcResIdNumbers : uint8_t {
     // ??? what can we predefine as resource numbers ? Should we even do this ?
 };
 
+
+//------------------------------------------------------------------------------------------------------------
+// Common constants.
+// 
+//------------------------------------------------------------------------------------------------------------
+const int       MAX_INST_DESC_ENTRIES   = 64;
+const uint8_t   UNDEFINED_PIN           = 255;
+const uint8_t   ILLEGAL_PIN             = 254;
+
+//------------------------------------------------------------------------------------------------------------
+// The CDC resources have a type which tells us what the particular resource is. Note that the are "real"
+// hardware resources such as a GPIO pin, but also logical resources such as a software timer.
+//
+//------------------------------------------------------------------------------------------------------------
+enum CdcResourceType : uint8_t {
+
+    CDC_RT_UNDEFINED    = 0,
+    CDC_RT_CONTROLLER   = 1,
+    CDC_RT_TIMER        = 2,
+    CDC_RT_GPIO         = 3,
+    CDC_RT_ADC          = 4,
+    CDC_RT_PWM          = 5,
+    CDC_RT_UART         = 6,
+    CDC_RT_I2C          = 7,
+    CDC_RT_CAN_BUS      = 8
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The controller families. Currently, there is only the Raspberry PI Pico family models.
+//
+//------------------------------------------------------------------------------------------------------------
+enum ControllerFamily : uint16_t {
+
+    CDC_CF_UNDEFINED    = 0,
+    CDC_CF_RP_PICO      = 1,
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The controller chips in a family. Currently, there is only the Raspberry PI Pico models RP2040 and RP2350.
+//
+//------------------------------------------------------------------------------------------------------------
+enum ControllerChip : uint16_t {
+
+    CDC_CF_C_UNDEFINED  = 0,
+    CDC_CF_C_RP_2040    = 1,
+    CDC_CF_C_RP_2350    = 2,
+};
+
+//------------------------------------------------------------------------------------------------------------
+// DIO pin related definitions. A digital pin can be an input pin, with or without pull-up, or an output 
+// pin. DIO pins can also be associated with an interrupt handler. The handler itself is mapped to an edge
+// or level event.
+//
+//------------------------------------------------------------------------------------------------------------
+enum dioMode : uint8_t {
+
+    CDC_DIO_IN              = 0,
+    CDC_DIO_OUT             = 1,
+    CDC_DIO_IN_PULLUP       = 2
+};
+
+//------------------------------------------------------------------------------------------------------------
+// GPIO interrupts are detected as level change or edge changes.
+//
+//------------------------------------------------------------------------------------------------------------
+enum intEventTyp : uint8_t {
+
+    CDC_EVT_NONE            = 0,
+    CDC_EVT_LOW             = 1,
+    CDC_EVT_HIGH            = 2,
+    CDC_EVT_FALL            = 3,
+    CDC_EVT_RISE            = 4,
+    CDC_EVT_CHANGE          = 5
+};
+
+//------------------------------------------------------------------------------------------------------------
+// PWM duty cycle.
+//
+// ??? actually a value cannot be larger than 255. But we could define steps...
+//------------------------------------------------------------------------------------------------------------
+enum PwmDutyCycle : uint8_t {
+
+    CDC_MIN_DUTY_CCYCLE     = 0,
+    CDC_MAX_DUTY_CYCLE      = 255
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The controller resource type. The controller itself has parameters we can set. We also have parameters
+// such as the ADC voltage, that applies to the controller chip ADC subsystem. There are also two DIO pins
+// that are used for the activity LED and the power fail detection input. 
+//
+//------------------------------------------------------------------------------------------------------------
+struct ControllerDesc {
+
+    uint16_t    controllerFamily;
+    uint16_t    controllerChip;
+    uint16_t    cpuCores;
+    uint32_t    memorySize;
+    uint32_t    internalNvmSize;
+    uint32_t    watchDogIntervallMillis;
+    uint16_t    adcRefVoltageMillis;
+    uint16_t    adcDigitRange;
+    uint8_t     ledPin;
+    uint8_t     pFailPin;
+
+    // ??? perhaps more to come what is the same across all resources...
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Timer resources descriptor.
+// 
+// ??? option to specify whether the timer should restart while the interrupt is served or after.
+//------------------------------------------------------------------------------------------------------------
+struct TimerResourceDesc {
+
+    uint32_t    intervalMillis;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A GPIO resource descriptor declares the pin(s) and their mode. Note that the mode can be changed later via
+// the config routine. Optionally, two pins can be set simultaneously.
+//
+//------------------------------------------------------------------------------------------------------------
+struct GpioResourceDesc {
+
+    uint8_t     pinA;
+    uint8_t     pinB;
+    uint8_t     pinMode;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The ADC resource descriptor declares analog input.
+//
+//------------------------------------------------------------------------------------------------------------
+struct AdcResourceDesc {
+
+    uint8_t     adcPin;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The PWM resource declares the pins(s) and the PWM frequency.
+//
+//------------------------------------------------------------------------------------------------------------
+struct PwmResourceDesc {
+
+    uint8_t     pinA;
+    uint8_t     pinB;
+    uint32_t    freqency;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The UART resource descriptor declares a serial IO interface. We need the Rx and Tx pins and the UART
+// options.
+//
+//------------------------------------------------------------------------------------------------------------
+struct UartResourceDesc {
+
+    uint8_t     rxPin;
+    uint8_t     txPin;
+    uint32_t    baudRate;
+    uint8_t     dataBits;
+    uint8_t     parityMode;
+    uint8_t     stopBits;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The I2C resource descriptor declares an I2C channel.
+// 
+//------------------------------------------------------------------------------------------------------------
+struct I2CResourceDesc {
+
+    uint8_t     sclPin;
+    uint8_t     sdaPin;
+    uint32_t    baudRate;
+    uint32_t    timeoutValMs;
+};
+
+// ??? do we need NVM descriptors too ????
+
+//------------------------------------------------------------------------------------------------------------
+// The CAN Bus resource descriptor declares an the necessary CAN bus data.
+// 
+//------------------------------------------------------------------------------------------------------------
+struct CanBusResourceDesc {
+
+    uint8_t     canPinRx;
+    uint8_t     canPinTx;
+    uint32_t    baudRate;
+    bool        twoCores;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A CDC configuration descriptor contains all the information to configure a resource. An resource will be 
+// configured with the resource configure routine using the data in this descriptor. It should be possible to
+// configure the entire board based on an array of such descriptors. The idea is that each board can be 
+// uniquely described with such an array.
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcResourceDesc {
+
+    uint8_t     resId;
+    uint16_t    type;
+  
+    union {
+
+        ControllerDesc          ctl;
+        TimerResourceDesc       timer;
+        GpioResourceDesc        gpio;
+        PwmResourceDesc         pwm;
+        UartResourceDesc        uart;
+        AdcResourceDesc         adc;
+        I2CResourceDesc         i2c;
+        CanBusResourceDesc      can;
+    };
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A board descriptor contains the relevant configurations for the particular board. The idea is that the 
+// the firmware downloaded to the board will contain such a descriptor map from which the libraries are 
+// configured.
+//
+// ??? we need to get to a resource quick...
+// ??? we need to make it rather easy to find a resource...
+//------------------------------------------------------------------------------------------------------------
+struct CdcResourceDescMap {
+
+    uint16_t        options         = 0;
+    uint16_t        entries         = 0;
+    char            name[ 64 ]      = { 0 };
+
+    CdcResourceDesc map[ 64 ];
+};
+
 //------------------------------------------------------------------------------------------------------------
 // The routines that make up the hardware abstraction layer. In general, there are routines that are just 
-// basic utility routines common to all controller implementations. The majority of routines provide the 
-// interface to the controller resources. Each resource type has a name and a set of routines for accessing
-// it. The idea is that at startup, the resources are configured and a handle is provided to the upper layer.
-// 
+// basic utility routines common to all controller implementations. The rest of routines provide the 
+// interface to the controller resources. Each resource is defied by a chosen resource, which is the index
+// into the resource array, and a resource type. The set of routines for a given resource type will use the 
+// resource index to find the configured instance. 
+//
 //------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
@@ -184,13 +417,16 @@ char        getConsoleChar( uint32_t timeoutVal = 0 );
 // replace the use of the descriptor information in the board descriptor array.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t     configureCdcSubSytem( CdcResourceDesc *map );
-void        printCdcSubSystemInfo( CdcResourceDesc *map );
+CdcResource *lookupResourceById( uint8_t resId, CdcResourceType rTyp );
+uint8_t     configureCdcResource( CdcResourceDesc *desc );
+
+void        printCdcResource( CdcResourceDesc *desc );
+void        printCdcLayerInfo( CdcResourceDesc *map );
 
 //------------------------------------------------------------------------------------------------------------
 // General controller info routines.
 //
-//
+// ??? should LED and PFAIL be in this resource ? and if so, what else ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t     configureController(    ControllerFamily    family, 
                                     ControllerChip      processor,
@@ -280,7 +516,7 @@ uint8_t     i2cWrite( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len,
 uint8_t     i2cRead( uint8_t resId, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 
 //------------------------------------------------------------------------------------------------------------
-//
+// CAN Bus hardware routines.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t     configureCanBus( uint8_t resId, uint8_t pinH, uint8_t pinL, uint32_t baudRate );

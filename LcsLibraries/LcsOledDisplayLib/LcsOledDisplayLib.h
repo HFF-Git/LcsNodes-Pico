@@ -78,6 +78,8 @@ struct LcsOledDisplay  {
 
     LcsOledDisplay( );
 
+    // ??? we need to pass two resources instead of the pins ...
+
     uint8_t begin(  uint8_t     devType, 
                     uint8_t     sclPin, 
                     uint8_t     sdaPin, 

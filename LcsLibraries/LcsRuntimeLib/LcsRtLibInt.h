@@ -32,7 +32,6 @@
 #include <stdint.h>
 #include <ctype.h>
 #include "LcsRtLibVersion.h"
-#include "LcsBoardDescriptors.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 

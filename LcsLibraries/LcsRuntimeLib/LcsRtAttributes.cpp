@@ -97,7 +97,7 @@ namespace {
 
     uint8_t errStat( uint8_t errId ) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "Ret: %d\n", errId );
         }
@@ -115,7 +115,7 @@ namespace {
 
         *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "readAttrMem: block: 0x%x, item: %d, data: 0x%x\n", block, item, *arg );
         }
@@ -133,7 +133,7 @@ namespace {
 
         nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "writeAttrMem: block: 0x%x, item: %d, data: 0x%x\n", block, item, arg );
         }
@@ -154,7 +154,7 @@ namespace {
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
                             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "readAttrNvm: block: 0x%x, item: %d, nvm-ofs: 0x%x, data: 0x%x\n",
                                         block, item, ofs, *arg );
@@ -179,7 +179,7 @@ namespace {
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
                             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
         
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_ATTRIBUTES ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "writeAttrNvm: block: 0x%x, item: %d, nvm-ofs: 0x%x, data: 0x%x\n",
                     block, item, ofs, arg );
@@ -198,7 +198,7 @@ namespace {
     //----------------------------------------------------------------------------------------------------------
     uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "syncAttrToMem: block: 0x%x, item: %d\n", block, item );
         }
@@ -213,7 +213,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "syncAttrToNvm: block: 0x%x, item: %d\n", block, item );
         }
@@ -246,7 +246,7 @@ namespace {
     //--------------------------------------------------------------------------------------------------------
     uint8_t handleSyncCommand( uint8_t npId, uint16_t arg1, uint16_t arg2 ) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "handleSyncCommand: npId: 0x%x, arg1: %d, arg2: %d\n", npId, arg1, arg2 );
         }
@@ -295,7 +295,7 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
         printf( "nodeGet: npId: 0x%x, item: :%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
@@ -474,7 +474,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
         printf( "nodePut: npId: 0x%x, item: %d, val1:%d, val2: %d\n", npId, item, val1, val2  );
     }
@@ -496,8 +496,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_DEBUG_MASK: {
 
-                if ( CDC::isConsoleConnected( ))    debugMask = val1 | DBG_CONFIG;           
-                else                                debugMask = val1 & ~ DBG_CONFIG;
+                if ( CDC::isConsoleConnected( ))    debugMask = val1 | LCS_DBG_CONFIG;           
+                else                                debugMask = val1 & ~ LCS_DBG_CONFIG;
               
                 return ( errStat( ALL_OK ));
             }
@@ -635,7 +635,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_ATTRIBUTES )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
         printf( "nodeReq: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );

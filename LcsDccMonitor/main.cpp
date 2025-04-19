@@ -59,11 +59,14 @@
 #define           DEBUG_PACKET_FORMATTER          1
 
 //------------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values.
 //
+// ??? quick hack to get the new CDC lib going ...
 //------------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc cfg;
+const uint8_t CDC_RES_ID_EXT_INT    = 1;
+const uint8_t CDC_RES_ID_LED        = 2;
+
+const uint8_t CDC_EXT_INT_PIN       = 22;
+const uint8_t CDC_LED_PIN           = 15;
 
 //------------------------------------------------------------------------------------------------------------
 // Configuration settings.
@@ -169,20 +172,14 @@ char     lineBuf[ LINE_BUFFER_SIZE ];
 //------------------------------------------------------------------------------------------------------------
 void fillPacket( );
 
-
 //----------------------------------------------------------------------------------------------------------
-//
 //
 //
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-  cfg = CDC::getConfigDefault( );
-
-  cfg.EXT_INT_PIN           = 22;
-  cfg.ACTIVE_LED_PIN        = 15;
-
-  CDC::printConfigInfo( &cfg );
+    CDC::cdcInit( );
+    CDC::configureConsoleIO( );
 }
 
 // ??? factor out as a separate object to detect and receive packets ?
@@ -267,8 +264,10 @@ void startBitDetection( ) {
   bitBufHead = 1;
   bitBufTail = 0;
 
-  CDC::configureDio( cfg.EXT_INT_PIN, CDC::CDC_DIO_IN );
-  CDC::registerDioCallback( cfg.EXT_INT_PIN, CDC::CDC_EVT_CHANGE, dccEdgeChange );
+  uint8_t rStat;
+
+  rStat = CDC::configureDio( CDC_RES_ID_EXT_INT, CDC_EXT_INT_PIN, 0, CDC::CDC_DIO_IN );
+  rStat = CDC::registerDioCallback( CDC_RES_ID_EXT_INT, CDC::CDC_EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );

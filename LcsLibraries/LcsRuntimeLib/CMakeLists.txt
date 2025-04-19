@@ -45,8 +45,6 @@ target_link_libraries( ${PROJECT_NAME}
     LcsCdcLib
     LcsDrvOccDetectLib
     LcsDrvServoLib
-
-    LcsBoardDescriptors
     )
 
 # this is a mess.... why do we need so many include directory specificatons ?

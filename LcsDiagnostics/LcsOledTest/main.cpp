@@ -28,11 +28,23 @@
 #include "LcsCdcLib.h"
 #include "LcsUIElements.h"
 
+using namespace CDC;
+
+//----------------------------------------------------------------------------------------------------------
+//
+// Quick hack for configuring the I2C channel...
+//----------------------------------------------------------------------------------------------------------
+const uint8_t RES_ID_LED        = 1;
+const uint8_t RES_ID_EXT_I2C    = 2;
+
+const uint8_t LED_PIN           = 15; 
+const uint8_t EXT_I2C_SCL_PIN   = 17;
+const uint8_t EXT_I2C_SDA_PIN   = 16;
+
 //----------------------------------------------------------------------------------------------------------
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc  cfg     = CDC::getConfigDefault( );
 UIDisplay           *oled   = nullptr;
 
 //----------------------------------------------------------------------------------------------------------
@@ -43,16 +55,9 @@ UIDisplay           *oled   = nullptr;
 //----------------------------------------------------------------------------------------------------------
 uint8_t initCdcLib( ) {
 
-    CDC::sleepMillis( 2000 );
-    CDC::configureConsoleIO( );
-
-    cfg.NVM_I2C_SCL_PIN = 3;
-    cfg.NVM_I2C_SDA_PIN = 2;
-
-    cfg.EXT_I2C_SCL_PIN = 17;
-    cfg.EXT_I2C_SDA_PIN = 16;
-
-    return( CDC::init( &cfg ));
+    cdcInit( );
+    sleepMillis( 2000 );
+    configureConsoleIO( );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -61,13 +66,10 @@ uint8_t initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = CDC::NO_ERR;
-
-    rStat = initCdcLib( );
+    uint8_t rStat = initCdcLib( );
     if ( rStat != CDC::NO_ERR ) {
 
         printf( "Error in CDC init: %d\n", rStat );
-
         CDC::sleepMillis( 5000 );
         return( -1 );
     }

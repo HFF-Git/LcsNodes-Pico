@@ -3,10 +3,6 @@
 // LCS - Controller dependent code Layer - Test Program
 //
 //------------------------------------------------------------------------------------------------------------
-// This source file contains the the RP2040 controller family hardware library code. The idea of this library
-// is to shield the actual hardware of processor and board implementation from the upper layers but still keep
-// the flexibility and performance of the underlying hardware. 
-//
 // This is a little test program for the individual functions of the CDC layer. It is a rather crude program
 // and you need to recompile it for each test of a portion of the library.
 //
@@ -31,51 +27,69 @@
 //------------------------------------------------------------------------------------------------------------
 
 #include "LcsCdcLib.h"
+#include "LcsBoardGenericCdcLib.h"
 
-//----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values.
+using namespace CDC;
+
+//------------------------------------------------------------------------------------------------------------
 //
-//----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc cfg;
+// ??? quick hack to get the new CDC lib going ...
+//------------------------------------------------------------------------------------------------------------
+enum CdcResIdList : uint8_t {
 
-void setupConfigInfo( ) {
+    CDC_RES_ID_PFAIL        = 1,
+    CDC_RES_ID_LED          = 2,
+    CDC_RES_ID_EXT_INT      = 3,
+    CDC_RES_ID_ADC_0        = 4,
+    CDC_RES_ID_ADC_1        = 5,
+    CDC_RES_ID_PWM_0        = 6,
+    CDC_RES_ID_PWM_1        = 7,
+    
+    CDC_RES_ID_DIO_0        = 10,
+    CDC_RES_ID_DIO_1        = 11,
+    CDC_RES_ID_DIO_2        = 12,
+    CDC_RES_ID_DIO_3        = 13,
+    CDC_RES_ID_DIO_4        = 14,
+    CDC_RES_ID_DIO_5        = 15,
+    CDC_RES_ID_DIO_6        = 16,
+    CDC_RES_ID_DIO_7        = 17,
+    
+    CDC_RES_ID_NVM_I2C      = 20,
+    CDC_RES_ID_EXT_I2C      = 21,
+    CDC_RES_ID_PICO_LED     = 22,
+    CDC_RES_ID_TIMER_0      = 23,
+    CDC_RES_ID_TIMER_1      = 24
+};
 
-  cfg = CDC::getConfigDefault( );
+enum CdcPins : uint8_t {
 
-  //--------------------------------------------------------------------------------------------------------
-  // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
-  //
-  //--------------------------------------------------------------------------------------------------------
-  cfg.ADC_PIN_0             = 26;
-  cfg.ADC_PIN_1             = 27;
+    CDC_PIN_PICO_LED        = 25,
 
-  cfg.PWM_PIN_0             = 20;
-  cfg.PWM_PIN_1             = 21;
+    CDC_PIN_PFAIL           = 7,
+    CDC_PIN_LED             = 15,
+    CDC_PIN_EXT_INT         = 22,
+   
+    CDC_PIN_ADC_0           = 26,
+    CDC_PIN_ADC_1           = 27,
 
-  cfg.PFAIL_PIN             = 7;
-  cfg.EXT_INT_PIN           = 22;
-  cfg.ACTIVE_LED_PIN        = 15;
+    CDC_PIN_PWM_0           = 20,
+    CDC_PIN_PWM_1           = 21,
+    
+    CDC_PIN_DIO_0           = 8,
+    CDC_PIN_DIO_1           = 9,
+    CDC_PIN_DIO_2           = 10,
+    CDC_PIN_DIO_3           = 11,
+    CDC_PIN_DIO_4           = 21,
+    CDC_PIN_DIO_5           = 20,
+    CDC_PIN_DIO_6           = 19,
+    CDC_PIN_DIO_7           = 18,
+    
+    CDC_PIN_NVM_I2C_SCL     = 3,
+    CDC_PIN_NVM_I2C_SDA     = 2,
 
-  cfg.DIO_PIN_0             = 9;
-  cfg.DIO_PIN_1             = 8;
-  cfg.DIO_PIN_2             = 10;
-  cfg.DIO_PIN_3             = 11;
-  cfg.DIO_PIN_4             = 21;
-  cfg.DIO_PIN_5             = 20;
-  cfg.DIO_PIN_6             = 19;
-  cfg.DIO_PIN_7             = 18;
-
-  cfg.NVM_I2C_SCL_PIN       = 17;
-  cfg.NVM_I2C_SDA_PIN       = 16;
-  cfg.NVM_I2C_ADR_ROOT      = 0x50;
-
-  cfg.EXT_I2C_SCL_PIN       = 3;
-  cfg. EXT_I2C_SDA_PIN      = 2;
-  cfg.EXT_I2C_ADR_ROOT      = 0x50;
-
-  CDC::printConfigInfo( &cfg );
-}
+    CDC_PIN_EXT_I2C_SCL     = 17,
+    CDC_PIN_EXT_I2C_SDA     = 16
+};
 
 //----------------------------------------------------------------------------------------------------------
 // Init the library...
@@ -83,29 +97,33 @@ void setupConfigInfo( ) {
 //----------------------------------------------------------------------------------------------------------
 void initCdcLib( ) {
 
-  CDC::sleepMillis( 2000 );
+    cdcInit( );
+    configureConsoleIO( );
 
-  printf( "Test LCS Controller dependent code library\n" );
+    configureController(    CDC_CF_RP_PICO, 
+                            CDC_CF_C_RP_2040, 
+                            260 * 1024,
+                            0, 
+                            2000, 
+                            3300, 
+                            1024, 
+                            CDC_PIN_LED, 
+                            CDC_PIN_PFAIL );
 
-  setupConfigInfo( );
- 
-  int rStat = CDC::init( &cfg );
-  
-  CDC::printConfigInfo( &cfg );
-
-  if ( rStat != 0 ) printf( "Err code: %d\n", rStat );
-  else printf( "OK\n" );
+    sleepMillis( 2000 );
+    printf( "Test LCS Controller dependent code library\n" );
 }
 
 //----------------------------------------------------------------------------------------------------------
 // test the console IO.
 //
+// PIN 25 is the Led on the PICO board itself.
 //----------------------------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
-  CDC::configureDio( 25, CDC::CDC_DIO_OUT );
-  CDC::writeDio( 25, true );
-  CDC::sleepMillis( 1000 );
+  configureDio( CDC_RES_ID_PICO_LED, CDC_PIN_PICO_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+  writeDio( CDC_RES_ID_PICO_LED, true );
+  sleepMillis( 1000 );
 
   printf( "Test Console IO..\n" );
   printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
@@ -114,7 +132,7 @@ void testConsoleIO ( ) {
 
   while ( true ) {
 
-    char c = CDC::getConsoleChar( );
+    char c = getConsoleChar( );
     if ( c != 0 ) {
 
       if ( c == 'q' ) break;
@@ -141,11 +159,11 @@ void pfailCallback( uint8_t pin, uint8_t event ) {
 
 void testPfail( ) {
 
-  CDC::configureDio( cfg.PFAIL_PIN, CDC::CDC_DIO_IN );
-  CDC::registerDioCallback( cfg.PFAIL_PIN, CDC::CDC_EVT_LOW, pfailCallback );
+  configureDio( CDC_RES_ID_PFAIL,  CDC_PIN_PFAIL, UNDEFINED_PIN, CDC_DIO_IN );
+  registerDioCallback( CDC_RES_ID_PFAIL, CDC_EVT_LOW, pfailCallback );
   
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::CDC_DIO_OUT );
-  CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
+  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+  writeDio( CDC_RES_ID_LED, true );
   
   printf( "testPfail -> unplug the power cord \n" );
 }
@@ -156,17 +174,16 @@ void testPfail( ) {
 //----------------------------------------------------------------------------------------------------------
 void testLeds( ) {
 
-  printf( "testLeds\n" );
-
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
-
+  printf( "Active Led Test\n" );
+  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+  
   while ( true ) {
 
-    CDC::writeDio( cfg.ACTIVE_LED_PIN, true );
-    CDC::sleepMillis( 500 );
+    writeDio( CDC_RES_ID_LED, true );
+    sleepMillis( 500 );
     
-    CDC::writeDio( cfg.ACTIVE_LED_PIN, false );
-    CDC::sleepMillis( 500 );
+    writeDio( CDC_RES_ID_LED, false );
+    sleepMillis( 500 );
   }
 }
 
@@ -177,8 +194,7 @@ void testLeds( ) {
 void testFatalErr( ) {
 
   printf( "Fatal Error Test\n" );
-
-  CDC::fatalError( 4 );
+  fatalError( 4 );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -188,32 +204,50 @@ void testFatalErr( ) {
 //----------------------------------------------------------------------------------------------------------
 void testDioInput( ) {
 
-  printf( "testDioInput\n" );
+    printf( "DIO input test\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_1, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_2, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_3, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_4, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_5, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_6, CDC::DIO_IN_PULLUP );
-  CDC::configureDio( cfg.DIO_PIN_7, CDC::DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_0, CDC_PIN_DIO_0, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_1, CDC_PIN_DIO_1, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_2, CDC_PIN_DIO_2, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_3, CDC_PIN_DIO_3, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_4, CDC_PIN_DIO_4, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_5, CDC_PIN_DIO_5, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_6, CDC_PIN_DIO_6, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( CDC_RES_ID_DIO_7, CDC_PIN_DIO_7, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
 
-  while ( true ) {
+    while ( true ) {
 
-    CDC::sleepMillis( 1000 );
-    CDC::toggleDio( cfg.ACTIVE_LED_PIN );
+        sleepMillis( 1000 );
+        toggleDio( CDC_RES_ID_LED );
 
-    printf( "Econ Dio In 0: %d\n", CDC::readDio( cfg.DIO_PIN_0 ));
-    printf( "Econ Dio In 1: %d\n", CDC::readDio( cfg.DIO_PIN_1 ));
-    printf( "Econ Dio In 2: %d\n", CDC::readDio( cfg.DIO_PIN_2 ));
-    printf( "Econ Dio In 3: %d\n", CDC::readDio( cfg.DIO_PIN_3 ));
-    printf( "Econ Dio In 4: %d\n", CDC::readDio( cfg.DIO_PIN_4 ));
-    printf( "Econ Dio In 5: %d\n", CDC::readDio( cfg.DIO_PIN_5 ));
-    printf( "Econ Dio In 6: %d\n", CDC::readDio( cfg.DIO_PIN_6 ));
-    printf( "Econ Dio In 7: %d\n", CDC::readDio( cfg.DIO_PIN_7 ));
-  }
+        bool val;
+        uint8_t rStat;
+
+        rStat = readDio( CDC_RES_ID_DIO_0, &val );
+        printf( "Econ Dio In 0: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_1, &val );
+        printf( "Econ Dio In 1: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_2, &val );
+        printf( "Econ Dio In 2: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_3, &val );
+        printf( "Econ Dio In 3: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_4, &val );
+        printf( "Econ Dio In 4: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_5, &val );
+        printf( "Econ Dio In 5: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_6, &val );
+        printf( "Econ Dio In 6: %d\n", val );
+
+        rStat = readDio( CDC_RES_ID_DIO_7, &val );
+        printf( "Econ Dio In 7: %d\n", val );
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -223,110 +257,101 @@ void testDioInput( ) {
 //----------------------------------------------------------------------------------------------------------
 void testDioOutput( ) {
 
-  printf( "testDioOutput\n" );
+    printf( "DIO output test\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_1, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_2, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_3, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_4, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_5, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_6, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_7, CDC::DIO_OUT );
+    configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_0, CDC_PIN_DIO_0, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_1, CDC_PIN_DIO_1, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_2, CDC_PIN_DIO_2, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_3, CDC_PIN_DIO_3, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_4, CDC_PIN_DIO_4, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_5, CDC_PIN_DIO_5, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_6, CDC_PIN_DIO_6, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( CDC_RES_ID_DIO_7, CDC_PIN_DIO_7, UNDEFINED_PIN, CDC_DIO_OUT );
 
-  while ( true ) {
+    while ( true ) {
 
-    CDC::toggleDio( cfg.ACTIVE_LED_PIN );
-    CDC::writeDio( cfg.DIO_PIN_0, false );
-    CDC::writeDio( cfg.DIO_PIN_1, false );
-    CDC::writeDio( cfg.DIO_PIN_2, false );
-    CDC::writeDio( cfg.DIO_PIN_3, false );
-    CDC::writeDio( cfg.DIO_PIN_4, false );
-    CDC::writeDio( cfg.DIO_PIN_5, false );
-    CDC::writeDio( cfg.DIO_PIN_6, false );
-    CDC::writeDio( cfg.DIO_PIN_7, false );
-    CDC::sleepMillis( 1000 );
+        toggleDio( CDC_RES_ID_LED );
+        writeDio( CDC_RES_ID_DIO_0, false );
+        writeDio( CDC_RES_ID_DIO_1, false );
+        writeDio( CDC_RES_ID_DIO_2, false );
+        writeDio( CDC_RES_ID_DIO_3, false );
+        writeDio( CDC_RES_ID_DIO_4, false );
+        writeDio( CDC_RES_ID_DIO_5, false );
+        writeDio( CDC_RES_ID_DIO_6, false );
+        writeDio( CDC_RES_ID_DIO_7, false );
+        sleepMillis( 1000 );
 
-    CDC::writeDio( cfg.DIO_PIN_0, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_1, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_2, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_3, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_4, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_5, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_6, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDio( cfg.DIO_PIN_7, true );
-    CDC::sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_0, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_1, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_2, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_3, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_4, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_5, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_6, true );
+        sleepMillis( 500 );
+        writeDio( CDC_RES_ID_DIO_7, true );
+        sleepMillis( 500 );
   }
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Test the DIO pin pairs. Use a LED array and connect the pins of the extension connector to it. You
-// should see a binary counting up. The toggle Led just indicates that the board is basically working.
+// Test the DIO pin pairs. We use the first four resource IDs and pass two pins at configuration time.
 //
 //----------------------------------------------------------------------------------------------------------
 void testDioOutputPair( ) {
 
-  printf( "testDioOutputPair\n" );
+  printf( "DIO output pair test\n" );
 
-  CDC::configureDio( cfg.ACTIVE_LED_PIN, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_1, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_2, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_3, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_4, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_5, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_6, CDC::DIO_OUT );
-  CDC::configureDio( cfg.DIO_PIN_7, CDC::DIO_OUT );
+  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+  configureDio( CDC_RES_ID_DIO_0, CDC_PIN_DIO_0, CDC_PIN_DIO_1, CDC_DIO_OUT );
+  configureDio( CDC_RES_ID_DIO_1, CDC_PIN_DIO_2, CDC_PIN_DIO_3, CDC_DIO_OUT );
+  configureDio( CDC_RES_ID_DIO_2, CDC_PIN_DIO_4, CDC_PIN_DIO_5, CDC_DIO_OUT );
+  configureDio( CDC_RES_ID_DIO_3, CDC_PIN_DIO_6, CDC_PIN_DIO_7, CDC_DIO_OUT );
 
   while ( true ) {
 
-    CDC::toggleDio( cfg.ACTIVE_LED_PIN );
+    toggleDio( CDC_RES_ID_LED );
 
-    CDC::writeDio( cfg.DIO_PIN_0, false );
-    CDC::writeDio( cfg.DIO_PIN_1, false );
-    CDC::writeDio( cfg.DIO_PIN_2, false );
-    CDC::writeDio( cfg.DIO_PIN_3, false );
-    CDC::writeDio( cfg.DIO_PIN_4, false );
-    CDC::writeDio( cfg.DIO_PIN_5, false );
-    CDC::writeDio( cfg.DIO_PIN_6, false );
-    CDC::writeDio( cfg.DIO_PIN_7, false );
-    CDC::sleepMillis( 1000 );
+    writeDio( CDC_RES_ID_DIO_0, false, false );
+    writeDio( CDC_RES_ID_DIO_1, false, false );
+    writeDio( CDC_RES_ID_DIO_2, false, false );
+    writeDio( CDC_RES_ID_DIO_3, false, false );
+    sleepMillis( 1000 );
 
-    CDC::writeDioPair( cfg.DIO_PIN_0, true, cfg.DIO_PIN_1, false );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_0, false, cfg.DIO_PIN_1, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_0, true, cfg.DIO_PIN_1, true );
-    CDC::sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_0, true, false );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_0, false, true );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_0, true, true );
+    sleepMillis( 500 );
 
-    CDC::writeDioPair( cfg.DIO_PIN_2, true, cfg.DIO_PIN_3, false );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_2, false, cfg.DIO_PIN_3, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_2, true, cfg.DIO_PIN_3, true );
-    CDC::sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_1, true, false );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_1, false, true );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_1, true, true );
+    sleepMillis( 500 );
 
-    CDC::writeDioPair( cfg.DIO_PIN_4, true, cfg.DIO_PIN_5, false );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_4, false, cfg.DIO_PIN_5, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_4, true, cfg.DIO_PIN_5, true );
-    CDC::sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_2, true, false );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_2, false, true );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_2, true, true );
+    sleepMillis( 500 );
 
-    CDC::writeDioPair( cfg.DIO_PIN_6, true, cfg.DIO_PIN_7, false );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_6, false, cfg.DIO_PIN_7, true );
-    CDC::sleepMillis( 500 );
-    CDC::writeDioPair( cfg.DIO_PIN_6, true, cfg.DIO_PIN_7, true );
-    CDC::sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_3, true, false );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_3, false, true );
+    sleepMillis( 500 );
+    writeDio( CDC_RES_ID_DIO_3, true, true );
+    sleepMillis( 500 );
   }
 }
 
@@ -336,44 +361,58 @@ void testDioOutputPair( ) {
 //----------------------------------------------------------------------------------------------------------
 void testAdcBlockingRead( ) {
 
-  float digitToVolt = (float) CDC::getAdcRefVoltage( ) / (float) CDC::getAdcDigitRange( ) / 1000;
+  float digitToVolt = (float) 3300 / 1024 / 1000; // quick hack ...
 
-  printf( "adcBlockingRead\n" );
+  printf( "ADC read test\n" );
 
-  CDC::configureAdc( cfg.ADC_PIN_0 );
-  CDC::configureAdc( cfg.ADC_PIN_1 );
-
-  uint16_t val;
-
+  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+  configureAdc( CDC_RES_ID_ADC_0, CDC_PIN_ADC_0 );
+  configureAdc( CDC_RES_ID_ADC_1, CDC_PIN_ADC_1 );
+  
   while ( true ) {
 
-    val = CDC::readAdc( cfg.ADC_PIN_0 );
-    printf( "ADC -> (%d:%d:%d)\n", cfg.ADC_PIN_0, val, val * digitToVolt );
-    CDC::sleepMillis( 1000 );
+    uint16_t    val;
+    uint8_t     rStat = readAdc( CDC_RES_ID_ADC_0, &val );
 
-    val = CDC::readAdc( cfg.ADC_PIN_1 );
-    printf( "ADC -> (%d:%d:%d)\n", cfg.ADC_PIN_1, val, val * digitToVolt );
-    CDC::sleepMillis( 1000 );
+    printf( "ADC -> ( resId: %d, val: %d, Volt: %d )\n", CDC_RES_ID_ADC_0, val, val * digitToVolt );
+    sleepMillis( 1000 );
+
+    rStat = readAdc( CDC_RES_ID_ADC_1, &val );
+
+    printf( "ADC -> ( resId: %d, val: %d, Volt: %d )\n", CDC_RES_ID_ADC_1, val, val * digitToVolt );
+    sleepMillis( 1000 );
   }
 }
 
 //----------------------------------------------------------------------------------------------------------
-// Test the timer interrupt. The callback function is invoked an we display the that the timer fired. The
-// toggle Led just indicates that the board is basically working.
+// Test the timer interrupt. The callback functions are invoked an we display the that the timer fired. 
 //
 //----------------------------------------------------------------------------------------------------------
-void timerCallback( uint32_t timerVal) {
+void timerCallback0( uint32_t timerVal ) {
 
-  printf( "Timer fired: %d\n", CDC::getMillis( ));
+    printf( "Timer 0 fired: %d\n", getMillis( ));
+}
+
+void timerCallback1( uint32_t timerVal ) {
+
+    printf( "Timer 1 fired: %d\n", getMillis( ));
 }
 
 void testTimer( ) {
 
-  printf( "testTimer\n" );
-  CDC::onTimerEvent( timerCallback );
-  CDC::startRepeatingTimer( 500000 );
+    printf( "Timer test\n" );
 
-  while ( true ) { }
+    uint8_t rStat = configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+
+    rStat = configureTimer( CDC_RES_ID_TIMER_0, timerCallback0 );
+    rStat = configureTimer( CDC_RES_ID_TIMER_1, timerCallback1 );
+
+    writeDio( CDC_RES_ID_LED, true );
+
+    startRepeatingTimer( CDC_RES_ID_TIMER_0, 500000 );
+    startRepeatingTimer( CDC_RES_ID_TIMER_1, 250000 );
+
+    while ( true ) { }
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -386,38 +425,32 @@ void testI2C( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// "testSPI" uses the SPI bus. Currently, there is no project that uses the SPI code. To be debugged when 
-// we have such a case.
-//
-//----------------------------------------------------------------------------------------------------------
-void testSPI( ) {
-
-}
-
-//----------------------------------------------------------------------------------------------------------
 // "testPWMFixed" tests the PWM functionality of the DIO pins 6 and 7. We will just configure the two ports,
 // set the frequency and three values to see of the duty cycle changes. Best to see on an Oscilloscope.
 //
 //----------------------------------------------------------------------------------------------------------
 void testPWMFixed( ) {
 
-  printf( "testPWMFixed\n" );
+  printf( "PWM fixed frequency test\n" );
 
-  uint32_t fPWM = 100;
+  uint32_t fPWM  = 100;
+  uint8_t  rStat = configureDio( CDC_RES_ID_LED, CDC_PIN_LED, 0, CDC_DIO_OUT );
 
-  CDC::configurePwm( cfg.DIO_PIN_6, cfg.DIO_PIN_7, fPWM );
+  configurePwm( CDC_RES_ID_PWM_0, CDC_PIN_PWM_0, UNDEFINED_PIN, fPWM );
 
-  while ( true ) {
+    while ( true ) {
 
-    CDC::writePwm( cfg.DIO_PIN_6, 127, 63 );
-    CDC::sleepMillis( 2000 );
+        toggleDio( CDC_RES_ID_LED );
+    
+        writePwm( CDC_RES_ID_PWM_0, 127, 63 );
+        sleepMillis( 2000 );
 
-    CDC::writePwm( cfg.DIO_PIN_6, 192, 127 );
-    CDC::sleepMillis( 2000 );
+        writePwm( CDC_RES_ID_PWM_0, 192, 127 );
+        sleepMillis( 2000 );
 
-    CDC::writePwm( cfg.DIO_PIN_6, 63, 192 );
-    CDC::sleepMillis( 2000 );
-  }
+        writePwm( CDC_RES_ID_PWM_0, 63, 192 );
+        sleepMillis( 2000 );
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -428,24 +461,28 @@ void testPWMFixed( ) {
 //----------------------------------------------------------------------------------------------------------
 void testPWMWithAnalogInput( ) {
 
-  printf( "testPWMWithAnalogInput\n" );
+    printf( "PWM with analog input test\n" );
 
-  uint32_t fPWM             = 100;
-  uint16_t dutyCycle        = 0;
-  uint16_t minimalThreshold = 6;
+    uint8_t  rStat = configureDio( CDC_RES_ID_LED, CDC_PIN_LED, 0, CDC_DIO_OUT );
 
-  CDC::configureAdc( cfg.ADC_PIN_0 );
-  CDC::configurePwm( cfg.DIO_PIN_6, cfg.DIO_PIN_7, fPWM );
+    uint32_t fPWM               = 100;
+    uint16_t dutyCycle          = 0;
+    uint16_t minimalThreshold   = 6;
+   
+    rStat = configureAdc( CDC_RES_ID_ADC_0, CDC_PIN_ADC_0 );
+    rStat = configurePwm( CDC_RES_ID_PWM_0, CDC_PIN_PWM_0, CDC_PIN_PWM_1, fPWM );
   
-  while ( true ) {
+    while ( true ) {
 
-    dutyCycle = CDC::readAdc( cfg.ADC_PIN_0 );
+        toggleDio( CDC_RES_ID_LED );
 
-    if ( dutyCycle < minimalThreshold ) dutyCycle = 0;
-    if ( dutyCycle > 255 )              dutyCycle = 255;
+        rStat = readAdc( CDC_RES_ID_ADC_0, &dutyCycle );
 
-    CDC::writePwm( cfg.DIO_PIN_6, dutyCycle, 0 );
-    CDC::sleepMillis( 100 );
+        if ( dutyCycle < minimalThreshold ) dutyCycle = 0;
+        if ( dutyCycle > 255 )              dutyCycle = 255;
+
+        writePwm( CDC_RES_ID_PWM_0, dutyCycle, 0 );
+        sleepMillis( 100 );
   }
 }
 
@@ -455,73 +492,38 @@ void testPWMWithAnalogInput( ) {
 //----------------------------------------------------------------------------------------------------------
 void testUIDGen( ) {
 
-  printf( "UID generation test\n" );
-  CDC::sleepMillis( 1000 );
+    printf( "UID generation test\n" );
+    sleepMillis( 1000 );
 
-  for ( int i = 0; i < 20; i++ ) {
+    for ( int i = 0; i < 20; i++ ) {
 
-    printf( "UID -> %d\n ", CDC::createUid( ));
-    CDC::sleepMillis( 100 );
-  }
+        printf( "UID -> %d\n ", createUid( ));
+        sleepMillis( 100 );
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------
-// "testRepeatingTimerWithDio" test the repeating timer ands emits an alternating signal to DIO_PIN_0.
-//
-//----------------------------------------------------------------------------------------------------------
-void timerRepeatingCallback( uint32_t timerVal ) {
-
-  CDC::setRepeatingTimerLimit(( CDC::getRepeatingTimerLimit( ) == 58 ) ? 116 : 58 );
-  CDC::toggleDio( cfg.DIO_PIN_0 );
-}
-
-void testRepeatingTimerWithDio( ) {
-
-  printf( "testRepeatingTimerWithDio\n" );
-
-  CDC::onTimerEvent( timerRepeatingCallback );
-  CDC::configureDio( cfg.DIO_PIN_0, CDC::DIO_OUT );
-  CDC::startRepeatingTimer( 58 );
-
-  while ( true ) { }
-}
-
-//----------------------------------------------------------------------------------------------------------
-// The crude test setup. The idea is to enable the respective test, compile, load and debug and go on to
-//  the next test.
-//
-//----------------------------------------------------------------------------------------------------------
-void testCases( ) {
-
-  initCdcLib( );
-
-  // testFatalErr( );
-  testConsoleIO( );
-  // testPfail( );
-  // testLeds( );
-  // testDioInput( );
-  // testDioOutput( );
-  // testDioOutputPair( );
-  // testAdcBlockingRead( );
-  // testTimer( );
-  // testI2C( );
-  // testSPI( );
-  // testPWMFixed( );
-  // testPWMWithAnalogInput( );
-  // testUIDGen( );
-  // testRepeatingTimerWithDio( );
-}
-
-//----------------------------------------------------------------------------------------------------------
-// Here we go ...
+// Main. A bit crude. Just enable what you want to test ...
 //
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-  CDC::configureConsoleIO( );
+    initCdcLib( );
 
-  fprintf( stdout, "LCS CDC Library Test Program...\n\n" );      
-   
-  testCases( );
-  return( 0 );
+    // testFatalErr( );
+    testConsoleIO( );
+    // testPfail( );
+    // testLeds( );
+    // testDioInput( );
+    // testDioOutput( );
+    // testDioOutputPair( );
+    // testAdcBlockingRead( );
+    // testTimer( );
+    // testI2C( );
+    // testSPI( );
+    // testPWMFixed( );
+    // testPWMWithAnalogInput( );
+    // testUIDGen( );
+
+    return( 0 );
 }

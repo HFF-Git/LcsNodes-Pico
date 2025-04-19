@@ -34,8 +34,6 @@ add_subdirectory( LcsBasicThrottle )
 add_subdirectory( LcsDieselThrottle )
 add_subdirectory( LcsDccMonitor )
 
-add_subdirectory( LcsBoardDescriptors )
-
 add_subdirectory( LcsLibraries/LcsCdcLib )
 add_subdirectory( LcsLibraries/LcsDccPktFmtLib )
 add_subdirectory( LcsLibraries/LcsDrvOccDetectLib )

@@ -233,7 +233,7 @@ uint8_t setupMsgBus( ) {
     uint8_t     canBusTxPin     = 0;
     uint8_t     canBusRxPin     = 0;
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_MSG_BUS )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) {
 
         printf( "setupMsgBus -> %d:%d:%d%d\n", nodeMap.nodeId, canBusRxPin, canBusTxPin, canBusCtrlMode );
     }
@@ -259,14 +259,14 @@ uint8_t setupMsgBus( ) {
 
     if ( rStat != ALL_OK ) {
 
-         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_MSG_BUS )) 
+         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) 
             printf( "setup CAN Bus failed: %d\n", rStat );
 
         return ( ERR_CAN_SETUP );
     }
      else {
 
-         if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_MSG_BUS )) printf( " -> OK\n" );
+         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) printf( " -> OK\n" );
         return ( ALL_OK );
     }
 }
@@ -285,7 +285,7 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 
     if ( rStat == ALL_OK )  {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_MSG_BUS )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) {
             
              printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
         }

@@ -26,11 +26,23 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------------------------
-// The default CDC configuration data.
 //
+// Quick hack for configuring the two I2C channels...
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc cfg = CDC::getConfigDefault( );
+const uint8_t RES_ID_LED        = 1;
+const uint8_t RES_ID_NVM_I2C    = 2;
+const uint8_t RES_ID_EXT_I2C    = 3;
+
+const uint8_t LED_PIN           = 15;  
+
+const uint8_t NVM_I2C_SCL_PIN   = 3;
+const uint8_t NVM_I2C_SDA_PIN   = 2;
+
+const uint8_t EXT_I2C_SCL_PIN   = 17;
+const uint8_t EXT_I2C_SDA_PIN   = 16;
 
 //----------------------------------------------------------------------------------------------------------
 // Init the CDC library.
@@ -38,27 +50,54 @@ CDC::CdcConfigDesc cfg = CDC::getConfigDefault( );
 //----------------------------------------------------------------------------------------------------------
 uint8_t initCdcLib( ) {
 
-  CDC::sleepMillis( 2000 );
-  CDC::configureConsoleIO( );
+    cdcInit( );
+    sleepMillis( 2000 );
+    configureConsoleIO( );
 
-  cfg.NVM_I2C_SCL_PIN = 3;
-  cfg.NVM_I2C_SDA_PIN = 2;
+    configureController(    CDC_CF_RP_PICO, 
+                            CDC_CF_C_RP_2040, 
+                            260 * 1024,
+                            0, 
+                            2000, 
+                            3300, 
+                            1024, 
+                            LED_PIN, 
+                            CDC::UNDEFINED_PIN );
 
-  cfg.EXT_I2C_SCL_PIN = 17;
-  cfg.EXT_I2C_SDA_PIN = 16;
+    return ( NO_ERR );
+}
 
-  return( CDC::init( &cfg ));
+//----------------------------------------------------------------------------------------------------------
+// Set up Active LED pin and set it to on.
+//
+//----------------------------------------------------------------------------------------------------------
+uint8_t configureLed( ) {
+
+    uint8_t rStat = configureDio( RES_ID_LED, LED_PIN, 0, CDC_DIO_OUT );
+    if ( rStat == NO_ERR ) writeDio( RES_ID_LED, true );
+
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
 // Configure the two I2C channels.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t configI2C( uint8_t sclPin, uint8_t sdaPin ) {
+uint8_t configureI2cChannels(  ) {
 
-  printf( "Configuring the I2C Bus, sclPin: %d, sdaPin: %d\n", sclPin, sdaPin );
+    uint8_t rStat = configureI2C( RES_ID_NVM_I2C, NVM_I2C_SCL_PIN, NVM_I2C_SDA_PIN );
+    if ( rStat != NO_ERR ) {
 
-  return( CDC::configureI2C( sclPin, sdaPin ));
+        printf( "Error configuring NVM I2C channel: %d\n", rStat );
+    }
+
+    rStat = CDC::configureI2C( RES_ID_EXT_I2C, EXT_I2C_SCL_PIN, EXT_I2C_SDA_PIN );
+    if ( rStat != NO_ERR ) {
+
+        printf( "Error configuring EXT I2C channel: %d\n", rStat );
+    }
+
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -66,18 +105,18 @@ uint8_t configI2C( uint8_t sclPin, uint8_t sdaPin ) {
 // address is printed.
 //
 //----------------------------------------------------------------------------------------------------------
-void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
+void scanI2cBus( uint8_t resId ) {
 
   uint8_t rStat     = 0;
   uint8_t i2cAdr    = 0;
   uint8_t nDevices  = 0;
   uint8_t buf       = 0;
 
-  printf( "Scanning for I2C Bus, sclPin: %d, sdaPin: %d\n", sclPin, sdaPin );
+  printf( "Scanning for I2C Bus, resId: %d\n", resId );
 
   for ( i2cAdr = 1; i2cAdr < 127; i2cAdr++ ) {
     
-    rStat = CDC::i2cRead( sclPin, i2cAdr, &buf, 1 );
+    rStat = CDC::i2cRead( resId, i2cAdr, &buf, 1 );
 
     if ( rStat == 0 ) {
 
@@ -97,51 +136,28 @@ void scanI2CBus( uint8_t sclPin, uint8_t sdaPin ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-  uint8_t rStat = initCdcLib( ); 
+    uint8_t rStat = initCdcLib( ); 
 
-  CDC::sleepMillis( 5000 );
-
-  if ( rStat != 0 ) {
-    
-    printf( "Init CDC Library, Err code: %d\n", rStat );
-    return( -1 );
-  }
-
-  rStat = configI2C( cfg.NVM_I2C_SCL_PIN, cfg.NVM_I2C_SDA_PIN );
-  if ( rStat != CDC::NO_ERR ) {
-
-    printf( "Configuring NVM I2C, error: %d\n", rStat );
-  }
-
-  rStat = configI2C( cfg.EXT_I2C_SCL_PIN, cfg.EXT_I2C_SDA_PIN );
-  if ( rStat != CDC::NO_ERR ) {
-
-    printf( "Configuring EXT I2C, error: %d\n", rStat );
-  }
-
-  int scanCount = 0;  
+    rStat = configureI2cChannels( );
+    rStat = configureLed( );
+ 
+    int scanCount = 0;  
   
-  while( true ) {
+    while( true ) {
 
-    printf( "Scanning (%d) ... \n", scanCount );
+        printf( "Scanning (%d) ... \n", scanCount );
 
-    if ( cfg.NVM_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) {
+        printf( "Scanning NVM I2C Bus\n" );
+        scanI2cBus( RES_ID_NVM_I2C );
+        printf( "\n" );
 
-      printf( "Scanning NVM I2C Bus\n" );
-      scanI2CBus(  cfg.NVM_I2C_SCL_PIN, cfg.NVM_I2C_SDA_PIN );
-      printf( "\n" );
+        printf( "Scanning EXT I2C Bus\n" );
+        scanI2cBus( RES_ID_EXT_I2C );
+        printf( "\n" );
+
+        scanCount++;
+        sleepMillis( 5000 );
     }
-
-    if ( cfg.EXT_I2C_SCL_PIN != CDC::UNDEFINED_PIN ) {
-
-      printf( "Scanning EXT I2C Bus\n" );
-      scanI2CBus(  cfg.EXT_I2C_SCL_PIN, cfg.EXT_I2C_SDA_PIN );
-      printf( "\n" );
-    }
-
-    scanCount++;
-    CDC::sleepMillis( 5000 );
-  }
   
-  return( 0 );
+    return( 0 );
 }

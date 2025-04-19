@@ -32,7 +32,6 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
 #include <inttypes.h>
-#include "LcsBoardDescriptors.h"
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -454,13 +453,13 @@ enum LcsItems : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 enum DebugOtions : uint16_t {
 
-    DBG_CONFIG          = ( 1U << 15 ),
-    DBG_SETUP           = ( 1U << 0 ),
-    DBG_NVM_ACCESS      = ( 1U << 1 ),
-    DBG_CAN_BUS         = ( 1U << 2 ),
-    DBG_MSG_BUS         = ( 1U << 3 ),
-    DBG_ATTRIBUTES      = ( 1U << 4 ),
-    DBG_EVENTS          = ( 1U << 5 )
+    LCS_DBG_CONFIG          = ( 1U << 15 ),
+    LCS_DBG_SETUP           = ( 1U << 0 ),
+    LCS_DBG_NVM_ACCESS      = ( 1U << 1 ),
+    LCS_DBG_CAN_BUS         = ( 1U << 2 ),
+    LCS_DBG_MSG_BUS         = ( 1U << 3 ),
+    LCS_DBG_ATTRIBUTES      = ( 1U << 4 ),
+    LCS_DBG_EVENTS          = ( 1U << 5 )
 };
 
 //---------------------------------------------------------------------------------------------------------

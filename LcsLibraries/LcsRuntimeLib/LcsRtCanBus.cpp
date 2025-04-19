@@ -107,7 +107,7 @@ queue_t                 rxQueue;
 //------------------------------------------------------------------------------------------------------------
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
         printf( "Ret: %d\n", errId );
     }
@@ -179,7 +179,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 //------------------------------------------------------------------------------------------------------------
 void canBusCore( ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
         printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
                 cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
@@ -209,7 +209,7 @@ void canBusCore( ) {
 
     cfg.mcSetupOK = true;
 
-   if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+   if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
         printf( "CAN Bus Initialized, runs on Core: %d\n", get_core_num( ));
     }
@@ -237,7 +237,7 @@ namespace LCS {
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
         printf( "Init Can Bus -> Node: 0x%x, RxPin: %d, TxPin: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
     }
@@ -305,7 +305,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
-    if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
         printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
@@ -344,7 +344,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
     if ( queue_try_remove( &rxQueue, &msg )) {
 
-        if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_CAN_BUS )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
             printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
             for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );
