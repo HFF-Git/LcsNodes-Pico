@@ -56,17 +56,43 @@
 //
 //
 //------------------------------------------------------------------------------------------------------------
-#define           DEBUG_PACKET_FORMATTER          1
+#define DEBUG_PACKET_FORMATTER 1
 
-//------------------------------------------------------------------------------------------------------------
-//
-// ??? quick hack to get the new CDC lib going ...
-//------------------------------------------------------------------------------------------------------------
-const uint8_t CDC_RES_ID_EXT_INT    = 1;
-const uint8_t CDC_RES_ID_LED        = 2;
+using namespace CDC;
 
-const uint8_t CDC_EXT_INT_PIN       = 22;
-const uint8_t CDC_LED_PIN           = 15;
+CdcResourceMap cMap = {
+
+    .cFamily                = CDC_CF_RP_PICO,
+    .cType                  = CDC_CF_C_RP_2040,
+    .memorySize             = 260 * 1024,
+
+    .adcRefVoltageMillis    = 3300,
+    .adcDigitRange          = 1024,
+
+    .ledPin                 = 15,
+    .pFailPin               = 7,
+    
+    .adcPin_0               = 26,
+    .adcPin_1               = 27,
+
+    .dioPin_0               = 22, // used external int pin ????
+    .dioPin_1               = 9,
+    .dioPin_2               = 10,
+    .dioPin_3               = 11,
+    .dioPin_4               = 21,
+    .dioPin_5               = 20,
+    .dioPin_6               = 19,
+    .dioPin_7               = 18,
+
+    .pwmPin_0               = 20,
+    .pwmPin_1               = 21,
+  
+    .i2cSclPin_0            = 3,
+    .i2cSdaPin_0            = 2,
+
+    .i2cSclPin_1            = 17,
+    .i2cSdaPin_1            = 16,
+};
 
 //------------------------------------------------------------------------------------------------------------
 // Configuration settings.
@@ -178,7 +204,7 @@ void fillPacket( );
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    CDC::cdcInit( );
+    CDC::cdcInit( &cMap );
     CDC::configureConsoleIO( );
 }
 
@@ -266,8 +292,8 @@ void startBitDetection( ) {
 
   uint8_t rStat;
 
-  rStat = CDC::configureDio( CDC_RES_ID_EXT_INT, CDC_EXT_INT_PIN, 0, CDC::CDC_DIO_IN );
-  rStat = CDC::registerDioCallback( CDC_RES_ID_EXT_INT, CDC::CDC_EVT_CHANGE, dccEdgeChange );
+  rStat = CDC::configureDio( cMap.dioPin_0, CDC_DIO_IN );
+  rStat = CDC::registerDioCallback( cMap.dioPin_0, CDC_EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );

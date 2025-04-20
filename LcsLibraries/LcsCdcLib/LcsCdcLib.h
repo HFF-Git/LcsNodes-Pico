@@ -274,7 +274,7 @@ struct CdcResourceMap {
     uint8_t     i2cBaudrate_0;
 
     uint8_t     i2cSclPin_1;
-    uint8_t     i2cSdaPin_2;
+    uint8_t     i2cSdaPin_1;
     uint8_t     i2cBaudrate_3;
 
     uint8_t     uartRxPin_0;

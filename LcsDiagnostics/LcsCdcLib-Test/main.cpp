@@ -27,68 +27,41 @@
 //------------------------------------------------------------------------------------------------------------
 
 #include "LcsCdcLib.h"
-#include "LcsBoardGenericCdcLib.h"
 
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
-//
-// ??? quick hack to get the new CDC lib going ...
-//------------------------------------------------------------------------------------------------------------
-enum CdcResIdList : uint8_t {
+CdcResourceMap cMap = {
 
-    CDC_RES_ID_PFAIL        = 1,
-    CDC_RES_ID_LED          = 2,
-    CDC_RES_ID_EXT_INT      = 3,
-    CDC_RES_ID_ADC_0        = 4,
-    CDC_RES_ID_ADC_1        = 5,
-    CDC_RES_ID_PWM_0        = 6,
-    CDC_RES_ID_PWM_1        = 7,
+    .cFamily                = CDC_CF_RP_PICO,
+    .cType                  = CDC_CF_C_RP_2040,
+    .memorySize             = 260 * 1024,
+
+    .adcRefVoltageMillis    = 3300,
+    .adcDigitRange          = 1024,
+
+    .ledPin                 = 15,
+    .pFailPin               = 7,
     
-    CDC_RES_ID_DIO_0        = 10,
-    CDC_RES_ID_DIO_1        = 11,
-    CDC_RES_ID_DIO_2        = 12,
-    CDC_RES_ID_DIO_3        = 13,
-    CDC_RES_ID_DIO_4        = 14,
-    CDC_RES_ID_DIO_5        = 15,
-    CDC_RES_ID_DIO_6        = 16,
-    CDC_RES_ID_DIO_7        = 17,
-    
-    CDC_RES_ID_NVM_I2C      = 20,
-    CDC_RES_ID_EXT_I2C      = 21,
-    CDC_RES_ID_PICO_LED     = 22,
-    CDC_RES_ID_TIMER_0      = 23,
-    CDC_RES_ID_TIMER_1      = 24
-};
+    .adcPin_0               = 26,
+    .adcPin_1               = 27,
 
-enum CdcPins : uint8_t {
+    .dioPin_0               = 8,
+    .dioPin_1               = 9,
+    .dioPin_2               = 10,
+    .dioPin_3               = 11,
+    .dioPin_4               = 21,
+    .dioPin_5               = 20,
+    .dioPin_6               = 19,
+    .dioPin_7               = 18,
 
-    CDC_PIN_PICO_LED        = 25,
+    .pwmPin_0               = 20,
+    .pwmPin_1               = 21,
+  
+    .i2cSclPin_0            = 3,
+    .i2cSdaPin_0            = 2,
 
-    CDC_PIN_PFAIL           = 7,
-    CDC_PIN_LED             = 15,
-    CDC_PIN_EXT_INT         = 22,
-   
-    CDC_PIN_ADC_0           = 26,
-    CDC_PIN_ADC_1           = 27,
-
-    CDC_PIN_PWM_0           = 20,
-    CDC_PIN_PWM_1           = 21,
-    
-    CDC_PIN_DIO_0           = 8,
-    CDC_PIN_DIO_1           = 9,
-    CDC_PIN_DIO_2           = 10,
-    CDC_PIN_DIO_3           = 11,
-    CDC_PIN_DIO_4           = 21,
-    CDC_PIN_DIO_5           = 20,
-    CDC_PIN_DIO_6           = 19,
-    CDC_PIN_DIO_7           = 18,
-    
-    CDC_PIN_NVM_I2C_SCL     = 3,
-    CDC_PIN_NVM_I2C_SDA     = 2,
-
-    CDC_PIN_EXT_I2C_SCL     = 17,
-    CDC_PIN_EXT_I2C_SDA     = 16
+    .i2cSclPin_1            = 17,
+    .i2cSdaPin_1            = 16,
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -97,19 +70,8 @@ enum CdcPins : uint8_t {
 //----------------------------------------------------------------------------------------------------------
 void initCdcLib( ) {
 
-    cdcInit( );
+    cdcInit( &cMap );
     configureConsoleIO( );
-
-    configureController(    CDC_CF_RP_PICO, 
-                            CDC_CF_C_RP_2040, 
-                            260 * 1024,
-                            0, 
-                            2000, 
-                            3300, 
-                            1024, 
-                            CDC_PIN_LED, 
-                            CDC_PIN_PFAIL );
-
     sleepMillis( 2000 );
     printf( "Test LCS Controller dependent code library\n" );
 }
@@ -121,8 +83,8 @@ void initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
-  configureDio( CDC_RES_ID_PICO_LED, CDC_PIN_PICO_LED, UNDEFINED_PIN, CDC_DIO_OUT );
-  writeDio( CDC_RES_ID_PICO_LED, true );
+  configureDio( cMap.ledPin, CDC_DIO_OUT );
+  writeDio( cMap.ledPin, true );
   sleepMillis( 1000 );
 
   printf( "Test Console IO..\n" );
@@ -159,11 +121,11 @@ void pfailCallback( uint8_t pin, uint8_t event ) {
 
 void testPfail( ) {
 
-  configureDio( CDC_RES_ID_PFAIL,  CDC_PIN_PFAIL, UNDEFINED_PIN, CDC_DIO_IN );
-  registerDioCallback( CDC_RES_ID_PFAIL, CDC_EVT_LOW, pfailCallback );
+  configureDio( cMap.pFailPin, CDC_DIO_IN );
+  registerDioCallback( cMap.pFailPin, CDC_EVT_LOW, pfailCallback );
   
-  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
-  writeDio( CDC_RES_ID_LED, true );
+  configureDio( cMap.ledPin, CDC_DIO_OUT );
+  writeDio( cMap.ledPin, true );
   
   printf( "testPfail -> unplug the power cord \n" );
 }
@@ -175,14 +137,14 @@ void testPfail( ) {
 void testLeds( ) {
 
   printf( "Active Led Test\n" );
-  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+  configureDio( cMap.ledPin, CDC_DIO_OUT );
   
   while ( true ) {
 
-    writeDio( CDC_RES_ID_LED, true );
+    writeDio( cMap.ledPin, true );
     sleepMillis( 500 );
     
-    writeDio( CDC_RES_ID_LED, false );
+    writeDio( cMap.ledPin, false );
     sleepMillis( 500 );
   }
 }
@@ -206,46 +168,46 @@ void testDioInput( ) {
 
     printf( "DIO input test\n" );
 
-    configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_0, CDC_PIN_DIO_0, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_1, CDC_PIN_DIO_1, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_2, CDC_PIN_DIO_2, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_3, CDC_PIN_DIO_3, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_4, CDC_PIN_DIO_4, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_5, CDC_PIN_DIO_5, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_6, CDC_PIN_DIO_6, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( CDC_RES_ID_DIO_7, CDC_PIN_DIO_7, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-
+    configureDio( cMap.ledPin, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_0, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_1, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_2, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_3, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_4, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_5, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_6, CDC_DIO_IN_PULLUP );
+    configureDio( cMap.dioPin_7, CDC_DIO_IN_PULLUP );
+   
     while ( true ) {
 
         sleepMillis( 1000 );
-        toggleDio( CDC_RES_ID_LED );
+        toggleDio( cMap.ledPin );
 
         bool val;
         uint8_t rStat;
 
-        rStat = readDio( CDC_RES_ID_DIO_0, &val );
+        rStat = readDio( cMap.dioPin_0, &val );
         printf( "Econ Dio In 0: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_1, &val );
+        rStat = readDio( cMap.dioPin_1, &val );
         printf( "Econ Dio In 1: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_2, &val );
+        rStat = readDio( cMap.dioPin_2, &val );
         printf( "Econ Dio In 2: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_3, &val );
+        rStat = readDio( cMap.dioPin_3, &val );
         printf( "Econ Dio In 3: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_4, &val );
+        rStat = readDio( cMap.dioPin_4, &val );
         printf( "Econ Dio In 4: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_5, &val );
+        rStat = readDio( cMap.dioPin_5, &val );
         printf( "Econ Dio In 5: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_6, &val );
+        rStat = readDio( cMap.dioPin_6, &val );
         printf( "Econ Dio In 6: %d\n", val );
 
-        rStat = readDio( CDC_RES_ID_DIO_7, &val );
+        rStat = readDio( cMap.dioPin_7, &val );
         printf( "Econ Dio In 7: %d\n", val );
     }
 }
@@ -259,44 +221,44 @@ void testDioOutput( ) {
 
     printf( "DIO output test\n" );
 
-    configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_0, CDC_PIN_DIO_0, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_1, CDC_PIN_DIO_1, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_2, CDC_PIN_DIO_2, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_3, CDC_PIN_DIO_3, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_4, CDC_PIN_DIO_4, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_5, CDC_PIN_DIO_5, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_6, CDC_PIN_DIO_6, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( CDC_RES_ID_DIO_7, CDC_PIN_DIO_7, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( cMap.ledPin, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_0, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_1, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_2, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_3, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_4, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_5, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_6, CDC_DIO_OUT );
+    configureDio( cMap.dioPin_7, CDC_DIO_OUT );
 
     while ( true ) {
 
-        toggleDio( CDC_RES_ID_LED );
-        writeDio( CDC_RES_ID_DIO_0, false );
-        writeDio( CDC_RES_ID_DIO_1, false );
-        writeDio( CDC_RES_ID_DIO_2, false );
-        writeDio( CDC_RES_ID_DIO_3, false );
-        writeDio( CDC_RES_ID_DIO_4, false );
-        writeDio( CDC_RES_ID_DIO_5, false );
-        writeDio( CDC_RES_ID_DIO_6, false );
-        writeDio( CDC_RES_ID_DIO_7, false );
+        toggleDio( cMap.ledPin);
+        writeDio( cMap.dioPin_0, false );
+        writeDio( cMap.dioPin_1, false );
+        writeDio( cMap.dioPin_2, false );
+        writeDio( cMap.dioPin_3, false );
+        writeDio( cMap.dioPin_4, false );
+        writeDio( cMap.dioPin_5, false );
+        writeDio( cMap.dioPin_6, false );
+        writeDio( cMap.dioPin_7, false );
         sleepMillis( 1000 );
 
-        writeDio( CDC_RES_ID_DIO_0, true );
+        writeDio( cMap.dioPin_0, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_1, true );
+        writeDio( cMap.dioPin_1, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_2, true );
+        writeDio( cMap.dioPin_2, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_3, true );
+        writeDio( cMap.dioPin_3, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_4, true );
+        writeDio( cMap.dioPin_4, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_5, true );
+        writeDio( cMap.dioPin_5, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_6, true );
+        writeDio( cMap.dioPin_6, true );
         sleepMillis( 500 );
-        writeDio( CDC_RES_ID_DIO_7, true );
+        writeDio( cMap.dioPin_7, true );
         sleepMillis( 500 );
   }
 }
@@ -309,48 +271,52 @@ void testDioOutputPair( ) {
 
   printf( "DIO output pair test\n" );
 
-  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
-  configureDio( CDC_RES_ID_DIO_0, CDC_PIN_DIO_0, CDC_PIN_DIO_1, CDC_DIO_OUT );
-  configureDio( CDC_RES_ID_DIO_1, CDC_PIN_DIO_2, CDC_PIN_DIO_3, CDC_DIO_OUT );
-  configureDio( CDC_RES_ID_DIO_2, CDC_PIN_DIO_4, CDC_PIN_DIO_5, CDC_DIO_OUT );
-  configureDio( CDC_RES_ID_DIO_3, CDC_PIN_DIO_6, CDC_PIN_DIO_7, CDC_DIO_OUT );
-
+  configureDio( cMap.ledPin, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_0, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_1, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_2, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_3, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_4, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_5, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_6, CDC_DIO_OUT );
+  configureDio( cMap.dioPin_7, CDC_DIO_OUT );
+  
   while ( true ) {
 
-    toggleDio( CDC_RES_ID_LED );
+    toggleDio( cMap.ledPin );
 
-    writeDio( CDC_RES_ID_DIO_0, false, false );
-    writeDio( CDC_RES_ID_DIO_1, false, false );
-    writeDio( CDC_RES_ID_DIO_2, false, false );
-    writeDio( CDC_RES_ID_DIO_3, false, false );
+    writeDioPair( cMap.dioPin_0, false, cMap.dioPin_1, false );
+    writeDioPair( cMap.dioPin_2, false, cMap.dioPin_3, false );
+    writeDioPair( cMap.dioPin_4, false, cMap.dioPin_5, false );   
+    writeDioPair( cMap.dioPin_6, false, cMap.dioPin_7, false );
     sleepMillis( 1000 );
 
-    writeDio( CDC_RES_ID_DIO_0, true, false );
+    writeDioPair( cMap.dioPin_0, true, cMap.dioPin_1, false );
     sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_0, false, true );
+    writeDioPair( cMap.dioPin_0, false, cMap.dioPin_1, true );
     sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_0, true, true );
-    sleepMillis( 500 );
-
-    writeDio( CDC_RES_ID_DIO_1, true, false );
-    sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_1, false, true );
-    sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_1, true, true );
+    writeDioPair( cMap.dioPin_0, true, cMap.dioPin_1, true );
     sleepMillis( 500 );
 
-    writeDio( CDC_RES_ID_DIO_2, true, false );
+    writeDioPair( cMap.dioPin_2, true, cMap.dioPin_3, false );
     sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_2, false, true );
+    writeDioPair( cMap.dioPin_2, false, cMap.dioPin_3, true );
     sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_2, true, true );
+    writeDioPair( cMap.dioPin_2, true, cMap.dioPin_3, true );
     sleepMillis( 500 );
 
-    writeDio( CDC_RES_ID_DIO_3, true, false );
+    writeDioPair( cMap.dioPin_4, true, cMap.dioPin_5, false );
     sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_3, false, true );
+    writeDioPair( cMap.dioPin_4, false, cMap.dioPin_5, true );
     sleepMillis( 500 );
-    writeDio( CDC_RES_ID_DIO_3, true, true );
+    writeDioPair( cMap.dioPin_4, true, cMap.dioPin_5, true );
+    sleepMillis( 500 );
+
+    writeDioPair( cMap.dioPin_6, true, cMap.dioPin_7, false );
+    sleepMillis( 500 );
+    writeDioPair( cMap.dioPin_6, false, cMap.dioPin_7, true );
+    sleepMillis( 500 );
+    writeDioPair( cMap.dioPin_6, true, cMap.dioPin_7, true );
     sleepMillis( 500 );
   }
 }
@@ -365,21 +331,21 @@ void testAdcBlockingRead( ) {
 
   printf( "ADC read test\n" );
 
-  configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
-  configureAdc( CDC_RES_ID_ADC_0, CDC_PIN_ADC_0 );
-  configureAdc( CDC_RES_ID_ADC_1, CDC_PIN_ADC_1 );
+  configureDio( cMap.ledPin, CDC_DIO_OUT );
+  configureAdc( cMap.adcPin_0 );
+  configureAdc( cMap.adcPin_1 );
   
   while ( true ) {
 
     uint16_t    val;
-    uint8_t     rStat = readAdc( CDC_RES_ID_ADC_0, &val );
+    uint8_t     rStat = readAdc( cMap.adcPin_0, &val );
 
-    printf( "ADC -> ( resId: %d, val: %d, Volt: %d )\n", CDC_RES_ID_ADC_0, val, val * digitToVolt );
+    printf( "ADC -> ( pin: %d, val: %d, Volt: %d )\n", cMap.adcPin_0, val, val * digitToVolt );
     sleepMillis( 1000 );
 
-    rStat = readAdc( CDC_RES_ID_ADC_1, &val );
+    rStat = readAdc( cMap.adcPin_1, &val );
 
-    printf( "ADC -> ( resId: %d, val: %d, Volt: %d )\n", CDC_RES_ID_ADC_1, val, val * digitToVolt );
+    printf( "ADC -> ( pin: %d, val: %d, Volt: %d )\n", cMap.adcPin_1, val, val * digitToVolt );
     sleepMillis( 1000 );
   }
 }
@@ -402,15 +368,17 @@ void testTimer( ) {
 
     printf( "Timer test\n" );
 
-    uint8_t rStat = configureDio( CDC_RES_ID_LED, CDC_PIN_LED, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( cMap.ledPin, CDC_DIO_OUT );
 
-    rStat = configureTimer( CDC_RES_ID_TIMER_0, timerCallback0 );
-    rStat = configureTimer( CDC_RES_ID_TIMER_1, timerCallback1 );
+    uint8_t rStat = NO_ERR;
 
-    writeDio( CDC_RES_ID_LED, true );
+    rStat = configureTimer( 100, timerCallback0 );
+    rStat = configureTimer( 200, timerCallback1 );
 
-    startRepeatingTimer( CDC_RES_ID_TIMER_0, 500000 );
-    startRepeatingTimer( CDC_RES_ID_TIMER_1, 250000 );
+    writeDio( cMap.ledPin, true );
+
+    startRepeatingTimer( 100, 500000 );
+    startRepeatingTimer( 100, 250000 );
 
     while ( true ) { }
 }
@@ -434,21 +402,22 @@ void testPWMFixed( ) {
   printf( "PWM fixed frequency test\n" );
 
   uint32_t fPWM  = 100;
-  uint8_t  rStat = configureDio( CDC_RES_ID_LED, CDC_PIN_LED, 0, CDC_DIO_OUT );
+  configureDio( cMap.ledPin, CDC_DIO_OUT );
 
-  configurePwm( CDC_RES_ID_PWM_0, CDC_PIN_PWM_0, UNDEFINED_PIN, fPWM );
+  configurePwm( cMap.pwmPin_0, fPWM );
+  configurePwm( cMap.pwmPin_1, fPWM );
 
     while ( true ) {
 
-        toggleDio( CDC_RES_ID_LED );
+        toggleDio( cMap.ledPin );
     
-        writePwm( CDC_RES_ID_PWM_0, 127, 63 );
+        writePwmPair( cMap.pwmPin_0, 127, 63 );
         sleepMillis( 2000 );
 
-        writePwm( CDC_RES_ID_PWM_0, 192, 127 );
+        writePwmPair( cMap.pwmPin_0, 192, 127 );
         sleepMillis( 2000 );
 
-        writePwm( CDC_RES_ID_PWM_0, 63, 192 );
+        writePwmPair( cMap.pwmPin_0, 63, 192 );
         sleepMillis( 2000 );
     }
 }
@@ -463,25 +432,26 @@ void testPWMWithAnalogInput( ) {
 
     printf( "PWM with analog input test\n" );
 
-    uint8_t  rStat = configureDio( CDC_RES_ID_LED, CDC_PIN_LED, 0, CDC_DIO_OUT );
+    configureDio( cMap.ledPin, CDC_DIO_OUT );
 
     uint32_t fPWM               = 100;
     uint16_t dutyCycle          = 0;
     uint16_t minimalThreshold   = 6;
+    uint8_t  rStat              = NO_ERR;
    
-    rStat = configureAdc( CDC_RES_ID_ADC_0, CDC_PIN_ADC_0 );
-    rStat = configurePwm( CDC_RES_ID_PWM_0, CDC_PIN_PWM_0, CDC_PIN_PWM_1, fPWM );
+    rStat = configureAdc( cMap.adcPin_0 );
+    rStat = configurePwm( cMap.pwmPin_0, fPWM );
   
     while ( true ) {
 
-        toggleDio( CDC_RES_ID_LED );
+        toggleDio( cMap.ledPin );
 
-        rStat = readAdc( CDC_RES_ID_ADC_0, &dutyCycle );
+        rStat = readAdc( cMap.adcPin_0, &dutyCycle );
 
         if ( dutyCycle < minimalThreshold ) dutyCycle = 0;
         if ( dutyCycle > 255 )              dutyCycle = 255;
 
-        writePwm( CDC_RES_ID_PWM_0, dutyCycle, 0 );
+        writePwm( cMap.pwmPin_0, dutyCycle );
         sleepMillis( 100 );
   }
 }

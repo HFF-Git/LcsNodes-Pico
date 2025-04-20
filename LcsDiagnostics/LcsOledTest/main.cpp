@@ -30,16 +30,39 @@
 
 using namespace CDC;
 
-//----------------------------------------------------------------------------------------------------------
-//
-// Quick hack for configuring the I2C channel...
-//----------------------------------------------------------------------------------------------------------
-const uint8_t RES_ID_LED        = 1;
-const uint8_t RES_ID_EXT_I2C    = 2;
+CdcResourceMap cMap = {
 
-const uint8_t LED_PIN           = 15; 
-const uint8_t EXT_I2C_SCL_PIN   = 17;
-const uint8_t EXT_I2C_SDA_PIN   = 16;
+    .cFamily                = CDC_CF_RP_PICO,
+    .cType                  = CDC_CF_C_RP_2040,
+    .memorySize             = 260 * 1024,
+
+    .adcRefVoltageMillis    = 3300,
+    .adcDigitRange          = 1024,
+
+    .ledPin                 = 15,
+    .pFailPin               = 7,
+    
+    .adcPin_0               = 26,
+    .adcPin_1               = 27,
+
+    .dioPin_0               = 8,
+    .dioPin_1               = 9,
+    .dioPin_2               = 10,
+    .dioPin_3               = 11,
+    .dioPin_4               = 21,
+    .dioPin_5               = 20,
+    .dioPin_6               = 19,
+    .dioPin_7               = 18,
+
+    .pwmPin_0               = 20,
+    .pwmPin_1               = 21,
+  
+    .i2cSclPin_0            = 3,
+    .i2cSdaPin_0            = 2,
+
+    .i2cSclPin_1            = 17,
+    .i2cSdaPin_1            = 16,
+};
 
 //----------------------------------------------------------------------------------------------------------
 // Global declarations.
@@ -55,7 +78,7 @@ UIDisplay           *oled   = nullptr;
 //----------------------------------------------------------------------------------------------------------
 uint8_t initCdcLib( ) {
 
-    cdcInit( );
+    cdcInit( &cMap );
     sleepMillis( 2000 );
     configureConsoleIO( );
 }
@@ -74,7 +97,7 @@ int main( ) {
         return( -1 );
     }
 
-    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, 17, 16, 0x3C );
+    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, cMap.i2cSclPin_1, cMap.i2cSdaPin_1, 0x3C );
 
     while ( true ) {
 

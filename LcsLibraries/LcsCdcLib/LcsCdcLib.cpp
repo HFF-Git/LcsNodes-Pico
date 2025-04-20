@@ -768,7 +768,7 @@ uint8_t startRepeatingTimer( uint8_t resId, uint32_t val ) {
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
     int64_t limit = val;
-    add_repeating_timer_us( - limit, repeatingTimerAlarm, nullptr, &ptr -> timerData );
+    add_repeating_timer_us( - limit, repeatingTimerAlarm, ptr, &ptr -> timerData );
     return( NO_ERR );
 }
 
