@@ -39,8 +39,10 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
+    using namespace CDC;
+
     extern uint16_t         debugMask;
-    extern LcsCdcMap        cdcMap;
+    extern CdcResourceMap   resMap;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -52,6 +54,7 @@ namespace LCS {
 namespace {
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // The PCA94555 fixed part of the I2C address.
@@ -90,13 +93,13 @@ uint8_t mapI2CAdr( uint8_t boardId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
 
+    uint8_t rStat = NO_ERR;
     uint8_t buf[ 2 ];
-    uint8_t rStat = CDC::NO_ERR;
     
-    rStat = CDC::i2cWrite( cdcMap.cfg.EXT_I2C_SCL_PIN, i2cAdr, &reg, 1, true );
+    rStat = i2cWrite( resMap.i2cSclPin_1, i2cAdr, &reg, 1, true );
     if ( rStat == CDC::NO_ERR ) {
 
-        rStat = CDC::i2cRead( cdcMap.cfg.EXT_I2C_SCL_PIN, i2cAdr, buf, 1 );
+        rStat = i2cRead( resMap.i2cSclPin_1, i2cAdr, buf, 1 );
         return( buf[ 0 ] );
     }
     else return( ALL_OK );
@@ -108,7 +111,7 @@ uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
     buf[ 0 ] = reg;
     buf[ 1 ] = val;
 
-    return( CDC::i2cWrite( cdcMap.cfg.EXT_I2C_SCL_PIN, i2cAdr, buf, 2 ));
+    return( i2cWrite( resMap.i2cSclPin_1, i2cAdr, buf, 2 ));
 }
 
 } // namespace

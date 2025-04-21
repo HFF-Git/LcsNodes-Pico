@@ -48,6 +48,7 @@ extern uint16_t debugMask;
 namespace {
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // Block controller global limits. Perhaps to move to a configurable place...
@@ -137,14 +138,14 @@ uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
 //
 //============================================================================================================
 //============================================================================================================
-
+using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // Object instance section. The DccTrack constructor. Nothing to do so far.
 //
 //------------------------------------------------------------------------------------------------------------
 LcsBlockTrack::LcsBlockTrack( ) { }
-
 
 //------------------------------------------------------------------------------------------------------------
 // "setupDccTrack" performs the setup tasks for the DCC track.  We will configure the hardware, the DCC
@@ -224,8 +225,9 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     lastPwrSamplePerSecTaken    = 0;
     pwrSamplesPerSec            = 0;
 
-    uint8_t rStat = CDC::configurePwm( selPin1, selPin2, pwmFrequency );
-    if ( rStat == ALL_OK ) rStat = CDC::configureAdc( sensePin );
+    uint8_t rStat = configurePwm( selPin1, pwmFrequency );
+    if ( rStat == ALL_OK ) rStat = configurePwm( selPin2, pwmFrequency );
+    if ( rStat == ALL_OK ) rStat = configureAdc( sensePin );
     if ( rStat == ALL_OK ) rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
 
     if ( rStat != ALL_OK ) flags |= BT_F_CONFIG_ERROR;
@@ -268,28 +270,28 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
         case BT_MODE_PWM_FWD: {
 
-            rStat = CDC::writePwm( selPin1, speed, 0 );
+            rStat = writePwmPair( selPin1, speed, 0 );
             return( rStat );
 
         } break;
 
         case BT_MODE_PWM_REV: {
 
-            rStat = CDC::writePwm( selPin1, 0, speed );
+            rStat = writePwmPair( selPin1, 0, speed );
             return( rStat );
 
         } break;
 
         case BT_MODE_DCC: {
 
-            rStat = CDC::writePwm( selPin1, 255, 255 );
+            rStat = writePwmPair( selPin1, 255, 255 );
             return( rStat );
 
             } break;
 
             case BT_MODE_OFF: {
 
-            rStat = CDC::writePwm( selPin1, 0, 0 );
+            rStat = CDC::writePwmPair( selPin1, 0, 0 );
             return( rStat );
 
         } break;
@@ -321,8 +323,8 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint16_t frequency ) {
 
     if (( frequency >= 50 ) && ( frequency < 30000U )) {
 
-        uint8_t rStat = CDC::configurePwm( selPin1, frequency, true, false );
-        if ( rStat == ALL_OK ) rStat = CDC::configurePwm( selPin2, frequency, true, false );
+        uint8_t rStat = configurePwm( selPin1, frequency );
+        if ( rStat == ALL_OK ) rStat = configurePwm( selPin2, frequency );
         return( rStat );
     }
     else return ( 255 );
@@ -617,7 +619,11 @@ void LcsBlockTrack::powerMeasurement( ) {
 
     if ( flags & BT_F_MEASUREMENT_ON ) {
 
-        actualCurrentDigitValue = CDC::readAdc( sensePin );
+        uint16_t adcVal;
+
+        readAdc( sensePin, &adcVal );
+
+        actualCurrentDigitValue = adcVal;
 
         totalPwrSamplesTaken ++;
 

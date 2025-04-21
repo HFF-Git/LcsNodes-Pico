@@ -694,8 +694,8 @@ extern "C" {
 // and "start", the firmware should do its own setup and register the necessary callbacks. We will not return
 // from the "start" routine. All calls are a plain C style library calls. 
 //
-// The "initRuntime" routine is passed the resource descriptor map. Important. All there is to know about the
-// particular board and resources to configure comes from this map.
+// The "initRuntime" routine is passed the resource map. Important. All there is to know about the particular 
+// board and resources to configure comes from this map.
 // 
 //------------------------------------------------------------------------------------------------------------
 uint8_t             initRuntime( CDC::CdcResourceMap *cMap );

@@ -517,16 +517,23 @@ uint8_t cdcInit( CdcResourceMap *cMapPtr ) {
 // sequence for an application start sequence would be to create an initial structure this way and then set
 // the relevant pins and values according to the actual hardware configuration.
 //
+// ??? for now we assume a RP2040.
 //------------------------------------------------------------------------------------------------------------
 CdcResourceMap  getDefaultResourceMap( ) {
 
     CdcResourceMap map;
+
+    map.cFamily     = CDC_CF_RP_PICO;
+    map.cType       = CDC_CF_C_RP_2040;
+    map.memorySize  = 260 * 1024;
+    map.cpuCores    = 2;
+
     return ( map );
  }
  
  //------------------------------------------------------------------------------------------------------------
- // "getResourceMap" will return a pointer to the copy we kept when calling the init routine with the config
- // structure to use. There is no need for the upper layers to keep the structure used at initialization time.
+ // "getResourceMap" will return a pointer to the copy we kept when calling the init routine with the resource
+ // for the board. There is no need for the upper layers to keep the structure around after init.
  //
  //------------------------------------------------------------------------------------------------------------
  CdcResourceMap  *getResourceMap( ) {

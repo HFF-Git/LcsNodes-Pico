@@ -30,12 +30,14 @@
 //------------------------------------------------------------------------------------------------------------
 #include "LcsBasicThrottle.h"
 
-extern CDC::CdcConfigDesc       cdcConfig;
-extern UIEncoder                *encoder;
-extern CabStack                 *cabStack;
-extern CabMsgBus                *msgBus;
-
 using namespace LCS;
+using namespace CDC;
+
+extern CdcResourceMap   resMap;
+extern UIEncoder        *encoder;
+extern CabStack         *cabStack;
+extern CabMsgBus        *msgBus;
+
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.
@@ -73,22 +75,22 @@ UIButton      *encoderButton              = nullptr;
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
 
-    CDC::configureDio( MENU_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( SELECT_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( UP_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( DOWN_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( HORN_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( BELL_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( FWD_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( REV_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( F1_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( F2_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( F3_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( F4_BUTTON_ID, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( ENCODER_BUTTON_ID, CDC::DIO_IN_PULLUP );
+    configureDio( MENU_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( SELECT_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( UP_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( DOWN_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( HORN_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( BELL_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( FWD_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( REV_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( F1_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( F2_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( F3_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( F4_BUTTON_ID, CDC_DIO_IN_PULLUP );
+    configureDio( ENCODER_BUTTON_ID, CDC_DIO_IN_PULLUP );
 
-    CDC::configureDio( ENCODER_ID_A, CDC::DIO_IN_PULLUP );
-    CDC::configureDio( ENCODER_ID_B, CDC::DIO_IN_PULLUP );
+    CDC::configureDio( ENCODER_ID_A, CDC_DIO_IN_PULLUP );
+    CDC::configureDio( ENCODER_ID_B, CDC_DIO_IN_PULLUP );
 
     return ( LCS::ALL_OK );
 }
@@ -99,14 +101,22 @@ uint8_t setupIOPins( ) {
 // when we have direct pins, then it is the pin number on the controller chip, when the UI element is
 // connected via an I2C expander or a shift register, it is the position on the chip.
 //
+// ??? comment on inverse logic ?
 //------------------------------------------------------------------------------------------------------------
 bool getData( uint8_t hwId ) {
 
-    if (( hwId == ENCODER_ID_A ) || ( hwId == ENCODER_ID_B ))
-        return ( CDC::readDio( hwId ) == true );
-    else
-        return ( CDC::readDio( hwId ) == false );
+    bool val;
 
+    if (( hwId == ENCODER_ID_A ) || ( hwId == ENCODER_ID_B )) {
+
+        readDio( hwId, &val );
+        return ( val == true );
+    }
+    else {
+
+        readDio( hwId, &val );
+        return ( val == false );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -159,9 +169,10 @@ uint8_t createUIElements( ) {
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
   oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, 
-                            cdcConfig.EXT_I2C_SCL_PIN, 
-                            cdcConfig.EXT_I2C_SDA_PIN, 
-                            cdcConfig.EXT_I2C_ADR_ROOT );
+                            resMap.i2cSclPin_1, 
+                            resMap.i2cSdaPin_1, 
+                            0x50 ); // ??? fix ..
+                            //    resMap.EXT_I2C_ADR_ROOT );
 
   return ( ALL_OK );
 }

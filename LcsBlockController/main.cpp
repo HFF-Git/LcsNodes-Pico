@@ -30,14 +30,15 @@
 #include "LcsBlockController.h"
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // Block Controller global data.
 //
 //------------------------------------------------------------------------------------------------------------
 uint16_t                        debugMask = DBG_BC_CONFIG | DBG_BC_SETUP | DBG_BC_TRACK_POWER_MGMT;
-CDC::CdcConfigDesc              cdcConfig;
-LCS::LcsConfigDesc              lcsConfig;
+
+CdcResourceMap                  resMap;
 LcsBlockTrackDesc               block1Desc;
 LcsBlockTrackDesc               block2Desc;
 
@@ -79,49 +80,50 @@ LcsBlockTrack                   *block2         = nullptr;
 //----------------------------------------------------------------------------------------------------------
 uint8_t setupConfigInfo( ) {
 
-    cdcConfig = CDC::getConfigDefault( );
-    lcsConfig = LCS::getConfigDefault( );
+    resMap = getDefaultResourceMap( );
 
-    cdcConfig.ADC_PIN_0             = 26;
-    cdcConfig.ADC_PIN_1             = 27;
+    resMap.adcPin_0             = 26;
+    resMap.adcPin_1             = 27;
 
-    cdcConfig.PFAIL_PIN             = 5;
-    cdcConfig.EXT_INT_PIN           = 22;
-    cdcConfig.ACTIVE_LED_PIN        = 14;
+    resMap.pFailPin             = 5;
+  //  resMap.EXT_INT_PIN           = 22;
+    resMap.ledPin        = 14;
 
-    cdcConfig.DIO_PIN_2             = 21; 
-    cdcConfig.DIO_PIN_3             = 20;       
-    cdcConfig.DIO_PIN_4             = 19;  
-    cdcConfig.DIO_PIN_5             = 18;    
-    cdcConfig.DIO_PIN_7             = 4;    
+    resMap.dioPin_2             = 21; 
+    resMap.dioPin_3             = 20;       
+    resMap.dioPin_4             = 19;  
+    resMap.dioPin_5             = 18;    
+    resMap.dioPin_7             = 4;    
 
-    cdcConfig.PWM_PIN_0             = 21;
-    cdcConfig.PWM_PIN_1             = 20;
-    cdcConfig.PWM_PIN_2             = 19;
-    cdcConfig.PWM_PIN_3             = 18;
+    resMap.pwmPin_0             = 21;
+    resMap.pwmPin_1             = 20;
+    resMap.pwmPin_2             = 19;
+    resMap.pwmPin_3             = 18;
 
     // ??? more PWM channels ?
 
-    cdcConfig.UART_RX_PIN_1         = 13;
-    cdcConfig.UART_RX_PIN_2         = 9;
+    resMap.uartRxPin_0         = 13;
+    resMap.uartRxPin_1         = 9;
 
-    cdcConfig.NVM_I2C_SCL_PIN       = 3;
-    cdcConfig.NVM_I2C_SDA_PIN       = 2;
-    cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
+    resMap.i2cSclPin_0       = 3;
+    resMap.i2cSdaPin_0       = 2;
+  //  resMap.NVM_I2C_ADR_ROOT      = 0x50;
 
-    cdcConfig.EXT_I2C_SCL_PIN       = 17;
-    cdcConfig.EXT_I2C_SDA_PIN       = 16;
-    cdcConfig.EXT_I2C_ADR_ROOT      = 0x50;
+    resMap.i2cSclPin_1       = 17;
+    resMap.i2cSdaPin_1       = 16;
+  //  resMap.EXT_I2C_ADR_ROOT      = 0x50;
 
-    cdcConfig.CAN_BUS_RX_PIN        = 0;
-    cdcConfig.CAN_BUS_TX_PIN        = 1;
-    cdcConfig.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
-    cdcConfig.CAN_BUS_DEF_ID        = 100;
+    resMap.canPinRx        = 0;
+    resMap.canPinTx        = 1;
+    resMap.canBaudRate      = 125000;
+    resMap.canTwoCores = true;
+   // resMap.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
+  //  resMap.CAN_BUS_DEF_ID        = 100;
 
-    cdcConfig.NODE_NVM_SIZE         = 8192;
-    cdcConfig.EXT_NVM_SIZE          = 512;
+    resMap.extNvmSize         = 32 * 1024;
+  //  resMap.EXT_NVM_SIZE          = 512;
 
-    lcsConfig.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
+    resMap.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
 
     return( ALL_OK );
 }
@@ -131,9 +133,9 @@ const uint16_t PWM_FREQUENCY = 20000;
 uint8_t setupBlockDesc1( ) {
 
     block1Desc.options                         = 0;
-    block1Desc.selPin1                         = cdcConfig.PWM_PIN_0;
-    block1Desc.selPin2                         = cdcConfig.PWM_PIN_1;
-    block1Desc.sensePin                        = cdcConfig.ADC_PIN_0;
+    block1Desc.selPin1                         = resMap.pwmPin_0;
+    block1Desc.selPin2                         = resMap.pwmPin_1;
+    block1Desc.sensePin                        = resMap.adcPin_0;
 
     block1Desc.pwmFrequency                    = PWM_FREQUENCY;
 
@@ -154,9 +156,9 @@ uint8_t setupBlockDesc1( ) {
 uint8_t setupBlockDesc2( ) {
 
     block2Desc.options                         = 0;
-    block2Desc.selPin1                         = cdcConfig.PWM_PIN_2;
-    block2Desc.selPin2                         = cdcConfig.PWM_PIN_3;
-    block2Desc.sensePin                        = cdcConfig.ADC_PIN_1;
+    block2Desc.selPin1                         = resMap.pwmPin_2;
+    block2Desc.selPin2                         = resMap.pwmPin_3;
+    block2Desc.sensePin                        = resMap.adcPin_1;
 
     block2Desc.pwmFrequency                    = PWM_FREQUENCY;
 
@@ -247,9 +249,9 @@ uint8_t initLcsRuntime( ) {
 
     setupConfigInfo( );
 
-    uint8_t rStat = initRuntime( &lcsConfig, &cdcConfig );
+    uint8_t rStat = initRuntime( &resMap );
 
-    CDC::printConfigInfo( &cdcConfig );
+    printResourceMap( &resMap );
     return( printStatus( rStat ));
 }
 

@@ -32,13 +32,13 @@
 #include "LcsRuntimeLib.h"
 
 using namespace LCS;
+using namespace CDC;
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values.
+// Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc cfg;
+CdcResourceMap resMap;
 
 //----------------------------------------------------------------------------------------------------------
 // "printStatus" is a little helper function for the initialization routines protocol printing. 
@@ -52,47 +52,6 @@ uint8_t printStatus( uint8_t status ) {
     return ( status );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Setup the config data. We first get the defaults for the controller and then set the board specific pin
-// numbers and values. 
-//
-//----------------------------------------------------------------------------------------------------------
-uint8_t setupConfigInfo( CDC::CdcConfigDesc *cfg ) {
-
-    printf( "Setup Config Info\n" );
-
-    *cfg = CDC::getConfigDefault( );
-
-    cfg -> ADC_PIN_0             = 26;
-    cfg -> ADC_PIN_1             = 27;
-
-    cfg -> PWM_PIN_0             = 20;
-    cfg -> PWM_PIN_1             = 21;
-
-    cfg -> PFAIL_PIN             = 7;
-    cfg -> EXT_INT_PIN           = 22;
-    cfg -> ACTIVE_LED_PIN        = 15;
-
-    cfg -> DIO_PIN_0             = 9;
-    cfg -> DIO_PIN_1             = 8;
-    cfg -> DIO_PIN_2             = 10;
-    cfg -> DIO_PIN_3             = 11;
-    cfg -> DIO_PIN_4             = 21;
-    cfg -> DIO_PIN_5             = 20;
-    cfg -> DIO_PIN_6             = 19;
-    cfg -> DIO_PIN_7             = 18;
-
-    cfg -> NVM_I2C_SCL_PIN       = 17;
-    cfg -> NVM_I2C_SDA_PIN       = 16;
-    cfg -> NVM_I2C_ADR_ROOT      = 0x50;
-
-    cfg -> EXT_I2C_SCL_PIN       = 3;
-    cfg -> EXT_I2C_SDA_PIN       = 2;
-    cfg -> EXT_I2C_ADR_ROOT      = 0x50;
-
-    CDC::printConfigInfo( cfg );
-    return( ALL_OK );
-}
 
 //----------------------------------------------------------------------------------------------------------
 // Init the CDC and Runtime library...
@@ -104,8 +63,27 @@ uint8_t initLcsRuntime( ) {
 
     printf( "LCS Diesel Cab Throttle\n" );
 
-    rStat = setupConfigInfo( &cfg );
+    resMap = getDefaultResourceMap( );
+
+    resMap.ledPin                   = 15;
+
+    resMap.i2cSclPin_0              = 3;
+    resMap.i2cSdaPin_0              = 2;
+  //  resMap.NVM_I2C_ADR_ROOT         = 0x50;
+
+    resMap.canPinRx                 = 0;
+    resMap.canPinTx                 = 1;
+    resMap.canBaudRate              = 125000;
+    resMap.canTwoCores              = true;
+  
+  //  resMap.CAN_BUS_DEF_ID        = 100;
+
+    resMap.extNvmSize               = 32 * 1024;
     
+
+    resMap.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
+
+
     if ( rStat == ALL_OK ) {
 
         printf( "Setup Msg Bus " );

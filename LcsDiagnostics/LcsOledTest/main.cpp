@@ -81,6 +81,8 @@ uint8_t initCdcLib( ) {
     cdcInit( &cMap );
     sleepMillis( 2000 );
     configureConsoleIO( );
+
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------

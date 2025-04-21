@@ -33,13 +33,13 @@
 #include "LcsBasicThrottle.h"
 
 using namespace LCS;
+using namespace CDC;
 
 //----------------------------------------------------------------------------------------------------------
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CDC::CdcConfigDesc      cdcConfig;
-LCS::LcsConfigDesc      lcsConfig;
+CdcResourceMap resMap;
 
 //----------------------------------------------------------------------------------------------------------
 // Externals.
@@ -79,57 +79,38 @@ uint8_t initLcsRuntime( ) {
 
     uint8_t rStat = ALL_OK;
 
-    cdcConfig = CDC::getConfigDefault( );
+    resMap = getDefaultResourceMap( );
 
-    cdcConfig.ADC_PIN_0             = 26;
-    cdcConfig.ADC_PIN_1             = 27;
+    resMap.ledPin                   = 15;
 
-    cdcConfig.PWM_PIN_0             = 20;
-    cdcConfig.PWM_PIN_1             = 21;
+    resMap.i2cSclPin_0              = 3;
+    resMap.i2cSdaPin_0              = 2;
+  //  resMap.NVM_I2C_ADR_ROOT         = 0x50;
 
-    cdcConfig.PFAIL_PIN             = 7;
-    cdcConfig.EXT_INT_PIN           = 22;
-    cdcConfig.ACTIVE_LED_PIN        = 15;
+    resMap.canPinRx                 = 0;
+    resMap.canPinTx                 = 1;
+    resMap.canBaudRate              = 125000;
+    resMap.canTwoCores              = true;
+  
+  //  resMap.CAN_BUS_DEF_ID        = 100;
 
-    cdcConfig.DIO_PIN_0             = 9;
-    cdcConfig.DIO_PIN_1             = 8;
-    cdcConfig.DIO_PIN_2             = 10;
-    cdcConfig.DIO_PIN_3             = 11;
-    cdcConfig. DIO_PIN_4            = 21;
-    cdcConfig.DIO_PIN_5             = 20;
-    cdcConfig.DIO_PIN_6             = 19;
-    cdcConfig.DIO_PIN_7             = 18;
+    resMap.extNvmSize               = 32 * 1024;
+    
 
-    cdcConfig.NVM_I2C_SCL_PIN       = 3;
-    cdcConfig.NVM_I2C_SDA_PIN       = 2;
-    cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
-
-    cdcConfig.EXT_I2C_SCL_PIN       = 17;
-    cdcConfig.EXT_I2C_SDA_PIN       = 16;
-    cdcConfig.EXT_I2C_ADR_ROOT      = 0x3C;
-
-    cdcConfig.CAN_BUS_RX_PIN        = 0;
-    cdcConfig.CAN_BUS_TX_PIN        = 1;
-    cdcConfig.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
-    cdcConfig.CAN_BUS_DEF_ID        = 100;
-
-    cdcConfig.NODE_NVM_SIZE         = 8192;
-    cdcConfig.EXT_NVM_SIZE          = 512;
-
-    lcsConfig.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
+    resMap.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
 
     printf( "LCS Basic Throttle\n" );
 
     if ( rStat == ALL_OK ) {
 
         printf( "Init runtime, configuration: \n" );
-        CDC::printConfigInfo( &cdcConfig );
+        printResourceMap( &resMap );
     }
 
     if ( rStat == ALL_OK ) {
 
         printf( "Init RuntimeLib " );
-        rStat = initRuntime( &lcsConfig, &cdcConfig );
+        rStat = initRuntime( &resMap );
     }
 
     if ( rStat == ALL_OK ) {

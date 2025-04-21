@@ -212,87 +212,85 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// CDC Layer resource map. The map is a structure containing the hardware mapping for the particular controller
-// and board. There are a lot of fields, not all of them are set for a particular board. The firmware program
-// needs to provide a this map with the values set for the particular board. The data is used in the configure
-// routines but also for the layer routines. For example, a GPIO pin value is directly the hardware pin on the
-// controller. A PIN pin refers also to a pin and will be used internally to find the complementary data that
-// the controller hardware defines for a PWM hardware block. For convenience, a default resource map is 
-// provided which has for all fields reasonable values set.
+// CDC Layer resource map. The map is a structure containing overall configuration attributes and hardware 
+// mapping for the particular controller and board. There are a lot of fields, not all of them are set for
+// a particular board. The firmware program needs to provide a this map with the values set for the board.
+// The data is used in the configure routines but also for the layer routines. For example, a GPIO pin value
+// is directly the hardware pin on the controller. A PIN pin refers also to a pin and will be used internally
+// to find the complementary data that the controller hardware defines for a PWM hardware block. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceMap {
 
-    uint16_t    options;
-    uint16_t    debugMask;
-    uint16_t    cFamily;
-    uint16_t    cType;
-    uint16_t    cpuCores;
-    uint32_t    memorySize;
-    uint32_t    internalNvmSize;
-    uint32_t    watchDogIntervallMillis;
+    uint16_t    options                     = 0;
+    uint16_t    debugMask                   = 0;
+    uint16_t    cFamily                     = CDC_CF_C_UNDEFINED;
+    uint16_t    cType                       = CDC_CF_C_UNDEFINED;
+    uint16_t    cpuCores                    = 1;
+    uint32_t    memorySize                  = 0;
+    uint32_t    internalNvmSize             = 0;
+    uint32_t    watchDogIntervallMillis     = 2000;
 
-    uint16_t    adcRefVoltageMillis;
-    uint16_t    adcDigitRange;
+    uint16_t    adcRefVoltageMillis         = 3300;
+    uint16_t    adcDigitRange               = 1024;
 
-    uint8_t     ledPin;
-    uint8_t     pFailPin;
+    uint8_t     ledPin                      = UNDEFINED_PIN;
+    uint8_t     pFailPin                    = UNDEFINED_PIN;
 
-    uint8_t     adcPin_0;
-    uint8_t     adcPin_1;
-    uint8_t     adcPin_2;
-    uint8_t     adcPin_3;
+    uint8_t     adcPin_0                    = UNDEFINED_PIN;
+    uint8_t     adcPin_1                    = UNDEFINED_PIN;
+    uint8_t     adcPin_2                    = UNDEFINED_PIN;
+    uint8_t     adcPin_3                    = UNDEFINED_PIN;
 
-    uint8_t     dioPin_0;
-    uint8_t     dioPin_1;
-    uint8_t     dioPin_2;
-    uint8_t     dioPin_3;
-    uint8_t     dioPin_4;
-    uint8_t     dioPin_5;
-    uint8_t     dioPin_6;
-    uint8_t     dioPin_7;
-    uint8_t     dioPin_8;
-    uint8_t     dioPin_9;
-    uint8_t     dioPin_10;
-    uint8_t     dioPin_11;
-    uint8_t     dioPin_12;
-    uint8_t     dioPin_13;
-    uint8_t     dioPin_14;
-    uint8_t     dioPin_15;
+    uint8_t     dioPin_0                    = UNDEFINED_PIN;
+    uint8_t     dioPin_1                    = UNDEFINED_PIN;
+    uint8_t     dioPin_2                    = UNDEFINED_PIN;
+    uint8_t     dioPin_3                    = UNDEFINED_PIN;
+    uint8_t     dioPin_4                    = UNDEFINED_PIN;
+    uint8_t     dioPin_5                    = UNDEFINED_PIN;
+    uint8_t     dioPin_6                    = UNDEFINED_PIN;
+    uint8_t     dioPin_7                    = UNDEFINED_PIN;
+    uint8_t     dioPin_8                    = UNDEFINED_PIN;
+    uint8_t     dioPin_9                    = UNDEFINED_PIN;
+    uint8_t     dioPin_10                   = UNDEFINED_PIN;
+    uint8_t     dioPin_11                   = UNDEFINED_PIN;
+    uint8_t     dioPin_12                   = UNDEFINED_PIN;
+    uint8_t     dioPin_13                   = UNDEFINED_PIN;    
+    uint8_t     dioPin_14                   = UNDEFINED_PIN;
+    uint8_t     dioPin_15                   = UNDEFINED_PIN;
 
-    uint8_t     pwmPin_0;
-    uint8_t     pwmPin_1;
-    uint8_t     pwmPin_2;
-    uint8_t     pwmPin_3;
-    uint8_t     pwmPin_4;
-    uint8_t     pwmPin_5;
-    uint8_t     pwmPin_6;
-    uint8_t     pwmPin_7;
+    uint8_t     pwmPin_0                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_1                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_2                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_3                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_4                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_5                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_6                    = UNDEFINED_PIN;
+    uint8_t     pwmPin_7                    = UNDEFINED_PIN;
     
-    uint8_t     i2cSclPin_0;
-    uint8_t     i2cSdaPin_0;
-    uint8_t     i2cBaudrate_0;
+    uint8_t     i2cSclPin_0                 = UNDEFINED_PIN;
+    uint8_t     i2cSdaPin_0                 = UNDEFINED_PIN;
+    uint8_t     i2cBaudrate_0               = 0;
 
-    uint8_t     i2cSclPin_1;
-    uint8_t     i2cSdaPin_1;
-    uint8_t     i2cBaudrate_3;
+    uint8_t     i2cSclPin_1                 = UNDEFINED_PIN;
+    uint8_t     i2cSdaPin_1                 = UNDEFINED_PIN;
+    uint8_t     i2cBaudrate_1               = 0;
 
-    uint8_t     uartRxPin_0;
-    uint8_t     uartTxPin_0;
-    uint8_t     uartBaudrate_0;
+    uint8_t     uartRxPin_0                 = UNDEFINED_PIN;
+    uint8_t     uartTxPin_0                 = UNDEFINED_PIN;
+    uint8_t     uartBaudrate_0              = 0;
 
-    uint8_t     uartRxPin_1;
-    uint8_t     uartTxPin_1;
-    uint8_t     uartBaudrate_1;
+    uint8_t     uartRxPin_1                 = UNDEFINED_PIN;
+    uint8_t     uartTxPin_1                 = UNDEFINED_PIN;
+    uint8_t     uartBaudrate_1              = 0;
 
-    uint8_t     canPinRx;
-    uint8_t     canPinTx;
-    uint32_t    canBaudRate;
-    bool        canTwoCores;
+    uint8_t     canPinRx                    = UNDEFINED_PIN;
+    uint8_t     canPinTx                    = UNDEFINED_PIN;
+    uint32_t    canBaudRate                 = 0;
+    bool        canTwoCores                 = false;
 
-    uint32_t    extNvmSize;
+    uint32_t    extNvmSize                  = 0;
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // The routines that make up the hardware abstraction layer. In general, there are routines that are just 
@@ -311,7 +309,7 @@ uint8_t         cdcInit( CdcResourceMap *dMap );
 
 CdcResourceMap  getDefaultResourceMap( );
 CdcResourceMap  *getResourceMap( );
-void            printResourceMap( );
+void            printResourceMap( CdcResourceMap *map );
 
 uint8_t         getVersion( uint32_t *version );
 void            fatalError( uint8_t errNum, char *str = nullptr,  uint8_t rStat = NO_ERR );
@@ -390,7 +388,10 @@ uint8_t         unregisterDioCallback( uint8_t dioPin );
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configurePwm(   uint8_t pwmPin, uint32_t    freqency );
+uint8_t         configurePwm(   uint8_t     pwmPin, 
+                                uint32_t    freqency, 
+                                bool        phaseCorrect = true,
+                                bool        inverted = false );
 uint8_t         writePwm( uint8_t pwmPin, uint8_t dutyCycle );
 uint8_t         writePwmPair(uint8_t pwmPin, uint8_t dutyCycleA, uint8_t dutyCycleB ); 
 uint8_t         syncPwm( uint8_t pwmPin );

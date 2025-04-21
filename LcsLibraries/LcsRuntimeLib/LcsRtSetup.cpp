@@ -66,6 +66,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
+    using namespace CDC;
+
     uint16_t                debugMask    = 0;
     uint16_t                startOptions = 0;
 
@@ -78,6 +80,8 @@ namespace LCS {
     LcsPendingReqMap        pendingReqMap;
     LcsTaskMap              taskMap;
     LcsDrvFuncMap           drvFuncMap;
+
+    CdcResourceMap          resMap;
 
     extern uint8_t          configNvm(  uint8_t     nvmSclPin, 
                                         uint8_t     nvmSdaPin,
@@ -154,18 +158,6 @@ void buildDefaultHeaderMap( LcsNvmHeaderMap *hMap ) {
         LcsNvmHeader e;
         hMap -> map[ i ] = e;
     }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "buildDefaultCdcMap" builds the CDC map.
-//
-//------------------------------------------------------------------------------------------------------------
-void buildDefaultCdcMap( LcsCdcMap *cMap ) {
-
-    LcsCdcMap tmp;
-
-    tmp.nvmOfs  = NVM_CDC_MAP_OFS;
-    *cMap       = tmp;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -325,11 +317,11 @@ namespace LCS {
 // ??? should we configure from the resource desc map or individually ?
 // ??? it would be nice to already use the ledPin ...
 //------------------------------------------------------------------------------------------------------------
-uint8_t initCdcLayer( CDC::CdcResourceDescMap *dMap ) {
+uint8_t initCdcLayer( CdcResourceMap *cMap ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
-    cdcInit( );
+    cdcInit( cMap );
     configureConsoleIO( );
 
     if ( isConsoleConnected( )) {
@@ -383,56 +375,13 @@ uint8_t initCdcLayer( CDC::CdcResourceDescMap *dMap ) {
     }
 }
 
-
-//------------------------------------------------------------------------------------------------------------
-// "configureCdcLayer" will configure all resources defined in the passed resource descriptor map. Note that
-// a given resource can later on still be redefined with respect to its parameters but not the Id number and
-// resource type. 
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t configureCdcLayer( CdcResourceDescMap *dMap ) {
-
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
-
-        printf( "Configuring CDC for: %s\n", dMap ->name );
-        printf( "Options: 0x%4x\n", dMap -> options );
-    }
-
-    uint8_t rStat = NO_ERR;
-    int     index = 0;
-
-    while ( index < MAX_INST_DESC_ENTRIES ) {
-
-        CdcResourceDesc *ptr = &dMap -> map[ index ];
-
-        if ( ptr -> type != CDC_RT_UNDEFINED ) {
-
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
-
-                printf( "Configuring CDC entry: %d\n", ptr -> resId );
-            }
-
-            rStat = configureCdcResource( ptr );
-
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
-
-                printf( "Ret: %d\n", rStat );
-            }
-        }
-
-        index ++;
-    }
-
-    return ( errStat( rStat ));
-}
-
 //------------------------------------------------------------------------------------------------------------
 // The NVM library functions will work after this routine. We assume that the CDC layer was initialized and
 // configured. In particular, we depend on the I2C configuration channels. If all is OK, we can talk to all
 // NVMs chips on the boards making up the node.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t initNvmChannels( CdcResourceDescMap *dMap ) {
+uint8_t initNvmChannels( CdcResourceMap *cMap ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
  
@@ -441,13 +390,18 @@ uint8_t initNvmChannels( CdcResourceDescMap *dMap ) {
  
     uint8_t rStat = NO_ERR;
 
-    
-    // ??? Issue.... we do not have the config data in the library... 
-    // ??? we need to setup NVM as a resource as well as CAN Bus... :-)
-    
-    // ??? call the NVM init routine ....
+    rStat = configureI2C( cMap -> i2cSclPin_0, cMap -> i2cSdaPin_0, 1000000 );
+    if ( rStat != NO_ERR ) {
 
- 
+
+    }
+
+    rStat = configureI2C( cMap -> i2cSclPin_1, cMap -> i2cSdaPin_1, 1000000 );
+    if ( rStat != NO_ERR ) {
+
+
+    }
+
     return ( errStat( rStat ));
  }
 
@@ -455,17 +409,17 @@ uint8_t initNvmChannels( CdcResourceDescMap *dMap ) {
 // Next is the CAN bus setup. The message bus is the central communication mechanism. If we can also get it 
 // up early we could use it not only for configurations and operations but perhaps for remote troubleshooting. 
 //
-// ??? should we assume a "architectural" setting of the CAN channel and not rely on CDC map ?
+// ??? fix the parameter setting for CAN config ... needs to come from cMap...
 //------------------------------------------------------------------------------------------------------------
-uint8_t initCanBus( ) {
+uint8_t initCanBus( CdcResourceMap *cMap ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "Init Can Bus\n" );
     
     msgBus = new LcsMsgBusCAN( );
 
-    // ??? how do we get the arguments for the CAN Bus ?
+    // ??? how do we get the arguments for the CAN Bus ? 
 
-    uint8_t rStat = msgBus -> init( 0, ci -> CAN_BUS_RX_PIN, ci -> CAN_BUS_TX_PIN, ci -> CAN_BUS_CTRL_MODE );
+    uint8_t rStat = msgBus -> init( 0, cMap -> canPinRx, cMap -> canPinTx, CAN_BUS_LIB_PICO_PIO_125K_M_CORE );
     if ( rStat != ALL_OK ) {
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
@@ -1003,17 +957,18 @@ uint8_t powerFailHandler( ) {
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
 // ??? ensure that this routine is idempotent.
 //------------------------------------------------------------------------------------------------------------
-uint8_t initRuntime( CDC::CdcResourceDescMap *dMap ) {
+uint8_t initRuntime( CdcResourceMap *cMap ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK )  rStat = initCdcLayer( dMap );
-    if ( rStat != ALL_OK )  fatalErrorMsg((char *) "Fatal: CDC Layer Setup failed", 1, rStat );
+    if ( rStat == ALL_OK )  rStat = initCdcLayer( cMap );
+    if ( rStat != ALL_OK )  fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
 
-    if ( rStat == ALL_OK )  rStat = configureCdcLayer( dMap );
-    if ( rStat == ALL_OK )  rStat = initNvmChannels( );
-    if ( rStat == ALL_OK )  rStat = initCanBus( );
-    if ( rStat != ALL_OK )  fatalErrorMsg((char *) "Fatal: CDC Configuration failed", 2, rStat );
+    if ( rStat == ALL_OK )  rStat = initNvmChannels( cMap );
+    if ( rStat != ALL_OK )  fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
+
+    if ( rStat == ALL_OK )  rStat = initCanBus( cMap );
+    if ( rStat != ALL_OK )  fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
 
     if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( );
     if ( rStat == ALL_OK )  rStat = setupExtNvmHeaders( );
@@ -1028,12 +983,12 @@ uint8_t initRuntime( CDC::CdcResourceDescMap *dMap ) {
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvFuncMap( );
     if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
-    if ( rStat != ALL_OK )  fatalErrorMsg((char *) "Node setup Setup failed", 3, rStat );
+    if ( rStat != ALL_OK )  fatalError( 4, (char *) "Node setup Setup failed", rStat );
 
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;
         
-    CDC::writeDio( cdcConfig -> ACTIVE_LED_PIN, ( rStat == ALL_OK ));
+    CDC::writeDio( cMap -> ledPin, ( rStat == ALL_OK ));
 
     return ( errStat( rStat ));
 }

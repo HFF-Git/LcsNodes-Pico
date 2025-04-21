@@ -40,6 +40,7 @@
 #include "LcsBaseStation.h"
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // Base station global data.
@@ -48,8 +49,7 @@ using namespace LCS;
 // field ?
 //------------------------------------------------------------------------------------------------------------
 uint16_t                        debugMask;
-CDC::CdcConfigDesc              cdcConfig;
-LCS::LcsConfigDesc              lcsConfig;
+CdcResourceMap                  resMap;
 LcsBaseStationCommand           serialCmd;
 LcsBaseStationDccTrack          mainTrack;
 LcsBaseStationDccTrack          progTrack;
@@ -90,45 +90,44 @@ LcsBaseStationMsgInterface      msgInterface;
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    cdcConfig = CDC::getConfigDefault( );
-    lcsConfig = LCS::getConfigDefault( );
+    resMap = getDefaultResourceMap( );
+   
+    resMap.adcPin_0                 = 26;
+    resMap.adcPin_1                 = 27;
 
-    cdcConfig.ADC_PIN_0             = 26;
-    cdcConfig.ADC_PIN_1             = 27;
+    resMap.pFailPin                 = 5;
+  //  resMap.EXT_INT_PIN              = 22;
+    resMap.ledPin                   = 14;
 
-    cdcConfig.PFAIL_PIN             = 5;
-    cdcConfig.EXT_INT_PIN           = 22;
-    cdcConfig.ACTIVE_LED_PIN        = 14;
+    resMap.dioPin_0                 = 8;  
+    resMap.dioPin_1                 = 12; 
+    resMap.dioPin_2                 = 21;   
+    resMap.dioPin_3                 = 20;    
+    resMap.dioPin_4                 = 19;   
+    resMap.dioPin_5                 = 18;        
+    resMap.dioPin_6                 = 6;     
+    resMap.dioPin_7                 = 7;    
 
-    cdcConfig.DIO_PIN_0             = 8;  
-    cdcConfig.DIO_PIN_1             = 12; 
-    cdcConfig.DIO_PIN_2             = 21;   
-    cdcConfig.DIO_PIN_3             = 20;    
-    cdcConfig.DIO_PIN_4             = 19;   
-    cdcConfig.DIO_PIN_5             = 18;        
-    cdcConfig.DIO_PIN_6             = 6;     
-    cdcConfig.DIO_PIN_7             = 7;    
+    resMap.uartRxPin_0              = 13;
+    resMap.uartRxPin_1              = 9;
 
-    cdcConfig.UART_RX_PIN_1         = 13;
-    cdcConfig.UART_RX_PIN_2         = 9;
+    resMap.i2cSclPin_0              = 3;
+    resMap.i2cSdaPin_0              = 2;
+   // resMap.NVM_I2C_ADR_ROOT         = 0x50;
 
-    cdcConfig.NVM_I2C_SCL_PIN       = 3;
-    cdcConfig.NVM_I2C_SDA_PIN       = 2;
-    cdcConfig.NVM_I2C_ADR_ROOT      = 0x50;
+    resMap.i2cSclPin_1              = 17;
+    resMap.i2cSdaPin_1              = 16;
+   // resMap.EXT_I2C_ADR_ROOT         = 0x50;
 
-    cdcConfig.EXT_I2C_SCL_PIN       = 17;
-    cdcConfig.EXT_I2C_SDA_PIN       = 16;
-    cdcConfig.EXT_I2C_ADR_ROOT      = 0x50;
+    resMap.canPinRx                 = 0;
+    resMap.canPinTx                 = 1;
+   // resMap.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
+   // resMap.CAN_BUS_DEF_ID        = 100;
 
-    cdcConfig.CAN_BUS_RX_PIN        = 0;
-    cdcConfig.CAN_BUS_TX_PIN        = 1;
-    cdcConfig.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
-    cdcConfig.CAN_BUS_DEF_ID        = 100;
+    resMap.extNvmSize               = 8192;
+   // resMap.EXT_NVM_SIZE             = 4096;
 
-    cdcConfig.NODE_NVM_SIZE         = 8192;
-    cdcConfig.EXT_NVM_SIZE          = 4096;
-
-    lcsConfig.options               |= NPO_SKIP_NODE_ID_CONFIG;
+    resMap.options                  |= NPO_SKIP_NODE_ID_CONFIG;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -272,11 +271,11 @@ uint8_t initLcsRuntime( ) {
 
     setupConfigInfo( );
   
-    uint8_t rStat = LCS::initRuntime( &lcsConfig, &cdcConfig );
+    uint8_t rStat = initRuntime( &resMap );
     printf( "LCS Base Station\n" );
     
-    CDC::printConfigInfo( &cdcConfig );
-    
+    printResourceMap( &resMap );
+
     printStatus( rStat );
     return( rStat );
 }
@@ -307,11 +306,11 @@ int setupDccTrackMain( ) {
 
   mainTrackDesc.options                     = DT_OPT_RAILCOM | DT_OPT_CUTOUT;
 
-  mainTrackDesc.enablePin                   = cdcConfig.DIO_PIN_6;
-  mainTrackDesc.dccSigPin1                  = cdcConfig.DIO_PIN_2;
-  mainTrackDesc.dccSigPin2                  = cdcConfig.DIO_PIN_3;
-  mainTrackDesc.sensePin                    = cdcConfig.ADC_PIN_0;
-  mainTrackDesc.uartRxPin                   = cdcConfig.UART_RX_PIN_1;
+  mainTrackDesc.enablePin                   = resMap.dioPin_6;
+  mainTrackDesc.dccSigPin1                  = resMap.dioPin_2;
+  mainTrackDesc.dccSigPin2                  = resMap.dioPin_3;
+  mainTrackDesc.sensePin                    = resMap.adcPin_0;
+  mainTrackDesc.uartRxPin                   = resMap.uartRxPin_0;
 
   mainTrackDesc.initCurrentMilliAmp         = 500;
   mainTrackDesc.limitCurrentMilliAmp        = 1500;
@@ -338,11 +337,11 @@ uint8_t setupDccTrackProg( ) {
 
   progTrackDesc.options                     = DT_OPT_SERVICE_MODE_TRACK;
 
-  progTrackDesc.enablePin                   = cdcConfig.DIO_PIN_7;
-  progTrackDesc.dccSigPin1                  = cdcConfig.DIO_PIN_4;
-  progTrackDesc.dccSigPin2                  = cdcConfig.DIO_PIN_5;
-  progTrackDesc.sensePin                    = cdcConfig.ADC_PIN_1;
-  progTrackDesc.uartRxPin                   = cdcConfig.UART_RX_PIN_2;
+  progTrackDesc.enablePin                   = resMap.dioPin_7;
+  progTrackDesc.dccSigPin1                  = resMap.dioPin_4;
+  progTrackDesc.dccSigPin2                  = resMap.dioPin_5;
+  progTrackDesc.sensePin                    = resMap.adcPin_1;
+  progTrackDesc.uartRxPin                   = resMap.uartRxPin_1;
 
   progTrackDesc.initCurrentMilliAmp         = 500;
   progTrackDesc.limitCurrentMilliAmp        = 500;
@@ -392,10 +391,8 @@ uint8_t registerCallbacks( ) {
     registerInitCallback( lcsInitCallback );
     registerPfailCallback( lcsPfailCallback );
    
-   
    // registerReqCallback( lcsReqCallback );
-    
-    
+     
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
     registerTaskCallback( bsMainTrackCallback, MAIN_TRACK_STATE_TIME_INTERVAL );

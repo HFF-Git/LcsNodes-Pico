@@ -246,22 +246,6 @@ struct LcsNvmHeaderMap {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// Every LCS board uses the CDC layer to access the controller hardware. The CDC descriptor contains the
-// pin configuration data and is passed through the "initRunTime" routine. We copy this data to the "cfg" 
-// structure. One day, we may store this data in the descriptor. So far, this is more of a place holder.
-// One day, we may just construct the CDC data directly from the board type.
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsCdcMap {
-
-    uint32_t                magicWord   = NVM_MWORD_CDC_MAP;
-    uint32_t                nvmOfs      = 0;
-    uint32_t                nvmSize     = sizeof( LcsCdcMap );
-    
-    // ??? what would we store in the NVM for CDC ?
-};
-
-//----------------------------------------------------------------------------------------------------------
 // The nodeMap is the heart of all data on the node. When bringing up a node, we first read in the NVM
 // headers and then the node map. Once read from the NVM storage, several validity checks are performed.
 // The most important check is to compare the size of the various data structures with the runtime data 
@@ -444,7 +428,6 @@ struct LcsDrvFuncMap {
 //
 //----------------------------------------------------------------------------------------------------------
 const uint32_t  NVM_HEADER_MAP_SIZE         =   sizeof( LcsNvmHeader ); 
-const uint32_t  NVM_CDC_MAP_SIZE            =   sizeof( LcsCdcMap );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
 const uint32_t  NVM_PORT_MAP_SIZE           =   sizeof( LcsPortMap );
 const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
@@ -453,14 +436,12 @@ const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
 const uint32_t  NVM_MAP_STORAGE_START       =   0;
 
 const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_HEADER_MAP_SIZE + 
-                                                NVM_CDC_MAP_SIZE    + 
                                                 NVM_NODE_MAP_SIZE   +
                                                 NVM_PORT_MAP_SIZE   +
                                                 NVM_NODE_DATA_SIZE  +
                                                 NVM_EVENT_MAP_SIZE;
 
 const uint32_t  NVM_MAP_SITZE               =   NVM_HEADER_MAP_SIZE +
-                                                NVM_CDC_MAP_SIZE    +
                                                 NVM_NODE_MAP_SIZE   +
                                                 NVM_PORT_MAP_SIZE   +
                                                 NVM_NODE_DATA_SIZE  +
@@ -472,33 +453,27 @@ const uint32_t  NVM_CDC_MAP_OFS             =   NVM_MAP_STORAGE_START +
                                                 NVM_HEADER_MAP_SIZE;
 
 const uint32_t  NVM_NODE_MAP_OFS            =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   +
-                                                NVM_CDC_MAP_SIZE;
+                                                NVM_HEADER_MAP_SIZE;
 
 const uint32_t  NVM_PORT_MAP_OFS            =   NVM_MAP_STORAGE_START + 
                                                 NVM_HEADER_MAP_SIZE   +
-                                                NVM_CDC_MAP_SIZE      +  
                                                 NVM_NODE_MAP_SIZE;
 
-
 const uint32_t  NVM_NODE_DATA_OFS           =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   +
-                                                NVM_CDC_MAP_SIZE      +  
+                                                NVM_HEADER_MAP_SIZE   +  
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_PORT_MAP_SIZE;
     
 
 const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START + 
                                                 NVM_HEADER_MAP_SIZE   +
-                                                NVM_CDC_MAP_SIZE      +  
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_PORT_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
 
 const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   +
-                                                NVM_CDC_MAP_SIZE      +  
+                                                NVM_HEADER_MAP_SIZE   + 
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_PORT_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +

@@ -64,6 +64,7 @@ extern uint16_t debugMask;
 namespace {
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // The DCC Track will allocate two DCC Track Objects. For the interrupt system to work, references to the
@@ -121,17 +122,18 @@ const uint8_t ACK_TRESHOLD_VAL      = 100;
 //
 // ??? think directly in microseconds ?
 //------------------------------------------------------------------------------------------------------------
-const uint32_t TICKS_29_MICROS             =  1;
-const uint32_t TICKS_58_MICROS             =  TICKS_29_MICROS * 2;
-const uint32_t TICKS_116_MICROS            =  TICKS_29_MICROS * 4;
-const uint32_t TICKS_CUTOUT_MICROS         =  TICKS_29_MICROS * 16;
+const uint16_t TIMER_RES_ID                 = 100; // arbitrarily chosen
+const uint32_t TICKS_29_MICROS              =  1;
+const uint32_t TICKS_58_MICROS              =  TICKS_29_MICROS * 2;
+const uint32_t TICKS_116_MICROS             =  TICKS_29_MICROS * 4;
+const uint32_t TICKS_CUTOUT_MICROS          =  TICKS_29_MICROS * 16;
 
 //--------------------------------------------------------------------------------------------------------------
 // Base Station global limits. Perhaps to move to a configurable place...
 //
 //-------------------------------------------------------------------------------------------------------------
-const uint16_t MILLI_VOLT_PER_DIGIT        = 5;
-const uint16_t MILLI_VOLT_PER_AMP          = 1500;
+const uint16_t MILLI_VOLT_PER_DIGIT         = 5;
+const uint16_t MILLI_VOLT_PER_AMP           = 1500;
 
 //------------------------------------------------------------------------------------------------------------
 // DCC track power management is also a a state machine managing the state of the power track. Maximum values
@@ -512,7 +514,7 @@ void timerCallback( uint32_t timerVal ) {
 
     timeToInterrupt = (( timeLeftMainTrack < timeLeftProgTrack ) ? timeLeftMainTrack : timeLeftProgTrack );
 
-    CDC::setRepeatingTimerLimit( timeToInterrupt * TICK_IN_MICROSECONDS );
+    CDC::setRepeatingTimerLimit( TIMER_RES_ID, timeToInterrupt * TICK_IN_MICROSECONDS );
 
     if (( followUpMain != DCC_SIG_FOLLOW_UP_NONE ) && ( followUpMain != DCC_SIG_FOLLOW_UP_MEASURE_CURRENT )) {
 
@@ -546,8 +548,9 @@ void initDccTrackProcessing( ) {
     timeToInterrupt    = 0;
     timeLeftMainTrack  = 0;
     timeLeftProgTrack  = 0;
-
-    CDC::startRepeatingTimer( TICK_IN_MICROSECONDS );
+    
+    uint8_t rStat = configureTimer( TIMER_RES_ID, timerCallback );
+    startRepeatingTimer( TIMER_RES_ID, TICK_IN_MICROSECONDS );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -828,15 +831,13 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     lastPwrSamplePerSecTaken  = 0;
     pwrSamplesPerSec          = 0;
 
-    CDC::configureDio( enablePin, CDC::DIO_OUT );
-    CDC::configureDio( dccSigPin1, CDC::DIO_OUT );
-    CDC::configureDio( dccSigPin2, CDC::DIO_OUT );
-    CDC::configureAdc( sensePin );
+    configureDio( enablePin, CDC_DIO_OUT );
+    configureDio( dccSigPin1, CDC_DIO_OUT );
+    configureDio( dccSigPin2, CDC_DIO_OUT );
+    configureAdc( sensePin );
 
-    CDC::writeDio( enablePin, false );
-    CDC::writeDioPair( dccSigPin1, false, dccSigPin2, false );
-
-    CDC::onTimerEvent( timerCallback );
+    writeDio( enablePin, false );
+    writeDioPair( dccSigPin1, false, dccSigPin2, false );
 
     if ( options & DT_OPT_SERVICE_MODE_TRACK ) {
 
@@ -866,7 +867,9 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     if ( trackDesc -> options & DT_OPT_RAILCOM ) {
 
         flags |= DT_F_RAILCOM_MODE_ON;
-        if ( CDC::configureUart( uartRxPin, CDC::UNDEFINED_PIN, 250000, CDC::UART_MODE_8N1 ) != ALL_OK ) {
+
+        uint8_t rStat = configureUart( uartRxPin, UNDEFINED_PIN, 250000 );
+        if ( rStat != ALL_OK ) {
 
             flags = DT_F_CONFIG_ERROR;
             return ( ERR_DCC_TRACK_CONFIG );
@@ -1584,8 +1587,11 @@ void LcsBaseStationDccTrack::powerMeasurement( ) {
 
     if ( flags & DT_F_MEASUREMENT_ON ) {
 
-        actualCurrentDigitValue = CDC::readAdc( sensePin );
+        uint16_t adcVal;
 
+        uint8_t rStat = readAdc( sensePin, &adcVal );
+
+        actualCurrentDigitValue = adcVal;
         totalPwrSamplesTaken ++;
 
         if ( actualCurrentDigitValue > highWaterMarkDigitValue ) highWaterMarkDigitValue = actualCurrentDigitValue;

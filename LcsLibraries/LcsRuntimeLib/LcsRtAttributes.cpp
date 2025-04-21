@@ -34,9 +34,11 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
+    using namespace CDC;
+
     extern uint16_t             debugMask;
+    extern CdcResourceMap       resMap;
     extern LcsNvmHeaderMap      nvmHeaderMap;
-    extern LcsCdcMap            cdcMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
@@ -708,9 +710,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 int option = (( arg1 == nullptr ) ? 0 : *arg1 );
 
-                if      ( *arg1 == 1 )  return ( errStat( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, true )));
-                else if ( *arg1 == 2 )  return ( errStat( CDC::toggleDio( cdcMap.cfg.ACTIVE_LED_PIN )));
-                else                    return ( errStat( CDC::writeDio( cdcMap.cfg.ACTIVE_LED_PIN, false )));
+                if      ( *arg1 == 1 )  return ( errStat( CDC::writeDio( resMap.ledPin, true )));
+                else if ( *arg1 == 2 )  return ( errStat( CDC::toggleDio( resMap.ledPin )));
+                else                    return ( errStat( CDC::writeDio( resMap.ledPin, false )));
             }
 
             default: return ( errStat( ERR_INVALID_ITEM_ID ));
