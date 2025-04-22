@@ -93,6 +93,8 @@ enum CdcStatus : uint8_t {
     NOT_SUPPORTED_ERR   = 1,
     NOT_IMPLEMENTED_ERR = 2,
     NOT_INITIALZED_ERR  = 3,
+
+    RES_NUM_ERR         = 4,
    
     TIMER_RES_ERR       = 10,
     DIO_PIN_ERR         = 11,
@@ -142,14 +144,34 @@ const uint8_t   ILLEGAL_PIN             = 254;
 enum CdcResourceType : uint8_t {
 
     CDC_RT_UNDEFINED    = 0,
-    CDC_RT_CONTROLLER   = 1,
-    CDC_RT_TIMER        = 2,
-    CDC_RT_GPIO         = 3,
+    CDC_RT_GPIO         = 2,
     CDC_RT_ADC          = 4,
     CDC_RT_PWM          = 5,
-    CDC_RT_UART         = 6,
-    CDC_RT_I2C          = 7,
-    CDC_RT_CAN_BUS      = 8
+    CDC_RT_UART         = 7,
+    CDC_RT_I2C          = 8,
+    CDC_RT_CAN_BUS      = 9,
+
+    CDC_RT_INVALID      = 255
+};
+
+//------------------------------------------------------------------------------------------------------------
+// There are predefined resource channels common to all boards. TheY re for example the activity led and 
+// the NVM I2C channel. These resource numbers are consequently reserved and cannot be used by the firmware
+// programmer.
+//
+//------------------------------------------------------------------------------------------------------------
+enum CdcResourceIdNum : uint8_t {
+
+    CDC_RN_ACTIVITY         = 0,
+    CDC_RN_PFAIL            = 1,
+    CDC_RN_CAN_BUS          = 2,
+    CDC_RN_NVM              = 3,
+    CDC_RN_EXT_NVM          = 4,
+    CDC_RN_RESERVED_1       = 5,
+    CDC_RN_RESERVED_2       = 6,
+    CDC_RN_RESERVED_3       = 7,
+    CDC_RN_FIRST_USER_RN    = 8,
+    CDC_RN_UNDEFINED        = 255
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -212,84 +234,92 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// CDC Layer resource map. The map is a structure containing overall configuration attributes and hardware 
-// mapping for the particular controller and board. There are a lot of fields, not all of them are set for
-// a particular board. The firmware program needs to provide a this map with the values set for the board.
-// The data is used in the configure routines but also for the layer routines. For example, a GPIO pin value
-// is directly the hardware pin on the controller. A PIN pin refers also to a pin and will be used internally
-// to find the complementary data that the controller hardware defines for a PWM hardware block. 
+// The CDC resource descriptor describes a CDC channel. A channel is a hardware entity that the CDC offers
+// to the library and the firmware programmer. Primarily is contains the actual pin settings but also any
+// other relevant data for the particular channel.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcResourceMap {
+struct CdcResourceDescGpio {
 
-    uint16_t    options                     = 0;
-    uint16_t    debugMask                   = 0;
-    uint16_t    cFamily                     = CDC_CF_C_UNDEFINED;
-    uint16_t    cType                       = CDC_CF_C_UNDEFINED;
-    uint16_t    cpuCores                    = 1;
-    uint32_t    memorySize                  = 0;
-    uint32_t    internalNvmSize             = 0;
-    uint32_t    watchDogIntervallMillis     = 2000;
+    uint8_t     pinA;
+    uint8_t     pinB;
+    uint8_t     pinMode;
+};
 
-    uint16_t    adcRefVoltageMillis         = 3300;
-    uint16_t    adcDigitRange               = 1024;
+struct CdcResourceDescAdc {
 
-    uint8_t     ledPin                      = UNDEFINED_PIN;
-    uint8_t     pFailPin                    = UNDEFINED_PIN;
+    uint8_t     pin;
+    uint8_t     adcNum;
+};
 
-    uint8_t     adcPin_0                    = UNDEFINED_PIN;
-    uint8_t     adcPin_1                    = UNDEFINED_PIN;
-    uint8_t     adcPin_2                    = UNDEFINED_PIN;
-    uint8_t     adcPin_3                    = UNDEFINED_PIN;
+struct CdcResourceDescPwm {
+            
+    uint8_t     pinA;
+    uint8_t     pinB;
+    uint32_t    frequency;
+};
 
-    uint8_t     dioPin_0                    = UNDEFINED_PIN;
-    uint8_t     dioPin_1                    = UNDEFINED_PIN;
-    uint8_t     dioPin_2                    = UNDEFINED_PIN;
-    uint8_t     dioPin_3                    = UNDEFINED_PIN;
-    uint8_t     dioPin_4                    = UNDEFINED_PIN;
-    uint8_t     dioPin_5                    = UNDEFINED_PIN;
-    uint8_t     dioPin_6                    = UNDEFINED_PIN;
-    uint8_t     dioPin_7                    = UNDEFINED_PIN;
-    uint8_t     dioPin_8                    = UNDEFINED_PIN;
-    uint8_t     dioPin_9                    = UNDEFINED_PIN;
-    uint8_t     dioPin_10                   = UNDEFINED_PIN;
-    uint8_t     dioPin_11                   = UNDEFINED_PIN;
-    uint8_t     dioPin_12                   = UNDEFINED_PIN;
-    uint8_t     dioPin_13                   = UNDEFINED_PIN;    
-    uint8_t     dioPin_14                   = UNDEFINED_PIN;
-    uint8_t     dioPin_15                   = UNDEFINED_PIN;
+struct CdcResourceDescUart {
 
-    uint8_t     pwmPin_0                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_1                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_2                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_3                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_4                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_5                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_6                    = UNDEFINED_PIN;
-    uint8_t     pwmPin_7                    = UNDEFINED_PIN;
-    
-    uint8_t     i2cSclPin_0                 = UNDEFINED_PIN;
-    uint8_t     i2cSdaPin_0                 = UNDEFINED_PIN;
-    uint8_t     i2cBaudrate_0               = 0;
+    uint8_t     rxPin;
+    uint8_t     txPin;
+    uint32_t    baudRate;
+};
 
-    uint8_t     i2cSclPin_1                 = UNDEFINED_PIN;
-    uint8_t     i2cSdaPin_1                 = UNDEFINED_PIN;
-    uint8_t     i2cBaudrate_1               = 0;
+struct CdcResourceDescCanBus {
 
-    uint8_t     uartRxPin_0                 = UNDEFINED_PIN;
-    uint8_t     uartTxPin_0                 = UNDEFINED_PIN;
-    uint8_t     uartBaudrate_0              = 0;
+    uint8_t     rxPin;
+    uint8_t     txPin;
+    uint32_t    baudRate;
+    uint32_t    canId;
+    bool        twoCores;
+};
 
-    uint8_t     uartRxPin_1                 = UNDEFINED_PIN;
-    uint8_t     uartTxPin_1                 = UNDEFINED_PIN;
-    uint8_t     uartBaudrate_1              = 0;
+struct CdcResourceDescI2c {
 
-    uint8_t     canPinRx                    = UNDEFINED_PIN;
-    uint8_t     canPinTx                    = UNDEFINED_PIN;
-    uint32_t    canBaudRate                 = 0;
-    bool        canTwoCores                 = false;
+    uint8_t     sclPin;
+    uint8_t     sdaPin;
+    uint8_t     i2cAdrRoot;
+    uint32_t    baudRate;
+    uint16_t    i2cTimeoutMs; 
+};
 
-    uint32_t    extNvmSize                  = 0;
+struct CdcResourceDesc {
+
+    uint8_t type;
+
+    union {
+
+        CdcResourceDescGpio     gpio;
+        CdcResourceDescAdc      adc;
+        CdcResourceDescPwm      pwm;
+        CdcResourceDescUart     uart;
+        CdcResourceDescCanBus   can;
+        CdcResourceDescI2c      i2c;
+    };
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The resource descriptor map is the data structure passed to the runtime library initialization routine.
+// The data is used in the configuration process of the particular hardware. We will over tome have several
+// if these maps which describe the board hardware and the board purpose.
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcResourceDescMap {
+
+    uint16_t            options                     = 0;
+    uint16_t            debugMask                   = 0;
+    uint16_t            cFamily                     = CDC_CF_C_UNDEFINED;
+    uint16_t            cType                       = CDC_CF_C_UNDEFINED;
+    uint16_t            cpuCores                    = 1;
+    uint32_t            memorySize                  = 0;
+    uint32_t            eepromSize                  = 0;
+    uint32_t            watchDogIntervallMillis     = 2000;
+    uint16_t            adcRefVoltageMillis         = 3300;
+    uint16_t            adcDigitRange               = 1024;
+             
+    char                name[ 64 ]                  = "";
+    CdcResourceDesc     map[ 32 ];
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -305,11 +335,10 @@ struct CdcResourceMap {
 // Basic init and error handling.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         cdcInit( CdcResourceMap *dMap );
+uint8_t         cdcInit( CdcResourceDescMap *dMap );
 
-CdcResourceMap  getDefaultResourceMap( );
-CdcResourceMap  *getResourceMap( );
-void            printResourceMap( CdcResourceMap *map );
+void            printResourceDescMap( CdcResourceDescMap *dMap );
+void            printResourceMap( );
 
 uint8_t         getVersion( uint32_t *version );
 void            fatalError( uint8_t errNum, char *str = nullptr,  uint8_t rStat = NO_ERR );
@@ -369,56 +398,51 @@ uint8_t         stopRepeatingTimer( uint8_t timerId );
 // Analog input routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureAdc( uint8_t adcPin );
-uint8_t         readAdc( uint8_t adcPin, uint16_t *val );
+uint8_t         configureAdc( uint8_t rNum );
+uint8_t         readAdc( uint8_t rNum, uint16_t *val );
 
 //------------------------------------------------------------------------------------------------------------
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureDio( uint8_t dioPin, uint8_t pinMode );
-uint8_t         readDio( uint8_t dioPin, bool *val );
-uint8_t         writeDio( uint8_t dioPin, bool val );
-uint8_t         writeDioPair( uint8_t dioPin1, bool valA, uint8_t dioPin2, bool valB );
-uint8_t         toggleDio( uint8_t dioPin );
-uint8_t         registerDioCallback( uint8_t dioPin, uint8_t event, GpioCallback func );
-uint8_t         unregisterDioCallback( uint8_t dioPin );
+uint8_t         configureDio( uint8_t rNum, uint8_t pinMode );
+uint8_t         readDio( uint8_t rNum, bool *valA, bool *valB = nullptr );
+uint8_t         writeDio( uint8_t rNum, bool valA, bool valB = false );
+uint8_t         toggleDio( uint8_t rNum );
+uint8_t         registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func );
+uint8_t         unregisterDioCallback( uint8_t rNum );
 
 //------------------------------------------------------------------------------------------------------------
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configurePwm(   uint8_t     pwmPin, 
-                                uint32_t    freqency, 
-                                bool        phaseCorrect = true,
-                                bool        inverted = false );
-uint8_t         writePwm( uint8_t pwmPin, uint8_t dutyCycle );
-uint8_t         writePwmPair(uint8_t pwmPin, uint8_t dutyCycleA, uint8_t dutyCycleB ); 
-uint8_t         syncPwm( uint8_t pwmPin );
+uint8_t         configurePwm( uint8_t rNum );
+uint8_t         writePwm(uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ); 
+uint8_t         syncPwm( uint8_t rNum );
 
 //------------------------------------------------------------------------------------------------------------
 // Serial IO routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
-uint8_t         startUartRead( uint8_t rxPin );
-uint8_t         stopUartRead( uint8_t rxPin );
-uint8_t         getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen );
+uint8_t         configureUart( uint8_t rNum, uint32_t baudRate );
+uint8_t         startUartRead( uint8_t rNum );
+uint8_t         stopUartRead( uint8_t rNum );
+uint8_t         getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen );
 
 //------------------------------------------------------------------------------------------------------------
 // I2C management routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate = 100 * 1000 );
-uint8_t         i2cBusreset( uint8_t sclPin );
-uint8_t         i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
-uint8_t         i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+uint8_t         configureI2C( uint8_t rNum );
+uint8_t         i2cBusreset( uint8_t rNum );
+uint8_t         i2cWrite( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
+uint8_t         i2cRead( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 
 //------------------------------------------------------------------------------------------------------------
 // CAN Bus hardware routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureCanBus( uint8_t pinRx, uint8_t pinTx, uint32_t baudRate, bool twoCores );
+uint8_t         configureCanBus( uint8_t rNum );
 
 };
 

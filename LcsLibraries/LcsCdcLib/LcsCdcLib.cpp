@@ -154,7 +154,8 @@ const uint32_t  I2C_TIME_OUT_IN_MS           = 250;
 const uint16_t  MAX_CPU_CORE                = 2;
 const uint16_t  MAX_INT_PIN                 = 24;
 
-const uint16_t  MAX_RESOURCE_ENTRIES        = 64;
+const uint16_t  MAX_RESOURCE_ENTRIES        = 32;
+const uint16_t  MAX_RES_NAME                = 64;
 
 //------------------------------------------------------------------------------------------------------------
 // Controller dependent code uses a set of hardware resource structures to control the controller hardware. 
@@ -164,7 +165,7 @@ const uint16_t  MAX_RESOURCE_ENTRIES        = 64;
 //------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
-// A timer instance. We need to keep the local timer instance data for the PICO.
+// A timer resource. We need to keep the local timer instance data for the PICO.
 //
 //------------------------------------------------------------------------------------------------------------
 struct TimerResource {
@@ -183,84 +184,83 @@ struct TimerResource {
 //------------------------------------------------------------------------------------------------------------
 struct AdcResource {
 
-    bool      configured  = false;
-    uint8_t   adcPin      = UNDEFINED_PIN;
-    uint8_t   adcNum      = 0;
+    uint8_t   adcPin;
+    uint8_t   adcNum;
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
-// ??? well what to here if at all...
+// The GPIO resource is perhaps the most fundamental resource. It manages a HW pin. Optional, we can have
+// two pins which then act as pair and are read from or written to simultaneously.
+// 
 //------------------------------------------------------------------------------------------------------------
 struct GpioResource {
 
-    uint8_t         dioPin  = UNDEFINED_PIN;
-    uint8_t         pinMode = CDC_DIO_IN_PULLUP;
-    GpioCallback    handler = nullptr;
+    uint8_t         dioPinA;
+    uint8_t         dioPinB;
+    uint8_t         pinMode;
+    GpioCallback    handler;
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A PWM output resource. GPIO pins can also be used as PWM output pins. The PWM output related data is
-// kept in this instance. We keep track of one or two pins, which must be on the same slice. The idea is 
-// that we use for H-Bridge control two output signals, which act as a pair. Note that the PICO can set
-// some attributes, such as "wrap", only for the slice, not an individual channel. 
+// The PWM output resource manages a PWM configured output pin. We keep track of one or two pins, which must
+// be on the same PWM slice. The idea is  that we use for H-Bridge control two output signals, which act as 
+// a pair. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct PwmResource {
 
-    bool        configured      = false;
-    uint8_t     pwmPin          = UNDEFINED_PIN;
-    uint32_t    frequency       = 0;
-    uint        wrap            = 0;
-    uint        channel         = 0;
-    uint        sliceNum        = 0;
-    bool        inverted        = false;
-    bool        phaseCorrect    = true;
+    uint8_t     pwmPinA;
+    uint8_t     pwmPinB;
+    uint32_t    frequency;
+    uint        wrap;
+    uint        channel;
+    uint        sliceNum;
+    bool        inverted;
+    bool        phaseCorrect;
 };
 
 //------------------------------------------------------------------------------------------------------------
 // UARTS are used to read in a serial stream from the RailCom detectors. There can be two hardware based UART
-// instances. The instance also keeps a small buffer where the data is read into. We also keep the PICO UART
-// HW instance used.
+// resources. The resource also keeps a small buffer where the data is read into.
 //
 //------------------------------------------------------------------------------------------------------------
 struct UartResource {
 
-    bool              configured    = false;
-    uint8_t           rxPin         = UNDEFINED_PIN;
-    uint8_t           txPin         = UNDEFINED_PIN;
-    uint16_t          baudSetting   = 0;
-    uint8_t           dataBits      = 8;
-    uart_parity_t     parityMode    = UART_PARITY_NONE;
-    uint8_t           stopBits      = 1;
-    int               uartIrq       = 0;
+    uint8_t           rxPin;
+    uint8_t           txPin;
+    uint16_t          baudSetting;
+    uint8_t           dataBits;
+    uart_parity_t     parityMode;
+    uint8_t           stopBits;
+    int               uartIrq;
 
-    volatile uint8_t  rxBufIndex    = 0;
-    volatile uint8_t  rxDataBuf[ MAX_UART_BUF_SIZE ] = { 0 };
+    volatile uint8_t  rxBufIndex;
+    volatile uint8_t  rxDataBuf[ MAX_UART_BUF_SIZE ];
 
-    uart_inst_t       *uartHw       = nullptr;
+    uart_inst_t       *uartHw;
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The PICO features two I2C HW instances. The instance data contains the assigned GPIO pins, the baud rate 
-// and a timeout.
+// The PICO features two I2C HW channels. The resource data contains the assigned GPIO pins, the baud rate 
+// and a timeout. We also keep an I2C address root, which comes in handy for addressing chips with the same
+// root address.
 //
 //------------------------------------------------------------------------------------------------------------
-struct I2CResource {
+struct I2cResource {
 
-    bool        configured    = false;
-    uint8_t     sclPin        = UNDEFINED_PIN;
-    uint8_t     sdaPin        = UNDEFINED_PIN;
-    uint32_t    baudRate      = I2C_FREQUENCY;
-    uint32_t    timeoutValMs  = I2C_TIME_OUT_IN_MS;
+    uint8_t     sclPin;
+    uint8_t     sdaPin;
+    uint8_t     i2cAdrRoot;
+    uint32_t    baudRate;
+    uint32_t    timeoutValMs;
 
-    i2c_inst_t  *i2cHw        = nullptr;
+    i2c_inst_t  *i2cHw;
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CAN bus resource. Although our current controller does not feature a CAN bus, the resource described 
-// the hardware elements needed. Currently, we use a software version based on a PIO program to implement the
-// CAN bus. 
+// The CAN bus resource. Although our current controller does not feature a CAN bus hardware, the resource 
+// describes the hardware elements needed. Currently, we use a software version based on a PIO program to 
+// implement the CAN bus. 
 // 
 //------------------------------------------------------------------------------------------------------------
 struct CanBusResource {
@@ -268,13 +268,56 @@ struct CanBusResource {
     uint8_t         canPinRx;
     uint8_t         canPinTx;
     uint32_t        baudRate;
+    uint32_t        canId;
     bool            twoCores;
 };
 
 //------------------------------------------------------------------------------------------------------------
+// The resource map has an array of the resources. 
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcResource {
+
+    uint8_t type;
+
+    union {
+
+        GpioResource    gpio;
+        AdcResource     adc;
+        PwmResource     pwm;
+        UartResource    uart;
+        I2cResource     i2c;
+        CanBusResource  can;
+    };
+
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The resource map is the central data structure to talk to the hardware. It is built at runtime startup
+// using the resource descriptor map. Essentially it contain all the data from the resource descriptors and
+// depending on the descriptor type the PICO data structures necessary.
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcResourceMap {
+
+    uint16_t            options                     = 0;
+    uint16_t            debugMask                   = 0;
+    uint16_t            cFamily                     = CDC_CF_C_UNDEFINED;
+    uint16_t            cType                       = CDC_CF_C_UNDEFINED;
+    uint16_t            cpuCores                    = 1;
+    uint32_t            memorySize                  = 0;
+    uint32_t            eepromSize                  = 0;
+    uint32_t            watchDogIntervallMillis     = 2000;
+    uint16_t            adcRefVoltageMillis         = 3300;
+    uint16_t            adcDigitRange               = 1024;
+    char                name[ MAX_RES_NAME ]        = "";
+   
+    CdcResource      map[ MAX_RESOURCE_ENTRIES ];
+};
+
+//------------------------------------------------------------------------------------------------------------
 // The interrupt table for the GPIO pin interrupts. The PICO can have only one interrupt handler. We will
-// allocate a table where an interrupt handler can be set for each HW pin. When an interrupt comes in we 
-// look up the corresponding resource handle and when there is a handler configured, it will be called. 
+// allocate a table where an interrupt handler can be set for each HW pin. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct GpioIsrTable {
@@ -290,34 +333,17 @@ struct GpioIsrTable {
 //
 //------------------------------------------------------------------------------------------------------------
 bool                    initialized = false; // move into cMap ?
-CdcResourceMap          cMap;
+GpioIsrTable            dioIntHandlers;
+CdcResourceDescMap      dMap;
+CdcResourceMap          rMap;
 
 TimerResource           timer_0;
 TimerResource           timer_1;
 TimerResource           timer_2;
 TimerResource           timer_3;
 
-GpioIsrTable            dioIntHandlers;
-
-AdcResource             adc_0;
-AdcResource             adc_1;
-AdcResource             adc_2;
-AdcResource             adc_3;
-
-PwmResource             pwm_0;
-PwmResource             pwm_1;
-PwmResource             pwm_2;
-PwmResource             pwm_3;
-PwmResource             pwm_4;
-PwmResource             pwm_5;
-PwmResource             pwm_6;
-PwmResource             pwm_7;
-
-UartResource            uart_0;
-UartResource            uart_1;
-
-I2CResource             i2c_0;
-I2CResource             i2c_1;
+UartResource            *uart_0;
+UartResource            *uart_1;
 
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
@@ -355,6 +381,68 @@ void initIsrTable( ) {
             dioIntHandlers.gpioIsrTable[ i ][ j ] = dummyIsrHandler;
         }
     }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void initResourceMap( CdcResourceMap *rMap ) {
+
+    rMap -> options                     = 0;
+    rMap -> debugMask                   = 0;
+    rMap -> cFamily                     = CDC_CF_C_UNDEFINED;
+    rMap -> cType                       = CDC_CF_C_UNDEFINED;
+    rMap -> cpuCores                    = 1;
+    rMap -> memorySize                  = 0;
+    rMap -> eepromSize                  = 0;
+    rMap -> watchDogIntervallMillis     = 2000;
+    rMap -> adcRefVoltageMillis         = 3300;
+    rMap -> adcDigitRange               = 1024; 
+    rMap -> name[0 ]                    = 0;
+
+    for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) rMap -> map[ i ].type = CDC_RT_UNDEFINED;
+} 
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
+    if ( dMap.map[ rNum ].type == type ) return( &dMap.map[ rNum ] );
+    else return( nullptr );
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
+    if ( rMap.map[ rNum ].type == CDC_RT_UNDEFINED ) {
+
+        rMap.map[ rNum ].type = type;
+        return ( &rMap.map[ rNum ] );
+    }
+    else if ( rMap.map[ rNum ].type == type ) {
+
+        return ( &rMap.map[ rNum ] );
+    }
+   else return ( nullptr );
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( nullptr );
+    if ( rMap.map[ rNum ].type = type ) return( nullptr );
+    return( &rMap.map[ rNum ] );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -425,7 +513,7 @@ void uartRxCallback0( ) {
     while ( uart_is_readable( uart0 )) {
 
         uint8_t ch = uart_getc( uart0 );
-        if ( uart_0.rxBufIndex < MAX_UART_BUF_SIZE ) uart_0.rxDataBuf[ uart_0.rxBufIndex++ ] = ch;
+        if ( uart_0 -> rxBufIndex < MAX_UART_BUF_SIZE ) uart_0 -> rxDataBuf[ uart_0 -> rxBufIndex++ ] = ch;
     }
 }
 
@@ -434,7 +522,7 @@ void uartRxCallback1( ) {
     while ( uart_is_readable( uart1 )) {
 
         uint8_t ch = uart_getc( uart1 );
-        if ( uart_1.rxBufIndex < MAX_UART_BUF_SIZE ) uart_1.rxDataBuf[ uart_1.rxBufIndex++ ] = ch;
+        if ( uart_1 -> rxBufIndex < MAX_UART_BUF_SIZE ) uart_1 -> rxDataBuf[ uart_1 -> rxBufIndex++ ] = ch;
     }
 }
 
@@ -493,52 +581,26 @@ uint16_t getDebugMask( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// CDC library setup. The "init" routine will ready the CDC library. The main task is to validate the pins and
-// values for the particular controller capabilities. The init routine can be called more than once without a
-// problem.
+// CDC library setup. The "init" routine will ready the CDC library and keep a copy of the descriptor map.
+// The init routine can be called more than once without a problem.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t cdcInit( CdcResourceMap *cMapPtr ) {
+uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
 
-    cMap = *cMapPtr;
-
+    dMap = *dMapPtr;
     if ( ! initialized ) {
 
         initIsrTable( );
     }
-
-    // ??? validate data ?
-
-    return ( NO_ERR );
 }
-
-//------------------------------------------------------------------------------------------------------------
-// "getDefaultResourceMap" initializes a configuration structure and sets the pre-assigned values. A typical
-// sequence for an application start sequence would be to create an initial structure this way and then set
-// the relevant pins and values according to the actual hardware configuration.
-//
-// ??? for now we assume a RP2040.
-//------------------------------------------------------------------------------------------------------------
-CdcResourceMap  getDefaultResourceMap( ) {
-
-    CdcResourceMap map;
-
-    map.cFamily     = CDC_CF_RP_PICO;
-    map.cType       = CDC_CF_C_RP_2040;
-    map.memorySize  = 260 * 1024;
-    map.cpuCores    = 2;
-
-    return ( map );
- }
  
  //------------------------------------------------------------------------------------------------------------
- // "getResourceMap" will return a pointer to the copy we kept when calling the init routine with the resource
- // for the board. There is no need for the upper layers to keep the structure around after init.
+ // "getResourceMap" will return a pointer to the configured resource map.
  //
  //------------------------------------------------------------------------------------------------------------
  CdcResourceMap  *getResourceMap( ) {
 
-    return ( &cMap );
+    return ( &rMap );
  }
 
 //------------------------------------------------------------------------------------------------------------
@@ -689,14 +751,14 @@ char getConsoleChar( uint32_t timeoutVal ) {
 uint8_t getFamily( uint16_t *family ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    *family =cMap.cFamily;
+    *family =rMap.cFamily;
     return ( NO_ERR );
 }
 
 uint8_t getChipMemSize( uint32_t *size ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    *size = cMap.memorySize;
+    *size = rMap.memorySize;
     return ( NO_ERR );
 }
 
@@ -717,7 +779,7 @@ uint8_t getCpuFrequency( uint32_t *frequency ) {
 uint8_t watchDogEnable( bool enable ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    watchdog_enable( cMap.watchDogIntervallMillis, 1 );
+    watchdog_enable( rMap.watchDogIntervallMillis, 1 );
     return ( NO_ERR );
 }
 
@@ -748,7 +810,6 @@ uint8_t setPfailHandler( PfailCallback functionId ) {
 // allow to set a new limit. The PICO offers a high level function that schedules a repeating timer with the
 // property of measuring the interval also from the start of the callback invocation. 
 //
-// ??? restrictions on resId ?
 //------------------------------------------------------------------------------------------------------------
 TimerResource *getTimerResource( uint8_t resId ) {
 
@@ -821,60 +882,62 @@ uint8_t onTimerEvent( uint8_t resId, TimerCallback functionId ) {
 // ADC section. The analog input channel represented by the pin is configured. At initialization, the ADC pin
 // number is validated and the ADC subsystem is initialized. The PICO does an analog read in about 2us. This 
 // is so fast, it does for our purpose make not much sense to implement an asynchronous option. Furthermore, 
-// the ADC value scaled down to a 10-bit resolution.
+// the ADC value scaled down to a 10-bit resolution. The PICO support up to three ADC pins at the dedicated
+// HW pins numbers 26, 27 and 28. They also need to be mapped an ADC select number for selecting the ADC
+// hardware.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureAdc( uint8_t adcPin ) {
+uint8_t configureAdc( uint8_t rNum ) {
 
-    AdcResource *ptr;
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    
+    AdcResource *rPtr = (AdcResource *) allocateResourceType( rNum, CDC_RT_ADC );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    if ( adcPin == cMap.adcPin_0 ) {
+    CdcResourceDescAdc *dPtr = (CdcResourceDescAdc *) lookupResourceDesc( rNum, CDC_RT_ADC );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
 
-        ptr = &adc_0;
-        ptr -> adcPin = adcPin;
-        ptr -> adcNum = 0;
+    if ( dPtr -> pin == 26 ) {
+
+        rPtr -> adcPin = 26;
+        rPtr -> adcNum = 0;
     }
-     else if ( adcPin == cMap.adcPin_1 ) {
+    else  if ( dPtr -> pin == 27 ) {
 
-        ptr = &adc_1;
-        ptr -> adcPin = adcPin;
-        ptr -> adcNum = 1;
+        rPtr -> adcPin = 27;
+        rPtr -> adcNum = 1;
     }
-    else if ( adcPin == cMap.adcPin_2 ) {
+    else  if ( dPtr -> pin == 28 ) {
 
-        ptr = &adc_2;
-        ptr -> adcPin = adcPin;
-        ptr -> adcNum = 2;
+        rPtr -> adcPin = 28;
+        rPtr -> adcNum = 2;
     }
     else return ( ADC_PIN_ERR );
 
     adc_init( );
-    adc_gpio_init( adcPin );
+    adc_gpio_init( rPtr -> adcPin );
     return ( NO_ERR );
 }
 
-uint8_t readAdc( uint8_t adcPin, uint16_t *val ) {
+uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
 
-    AdcResource *ptr = nullptr;
+    AdcResource *rPtr = (AdcResource *) lookupResource( rNum, CDC_RT_ADC );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    if      ( adc_0.adcPin == adcPin )  ptr = &adc_0;
-    else if ( adc_1.adcPin == adcPin )  ptr = &adc_1;
-    else if ( adc_2.adcPin == adcPin )  ptr = &adc_2;
-    else                                return ( ADC_PIN_ERR );
-
-    adc_select_input( ptr -> adcNum );
+    adc_select_input( rPtr -> adcNum );
     *val = ( adc_read( ) >> 2 );
     return ( NO_ERR );
 }
 
 uint16_t getAdcRefVoltage( ) {
 
-    return ( cMap.adcRefVoltageMillis );
+    return ( dMap.adcRefVoltageMillis );
 }
 
 uint16_t getAdcDigitRange( ) {
 
-    return ( cMap.adcDigitRange );
+    return ( dMap.adcDigitRange );
 }
  
 //------------------------------------------------------------------------------------------------------------
@@ -890,40 +953,65 @@ uint16_t getAdcDigitRange( ) {
 // common callback and store the particular GPIO handler in the handler table. Otherwise, we just store the
 // handler and enable the GPIO pin for interrupts.
 //
+// ??? we support only setting a handler for pinA ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureDio( uint8_t dioPin, uint8_t pinMode ) {
+uint8_t configureDio( uint8_t rNum ) {
 
-    if ( ! validPin( dioPin, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    
+    GpioResource *rPtr = (GpioResource *) allocateResourceType( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    gpio_init( dioPin );
-    setGpioMode( dioPin, pinMode );
+    CdcResourceDescGpio *dPtr = (CdcResourceDescGpio *) lookupResourceDesc( rNum, CDC_RT_GPIO );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+
+    rPtr -> dioPinA = dPtr -> pinA;
+    rPtr -> dioPinB = dPtr -> pinB;
+    rPtr -> pinMode = dPtr -> pinMode;
+    rPtr -> handler = nullptr;
+
+    if ( ! validPin( rPtr -> dioPinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( ! validPin( rPtr -> dioPinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+
+    gpio_init( rPtr -> dioPinA );
+    setGpioMode( rPtr -> dioPinA, rPtr -> pinMode );
+
+    if ( rPtr -> dioPinB != UNDEFINED_PIN ) gpio_init( rPtr -> dioPinB );
+    if ( rPtr -> dioPinB != UNDEFINED_PIN ) setGpioMode( rPtr -> dioPinB, rPtr -> pinMode );
     return ( NO_ERR );
 }
 
-uint8_t registerDioCallback( uint8_t dioPin, uint8_t event, GpioCallback func ) {
+uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
 
-    if ( dioPin <= MAX_INT_PIN ) {
+    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    if ( rPtr -> dioPinA <= MAX_INT_PIN ) {
 
         if ( dioIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( dioPin, mapGpioIntEvent( event ), true, gpioCallback );
+            gpio_set_irq_enabled_with_callback( rPtr -> dioPinA, mapGpioIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( dioPin, mapGpioIntEvent( event ), true);
+            gpio_set_irq_enabled( rPtr -> dioPinA, mapGpioIntEvent( event ), true);
     
-        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = func;
+        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] = func;
         dioIntHandlers.numOfHandlers ++;
     }
 
     return( NO_ERR );
 }
 
-uint8_t unregisterDioCallback( uint8_t dioPin ) {
+uint8_t unregisterDioCallback( uint8_t rNum ) {
 
-    if ( dioPin <= MAX_INT_PIN ) {
+    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] != nullptr ) {
+    if ( rPtr -> dioPinA <= MAX_INT_PIN ) {
 
-            gpio_set_irq_enabled( dioPin, 0, false );
-            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ dioPin ] = dummyIsrHandler;
+        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] != nullptr ) {
+
+            gpio_set_irq_enabled(  rPtr -> dioPinA, 0, false );
+            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] = dummyIsrHandler;
             dioIntHandlers.numOfHandlers --;
         }
     }
@@ -931,47 +1019,47 @@ uint8_t unregisterDioCallback( uint8_t dioPin ) {
     return( NO_ERR );
 }
 
-uint8_t readDio( uint8_t dioPin, bool *val ) {
+uint8_t readDio( uint8_t rNum, bool *valA, bool *valB ) {
 
-    *val = gpio_get( dioPin );
+    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    *valA = gpio_get( rPtr -> dioPinA );
+    if (( valB != nullptr ) && ( rPtr -> dioPinB != UNDEFINED_PIN )) *valB = gpio_get( rPtr -> dioPinB );
     return ( NO_ERR );
 }
 
-uint8_t writeDio( uint8_t dioPin, bool val ) {
+uint8_t writeDio( uint8_t rNum, bool valA, bool valB ) {
 
-    gpio_put( dioPin, val );
+    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    if ( rPtr -> dioPinB == UNDEFINED_PIN ) {
+
+        gpio_put( rPtr -> dioPinA, valA );
+    }
+    else {
+
+        uint32_t maskData = ( 1UL << rPtr -> dioPinA ) | ( 1UL << rPtr -> dioPinB );
+        uint32_t valData  = (( valA ) ? ( 1 << rPtr -> dioPinA ) : 0 ) | 
+                            (( valB ) ? ( 1 << rPtr -> dioPinB ) : 0 );
+        gpio_put_masked( maskData, valData );
+    }
+
     return ( NO_ERR );
 }
 
-uint8_t toggleDio( uint8_t dioPin ) {
+uint8_t toggleDio( uint8_t rNum ) {
 
-    // ??? check that the pin is in output mode ?
+    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    gpio_put( dioPin, ! gpio_get( dioPin ));
-    return ( NO_ERR );
-}
+    if ( rPtr -> pinMode == CDC_DIO_OUT ) {
 
-uint8_t writeDioPair( uint8_t dioPin1, bool val1, uint8_t dioPin2, bool val2 ) {
-
-    uint32_t maskData = ( 1UL << dioPin1 ) | ( 1UL << dioPin2 );
-    uint32_t valData  = (( val1 ) ? ( 1 << dioPin1 ) : 0 ) | (( val2 ) ? ( 1 << dioPin2 ) : 0 );
-
-    gpio_put_masked( maskData, valData );
-    return ( NO_ERR );
-}
-
-// ??? necessary ?
-
-uint8_t readDioMask( uint32_t dioMask, uint32_t *val ) {
-
-    *val = gpio_get_all( ) & dioMask;
-    return ( NO_ERR );
-}
-
-uint8_t writeDioMask( uint32_t dioMask, uint32_t val ) {
-
-    gpio_put_masked( dioMask, val );
-    return ( NO_ERR );
+        gpio_put( rPtr -> dioPinA, ! gpio_get( rPtr -> dioPinA ));
+        return ( NO_ERR );
+    }
+    else return( DIO_MODE_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -986,129 +1074,88 @@ uint8_t writeDioMask( uint32_t dioMask, uint32_t val ) {
 // to configure again. 
 // 
 //------------------------------------------------------------------------------------------------------------
-PwmResource *getPwmResource( uint8_t pwmPin ) {
+uint8_t configurePwm( uint8_t rNum ) {
 
-    if      ( pwm_0.pwmPin == pwmPin ) return( &pwm_0 );
-    else if ( pwm_1.pwmPin == pwmPin ) return( &pwm_1 );
-    else if ( pwm_2.pwmPin == pwmPin ) return( &pwm_2 );
-    else if ( pwm_3.pwmPin == pwmPin ) return( &pwm_3 );
-    else if ( pwm_4.pwmPin == pwmPin ) return( &pwm_4 );
-    else if ( pwm_5.pwmPin == pwmPin ) return( &pwm_5 );
-    else if ( pwm_6.pwmPin == pwmPin ) return( &pwm_6 );
-    else if ( pwm_7.pwmPin == pwmPin ) return( &pwm_7 );
-    else                               return( nullptr );
-}
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    
+    PwmResource *rPtr = (PwmResource *) allocateResourceType( rNum, CDC_RT_PWM );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-uint8_t configurePwm(   uint8_t     pwmPin, 
-                        uint32_t    frequency, 
-                        bool        phaseCorrect,
-                        bool        inverted ) {
+    CdcResourceDescPwm *dPtr = (CdcResourceDescPwm *) lookupResourceDesc( rNum, CDC_RT_PWM );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
 
-    PwmResource *pwm = nullptr;
+    rPtr -> pwmPinA         = dPtr ->pinA;
+    rPtr -> pwmPinB         = dPtr ->pinB;
+    rPtr -> frequency       = dPtr -> frequency;
+    rPtr -> phaseCorrect    = true;
+    rPtr -> inverted        = false;     
+    rPtr -> sliceNum        = pwm_gpio_to_slice_num( rPtr -> pwmPinA );
 
-    if      ( pwmPin == cMap.pwmPin_0 ) pwm = &pwm_0;
-    else if ( pwmPin == cMap.pwmPin_1 ) pwm = &pwm_1;
-    else if ( pwmPin == cMap.pwmPin_2 ) pwm = &pwm_2;
-    else if ( pwmPin == cMap.pwmPin_3 ) pwm = &pwm_3;
-    else if ( pwmPin == cMap.pwmPin_4 ) pwm = &pwm_4;
-    else if ( pwmPin == cMap.pwmPin_5 ) pwm = &pwm_5;
-    else if ( pwmPin == cMap.pwmPin_6 ) pwm = &pwm_6;
-    else if ( pwmPin == cMap.pwmPin_7 ) pwm = &pwm_7;
-    else                                return ( PWM_PIN_ERR );
+    if ( rPtr -> pwmPinB != UNDEFINED_PIN ) {
 
-    if ( phaseCorrect ) frequency = frequency * 2;
+        if ( pwm_gpio_to_slice_num( rPtr -> pwmPinA ) != pwm_gpio_to_slice_num( rPtr -> pwmPinB ))
+        return( PWM_PIN_ERR );
+    }
+
+    if ( rPtr -> phaseCorrect ) rPtr -> frequency = rPtr -> frequency * 2;
 
     uint32_t sysClock = clock_get_hz( clk_sys );
-    uint32_t clkDiv   = sysClock / frequency / 4096 + ( sysClock % ( frequency * 4096 ) != 0 );
+    uint32_t clkDiv   = sysClock / rPtr -> frequency / 4096 + ( sysClock % ( rPtr -> frequency * 4096 ) != 0 );
     if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
-    pwm -> pwmPin       = pwmPin;
-    pwm -> frequency    = frequency;
-    pwm -> wrap         = sysClock * 16 / clkDiv / frequency - 1;
-    pwm -> inverted     = inverted;
-    pwm -> phaseCorrect = phaseCorrect;
-    pwm -> sliceNum     = pwm_gpio_to_slice_num( pwmPin );
-    pwm -> channel      = pwm_gpio_to_channel( pwmPin );
+    rPtr -> wrap        = sysClock * 16 / clkDiv / rPtr -> frequency - 1;
    
     pwm_config pwmConfig = pwm_get_default_config( );
-    gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
-    pwm_config_set_wrap( &pwmConfig, pwm -> wrap );
-    pwm_config_set_phase_correct( &pwmConfig, phaseCorrect );
-    pwm_config_set_output_polarity( &pwmConfig, pwm -> inverted, pwm -> inverted );
+    gpio_set_function( rPtr -> pwmPinA, GPIO_FUNC_PWM );
+    if ( rPtr -> pwmPinB != UNDEFINED_PIN )  gpio_set_function( rPtr -> pwmPinB, GPIO_FUNC_PWM );
+    pwm_config_set_wrap( &pwmConfig, rPtr -> wrap );
+    pwm_config_set_phase_correct( &pwmConfig, rPtr -> phaseCorrect );
+    pwm_config_set_output_polarity( &pwmConfig, rPtr -> inverted, rPtr -> inverted );
 
-    pwm_init( pwm -> sliceNum, &pwmConfig, false );
-    pwm_set_clkdiv_int_frac( pwm -> sliceNum, clkDiv / 16, clkDiv & 0xF );
-    pwm_set_enabled( pwm -> sliceNum, true );
+    pwm_init( rPtr -> sliceNum, &pwmConfig, false );
+    pwm_set_clkdiv_int_frac( rPtr -> sliceNum, clkDiv / 16, clkDiv & 0xF );
+    pwm_set_enabled( rPtr -> sliceNum, true );
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_PWM )) {
    
-        printf( "pin: % d, fPwm: % d, phase: % d, inverted: % d, " 
-                "clkDiv: % d, wrap: %d, sliceNum: %d, channel: %d\n",
-                pwmPin, frequency, phaseCorrect, inverted, 
-                clkDiv, pwm -> wrap, pwm -> sliceNum, pwm -> channel );
+        printf( "pinA: % d, pinB: %d, fPwm: % d, phase: % d, inverted: % d, " 
+                "clkDiv: % d, wrap: %d, sliceNum: %d\n",
+                rPtr -> pwmPinA, rPtr -> pwmPinB, rPtr -> frequency, rPtr -> phaseCorrect, 
+                rPtr -> inverted, clkDiv, rPtr -> wrap, rPtr -> sliceNum );
     }
 
     return ( NO_ERR );
 }
 
-uint8_t writePwm( uint8_t pwmPin, uint8_t dutyCycle ) {
+uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_PWM )) {
         
-        printf( "Write PWM: pin: %d, duty: %d\n", pwmPin, dutyCycle );
+        printf( "Write PWM: rNum: %d, dutyA: %d, dutyB: %d\n", rNum, dutyCycleA, dutyCycleB );
     }
 
-    PwmResource *pwm = getPwmResource( pwmPin );
-    if ( pwm == nullptr ) return ( PWM_PIN_ERR );
+    PwmResource *rPtr = (PwmResource *) lookupResource( rNum, CDC_RT_PWM );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-#if 1
-    pwm_set_gpio_level( pwm -> pwmPin, dutyCycle );
-#else
+    if ( rPtr -> pwmPinB != UNDEFINED_PIN ) {
 
-    // will go away. -- not changed ....
-    if ( dutyCycle == 0 ) {
-
-        gpio_set_function( pwm -> pwmPin, GPIO_FUNC_SIO );
-        gpio_set_dir( pwm -> pwmPin, GPIO_OUT );
-        gpio_put( pwm -> pwmPin, 0 );
-    }
-    else if ( dutyCycle == 255 ) {
-
-        gpio_set_function( pwm -> pwmPin, GPIO_FUNC_SIO );
-        gpio_set_dir( pwm -> pwmPin, GPIO_OUT);
-        gpio_put( pwm -> pwmPin, 1 );
+        pwm_set_gpio_level( rPtr -> pwmPinA, dutyCycleA );
     }
     else {
 
-        gpio_set_function( pwm -> pwmPin, GPIO_FUNC_PWM );
-        pwm_set_chan_level( pwm -> sliceNum, pwm -> channel, ( pwm -> wrap * dutyCycle / 255 ));
-        pwm_set_enabled( pwm -> sliceNum, true );
+        pwm_set_both_levels( rPtr -> sliceNum, dutyCycleA, dutyCycleB );
     }
-#endif
 
     return ( NO_ERR );
 }
 
-uint8_t writePwmPair(uint8_t pwmPin, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
+uint8_t syncPwm( uint8_t rNum ) {
 
-    if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_PWM )) {
-        
-        printf( "Write PWM Pair: pin: %d, dutyA: %d, dutyB: %d\n", pwmPin, dutyCycleA, dutyCycleB );
-    }
+    PwmResource *rPtr = (PwmResource *) lookupResource( rNum, CDC_RT_PWM );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    PwmResource *pwm = getPwmResource( pwmPin );
-    if ( pwm == nullptr ) return ( PWM_PIN_ERR );
-
-    pwm_set_both_levels( pwm -> sliceNum, dutyCycleA, dutyCycleB );
-    return ( NO_ERR );
-}
-
-uint8_t syncPwm( uint8_t pwmPin ) {
-
-    PwmResource *pwm = getPwmResource( pwmPin );
-    if ( pwm == nullptr ) return ( PWM_PIN_ERR );
-
-    pwm_set_counter( pwm -> sliceNum, 0 );
+    pwm_set_counter( rPtr -> sliceNum, 0 );
     return ( NO_ERR );
 }
 
@@ -1123,92 +1170,88 @@ uint8_t syncPwm( uint8_t pwmPin ) {
 // "getUartBuffer" routine will return the bytes received. Again, note that this is not a generic UART read
 // interface.
 //
-// The work on the PIO based UART version has not started yet ... it will be needed for the quad block
-// controller. Looking forward to it ...:-)
-//
 //------------------------------------------------------------------------------------------------------------
-UartResource *getUartResource( uint8_t rxPin ) {
+uint8_t configureUart( uint8_t rNum ) {
 
-    if      ( uart_0.rxPin == rxPin ) return( &uart_0 );
-    else if ( uart_1.rxPin == rxPin ) return( &uart_1 );
-    else                              return( nullptr );
-}
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    
+    UartResource *rPtr = (UartResource *) allocateResourceType( rNum, CDC_RT_UART );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-uint8_t configureUart( uint8_t rxPin, uint8_t txPin, uint32_t baudRate ) {
+    CdcResourceDescUart *dPtr = (CdcResourceDescUart *) lookupResourceDesc( rNum, CDC_RT_UART );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
 
-    UartResource *uart;
+    rPtr -> rxPin           = dPtr -> rxPin;
+    rPtr -> txPin           = dPtr -> txPin;
+    rPtr -> baudSetting     = dPtr -> baudRate;
+    rPtr -> dataBits        = 8;
+    rPtr -> parityMode      = UART_PARITY_NONE;
+    rPtr -> stopBits        = 1;
 
-    if (( validPin( rxPin, VALID_UART_0_RX_PINS )) && ( validPin( txPin, VALID_UART_0_TX_PINS ))) {
+    if (( validPin( rPtr -> rxPin, VALID_UART_0_RX_PINS )) && 
+        ( validPin( rPtr -> txPin, VALID_UART_0_TX_PINS ))) {
 
-        uart_0.rxPin        = rxPin;
-        uart_0.txPin        = txPin;
-        uart_0.dataBits     = 8;
-        uart_0.stopBits     = 1;
-        uart_0.parityMode   = UART_PARITY_NONE;
-        uart_0.uartHw       = uart0;
-        uart_0.uartIrq      = UART0_IRQ;
-        uart                = &uart_0;
+        rPtr -> uartHw  = uart0;
+        rPtr -> uartIrq = UART0_IRQ;
+        uart_0          = rPtr;
     }
-    else if (( validPin( rxPin, VALID_UART_1_RX_PINS )) && ( validPin( txPin, VALID_UART_1_TX_PINS ))) {
+    else if (( validPin( rPtr -> rxPin, VALID_UART_1_RX_PINS )) && 
+             ( validPin( rPtr -> txPin, VALID_UART_1_TX_PINS ))) {
 
-        uart_1.rxPin        = rxPin;
-        uart_1.txPin        = txPin;
-        uart_1.dataBits     = 8;
-        uart_1.stopBits     = 1;
-        uart_1.parityMode   = UART_PARITY_NONE;
-        uart_1.uartHw       = uart1;
-        uart_1.uartIrq      = UART1_IRQ;
-        uart                = &uart_0;
+        rPtr -> uartHw  = uart1;
+        rPtr -> uartIrq = UART1_IRQ;
+        uart_1          = rPtr;
     }
     else return ( UART_PORT_ERR );
 
-    uart_init( uart -> uartHw, baudRate );
-    gpio_set_function( uart -> rxPin, GPIO_FUNC_UART );
-    gpio_set_function( uart -> txPin, GPIO_FUNC_UART );
-    uart_set_hw_flow( uart -> uartHw, false, false );
-    uart_set_format(    uart -> uartHw, 
-                        uart -> dataBits, 
-                        uart -> stopBits, 
-                        uart -> parityMode );
-    uart_set_fifo_enabled( uart -> uartHw, false );
+    uart_init( rPtr -> uartHw, rPtr -> baudSetting );
+    gpio_set_function( rPtr -> rxPin, GPIO_FUNC_UART );
+    if ( rPtr -> txPin != UNDEFINED_PIN ) gpio_set_function( rPtr -> txPin, GPIO_FUNC_UART );
+    uart_set_hw_flow( rPtr -> uartHw, false, false );
+    uart_set_format(    rPtr -> uartHw, 
+                        rPtr -> dataBits, 
+                        rPtr -> stopBits, 
+                        rPtr -> parityMode );
+    uart_set_fifo_enabled( rPtr -> uartHw, false );
 
-    if      ( uart -> uartIrq == UART0_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback0 );
-    else if ( uart -> uartIrq == UART1_IRQ ) irq_set_exclusive_handler( uart -> uartIrq, uartRxCallback1 );
+    if      ( rPtr -> uartIrq == UART0_IRQ ) irq_set_exclusive_handler( rPtr -> uartIrq, uartRxCallback0 );
+    else if ( rPtr -> uartIrq == UART1_IRQ ) irq_set_exclusive_handler( rPtr -> uartIrq, uartRxCallback1 );
 
-    irq_set_enabled( uart -> uartIrq, true );
+    irq_set_enabled( rPtr -> uartIrq, true );
     return ( NO_ERR );
 }
 
-uint8_t startUartRead( uint8_t rxPin ) {
+uint8_t startUartRead( uint8_t rNum ) {
 
-    UartResource *uart = getUartResource( rxPin );
-    if ( uart == nullptr ) return ( UART_PIN_ERR );
+    UartResource *rPtr = (UartResource *) lookupResource( rNum, CDC_RT_UART );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    uart_set_irq_enables( uart -> uartHw, true, false );
-    uart -> rxBufIndex = 0;
+    uart_set_irq_enables( rPtr -> uartHw, true, false );
+    rPtr -> rxBufIndex = 0;
     return ( NO_ERR );
 }
 
-uint8_t stopUartRead( uint8_t rxPin ) {
+uint8_t stopUartRead( uint8_t rNum ) {
 
-    UartResource *uart = getUartResource( rxPin );
-    if ( uart == nullptr ) return ( UART_PIN_ERR );
+    UartResource *rPtr = (UartResource *) lookupResource( rNum, CDC_RT_UART );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
     
-    uart_set_irq_enables( uart -> uartHw, false, false );
+    uart_set_irq_enables( rPtr -> uartHw, false, false );
     return ( NO_ERR );
 }
 
-uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
+uint8_t getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen ) {
 
-    UartResource *uart = getUartResource( rxPin );
-    if ( uart == nullptr ) return ( UART_PIN_ERR );
+    UartResource *rPtr = (UartResource *) lookupResource( rNum, CDC_RT_UART );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    if (( uart -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
+    if (( rPtr -> rxBufIndex > 0 ) && ( bufLen > 0 )) {
 
         uint8_t i = 0;
-        while (( i < uart -> rxBufIndex ) && ( i < bufLen )) {
+        while (( i < rPtr -> rxBufIndex ) && ( i < bufLen )) {
 
-            buf[ i ] = uart -> rxDataBuf[ i ];
+            buf[ i ] = rPtr -> rxDataBuf[ i ];
             i++;
         }
     
@@ -1222,56 +1265,60 @@ uint8_t getUartBuffer( uint8_t rxPin, uint8_t *buf, uint8_t bufLen ) {
 // write access to an I2C element. There is a timeout to avoid waiting forever on an operation.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureI2C( uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate ) {
+uint8_t configureI2C( uint8_t rNum ) {
 
-    I2CResource *i2c = nullptr;
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    
+    I2cResource *rPtr = (I2cResource *) allocateResourceType( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    if ((( 1 << sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_0_SDA_PINS )) {
+    CdcResourceDescI2c *dPtr = (CdcResourceDescI2c *) lookupResourceDesc( rNum, CDC_RT_I2C );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
 
-        i2c = &i2c_0;
-        i2c -> i2cHw = i2c0;
+    rPtr -> sclPin          = dPtr -> sclPin;
+    rPtr -> sdaPin          = dPtr -> sdaPin;
+    rPtr -> baudRate        = dPtr -> baudRate;
+    rPtr -> i2cAdrRoot      = dPtr ->i2cAdrRoot;
+    rPtr -> timeoutValMs    = 25;
+
+
+    if ((( 1 << rPtr -> sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << rPtr -> sdaPin ) & VALID_I2C_0_SDA_PINS )) {
+
+        rPtr -> i2cHw = i2c0;
     }
-    else if ((( 1 << sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << sdaPin ) & VALID_I2C_1_SDA_PINS )) {
+    else if ((( 1 << rPtr -> sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << rPtr -> sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
-        i2c = &i2c_1;
-        i2c -> i2cHw = i2c1;
+        rPtr -> i2cHw = i2c1;
     }
     else return ( I2C_PORT_ERR );
 
-    i2c -> sclPin       = sclPin;
-    i2c -> sdaPin       = sdaPin;
-    i2c -> baudRate     = baudRate;
-    i2c -> timeoutValMs = I2C_TIME_OUT_IN_MS;
-   
-    i2c_init( i2c -> i2cHw, i2c -> baudRate );
-    i2c_set_slave_mode( i2c -> i2cHw, false, 0 );
+    i2c_init( rPtr -> i2cHw, rPtr -> baudRate );
+    i2c_set_slave_mode( rPtr -> i2cHw, false, 0 );
     
-    gpio_set_function( i2c -> sclPin, GPIO_FUNC_I2C );
-    gpio_set_function( i2c -> sdaPin, GPIO_FUNC_I2C);
-    gpio_pull_up( i2c -> sclPin );
-    gpio_pull_up( i2c -> sdaPin );
+    gpio_set_function( rPtr -> sclPin, GPIO_FUNC_I2C );
+    gpio_set_function( rPtr -> sdaPin, GPIO_FUNC_I2C);
+    gpio_pull_up( rPtr -> sclPin );
+    gpio_pull_up( rPtr -> sdaPin );
     return ( NO_ERR );
 }
 
-uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
+uint8_t i2cRead( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-    I2CResource *i2c = nullptr;
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    if      (( i2c_0.sclPin == sclPin ) && ( i2c_0.configured )) i2c = &i2c_0;
-    else if (( i2c_1.sclPin == sclPin ) && ( i2c_1.configured )) i2c = &i2c_1;
-    else return ( I2C_PORT_ERR );
-
-    auto ret = i2c_read_blocking_until( i2c -> i2cHw,
+    auto ret = i2c_read_blocking_until( rPtr -> i2cHw,
                                         i2cAdr,
                                         buf,
                                         len,
                                         stopBit,
-                                        make_timeout_time_ms( i2c -> timeoutValMs ));
+                                        make_timeout_time_ms( rPtr -> timeoutValMs ));
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_I2C )) {
 
-        printf( "i2cRead: sclPin: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
-                sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+        printf( "i2cRead: rNum: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+                rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
 
         if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_I2C )) {
             
@@ -1284,26 +1331,23 @@ uint8_t i2cRead( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, boo
     return ( NO_ERR );
 }
 
-uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
+uint8_t i2cWrite( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_I2C )) {
         
-        printf( "i2cWrite: sclPin: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
-                sclPin, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+        printf( "i2cWrite: rNum: %d, i2c: 0x%x, buf: %p, buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+                rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
     }
 
-    I2CResource *i2c = nullptr;
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    if      (( i2c_0.sclPin == sclPin ) && ( i2c_0.configured )) i2c = &i2c_0;
-    else if (( i2c_1.sclPin == sclPin ) && ( i2c_1.configured )) i2c = &i2c_1;
-    else return ( I2C_PORT_ERR );
-
-    auto ret = i2c_write_blocking_until( i2c -> i2cHw,
+    auto ret = i2c_write_blocking_until( rPtr -> i2cHw,
                                          i2cAdr,
                                          buf,
                                          len,
                                          stopBit,
-                                         make_timeout_time_ms( i2c -> timeoutValMs ));
+                                         make_timeout_time_ms( rPtr -> timeoutValMs ));
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_PWM )) {
 
@@ -1318,21 +1362,18 @@ uint8_t i2cWrite( uint8_t sclPin, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bo
     return ( NO_ERR );
 }
 
-uint8_t i2cBusreset( uint8_t sclPin ) {
+uint8_t i2cBusreset( uint8_t rNum ) {
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_I2C )) {
 
-        printf( "I2C Bus reset, resId: %d\n", sclPin );
+        printf( "I2C Bus reset, rNum: %d\n", rNum );
     }
 
-    I2CResource *i2c = nullptr;
-
-    if      (( i2c_0.sclPin == sclPin ) && ( i2c_0.configured )) i2c = &i2c_0;
-    else if (( i2c_1.sclPin == sclPin ) && ( i2c_1.configured )) i2c = &i2c_1;
-    else return ( I2C_PORT_ERR );
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
     uint8_t reset_cmd = 0x06;
-    i2c_write_blocking( i2c -> i2cHw, 0x00, &reset_cmd, 1, false); 
+    i2c_write_blocking( rPtr -> i2cHw, 0x00, &reset_cmd, 1, false); 
     return ( NO_ERR );
 }
 
@@ -1340,63 +1381,192 @@ uint8_t i2cBusreset( uint8_t sclPin ) {
 // CAN bus Section. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureCanBus( uint8_t pinRx, uint8_t pinTx, uint32_t baudRate, bool twoCores ) {
+uint8_t configureCanBus( uint8_t rNum ) {
 
-   // ??? what do we do with this call ... ?
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    
+    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    CdcResourceDescCanBus *dPtr = (CdcResourceDescCanBus *) lookupResourceDesc( rNum, CDC_RT_CAN_BUS );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+
+    rPtr -> canPinRx = dPtr -> rxPin;
+    rPtr -> canPinTx = dPtr -> txPin;
+    rPtr -> baudRate = dPtr -> baudRate;
+    rPtr -> canId    = dPtr -> canId;
+    rPtr -> twoCores = dPtr -> twoCores;
 
     return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Print out the Config Structure.
+// Print out the Resource Descriptor Map.
 //
-// ??? this will for sure change ... we will print out the array of resources....
 //------------------------------------------------------------------------------------------------------------
-void printResourceMap( CdcResourceMap *cMap ) {
+void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
-    printf( "CDC Resource Map\n" );
+    printf( "CDC Resource Descriptor Map for:\n" );
+    printf( "%s\n\n", dMap -> name );
 
+    printf( "Options: 0x%4x\n", dMap -> options );
+    printf( "Debug Mask: 0x%4x\n", dMap -> debugMask );
+    printf( "Controller Family: %d, Chip: %d\n", dMap -> cFamily, dMap -> cType );
+    printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", dMap -> cpuCores, dMap -> memorySize, dMap -> eepromSize );
+    printf( "WatchDog Interval (MS): %d\n", dMap -> watchDogIntervallMillis );
+    printf( "ADC Ref Voltage: %d, Digit range: %d\n", dMap -> adcRefVoltageMillis, dMap -> adcDigitRange ); 
 
+    for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
+        CdcResourceDesc *dPtr = &dMap -> map[ i ];
 
+        printf( "(%2d): ", i );
 
-    printf( "DIO pins ( 0 .. 7 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
-        cMap -> dioPin_0, cMap -> dioPin_1, cMap -> dioPin_2, cMap -> dioPin_3,
-        cMap -> dioPin_4, cMap -> dioPin_5, cMap -> dioPin_6, cMap -> dioPin_7 );
+        switch ( dPtr ->type ) {
 
-    printf( "DIO pins ( 8 .. 15 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
-        cMap -> dioPin_8, cMap -> dioPin_9, cMap -> dioPin_10, cMap -> dioPin_11,
-        cMap -> dioPin_12, cMap -> dioPin_13, cMap -> dioPin_14, cMap -> dioPin_15 );
+            case CDC_RT_ADC: {
 
-    printf( "ADC pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-        cMap -> adcPin_0, cMap -> adcPin_1, cMap -> adcPin_2, cMap -> adcPin_3 );
+                printf( "ADC: pin: %d, select: %d\n", 
+                        dPtr -> adc.pin, dPtr -> adc.adcNum );
 
-    printf( "PWM pins ( 0 .. 7 ): %2d %2d %2d %2d %2d %2d %2d %2d\n",
-        cMap -> pwmPin_0, cMap -> pwmPin_1, cMap -> pwmPin_2, cMap -> pwmPin_3,
-        cMap -> pwmPin_4, cMap -> pwmPin_5, cMap -> pwmPin_6, cMap -> pwmPin_7 );
+            } break;
 
-    printf( "UART RX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-        cMap -> uartRxPin_0, cMap -> uartRxPin_1 );
+            case CDC_RT_GPIO: {
 
-    printf( "UART TX pins ( 0 .. 3 ): %2d %2d %2d %2d\n",
-        cMap -> uartTxPin_0, cMap -> uartTxPin_1 );
+                printf( "GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                        dPtr -> gpio.pinA, dPtr -> gpio.pinB, dPtr -> gpio.pinMode );
 
-#if 0
+            } break;
 
-    printf( "Pfail pin: %2d, ExtInt pin: %2d \n", ci -> PFAIL_PIN, ci -> EXT_INT_PIN );
+            case CDC_RT_PWM: {
 
-    printf( "ActiveLed pin: %2d \n", ci -> ACTIVE_LED_PIN );
+                printf( "PWM: pinA: %d, pinB: %d, fPwm: %d\n",
+                        dPtr ->pwm.pinA,  dPtr ->pwm.pinB,  dPtr ->pwm.frequency );
 
+            } break;
 
-    printf( "NVM I2C Pins: SCL: %2d, SDA: %2d, I2C Root: 0x%x \n",
-            ci -> NVM_I2C_SCL_PIN, ci -> NVM_I2C_SDA_PIN, ci -> NVM_I2C_ADR_ROOT );
+            case CDC_RT_UART: {
 
-    printf( "EXT I2C Pins: SCL: %2d, SDA: %2d, I2C Root: 0x%x \n",
-            ci -> EXT_I2C_SCL_PIN, ci -> EXT_I2C_SDA_PIN, ci -> EXT_I2C_ADR_ROOT );   
-#endif
+                printf( "UART: rxPin: %d, txPin: %d, baudRate: %d\n",
+                    dPtr -> uart.rxPin,  dPtr -> uart.txPin,  dPtr -> uart.baudRate );
+
+            } break;
+
+            case CDC_RT_I2C: {
+
+                printf( "I2C: sclPin: %d, sdaPin: %d, baudRate: %d, i2cRoot: 0x2x, timeout(MS): %d\n",
+                        dPtr -> i2c.sclPin, dPtr -> i2c.sdaPin, dPtr -> i2c.baudRate, 
+                        dPtr -> i2c.i2cAdrRoot, dPtr -> i2c.i2cTimeoutMs );
+
+            } break;
+
+            case CDC_RT_CAN_BUS: {
+
+                printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, canId: 0x4x, twoCores: %d\n",
+                        dPtr -> can.rxPin, dPtr -> can.txPin, dPtr -> can.baudRate, 
+                        dPtr -> can.canId, dPtr -> can.twoCores );
+            }
+
+            case CDC_RT_UNDEFINED: break;
+
+            default: printf( "Unknown type: %d\n", i );
+        }
+    }
 
     printf( "\n" );
+} 
 
+//------------------------------------------------------------------------------------------------------------
+// Print out the Resource Map.
+//
+//------------------------------------------------------------------------------------------------------------
+void printResourceMap( ) {
+
+    printf( "CDC Resource Map for:\n" );
+    printf( "%s\n\n", rMap.name );
+
+    printf( "Options: 0x%4x\n", rMap.options );
+    printf( "Debug Mask: 0x%4x\n", rMap.debugMask );
+    printf( "Controller Family: %d, Chip: %d\n", rMap.cFamily, rMap.cType );
+    printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", rMap.cpuCores, rMap.memorySize, rMap.eepromSize );
+    printf( "WatchDog Interval (MS): %d\n", rMap.watchDogIntervallMillis );
+    printf( "ADC Ref Voltage: %d, Digit range: %d\n", rMap.adcRefVoltageMillis, rMap.adcDigitRange ); 
+
+    for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
+
+        CdcResource *rPtr = &rMap.map[ i ];
+
+        printf( "(%2d): ", i );
+
+        switch ( rPtr ->type ) {
+
+            case CDC_RT_ADC: {
+
+                printf( "ADC: pin: %d, select: %d\n", 
+                        rPtr -> adc.adcPin, rPtr -> adc.adcNum );
+
+            } break;
+
+            case CDC_RT_GPIO: {
+
+                printf( "GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                        rPtr -> gpio.dioPinA, rPtr -> gpio.dioPinB, rPtr -> gpio.pinMode );
+
+            } break;
+
+            case CDC_RT_PWM: {
+
+                uint8_t     pwmPinA;
+                uint8_t     pwmPinB;
+                uint32_t    frequency;
+                uint        wrap;
+                uint        sliceNum;
+                bool        inverted;
+                bool        phaseCorrect;
+
+                printf( "PWM: pinA: %d, pinB: %d, fPwm: %d, wrap: %d, slice: %d, invert: %d, phase: %d\n",
+                        rPtr ->pwm.pwmPinA,  rPtr ->pwm.pwmPinB,  rPtr ->pwm.frequency,
+                        rPtr -> pwm.sliceNum, rPtr -> pwm.inverted, rPtr -> pwm.phaseCorrect );
+
+            } break;
+
+            case CDC_RT_UART: {
+
+                printf( "UART: rxPin: %d, txPin: %d, baudRate: %d, dataBits: %d, parity: %d, stopBits: %d\n",
+                        rPtr -> uart.rxPin,  rPtr -> uart.txPin,  rPtr -> uart.baudSetting,
+                        rPtr -> uart.dataBits, rPtr -> uart.parityMode, rPtr -> uart.stopBits );
+
+            } break;
+
+            case CDC_RT_I2C: {
+
+                printf( "I2C: sclPin: %d, sdaPin: %d, baudRate: %d, i2cRoot: 0x2x, timeout(MS): %d\n",
+                        rPtr -> i2c.sclPin, rPtr -> i2c.sdaPin, rPtr -> i2c.baudRate, 
+                        rPtr -> i2c.i2cAdrRoot, rPtr -> i2c.timeoutValMs );
+
+            } break;
+
+            case CDC_RT_CAN_BUS: {
+
+                uint8_t         canPinRx;
+                uint8_t         canPinTx;
+                uint32_t        baudRate;
+                uint32_t        canId;
+                bool            twoCores;
+
+                printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, canId: 0x4x, twoCores: %d\n",
+                        rPtr -> can.canPinRx, rPtr -> can.canPinTx, rPtr -> can.baudRate, 
+                        rPtr -> can.canId, rPtr -> can.twoCores );
+            }
+
+            case CDC_RT_UNDEFINED: break;
+
+            default: printf( "Unknown type: %d\n", i );
+        }
+    }
+
+    printf( "\n" );
 }
 
 }; // namespace CDC
