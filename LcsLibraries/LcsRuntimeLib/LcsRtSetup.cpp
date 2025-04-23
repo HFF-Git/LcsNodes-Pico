@@ -81,7 +81,7 @@ namespace LCS {
     LcsTaskMap              taskMap;
     LcsDrvFuncMap           drvFuncMap;
 
-    CdcResourceMap          resMap;
+    CdcResourceDescMap      dMap;
 
     extern uint8_t          configNvm(  uint8_t     nvmSclPin, 
                                         uint8_t     nvmSdaPin,
@@ -313,15 +313,14 @@ namespace LCS {
 // Perhaps one day, this routine could be enhanced to allow commands to pile up the start options followed
 // by the final start command to get the show going. especially the debug mask would be a candidate.
 //
-//
-// ??? should we configure from the resource desc map or individually ?
-// ??? it would be nice to already use the ledPin ...
 //------------------------------------------------------------------------------------------------------------
-uint8_t initCdcLayer( CdcResourceMap *cMap ) {
+uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
-    cdcInit( cMap );
+    dMap = *map;
+
+    cdcInit( map );
     configureConsoleIO( );
 
     if ( isConsoleConnected( )) {
@@ -381,7 +380,7 @@ uint8_t initCdcLayer( CdcResourceMap *cMap ) {
 // NVMs chips on the boards making up the node.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t initNvmChannels( CdcResourceMap *cMap ) {
+uint8_t initNvmChannels( CdcResourceDescMap *map ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
  
@@ -390,13 +389,13 @@ uint8_t initNvmChannels( CdcResourceMap *cMap ) {
  
     uint8_t rStat = NO_ERR;
 
-    rStat = configureI2C( cMap -> i2cSclPin_0, cMap -> i2cSdaPin_0, 1000000 );
+    rStat = configureI2C( CDC_RN_NVM );
     if ( rStat != NO_ERR ) {
 
 
     }
 
-    rStat = configureI2C( cMap -> i2cSclPin_1, cMap -> i2cSdaPin_1, 1000000 );
+    rStat = configureI2C( CDC_RN_EXT_NVM );
     if ( rStat != NO_ERR ) {
 
 
@@ -409,9 +408,8 @@ uint8_t initNvmChannels( CdcResourceMap *cMap ) {
 // Next is the CAN bus setup. The message bus is the central communication mechanism. If we can also get it 
 // up early we could use it not only for configurations and operations but perhaps for remote troubleshooting. 
 //
-// ??? fix the parameter setting for CAN config ... needs to come from cMap...
 //------------------------------------------------------------------------------------------------------------
-uint8_t initCanBus( CdcResourceMap *cMap ) {
+uint8_t initCanBus( CdcResourceDescMap *map ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "Init Can Bus\n" );
     
@@ -419,7 +417,10 @@ uint8_t initCanBus( CdcResourceMap *cMap ) {
 
     // ??? how do we get the arguments for the CAN Bus ? 
 
-    uint8_t rStat = msgBus -> init( 0, cMap -> canPinRx, cMap -> canPinTx, CAN_BUS_LIB_PICO_PIO_125K_M_CORE );
+    uint8_t rStat = msgBus -> init( map -> map[ CDC_RN_CAN_BUS ].can.canId,
+                                    map -> map[ CDC_RN_CAN_BUS ].can.rxPin,
+                                    map -> map[ CDC_RN_CAN_BUS ].can.txPin,
+                                    CAN_BUS_LIB_PICO_PIO_125K_M_CORE );   // fix ....
     if ( rStat != ALL_OK ) {
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
@@ -532,24 +533,6 @@ uint8_t setupExtNvmHeaders( ) {
     }
 
     return ( errStat( rStat ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "setupCdcMap" will read the CDC descriptor from the NVM.
-//
-// ??? we should read it from the NVM, which implies that we need a way to handle vanilla boards...
-// ??? we should also have a file with CDC descriptors for all boards we currently have...
-// ??? if we detect a board with the vanilla board type, we can set the correct board type and the 
-// reboot...
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupCdcMap( ) {
-
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
-        
-        printf( "setupCdcMap\n" );
-    }
-
-    return ( errStat( ALL_OK ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -795,7 +778,6 @@ uint8_t registerInternalTasks( ) {
         
         printf( "registerInternalTasks\n" );
     }
-
    
     return ( errStat( ALL_OK ));
 }
@@ -957,23 +939,22 @@ uint8_t powerFailHandler( ) {
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
 // ??? ensure that this routine is idempotent.
 //------------------------------------------------------------------------------------------------------------
-uint8_t initRuntime( CdcResourceMap *cMap ) {
+uint8_t initRuntime( CdcResourceDescMap *dMap ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK )  rStat = initCdcLayer( cMap );
+    if ( rStat == ALL_OK )  rStat = initCdcLayer( dMap );
     if ( rStat != ALL_OK )  fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
 
-    if ( rStat == ALL_OK )  rStat = initNvmChannels( cMap );
+    if ( rStat == ALL_OK )  rStat = initNvmChannels( dMap );
     if ( rStat != ALL_OK )  fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
 
-    if ( rStat == ALL_OK )  rStat = initCanBus( cMap );
+    if ( rStat == ALL_OK )  rStat = initCanBus( dMap );
     if ( rStat != ALL_OK )  fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
 
     if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( );
     if ( rStat == ALL_OK )  rStat = setupExtNvmHeaders( );
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );
-    if ( rStat == ALL_OK )  rStat = setupCdcMap( );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
     if ( rStat == ALL_OK )  rStat = setupExtensionBoards( );
     if ( rStat == ALL_OK )  rStat = setupNodeDataMap( );
@@ -988,7 +969,7 @@ uint8_t initRuntime( CdcResourceMap *cMap ) {
     if ( rStat == ALL_OK )  nodeMap.nodeState = NS_INIT;
     else                    nodeMap.nodeState = NS_FAIL;
         
-    CDC::writeDio( cMap -> ledPin, ( rStat == ALL_OK ));
+    writeDio( CDC_RN_ACTIVITY_LED, ( rStat == ALL_OK ));
 
     return ( errStat( rStat ));
 }

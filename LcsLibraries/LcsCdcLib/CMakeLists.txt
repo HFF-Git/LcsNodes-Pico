@@ -20,6 +20,7 @@ add_library( ${PROJECT_NAME} STATIC
     LcsCdcLibVersion.h
     LcsCdcLib.h 
     LcsCdcLib.cpp
+    LcsCdcDescMapDefaults.h
 ) 
 
 target_include_directories( ${PROJECT_NAME} PRIVATE ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include)

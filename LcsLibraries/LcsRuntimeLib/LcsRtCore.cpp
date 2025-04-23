@@ -33,7 +33,6 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t             debugMask;
-    extern CdcResourceMap       resMap;
    
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
@@ -56,6 +55,7 @@ namespace LCS {
 namespace {
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // Local constants and helper functions.
@@ -93,7 +93,7 @@ uint16_t portId( uint16_t npId ) {
 //------------------------------------------------------------------------------------------------------------
 void handleNodePortEvents( ) {
 
-    uint32_t ts = CDC::getMillis( );
+    uint32_t ts = getMillis( );
 
     for ( int i = 0; i < portMap.mapHwm; i ++ ) {
 
@@ -127,7 +127,7 @@ void handleNodePortEvents( ) {
 //------------------------------------------------------------------------------------------------------------
 void handlePeriodicTasks( ) {
 
-    uint32_t ts = CDC::getMillis( );
+    uint32_t ts = getMillis( );
 
     for ( int i = 0; i < taskMap.mapHwm; i++ ) {
 
@@ -192,7 +192,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_BON: {
 
-            CDC::writeDio( resMap.ledPin, true );
+            writeDio( CDC_RN_ACTIVITY_LED, true );
 
             nodeMap.nodeState = NS_OPERATE;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
@@ -201,7 +201,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_BOF: {
 
-            CDC::writeDio( resMap.ledPin, false );
+            writeDio( CDC_RN_ACTIVITY_LED, false );
 
             nodeMap.nodeState = NS_HALTED;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
@@ -210,7 +210,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         case LCS_OP_NCOL: {
 
-            CDC::writeDio( resMap.ledPin, false );
+            writeDio( CDC_RN_ACTIVITY_LED, false );
 
             nodeMap.nodeState = NS_COLLISION;
             if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
@@ -222,7 +222,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
             uint16_t npId = (( msg[1] << 8 ) + msg[2] );
             sendAck( npId );
 
-            CDC::sleepMillis( 10000 );
+            sleepMillis( 10000 );
             
         } break;
 
@@ -350,7 +350,7 @@ void handleMsgEvent( uint8_t *msg ) {
         uint16_t    npId            = ( msg[1] * 256 ) + msg[2];
         uint16_t    eventData       = ( msg[5] * 256 ) + msg[6];
         uint8_t     eventAction     = PEA_EVENT_IDLE;
-        uint32_t    ts              = CDC::getMillis( );
+        uint32_t    ts              = getMillis( );
         uint16_t    eventMask       = eventMap.map[ index ].eventMask;
 
         switch ( opCode ) {
@@ -428,7 +428,7 @@ void handleNodeStateInit( ) {
     if ( ! ( portMap.map[ 0 ].options & NPO_SKIP_NODE_ID_CONFIG )) {
 
         sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
-        timerVal  = CDC::getMillis( );
+        timerVal  = getMillis( );
 
         nodeMap.nodeState = NS_REGISTER;
         return;
@@ -475,10 +475,10 @@ void handleNodeStateRegister( ) {
 
         default: {
 
-            if (( CDC::getMillis( ) - timerVal ) > NODE_SETUP_RETRY_TIMER_VAL_MS ) {
+            if (( getMillis( ) - timerVal ) > NODE_SETUP_RETRY_TIMER_VAL_MS ) {
 
                 sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
-                timerVal = CDC::getMillis( );
+                timerVal = getMillis( );
              }
         }
     }
@@ -618,7 +618,7 @@ void handleNodeState( ) {
 
     while ( true ) {
 
-       //  CDC::watchDogUpdate( ); // fix when we have handles...
+        watchDogUpdate( ); 
         handleSerialCommand( );
 
         switch ( nodeMap.nodeState ) {
@@ -751,7 +751,7 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 
         taskMap.map[ taskMap.mapHwm ].task       = task;
         taskMap.map[ taskMap.mapHwm ].interval   = interval;
-        taskMap.map[ taskMap.mapHwm ].timeStamp  = CDC::getMillis( );
+        taskMap.map[ taskMap.mapHwm ].timeStamp  = getMillis( );
         taskMap.mapHwm ++;
         return ( ALL_OK );
 

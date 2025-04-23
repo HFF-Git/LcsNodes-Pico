@@ -41,8 +41,7 @@ namespace LCS {
 
     using namespace CDC;
 
-    extern uint16_t         debugMask;
-    extern CdcResourceMap   resMap;
+    extern uint16_t debugMask;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -57,10 +56,11 @@ using namespace LCS;
 using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
-// The PCA94555 fixed part of the I2C address.
+// 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t   PCA9555I2cAdrRoot     = 0x20;
+uint8_t rNumI2C             = CDC_RN_EXT_NVM;
+uint8_t PCA9555I2cAdrRoot   = 0x20;
 
 //------------------------------------------------------------------------------------------------------------
 // The PCA9555 chip features a set of eight registers.
@@ -96,10 +96,10 @@ uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
     uint8_t rStat = NO_ERR;
     uint8_t buf[ 2 ];
     
-    rStat = i2cWrite( resMap.i2cSclPin_1, i2cAdr, &reg, 1, true );
+    rStat = i2cWrite( rNumI2C, i2cAdr, &reg, 1, true );
     if ( rStat == CDC::NO_ERR ) {
 
-        rStat = i2cRead( resMap.i2cSclPin_1, i2cAdr, buf, 1 );
+        rStat = i2cRead( rNumI2C, i2cAdr, buf, 1 );
         return( buf[ 0 ] );
     }
     else return( ALL_OK );
@@ -111,7 +111,7 @@ uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
     buf[ 0 ] = reg;
     buf[ 1 ] = val;
 
-    return( i2cWrite( resMap.i2cSclPin_1, i2cAdr, buf, 2 ));
+    return( i2cWrite( rNumI2C, i2cAdr, buf, 2 ));
 }
 
 } // namespace

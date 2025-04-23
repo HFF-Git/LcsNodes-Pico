@@ -4,9 +4,9 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // Buttons are one  of the most used UI Elements. Each button is essentially a state machine with a set of
-// defined callback functions. There is also a callbck for obtaining the actual button value. The time for
+// defined callback functions. There is also a callback for obtaining the actual button value. The time for
 // debouncing, detecting a click or a long press is set for all buttons. A switch is also just a button with
-// a long press charactistic. All this comfort comes with a price though. The button object has a size of
+// a long press characteristic. All this comfort comes with a price though. The button object has a size of
 // roundabout 24 bytes. So, an array of 256 buttons would occupy quite some memory storage. But for the
 // typical case of 8 - 32 buttons, the array will do just fine.
 //

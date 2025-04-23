@@ -41,6 +41,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {
 
+using namespace CDC;
+
 //---------------------------------------------------------------------------.--------------------------------
 // A node is identified through the node number. Node numbers start with one. The nodeId of zero represents
 // the NIL node Id. The node Id is a 12-bit number, so up to 4095 nodes can be addressed. The nodeId, a
@@ -698,7 +700,7 @@ extern "C" {
 // board and resources to configure comes from this map.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t             initRuntime( CDC::CdcResourceMap *cMap );
+uint8_t             initRuntime( CdcResourceDescMap *dMap );
 uint8_t             startRuntime( );
 
 //------------------------------------------------------------------------------------------------------------

@@ -81,10 +81,9 @@ struct LcsOledDisplay  {
     // ??? we need to pass two resources instead of the pins ...
 
     uint8_t begin(  uint8_t     devType, 
-                    uint8_t     sclPin, 
-                    uint8_t     sdaPin, 
+                    uint8_t     rNumI2C, 
                     uint8_t     i2cAddr, 
-                    uint8_t     rstPin = CDC::UNDEFINED_PIN );
+                    uint8_t     rNumRST = CDC::CDC_RN_UNDEFINED );
 
     void            displayOn( );
     void            displayOff( );

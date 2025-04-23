@@ -35,7 +35,6 @@ namespace LCS {
     using namespace CDC;
     
     extern uint16_t             debugMask;
-    extern CdcResourceMap       resMap;
     extern LcsNvmHeaderMap      nvmHeaderMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
@@ -45,6 +44,8 @@ namespace LCS {
     extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
     extern LcsMsgBusCAN         *msgBus;
+
+    extern CdcResourceDescMap   dMap;
 
     extern uint8_t              extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word );
     extern int                  searchEvent( uint16_t eventId );
@@ -431,53 +432,13 @@ void printMemEventMap( ) {
     printf( "\n" );
 }
 
-void printResMap( ) {
-
-    printf( "Resource Map: \n" );
-    printResourceMap( getResourceMap( ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "scanI2CBus" and "listDevicesI2C" are two routines that will list all chips found on the NVM and EXT bus.
-//
-//------------------------------------------------------------------------------------------------------------
-void scanI2CBus( uint8_t sclPin ) {
-
-    uint8_t rStat     = 0;
-    uint8_t i2cAdr    = 0;
-    uint8_t nDevices  = 0;
-    uint8_t buf       = 0;
-
-    for ( i2cAdr = 1; i2cAdr < 127; i2cAdr++ ) {
-
-        rStat = CDC::i2cRead( sclPin, i2cAdr, &buf, 1 );
-      
-        if ( rStat == 0 ) {
-
-            printf( "I2C device found at i2cAdr 0x%x\n", i2cAdr );
-            nDevices ++;
-        }
-    }
-
-    if ( nDevices == 0 )  printf( "No I2C devices found\n" );
-    else                  printf( "Scan done\n" );
-}
-
 void listDevicesI2C( ) {
 
-    if ( resMap.i2cSclPin_0 != UNDEFINED_PIN ) {
+    scanI2CBus( CDC_RN_NVM );
+    printf( "\n" );
 
-      printf( "Scanning NVM I2C Bus: scl:%d, sda: %d \n", resMap.i2cSclPin_0, resMap.i2cSdaPin_0 );
-      scanI2CBus( resMap.i2cSclPin_0 );
-      printf( "\n" );
-    }
-
-    if ( resMap.i2cSclPin_1 != UNDEFINED_PIN ) {
-
-      printf( "Scanning EXT I2C Bus: scl:%d, sda: %d \n", resMap.i2cSclPin_0, resMap.i2cSdaPin_0 );
-      scanI2CBus( resMap.i2cSclPin_1 );
-      printf( "\n" );
-    }
+    scanI2CBus( CDC_RN_EXT_NVM );
+    printf( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -912,31 +873,32 @@ void listStatusCommand( char *s ) {
 
         switch ( level ) {
 
-            case 0:     printSummary( );            break;
+            case 0:     printSummary( );                break;
 
-            case 1:     dumpMemHeaderMap( );        break;
-            case 2:     dumpMemNodeMap( );          break;
-            case 3:     dumpMemPortMap( );          break;
-            case 4:     dumpMemNodeData( );         break;
-            case 5:     dumpMemEventMap( );         break;
-            case 6:     dumpMemPendingReqMap( );    break;
-            case 7:     dumpMemTaskMap( );          break;
-            case 8:     dumpMemDrvFuncMap( );       break;
-            case 9:     dumpMemRuntimeArea( );      break;
+            case 1:     dumpMemHeaderMap( );            break;
+            case 2:     dumpMemNodeMap( );              break;
+            case 3:     dumpMemPortMap( );              break;
+            case 4:     dumpMemNodeData( );             break;
+            case 5:     dumpMemEventMap( );             break;
+            case 6:     dumpMemPendingReqMap( );        break;
+            case 7:     dumpMemTaskMap( );              break;
+            case 8:     dumpMemDrvFuncMap( );           break;
+            case 9:     dumpMemRuntimeArea( );          break;
 
-            case 21:    dumpNvmHeaderMap( );        break;
-            case 22:    dumpNvmNodeMap( );          break;
-            case 23:    dumpNvmPortMap( );          break;
-            case 24:    dumpNvmNodeData( );         break;
-            case 25:    dumpNvmEventMap( );         break;
-            case 26:    dumpNvmRuntimeArea( );      break;
+            case 21:    dumpNvmHeaderMap( );            break;
+            case 22:    dumpNvmNodeMap( );              break;
+            case 23:    dumpNvmPortMap( );              break;
+            case 24:    dumpNvmNodeData( );             break;
+            case 25:    dumpNvmEventMap( );             break;
+            case 26:    dumpNvmRuntimeArea( );          break;
 
-            case 41:    printMemNodeMap( );         break;
-            case 42:    printMemPortMap( );         break;
-            case 43:    printMemEventMap( );        break;
+            case 41:    printMemNodeMap( );             break;
+            case 42:    printMemPortMap( );             break;
+            case 43:    printMemEventMap( );            break;
             
-            case 50:    listDevicesI2C( );          break;   
-            case 51:    printResMap( );             break;
+            case 50:    listDevicesI2C( );              break;   
+            case 51:    printResourceDescMap( &dMap );  break;
+            case 52:    printResourceMap( );            break;
 
             default: printf( "Unknown help option, use '?' for help\n" );
         }
@@ -992,7 +954,8 @@ void listCoreLibHelpCommand( ) {
     printf( "               " " -  44  - MEM Event Map formatted\n" );
 
     printf( "               " " -  50  - I2C Devices\n" );
-    printf( "               " " -  51  - CDC Resource Map");
+    printf( "               " " -  51  - CDC Resource Desc Map");
+    printf( "               " " -  52  - CDC Resource Map");
 }
 
 //------------------------------------------------------------------------------------------------------------

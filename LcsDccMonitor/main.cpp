@@ -49,6 +49,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
+#include "LcsCdcDescMapDefaults.h"
 #include "LcsDccPktFmtLib.h"
 #include <cstring>
 
@@ -59,40 +60,6 @@
 #define DEBUG_PACKET_FORMATTER 1
 
 using namespace CDC;
-
-CdcResourceMap cMap = {
-
-    .cFamily                = CDC_CF_RP_PICO,
-    .cType                  = CDC_CF_C_RP_2040,
-    .memorySize             = 260 * 1024,
-
-    .adcRefVoltageMillis    = 3300,
-    .adcDigitRange          = 1024,
-
-    .ledPin                 = 15,
-    .pFailPin               = 7,
-    
-    .adcPin_0               = 26,
-    .adcPin_1               = 27,
-
-    .dioPin_0               = 22, // used external int pin ????
-    .dioPin_1               = 9,
-    .dioPin_2               = 10,
-    .dioPin_3               = 11,
-    .dioPin_4               = 21,
-    .dioPin_5               = 20,
-    .dioPin_6               = 19,
-    .dioPin_7               = 18,
-
-    .pwmPin_0               = 20,
-    .pwmPin_1               = 21,
-  
-    .i2cSclPin_0            = 3,
-    .i2cSdaPin_0            = 2,
-
-    .i2cSclPin_1            = 17,
-    .i2cSdaPin_1            = 16,
-};
 
 //------------------------------------------------------------------------------------------------------------
 // Configuration settings.
@@ -139,6 +106,14 @@ struct TsRange {
 };
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+CdcResourceDescMap dMap = RES_MAP_RP_2040;
+
+const uint8_t RN_IN = CDC_RN_FIRST_USER_RN;
+
+//------------------------------------------------------------------------------------------------------------
 // DCC bit stream and packet declarations. The bit stream buffer is a circular buffer. The bit detecting
 // routine add at the head, the packet assembler reads from the tail.
 //
@@ -158,7 +133,7 @@ volatile bool     cutoutDetected = false;
 //------------------------------------------------------------------------------------------------------------
 uint8_t           dccPacketBufferSize       = DEFAULT_DCC_PACKETS;
 uint32_t          refreshTimeInMillis       = DEFAULT_REFRESH_TIME_MILLIS;
-uint32_t          timeToRefreshInMillis     = CDC::getMillis( ) + refreshTimeInMillis;
+uint32_t          timeToRefreshInMillis     = getMillis( ) + refreshTimeInMillis;
 uint32_t          intervalCount             = 0;
 uint32_t          packetsDetected           = 0;
 uint32_t          errPacketsDetected        = 0;
@@ -204,7 +179,12 @@ void fillPacket( );
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    CDC::cdcInit( &cMap );
+    dMap.map[ RN_IN ].type           = CDC_RT_GPIO;
+    dMap.map[ RN_IN ].gpio.pinA      = 5;
+    dMap.map[ RN_IN ].gpio.pinB      = UNDEFINED_PIN;
+    dMap.map[ RN_IN ].gpio.pinMode   = CDC_DIO_IN_PULLUP;
+
+    CDC::cdcInit( &dMap );
     CDC::configureConsoleIO( );
 }
 
@@ -292,8 +272,8 @@ void startBitDetection( ) {
 
   uint8_t rStat;
 
-  rStat = CDC::configureDio( cMap.dioPin_0, CDC_DIO_IN );
-  rStat = CDC::registerDioCallback( cMap.dioPin_0, CDC_EVT_CHANGE, dccEdgeChange );
+  rStat = configureDio( RN_IN, CDC_DIO_IN );
+  rStat = registerDioCallback( RN_IN, CDC_EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );

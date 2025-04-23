@@ -43,11 +43,12 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+    using namespace CDC;
+
     //--------------------------------------------------------------------------------------------------------
     // SSD1306 commands.
     //
     //--------------------------------------------------------------------------------------------------------
-    
     /** Set Lower Column Start Address for Page Addressing Mode. */
     #define SSD1306_SETLOWCOLUMN 0x00
     /** Set Higher Column Start Address for Page Addressing Mode. */
@@ -100,7 +101,6 @@ namespace {
     //-------------------------------------------------------------------------------------------------------
     //
     //-------------------------------------------------------------------------------------------------------
-    //
     /** Set Pump voltage value: (30H~33H) 6.4, 7.4, 8.0 (POR), 9.0. */
     #define SH1106_SET_PUMP_VOLTAGE 0X30
     /** First byte of set charge pump mode */
@@ -254,22 +254,22 @@ namespace {
     // the reset IO and issue the reset sequence.
     //
     //--------------------------------------------------------------------------------------------------------
-    uint8_t setupHw( uint8_t sclPin, uint8_t sdaPin, uint8_t rstPin ) {
+    uint8_t setupHw( uint8_t rNumI2C, uint8_t rNumRST ) {
 
-        uint8_t rStat = CDC::NO_ERR;
+        uint8_t rStat = NO_ERR;
 
-        rStat = CDC::configureI2C( sclPin, sdaPin );
-        if ( rStat != CDC::NO_ERR ) return( rStat );
+        rStat = configureI2C( rNumI2C );
+        if ( rStat != NO_ERR ) return( rStat );
 
-        if ( rstPin != CDC::UNDEFINED_PIN ) {
+        if ( rNumRST != CDC_RN_UNDEFINED ) {
 
-            rStat = CDC::configureDio( rstPin, CDC::CDC_DIO_OUT );
+            rStat = configureDio( rNumRST, CDC_DIO_OUT );
             if ( rStat != CDC::NO_ERR ) return( rStat );
 
-            CDC::writeDio( rstPin, false );
-            CDC::sleepMillis( 10 );
-            CDC::writeDio( rstPin, true );
-            CDC::sleepMillis( 10 );
+            writeDio( rNumRST, false );
+            sleepMillis( 10 );
+            writeDio( rNumRST, true );
+            sleepMillis( 10 );
         }
 
         if ( rStat != CDC::NO_ERR ) printf( "setupHw Error: %d\n", rStat );
@@ -300,10 +300,9 @@ LcsOledDisplay::LcsOledDisplay( ) {  }
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::begin(  uint8_t devType, 
-                                uint8_t sclPin, 
-                                uint8_t sdaPin, 
+                                uint8_t rNumI2C, 
                                 uint8_t i2cAdr,
-                                uint8_t rstPin  ) {
+                                uint8_t rNumRST  ) {
 
     this -> sclPin = sclPin;
     this -> sdaPin = sdaPin;
@@ -312,12 +311,12 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
 
     // ??? into a debug bracket ?
     #if 1
-    printf( "Oled Display begin: sclPin: %d, sdaPin: %d, i2cAdr: 0x%x, rstPin: %d\n ", 
-            sclPin, sdaPin, i2cAdr, rstPin );
+    printf( "Oled Display begin: rNumI2C: %d, i2cAdr: 0x%x, rNumRST: %d\n ", 
+            rNumI2C, i2cAdr, rNumRST );
     #endif
 
-    uint8_t rStat = setupHw( sclPin, sdaPin, rstPin );
-    if ( rStat != CDC::NO_ERR ) return( rStat );
+    uint8_t rStat = setupHw( rNumI2C, rNumRST );
+    if ( rStat != NO_ERR ) return( rStat );
 
     setupDevType( devType );
     clear( );

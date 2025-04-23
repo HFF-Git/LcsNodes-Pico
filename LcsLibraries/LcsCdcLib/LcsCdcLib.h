@@ -144,6 +144,7 @@ const uint8_t   ILLEGAL_PIN             = 254;
 enum CdcResourceType : uint8_t {
 
     CDC_RT_UNDEFINED    = 0,
+    CDC_RT_TIMER        = 1,
     CDC_RT_GPIO         = 2,
     CDC_RT_ADC          = 4,
     CDC_RT_PWM          = 5,
@@ -155,21 +156,23 @@ enum CdcResourceType : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// There are predefined resource channels common to all boards. TheY re for example the activity led and 
+// There are predefined resource channels common to all boards. They are for example the activity led and 
 // the NVM I2C channel. These resource numbers are consequently reserved and cannot be used by the firmware
-// programmer.
+// programmer. 
 //
+// IMPORTANT: the number are indices into the resource descriptor array, The order is dead important as it
+// determines how a descriptor array is filled.
 //------------------------------------------------------------------------------------------------------------
 enum CdcResourceIdNum : uint8_t {
 
-    CDC_RN_ACTIVITY         = 0,
-    CDC_RN_PFAIL            = 1,
-    CDC_RN_CAN_BUS          = 2,
-    CDC_RN_NVM              = 3,
-    CDC_RN_EXT_NVM          = 4,
-    CDC_RN_RESERVED_1       = 5,
-    CDC_RN_RESERVED_2       = 6,
-    CDC_RN_RESERVED_3       = 7,
+    CDC_RN_ACTIVITY_LED     = 0,
+    CDC_RN_TIMER_0          = 1,
+    CDC_RN_TIMER_1          = 2,
+    CDC_RN_PFAIL            = 3,
+    CDC_RN_CAN_BUS          = 4,
+    CDC_RN_NVM              = 5,
+    CDC_RN_EXT_NVM          = 6,
+    CDC_RN_RESERVED         = 7,
     CDC_RN_FIRST_USER_RN    = 8,
     CDC_RN_UNDEFINED        = 255
 };
@@ -205,7 +208,8 @@ enum dioMode : uint8_t {
 
     CDC_DIO_IN              = 0,
     CDC_DIO_OUT             = 1,
-    CDC_DIO_IN_PULLUP       = 2
+    CDC_DIO_IN_PULLUP       = 2,
+    CDC_DIO_DEFAULT         = 3
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -279,8 +283,8 @@ struct CdcResourceDescI2c {
 
     uint8_t     sclPin;
     uint8_t     sdaPin;
-    uint8_t     i2cAdrRoot;
     uint32_t    baudRate;
+    uint8_t     i2cAdrRoot;
     uint16_t    i2cTimeoutMs; 
 };
 
@@ -405,7 +409,7 @@ uint8_t         readAdc( uint8_t rNum, uint16_t *val );
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureDio( uint8_t rNum, uint8_t pinMode );
+uint8_t         configureDio( uint8_t rNum, uint8_t pinMode = CDC_DIO_DEFAULT );
 uint8_t         readDio( uint8_t rNum, bool *valA, bool *valB = nullptr );
 uint8_t         writeDio( uint8_t rNum, bool valA, bool valB = false );
 uint8_t         toggleDio( uint8_t rNum );
@@ -416,7 +420,7 @@ uint8_t         unregisterDioCallback( uint8_t rNum );
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configurePwm( uint8_t rNum );
+uint8_t         configurePwm( uint8_t rNum, uint32_t fPwm = 0 );
 uint8_t         writePwm(uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ); 
 uint8_t         syncPwm( uint8_t rNum );
 
@@ -438,11 +442,22 @@ uint8_t         i2cBusreset( uint8_t rNum );
 uint8_t         i2cWrite( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 uint8_t         i2cRead( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 
+uint8_t         i2cGetSclPin( uint8_t rNum );
+uint8_t         i2cGetSdaPin( uint8_t rNum );
+uint8_t         i2cGetBaudrate( uint8_t rNUm );
+
+uint8_t         scanI2CBus( uint8_t rNum );
+
 //------------------------------------------------------------------------------------------------------------
 // CAN Bus hardware routines.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         configureCanBus( uint8_t rNum );
+
+uint8_t         canGetRxPin( uint8_t rNum );
+uint8_t         canGetTxPin( uint8_t rNum );
+uint8_t         canGetBaudrate( uint8_t rNum );
+bool            canGetTwoCores( uint8_t rNum );
 
 };
 

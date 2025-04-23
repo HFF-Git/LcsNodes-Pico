@@ -955,7 +955,7 @@ uint16_t getAdcDigitRange( ) {
 //
 // ??? we support only setting a handler for pinA ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureDio( uint8_t rNum ) {
+uint8_t configureDio( uint8_t rNum, uint8_t mode ) {
 
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
@@ -968,8 +968,10 @@ uint8_t configureDio( uint8_t rNum ) {
 
     rPtr -> dioPinA = dPtr -> pinA;
     rPtr -> dioPinB = dPtr -> pinB;
-    rPtr -> pinMode = dPtr -> pinMode;
     rPtr -> handler = nullptr;
+ 
+    if ( mode == CDC_DIO_DEFAULT )  rPtr -> pinMode = mode % 4;
+    else                            rPtr -> pinMode = dPtr -> pinMode;
 
     if ( ! validPin( rPtr -> dioPinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
     if ( ! validPin( rPtr -> dioPinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
@@ -1074,7 +1076,7 @@ uint8_t toggleDio( uint8_t rNum ) {
 // to configure again. 
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t configurePwm( uint8_t rNum ) {
+uint8_t configurePwm( uint8_t rNum, uint32_t fPwm ) {
 
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
@@ -1087,10 +1089,12 @@ uint8_t configurePwm( uint8_t rNum ) {
 
     rPtr -> pwmPinA         = dPtr ->pinA;
     rPtr -> pwmPinB         = dPtr ->pinB;
-    rPtr -> frequency       = dPtr -> frequency;
     rPtr -> phaseCorrect    = true;
     rPtr -> inverted        = false;     
     rPtr -> sliceNum        = pwm_gpio_to_slice_num( rPtr -> pwmPinA );
+
+    if ( fPwm == 0 )    rPtr -> frequency   = dPtr ->frequency;
+    else                rPtr -> frequency   = fPwm;              
 
     if ( rPtr -> pwmPinB != UNDEFINED_PIN ) {
 
@@ -1375,6 +1379,71 @@ uint8_t i2cBusreset( uint8_t rNum ) {
     uint8_t reset_cmd = 0x06;
     i2c_write_blocking( rPtr -> i2cHw, 0x00, &reset_cmd, 1, false); 
     return ( NO_ERR );
+}
+
+
+uint8_t i2cGetSclPin( uint8_t rNum ) {
+
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    return( rPtr -> sclPin );
+}
+
+uint8_t i2cGetSdaPin( uint8_t rNum ) {
+
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    return( rPtr -> sdaPin );
+}
+
+uint8_t i2cGetBaudrate( uint8_t rNum ) {
+
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    return( rPtr -> baudRate );
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t scanI2CBus( uint8_t rNum ) {
+
+    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+    if ( rPtr -> sclPin == UNDEFINED_PIN ) {
+
+        printf( "I2C bus for rNum: %d not configured\n", rNum );
+        return ( NO_ERR );
+    }
+    else {
+
+        uint8_t rStat     = 0;
+        uint8_t i2cAdr    = 0;
+        uint8_t nDevices  = 0;
+        uint8_t buf       = 0;
+    
+        for ( i2cAdr = 1; i2cAdr < 127; i2cAdr++ ) {
+    
+            rStat = i2cRead( rNum, i2cAdr, &buf, 1 );
+          
+            if ( rStat == 0 ) {
+    
+                printf( "I2C device found at i2cAdr 0x%x\n", i2cAdr );
+                nDevices ++;
+            }
+        }
+    
+        if ( nDevices == 0 )  printf( "No I2C devices found\n" );
+        else                  printf( "Scan done\n" );
+    }
+
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------

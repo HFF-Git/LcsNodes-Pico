@@ -26,48 +26,18 @@
 //------------------------------------------------------------------------------------------------------------
 
 #include "LcsCdcLib.h"
+#include "LcsCdcDescMapDefaults.h"
 #include "LcsUIElements.h"
 
 using namespace CDC;
 
-CdcResourceMap cMap = {
 
-    .cFamily                = CDC_CF_RP_PICO,
-    .cType                  = CDC_CF_C_RP_2040,
-    .memorySize             = 260 * 1024,
-
-    .adcRefVoltageMillis    = 3300,
-    .adcDigitRange          = 1024,
-
-    .ledPin                 = 15,
-    .pFailPin               = 7,
-    
-    .adcPin_0               = 26,
-    .adcPin_1               = 27,
-
-    .dioPin_0               = 8,
-    .dioPin_1               = 9,
-    .dioPin_2               = 10,
-    .dioPin_3               = 11,
-    .dioPin_4               = 21,
-    .dioPin_5               = 20,
-    .dioPin_6               = 19,
-    .dioPin_7               = 18,
-
-    .pwmPin_0               = 20,
-    .pwmPin_1               = 21,
-  
-    .i2cSclPin_0            = 3,
-    .i2cSdaPin_0            = 2,
-
-    .i2cSclPin_1            = 17,
-    .i2cSdaPin_1            = 16,
-};
 
 //----------------------------------------------------------------------------------------------------------
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
+CdcResourceDescMap  dMap    = RES_MAP_RP_2040;
 UIDisplay           *oled   = nullptr;
 
 //----------------------------------------------------------------------------------------------------------
@@ -78,10 +48,11 @@ UIDisplay           *oled   = nullptr;
 //----------------------------------------------------------------------------------------------------------
 uint8_t initCdcLib( ) {
 
-    cdcInit( &cMap );
+    cdcInit( &dMap );
     sleepMillis( 2000 );
     configureConsoleIO( );
 
+    printResourceDescMap( &dMap );
     return( NO_ERR );
 }
 
@@ -92,14 +63,17 @@ uint8_t initCdcLib( ) {
 int main( ) {
 
     uint8_t rStat = initCdcLib( );
-    if ( rStat != CDC::NO_ERR ) {
+    if ( rStat != NO_ERR ) {
 
         printf( "Error in CDC init: %d\n", rStat );
         CDC::sleepMillis( 5000 );
         return( -1 );
     }
 
-    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, cMap.i2cSclPin_1, cMap.i2cSdaPin_1, 0x3C );
+    oled = new UIDisplayOled(   DT_OLED_DISPLAY_128x64, 
+                                i2cGetSclPin( CDC_RN_EXT_NVM ),
+                                i2cGetSdaPin( CDC_RN_EXT_NVM ), 
+                                0x3C );
 
     while ( true ) {
 
