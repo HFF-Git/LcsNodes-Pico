@@ -33,11 +33,9 @@
 using namespace LCS;
 using namespace CDC;
 
-extern CdcResourceMap   resMap;
 extern UIEncoder        *encoder;
 extern CabStack         *cabStack;
 extern CabMsgBus        *msgBus;
-
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.
@@ -70,29 +68,27 @@ UIEncoder     *encoder                    = nullptr;
 UIButton      *encoderButton              = nullptr;
 
 //------------------------------------------------------------------------------------------------------------
-// Configure the IO pins for the UI Elements. 
+// Configure the UI Resource Elements. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
 
-    configureDio( MENU_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( SELECT_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( UP_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( DOWN_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( HORN_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( BELL_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( FWD_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( REV_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( F1_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( F2_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( F3_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( F4_BUTTON_ID, CDC_DIO_IN_PULLUP );
-    configureDio( ENCODER_BUTTON_ID, CDC_DIO_IN_PULLUP );
-
-    CDC::configureDio( ENCODER_ID_A, CDC_DIO_IN_PULLUP );
-    CDC::configureDio( ENCODER_ID_B, CDC_DIO_IN_PULLUP );
-
-    return ( LCS::ALL_OK );
+    configureDio( RNUM_MENU_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_SELECT_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_UP_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DOWN_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_HORN_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_BELL_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_FWD_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_REV_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_F1_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_F2_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_F3_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_F4_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_ENCODER_BUTTON, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_ENCODER_A, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_ENCODER_B, CDC_DIO_IN_PULLUP );
+    return ( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -107,7 +103,7 @@ bool getData( uint8_t hwId ) {
 
     bool val;
 
-    if (( hwId == ENCODER_ID_A ) || ( hwId == ENCODER_ID_B )) {
+    if (( hwId == RNUM_ENCODER_A ) || ( hwId == RNUM_ENCODER_B )) {
 
         readDio( hwId, &val );
         return ( val == true );
@@ -126,21 +122,21 @@ bool getData( uint8_t hwId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t createUIElements( ) {
 
-  upButton      = new UIButton( UP_BUTTON_ID );
-  downButton    = new UIButton( DOWN_BUTTON_ID );
-  selectButton  = new UIButton( SELECT_BUTTON_ID );
-  menuButton    = new UIButton( MENU_BUTTON_ID );
-  f1Button      = new UIButton( F1_BUTTON_ID );
-  f2Button      = new UIButton( F2_BUTTON_ID );
-  f3Button      = new UIButton( F3_BUTTON_ID );
-  f4Button      = new UIButton( F4_BUTTON_ID );
-  bellButton    = new UIButton( BELL_BUTTON_ID );
-  hornButton    = new UIButton( HORN_BUTTON_ID );
-  fwdButton     = new UIButton( FWD_BUTTON_ID );
-  revButton     = new UIButton( REV_BUTTON_ID );
+  upButton      = new UIButton( RNUM_UP_BUTTON );
+  downButton    = new UIButton( RNUM_DOWN_BUTTON );
+  selectButton  = new UIButton( RNUM_SELECT_BUTTON );
+  menuButton    = new UIButton( RNUM_MENU_BUTTON );
+  f1Button      = new UIButton( RNUM_F1_BUTTON );
+  f2Button      = new UIButton( RNUM_F2_BUTTON );
+  f3Button      = new UIButton( RNUM_F3_BUTTON );
+  f4Button      = new UIButton( RNUM_F4_BUTTON );
+  bellButton    = new UIButton( RNUM_BELL_BUTTON );
+  hornButton    = new UIButton( RNUM_HORN_BUTTON );
+  fwdButton     = new UIButton( RNUM_FWD_BUTTON );
+  revButton     = new UIButton( RNUM_REV_BUTTON );
 
-  encoderButton = new UIButton( ENCODER_BUTTON_ID );
-  encoder       = new UIEncoder( ENCODER_ID_A, ENCODER_ID_B, -10, 10, false  );
+  encoderButton = new UIButton( RNUM_ENCODER_BUTTON );
+  encoder       = new UIEncoder( RNUM_ENCODER_A, RNUM_ENCODER_B, -10, 10, false  );
 
   menuButton ->     attachGetDataFunction( getData );
   selectButton ->   attachGetDataFunction( getData );
@@ -169,10 +165,9 @@ uint8_t createUIElements( ) {
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
   oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, 
-                            resMap.i2cSclPin_1, 
-                            resMap.i2cSdaPin_1, 
-                            0x50 ); // ??? fix ..
-                            //    resMap.EXT_I2C_ADR_ROOT );
+                            i2cGetSclPin( CDC_RN_EXT_NVM ),
+                            i2cGetSdaPin( CDC_RN_EXT_NVM ),
+                            0x50 ); // ??? fix ...
 
   return ( ALL_OK );
 }

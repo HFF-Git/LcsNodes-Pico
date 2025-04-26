@@ -428,7 +428,7 @@ uint8_t         syncPwm( uint8_t rNum );
 // Serial IO routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureUart( uint8_t rNum, uint32_t baudRate );
+uint8_t         configureUart( uint8_t rNum );
 uint8_t         startUartRead( uint8_t rNum );
 uint8_t         stopUartRead( uint8_t rNum );
 uint8_t         getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen );

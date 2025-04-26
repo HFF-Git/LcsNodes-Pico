@@ -5,7 +5,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -287,13 +287,12 @@ struct LcsBaseStationSessionMapDesc {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationTrackDesc {
 
-    uint16_t  options                       = SM_OPT_DEFAULT_SETTING;
+    uint16_t    options                     = SM_OPT_DEFAULT_SETTING;
 
-    uint8_t   enablePin                     = CDC::UNDEFINED_PIN;
-    uint8_t   dccSigPin1                    = CDC::UNDEFINED_PIN;
-    uint8_t   dccSigPin2                    = CDC::UNDEFINED_PIN;
-    uint8_t   sensePin                      = CDC::UNDEFINED_PIN;
-    uint8_t   uartRxPin                     = CDC::UNDEFINED_PIN;
+    uint8_t     rNumEnable                  = 0; 
+    uint8_t     rNumControl                 = 0;
+    uint8_t     rNumSense                   = 0;
+    uint8_t     rNumUartRx                  = 0;
 
     uint16_t  initCurrentMilliAmp           = 0;
     uint16_t  limitCurrentMilliAmp          = 0;
@@ -399,54 +398,53 @@ struct LcsBaseStationDccTrack {
 
     private:
 
-    uint16_t                    options                       = DT_OPT_DEFAULT_SETTING;
-    volatile uint16_t           flags                         = DT_F_DEFAULT_SETTING;
+    uint16_t                    options                         = DT_OPT_DEFAULT_SETTING;
+    volatile uint16_t           flags                           = DT_F_DEFAULT_SETTING;
 
-    volatile uint8_t            trackState                    = 0;
-    volatile uint8_t            signalState                   = 0;
+    volatile uint8_t            trackState                      = 0;
+    volatile uint8_t            signalState                     = 0;
 
-    volatile uint32_t           trackTimeStamp                = 0;
-    volatile uint8_t            overloadEventCount            = 0;
-    volatile uint8_t            overloadRestartCount          = 0;
+    volatile uint32_t           trackTimeStamp                  = 0;
+    volatile uint8_t            overloadEventCount              = 0;
+    volatile uint8_t            overloadRestartCount            = 0;
 
-    uint8_t                     enablePin                     = CDC::UNDEFINED_PIN;
-    uint8_t                     dccSigPin1                    = CDC::UNDEFINED_PIN;
-    uint8_t                     dccSigPin2                    = CDC::UNDEFINED_PIN;
-    uint8_t                     sensePin                      = CDC::UNDEFINED_PIN;
-    uint8_t                     uartRxPin                     = CDC::UNDEFINED_PIN;
+    uint8_t                     rNumEnable                      = 0;
+    uint8_t                     rNumControl                     = 0;
+    uint8_t                     rNumSense                       = 0;
+    uint8_t                     rNumUartRx                      = 0;
 
-    uint16_t                    initCurrentMilliAmp           = 0;
-    uint16_t                    limitCurrentMilliAmp          = 0;
-    uint16_t                    maxCurrentMilliAmp            = 0;
+    uint16_t                    initCurrentMilliAmp             = 0;
+    uint16_t                    limitCurrentMilliAmp            = 0;
+    uint16_t                    maxCurrentMilliAmp              = 0;
 
-    uint16_t                    startTimeThreshold            = 0;
-    uint16_t                    stopTimeThreshold             = 0;
-    uint16_t                    overloadTimeThreshold         = 0;
-    uint16_t                    overloadEventThreshold        = 0;
-    uint16_t                    overloadRestartThreshold      = 0;
+    uint16_t                    startTimeThreshold              = 0;
+    uint16_t                    stopTimeThreshold               = 0;
+    uint16_t                    overloadTimeThreshold           = 0;
+    uint16_t                    overloadEventThreshold          = 0;
+    uint16_t                    overloadRestartThreshold        = 0;
 
-    uint16_t                    milliVoltPerAmp               = 0;
-    uint16_t                    digitsPerAmp                  = 0;
-    volatile uint16_t           actualCurrentDigitValue       = 0;
-    volatile uint16_t           highWaterMarkDigitValue       = 0;
-    volatile uint16_t           limitCurrentDigitValue        = 0;
-    uint16_t                    ackThresholdDigitValue        = 0;
+    uint16_t                    milliVoltPerAmp                 = 0;
+    uint16_t                    digitsPerAmp                    = 0;
+    volatile uint16_t           actualCurrentDigitValue         = 0;
+    volatile uint16_t           highWaterMarkDigitValue         = 0;
+    volatile uint16_t           limitCurrentDigitValue          = 0;
+    uint16_t                    ackThresholdDigitValue          = 0;
 
-    uint32_t                    totalPwrSamplesTaken          = 0;
-    uint32_t                    lastPwrSampleTimeStamp        = 0;
+    uint32_t                    totalPwrSamplesTaken            = 0;
+    uint32_t                    lastPwrSampleTimeStamp          = 0;
 
-    uint32_t                    lastPwrSamplePerSecTaken      = 0;
-    uint32_t                    lastPwrSamplePerSecTimeStamp  = 0;
-    uint32_t                    pwrSamplesPerSec              = 0;
+    uint32_t                    lastPwrSamplePerSecTaken        = 0;
+    uint32_t                    lastPwrSamplePerSecTimeStamp    = 0;
+    uint32_t                    pwrSamplesPerSec                = 0;
 
-    uint8_t                     preambleLen                   = 0;
-    uint8_t                     postambleLen                  = 0;
-    volatile bool               currentBit                    = false;
-    volatile uint8_t            bytesSent                     = 0;
-    volatile uint8_t            bitsSent                      = 0;
-    volatile uint8_t            preambleSent                  = 0;
-    volatile uint8_t            postambleSent                 = 0;
-    uint32_t                    dccPacketsSend                = 0;
+    uint8_t                     preambleLen                     = 0;
+    uint8_t                     postambleLen                    = 0;
+    volatile bool               currentBit                      = false;
+    volatile uint8_t            bytesSent                       = 0;
+    volatile uint8_t            bitsSent                        = 0;
+    volatile uint8_t            preambleSent                    = 0;
+    volatile uint8_t            postambleSent                   = 0;
+    uint32_t                    dccPacketsSend                  = 0;
 
     DccPacket                   dccBuf1;
     DccPacket                   dccBuf2;

@@ -533,8 +533,8 @@ void OperateScreen::buttonLongPressStart( UIButton *buttonObj ) {
     uint8_t   hwId          = buttonObj -> getHwId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
 
-    if      ( hwId == FWD_BUTTON_ID ) cabStack -> currentCab.setDirection( 1 );
-    else if ( hwId == REV_BUTTON_ID ) cabStack -> currentCab.setDirection( 2 );
+    if      ( hwId == RNUM_FWD_BUTTON ) cabStack -> currentCab.setDirection( 1 );
+    else if ( hwId == RNUM_REV_BUTTON ) cabStack -> currentCab.setDirection( 2 );
     else {
 
         if ( functionSet == 2 ) {
@@ -1162,15 +1162,15 @@ void TestUIScreen::buttonClick( UIButton *buttonId ) {
 
     switch ( buttonId -> getHwId( )) {
 
-        case HORN_BUTTON_ID:      printFieldStr( 0, 2, FT_8x16, "HORN CLICK" );     break;
-        case BELL_BUTTON_ID:      printFieldStr( 0, 2, FT_8x16, "BELL CLICK" );     break;
-        case FWD_BUTTON_ID:       printFieldStr( 0, 2, FT_8x16, "FWD CLICK" );      break;
-        case REV_BUTTON_ID:       printFieldStr( 0, 2, FT_8x16, "REV CLICK" );      break;
-        case F1_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F1 CLICK" );       break;
-        case F2_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F2 CLICK" );       break;
-        case F3_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F3 CLICK" );       break;
-        case F4_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F4 CLICK" );       break;
-        case ENCODER_BUTTON_ID:   printFieldStr( 0, 2, FT_8x16, "ENCODER CLICK" );  break;
+        case RNUM_HORN_BUTTON:      printFieldStr( 0, 2, FT_8x16, "HORN CLICK" );     break;
+        case RNUM_BELL_BUTTON:      printFieldStr( 0, 2, FT_8x16, "BELL CLICK" );     break;
+        case RNUM_FWD_BUTTON:       printFieldStr( 0, 2, FT_8x16, "FWD CLICK" );      break;
+        case RNUM_REV_BUTTON:       printFieldStr( 0, 2, FT_8x16, "REV CLICK" );      break;
+        case RNUM_F1_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F1 CLICK" );       break;
+        case RNUM_F2_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F2 CLICK" );       break;
+        case RNUM_F3_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F3 CLICK" );       break;
+        case RNUM_F4_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F4 CLICK" );       break;
+        case RNUM_ENCODER_BUTTON:   printFieldStr( 0, 2, FT_8x16, "ENCODER CLICK" );  break;
     }
 }
 
@@ -1180,15 +1180,15 @@ void TestUIScreen::buttonLongPressStart( UIButton *buttonObj ) {
 
     switch ( buttonObj -> getHwId( )) {
 
-        case HORN_BUTTON_ID:      printFieldStr( 0, 2, FT_8x16, "HORN LP START" );      break;
-        case BELL_BUTTON_ID:      printFieldStr( 0, 2, FT_8x16, "BELL LP START" );      break;
-        case FWD_BUTTON_ID:       printFieldStr( 0, 2, FT_8x16, "FWD LP START" );       break;
-        case REV_BUTTON_ID:       printFieldStr( 0, 2, FT_8x16, "REV LP START" );       break;
-        case F1_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F1 LP START" );        break;
-        case F2_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F2 LP START" );        break;
-        case F3_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F3 LP START" );        break;
-        case F4_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F4 LP START" );        break;
-        case ENCODER_BUTTON_ID:   printFieldStr( 0, 2, FT_8x16, "ENCODER LP START" );   break;
+        case RNUM_HORN_BUTTON:      printFieldStr( 0, 2, FT_8x16, "HORN LP START" );     break;
+        case RNUM_BELL_BUTTON:      printFieldStr( 0, 2, FT_8x16, "BELL LP START" );     break;
+        case RNUM_FWD_BUTTON:       printFieldStr( 0, 2, FT_8x16, "FWD LP START" );      break;
+        case RNUM_REV_BUTTON:       printFieldStr( 0, 2, FT_8x16, "REV LP START" );      break;
+        case RNUM_F1_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F1 LP START" );       break;
+        case RNUM_F2_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F2 LP START" );       break;
+        case RNUM_F3_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F3 LP START" );       break;
+        case RNUM_F4_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F4 LP START" );       break;
+        case RNUM_ENCODER_BUTTON:   printFieldStr( 0, 2, FT_8x16, "ENCODER LP START" );  break;
     }
 }
 
@@ -1198,15 +1198,15 @@ void TestUIScreen::buttonLongPressStop( UIButton *buttonObj ) {
 
     switch ( buttonObj -> getHwId( )) {
 
-        case HORN_BUTTON_ID:      printFieldStr( 0, 2, FT_8x16, "HORN LP STOP" );      break;
-        case BELL_BUTTON_ID:      printFieldStr( 0, 2, FT_8x16, "BELL LP STOP" );      break;
-        case FWD_BUTTON_ID:       printFieldStr( 0, 2, FT_8x16, "FWD LP STOP" );       break;
-        case REV_BUTTON_ID:       printFieldStr( 0, 2, FT_8x16, "REV LP STOP" );       break;
-        case F1_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F1 LP STOP" );        break;
-        case F2_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F2 LP STOP" );        break;
-        case F3_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F3 LP STOP" );        break;
-        case F4_BUTTON_ID:        printFieldStr( 0, 2, FT_8x16, "F4 LP STOP" );        break;
-        case ENCODER_BUTTON_ID:   printFieldStr( 0, 2, FT_8x16, "ENCODER LP STOP" );   break;
+        case RNUM_HORN_BUTTON:      printFieldStr( 0, 2, FT_8x16, "HORN LP STOP" );     break;
+        case RNUM_BELL_BUTTON:      printFieldStr( 0, 2, FT_8x16, "BELL LP STOP" );     break;
+        case RNUM_FWD_BUTTON:       printFieldStr( 0, 2, FT_8x16, "FWD LP STOP" );      break;
+        case RNUM_REV_BUTTON:       printFieldStr( 0, 2, FT_8x16, "REV LP STOP" );      break;
+        case RNUM_F1_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F1 LP STOP" );       break;
+        case RNUM_F2_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F2 LP STOP" );       break;
+        case RNUM_F3_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F3 LP STOP" );       break;
+        case RNUM_F4_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F4 LP STOP" );       break;
+        case RNUM_ENCODER_BUTTON:   printFieldStr( 0, 2, FT_8x16, "ENCODER LP STOP" );  break;
     }
 }
 

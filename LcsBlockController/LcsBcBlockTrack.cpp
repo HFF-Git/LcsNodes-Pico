@@ -171,13 +171,11 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 
         printf( "setupBlockTrack\n" );
 
-        printf( "Pins: selPin1: %d, selPin2: %d, sensePin: %d\n", 
-        trackDesc -> selPin1, trackDesc -> selPin2, trackDesc -> sensePin );
+        printf( "rNumControl: %d, rNumSense: %d, rNumUartRx: %d\n", 
+        trackDesc -> rNumControl, trackDesc -> rNumSense, 0 );
     }
 
-    if ((  trackDesc -> selPin1     == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> selPin2     == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> sensePin    == CDC::UNDEFINED_PIN )) {
+    if ((  trackDesc -> rNumControl == 0 ) || ( trackDesc -> rNumSense == 0 )) {
 
         flags = BT_F_CONFIG_ERROR;
         return ( ERR_PIN_CONFIG );
@@ -199,9 +197,8 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     trackState                  = TRACK_POWER_OFF;
     flags                       = BT_F_DEFAULT_SETTING;
     options                     = trackDesc -> options;
-    selPin1                     = trackDesc -> selPin1;
-    selPin2                     = trackDesc -> selPin2;
-    sensePin                    = trackDesc -> sensePin;
+    rNumControl                 = trackDesc -> rNumControl;
+    rNumSense                   = trackDesc -> rNumSense;
     pwmFrequency                = trackDesc -> pwmFrequency;
     initialTrackMode            = trackDesc -> initialTrackMode;
     initialTrackSpeed           = trackDesc -> initialTrackSpeed;
@@ -225,9 +222,8 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     lastPwrSamplePerSecTaken    = 0;
     pwrSamplesPerSec            = 0;
 
-    uint8_t rStat = configurePwm( selPin1, pwmFrequency );
-    if ( rStat == ALL_OK ) rStat = configurePwm( selPin2, pwmFrequency );
-    if ( rStat == ALL_OK ) rStat = configureAdc( sensePin );
+    uint8_t rStat = configurePwm( rNumControl, pwmFrequency );
+    if ( rStat == ALL_OK ) rStat = configureAdc( rNumSense );
     if ( rStat == ALL_OK ) rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
 
     if ( rStat != ALL_OK ) flags |= BT_F_CONFIG_ERROR;
@@ -270,28 +266,28 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
         case BT_MODE_PWM_FWD: {
 
-            rStat = writePwmPair( selPin1, speed, 0 );
+            rStat = writePwm( rNumControl, speed, 0 );
             return( rStat );
 
         } break;
 
         case BT_MODE_PWM_REV: {
 
-            rStat = writePwmPair( selPin1, 0, speed );
+            rStat = writePwm( rNumControl, 0, speed );
             return( rStat );
 
         } break;
 
         case BT_MODE_DCC: {
 
-            rStat = writePwmPair( selPin1, 255, 255 );
+            rStat = writePwm( rNumControl, 255, 255 );
             return( rStat );
 
             } break;
 
             case BT_MODE_OFF: {
 
-            rStat = CDC::writePwmPair( selPin1, 0, 0 );
+            rStat = writePwm( rNumControl, 0, 0 );
             return( rStat );
 
         } break;
@@ -323,8 +319,7 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint16_t frequency ) {
 
     if (( frequency >= 50 ) && ( frequency < 30000U )) {
 
-        uint8_t rStat = configurePwm( selPin1, frequency );
-        if ( rStat == ALL_OK ) rStat = configurePwm( selPin2, frequency );
+        uint8_t rStat = configurePwm( rNumControl, frequency );
         return( rStat );
     }
     else return ( 255 );
@@ -549,7 +544,7 @@ void LcsBlockTrack::powerStart( ) {
 }
 
 void LcsBlockTrack::powerStop( ) {
-
+    
     trackState = TRACK_POWER_STOP1;
 }
 
@@ -621,7 +616,7 @@ void LcsBlockTrack::powerMeasurement( ) {
 
         uint16_t adcVal;
 
-        readAdc( sensePin, &adcVal );
+        readAdc( rNumSense, &adcVal );
 
         actualCurrentDigitValue = adcVal;
 
@@ -644,7 +639,7 @@ void LcsBlockTrack::printTrackConfig( ) {
     if ( options & BT_OPT_RAILCOM ) printf( "Railcom " );
     printf( "\n" );
 
-    printf( "Sel1 Pin: %d, Sel2 Pin: %d, Sensor Pin: %d\n", selPin1, selPin2, sensePin );
+    printf( "rNumControl: %d, SrNumSensor: %d\n", rNumControl, rNumSense );
 
     printf( "Initial Block State: %d, speed: %d\n", initialTrackMode, initialTrackSpeed );
 

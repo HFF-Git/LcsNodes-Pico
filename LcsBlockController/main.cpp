@@ -26,6 +26,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
+#include "LcsCdcDescMapDefaults.h"
 #include "LcsRuntimeLib.h"
 #include "LcsBlockController.h"
 
@@ -38,7 +39,7 @@ using namespace CDC;
 //------------------------------------------------------------------------------------------------------------
 uint16_t                        debugMask = DBG_BC_CONFIG | DBG_BC_SETUP | DBG_BC_TRACK_POWER_MGMT;
 
-CdcResourceMap                  resMap;
+CdcResourceDescMap              dMap;
 LcsBlockTrackDesc               block1Desc;
 LcsBlockTrackDesc               block2Desc;
 
@@ -47,95 +48,91 @@ LcsBlockControl                 *blockControl   = nullptr;
 LcsBlockTrack                   *block1         = nullptr;
 LcsBlockTrack                   *block2         = nullptr;
 
-// ??? other BC specific global data ...
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the configuration of the HW board. The CDC config contains the HW pin mapping. The dual bridge pins
-// for enabling the bridge and controlling its direction. The pins are mapped to the CDC pin names DIO2 to 
-// DIO5 as shown below.
+// Setup the configuration of the HW board. The CDC resource descriptor map contains the configuration 
+// data for the board. In addition, the HW pins for I2C, analog inputs and so on are set from the current
+// RPico Defaults. Check the schematic for the board to see all pin assignments.
 //
-//      cdcConfig.DIO_PIN_0     -> undefined
-//      cdcConfig.DIO_PIN_1     -> undefined
-//      cdcConfig.DIO_PIN_2     -> Select-0-1 
-//      cdcConfig.DIO_PIN_3     -> Select-0-2     
-//      cdcConfig.DIO_PIN_4     -> Select-1-1    
-//      cdcConfig.DIO_PIN_5     -> Select-1-2     
-//      cdcConfig.DIO_PIN_6     -> undefined 
-//      cdcConfig.DIO_PIN_7     -> Cut-Signal
-//
-// Current mapping: Dual Block Controller Board B.00.01 - PICO - newest version.
-//
-//      cdcConfig.DIO_PIN_2     = 21; 
-//      cdcConfig.DIO_PIN_3     = 20;       
-//      cdcConfig.DIO_PIN_4     = 19;  
-//      cdcConfig.DIO_PIN_5     = 18;    
-//      cdcConfig.DIO_PIN_7     = 4;    
-//
-// In addition, the HW pins for I2C, analog inputs and so on are set. Check the schematic for the board 
-// to see all pin assign,ents.
-//
-// ??? one day we will have several base station versions. Although they will perhaps differ, their the CDC
-// pin names used should not change. But we would need to come up with an idea which configuration to use
-// when preparing an image for the base station board.
+// One day we will have several block controller versions. Although they will perhaps differ, their the CDC
+// resource names used should not change. 
 //----------------------------------------------------------------------------------------------------------
-uint8_t setupConfigInfo( ) {
+const uint8_t RNUM_CONTROL_BLK_0    = CDC_RN_FIRST_USER_RN + 0;
+const uint8_t RNUM_ADC_BLK_0        = CDC_RN_FIRST_USER_RN + 1;
+const uint8_t RNUM_UART_RX_0        = CDC_RN_FIRST_USER_RN + 2;
 
-    resMap = getDefaultResourceMap( );
+const uint8_t RNUM_CONTROL_BLK_1    = CDC_RN_FIRST_USER_RN + 3;
+const uint8_t RNUM_ADC_BLK_1        = CDC_RN_FIRST_USER_RN + 4;
+const uint8_t RNUM_UART_RX_1        = CDC_RN_FIRST_USER_RN + 5;
 
-    resMap.adcPin_0             = 26;
-    resMap.adcPin_1             = 27;
+const uint8_t RNUM_CONTROL_BLK_2    = CDC_RN_FIRST_USER_RN + 6;
+const uint8_t RNUM_ADC_BLK_2        = CDC_RN_FIRST_USER_RN + 7;
+const uint8_t RNUM_UART_RX_2        = CDC_RN_FIRST_USER_RN + 8;
 
-    resMap.pFailPin             = 5;
-  //  resMap.EXT_INT_PIN           = 22;
-    resMap.ledPin        = 14;
+const uint8_t RNUM_CONTROL_BLK_3    = CDC_RN_FIRST_USER_RN + 9;
+const uint8_t RNUM_ADC_BLK_3        = CDC_RN_FIRST_USER_RN + 10;
+const uint8_t RNUM_UART_RX_3        = CDC_RN_FIRST_USER_RN + 11;
 
-    resMap.dioPin_2             = 21; 
-    resMap.dioPin_3             = 20;       
-    resMap.dioPin_4             = 19;  
-    resMap.dioPin_5             = 18;    
-    resMap.dioPin_7             = 4;    
-
-    resMap.pwmPin_0             = 21;
-    resMap.pwmPin_1             = 20;
-    resMap.pwmPin_2             = 19;
-    resMap.pwmPin_3             = 18;
-
-    // ??? more PWM channels ?
-
-    resMap.uartRxPin_0         = 13;
-    resMap.uartRxPin_1         = 9;
-
-    resMap.i2cSclPin_0       = 3;
-    resMap.i2cSdaPin_0       = 2;
-  //  resMap.NVM_I2C_ADR_ROOT      = 0x50;
-
-    resMap.i2cSclPin_1       = 17;
-    resMap.i2cSdaPin_1       = 16;
-  //  resMap.EXT_I2C_ADR_ROOT      = 0x50;
-
-    resMap.canPinRx        = 0;
-    resMap.canPinTx        = 1;
-    resMap.canBaudRate      = 125000;
-    resMap.canTwoCores = true;
-   // resMap.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
-  //  resMap.CAN_BUS_DEF_ID        = 100;
-
-    resMap.extNvmSize         = 32 * 1024;
-  //  resMap.EXT_NVM_SIZE          = 512;
-
-    resMap.options               |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
-
-    return( ALL_OK );
-}
+const uint8_t RNUM_CUT_SIGNAL       = CDC_RN_FIRST_USER_RN + 12;
 
 const uint16_t PWM_FREQUENCY = 20000;
 
+//----------------------------------------------------------------------------------------------------------
+// Setup the resource configuration data and the CDC library.
+//
+// ??? current config - dual block controller
+//----------------------------------------------------------------------------------------------------------
+void setupConfigInfo( ) {
+
+    dMap = RES_MAP_RP_2040;
+
+    dMap.map[ RNUM_CONTROL_BLK_0 ].type             = CDC_RT_PWM;
+    dMap.map[ RNUM_CONTROL_BLK_0 ].pwm.pinA         = 21;
+    dMap.map[ RNUM_CONTROL_BLK_0 ].pwm.pinB         = 20;
+    dMap.map[ RNUM_CONTROL_BLK_0 ].pwm.frequency    = PWM_FREQUENCY;
+    
+    dMap.map[ RNUM_ADC_BLK_0 ].adc.pin              = 26;
+    dMap.map[ RNUM_ADC_BLK_0 ].adc.adcNum           = 0;
+
+    dMap.map[ RNUM_UART_RX_0 ].uart.rxPin           = UNDEFINED_PIN;
+    dMap.map[ RNUM_UART_RX_0 ].uart.txPin           = UNDEFINED_PIN;
+    dMap.map[ RNUM_UART_RX_0 ].uart.baudRate        = 250000;
+
+    dMap.map[ RNUM_CONTROL_BLK_1 ].type             = CDC_RT_GPIO;
+    dMap.map[ RNUM_CONTROL_BLK_1 ].pwm.pinA         = 19;
+    dMap.map[ RNUM_CONTROL_BLK_1 ].pwm.pinB         = 18;
+    dMap.map[ RNUM_CONTROL_BLK_1 ].pwm.frequency    = PWM_FREQUENCY;
+    
+    dMap.map[ RNUM_ADC_BLK_1 ].adc.pin              = 27;
+    dMap.map[ RNUM_ADC_BLK_1 ].adc.adcNum           = 1;
+
+    dMap.map[ RNUM_UART_RX_1 ].uart.rxPin           = UNDEFINED_PIN;
+    dMap.map[ RNUM_UART_RX_1 ].uart.txPin           = UNDEFINED_PIN;
+    dMap.map[ RNUM_UART_RX_1 ].uart.baudRate        = 250000;
+
+    dMap.map[ RNUM_CUT_SIGNAL ].type                = CDC_RT_GPIO;
+    dMap.map[ RNUM_CONTROL_BLK_0 ].gpio.pinA        = 4;
+    dMap.map[ RNUM_CONTROL_BLK_0 ].gpio.pinB        = UNDEFINED_PIN;
+    dMap.map[ RNUM_CONTROL_BLK_0 ].gpio.pinMode     = CDC_DIO_IN_PULLUP;
+
+    dMap.options                                    |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
+    
+    cdcInit( &dMap );
+    configureConsoleIO( );
+    sleepMillis( 2000 );
+    printf( "Test LCS Controller dependent code library\n" );
+}
+
+
+//----------------------------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------------------------
 uint8_t setupBlockDesc1( ) {
 
     block1Desc.options                         = 0;
-    block1Desc.selPin1                         = resMap.pwmPin_0;
-    block1Desc.selPin2                         = resMap.pwmPin_1;
-    block1Desc.sensePin                        = resMap.adcPin_0;
+    block1Desc.rNumControl                     = RNUM_CONTROL_BLK_0;
+    block1Desc.rNumSense                       = RNUM_ADC_BLK_0;
 
     block1Desc.pwmFrequency                    = PWM_FREQUENCY;
 
@@ -156,9 +153,8 @@ uint8_t setupBlockDesc1( ) {
 uint8_t setupBlockDesc2( ) {
 
     block2Desc.options                         = 0;
-    block2Desc.selPin1                         = resMap.pwmPin_2;
-    block2Desc.selPin2                         = resMap.pwmPin_3;
-    block2Desc.sensePin                        = resMap.adcPin_1;
+    block2Desc.rNumControl                     = RNUM_CONTROL_BLK_1;
+    block2Desc.rNumSense                       = RNUM_ADC_BLK_1;
 
     block2Desc.pwmFrequency                    = PWM_FREQUENCY;
 
@@ -249,9 +245,10 @@ uint8_t initLcsRuntime( ) {
 
     setupConfigInfo( );
 
-    uint8_t rStat = initRuntime( &resMap );
+    uint8_t rStat = initRuntime( &dMap );
 
-    printResourceMap( &resMap );
+    printResourceDescMap( &dMap );
+    printResourceMap( );
     return( printStatus( rStat ));
 }
 

@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -36,6 +36,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
+#include "LcsCdcDescMapDefaults.h"
 #include "LcsRuntimeLib.h"
 #include "LcsBaseStation.h"
 
@@ -45,11 +46,9 @@ using namespace CDC;
 //------------------------------------------------------------------------------------------------------------
 // Base station global data.
 //
-// ??? can the objects for track and session just use these variables instead of keeping them locally as a 
-// field ?
 //------------------------------------------------------------------------------------------------------------
 uint16_t                        debugMask;
-CdcResourceMap                  resMap;
+CdcResourceDescMap              dMap;
 LcsBaseStationCommand           serialCmd;
 LcsBaseStationDccTrack          mainTrack;
 LcsBaseStationDccTrack          progTrack;
@@ -57,77 +56,73 @@ LcsBaseStationLocoSession       locoSessions;
 LcsBaseStationMsgInterface      msgInterface;
 
 //----------------------------------------------------------------------------------------------------------
-// Setup the configuration of the HW board. The CDC config contains the HW pin mapping. The dual bridge pins
-// for enabling the bridge and controlling its direction. The pins are mapped to the CDC pin names DIO2 to 
-// DIO7 as show below. DIO-0 and DIO-1 are routed to the extension connector board.
+// Setup the configuration of the HW board. The CDC resource descriptor map contains the configuration 
+// data for the board. In addition, the HW pins for I2C, analog inputs and so on are set from the current
+// RPico Defaults. Check the schematic for the board to see all pin assignments.
 //
-//      cdcConfig.DIO_PIN_0     -> DIO-0
-//      cdcConfig.DIO_PIN_1     -> DIO-1
-//      cdcConfig.DIO_PIN_2     -> Main dcc1  
-//      cdcConfig.DIO_PIN_3     -> Main dcc2     
-//      cdcConfig.DIO_PIN_4     -> Prog ddc1    
-//      cdcConfig.DIO_PIN_5     -> Prog ddc2     
-//      cdcConfig.DIO_PIN_6     -> Main enable 
-//      cdcConfig.DIO_PIN_7     -> Prog enable 
+// One day we will have several base station versions. Although they will perhaps differ, their the CDC
+// resource names used should not change. 
+//----------------------------------------------------------------------------------------------------------
+const uint8_t RNUM_ENABLE_MAIN  = CDC_RN_FIRST_USER_RN + 0;
+const uint8_t RNUM_CONTROL_MAIN = CDC_RN_FIRST_USER_RN + 1;
+const uint8_t RNUM_ADC_MAIN     = CDC_RN_FIRST_USER_RN + 2;
+
+const uint8_t RNUM_ENABLE_PROG  = CDC_RN_FIRST_USER_RN + 3;
+const uint8_t RNUM_CONTROL_PROG = CDC_RN_FIRST_USER_RN + 4;
+const uint8_t RNUM_ADC_PROG     = CDC_RN_FIRST_USER_RN + 5;
+
+const uint8_t RNUM_UART_RX_MAIN = CDC_RN_FIRST_USER_RN + 6;
+const uint8_t RNUM_UART_RX_PROG = CDC_RN_FIRST_USER_RN + 7;
+
+//----------------------------------------------------------------------------------------------------------
+// Setup the resource configuration data and the CDC library.
 //
-// Current mapping: Main Controller Board B.01.00 - PICO - newest version.
-//
-//      cdcConfig.DIO_PIN_0     = 8;
-//      cdcConfig.DIO_PIN_1     = 12;
-//      cdcConfig.DIO_PIN_2     = 21; 
-//      cdcConfig.DIO_PIN_3     = 20;       
-//      cdcConfig.DIO_PIN_4     = 19;  
-//      cdcConfig.DIO_PIN_5     = 18;      
-//      cdcConfig.DIO_PIN_6     = 6;     
-//      cdcConfig.DIO_PIN_7     = 7;     
-//
-// In addition, the HW pins for I2C, analog inputs and so on are set. Check the schematic for the board 
-// to see all pin assign,ents.
-//
-// ??? one day we will have several base station versions. Although they will perhaps differ, their the CDC
-// pin names used should not change. But we would need to come up with an idea which configuration to use
-// when preparing an image for the base station board.
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    resMap = getDefaultResourceMap( );
-   
-    resMap.adcPin_0                 = 26;
-    resMap.adcPin_1                 = 27;
+    dMap = RES_MAP_RP_2040;
 
-    resMap.pFailPin                 = 5;
-  //  resMap.EXT_INT_PIN              = 22;
-    resMap.ledPin                   = 14;
+    dMap.map[ RNUM_ENABLE_MAIN ].type           = CDC_RT_GPIO;
+    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinA      = 6;
+    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinB      = UNDEFINED_PIN;
+    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinMode   = CDC_DIO_OUT;
 
-    resMap.dioPin_0                 = 8;  
-    resMap.dioPin_1                 = 12; 
-    resMap.dioPin_2                 = 21;   
-    resMap.dioPin_3                 = 20;    
-    resMap.dioPin_4                 = 19;   
-    resMap.dioPin_5                 = 18;        
-    resMap.dioPin_6                 = 6;     
-    resMap.dioPin_7                 = 7;    
+    dMap.map[ RNUM_CONTROL_MAIN ].type          = CDC_RT_GPIO;
+    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinA     = 21;
+    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinB     = 20;
+    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinMode  = CDC_DIO_OUT;
+    
+    dMap.map[ RNUM_ADC_MAIN ].adc.pin           = 26;
+    dMap.map[ RNUM_ADC_MAIN ].adc.adcNum        = 0;
 
-    resMap.uartRxPin_0              = 13;
-    resMap.uartRxPin_1              = 9;
+    dMap.map[ RNUM_ENABLE_PROG ].type           = CDC_RT_GPIO;
+    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinA      = 7;
+    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinB      = UNDEFINED_PIN;
+    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinMode   = CDC_DIO_OUT;
 
-    resMap.i2cSclPin_0              = 3;
-    resMap.i2cSdaPin_0              = 2;
-   // resMap.NVM_I2C_ADR_ROOT         = 0x50;
+    dMap.map[ RNUM_CONTROL_PROG ].type          = CDC_RT_GPIO;
+    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinA     = 19;
+    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinB     = 18;
+    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinMode  = CDC_DIO_OUT;
 
-    resMap.i2cSclPin_1              = 17;
-    resMap.i2cSdaPin_1              = 16;
-   // resMap.EXT_I2C_ADR_ROOT         = 0x50;
+    dMap.map[ RNUM_ADC_PROG ].adc.pin           = 27;
+    dMap.map[ RNUM_ADC_PROG ].adc.adcNum        = 1;
 
-    resMap.canPinRx                 = 0;
-    resMap.canPinTx                 = 1;
-   // resMap.CAN_BUS_CTRL_MODE     = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
-   // resMap.CAN_BUS_DEF_ID        = 100;
+    dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;
+    dMap.map[ RNUM_UART_RX_MAIN ].uart.rxPin    = 8;
+    dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
+    dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
 
-    resMap.extNvmSize               = 8192;
-   // resMap.EXT_NVM_SIZE             = 4096;
+    dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;
+    dMap.map[ RNUM_UART_RX_MAIN ].uart.rxPin    = 12;
+    dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
+    dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
 
-    resMap.options                  |= NPO_SKIP_NODE_ID_CONFIG;
+    dMap.options                                |= NPO_SKIP_NODE_ID_CONFIG;
+
+    cdcInit( &dMap );
+    configureConsoleIO( );
+    sleepMillis( 2000 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -271,10 +266,11 @@ uint8_t initLcsRuntime( ) {
 
     setupConfigInfo( );
   
-    uint8_t rStat = initRuntime( &resMap );
+    uint8_t rStat = initRuntime( &dMap );
     printf( "LCS Base Station\n" );
     
-    printResourceMap( &resMap );
+    printResourceDescMap( &dMap );
+    printResourceMap( );
 
     printStatus( rStat );
     return( rStat );
@@ -306,11 +302,10 @@ int setupDccTrackMain( ) {
 
   mainTrackDesc.options                     = DT_OPT_RAILCOM | DT_OPT_CUTOUT;
 
-  mainTrackDesc.enablePin                   = resMap.dioPin_6;
-  mainTrackDesc.dccSigPin1                  = resMap.dioPin_2;
-  mainTrackDesc.dccSigPin2                  = resMap.dioPin_3;
-  mainTrackDesc.sensePin                    = resMap.adcPin_0;
-  mainTrackDesc.uartRxPin                   = resMap.uartRxPin_0;
+  mainTrackDesc.overloadRestartThreshold    = RNUM_ENABLE_MAIN;
+  mainTrackDesc.rNumControl                 = RNUM_CONTROL_MAIN;
+  mainTrackDesc.rNumSense                   = RNUM_ADC_MAIN;
+  mainTrackDesc.rNumUartRx                  = RNUM_UART_RX_MAIN;
 
   mainTrackDesc.initCurrentMilliAmp         = 500;
   mainTrackDesc.limitCurrentMilliAmp        = 1500;
@@ -337,11 +332,10 @@ uint8_t setupDccTrackProg( ) {
 
   progTrackDesc.options                     = DT_OPT_SERVICE_MODE_TRACK;
 
-  progTrackDesc.enablePin                   = resMap.dioPin_7;
-  progTrackDesc.dccSigPin1                  = resMap.dioPin_4;
-  progTrackDesc.dccSigPin2                  = resMap.dioPin_5;
-  progTrackDesc.sensePin                    = resMap.adcPin_1;
-  progTrackDesc.uartRxPin                   = resMap.uartRxPin_1;
+  progTrackDesc.overloadRestartThreshold    = RNUM_ENABLE_PROG;
+  progTrackDesc.rNumControl                 = RNUM_CONTROL_PROG;
+  progTrackDesc.rNumSense                   = RNUM_ADC_PROG;
+  progTrackDesc.rNumUartRx                  = RNUM_UART_RX_PROG;
 
   progTrackDesc.initCurrentMilliAmp         = 500;
   progTrackDesc.limitCurrentMilliAmp        = 500;

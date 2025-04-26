@@ -313,10 +313,10 @@ enum BlockTrackMode : uint16_t {
 struct LcsBlockTrackDesc {
 
     uint16_t    options;
-    uint8_t     selPin1                         = CDC::UNDEFINED_PIN;
-    uint8_t     selPin2                         = CDC::UNDEFINED_PIN;
-    uint8_t     sensePin                        = CDC::UNDEFINED_PIN;
 
+    uint8_t     rNumControl                     = 0;
+    uint8_t     rNumSense                       = 0;
+    
     uint16_t    pwmFrequency                    = 70;
     uint16_t    initialTrackMode                = BT_MODE_OFF;
     uint16_t    initialTrackSpeed               = 0;
@@ -353,7 +353,6 @@ struct LcsBlockTrack {
     uint8_t                     setTrackMode( uint16_t mode, uint8_t speed = 0 );
     uint8_t                     setPwmFrequency( uint16_t frequency );
 
-    
     uint16_t                    getFlags( );
     uint16_t                    getOptions( );
 
@@ -392,10 +391,10 @@ struct LcsBlockTrack {
     volatile uint8_t            overloadEventCount              = 0;
     volatile uint8_t            overloadRestartCount            = 0;
 
-    uint8_t                     selPin1                         = CDC::UNDEFINED_PIN;
-    uint8_t                     selPin2                         = CDC::UNDEFINED_PIN;
-    uint8_t                     sensePin                        = CDC::UNDEFINED_PIN;
-   
+    uint8_t                     rNumEnable                      = 0;
+    uint8_t                     rNumControl                     = 0;
+    uint8_t                     rNumSense                       = 0;
+
     uint16_t                    pwmFrequency                    = 0;
     uint16_t                    initialTrackMode                = 0;
     uint16_t                    initialTrackSpeed               = 0;

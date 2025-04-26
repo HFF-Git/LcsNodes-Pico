@@ -14,7 +14,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - Base Station DCC Track implementation file
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -736,7 +736,7 @@ void printLog( ) {
 //
 //============================================================================================================
 //============================================================================================================
-
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // "startDccProcessing" will kick off the DCC timer for the track signal processing. The idea is that the
@@ -775,10 +775,11 @@ LcsBaseStationDccTrack::LcsBaseStationDccTrack( ) { }
 //------------------------------------------------------------------------------------------------------------
 uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDesc ) {
 
-    if ((  trackDesc -> enablePin  == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> dccSigPin1 == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> dccSigPin2 == CDC::UNDEFINED_PIN ) ||
-        (  trackDesc -> sensePin   == CDC::UNDEFINED_PIN )) {
+
+
+    if ((  trackDesc -> rNumEnable  == 0 ) ||
+        (  trackDesc -> rNumControl == 0 ) ||
+        (  trackDesc -> rNumSense   == 0 )) {
 
         flags = DT_F_CONFIG_ERROR;
         return ( ERR_DCC_PIN_CONFIG );
@@ -804,11 +805,10 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     trackState                = DCC_TRACK_POWER_OFF;
     flags                     = DT_F_DEFAULT_SETTING;
     options                   = trackDesc -> options;
-    enablePin                 = trackDesc -> enablePin;
-    dccSigPin1                = trackDesc -> dccSigPin1;
-    dccSigPin2                = trackDesc -> dccSigPin2;
-    sensePin                  = trackDesc -> sensePin;
-    uartRxPin                 = trackDesc -> uartRxPin;
+    rNumEnable                = trackDesc -> rNumEnable;
+    rNumControl               = trackDesc -> rNumControl;
+    rNumSense                 = trackDesc -> rNumSense;
+    rNumUartRx                = trackDesc -> rNumUartRx;
     initCurrentMilliAmp       = trackDesc -> initCurrentMilliAmp;
     limitCurrentMilliAmp      = trackDesc -> limitCurrentMilliAmp;
     maxCurrentMilliAmp        = trackDesc -> maxCurrentMilliAmp;
@@ -831,13 +831,12 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     lastPwrSamplePerSecTaken  = 0;
     pwrSamplesPerSec          = 0;
 
-    configureDio( enablePin, CDC_DIO_OUT );
-    configureDio( dccSigPin1, CDC_DIO_OUT );
-    configureDio( dccSigPin2, CDC_DIO_OUT );
-    configureAdc( sensePin );
+    configureDio( rNumEnable, CDC_DIO_OUT );
+    configureDio( rNumControl, CDC_DIO_OUT );
+    configureAdc( rNumSense );
 
-    writeDio( enablePin, false );
-    writeDioPair( dccSigPin1, false, dccSigPin2, false );
+    writeDio( rNumEnable, false );
+    writeDio( rNumControl, false, false );
 
     if ( options & DT_OPT_SERVICE_MODE_TRACK ) {
 
@@ -868,7 +867,7 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
 
         flags |= DT_F_RAILCOM_MODE_ON;
 
-        uint8_t rStat = configureUart( uartRxPin, UNDEFINED_PIN, 250000 );
+        uint8_t rStat = configureUart( rNumUartRx );
         if ( rStat != ALL_OK ) {
 
             flags = DT_F_CONFIG_ERROR;
@@ -950,7 +949,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_CUTOUT_START: {
 
-            CDC::writeDioPair( dccSigPin1, true, dccSigPin2, false );
+            writeDio( rNumControl, true, false );
             *timeToInterrupt  = TICKS_29_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_NONE;
             signalState       = DCC_SIG_CUTOUT_1;
@@ -959,7 +958,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_CUTOUT_1: {
 
-            CDC::writeDioPair( dccSigPin1, false, dccSigPin2, false );
+            writeDio( rNumControl, false, false );
             *timeToInterrupt  = TICKS_CUTOUT_MICROS;
             *followUpAction   = (( flags & DT_F_RAILCOM_MODE_ON ) ?
                                 DCC_SIG_FOLLOW_UP_START_RAILCOM_IO : DCC_SIG_FOLLOW_UP_NONE );
@@ -969,7 +968,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_CUTOUT_2: {
 
-            CDC::writeDioPair( dccSigPin1, false, dccSigPin2, true );
+            writeDio( rNumControl, false, true );
             *timeToInterrupt  = TICKS_29_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_NONE;
             signalState       = DCC_SIG_CUTOUT_3;
@@ -978,7 +977,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_CUTOUT_3: {
 
-            CDC::writeDioPair( dccSigPin1, true, dccSigPin2, false );
+            writeDio( rNumControl, true, false );
             *timeToInterrupt  = TICKS_58_MICROS;
             signalState       = DCC_SIG_CUTOUT_END;
 
@@ -993,7 +992,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_CUTOUT_END: {
 
-            CDC::writeDioPair( dccSigPin1, false, dccSigPin2, true );
+            writeDio( rNumControl, false, true );
             *timeToInterrupt  = TICKS_58_MICROS;
             *followUpAction   = (( flags & DT_F_RAILCOM_MODE_ON ) ?
                                 DCC_SIG_FOLLOW_UP_RAILCOM_MSG : DCC_SIG_FOLLOW_UP_NONE );
@@ -1003,7 +1002,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_START_BIT: {
 
-            CDC::writeDioPair( dccSigPin1, true, dccSigPin2, false );
+            writeDio( rNumControl, true, false );
             *timeToInterrupt  = TICKS_58_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_GET_BIT;
             signalState       = DCC_SIG_TEST_BIT;
@@ -1014,7 +1013,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
             if ( currentBit ) {
 
-                CDC::writeDioPair( dccSigPin1, false, dccSigPin2, true );
+                writeDio( rNumControl, false, true );
 
                 if ( postambleSent >= postambleLen ) {
 
@@ -1039,7 +1038,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
         case DCC_SIG_ZERO_SECOND_HALF: {
 
-            CDC::writeDioPair( dccSigPin1, false, dccSigPin2, true );
+            writeDio( rNumControl, false, true );
             *timeToInterrupt  = TICKS_116_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_NONE;
             signalState       = DCC_SIG_START_BIT;
@@ -1168,17 +1167,17 @@ void LcsBaseStationDccTrack::getNextPacket( ) {
 //------------------------------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::startRailComIO( ) {
 
-    CDC::startUartRead( uartRxPin );
+    startUartRead( rNumUartRx );
 }
 
 void LcsBaseStationDccTrack::stopRailComIO( ) {
 
-    CDC::stopUartRead( uartRxPin );
+    stopUartRead( rNumUartRx );
 }
 
 uint8_t LcsBaseStationDccTrack::handleRailComMsg( ) {
 
-    railComBufIndex = CDC::getUartBuffer( uartRxPin, railComMsgBuf, sizeof( railComMsgBuf ));
+    railComBufIndex = getUartBuffer( rNumUartRx, railComMsgBuf, sizeof( railComMsgBuf ));
 
     writeLogData( LOG_DCC_RCM, railComMsgBuf, railComBufIndex );
 
@@ -1289,14 +1288,14 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
             flags                   &= ~DT_F_MEASUREMENT_ON;
             limitCurrentDigitValue  = milliAmpToDigitValue( initCurrentMilliAmp, digitsPerAmp );
 
-            CDC::writeDio( enablePin, true );
+            writeDio( rNumEnable, true );
             trackState = DCC_TRACK_POWER_START2;
 
         }  break;
 
         case DCC_TRACK_POWER_START2: {
 
-            if (( CDC::getMillis( ) - trackTimeStamp ) > startTimeThreshold ) {
+            if (( getMillis( ) - trackTimeStamp ) > startTimeThreshold ) {
 
                 highWaterMarkDigitValue = 0;
                 actualCurrentDigitValue = 0;
@@ -1305,7 +1304,7 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
                 flags                   |= DT_F_POWER_ON | DT_F_MEASUREMENT_ON;
                 limitCurrentDigitValue  = milliAmpToDigitValue( limitCurrentMilliAmp, digitsPerAmp );
 
-                CDC::writeDio( enablePin, true );
+                writeDio( rNumEnable, true );
                 trackState = DCC_TRACK_POWER_ON;
             }
 
@@ -1355,7 +1354,7 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
                     flags           &= ~DT_F_POWER_ON;
                     flags           &= ~DT_F_MEASUREMENT_ON;
 
-                    CDC::writeDio( enablePin, false );
+                    writeDio( rNumEnable, false );
                     trackState = DCC_TRACK_POWER_OVERLOAD;
                 }
             }
@@ -1389,14 +1388,14 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
             flags           &= ~DT_F_POWER_OVERLOAD;
             flags           &= ~DT_F_MEASUREMENT_ON;
 
-            CDC::writeDio( enablePin, false );
+            writeDio( rNumEnable, false );
             trackState = DCC_TRACK_POWER_STOP2;
 
         }  break;
 
         case DCC_TRACK_POWER_STOP2: {
 
-            if ( CDC::getMillis( ) - trackTimeStamp > stopTimeThreshold ) trackState = DCC_TRACK_POWER_OFF;
+            if ( getMillis( ) - trackTimeStamp > stopTimeThreshold ) trackState = DCC_TRACK_POWER_OFF;
 
         } break;
 
@@ -1589,7 +1588,7 @@ void LcsBaseStationDccTrack::powerMeasurement( ) {
 
         uint16_t adcVal;
 
-        uint8_t rStat = readAdc( sensePin, &adcVal );
+        uint8_t rStat = readAdc( rNumSense, &adcVal );
 
         actualCurrentDigitValue = adcVal;
         totalPwrSamplesTaken ++;
@@ -1873,8 +1872,8 @@ void LcsBaseStationDccTrack::printDccTrackConfig( ) {
     printf( " Limit Digit Value: %d\n", limitCurrentDigitValue );
     printf( " Ack Threshold Digit Value:%d\n", ackThresholdDigitValue );
 
-    printf( " CDC enable Pin: %d, DCC signal Pins: (%d:%d), Sensor Pin: %d, RailCom Pin: %d\n",
-            enablePin, dccSigPin1, dccSigPin2, sensePin, uartRxPin );
+    printf( " CDC enable rNum: %d, DCC control rNum: %d, Sensor nRum: %d, RailCom rNum: %d\n",
+            rNumEnable, rNumControl, rNumSense, rNumUartRx );
 
     printf( " PreambleLen: %d, PostambleLen: %d\n", preambleLen, postambleLen );
 }
