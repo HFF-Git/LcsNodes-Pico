@@ -366,8 +366,38 @@ void testTimer( ) {
 //----------------------------------------------------------------------------------------------------------
 void testI2C( ) {
 
-    // ??? how about listing the I2C devices... ?
+    printf( "List I2C channels test\n" );
 
+    uint8_t rStat = NO_ERR;
+
+    configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
+    writeDio( CDC_RN_ACTIVITY_LED, true );
+
+    if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_NVM );
+    if ( rStat != NO_ERR ) printf( "Error configuring NVM I2C channel: %d\n", rStat );
+
+    if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_EXT_NVM );
+    if ( rStat != NO_ERR ) printf( "Error configuring EXT I2C channel: %d\n", rStat );
+
+    if ( rStat != NO_ERR );
+
+    int scanCount = 0;  
+  
+    while( true ) {
+
+        printf( "Scanning (%d) ... \n", scanCount );
+
+        printf( "Scanning NVM I2C Bus\n" );
+        scanI2CBus( CDC_RN_NVM );
+        printf( "\n" );
+
+        printf( "Scanning EXT I2C Bus\n" );
+        scanI2CBus( CDC_RN_EXT_NVM );
+        printf( "\n" );
+
+        scanCount++;
+        sleepMillis( 5000 );
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------

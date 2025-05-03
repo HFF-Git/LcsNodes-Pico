@@ -24,20 +24,17 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-
+#include "LcsMainControllerBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 #include "LcsUIElements.h"
 
 using namespace CDC;
-
-
 
 //----------------------------------------------------------------------------------------------------------
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CdcResourceDescMap  dMap    = RES_MAP_RP_2040;
+CdcResourceDescMap  dMap    = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00;
 UIDisplay           *oled   = nullptr;
 
 //----------------------------------------------------------------------------------------------------------

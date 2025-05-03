@@ -25,7 +25,6 @@ set( CMAKE_CXX_STANDARD 17 )
 
 add_subdirectory( LcsDiagnostics/LcsCdcLib-Test )
 add_subdirectory( LcsDiagnostics/LcsRuntimeLib-Test )
-add_subdirectory( LcsDiagnostics/LcsI2CScanner )
 add_subdirectory( LcsDiagnostics/LcsOledTest )
 
 add_subdirectory( LcsBaseStation )
