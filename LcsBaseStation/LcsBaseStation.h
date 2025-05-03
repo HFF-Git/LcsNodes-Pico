@@ -287,23 +287,23 @@ struct LcsBaseStationSessionMapDesc {
 //------------------------------------------------------------------------------------------------------------
 struct LcsBaseStationTrackDesc {
 
-    uint16_t    options                     = SM_OPT_DEFAULT_SETTING;
+    uint16_t    options                         = SM_OPT_DEFAULT_SETTING;
 
-    uint8_t     rNumEnable                  = 0; 
-    uint8_t     rNumControl                 = 0;
-    uint8_t     rNumSense                   = 0;
-    uint8_t     rNumUartRx                  = 0;
+    uint8_t     rNumEnable                      = 0; 
+    uint8_t     rNumControl                     = 0;
+    uint8_t     rNumSense                       = 0;
+    uint8_t     rNumUartRx                      = 0;
 
-    uint16_t  initCurrentMilliAmp           = 0;
-    uint16_t  limitCurrentMilliAmp          = 0;
-    uint16_t  maxCurrentMilliAmp            = 0;
-    uint16_t  milliVoltPerAmp               = 0;
+    uint16_t    initCurrentMilliAmp             = 0;
+    uint16_t    limitCurrentMilliAmp            = 0;
+    uint16_t    maxCurrentMilliAmp              = 0;
+    uint16_t    milliVoltPerAmp                 = 0;
 
-    uint16_t  startTimeThresholdMillis      = 0;
-    uint16_t  stopTimeThresholdMillis       = 0;
-    uint16_t  overloadTimeThresholdMillis   = 0;
-    uint16_t  overloadEventThreshold        = 0;
-    uint16_t  overloadRestartThreshold      = 0;
+    uint16_t    startTimeThresholdMillis        = 0;
+    uint16_t    stopTimeThresholdMillis         = 0;
+    uint16_t    overloadTimeThresholdMillis     = 0;
+    uint16_t    overloadEventThreshold          = 0;
+    uint16_t    overloadRestartThreshold        = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -577,7 +577,6 @@ struct LcsBaseStationLocoSession {
     SessionMapEntry           *sessionMapNextRefresh  = nullptr;
     SessionMapEntry           *sessionMapHwm          = nullptr;
     SessionMapEntry           *sessionMapLimit        = nullptr;
-
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -53,10 +53,10 @@ using namespace LCS;
 //
 //
 //------------------------------------------------------------------------------------------------------------
-extern UIDisplay              *oled;
-extern UIEncoder              *encoder;
-extern CabStack               *cabStack;
-extern CabMsgBus              *msgBus;
+extern  UIDisplay   *oled;
+extern  UIEncoder   *encoder;
+extern  CabStack    *cabStack;
+extern  CabMsgBus   *msgBus;
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations.

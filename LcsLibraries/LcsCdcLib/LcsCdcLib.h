@@ -132,7 +132,9 @@ extern "C" {
 // Common constants.
 // 
 //------------------------------------------------------------------------------------------------------------
-const int       MAX_INST_DESC_ENTRIES   = 64;
+const int       MAX_RES_DESC_ENTRIES    = 64;
+const int       MAX_RES_NAME_SIZE       = 64;
+const uint8_t   UNDEFINED_RES_ID        = 255;
 const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
 
@@ -162,6 +164,9 @@ enum CdcResourceType : uint8_t {
 //
 // IMPORTANT: the number are indices into the resource descriptor array, The order is dead important as it
 // determines how a descriptor array is filled.
+//
+// ??? rethink. We have reserved numbers and user defined numbers. Still, we look up the entry once to
+// get the position in the map. This gives some independence of position and avoid stupid errors. 
 //------------------------------------------------------------------------------------------------------------
 enum CdcResourceIdNum : uint8_t {
 
@@ -291,6 +296,7 @@ struct CdcResourceDescI2c {
 struct CdcResourceDesc {
 
     uint8_t type;
+    uint8_t resId;
 
     union {
 
@@ -313,6 +319,7 @@ struct CdcResourceDescMap {
 
     uint16_t            options                     = 0;
     uint16_t            debugMask                   = 0;
+    uint16_t            boardId                     = 0;
     uint16_t            cFamily                     = CDC_CF_C_UNDEFINED;
     uint16_t            cType                       = CDC_CF_C_UNDEFINED;
     uint16_t            cpuCores                    = 1;
@@ -322,8 +329,8 @@ struct CdcResourceDescMap {
     uint16_t            adcRefVoltageMillis         = 3300;
     uint16_t            adcDigitRange               = 1024;
              
-    char                name[ 64 ]                  = "";
-    CdcResourceDesc     map[ 32 ];
+    char                name[ MAX_RES_NAME_SIZE ]    = "";
+    CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -375,11 +382,12 @@ char            getConsoleChar( uint32_t timeoutVal = 0 );
 // General controller info routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         getFamily( ControllerFamily *family );
+uint8_t         getBoardId( uint16_t *bId );
+uint8_t         getControllerFamily( ControllerFamily *family );
 uint8_t         getControllerChip( ControllerChip *chip );
 uint8_t         getChipMemSize( uint32_t *size );
 uint8_t         getChipNvmSize( uint32_t *size );
-uint8_t         getCpuFrequency( uint32_t *frequency );
+uint8_t         getChipCpuFrequency( uint32_t *frequency );
 
 uint8_t         watchDogEnable( bool enable );
 uint8_t         watchDogUpdate( );

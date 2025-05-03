@@ -4,10 +4,6 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // ???
-
-
-// Note that the ATmega version uses an I2C expander. The RPico version has all the UI elements directly
-// connected. We will for now just have "defines" ( sigh ) to separate them throughout the code.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -49,23 +45,23 @@ namespace {
 // Global variables.
 //
 //------------------------------------------------------------------------------------------------------------
-UIDisplay     *oled                       = nullptr;
+UIDisplay       *oled                       = nullptr;
 
-UIButton      *upButton                   = nullptr;
-UIButton      *downButton                 = nullptr;
-UIButton      *selectButton               = nullptr;
-UIButton      *menuButton                 = nullptr;
-UIButton      *f1Button                   = nullptr;
-UIButton      *f2Button                   = nullptr;
-UIButton      *f3Button                   = nullptr;
-UIButton      *f4Button                   = nullptr;
-UIButton      *bellButton                 = nullptr;
-UIButton      *hornButton                 = nullptr;
-UIButton      *fwdButton                  = nullptr;
-UIButton      *revButton                  = nullptr;
+UIButton        *upButton                   = nullptr;
+UIButton        *downButton                 = nullptr;
+UIButton        *selectButton               = nullptr;
+UIButton        *menuButton                 = nullptr;
+UIButton        *f1Button                   = nullptr;
+UIButton        *f2Button                   = nullptr;
+UIButton        *f3Button                   = nullptr;
+UIButton        *f4Button                   = nullptr;
+UIButton        *bellButton                 = nullptr;
+UIButton        *hornButton                 = nullptr;
+UIButton        *fwdButton                  = nullptr;
+UIButton        *revButton                  = nullptr;
 
-UIEncoder     *encoder                    = nullptr;
-UIButton      *encoderButton              = nullptr;
+UIEncoder       *encoder                    = nullptr;
+UIButton        *encoderButton              = nullptr;
 
 //------------------------------------------------------------------------------------------------------------
 // Configure the UI Resource Elements. 
@@ -88,6 +84,7 @@ uint8_t setupIOPins( ) {
     configureDio( RNUM_ENCODER_BUTTON, CDC_DIO_IN_PULLUP );
     configureDio( RNUM_ENCODER_A, CDC_DIO_IN_PULLUP );
     configureDio( RNUM_ENCODER_B, CDC_DIO_IN_PULLUP );
+ 
     return ( ALL_OK );
 }
 

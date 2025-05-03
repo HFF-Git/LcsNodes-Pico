@@ -71,7 +71,7 @@ const uint8_t PWM_P_0 = CDC_RN_FIRST_USER_RN + 16;
 //
 // Current mapping: Main Controller Board B.01.00 - PICO - newest version.
 //----------------------------------------------------------------------------------------------------------
-uint8_t initLcsRuntime( ) {
+uint8_t initThrottle( ) {
 
     dMap.map[ ADC_0 ].type          = CDC_RT_ADC;
     dMap.map[ ADC_0 ].adc.pin       = 26;
@@ -320,7 +320,7 @@ int main( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = initThrottle( );
     if ( rStat == ALL_OK ) rStat = setupPinsForExtBoardTests( );
     if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
     if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );

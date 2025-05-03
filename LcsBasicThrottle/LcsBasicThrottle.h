@@ -36,8 +36,8 @@
 #ifndef CabHandheld_h
 #define Cabhandheld_h
 
+#include "LcsBasicThrottleBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 #include "LcsRuntimeLib.h"
 #include "LcsUIElements.h"
 
@@ -50,31 +50,7 @@
 
 
 
-//------------------------------------------------------------------------------------------------------------
-// The button and switch assignments for the Cab Handheld Development Platform. The current handheld is 
-// a board based on the PICO platform. All buttons, switches and encoders are directly connected to the PICO
-// GPIO pins. The CDC resource descriptor map contains the configuration data for the board. In addition, the
-// HW pins for I2C, analog inputs and so on are set from the current RPico Defaults. Check the schematic for
-// the board to see all pin assignments.
-//
-// One day we will have several handheld versions. Although they will perhaps differ, their the CDC
-// resource names used should not change. 
-//----------------------------------------------------------------------------------------------------------
-const uint8_t RNUM_MENU_BUTTON      = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t RNUM_SELECT_BUTTON    = CDC_RN_FIRST_USER_RN + 1;
-const uint8_t RNUM_UP_BUTTON        = CDC_RN_FIRST_USER_RN + 2;
-const uint8_t RNUM_DOWN_BUTTON      = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t RNUM_HORN_BUTTON      = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t RNUM_BELL_BUTTON      = CDC_RN_FIRST_USER_RN + 5;
-const uint8_t RNUM_FWD_BUTTON       = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t RNUM_REV_BUTTON       = CDC_RN_FIRST_USER_RN + 7;
-const uint8_t RNUM_F1_BUTTON        = CDC_RN_FIRST_USER_RN + 8;
-const uint8_t RNUM_F2_BUTTON        = CDC_RN_FIRST_USER_RN + 9;
-const uint8_t RNUM_F3_BUTTON        = CDC_RN_FIRST_USER_RN + 10;
-const uint8_t RNUM_F4_BUTTON        = CDC_RN_FIRST_USER_RN + 11;
-const uint8_t RNUM_ENCODER_BUTTON   = CDC_RN_FIRST_USER_RN + 12;
-const uint8_t RNUM_ENCODER_A        = CDC_RN_FIRST_USER_RN + 13;
-const uint8_t RNUM_ENCODER_B        = CDC_RN_FIRST_USER_RN + 14;
+
 
 //------------------------------------------------------------------------------------------------------------
 // Default CanBus Id. The CBUS standard defines devices that have a fixed node and also a fixed can bus id.

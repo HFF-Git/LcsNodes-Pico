@@ -35,8 +35,8 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
+#include "LcsBaseStationBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 #include "LcsRuntimeLib.h"
 #include "LcsBaseStation.h"
 
@@ -55,24 +55,8 @@ LcsBaseStationDccTrack          progTrack;
 LcsBaseStationLocoSession       locoSessions;
 LcsBaseStationMsgInterface      msgInterface;
 
-//----------------------------------------------------------------------------------------------------------
-// Setup the configuration of the HW board. The CDC resource descriptor map contains the configuration 
-// data for the board. In addition, the HW pins for I2C, analog inputs and so on are set from the current
-// RPico Defaults. Check the schematic for the board to see all pin assignments.
-//
-// One day we will have several base station versions. Although they will perhaps differ, their the CDC
-// resource names used should not change. 
-//----------------------------------------------------------------------------------------------------------
-const uint8_t RNUM_ENABLE_MAIN  = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t RNUM_CONTROL_MAIN = CDC_RN_FIRST_USER_RN + 1;
-const uint8_t RNUM_ADC_MAIN     = CDC_RN_FIRST_USER_RN + 2;
 
-const uint8_t RNUM_ENABLE_PROG  = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t RNUM_CONTROL_PROG = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t RNUM_ADC_PROG     = CDC_RN_FIRST_USER_RN + 5;
 
-const uint8_t RNUM_UART_RX_MAIN = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t RNUM_UART_RX_PROG = CDC_RN_FIRST_USER_RN + 7;
 
 //----------------------------------------------------------------------------------------------------------
 // Setup the resource configuration data and the CDC library.
@@ -80,7 +64,7 @@ const uint8_t RNUM_UART_RX_PROG = CDC_RN_FIRST_USER_RN + 7;
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    dMap = RES_MAP_RP_2040;
+    dMap = LCS_BASE_STATION_BOARD_DESC_B_02_00;
 
     dMap.map[ RNUM_ENABLE_MAIN ].type           = CDC_RT_GPIO;
     dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinA      = 6;
@@ -262,7 +246,7 @@ uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t
 // Init the Runtime.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t initLcsRuntime( ) {
+uint8_t initThrottle( ) {
 
     setupConfigInfo( );
   
@@ -438,7 +422,7 @@ int main( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = initThrottle( );
     if ( rStat == ALL_OK ) rStat = registerCallbacks( );
     if ( rStat == ALL_OK ) return( startBaseStation( ));
 }

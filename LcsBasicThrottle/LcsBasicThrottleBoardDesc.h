@@ -1,0 +1,212 @@
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS - Basic Throttle Board Descriptor File
+//
+//------------------------------------------------------------------------------------------------------------
+// The base station descriptor file contains the definitions for the hardware configuration values of a basic
+// throttle board.
+// 
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS - Basic Throttle Board Descriptor File
+// Copyright (C) 2025 - 2025  Helmut Fieres
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// http://www.gnu.org/licenses
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
+//------------------------------------------------------------------------------------------------------------
+#ifndef LcsBasicThrottleBoardDesc_h
+#define LcsBasicThrottleBoardDesc_h
+ 
+#include "LcsCdcLib.h"
+
+using namespace CDC;
+
+//------------------------------------------------------------------------------------------------------------
+// The button and switch assignments for the Cab Handheld Development Platform. The current handheld is 
+// a board based on the PICO platform. All buttons, switches and encoders are directly connected to the PICO
+// GPIO pins. The CDC resource descriptor map contains the configuration data for the board. In addition, the
+// HW pins for I2C, analog inputs and so on are set from the current RPico Defaults. Check the schematic for
+// the board to see all pin assignments.
+//
+// One day we will have several handheld versions. Although they will perhaps differ, their the CDC
+// resource names used should not change. 
+//----------------------------------------------------------------------------------------------------------
+const uint8_t RNUM_MENU_BUTTON      = CDC_RN_FIRST_USER_RN + 0;
+const uint8_t RNUM_SELECT_BUTTON    = CDC_RN_FIRST_USER_RN + 1;
+const uint8_t RNUM_UP_BUTTON        = CDC_RN_FIRST_USER_RN + 2;
+const uint8_t RNUM_DOWN_BUTTON      = CDC_RN_FIRST_USER_RN + 3;
+const uint8_t RNUM_HORN_BUTTON      = CDC_RN_FIRST_USER_RN + 4;
+const uint8_t RNUM_BELL_BUTTON      = CDC_RN_FIRST_USER_RN + 5;
+const uint8_t RNUM_FWD_BUTTON       = CDC_RN_FIRST_USER_RN + 6;
+const uint8_t RNUM_REV_BUTTON       = CDC_RN_FIRST_USER_RN + 7;
+const uint8_t RNUM_F1_BUTTON        = CDC_RN_FIRST_USER_RN + 8;
+const uint8_t RNUM_F2_BUTTON        = CDC_RN_FIRST_USER_RN + 9;
+const uint8_t RNUM_F3_BUTTON        = CDC_RN_FIRST_USER_RN + 10;
+const uint8_t RNUM_F4_BUTTON        = CDC_RN_FIRST_USER_RN + 11;
+const uint8_t RNUM_ENCODER_BUTTON   = CDC_RN_FIRST_USER_RN + 12;
+const uint8_t RNUM_ENCODER_A        = CDC_RN_FIRST_USER_RN + 13;
+const uint8_t RNUM_ENCODER_B        = CDC_RN_FIRST_USER_RN + 14;
+
+//------------------------------------------------------------------------------------------------------------
+// Each board is described by a resource descriptor, which contains information about the hardware family,
+// controller type, controller attributes and hardware resources available on the board. A resource itself
+// described the actual hardware entity that is available. It the resource primarily maps the hardware 
+// pins and their function. A GPIO pin and whether it is input output pin is a typical example for such a
+// resource. A resource entry in the resource map has a type and unique Id and the attributes for the 
+// particular resource type. The order in the map does not matter, but when accessing the resource, the 
+// array index is used. Applications need to map resource entries to their index. The CDC library provides
+// support for this mapping.
+//
+//------------------------------------------------------------------------------------------------------------
+const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
+
+    //--------------------------------------------------------------------------------------------------------
+    // Controller configuration and common data.
+    //
+    //  OPTION              - option flags for the board. They are set by the application.
+    //  DEBUG MASK          - debug options. They are set by the application.
+    //  CFAMILY             - controller chip family.
+    //  CTYPE               - the controller chip.
+    //  CPU CORES           - the number of CPU cores in the chip.
+    //  MEMORY SIZE         - the main memory size of the controller chip.
+    //  EEPROM SIZE         - the non volatile memory size of the controller chip.
+    //  WATCHDOG INTERVAL   - the watchdog timer value in milliseconds.
+    //  ADC REF VOLTAGE     - the reference voltage for the ADC in milli volt.
+    //  ADC DIGIT RANGE     - the range of ADC conversion result. 
+    //  NAME                - the board name.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    .options                    = 0,
+    .debugMask                  = 0,
+    .cFamily                    = CDC_CF_C_UNDEFINED,
+    .cType                      = CDC_CF_C_UNDEFINED,
+    .cpuCores                   = 1,
+    .memorySize                 = 0,
+    .eepromSize                 = 0,
+    .watchDogIntervallMillis    = 2000,
+    .adcRefVoltageMillis        = 3300,
+    .adcDigitRange              = 1024,
+    .name                       = "LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00",
+
+    //--------------------------------------------------------------------------------------------------------
+    // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
+    // the resources are defined.
+    // 
+    //--------------------------------------------------------------------------------------------------------
+    .map {
+
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
+            .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_0  
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_1              
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
+            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
+        },
+
+        {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
+            .can {  .rxPin      = 0, 
+                    .txPin      = 1,
+                    .baudRate   = 125000,
+                    .canId      = 100,
+                    .twoCores   = true
+                 }
+        },
+
+        {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
+            .i2c {  .sclPin         = 3,
+                    .sdaPin         = 2,
+                    .baudRate       = 100000,
+                    .i2cAdrRoot     = 0,
+                    .i2cTimeoutMs   = 25
+                 }
+        },
+
+        {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
+            .i2c {  .sclPin         = 17,
+                    .sdaPin         = 16,
+                    .baudRate       = 100000,
+                    .i2cAdrRoot     = 0,
+                    .i2cTimeoutMs   = 25
+                 }
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_MENU_BUTTON,
+            .gpio { .pinA = 6, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_SELECT_BUTTON,
+            .gpio { .pinA = 8, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_UP_BUTTON,
+            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_DOWN_BUTTON,
+            .gpio { .pinA = 9, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_HORN_BUTTON,
+            .gpio { .pinA = 22, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_BELL_BUTTON,
+            .gpio { .pinA = 15, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_FWD_BUTTON,
+            .gpio { .pinA = 10, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_REV_BUTTON,
+            .gpio { .pinA = 11, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_F1_BUTTON,
+            .gpio { .pinA = 18, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_F2_BUTTON,
+            .gpio { .pinA = 19, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_F3_BUTTON,
+            .gpio { .pinA = 20, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_F4_BUTTON,
+            .gpio { .pinA = 21, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_ENCODER_BUTTON,
+            .gpio { .pinA = 14, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_ENCODER_A,
+            .gpio { .pinA = 12, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_ENCODER_B,
+            .gpio { .pinA = 13, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        }
+    }
+};
+
+#endif

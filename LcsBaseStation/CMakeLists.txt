@@ -21,6 +21,7 @@ if ( TARGET tinyusb_device )
     add_executable( ${PROJECT_NAME} 
     
         main.cpp
+        LcsBaseStationBoardDesc.h
         LcsBaseStation.h
         LcsBsCommand.cpp
         LcsBsDccTrack.cpp

@@ -25,9 +25,8 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-
+#include "LcsMainControllerBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 
 using namespace CDC;
 
@@ -35,28 +34,7 @@ using namespace CDC;
 //
 //
 //------------------------------------------------------------------------------------------------------------
-CdcResourceDescMap dMap = RES_MAP_RP_2040;
-
-const uint8_t ADC_0 = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t ADC_1 = CDC_RN_FIRST_USER_RN + 1;
-const uint8_t DIO_0 = CDC_RN_FIRST_USER_RN + 2;
-const uint8_t DIO_1 = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t DIO_2 = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t DIO_3 = CDC_RN_FIRST_USER_RN + 5;
-const uint8_t DIO_4 = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t DIO_5 = CDC_RN_FIRST_USER_RN + 7;
-const uint8_t DIO_6 = CDC_RN_FIRST_USER_RN + 8;
-const uint8_t DIO_7 = CDC_RN_FIRST_USER_RN + 9;
-
-const uint8_t PWM_0 = CDC_RN_FIRST_USER_RN + 10;
-const uint8_t PWM_1 = CDC_RN_FIRST_USER_RN + 11;
-
-const uint8_t DIO_P_0 = CDC_RN_FIRST_USER_RN + 12;
-const uint8_t DIO_P_1 = CDC_RN_FIRST_USER_RN + 13;
-const uint8_t DIO_P_2 = CDC_RN_FIRST_USER_RN + 14;
-const uint8_t DIO_P_3 = CDC_RN_FIRST_USER_RN + 15;
-
-const uint8_t PWM_P_0 = CDC_RN_FIRST_USER_RN + 16;
+CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00;
 
 
 //----------------------------------------------------------------------------------------------------------
@@ -65,88 +43,8 @@ const uint8_t PWM_P_0 = CDC_RN_FIRST_USER_RN + 16;
 //----------------------------------------------------------------------------------------------------------
 void initCdcLib( ) {
 
-    dMap.map[ ADC_0 ].type          = CDC_RT_ADC;
-    dMap.map[ ADC_0 ].adc.pin       = 26;
-    dMap.map[ ADC_0 ].adc.adcNum    = 0;
-
-    dMap.map[ ADC_1 ].type          = CDC_RT_ADC;
-    dMap.map[ ADC_1 ].adc.pin       = 27;
-    dMap.map[ ADC_1 ].adc.adcNum    = 1;
-
-    dMap.map[ DIO_0 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_0 ].gpio.pinA     = 8;
-    dMap.map[ DIO_0 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_0 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_1 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_1 ].gpio.pinA     = 9;
-    dMap.map[ DIO_1 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_1 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_2 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_2 ].gpio.pinA     = 10;
-    dMap.map[ DIO_2 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_2 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_3 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_3 ].gpio.pinA     = 11;
-    dMap.map[ DIO_3 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_3 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_4 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_4 ].gpio.pinA     = 21;
-    dMap.map[ DIO_4 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_4 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_5 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_5 ].gpio.pinA     = 20;
-    dMap.map[ DIO_5 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_5 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_6 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_6 ].gpio.pinA     = 19;
-    dMap.map[ DIO_6 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_6 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_7 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_7 ].gpio.pinA     = 18;
-    dMap.map[ DIO_7 ].gpio.pinB     = UNDEFINED_PIN;
-    dMap.map[ DIO_7 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_P_0 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_P_0 ].gpio.pinA     = 8;
-    dMap.map[ DIO_P_0 ].gpio.pinB     = 9;
-    dMap.map[ DIO_P_0 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_P_1 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_P_1 ].gpio.pinA     = 10;
-    dMap.map[ DIO_P_1 ].gpio.pinB     = 11;
-    dMap.map[ DIO_P_1 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_P_2 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_P_2 ].gpio.pinA     = 21;
-    dMap.map[ DIO_P_2 ].gpio.pinB     = 20;
-    dMap.map[ DIO_P_2 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ DIO_P_3 ].type          = CDC_RT_GPIO;
-    dMap.map[ DIO_P_3 ].gpio.pinA     = 19;
-    dMap.map[ DIO_P_3 ].gpio.pinB     = 18;
-    dMap.map[ DIO_P_3 ].gpio.pinMode  = CDC_DIO_IN;
-
-    dMap.map[ PWM_0 ].type          = CDC_RT_PWM;
-    dMap.map[ PWM_0 ].pwm.pinA      = 20;
-    dMap.map[ PWM_0 ].pwm.pinB      = UNDEFINED_PIN;
-    dMap.map[ PWM_0 ].pwm.frequency = 100;
-
-    dMap.map[ PWM_1 ].type          = CDC_RT_PWM;
-    dMap.map[ PWM_1 ].pwm.pinA      = 21;
-    dMap.map[ PWM_1 ].pwm.pinB      = UNDEFINED_PIN;
-    dMap.map[ PWM_1 ].pwm.frequency = 100;
-
-    dMap.map[ PWM_P_0 ].type          = CDC_RT_PWM;
-    dMap.map[ PWM_P_0 ].pwm.pinA      = 20;
-    dMap.map[ PWM_P_0 ].pwm.pinB      = 21;
-    dMap.map[ PWM_P_0 ].pwm.frequency = 100;
+    dMap.options    = 0;
+    dMap.debugMask  = 0;
 
     cdcInit( &dMap );
     configureConsoleIO( );
@@ -247,14 +145,14 @@ void testDioInput( ) {
     printf( "DIO input test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-    configureDio( DIO_0, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_1, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_2, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_3, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_4, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_5, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_6, CDC_DIO_IN_PULLUP );
-    configureDio( DIO_7, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_0, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_1, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_2, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_3, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_4, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_5, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_6, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_7, CDC_DIO_IN_PULLUP );
    
     while ( true ) {
 
@@ -264,28 +162,28 @@ void testDioInput( ) {
         bool val;
         uint8_t rStat;
 
-        rStat = readDio( DIO_0, &val );
+        rStat = readDio( RNUM_DIO_0, &val );
         printf( "Econ Dio In 0: %d\n", val );
 
-        rStat = readDio( DIO_1, &val );
+        rStat = readDio( RNUM_DIO_1, &val );
         printf( "Econ Dio In 1: %d\n", val );
 
-        rStat = readDio( DIO_2, &val );
+        rStat = readDio( RNUM_DIO_2, &val );
         printf( "Econ Dio In 2: %d\n", val );
 
-        rStat = readDio( DIO_3, &val );
+        rStat = readDio( RNUM_DIO_3, &val );
         printf( "Econ Dio In 3: %d\n", val );
 
-        rStat = readDio( DIO_4, &val );
+        rStat = readDio( RNUM_DIO_4, &val );
         printf( "Econ Dio In 4: %d\n", val );
 
-        rStat = readDio( DIO_5, &val );
+        rStat = readDio( RNUM_DIO_5, &val );
         printf( "Econ Dio In 5: %d\n", val );
 
-        rStat = readDio( DIO_6, &val );
+        rStat = readDio( RNUM_DIO_6, &val );
         printf( "Econ Dio In 6: %d\n", val );
 
-        rStat = readDio( DIO_7, &val );
+        rStat = readDio( RNUM_DIO_7, &val );
         printf( "Econ Dio In 7: %d\n", val );
     }
 }
@@ -300,43 +198,43 @@ void testDioOutput( ) {
     printf( "DIO output test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-    configureDio( DIO_0, CDC_DIO_OUT );
-    configureDio( DIO_1, CDC_DIO_OUT );
-    configureDio( DIO_2, CDC_DIO_OUT );
-    configureDio( DIO_3, CDC_DIO_OUT );
-    configureDio( DIO_4, CDC_DIO_OUT );
-    configureDio( DIO_5, CDC_DIO_OUT );
-    configureDio( DIO_6, CDC_DIO_OUT );
-    configureDio( DIO_7, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_0, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_1, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_2, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_3, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_4, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_5, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_6, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_7, CDC_DIO_OUT );
 
     while ( true ) {
 
         toggleDio( CDC_RN_ACTIVITY_LED );
-        writeDio( DIO_0, false );
-        writeDio( DIO_1, false );
-        writeDio( DIO_2, false );
-        writeDio( DIO_3, false );
-        writeDio( DIO_4, false );
-        writeDio( DIO_5, false );
-        writeDio( DIO_6, false );
-        writeDio( DIO_7, false );
+        writeDio( RNUM_DIO_0, false );
+        writeDio( RNUM_DIO_1, false );
+        writeDio( RNUM_DIO_2, false );
+        writeDio( RNUM_DIO_3, false );
+        writeDio( RNUM_DIO_4, false );
+        writeDio( RNUM_DIO_5, false );
+        writeDio( RNUM_DIO_6, false );
+        writeDio( RNUM_DIO_7, false );
         sleepMillis( 1000 );
 
-        writeDio( DIO_0, true );
+        writeDio( RNUM_DIO_0, true );
         sleepMillis( 500 );
-        writeDio( DIO_1, true );
+        writeDio( RNUM_DIO_1, true );
         sleepMillis( 500 );
-        writeDio( DIO_2, true );
+        writeDio( RNUM_DIO_2, true );
         sleepMillis( 500 );
-        writeDio( DIO_3, true );
+        writeDio( RNUM_DIO_3, true );
         sleepMillis( 500 );
-        writeDio( DIO_4, true );
+        writeDio( RNUM_DIO_4, true );
         sleepMillis( 500 );
-        writeDio( DIO_5, true );
+        writeDio( RNUM_DIO_5, true );
         sleepMillis( 500 );
-        writeDio( DIO_6, true );
+        writeDio( RNUM_DIO_6, true );
         sleepMillis( 500 );
-        writeDio( DIO_7, true );
+        writeDio( RNUM_DIO_7, true );
         sleepMillis( 500 );
   }
 }
@@ -350,51 +248,51 @@ void testDioOutputPair( ) {
   printf( "DIO output pair test\n" );
 
   configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-  configureDio( DIO_0, CDC_DIO_OUT );
-  configureDio( DIO_1, CDC_DIO_OUT );
-  configureDio( DIO_2, CDC_DIO_OUT );
-  configureDio( DIO_3, CDC_DIO_OUT );
-  configureDio( DIO_4, CDC_DIO_OUT );
-  configureDio( DIO_5, CDC_DIO_OUT );
-  configureDio( DIO_6, CDC_DIO_OUT );
-  configureDio( DIO_7, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_0, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_1, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_2, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_3, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_4, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_5, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_6, CDC_DIO_OUT );
+  configureDio( RNUM_DIO_7, CDC_DIO_OUT );
   
   while ( true ) {
 
     toggleDio( CDC_RN_ACTIVITY_LED );
 
-    writeDio( DIO_P_0, false, false );
-    writeDio( DIO_P_1, false, false );
-    writeDio( DIO_P_2, false, false );   
-    writeDio( DIO_P_3, false, false );
+    writeDio( RNUM_DIO_P_0, false, false );
+    writeDio( RNUM_DIO_P_1, false, false );
+    writeDio( RNUM_DIO_P_2, false, false );   
+    writeDio( RNUM_DIO_P_3, false, false );
     sleepMillis( 1000 );
 
-    writeDio( DIO_P_0, true, false );
+    writeDio( RNUM_DIO_P_0, true, false );
     sleepMillis( 500 );
-    writeDio( DIO_P_0, false, true );
+    writeDio( RNUM_DIO_P_0, false, true );
     sleepMillis( 500 );
-    writeDio( DIO_P_0, true, true );
-    sleepMillis( 500 );
-
-    writeDio( DIO_P_1, true, false );
-    sleepMillis( 500 );
-    writeDio( DIO_P_1, false, true );
-    sleepMillis( 500 );
-    writeDio( DIO_P_1, true, true );
+    writeDio( RNUM_DIO_P_0, true, true );
     sleepMillis( 500 );
 
-    writeDio( DIO_P_2, true, false );
+    writeDio( RNUM_DIO_P_1, true, false );
     sleepMillis( 500 );
-    writeDio( DIO_P_2, false, true );
+    writeDio( RNUM_DIO_P_1, false, true );
     sleepMillis( 500 );
-    writeDio( DIO_P_2, true, true );
+    writeDio( RNUM_DIO_P_1, true, true );
     sleepMillis( 500 );
 
-    writeDio( DIO_P_3, true, false );
+    writeDio( RNUM_DIO_P_2, true, false );
     sleepMillis( 500 );
-    writeDio( DIO_P_3, false, true );
+    writeDio( RNUM_DIO_P_2, false, true );
     sleepMillis( 500 );
-    writeDio( DIO_P_3, true, true );
+    writeDio( RNUM_DIO_P_2, true, true );
+    sleepMillis( 500 );
+
+    writeDio( RNUM_DIO_P_3, true, false );
+    sleepMillis( 500 );
+    writeDio( RNUM_DIO_P_3, false, true );
+    sleepMillis( 500 );
+    writeDio( RNUM_DIO_P_3, true, true );
     sleepMillis( 500 );
   }
 }
@@ -410,20 +308,20 @@ void testAdcBlockingRead( ) {
   printf( "ADC read test\n" );
 
   configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-  configureAdc( ADC_0 );
-  configureAdc( ADC_1 );
+  configureAdc( RNUM_ADC_0 );
+  configureAdc( RNUM_ADC_1 );
   
   while ( true ) {
 
     uint16_t    val;
-    uint8_t     rStat = readAdc( ADC_0, &val );
+    uint8_t     rStat = readAdc( RNUM_ADC_0, &val );
 
-    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", ADC_0, val, val * digitToVolt );
+    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", RNUM_ADC_0, val, val * digitToVolt );
     sleepMillis( 1000 );
 
-    rStat = readAdc( ADC_1, &val );
+    rStat = readAdc( RNUM_ADC_1, &val );
 
-    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", ADC_1, val, val * digitToVolt );
+    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", RNUM_ADC_1, val, val * digitToVolt );
     sleepMillis( 1000 );
   }
 }
@@ -468,6 +366,8 @@ void testTimer( ) {
 //----------------------------------------------------------------------------------------------------------
 void testI2C( ) {
 
+    // ??? how about listing the I2C devices... ?
+
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -482,20 +382,20 @@ void testPWMFixed( ) {
   uint32_t fPwm  = 100;
   configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
 
-  configurePwm( PWM_0, fPwm );
-  configurePwm( PWM_1, fPwm );
+  configurePwm( RNUM_PWM_0, fPwm );
+  configurePwm( RNUM_PWM_1, fPwm );
 
     while ( true ) {
 
         toggleDio( CDC_RN_ACTIVITY_LED );
     
-        writePwm( PWM_P_0, 127, 63 );
+        writePwm( RNUM_PWM_P_0, 127, 63 );
         sleepMillis( 2000 );
 
-        writePwm( PWM_P_0, 192, 127 );
+        writePwm( RNUM_PWM_P_0, 192, 127 );
         sleepMillis( 2000 );
 
-        writePwm( PWM_P_0, 63, 192 );
+        writePwm( RNUM_PWM_P_0, 63, 192 );
         sleepMillis( 2000 );
     }
 }
@@ -517,19 +417,19 @@ void testPWMWithAnalogInput( ) {
     uint16_t minimalThreshold   = 6;
     uint8_t  rStat              = NO_ERR;
    
-    rStat = configureAdc( ADC_0 );
-    rStat = configurePwm( PWM_0, fPWM );
+    rStat = configureAdc( RNUM_ADC_0 );
+    rStat = configurePwm( RNUM_PWM_0, fPWM );
   
     while ( true ) {
 
         toggleDio( CDC_RN_ACTIVITY_LED );
 
-        rStat = readAdc( ADC_0, &dutyCycle );
+        rStat = readAdc( RNUM_ADC_0, &dutyCycle );
 
         if ( dutyCycle < minimalThreshold ) dutyCycle = 0;
         if ( dutyCycle > 255 )              dutyCycle = 255;
 
-        writePwm( PWM_0, dutyCycle, 0 );
+        writePwm( RNUM_PWM_0, dutyCycle, 0 );
         sleepMillis( 100 );
   }
 }

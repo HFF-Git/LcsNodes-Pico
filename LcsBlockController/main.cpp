@@ -25,8 +25,8 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
+#include "LcsBlockControllerBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 #include "LcsRuntimeLib.h"
 #include "LcsBlockController.h"
 
@@ -48,35 +48,6 @@ LcsBlockControl                 *blockControl   = nullptr;
 LcsBlockTrack                   *block1         = nullptr;
 LcsBlockTrack                   *block2         = nullptr;
 
-
-//----------------------------------------------------------------------------------------------------------
-// Setup the configuration of the HW board. The CDC resource descriptor map contains the configuration 
-// data for the board. In addition, the HW pins for I2C, analog inputs and so on are set from the current
-// RPico Defaults. Check the schematic for the board to see all pin assignments.
-//
-// One day we will have several block controller versions. Although they will perhaps differ, their the CDC
-// resource names used should not change. 
-//----------------------------------------------------------------------------------------------------------
-const uint8_t RNUM_CONTROL_BLK_0    = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t RNUM_ADC_BLK_0        = CDC_RN_FIRST_USER_RN + 1;
-const uint8_t RNUM_UART_RX_0        = CDC_RN_FIRST_USER_RN + 2;
-
-const uint8_t RNUM_CONTROL_BLK_1    = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t RNUM_ADC_BLK_1        = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t RNUM_UART_RX_1        = CDC_RN_FIRST_USER_RN + 5;
-
-const uint8_t RNUM_CONTROL_BLK_2    = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t RNUM_ADC_BLK_2        = CDC_RN_FIRST_USER_RN + 7;
-const uint8_t RNUM_UART_RX_2        = CDC_RN_FIRST_USER_RN + 8;
-
-const uint8_t RNUM_CONTROL_BLK_3    = CDC_RN_FIRST_USER_RN + 9;
-const uint8_t RNUM_ADC_BLK_3        = CDC_RN_FIRST_USER_RN + 10;
-const uint8_t RNUM_UART_RX_3        = CDC_RN_FIRST_USER_RN + 11;
-
-const uint8_t RNUM_CUT_SIGNAL       = CDC_RN_FIRST_USER_RN + 12;
-
-const uint16_t PWM_FREQUENCY = 20000;
-
 //----------------------------------------------------------------------------------------------------------
 // Setup the resource configuration data and the CDC library.
 //
@@ -84,38 +55,8 @@ const uint16_t PWM_FREQUENCY = 20000;
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    dMap = RES_MAP_RP_2040;
-
-    dMap.map[ RNUM_CONTROL_BLK_0 ].type             = CDC_RT_PWM;
-    dMap.map[ RNUM_CONTROL_BLK_0 ].pwm.pinA         = 21;
-    dMap.map[ RNUM_CONTROL_BLK_0 ].pwm.pinB         = 20;
-    dMap.map[ RNUM_CONTROL_BLK_0 ].pwm.frequency    = PWM_FREQUENCY;
-    
-    dMap.map[ RNUM_ADC_BLK_0 ].adc.pin              = 26;
-    dMap.map[ RNUM_ADC_BLK_0 ].adc.adcNum           = 0;
-
-    dMap.map[ RNUM_UART_RX_0 ].uart.rxPin           = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_0 ].uart.txPin           = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_0 ].uart.baudRate        = 250000;
-
-    dMap.map[ RNUM_CONTROL_BLK_1 ].type             = CDC_RT_GPIO;
-    dMap.map[ RNUM_CONTROL_BLK_1 ].pwm.pinA         = 19;
-    dMap.map[ RNUM_CONTROL_BLK_1 ].pwm.pinB         = 18;
-    dMap.map[ RNUM_CONTROL_BLK_1 ].pwm.frequency    = PWM_FREQUENCY;
-    
-    dMap.map[ RNUM_ADC_BLK_1 ].adc.pin              = 27;
-    dMap.map[ RNUM_ADC_BLK_1 ].adc.adcNum           = 1;
-
-    dMap.map[ RNUM_UART_RX_1 ].uart.rxPin           = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_1 ].uart.txPin           = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_1 ].uart.baudRate        = 250000;
-
-    dMap.map[ RNUM_CUT_SIGNAL ].type                = CDC_RT_GPIO;
-    dMap.map[ RNUM_CONTROL_BLK_0 ].gpio.pinA        = 4;
-    dMap.map[ RNUM_CONTROL_BLK_0 ].gpio.pinB        = UNDEFINED_PIN;
-    dMap.map[ RNUM_CONTROL_BLK_0 ].gpio.pinMode     = CDC_DIO_IN_PULLUP;
-
-    dMap.options                                    |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
+    dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
+    dMap.options |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
     
     cdcInit( &dMap );
     configureConsoleIO( );
@@ -238,7 +179,7 @@ uint8_t trackStateMachine( ) {
 // Init the Runtime.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t initLcsRuntime( ) {
+uint8_t initThrottle( ) {
 
     printf( "LCS Block Controller\n" );
     printf( "initLcsRuntime\n" );
@@ -340,7 +281,7 @@ int main( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK ) rStat = initLcsRuntime( );
+    if ( rStat == ALL_OK ) rStat = initThrottle( );
     if ( rStat == ALL_OK ) rStat = registerCallbacks( );
     if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );
     if ( rStat == ALL_OK ) return( startBlockController( ));

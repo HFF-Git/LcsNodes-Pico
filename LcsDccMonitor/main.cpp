@@ -48,8 +48,8 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
+#include "LcsDccMonitorBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 #include "LcsDccPktFmtLib.h"
 #include <cstring>
 
@@ -109,9 +109,7 @@ struct TsRange {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-CdcResourceDescMap dMap = RES_MAP_RP_2040;
-
-const uint8_t RN_IN = CDC_RN_FIRST_USER_RN;
+CdcResourceDescMap dMap = LCS_DCC_MONITOR_BOARD_DESC_B_02_00;
 
 //------------------------------------------------------------------------------------------------------------
 // DCC bit stream and packet declarations. The bit stream buffer is a circular buffer. The bit detecting
@@ -179,13 +177,8 @@ void fillPacket( );
 //----------------------------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
-    dMap.map[ RN_IN ].type           = CDC_RT_GPIO;
-    dMap.map[ RN_IN ].gpio.pinA      = 5;
-    dMap.map[ RN_IN ].gpio.pinB      = UNDEFINED_PIN;
-    dMap.map[ RN_IN ].gpio.pinMode   = CDC_DIO_IN_PULLUP;
-
-    CDC::cdcInit( &dMap );
-    CDC::configureConsoleIO( );
+    cdcInit( &dMap );
+    configureConsoleIO( );
 }
 
 // ??? factor out as a separate object to detect and receive packets ?
@@ -272,8 +265,8 @@ void startBitDetection( ) {
 
   uint8_t rStat;
 
-  rStat = configureDio( RN_IN, CDC_DIO_IN );
-  rStat = registerDioCallback( RN_IN, CDC_EVT_CHANGE, dccEdgeChange );
+  rStat = configureDio( RNUM_DCC_IN, CDC_DIO_IN );
+  rStat = registerDioCallback( RNUM_DCC_IN, CDC_EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );
   oneBitSignal.reset( );
