@@ -708,9 +708,6 @@ uint8_t             startRuntime( );
 // zero refers to the local node and the calls are direct procedure calls. A non-zero node will refer to
 // another node, and a message is broadcasted.
 //
-// ??? howe about a scheme where we have blocking calls ? When we send the request, the reply will contain
-// the reply node and port. So, we could filter on that node and port. It would mean however that you will
-// wait ( perhaps with a timeout ) for the outstanding request.
 //------------------------------------------------------------------------------------------------------------
 uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
 uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );

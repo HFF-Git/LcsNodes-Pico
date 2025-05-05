@@ -10,11 +10,14 @@
 // is twofold. First, there needs to be a way to isolate the controller specific hardware from the LCS runtime
 // Library as well as the extension module firmware. The Raspberry PI Pico offers a C++ SDK with a set of
 // libraries to invoke the desired function rather than access to registers. The Pico also offers a great
-// flexibility of pin assignment for the hardware IO functions. Second, within the hardware IO boundaries of
-// the controller family the individual hardware pin assignment used may vary from board to board design.
-// This include file and the board descriptor include file implement the CDC layer from a hardware function 
-// and board configuration perspective. Note that the CDC layer is not a generic HW abstraction. The layer
-// is very specific to the LCS controller boards described in the book. 
+// flexibility of pin assignment for the hardware IO functions. Mapping the pins to functions is the first 
+// goal. Second, within the hardware IO boundaries of the controller family the individual hardware pin 
+// assignment used may vary from board to board design. The goal is also to describe a board by type and 
+// version.
+//
+// This include file implements the CDC layer from a hardware function and board configuration perspective. 
+// Note that the CDC layer is not a generic HW abstraction. The layer is very specific to the LCS controller
+// boards described in the book. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -140,7 +143,8 @@ const uint8_t   ILLEGAL_PIN             = 254;
 
 //------------------------------------------------------------------------------------------------------------
 // The CDC resources have a type which tells us what the particular resource is. Note that the are "real"
-// hardware resources such as a GPIO pin, but also logical resources such as a software timer.
+// hardware resources such as a GPIO pin, but also logical resources such as a software timer. The value
+// of 255 is used as the invalid resource Id.
 //
 //------------------------------------------------------------------------------------------------------------
 enum CdcResourceType : uint8_t {
@@ -162,11 +166,9 @@ enum CdcResourceType : uint8_t {
 // the NVM I2C channel. These resource numbers are consequently reserved and cannot be used by the firmware
 // programmer. 
 //
-// IMPORTANT: the number are indices into the resource descriptor array, The order is dead important as it
-// determines how a descriptor array is filled.
 //
-// ??? rethink. We have reserved numbers and user defined numbers. Still, we look up the entry once to
-// get the position in the map. This gives some independence of position and avoid stupid errors. 
+// ??? rethink. We have reserved numbers and user defined numbers. Should we start the user numbers a bit
+// higher ? e.g. 16 ? RNUMs are the index into the descriptor array.
 //------------------------------------------------------------------------------------------------------------
 enum CdcResourceIdNum : uint8_t {
 
@@ -178,7 +180,9 @@ enum CdcResourceIdNum : uint8_t {
     CDC_RN_NVM              = 5,
     CDC_RN_EXT_NVM          = 6,
     CDC_RN_RESERVED         = 7,
+
     CDC_RN_FIRST_USER_RN    = 8,
+    
     CDC_RN_UNDEFINED        = 255
 };
 
@@ -243,9 +247,11 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CDC resource descriptor describes a CDC channel. A channel is a hardware entity that the CDC offers
-// to the library and the firmware programmer. Primarily is contains the actual pin settings but also any
-// other relevant data for the particular channel.
+// The CDC resource descriptor describes a CDC channel. A channel is a hardware entity that the CDC layer 
+// offers to the library and the firmware programmer. Primarily is contains the actual pin settings but also
+// any other relevant data for the particular channel. All resource entries also contain a type and the 
+// resource ID itself. The resource ID specifies the index where the resource can be found in the resource
+// entry array.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceDescGpio {

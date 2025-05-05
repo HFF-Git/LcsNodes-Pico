@@ -27,8 +27,8 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
+#include "LcsDieselThrottleBoardDesc.h"
 #include "LcsCdcLib.h"
-#include "LcsCdcDescMapDefaults.h"
 #include "LcsRuntimeLib.h"
 
 using namespace LCS;

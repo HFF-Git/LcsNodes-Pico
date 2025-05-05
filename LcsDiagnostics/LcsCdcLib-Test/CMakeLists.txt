@@ -21,7 +21,7 @@ if ( TARGET tinyusb_device )
     add_executable( ${PROJECT_NAME} 
     
         main.cpp
-        LcsMainControllerBoardDesc.h 
+        LcsCdcLibTestBoardDesc.h 
     )
     
     target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
