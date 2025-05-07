@@ -1,159 +1,147 @@
-;-------------------------------------------------------------------------------------------------------------
-; DCC Signal Handler. The block controller uses a small PIO program to control the H-Bridge when DCC mode is
-; enabled. The basic work of the PIO state machine is to relay the inverted DCC input from the OptoCouplers
-; to the output pins which drive the select input of the H-Brigde chip. 
-; 
-; When the DCC input signal drops to 0b00, we either have no signal or the start of the Cutout period. We 
-; insert a 4 microsecond delay, which gives some leeway when two boosters are not entirely in sync, although
-; driven from the same DCC signal. After this blackout DCC input is relayed to the output. In addition, the
-; start and end of the cutout period is signaled with the PIO state machine interrupt flags.
-;
-;-------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS - Block Controller PIO Program File
+//
+//------------------------------------------------------------------------------------------------------------
+// The block controller uses a set of PIO programs to implement the H-Bridge control logic and Railcom
+// datagram handling.
+// 
+//------------------------------------------------------------------------------------------------------------
+//
+// LCS - Block Controller PIO Program File
+// Copyright (C) 2025 - 2025  Helmut Fieres
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// http://www.gnu.org/licenses
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
+//------------------------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------------------
+// Basic DCC Signal Handler. The block controller uses a small PIO program to control the H-Bridge when DCC 
+// mode is enabled. The basic work of the PIO state machine is to relay the inverted DCC input from the Opto
+// Couplers to the output pins which drive the select input of the H-Brigde chip. There are 4 pins this state 
+// machine will use:
+// 
+//       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
+//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> short curcuit, 01, 10 -> on, 11 - Z state.
+// 
+// When the DCC input signal drops to 0b00, we either have no signal or the start of the Cutout period. We 
+// insert a 4 microsecond delay, which gives some leeway when two boosters are not entirely in sync, although
+// driven from the same DCC signal. After this blackout DCC input is relayed to the output. In addition, the
+// start and end of the cutout period is signaled with the PIO state machine interrupt flags.
+//
+//------------------------------------------------------------------------------------------------------------
 .program h_bridge_signal_control
 
 main_loop:
-    mov x, pins            ; Copy input pins to X register
-    mov pins, x            ; Mirror input to output
-
-    jmp !x, blackout_start ; Jump if both pins are 0
-    jmp main_loop          ; Keep mirroring otherwise
-
-blackout_start:
-    set pins, 0b11         ; Emit 0b11 (Hi-Z) for blackout
-    set y, 31              ; Load loop counter for delay (31 * 5 cycles per loop)
-
-blackout_wait:
-    jmp y--, blackout_wait ; 31 iterations * ~5 cycles = ~4 µs delay at 125 MHz
-    irq set 4              ; Set IRQ flag on cutout start
-
-
-; **** we could drop the irq 4 setting and somehow get the "railcom_datagram_rx" prgtram to execute, then
-; load this program again for the further processing...
-
-
-wait_rising:
-    mov x, pins            ; Read pins again
-    jmp !x, wait_rising    ; Loop while still 0b00
-
-    irq set 5              ; Set IRQ flag on cutout end
-    jmp main_loop          ; Return to main loop
-
-;-------------------------------------------------------------------------------------------------------------
-; RailCom Datagram Receiver. During the cutout period, we try to pick up a RailCom datagram. The datagram
-; paket is sent as a simple serial UART signal, 250kBaud, 8 bits, no parity, one stop bit. There are two
-; groups, a 2-byte group and a 6-byte group. Once the datagram is receive is completed, we need to interrupt
-; the PICO to handle the datagram.
-;
-; - IN pin 0 and JMP pin are both mapped to the GPIO used as UART RX.
-;
-; In the main C program, you can check the IRQ flags to see if the
-; transmission is complete or if an error occurred.
-;
-;-------------------------------------------------------------------------------------------------------------
-.program railcom_datagram_rx
-
-start:
-    wait 0 pin 0            ; Wait for start bit
-    set x, 7    [10]        ; Expect 8 characters (0-7)
-
-bitloop:
-    set y, 7                ; 8 bits per character
-    in null, 32             ; Clear ISR to prepare for new character
-
-bit_read:
-    in pins, 1              ; Shift data bit into ISR
-    jmp y-- bit_read [6]
-
-    ; Check stop bit
-    wait 1 pin 0            ; Wait for stop bit
-    jmp pin good_stop
-
-    ; Error condition
-    mov isr, !null          ; Load 0xFF as error code
-    irq 5 rel               ; Fire IRQ 5 for error
-    push                    ; Push error code to FIFO
-    jmp start
-
-good_stop:
-    push                    ; Push valid character to FIFO
-    irq 6 rel               ; Signal partial data available
-    jmp x-- wait_next       ; Wait for next start bit if more characters needed
-
-wait_next:
-    wait 0 pin 0            ; Wait for the next start bit
-    jmp bitloop
-
-    ; All characters received
-    irq 4 rel               ; Fire IRQ 4 for full completion
-    jmp start               ; Restart
-
-;-------------------------------------------------------------------------------------------------------------
-; When in DCC mode, we need to deal with the cutout and potetially a railcom datagram. This PIO program will
-; handle the cutout processing as well as the railcom datagram receive.
-;
-;
-;
-; ??? review this carefully ...
-; we run at about a 2Mhz clock because of the RailCom Baudrate. So, the inoitial copy of DCC to putput is 
-; about 1 microsends....
-;-------------------------------------------------------------------------------------------------------------
-.program dcc_and_railcom
-.wrap_target
-
-main_loop:
-    mov x, pins                 ; Read DCC input (pin 4/5)
+    mov x, pins                 ; get DCC input
     mov pins, x                 ; Mirror to output
-    jmp !x, blackout_start      ; If both bits 0 -> blackout
-    jmp main_loop
+    jmp !x, blackout_start      ; if DCC input == 0b00, go to start blackout
+    jmp main_loop               ; else just keep mirroring 
 
 blackout_start:
-    set pins, 0b11              ; Hi-Z to H-Bridge
-    set y, 31                   ; ~4µs delay (y as counter)
+    set pins, 0b11              ; Disable H-Bridge, 0b11 
+    set y, 31                   ; prepare 4us loop
 
 delay_loop:
-    jmp y--, delay_loop         ; Delay for 31 iterations
-
-uart_start:
-    wait 0 pin 8                ; Wait for UART start bit on pin 8
-    set y, 31                   ; Timeout counter (adjust as needed)
-
-uart_char_loop:
-    set x, 7    [10]            ; Expect 8 characters (0-7), delay 10 ?
-    in null, 32                 ; Clear ISR
-
-uart_bitloop:
-    in pins, 1                  ; Read 1 bit from pin 8
-    jmp x-- uart_bitloop [6]    ; 8-bit loop
-
-    wait 1 pin 8                ; Stop bit
-    jmp pin uart_good_stop      ; Check stop bit
-
-uart_error:
-    mov isr, !null
-    push                        ; Push error to FIFO
-    irq 5 rel                   ; Timeout or error IRQ
-    jmp wait_rising
-
-uart_good_stop:
-    push                        ; Push valid byte to FIFO
-    irq 6 rel                   ; Partial data IRQ
-    jmp uart_start              ; Go back to waiting for next start bit
+    jmp y--, delay_loop         ; ~4µs delay
+    set pins, 0                 ; Enter true blackout, 0b00
 
 wait_rising:
-    mov x, pins
-    jmp !x, wait_rising         ; Wait until DCC returns
-    irq 5 rel                   ; End of cutout IRQ
-    jmp main_loop
+    mov x, pins                 ; Read pins again
+    jmp !x, wait_rising         ; Loop while still 0b00
 
-.wrap
+    irq set 5                   ; Set IRQ flag on cutout end
+    jmp main_loop               ; Return to main loop
 
+//------------------------------------------------------------------------------------------------------------
+// When in DCC mode, we need to deal with the cutout and potentially a railcom datagram. This PIO program will
+// handle the cutout processing as well as the railcom datagram receive. There are 5 pins this machine will 
+// use:
+// 
+//       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
+//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> short curcuit, 01, 10 -> on, 11 - Z state.
+//       Uart in         - UART input from RailCom dectector. ( also configured as JumpPin )
+//
+// In normal mode, we read in the DCC signals and echo them to the H-Bridge control pins. When a 0b00 is 
+// detected, we are at the start if a cutout period. First we place the brdige in a short high impedance mode
+// as described in the basic DCC signal handler. Next we poll for a start condition on the UART input, or a 
+// change in the DCC signal state. 
+// 
+// A Railcom datagram is a sequence of 2 bytes followed by 6 bytes. We set up a loop to read in 8 bytes
+// and place each byte in the Input FIFO. After 8 characters are received, we signal an interrupt and then 
+// wait for the cutout period end.
+//
+// The Railcom Baudrate is 250 KHz. To accomodate, we run the state machine at about a 2Mhz clock. So, the 
+// initial copy of DCC to output is  about 1 microsecond.
+//
+//------------------------------------------------------------------------------------------------------------
+.program dcc_and_railcom
 
-;-------------------------------------------------------------------------------------------------------------
-; Simple DCC Cutput Detect Handler. The block controller uses a small PIO program to detect the cutout signal
-; when not in DCC mode. It is just used to sync the PWM signals. We detect the start of a cutout and every
-; Nth time interrupt the CPU. We set Y from the C -code and need to set every time we served the inerrupt.
-; 
-;-------------------------------------------------------------------------------------------------------------
+main_loop:
+    mov x, pins                 ; get DCC input
+    mov pins, x                 ; Mirror to output
+    jmp !x, blackout_start      ; if DCC input == 0b00, go to start blackout
+    jmp main_loop               ; else just keep mirroring 
+
+blackout_start:
+    set pins, 0b11              ; Disable H-Beidge, 0b11 
+    set y, 31                   ; prepare 4us loop
+
+delay_loop:
+    jmp y--, delay_loop         ; ~4µs delay
+    set pins, 0                 ; Enter true blackout,  0b00
+
+poll_start:
+    mov x, pins                 ; get DCC input 
+    jmp pin uart_start          ; if UART pin low, go to datagram read
+    jmp !x, poll_start          ; Otherwise stay here while blackout lasts, i.e. 0b00
+    jmp main_loop               ; DCC input changed, back to mirror, there was no datagram
+
+uart_start:
+    set x, 8                    ; Expect 8 bytes, grouped 2 + 6
+
+char_loop:
+    wait 0 pin 8                ; wait on start bit ( input == 0 ) start bit
+    set y, 7    [10]            ; set bit count, delay for 10 cycles.
+    in null, 32                 ; Clear ISR
+
+bit_loop:
+    in pins, 1 [6]              ; scan data bit, move to input shift register, delay for 6 cycles
+    jmp y--, bit_loop           ; get the next bit 
+    jmp pin good_stop           ; branch on stop condition ( pin should be high )
+    irq 4 rel                   ; signal a frame error
+    jmp wait_rising             ; frame error, go to wait for end of cutout period.
+
+good_stop:    
+    push                        ; got the character, push into FIO
+    jmp x--, char_loop          ; Loop until 8 bytes received
+
+    irq 6 rel                   ; Datagram complete, interrupt
+
+wait_rising:
+    mov x, pins                 ; Done reading the datagram, get the DCC input and
+    jmp !x, wait_rising         ; wait for end of cutout period
+    irq 5 rel                   ; Cutout end, interrupt ( optional )
+    jmp main_loop               ; back to start.
+
+//------------------------------------------------------------------------------------------------------------
+// Simple DCC Cutout Detect Handler. The block controller uses a small PIO program to detect the DCC cutout
+// signal when not in DCC mode. It is just used to sync the PWM signals. We detect the start of a cutout and 
+// every Nth time interrupt the CPU. We set Y from the C -code and need to set every time we served the 
+// interrupt.
+// 
+//------------------------------------------------------------------------------------------------------------
 .program cutout_detect
 
 start: 
@@ -169,21 +157,22 @@ trigger_irq:
     irq 0                   ; inform the CPU
 
 wait_low: 
-
     mov x, pins             ; Copy input pins to X register
     jmp !x, wait_low        ; wait while X is still 00
     jmp start               ; X change, back to start
 
-;-------------------------------------------------------------------------------------------------------------
-; C program code for PIO setup part.
-;
-;-------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+// C program code for PIO setup part.
+//
+//------------------------------------------------------------------------------------------------------------
 % c-sdk {
 
 #include <stdio.h>
 #include <stdint.h>
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
+
+// ??? to do ....
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -229,8 +218,9 @@ static inline void cutout_detect( PIO pio, uint sm, uint pin_in ) {
 // - setup an 8 entry fifo.
 // - interrupt  the CPU at the end of a datagram.
 //
+// ??? to do ....
 //------------------------------------------------------------------------------------------------------------
-static inline void railcom_datagram_rx_program_init( PIO pio, uint sm, uint offset, uint pin, uint baud ) {
+static inline void dcc_and_railcom( PIO pio, uint sm, uint offset, uint pin, uint baud ) {
     
     pio_sm_set_consecutive_pindirs( pio, sm, pin, 1, false );
     pio_gpio_init( pio, pin );
@@ -254,18 +244,7 @@ static inline void railcom_datagram_rx_program_init( PIO pio, uint sm, uint offs
     pio_sm_set_enabled( pio, sm, true );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-static inline void dcc_and_railcom( ) {
-
-    // to do ...
-}
-
-
-
+%}
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -324,7 +303,3 @@ int main() {
     }
 }
 */
-
-
-
-%}

@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file
 #
-#  Copyright (C) 2021 - 2024  Helmut Fieres
+#  Copyright (C) 2024 - 2025  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
 #
 # This is the CMAKE file at the LcsNodes directory level. It sets up the cmake version, the languages used,
@@ -41,6 +41,3 @@ add_subdirectory( LcsLibraries/LcsRuntimeLib )
 add_subdirectory(LcsLibraries/LcsUIElementsLib)
 add_subdirectory(LcsLibraries/LcsLcdDisplayLib)
 add_subdirectory(LcsLibraries/LcsOledDisplayLib)
-
-add_subdirectory(Tests/H-Bridge-Control-Test)
-
