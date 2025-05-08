@@ -32,8 +32,8 @@ if ( TARGET tinyusb_device )
         LcsBridgeControl.pio
     )
 
-     # Generate PIO header file
-     pico_generate_pio_header( LcsBlockController ${CMAKE_CURRENT_SOURCE_DIR}/LcsBridgeControl.pio)
+    # Generate PIO header file
+    pico_generate_pio_header( LcsBlockController ${CMAKE_CURRENT_SOURCE_DIR}/LcsBridgeControl.pio)
     
     target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
 

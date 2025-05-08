@@ -78,15 +78,19 @@ wait_rising:
 // as described in the basic DCC signal handler. Next we poll for a start condition on the UART input, or a 
 // change in the DCC signal state. 
 // 
-// A Railcom datagram is a sequence of 2 bytes followed by 6 bytes. We set up a loop to read in 8 bytes
-// and place each byte in the Input FIFO. After 8 characters are received, we signal an interrupt and then 
-// wait for the cutout period end.
+// A Railcom datagram is a sequence of 2 bytes followed by 6 bytes. We set up a loop to read and place each
+// byte in the Input FIFO. The state machine needs to be flexible to read in the characteres. First, There
+// is a gap between the first 2 bytes and the remainder. The remainder itself can be up to 6 bytes, but also
+// be shorter. We therefore conbine the detection of cutout end, i.e. the H-Bridge control signals change
+// to a 0b01 or 0b10 level with the detection of a UART start bit. When there is no UART input, we will 
+// thourgh this test combination ensure that we do not miss the cutout end, and we still can tolerate a 
+// gap between the individual bytes to receive. 
 //
 // The Railcom Baudrate is 250 KHz. To accomodate, we run the state machine at about a 2Mhz clock. So, the 
 // initial copy of DCC to output is  about 1 microsecond.
 //
 //------------------------------------------------------------------------------------------------------------
-.program dcc_and_railcom
+.program h_bridge_signal_control_and_railcom
 
 main_loop:
     mov x, pins                 ; get DCC input
@@ -102,37 +106,32 @@ delay_loop:
     jmp y--, delay_loop         ; ~4µs delay
     set pins, 0                 ; Enter true blackout,  0b00
 
-poll_start:
+uart_poll:
     mov x, pins                 ; get DCC input 
-    jmp pin uart_start          ; if UART pin low, go to datagram read
-    jmp !x, poll_start          ; Otherwise stay here while blackout lasts, i.e. 0b00
-    jmp main_loop               ; DCC input changed, back to mirror, there was no datagram
+    jmp pin uart_poll           ; if UART pin high, try again
+    jmp !x, uart_start          ; if DCC input == 0b00, we are stil in cutout, read in the UART byte
+    irq 6 rel                   ; otherwise inform that we are leaving
+    jmp main_loop               ; back to main loop.
 
 uart_start:
-    set x, 8                    ; Expect 8 bytes, grouped 2 + 6
-
-char_loop:
-    wait 0 pin 8                ; wait on start bit ( input == 0 ) start bit
     set y, 7    [10]            ; set bit count, delay for 10 cycles.
     in null, 32                 ; Clear ISR
 
 bit_loop:
     in pins, 1 [6]              ; scan data bit, move to input shift register, delay for 6 cycles
     jmp y--, bit_loop           ; get the next bit 
-    jmp pin good_stop           ; branch on stop condition ( pin should be high )
+    jmp pin push_byte           ; got 8 bits, branch on stop condition ( pin should be high )
     irq 4 rel                   ; signal a frame error
-    jmp wait_rising             ; frame error, go to wait for end of cutout period.
+    jmp wait_rising             ; frame error, go to wait for end of cutout period
 
-good_stop:    
+push_byte:    
     push                        ; got the character, push into FIO
-    jmp x--, char_loop          ; Loop until 8 bytes received
-
-    irq 6 rel                   ; Datagram complete, interrupt
+    jmp x--, uart_poll          ; get the next byte
 
 wait_rising:
     mov x, pins                 ; Done reading the datagram, get the DCC input and
     jmp !x, wait_rising         ; wait for end of cutout period
-    irq 5 rel                   ; Cutout end, interrupt ( optional )
+    irq 5 rel                   ; Cutout end, interrupt
     jmp main_loop               ; back to start.
 
 //------------------------------------------------------------------------------------------------------------
@@ -161,6 +160,7 @@ wait_low:
     jmp !x, wait_low        ; wait while X is still 00
     jmp start               ; X change, back to start
 
+
 //------------------------------------------------------------------------------------------------------------
 // C program code for PIO setup part.
 //
@@ -172,17 +172,14 @@ wait_low:
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 
-// ??? to do ....
-
 //------------------------------------------------------------------------------------------------------------
-//
-//
-//
-// PIO program for DCC booster control with cutout blackout and Railcom IRQ
-// Inputs: GPIO 4 and 5 (DCC signal from optocoupler)
-// Outputs: GPIO 18 and 19 (to H-bridge)
-// Cutout handling: emit 0b11 for 4 µs on falling edge to 0b00, mirror after
-// IRQs: falling edge -> flag 4, rising edge -> flag 5
+// PIO program for H-Bridge control in DCC mode. The PIO program does just the relay of the DCC signal 
+// without RailCom datagram processing. Upon detecting the start of the cutout period, the H-bridge is placed
+// for 4 microseconds into high impedance state before entering putting the bridge in cutout node. At the 
+// end of the citput period, an interrupt is raised.
+// 
+//      Input pins:     GPIO 4 and 5    (DCC signal from optocoupler)
+//      Output pins:    GPIO 18 and 19  (to H-bridge)
 //
 //------------------------------------------------------------------------------------------------------------
 static inline void h_bridge_signal_control( PIO pio, uint sm, uint pin_in, uint pin_out ) {
@@ -195,6 +192,38 @@ static inline void h_bridge_signal_control( PIO pio, uint sm, uint pin_in, uint 
     sm_config_set_out_pins( &c, pin_out, 2 );
     sm_config_set_clkdiv( &c, 1.0f );
     pio_sm_init( pio, sm, 0, &c );
+    pio_sm_set_enabled( pio, sm, true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// PIO program for  H-Bridge control in DCC mode with RailCom datagram processing. 
+//
+// - setup an 8 entry fifo.
+// - interrupt  the CPU at the end of a datagram.
+//
+// ??? to do ....
+//------------------------------------------------------------------------------------------------------------
+static inline void h_bridge_signal_control_and_railcom( PIO pio, uint sm, uint offset, uint pin, uint baud ) {
+    
+    pio_sm_set_consecutive_pindirs( pio, sm, pin, 1, false );
+    pio_gpio_init( pio, pin );
+    gpio_pull_up( pin );
+
+    pio_sm_config c = h_bridge_signal_control_and_railcom_program_get_default_config( offset );
+    sm_config_set_in_pins( &c, pin ); // for WAIT, IN
+    sm_config_set_jmp_pin( &c, pin ); // for JMP
+    
+    // Shift to right, autopush disabled
+    sm_config_set_in_shift( &c, true, false, 32 );
+
+    // Deeper FIFO as we're not doing any TX
+    sm_config_set_fifo_join( &c, PIO_FIFO_JOIN_RX );
+    
+    // SM transmits 1 bit per 8 execution cycles.
+    float div = (float) clock_get_hz( clk_sys ) / ( 8 * baud );
+    sm_config_set_clkdiv( &c, div );
+
+    pio_sm_init( pio, sm, offset, &c );
     pio_sm_set_enabled( pio, sm, true );
 }
 
@@ -213,36 +242,6 @@ static inline void cutout_detect( PIO pio, uint sm, uint pin_in ) {
     pio_sm_set_enabled( pio, sm, true );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-// - setup an 8 entry fifo.
-// - interrupt  the CPU at the end of a datagram.
-//
-// ??? to do ....
-//------------------------------------------------------------------------------------------------------------
-static inline void dcc_and_railcom( PIO pio, uint sm, uint offset, uint pin, uint baud ) {
-    
-    pio_sm_set_consecutive_pindirs( pio, sm, pin, 1, false );
-    pio_gpio_init( pio, pin );
-    gpio_pull_up( pin );
-
-    pio_sm_config c = railcom_datagram_rx_program_get_default_config( offset );
-    sm_config_set_in_pins( &c, pin ); // for WAIT, IN
-    sm_config_set_jmp_pin( &c, pin ); // for JMP
-    
-    // Shift to right, autopush disabled
-    sm_config_set_in_shift( &c, true, false, 32 );
-
-    // Deeper FIFO as we're not doing any TX
-    sm_config_set_fifo_join( &c, PIO_FIFO_JOIN_RX );
-    
-    // SM transmits 1 bit per 8 execution cycles.
-    float div = (float) clock_get_hz( clk_sys ) / ( 8 * baud );
-    sm_config_set_clkdiv( &c, div );
-
-    pio_sm_init( pio, sm, offset, &c );
-    pio_sm_set_enabled( pio, sm, true );
-}
 
 %}
 
