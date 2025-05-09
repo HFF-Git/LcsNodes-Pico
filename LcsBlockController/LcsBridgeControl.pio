@@ -29,11 +29,11 @@
 //------------------------------------------------------------------------------------------------------------
 // Basic DCC Signal Handler. The block controller uses a small PIO program to control the H-Bridge when DCC 
 // mode is enabled. The basic work of the PIO state machine is to relay the inverted DCC input from the Opto
-// Couplers to the output pins which drive the select input of the H-Brigde chip. There are 4 pins this state 
+// Couplers to the output pins which drive the select input of the H-Bridge chip. There are 4 pins this state 
 // machine will use:
 // 
 //       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
-//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> short curcuit, 01, 10 -> on, 11 - Z state.
+//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> short circuit, 01, 10 -> on, 11 - Z state.
 // 
 // When the DCC input signal drops to 0b00, we either have no signal or the start of the Cutout period. We 
 // insert a 4 microsecond delay, which gives some leeway when two boosters are not entirely in sync, although
@@ -44,8 +44,10 @@
 .program h_bridge_signal_control
 
 main_loop:
-    mov x, pins                 ; get DCC input
-    mov pins, x                 ; Mirror to output
+    in pins, 2                  ; read in the two DCC input pins
+    mov x, isr                  ; and copy to X
+    mov osr, x                  ; copy x to OSR
+    mov pins, x                 ; and mirror to the H-Bridge output pins
     jmp !x, blackout_start      ; if DCC input == 0b00, go to start blackout
     jmp main_loop               ; else just keep mirroring 
 
@@ -58,7 +60,8 @@ delay_loop:
     set pins, 0                 ; Enter true blackout, 0b00
 
 wait_rising:
-    mov x, pins                 ; Read pins again
+    in pins, 2                  ; read in the two DCC input pins
+    mov x, isr                  ; and copy to X
     jmp !x, wait_rising         ; Loop while still 0b00
 
     irq set 5                   ; Set IRQ flag on cutout end
@@ -70,36 +73,38 @@ wait_rising:
 // use:
 // 
 //       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
-//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> short curcuit, 01, 10 -> on, 11 - Z state.
-//       Uart in         - UART input from RailCom dectector. ( also configured as JumpPin )
+//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> short circuit, 01, 10 -> on, 11 - Z state.
+//       Uart in         - UART input from RailCom detector. ( also configured as JumpPin )
 //
 // In normal mode, we read in the DCC signals and echo them to the H-Bridge control pins. When a 0b00 is 
-// detected, we are at the start if a cutout period. First we place the brdige in a short high impedance mode
+// detected, we are at the start if a cutout period. First we place the bridge in a short high impedance mode
 // as described in the basic DCC signal handler. Next we poll for a start condition on the UART input, or a 
 // change in the DCC signal state. 
 // 
 // A Railcom datagram is a sequence of 2 bytes followed by 6 bytes. We set up a loop to read and place each
-// byte in the Input FIFO. The state machine needs to be flexible to read in the characteres. First, There
+// byte in the Input FIFO. The state machine needs to be flexible to read in the characters. First, There
 // is a gap between the first 2 bytes and the remainder. The remainder itself can be up to 6 bytes, but also
-// be shorter. We therefore conbine the detection of cutout end, i.e. the H-Bridge control signals change
+// be shorter. We therefore combine the detection of cutout end, i.e. the H-Bridge control signals change
 // to a 0b01 or 0b10 level with the detection of a UART start bit. When there is no UART input, we will 
-// thourgh this test combination ensure that we do not miss the cutout end, and we still can tolerate a 
+// through this test combination ensure that we do not miss the cutout end, and we still can tolerate a 
 // gap between the individual bytes to receive. 
 //
-// The Railcom Baudrate is 250 KHz. To accomodate, we run the state machine at about a 2Mhz clock. So, the 
-// initial copy of DCC to output is  about 1 microsecond.
+// The Railcom baud rate is 250 KHz. To accommodate, we run the state machine at about a 2Mhz clock. So, the 
+// simple copy of DCC to output is about 2 microseconds.
 //
 //------------------------------------------------------------------------------------------------------------
 .program h_bridge_signal_control_and_railcom
 
 main_loop:
-    mov x, pins                 ; get DCC input
-    mov pins, x                 ; Mirror to output
+    in pins, 2                  ; read in the two DCC input pins
+    mov x, isr                  ; and copy to X
+    mov osr, x                  ; copy x to OSR
+    mov pins, x                 ; and mirror to the H-Bridge output pins
     jmp !x, blackout_start      ; if DCC input == 0b00, go to start blackout
     jmp main_loop               ; else just keep mirroring 
 
 blackout_start:
-    set pins, 0b11              ; Disable H-Beidge, 0b11 
+    set pins, 0b11              ; Disable H-Bridge, 0b11 
     set y, 31                   ; prepare 4us loop
 
 delay_loop:
@@ -109,7 +114,7 @@ delay_loop:
 uart_poll:
     mov x, pins                 ; get DCC input 
     jmp pin uart_poll           ; if UART pin high, try again
-    jmp !x, uart_start          ; if DCC input == 0b00, we are stil in cutout, read in the UART byte
+    jmp !x, uart_start          ; if DCC input == 0b00, we are still in cutout, read in the UART byte
     irq 6 rel                   ; otherwise inform that we are leaving
     jmp main_loop               ; back to main loop.
 
@@ -144,21 +149,23 @@ wait_rising:
 .program cutout_detect
 
 start: 
-    mov x, pins             ; Copy input pins to X register
-    jmp !x, blackout_start  ; both bit are zero, jmp to handler
-    jmp start               ; else back to start
+    in pins, 2                  ; read in the two DCC input pins
+    mov x, isr                  ; and copy to X
+    jmp !x, blackout_start      ; both bit are zero, jmp to handler
+    jmp start                   ; else back to start
 
 blackout_start:
-    jmp !y, trigger_irq     ; If Y is zero, trigger IRQ
-    jmp y--, wait_low       ; Decrement Y and return to start
+    jmp !y, trigger_irq         ; If Y is zero, trigger IRQ
+    jmp y--, wait_low           ; Decrement Y and return to start
 
 trigger_irq: 
-    irq 0                   ; inform the CPU
+    irq 0                       ; inform the CPU
 
 wait_low: 
-    mov x, pins             ; Copy input pins to X register
-    jmp !x, wait_low        ; wait while X is still 00
-    jmp start               ; X change, back to start
+    in pins, 2                  ; read in the two DCC input pins
+    mov x, isr                  ; and copy to X
+    jmp !x, wait_low            ; wait while X is still 00
+    jmp start                   ; X change, back to start
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -176,17 +183,23 @@ wait_low:
 // PIO program for H-Bridge control in DCC mode. The PIO program does just the relay of the DCC signal 
 // without RailCom datagram processing. Upon detecting the start of the cutout period, the H-bridge is placed
 // for 4 microseconds into high impedance state before entering putting the bridge in cutout node. At the 
-// end of the citput period, an interrupt is raised.
+// end of the cutout period, an interrupt is raised.
 // 
 //      Input pins:     GPIO 4 and 5    (DCC signal from optocoupler)
 //      Output pins:    GPIO 18 and 19  (to H-bridge)
 //
 //------------------------------------------------------------------------------------------------------------
-static inline void h_bridge_signal_control( PIO pio, uint sm, uint pin_in, uint pin_out ) {
+static inline void h_bridge_signal_control( 
+    
+    PIO pio, 
+    uint sm, 
+    uint pin_in, 
+    uint pin_out ) {
 
     pio_gpio_init( pio, pin_in );
     pio_gpio_init( pio, pin_out );
     pio_sm_set_consecutive_pindirs( pio, sm, pin_out, 2, true );
+
     pio_sm_config c = h_bridge_signal_control_program_get_default_config( 0 );
     sm_config_set_in_pins( &c, pin_in );
     sm_config_set_out_pins( &c, pin_out, 2 );
@@ -203,40 +216,57 @@ static inline void h_bridge_signal_control( PIO pio, uint sm, uint pin_in, uint 
 //
 // ??? to do ....
 //------------------------------------------------------------------------------------------------------------
-static inline void h_bridge_signal_control_and_railcom( PIO pio, uint sm, uint offset, uint pin, uint baud ) {
+static inline void h_bridge_signal_control_and_railcom( 
     
-    pio_sm_set_consecutive_pindirs( pio, sm, pin, 1, false );
-    pio_gpio_init( pio, pin );
-    gpio_pull_up( pin );
+    PIO     pioInstance, 
+    uint    stateMachine, 
+    uint    progOffset, 
+    uint    dccInputPin,
+    uint    hBridgePin,
+    uint    uartPin, 
+    uint    baudRate ) {
+    
+    pio_gpio_init( pioInstance, dccInputPin );
+    pio_gpio_init( pioInstance, hBridgePin );
+    pio_gpio_init( pioInstance, uartPin );
 
-    pio_sm_config c = h_bridge_signal_control_and_railcom_program_get_default_config( offset );
-    sm_config_set_in_pins( &c, pin ); // for WAIT, IN
-    sm_config_set_jmp_pin( &c, pin ); // for JMP
+    gpio_pull_up( dccInputPin );
+    gpio_pull_up( uartPin );
+
+    pio_sm_set_consecutive_pindirs( pioInstance, stateMachine, dccInputPin, 2, false );
+    pio_sm_set_consecutive_pindirs( pioInstance, stateMachine, hBridgePin, 2, true );
     
-    // Shift to right, autopush disabled
+    pio_sm_config c = h_bridge_signal_control_and_railcom_program_get_default_config( offset );
+    sm_config_set_in_pins( &c, dccInputPin );   // for WAIT, IN
+    sm_config_set_out_pins( &c, hBridgePin );   // for OUT
+    sm_config_set_jmp_pin( &c, uartPin );       // for JMP
+    
+    // Shift to right, auto push disabled
     sm_config_set_in_shift( &c, true, false, 32 );
 
     // Deeper FIFO as we're not doing any TX
     sm_config_set_fifo_join( &c, PIO_FIFO_JOIN_RX );
     
     // SM transmits 1 bit per 8 execution cycles.
-    float div = (float) clock_get_hz( clk_sys ) / ( 8 * baud );
+    float div = (float) clock_get_hz( clk_sys ) / ( 8 * baudRate );
     sm_config_set_clkdiv( &c, div );
 
-    pio_sm_init( pio, sm, offset, &c );
-    pio_sm_set_enabled( pio, sm, true );
+    pio_sm_init( pio, stateMachine, progOffset, &c );
+    pio_sm_set_enabled( pio, stateMachine, true ); // ??? do later .... 
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// PIO program for just detecting a cutout sequence. When we are in PWM mode, we do not copy any DCC signal
+// not do we process railcom datagrams. We just monitor the DCC input pins for a cutout period.
 //
 //------------------------------------------------------------------------------------------------------------
-static inline void cutout_detect( PIO pio, uint sm, uint pin_in ) {
+static inline void cutout_detect( PIO pio, uint stateMachine, uint dccInputPin ) {
 
-    pio_gpio_init( pio, pin_in );
-    pio_sm_set_consecutive_pindirs( pio, sm, pin_in, 2, true );
+    pio_gpio_init( pio, dccInputPin );
+    pio_sm_set_consecutive_pindirs( pio, sm, dccInputPin, 2, true );
+
     pio_sm_config c = cutout_detect_program_get_default_config( 0 );
-    sm_config_set_in_pins( &c, pin_in );
+    sm_config_set_in_pins( &c, dccInputPin );
     sm_config_set_clkdiv( &c, 1.0f );
     pio_sm_init( pio, sm, 0, &c );
     pio_sm_set_enabled( pio, sm, true );
@@ -244,6 +274,15 @@ static inline void cutout_detect( PIO pio, uint sm, uint pin_in ) {
 
 
 %}
+
+
+//
+// ??? things to figure out:
+//
+//      are the setup procedures OK ?
+//      what needs to be done when we swap the PIO programs.
+//      how can abstract this a bit nicer ? in CDC ?
+//
 
 
 //------------------------------------------------------------------------------------------------------------
