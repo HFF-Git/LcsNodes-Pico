@@ -222,7 +222,7 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     lastPwrSamplePerSecTaken    = 0;
     pwrSamplesPerSec            = 0;
 
-    uint8_t rStat = configurePwm( rNumControl, pwmFrequency );
+    uint8_t rStat = configurePwm( rNumControl );
     if ( rStat == ALL_OK ) rStat = configureAdc( rNumSense );
     if ( rStat == ALL_OK ) rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
 
@@ -310,7 +310,7 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 //
 // ??? quick hack for debugging analog ...
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setPwmFrequency( uint16_t frequency ) {
+uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
 
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
 
@@ -319,7 +319,8 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint16_t frequency ) {
 
     if (( frequency >= 50 ) && ( frequency < 30000U )) {
 
-        uint8_t rStat = configurePwm( rNumControl, frequency );
+        uint8_t rStat = configurePwm( rNumControl );
+        if ( rStat == NO_ERR ) CDC::setPwmFrequency( rNumControl, frequency );
         return( rStat );
     }
     else return ( 255 );

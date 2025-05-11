@@ -130,16 +130,12 @@ uint8_t     extNvmSclPin                        = CDC::UNDEFINED_PIN;
 uint8_t     extNvmSdaPin                        = CDC::UNDEFINED_PIN;
 
 //------------------------------------------------------------------------------------------------------------
-//
+// A little helper function to report any errors.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
-
-        printf( "Ret: %d\n", errId );
-    }
-
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) printf( "Ret: %d\n", errId );
     return ( errId );
 }
 

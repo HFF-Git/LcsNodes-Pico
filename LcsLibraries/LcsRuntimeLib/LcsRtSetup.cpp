@@ -388,19 +388,8 @@ uint8_t initNvmChannels( CdcResourceDescMap *map ) {
     }
  
     uint8_t rStat = NO_ERR;
-
-    rStat = configureI2C( CDC_RN_NVM );
-    if ( rStat != NO_ERR ) {
-
-
-    }
-
-    rStat = configureI2C( CDC_RN_EXT_NVM );
-    if ( rStat != NO_ERR ) {
-
-
-    }
-
+    if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_NVM );
+    if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_EXT_NVM );
     return ( errStat( rStat ));
  }
 
@@ -412,15 +401,22 @@ uint8_t initNvmChannels( CdcResourceDescMap *map ) {
 uint8_t initCanBus( CdcResourceDescMap *map ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "Init Can Bus\n" );
-    
+
+    // ??? configure canBus ?
+
+    uint8_t rStat;
+
+    rStat = configureCanBus( CDC_RN_CAN_BUS );
+
     msgBus = new LcsMsgBusCAN( );
 
-    // ??? how do we get the arguments for the CAN Bus ? 
+    // ??? where do we get the CAN Id from ? 
 
-    uint8_t rStat = msgBus -> init( map -> map[ CDC_RN_CAN_BUS ].can.canId,
-                                    map -> map[ CDC_RN_CAN_BUS ].can.rxPin,
-                                    map -> map[ CDC_RN_CAN_BUS ].can.txPin,
-                                    CAN_BUS_LIB_PICO_PIO_125K_M_CORE );   // fix ....
+    rStat = msgBus -> init( canGetRxPin( CDC_RN_CAN_BUS ),
+                            canGetTxPin( CDC_RN_CAN_BUS ),
+                            canGetBaudrate(CDC_RN_CAN_BUS ),
+                            canGetTwoCores( CDC_RN_CAN_BUS ));
+
     if ( rStat != ALL_OK ) {
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {

@@ -44,6 +44,7 @@
 .program h_bridge_signal_control
 
 main_loop:
+    mov isr, null               ; clear isr
     in pins, 2                  ; read in the two DCC input pins
     mov x, isr                  ; and copy to X
     mov osr, x                  ; copy x to OSR
@@ -60,6 +61,7 @@ delay_loop:
     set pins, 0                 ; Enter true blackout, 0b00
 
 wait_rising:
+    mov isr, null               ; clear isr
     in pins, 2                  ; read in the two DCC input pins
     mov x, isr                  ; and copy to X
     jmp !x, wait_rising         ; Loop while still 0b00
@@ -96,6 +98,7 @@ wait_rising:
 .program h_bridge_signal_control_and_railcom
 
 main_loop:
+    mov isr, null               ; clear isr
     in pins, 2                  ; read in the two DCC input pins
     mov x, isr                  ; and copy to X
     mov osr, x                  ; copy x to OSR
@@ -149,6 +152,7 @@ wait_rising:
 .program cutout_detect
 
 start: 
+    mov isr, null               ; clear isr
     in pins, 2                  ; read in the two DCC input pins
     mov x, isr                  ; and copy to X
     jmp !x, blackout_start      ; both bit are zero, jmp to handler
@@ -162,6 +166,7 @@ trigger_irq:
     irq 0                       ; inform the CPU
 
 wait_low: 
+    mov isr, null               ; clear isr 
     in pins, 2                  ; read in the two DCC input pins
     mov x, isr                  ; and copy to X
     jmp !x, wait_low            ; wait while X is still 00

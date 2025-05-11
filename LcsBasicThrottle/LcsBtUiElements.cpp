@@ -69,21 +69,21 @@ UIButton        *encoderButton              = nullptr;
 //------------------------------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
 
-    configureDio( RNUM_MENU_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_SELECT_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_UP_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DOWN_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_HORN_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_BELL_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_FWD_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_REV_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_F1_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_F2_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_F3_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_F4_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_ENCODER_BUTTON, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_ENCODER_A, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_ENCODER_B, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_MENU_BUTTON );
+    configureDio( RNUM_SELECT_BUTTON );
+    configureDio( RNUM_UP_BUTTON );
+    configureDio( RNUM_DOWN_BUTTON );
+    configureDio( RNUM_HORN_BUTTON );
+    configureDio( RNUM_BELL_BUTTON );
+    configureDio( RNUM_FWD_BUTTON );
+    configureDio( RNUM_REV_BUTTON );
+    configureDio( RNUM_F1_BUTTON );
+    configureDio( RNUM_F2_BUTTON );
+    configureDio( RNUM_F3_BUTTON );
+    configureDio( RNUM_F4_BUTTON );
+    configureDio( RNUM_ENCODER_BUTTON );
+    configureDio( RNUM_ENCODER_A );
+    configureDio( RNUM_ENCODER_B );
  
     return ( ALL_OK );
 }

@@ -203,10 +203,14 @@ struct LcsMsgBusCAN {
 
     public:
 
-    uint8_t     init( uint16_t canId, uint8_t pinRx, uint8_t pinTx, uint8_t fMode = CAN_BUS_LIB_PICO_PIO_125K );
+    uint8_t     init(   uint8_t  rxPin, 
+                        uint8_t  txPin, 
+                        uint32_t baudRate   = 125000, 
+                        bool     twoCores   = false );
 
     uint8_t     sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
     uint8_t     receiveLcsMsg( uint8_t *msg );
+    void        setCanBusId( uint16_t canId );
     void        setDebugLevel( uint8_t level );
 
     private:

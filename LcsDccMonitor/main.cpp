@@ -265,7 +265,7 @@ void startBitDetection( ) {
 
   uint8_t rStat;
 
-  rStat = configureDio( RNUM_DCC_IN, CDC_DIO_IN );
+  rStat = configureDio( RNUM_DCC_IN );
   rStat = registerDioCallback( RNUM_DCC_IN, CDC_EVT_CHANGE, dccEdgeChange );
 
   belowSignal.reset( );

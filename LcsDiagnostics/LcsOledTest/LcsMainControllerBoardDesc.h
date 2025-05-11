@@ -131,7 +131,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .can {  .rxPin      = 0, 
                     .txPin      = 1,
                     .baudRate   = 125000,
-                    .canId      = 100,
                     .twoCores   = true
                  }
         },
@@ -140,7 +139,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .i2c {  .sclPin         = 3,
                     .sdaPin         = 2,
                     .baudRate       = 100000,
-                    .i2cAdrRoot     = 0,
                     .i2cTimeoutMs   = 25
                  }
         },
@@ -149,7 +147,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .i2c {  .sclPin         = 17,
                     .sdaPin         = 16,
                     .baudRate       = 100000,
-                    .i2cAdrRoot     = 0,
                     .i2cTimeoutMs   = 25
                  }
         },

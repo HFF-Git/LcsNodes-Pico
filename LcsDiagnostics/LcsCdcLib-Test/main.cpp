@@ -59,7 +59,7 @@ void initCdcLib( ) {
 //----------------------------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
-  configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
+  configureDio( CDC_RN_ACTIVITY_LED );
   writeDio( CDC_RN_ACTIVITY_LED, true );
   sleepMillis( 1000 );
 
@@ -137,23 +137,23 @@ void testFatalErr( ) {
 
 //----------------------------------------------------------------------------------------------------------
 // Set the DIO pins to input, pull-up and read the values. Use a little cable to set the voltage on the
-// extension connector.
+// extension connector. Note that we overwrite the Board descriptor data, since we need another pinMode.
 //
 //----------------------------------------------------------------------------------------------------------
 void testDioInput( ) {
 
     printf( "DIO input test\n" );
 
-    configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_0, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_1, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_2, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_3, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_4, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_5, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_6, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_7, CDC_DIO_IN_PULLUP );
-   
+    configureDio( CDC_RN_ACTIVITY_LED );
+    configureDio( RNUM_DIO_0, dMap.map[ RNUM_DIO_0 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_1, dMap.map[ RNUM_DIO_1 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_2, dMap.map[ RNUM_DIO_2 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_3, dMap.map[ RNUM_DIO_3 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_4, dMap.map[ RNUM_DIO_4 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_5, dMap.map[ RNUM_DIO_5 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_6, dMap.map[ RNUM_DIO_6 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDio( RNUM_DIO_7, dMap.map[ RNUM_DIO_7 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+
     while ( true ) {
 
         sleepMillis( 1000 );
@@ -190,22 +190,23 @@ void testDioInput( ) {
 
 //----------------------------------------------------------------------------------------------------------
 // Set the DIO pins to output and periodically toggle the values. Use a an LED array and connect the pins of
-// the extension connector to it. The toggle Led just indicates that the board is basically working.
+// the extension connector to it. The toggle Led just indicates that the board is basically working. Note 
+// that we overwrite the Board descriptor data, since we need another pinMode.
 //
 //----------------------------------------------------------------------------------------------------------
 void testDioOutput( ) {
 
     printf( "DIO output test\n" );
 
-    configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_0, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_1, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_2, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_3, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_4, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_5, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_6, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_7, CDC_DIO_OUT );
+    configureDio( CDC_RN_ACTIVITY_LED );
+    configureDio( RNUM_DIO_0, dMap.map[ RNUM_DIO_0 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_1, dMap.map[ RNUM_DIO_1 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_2, dMap.map[ RNUM_DIO_2 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_3, dMap.map[ RNUM_DIO_3 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_4, dMap.map[ RNUM_DIO_4 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_5, dMap.map[ RNUM_DIO_5 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_6, dMap.map[ RNUM_DIO_6 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_7, dMap.map[ RNUM_DIO_7 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
 
     while ( true ) {
 
@@ -241,21 +242,22 @@ void testDioOutput( ) {
 
 //----------------------------------------------------------------------------------------------------------
 // Test the DIO pin pairs. We use the first four resource IDs and pass two pins at configuration time.
+// Note that we overwrite the Board descriptor data, since we need another pinMode.
 //
 //----------------------------------------------------------------------------------------------------------
 void testDioOutputPair( ) {
 
   printf( "DIO output pair test\n" );
 
-  configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_0, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_1, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_2, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_3, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_4, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_5, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_6, CDC_DIO_OUT );
-  configureDio( RNUM_DIO_7, CDC_DIO_OUT );
+    configureDio( CDC_RN_ACTIVITY_LED );
+    configureDio( RNUM_DIO_0, dMap.map[ RNUM_DIO_0 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_1, dMap.map[ RNUM_DIO_1 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_2, dMap.map[ RNUM_DIO_2 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_3, dMap.map[ RNUM_DIO_3 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_4, dMap.map[ RNUM_DIO_4 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_5, dMap.map[ RNUM_DIO_5 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_6, dMap.map[ RNUM_DIO_6 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDio( RNUM_DIO_7, dMap.map[ RNUM_DIO_7 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
   
   while ( true ) {
 
@@ -307,7 +309,7 @@ void testAdcBlockingRead( ) {
 
   printf( "ADC read test\n" );
 
-  configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
+  configureDio( CDC_RN_ACTIVITY_LED );
   configureAdc( RNUM_ADC_0 );
   configureAdc( RNUM_ADC_1 );
   
@@ -344,7 +346,7 @@ void testTimer( ) {
 
     printf( "Timer test\n" );
 
-    configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
+    configureDio( CDC_RN_ACTIVITY_LED );
 
     uint8_t rStat = NO_ERR;
 
@@ -370,7 +372,7 @@ void testI2C( ) {
 
     uint8_t rStat = NO_ERR;
 
-    configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
+    configureDio( CDC_RN_ACTIVITY_LED );
     writeDio( CDC_RN_ACTIVITY_LED, true );
 
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_NVM );
@@ -409,11 +411,9 @@ void testPWMFixed( ) {
 
   printf( "PWM fixed frequency test\n" );
 
-  uint32_t fPwm  = 100;
-  configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
-
-  configurePwm( RNUM_PWM_0, fPwm );
-  configurePwm( RNUM_PWM_1, fPwm );
+  configureDio( CDC_RN_ACTIVITY_LED );
+  configurePwm( RNUM_PWM_0 );
+  configurePwm( RNUM_PWM_1 );
 
     while ( true ) {
 
@@ -440,15 +440,14 @@ void testPWMWithAnalogInput( ) {
 
     printf( "PWM with analog input test\n" );
 
-    configureDio( CDC_RN_ACTIVITY_LED, CDC_DIO_OUT );
+    configureDio( CDC_RN_ACTIVITY_LED );
 
-    uint32_t fPWM               = 100;
     uint16_t dutyCycle          = 0;
     uint16_t minimalThreshold   = 6;
     uint8_t  rStat              = NO_ERR;
    
     rStat = configureAdc( RNUM_ADC_0 );
-    rStat = configurePwm( RNUM_PWM_0, fPWM );
+    rStat = configurePwm( RNUM_PWM_0 );
   
     while ( true ) {
 

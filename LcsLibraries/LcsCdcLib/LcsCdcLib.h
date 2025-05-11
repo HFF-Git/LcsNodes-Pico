@@ -128,7 +128,6 @@ extern "C" {
 
     typedef void ( *TimerCallback ) ( uint32_t timerVal );
     typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
-    typedef void ( *PfailCallback ) ( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -173,16 +172,14 @@ enum CdcResourceType : uint8_t {
 enum CdcResourceIdNum : uint8_t {
 
     CDC_RN_ACTIVITY_LED     = 0,
-    CDC_RN_TIMER_0          = 1,
-    CDC_RN_TIMER_1          = 2,
-    CDC_RN_PFAIL            = 3,
-    CDC_RN_CAN_BUS          = 4,
-    CDC_RN_NVM              = 5,
-    CDC_RN_EXT_NVM          = 6,
-    CDC_RN_RESERVED         = 7,
-
-    CDC_RN_FIRST_USER_RN    = 8,
-    
+    CDC_RN_PFAIL            = 1,
+    CDC_RN_CAN_BUS          = 2,
+    CDC_RN_NVM              = 3,
+    CDC_RN_EXT_NVM          = 4,
+    CDC_RN_TIMER_0          = 5,
+    CDC_RN_TIMER_1          = 6,
+   
+    CDC_RN_FIRST_USER_RN    = 8, 
     CDC_RN_UNDEFINED        = 255
 };
 
@@ -286,7 +283,6 @@ struct CdcResourceDescCanBus {
     uint8_t     rxPin;
     uint8_t     txPin;
     uint32_t    baudRate;
-    uint32_t    canId;
     bool        twoCores;
 };
 
@@ -295,7 +291,6 @@ struct CdcResourceDescI2c {
     uint8_t     sclPin;
     uint8_t     sdaPin;
     uint32_t    baudRate;
-    uint8_t     i2cAdrRoot;
     uint16_t    i2cTimeoutMs; 
 };
 
@@ -399,8 +394,6 @@ uint8_t         watchDogEnable( bool enable );
 uint8_t         watchDogUpdate( );
 uint8_t         watchDogCausedReboot( bool *reboot );
 
-uint8_t         setPfailHandler( PfailCallback functionId );
-
 //------------------------------------------------------------------------------------------------------------
 // Timer management routines.
 //
@@ -417,13 +410,15 @@ uint8_t         stopRepeatingTimer( uint8_t timerId );
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         configureAdc( uint8_t rNum );
+uint8_t         configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum );
 uint8_t         readAdc( uint8_t rNum, uint16_t *val );
 
 //------------------------------------------------------------------------------------------------------------
 // Digital Input/Output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configureDio( uint8_t rNum, uint8_t pinMode = CDC_DIO_DEFAULT );
+uint8_t         configureDio( uint8_t rNum );
+uint8_t         configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t pinMode = CDC_DIO_DEFAULT );
 uint8_t         readDio( uint8_t rNum, bool *valA, bool *valB = nullptr );
 uint8_t         writeDio( uint8_t rNum, bool valA, bool valB = false );
 uint8_t         toggleDio( uint8_t rNum );
@@ -434,7 +429,9 @@ uint8_t         unregisterDioCallback( uint8_t rNum );
 // PWM output routines.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t         configurePwm( uint8_t rNum, uint32_t fPwm = 0 );
+uint8_t         configurePwm( uint8_t rNum );
+uint8_t         configurePwm( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint32_t frequency );
+uint8_t         setPwmFrequency( uint8_t rNum, uint32_t frequency );
 uint8_t         writePwm(uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ); 
 uint8_t         syncPwm( uint8_t rNum );
 
@@ -443,6 +440,7 @@ uint8_t         syncPwm( uint8_t rNum );
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         configureUart( uint8_t rNum );
+uint8_t         configureUart( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baudRate );
 uint8_t         startUartRead( uint8_t rNum );
 uint8_t         stopUartRead( uint8_t rNum );
 uint8_t         getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen );
@@ -452,6 +450,7 @@ uint8_t         getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen );
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         configureI2C( uint8_t rNum );
+uint8_t         configureI2C( uint8_t rNum, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate, uint32_t timeOut );
 uint8_t         i2cBusreset( uint8_t rNum );
 uint8_t         i2cWrite( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
 uint8_t         i2cRead( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit = false );
@@ -459,7 +458,6 @@ uint8_t         i2cRead( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t le
 uint8_t         i2cGetSclPin( uint8_t rNum );
 uint8_t         i2cGetSdaPin( uint8_t rNum );
 uint8_t         i2cGetBaudrate( uint8_t rNUm );
-
 uint8_t         scanI2CBus( uint8_t rNum );
 
 //------------------------------------------------------------------------------------------------------------
@@ -467,10 +465,10 @@ uint8_t         scanI2CBus( uint8_t rNum );
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         configureCanBus( uint8_t rNum );
-
+uint8_t         configureCanBus( uint8_t rNum, uint8_t rxPin, uint8_t xPin, uint32_t baudRate, bool twoCores = false );
 uint8_t         canGetRxPin( uint8_t rNum );
 uint8_t         canGetTxPin( uint8_t rNum );
-uint8_t         canGetBaudrate( uint8_t rNum );
+uint32_t        canGetBaudrate( uint8_t rNum );
 bool            canGetTwoCores( uint8_t rNum );
 
 };

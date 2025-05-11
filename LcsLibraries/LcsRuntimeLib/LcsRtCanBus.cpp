@@ -8,8 +8,8 @@
 // 16 bit node / port ID along with a 2 bit priority field is used as the CAN address.
 //
 // On the PICO, there is a library, "can2040", available that implements the CAN bus protocol in software,
-// using the PICO PIO state machines. This saves us an external controller. In addition, we allow for the
-// option to run the CAN bus state machine on a separate core. This is highly recommend as the LCS Runtime
+// using the PICO PIO state machines. This saves us an external controller chip. In addition, we allow for
+// the option to run the CAN bus state machine on a separate core. This is highly recommend as the LCS Runtime
 // has a lot of other things to do. Using a queue from the PICO C++ SDK, the core running the CAN state
 // machine will just queue the received message to be picked up by the other core when ready.
 //
@@ -231,23 +231,21 @@ namespace LCS {
 
 //------------------------------------------------------------------------------------------------------------
 // "init" is called to setup the CAN bus interface. We will first check the parameters and setup the CAN bus.
-// Next set up the interrupt handler and start the CAN bus processing. This is also the time to set the
-// initial canId.
-//
+// Next set up the interrupt handler and start the CAN bus processing. 
+// 
 //------------------------------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_t fMode ) {
+uint8_t LcsMsgBusCAN::init( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, bool twoCores ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
-        printf( "Init Can Bus -> Node: 0x%x, RxPin: %d, TxPin: %d, Mode: %d\n", canId, rxPin, txPin, fMode );
+        printf( "Init Can Bus -> rxPin: %d, txPin: %d, BaudRate: %d, twoCores: %d\n", 
+                rxPin, txPin, baudRate, twoCores );
     }
 
-    if (( rxPin == CDC::UNDEFINED_PIN ) || ( txPin == CDC::UNDEFINED_PIN )) {
+    if (( rxPin == UNDEFINED_PIN ) || ( txPin == UNDEFINED_PIN )) {
     
         return ( errStat( ERR_CAN_BUS_INIT ));
     }
-
-    this -> canId = canId;
 
     cfg.mcSetupOK       = true;
     cfg.mcRxPin         = rxPin;
@@ -256,36 +254,14 @@ uint8_t LcsMsgBusCAN::init( uint16_t canId, uint8_t rxPin, uint8_t txPin, uint8_
     cfg.mcSysClock      = clock_get_hz( clk_sys );
     cfg.mcPioNum        = 0;
     cfg.mcRxQueueSize   = RX_QUEUE_SIZE;
+    cfg.mcRunOnCore1    = twoCores;
+    cfg.mcBitRate       = baudRate;
+    cfg.mcSetupOK       = true;
 
-    cfg.mcRunOnCore1    =  (( fMode == CAN_BUS_LIB_PICO_PIO_125K_M_CORE ) ||
-                            ( fMode == CAN_BUS_LIB_PICO_PIO_250K_M_CORE ) ||
-                            ( fMode == CAN_BUS_LIB_PICO_PIO_500K_M_CORE ) ||
-                            ( fMode == CAN_BUS_LIB_PICO_PIO_1000K_M_CORE ));
+    if ( cfg.mcRunOnCore1 ) multicore_launch_core1( canBusCore );
+    else canBusCore( );
 
-    switch ( fMode ) {
-
-        case CAN_BUS_LIB_PICO_PIO_125K:
-        case CAN_BUS_LIB_PICO_PIO_125K_M_CORE:   cfg.mcBitRate = 125000; break;
-
-        case CAN_BUS_LIB_PICO_PIO_250K:
-        case CAN_BUS_LIB_PICO_PIO_250K_M_CORE:   cfg.mcBitRate = 250000; break;
-
-        case CAN_BUS_LIB_PICO_PIO_500K:
-        case CAN_BUS_LIB_PICO_PIO_500K_M_CORE:   cfg.mcBitRate = 500000; break;
-
-        case CAN_BUS_LIB_PICO_PIO_1000K:
-        case CAN_BUS_LIB_PICO_PIO_1000K_M_CORE:  cfg.mcBitRate = 1000000; break;
-
-        default: cfg.mcSetupOK = false;
-    }
-
-    if ( cfg.mcSetupOK ) {
-
-        if ( cfg.mcRunOnCore1 ) multicore_launch_core1( canBusCore );
-        else canBusCore( );
-    }
-
-    return (( cfg.mcSetupOK ) ? errStat( ALL_OK ) : errStat( ERR_CAN_BUS_INIT ));
+    return ( errStat( ALL_OK ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -320,6 +296,11 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
         else                              return ( ERR_CAN_MSG_SEND );
 
     } else return ( errStat( ALL_OK ));
+}
+
+void LcsMsgBusCAN::setCanBusId( uint16_t canId ) {
+
+    this ->canId = canId;
 }
 
 //------------------------------------------------------------------------------------------------------------

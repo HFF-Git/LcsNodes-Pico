@@ -263,8 +263,8 @@ namespace {
 
         if ( rNumRST != CDC_RN_UNDEFINED ) {
 
-            rStat = configureDio( rNumRST, CDC_DIO_OUT );
-            if ( rStat != CDC::NO_ERR ) return( rStat );
+            rStat = configureDio( rNumRST );
+            if ( rStat != NO_ERR ) return( rStat );
 
             writeDio( rNumRST, false );
             sleepMillis( 10 );

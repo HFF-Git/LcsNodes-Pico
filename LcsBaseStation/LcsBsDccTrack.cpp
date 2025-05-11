@@ -831,8 +831,8 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     lastPwrSamplePerSecTaken  = 0;
     pwrSamplesPerSec          = 0;
 
-    configureDio( rNumEnable, CDC_DIO_OUT );
-    configureDio( rNumControl, CDC_DIO_OUT );
+    configureDio( rNumEnable );
+    configureDio( rNumControl );
     configureAdc( rNumSense );
 
     writeDio( rNumEnable, false );

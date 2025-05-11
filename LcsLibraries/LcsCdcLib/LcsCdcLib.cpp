@@ -177,6 +177,16 @@ struct TimerResource {
 };
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct PfailResource {
+
+    uint8_t             pfailResId;
+    uint8_t             pFailPin;
+};
+
+//------------------------------------------------------------------------------------------------------------
 // An ADC instance. The PICO supports up to three ADC inputs. When we use such an input, the corresponding
 // instance data is kept in this structure. We also keep the PICO ADC number, so we can select the correct
 // instance.
@@ -599,7 +609,8 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
 }
  
  //------------------------------------------------------------------------------------------------------------
- // "getResourceMap" will return a pointer to the configured resource map.
+ // "getResourceMap" will return a pointer to the configured resource map. This is the map stored wit the
+ // call to cdcInit.
  //
  //------------------------------------------------------------------------------------------------------------
  CdcResourceMap  *getResourceMap( ) {
@@ -814,14 +825,6 @@ uint8_t watchDogCausedReboot( bool *reboot ) {
     return ( watchdog_caused_reboot( ));
 }
 
-// ??? where do we set the pfailPin ?
-
-uint8_t setPfailHandler( PfailCallback functionId ) {
-
-    // ??? to do ...
-    return ( NO_ERR );
-}
-
 //------------------------------------------------------------------------------------------------------------
 // Timer section. The CDC library features a repeating timer with a microsecond resolution. Up to four timers
 // can be configured, identified via a chosen resource Id. There are routines start and stop the timer and 
@@ -907,26 +910,34 @@ uint8_t onTimerEvent( uint8_t resId, TimerCallback functionId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t rNum ) {
 
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+
+    CdcResourceDescAdc *dPtr = (CdcResourceDescAdc *) lookupResourceDesc( rNum, CDC_RT_ADC );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    return( configureAdc( rNum, dPtr -> pin, dPtr -> adcNum ));
+}
+
+uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
+
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
     
     AdcResource *rPtr = (AdcResource *) allocateResourceType( rNum, CDC_RT_ADC );
     if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    CdcResourceDescAdc *dPtr = (CdcResourceDescAdc *) lookupResourceDesc( rNum, CDC_RT_ADC );
-    if ( dPtr == nullptr ) return( RES_NUM_ERR );
-
-    if ( dPtr -> pin == 26 ) {
+    if ( adcPin == 26 ) {
 
         rPtr -> adcPin = 26;
         rPtr -> adcNum = 0;
     }
-    else  if ( dPtr -> pin == 27 ) {
+    else  if ( adcPin == 27 ) {
 
         rPtr -> adcPin = 27;
         rPtr -> adcNum = 1;
     }
-    else  if ( dPtr -> pin == 28 ) {
+    else  if ( adcPin == 28 ) {
 
         rPtr -> adcPin = 28;
         rPtr -> adcNum = 2;
@@ -973,23 +984,29 @@ uint16_t getAdcDigitRange( ) {
 //
 // ??? we support only setting a handler for pinA ?
 //------------------------------------------------------------------------------------------------------------
-uint8_t configureDio( uint8_t rNum, uint8_t mode ) {
+uint8_t configureDio( uint8_t rNum ) {
 
-    if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+   
+    CdcResourceDescGpio *dPtr = (CdcResourceDescGpio *) lookupResourceDesc( rNum, CDC_RT_GPIO );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    return( configureDio( rNum, dPtr -> pinA, dPtr -> pinB, dPtr -> pinMode ));
+}
+
+uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
+
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
     
     GpioResource *rPtr = (GpioResource *) allocateResourceType( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    CdcResourceDescGpio *dPtr = (CdcResourceDescGpio *) lookupResourceDesc( rNum, CDC_RT_GPIO );
-    if ( dPtr == nullptr ) return( RES_NUM_ERR );
-
-    rPtr -> dioPinA = dPtr -> pinA;
-    rPtr -> dioPinB = dPtr -> pinB;
+    rPtr -> dioPinA = pinA;
+    rPtr -> dioPinB = pinB;
     rPtr -> handler = nullptr;
  
     if ( mode == CDC_DIO_DEFAULT )  rPtr -> pinMode = mode % 4;
-    else                            rPtr -> pinMode = dPtr -> pinMode;
+    else                            rPtr -> pinMode = mode;
 
     if ( ! validPin( rPtr -> dioPinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
     if ( ! validPin( rPtr -> dioPinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
@@ -1094,7 +1111,17 @@ uint8_t toggleDio( uint8_t rNum ) {
 // to configure again. 
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t configurePwm( uint8_t rNum, uint32_t fPwm ) {
+uint8_t configurePwm( uint8_t rNum ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+   
+    CdcResourceDescPwm *dPtr = (CdcResourceDescPwm *) lookupResourceDesc( rNum, CDC_RT_PWM );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    return( configurePwm( rNum, dPtr -> pinA, dPtr -> pinB, dPtr -> frequency ));
+}
+
+uint8_t configurePwm( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint32_t frequency ) {
 
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
@@ -1102,17 +1129,12 @@ uint8_t configurePwm( uint8_t rNum, uint32_t fPwm ) {
     PwmResource *rPtr = (PwmResource *) allocateResourceType( rNum, CDC_RT_PWM );
     if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    CdcResourceDescPwm *dPtr = (CdcResourceDescPwm *) lookupResourceDesc( rNum, CDC_RT_PWM );
-    if ( dPtr == nullptr ) return( RES_NUM_ERR );
-
-    rPtr -> pwmPinA         = dPtr ->pinA;
-    rPtr -> pwmPinB         = dPtr ->pinB;
+    rPtr -> pwmPinA         = pinA;
+    rPtr -> pwmPinB         = pinB;
     rPtr -> phaseCorrect    = true;
     rPtr -> inverted        = false;     
     rPtr -> sliceNum        = pwm_gpio_to_slice_num( rPtr -> pwmPinA );
-
-    if ( fPwm == 0 )    rPtr -> frequency   = dPtr ->frequency;
-    else                rPtr -> frequency   = fPwm;              
+    rPtr -> frequency       = frequency;              
 
     if ( rPtr -> pwmPinB != UNDEFINED_PIN ) {
 
@@ -1148,6 +1170,20 @@ uint8_t configurePwm( uint8_t rNum, uint32_t fPwm ) {
     }
 
     return ( NO_ERR );
+}
+
+uint8_t setPwmFrequency( uint8_t rNum, uint32_t frequency ) {
+
+    if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_PWM )) {
+        
+        printf( "Set PWMFrequency: rNum: %d, f: %d\n", rNum, frequency );
+    }
+
+    PwmResource *rPtr = (PwmResource *) lookupResource( rNum, CDC_RT_PWM );
+    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+
+
+    return( configurePwm( rNum, rPtr -> pwmPinA, rPtr -> pwmPinB, frequency ));
 }
 
 uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
@@ -1195,18 +1231,25 @@ uint8_t syncPwm( uint8_t rNum ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rNum ) {
 
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+   
+    CdcResourceDescUart *dPtr = (CdcResourceDescUart *) lookupResourceDesc( rNum, CDC_RT_UART );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    return( configureUart( rNum, dPtr -> rxPin, dPtr -> txPin, dPtr -> baudRate ));
+}
+
+uint8_t configureUart( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baudRate ) {
+
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
     
     UartResource *rPtr = (UartResource *) allocateResourceType( rNum, CDC_RT_UART );
     if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    CdcResourceDescUart *dPtr = (CdcResourceDescUart *) lookupResourceDesc( rNum, CDC_RT_UART );
-    if ( dPtr == nullptr ) return( RES_NUM_ERR );
-
-    rPtr -> rxPin           = dPtr -> rxPin;
-    rPtr -> txPin           = dPtr -> txPin;
-    rPtr -> baudSetting     = dPtr -> baudRate;
+    rPtr -> rxPin           = rxPin;
+    rPtr -> txPin           = txPin;
+    rPtr -> baudSetting     = baudRate;
     rPtr -> dataBits        = 8;
     rPtr -> parityMode      = UART_PARITY_NONE;
     rPtr -> stopBits        = 1;
@@ -1289,20 +1332,27 @@ uint8_t getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t rNum ) {
 
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+   
+    CdcResourceDescI2c *dPtr = (CdcResourceDescI2c *) lookupResourceDesc( rNum, CDC_RT_I2C );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    return( configureI2C(   rNum, dPtr -> sclPin, dPtr -> sdaPin, 
+                            dPtr -> baudRate, dPtr -> i2cTimeoutMs ));
+}
+
+uint8_t configureI2C( uint8_t rNum, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate, uint32_t timeoutVal ) {
+
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
     
     I2cResource *rPtr = (I2cResource *) allocateResourceType( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    CdcResourceDescI2c *dPtr = (CdcResourceDescI2c *) lookupResourceDesc( rNum, CDC_RT_I2C );
-    if ( dPtr == nullptr ) return( RES_NUM_ERR );
-
-    rPtr -> sclPin          = dPtr -> sclPin;
-    rPtr -> sdaPin          = dPtr -> sdaPin;
-    rPtr -> baudRate        = dPtr -> baudRate;
-    rPtr -> i2cAdrRoot      = dPtr ->i2cAdrRoot;
-    rPtr -> timeoutValMs    = 25;
+    rPtr -> sclPin          = sclPin;
+    rPtr -> sdaPin          = sdaPin;
+    rPtr -> baudRate        = baudRate;
+    rPtr -> timeoutValMs    = timeoutVal;
 
 
     if ((( 1 << rPtr -> sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << rPtr -> sdaPin ) & VALID_I2C_0_SDA_PINS )) {
@@ -1403,7 +1453,7 @@ uint8_t i2cBusreset( uint8_t rNum ) {
 uint8_t i2cGetSclPin( uint8_t rNum ) {
 
     I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
-    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+    if ( rPtr == nullptr ) return( UNDEFINED_PIN );
 
     return( rPtr -> sclPin );
 }
@@ -1411,7 +1461,7 @@ uint8_t i2cGetSclPin( uint8_t rNum ) {
 uint8_t i2cGetSdaPin( uint8_t rNum ) {
 
     I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
-    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+    if ( rPtr == nullptr ) return( UNDEFINED_PIN );
 
     return( rPtr -> sdaPin );
 }
@@ -1419,7 +1469,7 @@ uint8_t i2cGetSdaPin( uint8_t rNum ) {
 uint8_t i2cGetBaudrate( uint8_t rNum ) {
 
     I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
-    if ( rPtr == nullptr ) return( RES_NUM_ERR );
+    if ( rPtr == nullptr ) return( 0 );
 
     return( rPtr -> baudRate );
 }
@@ -1470,22 +1520,60 @@ uint8_t scanI2CBus( uint8_t rNum ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureCanBus( uint8_t rNum ) {
 
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+   
+    CdcResourceDescCanBus *dPtr = (CdcResourceDescCanBus *) lookupResourceDesc( rNum, CDC_RT_CAN_BUS );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    return( configureCanBus( rNum, dPtr -> rxPin, dPtr -> txPin, dPtr -> baudRate, dPtr -> twoCores ));
+}
+
+uint8_t configureCanBus( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baudRate, bool twoCores ) {
+
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
     
     CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return( RES_NUM_ERR );
 
-    CdcResourceDescCanBus *dPtr = (CdcResourceDescCanBus *) lookupResourceDesc( rNum, CDC_RT_CAN_BUS );
-    if ( dPtr == nullptr ) return( RES_NUM_ERR );
-
-    rPtr -> canPinRx = dPtr -> rxPin;
-    rPtr -> canPinTx = dPtr -> txPin;
-    rPtr -> baudRate = dPtr -> baudRate;
-    rPtr -> canId    = dPtr -> canId;
-    rPtr -> twoCores = dPtr -> twoCores;
+    rPtr -> canPinRx = rxPin;
+    rPtr -> canPinTx = txPin;
+    rPtr -> baudRate = baudRate;
+    rPtr -> twoCores = twoCores;
 
     return( NO_ERR );
+}
+
+uint8_t canGetRxPin( uint8_t rNum ) {
+
+    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    if ( rPtr == nullptr ) return( UNDEFINED_PIN );
+
+    return( rPtr -> canPinRx );
+}
+
+uint8_t canGetTxPin( uint8_t rNum ) {
+
+    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    if ( rPtr == nullptr ) return( UNDEFINED_PIN );
+
+    return( rPtr -> canPinTx );
+}
+
+uint32_t canGetBaudrate( uint8_t rNum ) {
+
+    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    if ( rPtr == nullptr ) return( 0 );
+
+    return( rPtr -> baudRate );
+}
+
+bool canGetTwoCores( uint8_t rNum ) {
+
+    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    if ( rPtr == nullptr ) return( false );
+
+    return( rPtr -> twoCores );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1543,16 +1631,14 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
             case CDC_RT_I2C: {
 
                 printf( "I2C: sclPin: %d, sdaPin: %d, baudRate: %d, i2cRoot: 0x2x, timeout(MS): %d\n",
-                        dPtr -> i2c.sclPin, dPtr -> i2c.sdaPin, dPtr -> i2c.baudRate, 
-                        dPtr -> i2c.i2cAdrRoot, dPtr -> i2c.i2cTimeoutMs );
+                        dPtr -> i2c.sclPin, dPtr -> i2c.sdaPin, dPtr -> i2c.baudRate, dPtr -> i2c.i2cTimeoutMs );
 
             } break;
 
             case CDC_RT_CAN_BUS: {
 
-                printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, canId: 0x4x, twoCores: %d\n",
-                        dPtr -> can.rxPin, dPtr -> can.txPin, dPtr -> can.baudRate, 
-                        dPtr -> can.canId, dPtr -> can.twoCores );
+                printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, twoCores: %d\n",
+                        dPtr -> can.rxPin, dPtr -> can.txPin, dPtr -> can.baudRate, dPtr -> can.twoCores );
             }
 
             case CDC_RT_UNDEFINED: break;

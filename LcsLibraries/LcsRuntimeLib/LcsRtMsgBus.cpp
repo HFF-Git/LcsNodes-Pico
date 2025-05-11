@@ -219,59 +219,6 @@ void printLcsMsg( uint8_t *msg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setupMsgBus" is called during node initialization to setup the LCS message bus interface. Right now,
-// only the CAN bus is supported. We first create the CAN Bus object and then call its initialization routine.
-// The canId and nodeId are identical. We ensure through LCS configuration that the nodeIds are unique.
-//
-//
-// ??? how do we configure the CAN control mode ?
-//------------------------------------------------------------------------------------------------------------
-uint8_t setupMsgBus( ) {
-
-    uint8_t     rStat           = ALL_OK;
-    uint16_t    canBusCtrlMode  = CAN_BUS_LIB_PICO_PIO_125K_M_CORE;
-    uint8_t     canBusTxPin     = 0;
-    uint8_t     canBusRxPin     = 0;
-
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) {
-
-        printf( "setupMsgBus -> %d:%d:%d%d\n", nodeMap.nodeId, canBusRxPin, canBusTxPin, canBusCtrlMode );
-    }
-
-    switch ( canBusCtrlMode ) {
-
-        case CAN_BUS_LIB_PICO_PIO_125K:
-        case CAN_BUS_LIB_PICO_PIO_250K:
-        case CAN_BUS_LIB_PICO_PIO_500K:
-        case CAN_BUS_LIB_PICO_PIO_1000K:
-        case CAN_BUS_LIB_PICO_PIO_125K_M_CORE:
-        case CAN_BUS_LIB_PICO_PIO_250K_M_CORE:
-        case CAN_BUS_LIB_PICO_PIO_500K_M_CORE:
-        case CAN_BUS_LIB_PICO_PIO_1000K_M_CORE: {
-
-            msgBus = new LcsMsgBusCAN( );
-            rStat = (( LcsMsgBusCAN *) msgBus ) -> init( nodeMap.nodeId, canBusRxPin, canBusTxPin, canBusCtrlMode );
-
-        } break;
-
-        default: rStat = ERR_CAN_SETUP;
-    }
-
-    if ( rStat != ALL_OK ) {
-
-         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) 
-            printf( "setup CAN Bus failed: %d\n", rStat );
-
-        return ( ERR_CAN_SETUP );
-    }
-     else {
-
-         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_MSG_BUS )) printf( " -> OK\n" );
-        return ( ALL_OK );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
 // The primary task of the receive function is to receive an LCS messages and pass them to the respective
 // handler method. In order to not always check whether a valid message was processed, this routine will
 // always return a valid message opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something
