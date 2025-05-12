@@ -24,19 +24,14 @@
 #define CDC_LIB_VERSION_h
 
 //------------------------------------------------------------------------------------------------------------
+// Each LCS project piece has a version, subversion and patch level.
 // 
-//
-// ??? how do we encode a version ? family, major, minor ?
-//
-// ??? check out the pre-commit option. Perhaps generalize the python prgram to fix these constants on GIT 
-// commit
 //------------------------------------------------------------------------------------------------------------
 namespace CDC {
 
     const char      CDC_LIB_GIT_BRANCH[ ] = "git-branch";
-    const uint16_t  CDC_LIB_VERSION       = 100;  // ??? for now...
+    const uint16_t  CDC_LIB_VERSION       = 1;
     const uint16_t  CDC_LIB_PATCH_LEVEL   = 0;
-
 }
 
 #endif

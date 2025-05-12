@@ -117,12 +117,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
         },
 
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_0  
-        },
-
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_1              
-        },
-
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
             .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
         },
@@ -136,29 +130,21 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin         = 3,
-                    .sdaPin         = 2,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c {  .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c {  .sclPin         = 17,
-                    .sdaPin         = 16,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c {  .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {
             .type = CDC_RT_ADC, .resId = RNUM_ADC_0,
-            .adc { .pin = 26, .adcNum = 0 }
+            .adc { .adcPin = 26, .adcNum = 0 }
         },
 
         {
             .type = CDC_RT_ADC, .resId = RNUM_ADC_1,
-            .adc { .pin = 27, .adcNum = 1 }
+            .adc { .adcPin = 27, .adcNum = 1 }
         },
         
         {

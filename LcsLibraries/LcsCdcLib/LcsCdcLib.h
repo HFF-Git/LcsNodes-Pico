@@ -1,23 +1,24 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Controller Dependent Code - Include file
+// LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //------------------------------------------------------------------------------------------------------------
-//
-// ??? explain the interlocking between board descriptors and this lib.
-//
 // The controller dependent code layer concentrates all processor dependent code into one library. The idea
-// is twofold. First, there needs to be a way to isolate the controller specific hardware from the LCS runtime
-// Library as well as the extension module firmware. The Raspberry PI Pico offers a C++ SDK with a set of
-// libraries to invoke the desired function rather than access to registers. The Pico also offers a great
-// flexibility of pin assignment for the hardware IO functions. Mapping the pins to functions is the first 
-// goal. Second, within the hardware IO boundaries of the controller family the individual hardware pin 
-// assignment used may vary from board to board design. The goal is also to describe a board by type and 
+// is twofold. First, there needs to be a way to isolate the controller specific hardware from the LCS 
+// library as well as the extension module firmware. The Raspberry PI Pico offers a C++ SDK with a set of
+// libraries to invoke the desired hardware function rather than access to registers. The Pico also offers 
+// a great flexibility of pin assignment for the hardware IO functions. Mapping the pins to functions is the
+// first key goal. Second, within the hardware IO boundaries of the controller family the individual hardware
+// pin assignment used may vary from board to board design. The goal is also to describe a board by type and 
 // version.
+//
+// The CDC layer implements a concept of providing resources to the libraries and firmware program. A CDC
+// resource encapsulates a certain HW function. Resources are described via a resource descriptor. This 
+// is a data structure that needs to be provided for each LCS hardware component. 
 //
 // This include file implements the CDC layer from a hardware function and board configuration perspective. 
 // Note that the CDC layer is not a generic HW abstraction. The layer is very specific to the LCS controller
-// boards described in the book. 
+// board requirements described in the book. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -41,14 +42,10 @@
 #ifndef LcsCdcLib_h
 #define LcsCdcLib_h
 
-//------------------------------------------------------------------------------------------------------------
-// Include files.
-//
-//------------------------------------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <cstring>
-#include "LcsCdcLibVersion.h"
 
 //------------------------------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.
@@ -57,22 +54,21 @@
 namespace CDC {
 
 //------------------------------------------------------------------------------------------------------------
-// The debug mask. The library has a debug mask where each major part of the library has a flag. There could 
-// also be flags reserved for the firmware. There is an ITEM to read and set this mask. Wherever debugging is
-// needed, the bit mask will be used to determine whether to print debugging data or not. From a performance 
-// perspective, the test will take just a few instructions. In other words we do not take out debugging code 
-// when going into production. Never liked this approach of conditional debug anyway.
+// The debug mask. The library has a debug mask where each major part of the library has a flag. Wherever 
+// debugging is needed, the bit mask will be used to determine whether to print debugging data or not. From
+// a performance perspective, the test will take just a few instructions. In other words we do not take out
+// debugging code when going into production. Never liked this kind of conditional debug anyway.
 //
 // The usage of the debug mask is generally: 
 //
 //      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_xxx )) ....
 // 
 // The DBG_CONFIG bit allows for the entire debugging messages to be enabled or disabled. This feature will 
-// also be used when we test whether we even have a console or not. If there is no console, all the prints
-// will not be executed.
+// also be used when we test whether we even have a console to print to or not. If there is no console, all
+// the prints will not be executed.
 //
 //------------------------------------------------------------------------------------------------------------
-enum DebugOtions : uint16_t {
+enum DebugOptions : uint16_t {
 
     CDC_DBG_CONFIG      = ( 1U << 15 ),
     CDC_DBG_SETUP       = ( 1U << 0 ),
@@ -121,7 +117,7 @@ enum CdcStatus : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Callback functions signatures.
+// Callback functions signatures. So far, there are the timer callbacks and the GPIO pin callback.
 //
 //------------------------------------------------------------------------------------------------------------
 extern "C" {
@@ -162,12 +158,10 @@ enum CdcResourceType : uint8_t {
 
 //------------------------------------------------------------------------------------------------------------
 // There are predefined resource channels common to all boards. They are for example the activity led and 
-// the NVM I2C channel. These resource numbers are consequently reserved and cannot be used by the firmware
-// programmer. 
+// the NVM I2C channel. These resources channels numbers are consequently reserved and cannot be used by the
+// firmware programmer. The programmer identifies its resources relative to the start of user definable
+// resource numbers.
 //
-//
-// ??? rethink. We have reserved numbers and user defined numbers. Should we start the user numbers a bit
-// higher ? e.g. 16 ? RNUMs are the index into the descriptor array.
 //------------------------------------------------------------------------------------------------------------
 enum CdcResourceIdNum : uint8_t {
 
@@ -176,9 +170,7 @@ enum CdcResourceIdNum : uint8_t {
     CDC_RN_CAN_BUS          = 2,
     CDC_RN_NVM              = 3,
     CDC_RN_EXT_NVM          = 4,
-    CDC_RN_TIMER_0          = 5,
-    CDC_RN_TIMER_1          = 6,
-   
+    
     CDC_RN_FIRST_USER_RN    = 8, 
     CDC_RN_UNDEFINED        = 255
 };
@@ -190,7 +182,7 @@ enum CdcResourceIdNum : uint8_t {
 enum ControllerFamily : uint16_t {
 
     CDC_CF_UNDEFINED    = 0,
-    CDC_CF_RP_PICO      = 1,
+    CDC_CF_RP_PICO      = 1
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -201,7 +193,7 @@ enum ControllerChip : uint16_t {
 
     CDC_CF_C_UNDEFINED  = 0,
     CDC_CF_C_RP_2040    = 1,
-    CDC_CF_C_RP_2350    = 2,
+    CDC_CF_C_RP_2350    = 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -233,9 +225,8 @@ enum intEventTyp : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// PWM duty cycle.
+// PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle value.
 //
-// ??? actually a value cannot be larger than 255. But we could define steps...
 //------------------------------------------------------------------------------------------------------------
 enum PwmDutyCycle : uint8_t {
 
@@ -244,13 +235,18 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CDC resource descriptor describes a CDC channel. A channel is a hardware entity that the CDC layer 
-// offers to the library and the firmware programmer. Primarily is contains the actual pin settings but also
-// any other relevant data for the particular channel. All resource entries also contain a type and the 
-// resource ID itself. The resource ID specifies the index where the resource can be found in the resource
-// entry array.
+// The CDC resource descriptor describes a CDC resource channel. A channel is a hardware entity that the CDC
+// layer offers to the LCS library and the firmware programmer. Primarily it contains the actual pin settings
+// but also any other relevant data for the particular channel. A channel entry also contains a type and the 
+// resource ID number. The resource ID specifies the index in the resource array where the resource can be 
+// found.
 //
 //------------------------------------------------------------------------------------------------------------
+struct CdcResourceDescTimer {
+
+    uint32_t    timerVal;
+};
+
 struct CdcResourceDescGpio {
 
     uint8_t     pinA;
@@ -260,7 +256,7 @@ struct CdcResourceDescGpio {
 
 struct CdcResourceDescAdc {
 
-    uint8_t     pin;
+    uint8_t     adcPin;
     uint8_t     adcNum;
 };
 
@@ -301,6 +297,7 @@ struct CdcResourceDesc {
 
     union {
 
+        CdcResourceDescTimer    timer;
         CdcResourceDescGpio     gpio;
         CdcResourceDescAdc      adc;
         CdcResourceDescPwm      pwm;
@@ -312,34 +309,31 @@ struct CdcResourceDesc {
 
 //------------------------------------------------------------------------------------------------------------
 // The resource descriptor map is the data structure passed to the runtime library initialization routine.
-// The data is used in the configuration process of the particular hardware. We will over tome have several
-// if these maps which describe the board hardware and the board purpose.
+// The data is used in the configuration process of the particular hardware board. We will over time have 
+// several boards and consequently a map for each board version. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceDescMap {
 
-    uint16_t            options                     = 0;
-    uint16_t            debugMask                   = 0;
-    uint16_t            boardId                     = 0;
-    uint16_t            cFamily                     = CDC_CF_C_UNDEFINED;
-    uint16_t            cType                       = CDC_CF_C_UNDEFINED;
-    uint16_t            cpuCores                    = 1;
-    uint32_t            memorySize                  = 0;
-    uint32_t            eepromSize                  = 0;
-    uint32_t            watchDogIntervallMillis     = 2000;
-    uint16_t            adcRefVoltageMillis         = 3300;
-    uint16_t            adcDigitRange               = 1024;
+    uint16_t            options;
+    uint16_t            debugMask;
+    uint16_t            boardId;
+    uint16_t            cFamily;
+    uint16_t            cType;
+    uint16_t            cpuCores;
+    uint32_t            memorySize;
+    uint32_t            eepromSize ;
+    uint32_t            watchDogIntervallMillis;
+    uint16_t            adcRefVoltageMillis;
+    uint16_t            adcDigitRange;
              
-    char                name[ MAX_RES_NAME_SIZE ]    = "";
+    char                name[ MAX_RES_NAME_SIZE ];
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The routines that make up the hardware abstraction layer. In general, there are routines that are just 
-// basic utility routines common to all controller implementations. The rest of routines provide the 
-// interface to the controller resources. Each resource is defied by a chosen resource, which is the index
-// into the resource array, and a resource type. The set of routines for a given resource type will use the 
-// resource index to find the configured instance. 
+// The CDC library routines that make up the hardware abstraction layer. Most routines have a return code,
+// representing the return status of the routine.
 //
 //------------------------------------------------------------------------------------------------------------
 
@@ -352,7 +346,9 @@ uint8_t         cdcInit( CdcResourceDescMap *dMap );
 void            printResourceDescMap( CdcResourceDescMap *dMap );
 void            printResourceMap( );
 
-uint8_t         getVersion( uint32_t *version );
+uint32_t        getVersion( );
+uint32_t        getPatchLevel( );
+
 void            fatalError( uint8_t errNum, char *str = nullptr,  uint8_t rStat = NO_ERR );
 
 uint16_t        getDebugMask( );
@@ -380,7 +376,7 @@ bool            isConsoleConnected( );
 char            getConsoleChar( uint32_t timeoutVal = 0 );
 
 //------------------------------------------------------------------------------------------------------------
-// General controller info routines.
+// General controller and board info routines.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         getBoardId( uint16_t *bId );

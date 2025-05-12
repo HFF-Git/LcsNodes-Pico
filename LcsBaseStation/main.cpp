@@ -76,7 +76,7 @@ void setupConfigInfo( ) {
     dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinB     = 20;
     dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinMode  = CDC_DIO_OUT;
     
-    dMap.map[ RNUM_ADC_MAIN ].adc.pin           = 26;
+    dMap.map[ RNUM_ADC_MAIN ].adc.adcPin        = 26;
     dMap.map[ RNUM_ADC_MAIN ].adc.adcNum        = 0;
 
     dMap.map[ RNUM_ENABLE_PROG ].type           = CDC_RT_GPIO;
@@ -89,7 +89,7 @@ void setupConfigInfo( ) {
     dMap.map[ RNUM_CONTROL_PROG ].gpio.pinB     = 18;
     dMap.map[ RNUM_CONTROL_PROG ].gpio.pinMode  = CDC_DIO_OUT;
 
-    dMap.map[ RNUM_ADC_PROG ].adc.pin           = 27;
+    dMap.map[ RNUM_ADC_PROG ].adc.adcPin        = 27;
     dMap.map[ RNUM_ADC_PROG ].adc.adcNum        = 1;
 
     dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;

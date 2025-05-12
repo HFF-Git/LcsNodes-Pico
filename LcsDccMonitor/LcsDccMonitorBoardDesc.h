@@ -94,12 +94,6 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
         },
 
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_0  
-        },
-
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_1              
-        },
-
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
             .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
         },

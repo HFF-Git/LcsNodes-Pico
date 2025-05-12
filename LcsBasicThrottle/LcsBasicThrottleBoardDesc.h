@@ -41,7 +41,7 @@ using namespace CDC;
 //
 // One day we will have several handheld versions. Although they will perhaps differ, their the CDC
 // resource names used should not change. 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
 const uint8_t RNUM_MENU_BUTTON      = CDC_RN_FIRST_USER_RN + 0;
 const uint8_t RNUM_SELECT_BUTTON    = CDC_RN_FIRST_USER_RN + 1;
 const uint8_t RNUM_UP_BUTTON        = CDC_RN_FIRST_USER_RN + 2;
@@ -108,12 +108,6 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
-        },
-
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_0  
-        },
-
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_1              
         },
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,

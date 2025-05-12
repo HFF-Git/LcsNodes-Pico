@@ -31,6 +31,10 @@
 //------------------------------------------------------------------------------------------------------------
 #include <stdint.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <inttypes.h>
+#include <cstring>
+
 #include "LcsRtLibVersion.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"

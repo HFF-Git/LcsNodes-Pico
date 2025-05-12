@@ -38,31 +38,34 @@ using namespace CDC;
 // RPico Defaults. Check the schematic for the board to see all pin assignments.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint8_t RNUM_ADC_0    = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t RNUM_ADC_1    = CDC_RN_FIRST_USER_RN + 1;
+const uint8_t RNUM_TIMER_0  = CDC_RN_FIRST_USER_RN + 0;
+const uint8_t RNUM_TIMER_1  = CDC_RN_FIRST_USER_RN + 1;
 
-const uint8_t RNUM_DIO_0    = CDC_RN_FIRST_USER_RN + 2;
-const uint8_t RNUM_DIO_1    = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t RNUM_DIO_2    = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t RNUM_DIO_3    = CDC_RN_FIRST_USER_RN + 5;
-const uint8_t RNUM_DIO_4    = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t RNUM_DIO_5    = CDC_RN_FIRST_USER_RN + 7;
-const uint8_t RNUM_DIO_6    = CDC_RN_FIRST_USER_RN + 8;
-const uint8_t RNUM_DIO_7    = CDC_RN_FIRST_USER_RN + 9;
-const uint8_t RNUM_DIO_8    = CDC_RN_FIRST_USER_RN + 10;
-const uint8_t RNUM_DIO_9    = CDC_RN_FIRST_USER_RN + 11;
-const uint8_t RNUM_DIO_10   = CDC_RN_FIRST_USER_RN + 12;
-const uint8_t RNUM_DIO_11   = CDC_RN_FIRST_USER_RN + 13;
+const uint8_t RNUM_ADC_0    = CDC_RN_FIRST_USER_RN + 2;
+const uint8_t RNUM_ADC_1    = CDC_RN_FIRST_USER_RN + 3;
 
-const uint8_t RNUM_PWM_0    = CDC_RN_FIRST_USER_RN + 14;
-const uint8_t RNUM_PWM_1    = CDC_RN_FIRST_USER_RN + 15;
+const uint8_t RNUM_DIO_0    = CDC_RN_FIRST_USER_RN + 4;
+const uint8_t RNUM_DIO_1    = CDC_RN_FIRST_USER_RN + 5;
+const uint8_t RNUM_DIO_2    = CDC_RN_FIRST_USER_RN + 6;
+const uint8_t RNUM_DIO_3    = CDC_RN_FIRST_USER_RN + 7;
+const uint8_t RNUM_DIO_4    = CDC_RN_FIRST_USER_RN + 8;
+const uint8_t RNUM_DIO_5    = CDC_RN_FIRST_USER_RN + 9;
+const uint8_t RNUM_DIO_6    = CDC_RN_FIRST_USER_RN + 10;
+const uint8_t RNUM_DIO_7    = CDC_RN_FIRST_USER_RN + 11;
+const uint8_t RNUM_DIO_8    = CDC_RN_FIRST_USER_RN + 12;
+const uint8_t RNUM_DIO_9    = CDC_RN_FIRST_USER_RN + 13;
+const uint8_t RNUM_DIO_10   = CDC_RN_FIRST_USER_RN + 14;
+const uint8_t RNUM_DIO_11   = CDC_RN_FIRST_USER_RN + 15;
 
-const uint8_t RNUM_DIO_P_0  = CDC_RN_FIRST_USER_RN + 16;
-const uint8_t RNUM_DIO_P_1  = CDC_RN_FIRST_USER_RN + 17;
-const uint8_t RNUM_DIO_P_2  = CDC_RN_FIRST_USER_RN + 18;
-const uint8_t RNUM_DIO_P_3  = CDC_RN_FIRST_USER_RN + 19;
+const uint8_t RNUM_PWM_0    = CDC_RN_FIRST_USER_RN + 16;
+const uint8_t RNUM_PWM_1    = CDC_RN_FIRST_USER_RN + 17;
 
-const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 20;
+const uint8_t RNUM_DIO_P_0  = CDC_RN_FIRST_USER_RN + 18;
+const uint8_t RNUM_DIO_P_1  = CDC_RN_FIRST_USER_RN + 19;
+const uint8_t RNUM_DIO_P_2  = CDC_RN_FIRST_USER_RN + 20;
+const uint8_t RNUM_DIO_P_3  = CDC_RN_FIRST_USER_RN + 21;
+
+const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 22;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -117,10 +120,12 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
         },
 
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_0  
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_0,
+            .timer { .timerVal = 0 }  
         },
 
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_1              
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_1,
+            .timer { .timerVal = 0 }               
         },
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
@@ -128,37 +133,25 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
-            .can {  .rxPin      = 0, 
-                    .txPin      = 1,
-                    .baudRate   = 125000,
-                    .twoCores   = true
-                 }
+            .can {  .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores = true }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin         = 3,
-                    .sdaPin         = 2,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c {  .sclPin         = 17,
-                    .sdaPin         = 16,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {
             .type = CDC_RT_ADC, .resId = RNUM_ADC_0,
-            .adc { .pin = 26, .adcNum = 0 }
+            .adc { .adcPin = 26, .adcNum = 0 }
         },
 
         {
             .type = CDC_RT_ADC, .resId = RNUM_ADC_1,
-            .adc { .pin = 27, .adcNum = 1 }
+            .adc { .adcPin = 27, .adcNum = 1 }
         },
         
         {

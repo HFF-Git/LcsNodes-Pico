@@ -3,10 +3,6 @@
 #
 #  Copyright (C) 2024 - 2024  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
-#
-# 
-#
-# ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.19 )
 
 project( LcsCdcLib C CXX ASM )
@@ -14,7 +10,6 @@ project( LcsCdcLib C CXX ASM )
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 ) 
 
-# add the cdc library files
 add_library( ${PROJECT_NAME} STATIC 
     
     LcsCdcLibVersion.h
@@ -26,7 +21,6 @@ target_include_directories( ${PROJECT_NAME} PRIVATE ${PICO_SDK_PATH}/src/rp2_com
 target_include_directories( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 
-# list the library dependencies. This is primarily the PICO standard and dedicated hardware libraries.
 target_link_libraries( ${PROJECT_NAME} 
 
     pico_stdlib 

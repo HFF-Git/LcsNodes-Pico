@@ -40,25 +40,25 @@ using namespace CDC;
 // One day we will have several block controller versions. Although they will perhaps differ, their the CDC
 // resource names used should not change. 
 //----------------------------------------------------------------------------------------------------------
-const uint8_t RNUM_CONTROL_BLK_0    = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t RNUM_ADC_BLK_0        = CDC_RN_FIRST_USER_RN + 1;
-const uint8_t RNUM_UART_RX_0        = CDC_RN_FIRST_USER_RN + 2;
+const uint8_t   RNUM_CONTROL_BLK_0    = CDC_RN_FIRST_USER_RN + 0;
+const uint8_t   RNUM_ADC_BLK_0        = CDC_RN_FIRST_USER_RN + 1;
+const uint8_t   RNUM_UART_RX_0        = CDC_RN_FIRST_USER_RN + 2;
 
-const uint8_t RNUM_CONTROL_BLK_1    = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t RNUM_ADC_BLK_1        = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t RNUM_UART_RX_1        = CDC_RN_FIRST_USER_RN + 5;
+const uint8_t   RNUM_CONTROL_BLK_1    = CDC_RN_FIRST_USER_RN + 3;
+const uint8_t   RNUM_ADC_BLK_1        = CDC_RN_FIRST_USER_RN + 4;
+const uint8_t   RNUM_UART_RX_1        = CDC_RN_FIRST_USER_RN + 5;
 
-const uint8_t RNUM_CONTROL_BLK_2    = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t RNUM_ADC_BLK_2        = CDC_RN_FIRST_USER_RN + 7;
-const uint8_t RNUM_UART_RX_2        = CDC_RN_FIRST_USER_RN + 8;
+const uint8_t   RNUM_CONTROL_BLK_2    = CDC_RN_FIRST_USER_RN + 6;
+const uint8_t   RNUM_ADC_BLK_2        = CDC_RN_FIRST_USER_RN + 7;
+const uint8_t   RNUM_UART_RX_2        = CDC_RN_FIRST_USER_RN + 8;
 
-const uint8_t RNUM_CONTROL_BLK_3    = CDC_RN_FIRST_USER_RN + 9;
-const uint8_t RNUM_ADC_BLK_3        = CDC_RN_FIRST_USER_RN + 10;
-const uint8_t RNUM_UART_RX_3        = CDC_RN_FIRST_USER_RN + 11;
+const uint8_t   RNUM_CONTROL_BLK_3    = CDC_RN_FIRST_USER_RN + 9;
+const uint8_t   RNUM_ADC_BLK_3        = CDC_RN_FIRST_USER_RN + 10;
+const uint8_t   RNUM_UART_RX_3        = CDC_RN_FIRST_USER_RN + 11;
 
-const uint8_t RNUM_CUT_SIGNAL       = CDC_RN_FIRST_USER_RN + 12;
+const uint8_t   RNUM_CUT_SIGNAL       = CDC_RN_FIRST_USER_RN + 12;
 
-const uint16_t PWM_FREQUENCY        = 20000;
+const uint16_t  PWM_FREQUENCY        = 20000;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -113,34 +113,20 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
         },
 
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_0  
-        },
-
-        {   .type = CDC_RT_TIMER, .resId = CDC_RN_TIMER_1              
-        },
-
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
             .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
         },
 
         {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
-            .can {  .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores   = true }
+            .can { .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores   = true }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin         = 3,
-                    .sdaPin         = 2,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c {  .sclPin         = 17,
-                    .sdaPin         = 16,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_PWM, .resId = RNUM_CONTROL_BLK_0,
@@ -148,22 +134,22 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_ADC, .resId = RNUM_ADC_BLK_0,
-            .adc { .pin = 26, .adcNum = 0 }
-        },
-
-        {   .type = RNUM_UART_RX_0, .resId = RNUM_UART_RX_0,
-            .uart { .rxPin = 12, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
-        },
-
-        {   .type = CDC_RT_PWM, .resId = RNUM_CONTROL_BLK_1,
-            .pwm { .pinA = 19, .pinB = 18, .frequency = PWM_FREQUENCY } 
+            .adc { .adcPin = 26, .adcNum = 0 }
         },
 
         {   .type = CDC_RT_ADC, .resId = RNUM_ADC_BLK_0,
-            .adc { .pin = 27, .adcNum = 1 }
+            .adc { .adcPin = 27, .adcNum = 1 }
         },
 
-        {   .type = RNUM_UART_RX_1, .resId = RNUM_UART_RX_1,
+        {   .type = RNUM_UART_RX_0, .resId = RNUM_UART_RX_0,
+            .uart {  .rxPin = 12, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+        },
+
+        {   .type = CDC_RT_PWM, .resId = RNUM_CONTROL_BLK_1,
+            .pwm {  .pinA = 19, .pinB = 18, .frequency = PWM_FREQUENCY } 
+        },
+
+        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_1,
             .uart { .rxPin = 12, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
         },
 

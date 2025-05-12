@@ -5,19 +5,14 @@
 //------------------------------------------------------------------------------------------------------------
 // This source file contains the the Raspberry Pi controller family hardware library code. The idea of this
 // library is to shield the actual hardware of processor and board implementation from the upper layers but 
-// still keep the flexibility and performance of the underlying hardware. We also need to provide a handle 
-// from the defined hardware elements to the particular board. 
+// still keep the flexibility and performance of the underlying hardware. 
 //
 // The library works with a concept of "resources". During startup, the resources are configured based on 
-// data from the board descriptor. They can locate a resources by a unique resource ID name, which is used
-// to lookup the resource handle. From thereon the handle is used to access that particular resource. An 
-// application is thus written assigning the predefined resource names to the function it needs. 
-//
-// Boards are free to use whatever names, there is however a convention to name the controller resource 
-// descriptor "Controller". 
+// data from the board resource descriptor. Most routines in the CDC layer use the resource id to access the
+// particular hardware function.
 //
 // A historic note. The original LCS code was written for Atmega and Pico. With the complete shift to PICO,
-// the CDC library just serves as a simple interface to the PICO functions. One day, we may see more different
+// the CDC library just serves as an interface to the PICO functions. One day, we may see more different
 // controllers and controller families. 
 //
 //------------------------------------------------------------------------------------------------------------
@@ -39,10 +34,6 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
-
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
 #include "tusb_config.h"
@@ -58,6 +49,7 @@
 #include "hardware/i2c.h"
 #include "hardware/spi.h"
 
+#include "LcsCdcLibVersion.h"
 #include "LcsCdcLib.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -76,14 +68,7 @@ using namespace CDC;
 // setting of the debug mask.
 //
 //------------------------------------------------------------------------------------------------------------ 
-uint16_t debugMask = CDC_DBG_CONFIG | CDC_DBG_PWM;
-
-//------------------------------------------------------------------------------------------------------------  
-// The CDC Library version data.
-//
-//------------------------------------------------------------------------------------------------------------
-const uint8_t CDC_LIB_MAJOR_VERSION = 1;
-const uint8_t CDC_LIB_MINOR_VERSION = 0;
+uint16_t debugMask = CDC_DBG_CONFIG | CDC_DBG_SETUP;
 
 //------------------------------------------------------------------------------------------------------------
 // Valid pin mappings for the Raspberry PI Pico board. We construct a set of bitmask for the pin numbers.
@@ -140,22 +125,12 @@ const uint32_t VALID_SPI_1_PINS     =   VALID_SPI_1_SCK_PINS | VALID_SPI_1_TX_PI
 // Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
 // 
 //----------------------------------------------------------------------------------------------------------
-const uint32_t  CHIP_MEM_SIZE                = 264 * 1024;         // ??? not true for RP2350
-const uint32_t  CHIP_NVM_SIZE                = 0;
-
-const uint16_t  ADC_DIGIT_RANGE              = 1024;
-const uint16_t  ADC_REF_VOLTAGE_MILLI_VOLT   = 3300;
-
-const uint8_t   MAX_UART_BUF_SIZE            = 8;
-
-const uint32_t  I2C_FREQUENCY                = 100 * 1000;
-const uint32_t  I2C_TIME_OUT_IN_MS           = 250;
-
 const uint16_t  MAX_CPU_CORE                = 2;
 const uint16_t  MAX_INT_PIN                 = 24;
 
 const uint16_t  MAX_RESOURCE_ENTRIES        = 32;
 const uint16_t  MAX_RES_NAME                = 64;
+const uint8_t   MAX_UART_BUF_SIZE           = 8;
 
 //------------------------------------------------------------------------------------------------------------
 // Controller dependent code uses a set of hardware resource structures to control the controller hardware. 
@@ -170,20 +145,9 @@ const uint16_t  MAX_RES_NAME                = 64;
 //------------------------------------------------------------------------------------------------------------
 struct TimerResource {
 
-    bool                configured = false;
-    uint8_t             timerResId;
+    uint32_t            timerVal;
     TimerCallback       timerCallback;
     repeating_timer_t   timerData;
-};
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-struct PfailResource {
-
-    uint8_t             pfailResId;
-    uint8_t             pFailPin;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -293,6 +257,7 @@ struct CdcResource {
 
     union {
 
+        TimerResource   timer;
         GpioResource    gpio;
         AdcResource     adc;
         PwmResource     pwm;
@@ -310,25 +275,24 @@ struct CdcResource {
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceMap {
 
-    uint16_t            options                     = 0;
-    uint16_t            debugMask                   = 0;
-    uint16_t            boardId                     = 0;     
-    uint16_t            cFamily                     = CDC_CF_C_UNDEFINED;
-    uint16_t            cType                       = CDC_CF_C_UNDEFINED;
-    uint16_t            cpuCores                    = 1;
-    uint32_t            memorySize                  = 0;
-    uint32_t            eepromSize                  = 0;
-    uint32_t            watchDogIntervallMillis     = 2000;
-    uint16_t            adcRefVoltageMillis         = 3300;
-    uint16_t            adcDigitRange               = 1024;
-    char                name[ MAX_RES_NAME ]        = "";
-   
+    uint16_t            options;
+    uint16_t            debugMask;
+    uint16_t            boardId;     
+    uint16_t            cFamily;
+    uint16_t            cType;
+    uint16_t            cpuCores;
+    uint32_t            memorySize;
+    uint32_t            eepromSize;
+    uint32_t            watchDogIntervallMillis;
+    uint16_t            adcRefVoltageMillis;
+    uint16_t            adcDigitRange;
+    char                name[ MAX_RES_NAME ];
     CdcResource         map[ MAX_RESOURCE_ENTRIES ];
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The interrupt table for the GPIO pin interrupts. The PICO can have only one interrupt handler. We will
-// allocate a table where an interrupt handler can be set for each HW pin. 
+// The interrupt table for the GPIO pin interrupts. The PICO has only one interrupt handler. We will allocate
+// a table where an interrupt handler can be set for each HW pin. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct GpioIsrTable {
@@ -338,28 +302,22 @@ struct GpioIsrTable {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Local variables. We maintain an instance variable for each of the possible HW entities, such as an I2C
-// interface or a UART. Note that not all are used at the same time. The instance variables map from the
-// simple pin numbers to the PICO structures and whatever else we need to remember for this entity.
+// File local variables. 
 //
 //------------------------------------------------------------------------------------------------------------
-bool                    initialized = false; // move into cMap ?
+bool                    initialized = false;
+
 GpioIsrTable            dioIntHandlers;
 CdcResourceDescMap      dMap;
 CdcResourceMap          rMap;
 
-TimerResource           timer_0;
-TimerResource           timer_1;
-TimerResource           timer_2;
-TimerResource           timer_3;
-
-UartResource            *uart_0;
-UartResource            *uart_1;
+UartResource            *uartRes0;
+UartResource            *uartRes1;
 
 //------------------------------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and matches the bitmask
 // for the desired purpose. For example, configuring an I2C port will check that the two GPIO pins are
-// indeed routable to the I2C HW block in the PICO.
+// indeed routable to an I2C HW block in the PICO.
 //
 //------------------------------------------------------------------------------------------------------------
 bool validPin( uint8_t pin, uint32_t mask ) {
@@ -371,7 +329,7 @@ bool validPin( uint8_t pin, uint32_t mask ) {
 
 //------------------------------------------------------------------------------------------------------------
 // When no interrupt is configured for a GPIO pin, we set the table entry to a dummy handler. This way
-// we do not have to check for a valid procedure label when we handle an interrupt.
+// we do not have to check every time for a valid procedure label when we handle an interrupt.
 //
 //------------------------------------------------------------------------------------------------------------
 void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
@@ -395,7 +353,7 @@ void initIsrTable( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Set up the CDC resource map with default values.
 //
 //------------------------------------------------------------------------------------------------------------
 void initResourceMap( CdcResourceMap *rMap ) {
@@ -417,7 +375,7 @@ void initResourceMap( CdcResourceMap *rMap ) {
 } 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// A resource descriptor is found by indexing into the resource descriptor map with index and resource type.
 //
 //------------------------------------------------------------------------------------------------------------
 CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
@@ -428,7 +386,7 @@ CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// A resource is found by indexing into the resource map with index and resource type.
 //
 //------------------------------------------------------------------------------------------------------------
 CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
@@ -439,7 +397,9 @@ CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// The configuration routines will allocate the corresponding entry in the resource map. When the entry is 
+// found but of a different type, it is an error. When there is no entry yet, the entry is initialized with
+// the type and can be used for configuration.
 //
 //------------------------------------------------------------------------------------------------------------
 CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
@@ -458,11 +418,11 @@ CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The PICO uses a set of constants to describe the interrupt type. We map our interrupt types to the PICO
-// GPIO_IRQ_xxx types.
+// The PICO uses a set of constants to describe the GPIO pin interrupt type. We map our CDC interrupt types to 
+// the PICO GPIO_IRQ_xxx types.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t mapGpioIntEvent( uint8_t event ) {
+uint32_t mapCdcIntEvent( uint8_t event ) {
 
     switch ( event ) {
 
@@ -475,10 +435,6 @@ uint32_t mapGpioIntEvent( uint8_t event ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// The PICO uses a set of constants to describe the interrupt type. We map them to our types. 
-//
-//------------------------------------------------------------------------------------------------------------
 uint8_t mapPicoGpioEvent( uint32_t event ) {
 
     switch ( event ) {
@@ -499,11 +455,10 @@ uint8_t mapPicoGpioEvent( uint32_t event ) {
 // "user_data" field, so that we can get to the interrupt handler configured.
 //
 // The GPIO interrupt handler manages the handler for all possible IO pins. The PICO can only have one 
-// interrupt routine, so we feature an array of handlers where a handler for a GPIO pin can be registered. If
-//  there is a handler set, we just invoke it. 
+// interrupt routine, so we feature an array of handlers where a handler for a GPIO pin can be registered. 
 // 
-// The UART handlers will handle receive character interrupts of the UART hardware blocks. There is no easy
-// way to get to the resource structure where the input buffer is. We maintain two global variables in this 
+// The UART handlers will handle receive interrupts of the UART hardware blocks. There is no easy way to get
+// to the resource structure where the input buffer is. We therefore maintain two global variables in this 
 // file to store the configured resource for each UART HW block.
 // 
 //------------------------------------------------------------------------------------------------------------
@@ -525,7 +480,7 @@ void uartRxCallback0( ) {
     while ( uart_is_readable( uart0 )) {
 
         uint8_t ch = uart_getc( uart0 );
-        if ( uart_0 -> rxBufIndex < MAX_UART_BUF_SIZE ) uart_0 -> rxDataBuf[ uart_0 -> rxBufIndex++ ] = ch;
+        if ( uartRes0 -> rxBufIndex < MAX_UART_BUF_SIZE ) uartRes0 -> rxDataBuf[ uartRes0 -> rxBufIndex++ ] = ch;
     }
 }
 
@@ -534,7 +489,7 @@ void uartRxCallback1( ) {
     while ( uart_is_readable( uart1 )) {
 
         uint8_t ch = uart_getc( uart1 );
-        if ( uart_1 -> rxBufIndex < MAX_UART_BUF_SIZE ) uart_1 -> rxDataBuf[ uart_1 -> rxBufIndex++ ] = ch;
+        if ( uartRes1 -> rxBufIndex < MAX_UART_BUF_SIZE ) uartRes1 -> rxDataBuf[ uartRes1 -> rxBufIndex++ ] = ch;
     }
 }
 
@@ -593,8 +548,22 @@ uint16_t getDebugMask( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// CDC library setup. The "init" routine will ready the CDC library and keep a copy of the descriptor map.
-// The init routine can be called more than once without a problem.
+// Version Info.
+//
+//------------------------------------------------------------------------------------------------------------
+uint32_t getVersion( ) {
+
+    return ( CDC_LIB_VERSION );
+}
+
+uint32_t getPatchLevel( ) {
+    
+    return ( CDC_LIB_PATCH_LEVEL );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// CDC library setup. The "init" routine will ready the CDC library and keep a copy of the descriptor map
+// which will be used for the setup. The init routine can be called more than once without a problem.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
@@ -609,8 +578,8 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
 }
  
  //------------------------------------------------------------------------------------------------------------
- // "getResourceMap" will return a pointer to the configured resource map. This is the map stored wit the
- // call to cdcInit.
+ // "getResourceMap" will return a pointer to the configured resource map. This is typically the map that was
+ // created with the data from the resource descriptor map.
  //
  //------------------------------------------------------------------------------------------------------------
  CdcResourceMap  *getResourceMap( ) {
@@ -619,19 +588,9 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
  }
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t getVersion( uint32_t *version ) {
-
-    *version = ( CDC_LIB_MAJOR_VERSION << 8 | CDC_LIB_MINOR_VERSION );
-    return ( NO_ERR );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "fatalError" is the error communication method when we cannot get anything to work, except the onboard
-// LED. The Raspberry Pi PICO has a small Led on the board. We will use this LED to "blink" an error code.
-// There are up to eight codes. The sequence is as follows:
+// "fatalError" is the error communication method when we cannot get anything to work. The Raspberry Pi PICO
+// has a small Led on the board. We will use this LED to "blink" an error code. There are up to eight codes. 
+// The sequence is as follows:
 //
 //    repeat forever:
 //
@@ -641,7 +600,8 @@ uint8_t getVersion( uint32_t *version ) {
 // The only way to get out of this loop is then to reset the board. Fatal errors are hopefully not many. One
 // obvious one is when we cannot detect the NVM and thus know nothing about the board.
 //
-// If we have a console, we attempt to first write an error message to the console. 
+// If we have a console, we attempt to first write an error message to the console before looping.
+//
 //------------------------------------------------------------------------------------------------------------
 void fatalError( uint8_t n, char *str, uint8_t rStat ) {
 
@@ -674,7 +634,7 @@ void fatalError( uint8_t n, char *str, uint8_t rStat ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Simple timestamp functions.
+// Simple timestamp and sleep functions.
 // 
 //------------------------------------------------------------------------------------------------------------
 uint32_t getMillis( ) {
@@ -718,24 +678,25 @@ uint32_t createUid( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Console IO section. We set up the stdio via the USB connector. As part of the CDC init call, the configure
-// call should be done rather early, so that we can print out debug messages. In normal LCS node operation
-// there is no USB connected. Detecting a connection helps to decide whether we can report an error or need
-// to resort to a fatal error call at startup. 
+// Console IO section. We set up the stdio via the USB connector. As part of the cdcInit call, the console 
+// configure call should be done rather early, so that we can print out debug messages. In normal LCS node
+// operation there is no USB connected. Detecting a connection helps to decide whether we can report an error
+// or need to resort to a fatal error call at startup. 
 //
 // There are two basic ways to detect an USB connection. The first is to simply check if there is power on 
 // the USB port. The PICO features an internal GPIO pin for this purpose. Using this method still does not
-// mean that we have someone connected to the USB, but just that there is a cable with power. Well, good
+// mean that we have a computer connected to the USB, but just that there is a cable with power. Well, good
 // enough for us. The second method truly detects that there is a USB host connected. This check is provided
 // via the PICO libraries which in turn use the tinyUSB library. However, there could be a timing problem
-// where the USB stack is not ready and we conclude wrongly that there is no USB connection. For now, let's
-// rather go with the approach to check if there is power on the VBUS pin, at the risk that there is just 
-// power on the USB connector and no data.
+// where the USB stack is not ready yet and we conclude wrongly that there is no USB connection. For now, 
+// let's rather go with the crude approach to check if there is power on the VBUS pin, at the risk that there
+// is just power on the USB connector and no data.
 //
 // Finally, there is a routine to get a character for the command interfaces. Since the function just reads
-// in a character, optionally with a timeout how long to wait for any inout.
+// in a character, optionally with a timeout how long to wait for any input.
 //
 // PS: The USB check way would be "return ( stdio_usb_connected( ));" instead of the GPIO check.
+//
 //------------------------------------------------------------------------------------------------------------
 uint8_t configureConsoleIO( ) {
 
@@ -759,28 +720,29 @@ char getConsoleChar( uint32_t timeoutVal ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Processor general values required by the low level LCS core library functions. A controller is configured
-// just like any other resource. Although most of the controller parameters are fixed we take the values from
-// the descriptor array, since some of them are not that easy to get. 
+// just like any other resource but does not have a resource ID number. Although most of the controller 
+// parameters are fixed we take the values from the descriptor array, since some of them are not that easy 
+// to get. 
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t getControllerFamily( uint16_t *family ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    *family =rMap.cFamily;
+    *family = rMap.cFamily;
     return ( NO_ERR );
 }
 
 uint8_t getControllerChip( uint16_t *ctl ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    *ctl =rMap.cType;
+    *ctl = rMap.cType;
     return ( NO_ERR );
 }
 
 uint8_t getBoardId( uint16_t *bId ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    *bId =rMap.boardId;
+    *bId = rMap.boardId;
     return ( NO_ERR );
 }
 
@@ -794,7 +756,7 @@ uint8_t getChipMemSize( uint32_t *size ) {
 uint8_t getChipNvmSize( uint32_t *size ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
-    *size = CHIP_NVM_SIZE;
+    *size = rMap.eepromSize;
     return ( NO_ERR );
 }
 
@@ -805,6 +767,10 @@ uint8_t getChipCpuFrequency( uint32_t *frequency ) {
     return ( NO_ERR );
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Watchdog facility.
+//
+//------------------------------------------------------------------------------------------------------------
 uint8_t watchDogEnable( bool enable ) {
 
     if ( ! initialized ) return( NOT_INITIALZED_ERR );
@@ -827,33 +793,30 @@ uint8_t watchDogCausedReboot( bool *reboot ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Timer section. The CDC library features a repeating timer with a microsecond resolution. Up to four timers
-// can be configured, identified via a chosen resource Id. There are routines start and stop the timer and 
-// allow to set a new limit. The PICO offers a high level function that schedules a repeating timer with the
-// property of measuring the interval also from the start of the callback invocation. 
+// can be configured, identified via their resource Id. There are routines to start and stop the timer as well 
+// as to allow to set a new limit. The PICO offers a high level function that schedules a repeating timer with
+// the property of measuring the interval also from the start of the callback invocation. 
 //
 //------------------------------------------------------------------------------------------------------------
-TimerResource *getTimerResource( uint8_t resId ) {
+uint8_t configureTimer( uint8_t rNum, TimerCallback functionId ) {
 
-    if      ( timer_0.timerResId == resId ) return( &timer_0 );
-    else if ( timer_1.timerResId == resId ) return( &timer_1 );
-    else if ( timer_2.timerResId == resId ) return( &timer_2 );
-    else if ( timer_3.timerResId == resId ) return( &timer_3 );
-    else                                    return( nullptr );
-}
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return( RES_NUM_ERR );
+    if ( rNum >= CDC_RN_FIRST_USER_RN ) return( RES_NUM_ERR );
 
-uint8_t configureTimer( uint8_t resId, TimerCallback functionId ) {
-
-    TimerResource *ptr = getTimerResource( resId );
+    CdcResourceDescTimer *dPtr = (CdcResourceDescTimer *) lookupResourceDesc( rNum, CDC_RT_TIMER );
+    if ( dPtr == nullptr ) return( RES_NUM_ERR );
+   
+    TimerResource *ptr = (TimerResource *) allocateResourceType( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
-    ptr -> timerResId    = resId;
-    ptr -> timerCallback = functionId;
+    ptr -> timerVal         = dPtr -> timerVal;
+    ptr -> timerCallback    = functionId;
     return( NO_ERR );
 }
 
-uint8_t startRepeatingTimer( uint8_t resId, uint32_t val ) {
+uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
 
-    TimerResource *ptr = getTimerResource( resId );
+    TimerResource *ptr = (TimerResource *) lookupResource( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
     int64_t limit = val;
@@ -861,27 +824,27 @@ uint8_t startRepeatingTimer( uint8_t resId, uint32_t val ) {
     return( NO_ERR );
 }
 
-uint8_t stopRepeatingTimer( uint8_t resId ) {
+uint8_t stopRepeatingTimer( uint8_t rNum ) {
 
-    TimerResource *ptr = getTimerResource( resId );
+    TimerResource *ptr = (TimerResource *) lookupResource( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
     cancel_repeating_timer( &ptr -> timerData );
     return( NO_ERR );
 }
 
-uint8_t getRepeatingTimerLimit( uint8_t resId, uint32_t *val ) {
+uint8_t getRepeatingTimerLimit( uint8_t rNum, uint32_t *val ) {
 
-    TimerResource *ptr = getTimerResource( resId );
+    TimerResource *ptr = (TimerResource *) lookupResource( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
     *val = (uint32_t) ( - ptr -> timerData.delay_us );
     return ( NO_ERR );
 }
 
-uint8_t setRepeatingTimerLimit( uint8_t resId, uint32_t val ) {
+uint8_t setRepeatingTimerLimit( uint8_t rNum, uint32_t val ) {
 
-    TimerResource *ptr = getTimerResource( resId );
+    TimerResource *ptr = (TimerResource *) lookupResource( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
     int64_t limit = val;
@@ -889,9 +852,10 @@ uint8_t setRepeatingTimerLimit( uint8_t resId, uint32_t val ) {
     return( NO_ERR );
 }
 
-uint8_t onTimerEvent( uint8_t resId, TimerCallback functionId ) {
+// ??? needed, look at configure timer...
+uint8_t onTimerEvent( uint8_t rNum, TimerCallback functionId ) {
 
-    TimerResource *ptr = getTimerResource( resId );
+    TimerResource *ptr = (TimerResource *) lookupResource( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
     ptr -> timerCallback        = functionId;
@@ -916,7 +880,7 @@ uint8_t configureAdc( uint8_t rNum ) {
     CdcResourceDescAdc *dPtr = (CdcResourceDescAdc *) lookupResourceDesc( rNum, CDC_RT_ADC );
     if ( dPtr == nullptr ) return( RES_NUM_ERR );
    
-    return( configureAdc( rNum, dPtr -> pin, dPtr -> adcNum ));
+    return( configureAdc( rNum, dPtr -> adcPin, dPtr -> adcNum ));
 }
 
 uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
@@ -1027,9 +991,9 @@ uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
     if ( rPtr -> dioPinA <= MAX_INT_PIN ) {
 
         if ( dioIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( rPtr -> dioPinA, mapGpioIntEvent( event ), true, gpioCallback );
+            gpio_set_irq_enabled_with_callback( rPtr -> dioPinA, mapCdcIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( rPtr -> dioPinA, mapGpioIntEvent( event ), true);
+            gpio_set_irq_enabled( rPtr -> dioPinA, mapCdcIntEvent( event ), true);
     
         dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] = func;
         dioIntHandlers.numOfHandlers ++;
@@ -1259,14 +1223,14 @@ uint8_t configureUart( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baud
 
         rPtr -> uartHw  = uart0;
         rPtr -> uartIrq = UART0_IRQ;
-        uart_0          = rPtr;
+        uartRes0        = rPtr;
     }
     else if (( validPin( rPtr -> rxPin, VALID_UART_1_RX_PINS )) && 
              ( validPin( rPtr -> txPin, VALID_UART_1_TX_PINS ))) {
 
         rPtr -> uartHw  = uart1;
         rPtr -> uartIrq = UART1_IRQ;
-        uart_1          = rPtr;
+        uartRes1        = rPtr;
     }
     else return ( UART_PORT_ERR );
 
@@ -1603,7 +1567,7 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
             case CDC_RT_ADC: {
 
                 printf( "ADC: pin: %d, select: %d\n", 
-                        dPtr -> adc.pin, dPtr -> adc.adcNum );
+                        dPtr -> adc.adcPin, dPtr -> adc.adcNum );
 
             } break;
 
