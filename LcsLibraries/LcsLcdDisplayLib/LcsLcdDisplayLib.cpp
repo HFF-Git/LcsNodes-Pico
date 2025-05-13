@@ -11,7 +11,7 @@
 //
 //
 // LCS - LCD Display Driver
-// Copyright (C) 2024- 2024  Helmut Fieres
+// Copyright (C) 2024- 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -27,15 +27,9 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //------------------------------------------------------------------------------------------------------------
-
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include "LcsCdcLib.h"
-
-#include <hardware/gpio.h>
-#include "hardware/clocks.h"
-#include <hardware/i2c.h>
 
 #include "LcsLcdDisplayLib.h"
 
@@ -47,75 +41,84 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-  //----------------------------------------------------------------------------------------------------------
-  //
-  //----------------------------------------------------------------------------------------------------------
-  
-  // Commands
+//------------------------------------------------------------------------------------------------------------
+// Commands.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t CLEAR_DISPLAY = 0x01;
+constexpr uint8_t RETURN_HOME = 0x02;
+constexpr uint8_t ENTRY_MODE_SET = 0x04;
+constexpr uint8_t DISPLAY_CONTROL = 0x08;
+constexpr uint8_t CURSOR_SHIFT = 0x10;
+constexpr uint8_t FUNCTION_SET = 0x20;
+constexpr uint8_t SET_CGRAM_ADDR = 0x40;
+constexpr uint8_t SET_DDRAM_ADDR = 0x80;
 
-  constexpr uint8_t CLEAR_DISPLAY = 0x01;
-  constexpr uint8_t RETURN_HOME = 0x02;
-  constexpr uint8_t ENTRY_MODE_SET = 0x04;
-  constexpr uint8_t DISPLAY_CONTROL = 0x08;
-  constexpr uint8_t CURSOR_SHIFT = 0x10;
-  constexpr uint8_t FUNCTION_SET = 0x20;
-  constexpr uint8_t SET_CGRAM_ADDR = 0x40;
-  constexpr uint8_t SET_DDRAM_ADDR = 0x80;
+//------------------------------------------------------------------------------------------------------------
+// Flags for display entry mode set.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t ENTRY_RIGHT = 0x00;
+constexpr uint8_t ENTRY_LEFT = 0x02;
+constexpr uint8_t ENTRY_SHIFT_INCREMENT = 0x01;
+constexpr uint8_t ENTRY_SHIFT_DECREMENT = 0x00;
 
-  // Flags for display entry mode set
+//------------------------------------------------------------------------------------------------------------
+// Flags for display on/off control.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t DISPLAY_ON = 0x04;
+constexpr uint8_t DISPLAY_OFF = 0x00;
+constexpr uint8_t CURSOR_ON = 0x02;
+constexpr uint8_t CURSOR_OFF = 0x00;
+constexpr uint8_t BLINK_ON = 0x01;
+constexpr uint8_t BLINK_OFF = 0x00;
 
-  constexpr uint8_t ENTRY_RIGHT = 0x00;
-  constexpr uint8_t ENTRY_LEFT = 0x02;
-  constexpr uint8_t ENTRY_SHIFT_INCREMENT = 0x01;
-  constexpr uint8_t ENTRY_SHIFT_DECREMENT = 0x00;
+//------------------------------------------------------------------------------------------------------------
+// Flags for cursor or display shift.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t DISPLAY_MOVE = 0x08;
+constexpr uint8_t CURSOR_MOVE = 0x00;
+constexpr uint8_t MOVE_RIGHT = 0x04;
+constexpr uint8_t MOVE_LEFT = 0x00;
 
-  // Flags for display on/off control
+//------------------------------------------------------------------------------------------------------------
+// Flags for function set.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t MODE_8_BIT = 0x10;
+constexpr uint8_t MODE_4_BIT = 0x00;
+constexpr uint8_t LINE_2 = 0x08;
+constexpr uint8_t LINE_1 = 0x00;
+constexpr uint8_t DOTS_5x10 = 0x04;
+constexpr uint8_t DOTS_5x8 = 0x00;
 
-  constexpr uint8_t DISPLAY_ON = 0x04;
-  constexpr uint8_t DISPLAY_OFF = 0x00;
-  constexpr uint8_t CURSOR_ON = 0x02;
-  constexpr uint8_t CURSOR_OFF = 0x00;
-  constexpr uint8_t BLINK_ON = 0x01;
-  constexpr uint8_t BLINK_OFF = 0x00;
+//------------------------------------------------------------------------------------------------------------
+// Flags for backlight control.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t BACKLIGHT = 0x08;
+constexpr uint8_t NO_BACKLIGHT = 0x00;
 
-  // Flags for cursor or display shift
+//------------------------------------------------------------------------------------------------------------
+// Special flags.
+//
+//------------------------------------------------------------------------------------------------------------
+constexpr uint8_t ENABLE = 0x04;
+constexpr uint8_t READ_WRITE = 0x02;
+constexpr uint8_t REGISTER_SELECT = 0x01;
+constexpr uint8_t COMMAND = 0x00;
+constexpr uint8_t CHAR = 0x01;
 
-  constexpr uint8_t DISPLAY_MOVE = 0x08;
-  constexpr uint8_t CURSOR_MOVE = 0x00;
-  constexpr uint8_t MOVE_RIGHT = 0x04;
-  constexpr uint8_t MOVE_LEFT = 0x00;
-
-  // Flags for function set
-
-  constexpr uint8_t MODE_8_BIT = 0x10;
-  constexpr uint8_t MODE_4_BIT = 0x00;
-  constexpr uint8_t LINE_2 = 0x08;
-  constexpr uint8_t LINE_1 = 0x00;
-  constexpr uint8_t DOTS_5x10 = 0x04;
-  constexpr uint8_t DOTS_5x8 = 0x00;
-
-  // Flags for backlight control
-
-  constexpr uint8_t BACKLIGHT = 0x08;
-  constexpr uint8_t NO_BACKLIGHT = 0x00;
-
-  // Special flags
-
-  constexpr uint8_t ENABLE = 0x04;
-  constexpr uint8_t READ_WRITE = 0x02;
-  constexpr uint8_t REGISTER_SELECT = 0x01;
-  constexpr uint8_t COMMAND = 0x00;
-  constexpr uint8_t CHAR = 0x01;
-
-
-  constexpr uint8_t MAX_CUSTOM_CHARS = 8;
+constexpr uint8_t MAX_CUSTOM_CHARS = 8;
 
 }; // namespace
 
-
 //------------------------------------------------------------------------------------------------------------
 //
-//
+// ??? we need to keep the data in private variables...
+// ??? use resource number scheme for CDC
 //------------------------------------------------------------------------------------------------------------
 LcsLcdDisplay::LcsLcdDisplay (  uint8_t columns, 
                                 uint8_t rows,
@@ -125,8 +128,6 @@ LcsLcdDisplay::LcsLcdDisplay (  uint8_t columns,
 
 
                     }
-
-
 
 void  LcsLcdDisplay::i2cWriteByte( uint8_t val ) noexcept {
     
@@ -139,24 +140,24 @@ void  LcsLcdDisplay::i2cWriteByte( uint8_t val ) noexcept {
 
 }
 
-  void  LcsLcdDisplay::pulseEnable( uint8_t val ) noexcept {
+void  LcsLcdDisplay::pulseEnable( uint8_t val ) noexcept {
 
     static constexpr uint16_t DELAY = 600;
 
-    sleep_us(DELAY);
+    CDC::sleepMicros(DELAY);
     i2cWriteByte(val | ENABLE);
-    sleep_us(DELAY);
+    CDC::sleepMicros(DELAY);
     i2cWriteByte(val & ~ENABLE);
-    sleep_us(DELAY);
-  }
+    CDC::sleepMicros(DELAY);
+}
 
-  void  LcsLcdDisplay::sendNibble(uint8_t val) noexcept {
+void  LcsLcdDisplay::sendNibble(uint8_t val) noexcept {
 
     i2cWriteByte(val);
     pulseEnable(val);
-  }
+}
 
-  void  LcsLcdDisplay::sendByte(uint8_t val, uint8_t mode) noexcept {
+void  LcsLcdDisplay::sendByte(uint8_t val, uint8_t mode) noexcept {
 
     static constexpr uint8_t UPPER_NIBBLE = 0B1111'0000;
 
@@ -168,22 +169,22 @@ void  LcsLcdDisplay::i2cWriteByte( uint8_t val ) noexcept {
 
     sendNibble(high | mode);
     sendNibble(low | mode);
-  }
+}
 
-  void  LcsLcdDisplay::sendCommand( uint8_t val ) noexcept {
+void  LcsLcdDisplay::sendCommand( uint8_t val ) noexcept {
 
     sendByte(val, COMMAND);
-  }
+}
 
-  void  LcsLcdDisplay::sendChar(uint8_t val) noexcept {
+void  LcsLcdDisplay::sendChar(uint8_t val) noexcept {
     
     sendByte(val, CHAR);
-  }
+}
 
-  void  LcsLcdDisplay::sendRegisterSelect( uint8_t val ) noexcept {
+void  LcsLcdDisplay::sendRegisterSelect( uint8_t val ) noexcept {
 
     sendByte(val, REGISTER_SELECT);
-  }
+}
 
 void LcsLcdDisplay::displayOn( ) noexcept {
 
@@ -216,6 +217,7 @@ void LcsLcdDisplay::cursorOn() noexcept {
 }
 
 void LcsLcdDisplay::cursorOff() noexcept {
+
     displayControl &= ~CURSOR_ON;
     sendCommand(DISPLAY_CONTROL | displayControl);
 }
@@ -273,12 +275,7 @@ void LcsLcdDisplay::printChar( char ch ) noexcept {
 
 void LcsLcdDisplay::printString( char *str ) noexcept {
 
-  /*
-    for (char const CHARACTER: str)
-    {
-        printChar(CHARACTER);
-    }
-  */
+  //  ??? for (char const CHARACTER: str) printChar(CHARACTER);
 }
 
 void LcsLcdDisplay::printCustomChar( uint8_t location ) noexcept {
@@ -290,7 +287,6 @@ void LcsLcdDisplay::createCustomChar( uint8_t location, uint8_t *char_map ) noex
 {
     
   /* 
-
     location = std::min(MAX_CUSTOM_CHARS, location);
     sendCommand(SET_CGRAM_ADDR | (location << 3));
     for (size_t i = 0; i < CUSTOM_SYMBOL_SIZE; ++i)

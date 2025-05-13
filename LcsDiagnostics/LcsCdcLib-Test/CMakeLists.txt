@@ -3,10 +3,6 @@
 #
 #  Copyright (C) 2024 - 2025  Helmut Fieres
 # ------------------------------------------------------------------------------------------------------------
-#
-# 
-#
-# ------------------------------------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
 project( LcsCdcLib-Test C CXX ASM )
@@ -18,21 +14,13 @@ if ( TARGET tinyusb_device )
 
     include_directories( LcsCdcLib pico_stdlib ) 
 
-    add_executable( ${PROJECT_NAME} 
-    
-        main.cpp
-        LcsCdcLibTestBoardDesc.h 
-    )
+    add_executable( ${PROJECT_NAME} main.cpp LcsCdcLibTestBoardDesc.h )
     
     target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )
     pico_enable_stdio_uart( ${PROJECT_NAME} 0 )
-
-    # Add a custom command to run a shell script. We would like to move the uf2 file to a dedicated directory.
-    # The script is executed after the build proccess. The target direvtory is "bin" a child at the overall
-    # project level.
 
     add_custom_command(
         TARGET ${PROJECT_NAME}

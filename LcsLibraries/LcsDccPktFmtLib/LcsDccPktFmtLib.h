@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS DCC Packet Formatter - include file
+// LCS DCC Packet Formatter - Include file
 //
 //------------------------------------------------------------------------------------------------------------
 // The DCC packet formatter is a set of static routines that will analyze and print a DCC packet in human 
@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------------------------------------
 //
 // LCS - DCC Packet Formatter
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your

@@ -1,12 +1,11 @@
-/*******************************************************************************
- * @file LCD_I2C.hpp
- * @author Cristian Cristea
- * @date September 27, 2021
- * @brief Header file for the LCD_I2C class.
- *
- * @copyright Copyright (C) 2021 Cristian Cristea
- ******************************************************************************/
-
+//------------------------------------------------------------------------------------------------------------
+// @file LCD_I2C.hpp
+// @author Cristian Cristea
+// @date September 27, 2021
+// @brief Header file for the LCD_I2C class.
+//
+// @copyright Copyright (C) 2021 Cristian Cristea
+//------------------------------------------------------------------------------------------------------------
 #pragma once
 
 #include <hardware/gpio.h>
@@ -16,8 +15,8 @@
 #include <cstdint>
 #include <array>
 
-class LCD_I2C final
-{
+class LCD_I2C final {
+
  private:
 
     using byte = uint8_t;
@@ -159,7 +158,7 @@ class LCD_I2C final
  public:
 
     /**
-     * [Constructor] Initialises the I2C communication protocol using the
+     * [Constructor] Initializes the I2C communication protocol using the
      * provided instance and pins and calls the display's Init() function.
      *
      * @param address The I2C address
@@ -281,6 +280,6 @@ class LCD_I2C final
      * @param location The memory address
      * @param char_map The byte array
      */
-    void CreateCustomChar(byte location, array char_map) const noexcept;
+    void CreateCustomChar( byte location, array char_map ) const noexcept;
 };
 

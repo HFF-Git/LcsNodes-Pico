@@ -8,8 +8,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS - Controller Dependent Code - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// LCS - Controller dependent code Layer - Test Program
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
@@ -31,20 +31,21 @@
 using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
-//
+// This is the board configuration we use. See the include file for the details.
 //
 //------------------------------------------------------------------------------------------------------------
-CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00;
-
+CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
 
 //----------------------------------------------------------------------------------------------------------
-// Init the library...
+// Init the library. 
 //
 //----------------------------------------------------------------------------------------------------------
 void initCdcLib( ) {
 
     dMap.options    = 0;
-    dMap.debugMask  = 0;
+    dMap.debugMask  = CDC_DBG_CONFIG | CDC_DBG_SETUP;
+
+    // ??? should we put console IO config into initCdcLib ?
 
     cdcInit( &dMap );
     configureConsoleIO( );
@@ -53,9 +54,8 @@ void initCdcLib( ) {
 }
 
 //----------------------------------------------------------------------------------------------------------
-// test the console IO.
+// Test the console IO.
 //
-// PIN 25 is the Led on the PICO board itself.
 //----------------------------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
