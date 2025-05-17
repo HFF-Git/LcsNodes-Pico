@@ -38,21 +38,24 @@ using namespace CDC;
 // RPico Defaults. Check the schematic for the board to see all pin assignments.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint8_t RNUM_ADC_0    = CDC_RN_FIRST_USER_RN + 0;
-const uint8_t RNUM_ADC_1    = CDC_RN_FIRST_USER_RN + 1;
+const uint8_t RNUM_TIMER_0  = CDC_RN_FIRST_USER_RN + 0;
+const uint8_t RNUM_TIMER_1  = CDC_RN_FIRST_USER_RN + 1;
 
-const uint8_t RNUM_DIO_0    = CDC_RN_FIRST_USER_RN + 2;
-const uint8_t RNUM_DIO_1    = CDC_RN_FIRST_USER_RN + 3;
-const uint8_t RNUM_DIO_2    = CDC_RN_FIRST_USER_RN + 4;
-const uint8_t RNUM_DIO_3    = CDC_RN_FIRST_USER_RN + 5;
-const uint8_t RNUM_DIO_4    = CDC_RN_FIRST_USER_RN + 6;
-const uint8_t RNUM_DIO_5    = CDC_RN_FIRST_USER_RN + 7;
-const uint8_t RNUM_DIO_6    = CDC_RN_FIRST_USER_RN + 8;
-const uint8_t RNUM_DIO_7    = CDC_RN_FIRST_USER_RN + 9;
-const uint8_t RNUM_DIO_8    = CDC_RN_FIRST_USER_RN + 10;
-const uint8_t RNUM_DIO_9    = CDC_RN_FIRST_USER_RN + 11;
-const uint8_t RNUM_DIO_10   = CDC_RN_FIRST_USER_RN + 12;
-const uint8_t RNUM_DIO_11   = CDC_RN_FIRST_USER_RN + 13;
+const uint8_t RNUM_ADC_0    = CDC_RN_FIRST_USER_RN + 2;
+const uint8_t RNUM_ADC_1    = CDC_RN_FIRST_USER_RN + 3;
+
+const uint8_t RNUM_DIO_0    = CDC_RN_FIRST_USER_RN + 4;
+const uint8_t RNUM_DIO_1    = CDC_RN_FIRST_USER_RN + 5;
+const uint8_t RNUM_DIO_2    = CDC_RN_FIRST_USER_RN + 6;
+const uint8_t RNUM_DIO_3    = CDC_RN_FIRST_USER_RN + 7;
+const uint8_t RNUM_DIO_4    = CDC_RN_FIRST_USER_RN + 8;
+const uint8_t RNUM_DIO_5    = CDC_RN_FIRST_USER_RN + 9;
+const uint8_t RNUM_DIO_6    = CDC_RN_FIRST_USER_RN + 10;
+const uint8_t RNUM_DIO_7    = CDC_RN_FIRST_USER_RN + 11;
+const uint8_t RNUM_DIO_8    = CDC_RN_FIRST_USER_RN + 12;
+const uint8_t RNUM_DIO_9    = CDC_RN_FIRST_USER_RN + 13;
+const uint8_t RNUM_DIO_10   = CDC_RN_FIRST_USER_RN + 14;
+const uint8_t RNUM_DIO_11   = CDC_RN_FIRST_USER_RN + 15;
 
 const uint8_t RNUM_PWM_0    = CDC_RN_FIRST_USER_RN + 14;
 const uint8_t RNUM_PWM_1    = CDC_RN_FIRST_USER_RN + 15;
@@ -63,7 +66,6 @@ const uint8_t RNUM_DIO_P_2  = CDC_RN_FIRST_USER_RN + 18;
 const uint8_t RNUM_DIO_P_3  = CDC_RN_FIRST_USER_RN + 19;
 
 const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 20;
-
 
 //------------------------------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information about the hardware family,
@@ -76,7 +78,14 @@ const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 20;
 // support for this mapping.
 //
 //------------------------------------------------------------------------------------------------------------
-const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
+
+
+//------------------------------------------------------------------------------------------------------------
+// The board descriptor for the board version "Main controller B.01.00". This is a main controller board,
+// which we use for the CDC lib test program.
+//
+//------------------------------------------------------------------------------------------------------------
+const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
 
     //--------------------------------------------------------------------------------------------------------
     // Controller configuration and common data.
@@ -96,15 +105,15 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .options                    = 0,
     .debugMask                  = 0,
-    .cFamily                    = CDC_CF_C_UNDEFINED,
-    .cType                      = CDC_CF_C_UNDEFINED,
-    .cpuCores                   = 1,
-    .memorySize                 = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
     .eepromSize                 = 0,
     .watchDogIntervallMillis    = 2000,
     .adcRefVoltageMillis        = 3300,
     .adcDigitRange              = 1024,
-    .name                       = "LCS_DCC_MONITOR_BOARD_DESC_B_02_00",
+    .name                       = "LCS_DCC_MAIN_BOARD_DESC_B_01_00",
 
     //--------------------------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
@@ -114,23 +123,31 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     .map {
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
-            .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
+            .gpio { .pinA = 14, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_0,
+            .timer { .timerVal = 0 }  
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_1,
+            .timer { .timerVal = 0 }               
         },
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
-            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
+            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
         },
 
         {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
-            .can {  .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores   = true }
+            .can {  .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores = true }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
+            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c {  .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }  
+            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
         },
 
         {
@@ -145,12 +162,12 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
         
         {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_0,
-            .gpio { .pinA = 8, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+            .gpio { .pinA = 9, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
 
         {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_1,
-            .gpio { .pinA = 9, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+            .gpio { .pinA = 8, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
 
         {
@@ -183,6 +200,203 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 18, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
     
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_0,
+            .gpio { .pinA = 9, .pinB = 8, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_1,
+            .gpio { .pinA = 10, .pinB = 11, .pinMode = CDC_DIO_IN }
+        },
+
+        {   
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_2,
+            .gpio { .pinA = 21, .pinB = 20, .pinMode = CDC_DIO_IN }
+        },
+    
+        {   
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_3,
+            .gpio { .pinA = 19, .pinB = 18, .pinMode = CDC_DIO_IN }
+        },
+    
+        {   
+            .type = CDC_RT_PWM, .resId = RNUM_PWM_0,
+            .pwm { .pinA = 21, .pinB = UNDEFINED_PIN, .frequency = 100 }
+        },
+
+        {   
+            .type = CDC_RT_PWM, .resId = RNUM_PWM_1,
+            .pwm { .pinA = 20, .pinB = UNDEFINED_PIN, .frequency = 100 }
+        },
+
+        {   
+            .type = CDC_RT_PWM, .resId = RNUM_PWM_P_0,
+            .pwm { .pinA = 21, .pinB = 20, .frequency = 100 }
+        }
+    }
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The board descriptor for the board version "Main controller B.02.00". This is a main controller board,
+// which we use for the CDC lib test program.
+//
+//------------------------------------------------------------------------------------------------------------
+const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
+
+    //--------------------------------------------------------------------------------------------------------
+    // Controller configuration and common data.
+    //
+    //  OPTION              - option flags for the board. They are set by the application.
+    //  DEBUG MASK          - debug options. They are set by the application.
+    //  CFAMILY             - controller chip family.
+    //  CTYPE               - the controller chip.
+    //  CPU CORES           - the number of CPU cores in the chip.
+    //  MEMORY SIZE         - the main memory size of the controller chip.
+    //  EEPROM SIZE         - the non volatile memory size of the controller chip.
+    //  WATCHDOG INTERVAL   - the watchdog timer value in milliseconds.
+    //  ADC REF VOLTAGE     - the reference voltage for the ADC in milli volt.
+    //  ADC DIGIT RANGE     - the range of ADC conversion result. 
+    //  NAME                - the board name.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    .options                    = 0,
+    .debugMask                  = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
+    .eepromSize                 = 0,
+    .watchDogIntervallMillis    = 2000,
+    .adcRefVoltageMillis        = 3300,
+    .adcDigitRange              = 1024,
+    .name                       = "LCS_DCC_MAIN_BOARD_DESC_B_02_00",
+
+    //--------------------------------------------------------------------------------------------------------
+    // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
+    // the resources are defined.
+    // 
+    //--------------------------------------------------------------------------------------------------------
+    .map {
+
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
+            .gpio { .pinA = 14, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_0,
+            .timer { .timerVal = 0 }  
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_1,
+            .timer { .timerVal = 0 }               
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
+            .gpio { .pinA = 15, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
+        },
+
+        {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
+            .can {  .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores = true }
+        },
+
+        {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
+            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
+        },
+
+        {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
+            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
+        },
+
+        {
+            .type = CDC_RT_ADC, .resId = RNUM_ADC_0,
+            .adc { .adcPin = 26, .adcNum = 0 }
+        },
+
+        {
+            .type = CDC_RT_ADC, .resId = RNUM_ADC_1,
+            .adc { .adcPin = 27, .adcNum = 1 }
+        },
+        
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_0,
+            .gpio { .pinA = 6, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_1,
+            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_2,
+            .gpio { .pinA = 8, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+    
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_3,
+            .gpio { .pinA = 9, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_4,
+            .gpio { .pinA = 10, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+    
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_5,
+            .gpio { .pinA = 11, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+    
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_6,
+            .gpio { .pinA = 12, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_7,
+            .gpio { .pinA = 13, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+    
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_4,
+            .gpio { .pinA = 10, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+    
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_5,
+            .gpio { .pinA = 11, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+    
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_6,
+            .gpio { .pinA = 12, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_7,
+            .gpio { .pinA = 13, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_8,
+            .gpio { .pinA = 21, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_9,
+            .gpio { .pinA = 20, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_10,
+            .gpio { .pinA = 19, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_11,
+            .gpio { .pinA = 18, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
         {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_0,
             .gpio { .pinA = 8, .pinB = 9, .pinMode = CDC_DIO_IN }

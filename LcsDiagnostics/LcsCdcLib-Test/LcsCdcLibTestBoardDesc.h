@@ -81,10 +81,6 @@ const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 22;
 //------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
 // The board descriptor for the board version "Main controller B.01.00". This is a main controller board,
 // which we use for the CDC lib test program.
 //
@@ -109,10 +105,10 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     //--------------------------------------------------------------------------------------------------------
     .options                    = 0,
     .debugMask                  = 0,
-    .cFamily                    = CDC_CF_C_UNDEFINED,
-    .cType                      = CDC_CF_C_UNDEFINED,
-    .cpuCores                   = 1,
-    .memorySize                 = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
     .eepromSize                 = 0,
     .watchDogIntervallMillis    = 2000,
     .adcRefVoltageMillis        = 3300,
@@ -266,10 +262,10 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .options                    = 0,
     .debugMask                  = 0,
-    .cFamily                    = CDC_CF_C_UNDEFINED,
-    .cType                      = CDC_CF_C_UNDEFINED,
-    .cpuCores                   = 1,
-    .memorySize                 = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
     .eepromSize                 = 0,
     .watchDogIntervallMillis    = 2000,
     .adcRefVoltageMillis        = 3300,

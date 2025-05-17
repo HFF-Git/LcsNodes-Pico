@@ -178,6 +178,7 @@ void processPendingReqMapTimeouts( ) {
 // "sendLcsMsg" will send a message when the node is either OPERATe or CONFIG mode.
 // 
 // ??? not all messages should be enabled when we are in CFG mode...
+// ??? should we also pass our own nodeId as the canId ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 
@@ -190,6 +191,7 @@ uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 // outstanding requests. In addition we can pass a timeout value to handle cases where no reply is received
 // in a given time interval.
 //
+// ??? should we also pass our own nodeId as the canId ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout = 0 ) {
 

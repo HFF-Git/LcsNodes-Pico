@@ -73,10 +73,10 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .options                    = 0,
     .debugMask                  = 0,
-    .cFamily                    = CDC_CF_C_UNDEFINED,
-    .cType                      = CDC_CF_C_UNDEFINED,
-    .cpuCores                   = 1,
-    .memorySize                 = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
     .eepromSize                 = 0,
     .watchDogIntervallMillis    = 2000,
     .adcRefVoltageMillis        = 3300,
@@ -87,39 +87,12 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
     // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
     // the resources are defined.
     // 
+    // ??? on which board would it actually run ? just a plan RP2040 board standalone ?
     //--------------------------------------------------------------------------------------------------------
     .map {
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
-        },
-
-        {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
-            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
-        },
-
-        {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
-            .can {  .rxPin      = 0, 
-                    .txPin      = 1,
-                    .baudRate   = 125000,
-                    .twoCores   = true
-                 }
-        },
-
-        {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin         = 3,
-                    .sdaPin         = 2,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
-        },
-
-        {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c {  .sclPin         = 17,
-                    .sdaPin         = 16,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
         },
 
         {

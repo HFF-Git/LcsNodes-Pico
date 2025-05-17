@@ -574,6 +574,7 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
     if ( ! initialized ) {
 
         initIsrTable( );
+        configureConsoleIO( );
     }
 
     return ( NO_ERR );

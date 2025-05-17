@@ -81,10 +81,10 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .options                    = 0,
     .debugMask                  = 0,
-    .cFamily                    = CDC_CF_C_UNDEFINED,
-    .cType                      = CDC_CF_C_UNDEFINED,
-    .cpuCores                   = 1,
-    .memorySize                 = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
     .eepromSize                 = 0,
     .watchDogIntervallMillis    = 2000,
     .adcRefVoltageMillis        = 3300,
@@ -102,16 +102,16 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
         },
 
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
+            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
+        },
+
         {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_0,
             .timer { .timerVal = 0 }
         },
 
         {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_1,   
             .timer { .timerVal = 0 }           
-        },
-
-        {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
-            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
         },
 
         {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,

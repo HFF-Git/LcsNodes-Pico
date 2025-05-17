@@ -321,8 +321,7 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
     dMap = *map;
 
     cdcInit( map );
-    configureConsoleIO( );
-
+   
     if ( isConsoleConnected( )) {
 
         while ( true ) {
@@ -428,6 +427,24 @@ uint8_t initCanBus( CdcResourceDescMap *map ) {
     }
 
     return ( errStat( rStat ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Setup the watchdog timer. Nothing to do right now.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupWatchdog( CdcResourceDescMap *map ) {
+
+    return( ALL_OK );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Setup the power fail facility.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t setupPfail( CdcResourceDescMap *map ) {
+
+    return( ALL_OK );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -948,6 +965,8 @@ uint8_t initRuntime( CdcResourceDescMap *dMap ) {
     if ( rStat == ALL_OK )  rStat = initCanBus( dMap );
     if ( rStat != ALL_OK )  fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
 
+    if ( rStat == ALL_OK )  rStat = setupWatchdog( dMap ); 
+    if ( rStat == ALL_OK )  rStat = setupPfail( dMap );
     if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( );
     if ( rStat == ALL_OK )  rStat = setupExtNvmHeaders( );
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );

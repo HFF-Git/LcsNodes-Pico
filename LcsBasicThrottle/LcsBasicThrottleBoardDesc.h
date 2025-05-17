@@ -89,10 +89,10 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .options                    = 0,
     .debugMask                  = 0,
-    .cFamily                    = CDC_CF_C_UNDEFINED,
-    .cType                      = CDC_CF_C_UNDEFINED,
-    .cpuCores                   = 1,
-    .memorySize                 = 0,
+    .cFamily                    = CDC_CF_RP_PICO,
+    .cType                      = CDC_CF_C_RP_2040,
+    .cpuCores                   = 2,
+    .memorySize                 = 260*1024,
     .eepromSize                 = 0,
     .watchDogIntervallMillis    = 2000,
     .adcRefVoltageMillis        = 3300,
@@ -119,19 +119,7 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin         = 3,
-                    .sdaPin         = 2,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
-        },
-
-        {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c {  .sclPin         = 17,
-                    .sdaPin         = 16,
-                    .baudRate       = 100000,
-                    .i2cTimeoutMs   = 25
-                 }
+            .i2c {  .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs   = 25 }
         },
 
         {   .type = CDC_RT_GPIO, .resId = RNUM_MENU_BUTTON,

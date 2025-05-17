@@ -219,7 +219,7 @@ struct LcsMsgBusCAN {
 
     private:
 
-    uint16_t  canId = 0;
+    uint16_t  canId = 0;  // ??? should we rather use the nodeId on a call ?
 };
 
 //----------------------------------------------------------------------------------------------------------
