@@ -3,12 +3,12 @@
 // Layout Control System - Runtime attribute management
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the LCS runtime routines that implement node access. There are three routines that allow
-// to manipulate node and port data as well as issue requests to a node or port. The key are the node/port ID
-// and the item number. The "npId" will indicate which node and port the call refers to. The node portion is 
-// typically our own node Id, the port Id refers to a ports on the node, with a port Id of zero referring to
-// the node itself. Any node can access another node. In this case request comes via a message and the 
-// message handler will call the local routines in this file. 
+// This file contains the LCS runtime routines that implement node access. There are three routines that allow
+// to manipulate node and port data as well as issue requests to a node or port. The "npId" will indicate 
+// which node and port the call refers to. The node portion is typically our own node Id, the port Id refers
+// to a ports on the node, with a port Id of zero referring to the node itself. Any node can access another 
+// node. In this case request comes via a message and the message handler will call the local routines in 
+// this file. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -347,7 +347,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_SW_VERSION: {    
                 
-                *arg1 = nodeMap.nodeSwVersion; 
+                *arg1 = nodeMap.rtLibSwVersion; 
                 return ( errStat( ALL_OK ));
             }
 
@@ -548,8 +548,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_SW_VERSION: {
 
-                nodeMap.nodeSwVersion = val1;
-                return ( errStat( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeSwVersion ), val1 )));
+                nodeMap.rtLibSwVersion = val1;
+                return ( errStat( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, rtLibSwVersion ), val1 )));
             }
 
             case ITEM_ID_HW_VERSION: {

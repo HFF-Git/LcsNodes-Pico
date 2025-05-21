@@ -6,7 +6,7 @@
 // Based on the Raspberry Pi PICO controller USB interface, the LCS node has an option to accept commands and
 // display data. This interface is used for manual node and extension board configuration as well as debug
 // and troubleshooting. Most commands are sensitive to the node/port ID. If there is another node than our 
-// own node, specified with a zero node ID value, the commands is sent to the bus.
+// own node, specified with a zero node ID value, the commands is sent via the bus to that node.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -243,7 +243,7 @@ void printSummary( ) {
     }
      
     printf( "\", State: %d\n", nodeMap.nodeState );
-    printf( "LCS Library Version: %d.%d\n", nodeMap.nodeSwVersion >> 8, nodeMap.nodeSwVersion & 0xFF );
+    printf( "LCS Library Version: %d.%d\n", nodeMap.rtLibSwVersion >> 8, nodeMap.rtLibSwVersion & 0xFF );
 }
 
 void dumpMemHeaderMap( ) {
@@ -973,9 +973,9 @@ uint8_t setupSerialCommand( ) {
 // based input. Note that this routine is called as part of the runtime loop. Consequently, it cannot not 
 // block for IO. The interface is designed in a way that it assembles the character input when there are 
 // characters until a carriage return is received. The first character is the command. If it is not a 
-// command we know and there is a callback, the callback gets his chance to handle the input string.
-// Since we are pretty basic on a character by character basis, we also add a bit of luxury and echo back 
-// what was typed and also process the backspace character.
+// command we know and there is a command line callback, the callback gets his chance to handle the input
+// string. Since we are pretty basic on a character by character basis, we also add a bit of luxury and 
+// echo back what was typed and also process the backspace character.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {

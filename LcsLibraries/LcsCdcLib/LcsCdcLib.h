@@ -137,6 +137,27 @@ const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
 
 //------------------------------------------------------------------------------------------------------------
+// The defined board types. When the runtime is initialized, the firmware will pass the type to specify what 
+// board it expects. This value is compared to what is actually stored in the NVM of the main controller 
+// board. If they don't match, it is considered an error and the NVM needs to be configured to support the 
+// firmware. 
+//
+//------------------------------------------------------------------------------------------------------------
+enum CdcBoardType : uint16_t {
+
+    CDC_BT_NIL                  = 0,
+    CDC_BT_MAIN_CONTROLLER      = 1,
+    CDC_BT_BASE_STATION         = 2,
+    CDC_BT_BLOCK_CONTROLLER     = 3,
+    BT_CAB_HANDHELD             = 4,
+
+    CDC_BT_EXT_NIL              = 10,
+    CDC_BT_EXT_OCC_DETECT       = 11,
+    CDC_BT_EXT_SERVO            = 12,
+    CDC_BT_EXT_GPIO             = 13
+};
+
+//------------------------------------------------------------------------------------------------------------
 // The CDC resources have a type which tells us what the particular resource is. Note that the are "real"
 // hardware resources such as a GPIO pin, but also logical resources such as a software timer. The value
 // of 255 is used as the invalid resource Id.
@@ -179,7 +200,7 @@ enum CdcResourceIdNum : uint8_t {
 // The controller families. Currently, there is only the Raspberry PI Pico family models.
 //
 //------------------------------------------------------------------------------------------------------------
-enum ControllerFamily : uint16_t {
+enum ControllerFamily : uint8_t {
 
     CDC_CF_UNDEFINED    = 0,
     CDC_CF_RP_PICO      = 1
@@ -189,7 +210,7 @@ enum ControllerFamily : uint16_t {
 // The controller chips in a family. Currently, there is only the Raspberry PI Pico models RP2040 and RP2350.
 //
 //------------------------------------------------------------------------------------------------------------
-enum ControllerChip : uint16_t {
+enum ControllerChip : uint8_t {
 
     CDC_CF_C_UNDEFINED  = 0,
     CDC_CF_C_RP_2040    = 1,
@@ -287,7 +308,7 @@ struct CdcResourceDescI2c {
     uint8_t     sclPin;
     uint8_t     sdaPin;
     uint32_t    baudRate;
-    uint16_t    i2cTimeoutMs; 
+    uint32_t    i2cTimeoutMs; 
 };
 
 struct CdcResourceDesc {
@@ -318,15 +339,16 @@ struct CdcResourceDescMap {
     uint16_t            options;
     uint16_t            debugMask;
     uint16_t            boardId;
+    uint32_t            boardversion;
     uint16_t            cFamily;
     uint16_t            cType;
     uint16_t            cpuCores;
     uint32_t            memorySize;
-    uint32_t            eepromSize ;
+    uint32_t            eepromSize;
     uint32_t            watchDogIntervallMillis;
     uint16_t            adcRefVoltageMillis;
     uint16_t            adcDigitRange;
-             
+    
     char                name[ MAX_RES_NAME_SIZE ];
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
@@ -380,8 +402,8 @@ char            getConsoleChar( uint32_t timeoutVal = 0 );
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         getBoardId( uint16_t *bId );
-uint8_t         getControllerFamily( ControllerFamily *family );
-uint8_t         getControllerChip( ControllerChip *chip );
+uint8_t         getControllerFamily( uint16_t *family );
+uint8_t         getControllerChip( uint16_t *chip );
 uint8_t         getChipMemSize( uint32_t *size );
 uint8_t         getChipNvmSize( uint32_t *size );
 uint8_t         getChipCpuFrequency( uint32_t *frequency );
@@ -399,7 +421,6 @@ uint8_t         startRepeatingTimer( uint8_t timerId, uint32_t val );
 uint8_t         stopRepeatingTimer( uint8_t timerId );
 uint8_t         setRepeatingTimerLimit( uint8_t timerId, uint32_t val );
 uint8_t         getRepeatingTimerLimit( uint8_t timerId, uint32_t *val );
-uint8_t         stopRepeatingTimer( uint8_t timerId );
 
 //------------------------------------------------------------------------------------------------------------
 // Analog input routines.
@@ -414,7 +435,7 @@ uint8_t         readAdc( uint8_t rNum, uint16_t *val );
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t         configureDio( uint8_t rNum );
-uint8_t         configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t pinMode = CDC_DIO_DEFAULT );
+uint8_t         configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB = UNDEFINED_PIN, uint8_t pinMode = CDC_DIO_DEFAULT );
 uint8_t         readDio( uint8_t rNum, bool *valA, bool *valB = nullptr );
 uint8_t         writeDio( uint8_t rNum, bool valA, bool valB = false );
 uint8_t         toggleDio( uint8_t rNum );

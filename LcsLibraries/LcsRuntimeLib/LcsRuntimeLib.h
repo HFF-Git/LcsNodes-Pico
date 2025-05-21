@@ -5,8 +5,8 @@
 //------------------------------------------------------------------------------------------------------------
 // At the heart of the layout control system, LCS, is the runtime library implementing the basic functions. 
 // Please refer to the document for information on concepts and implementation notes. This is the external 
-// include file for the firmware programmer. All external definitions of key constants and types are 
-// included here.
+// include file for the firmware programmer. All external definitions of key constants and types for the 
+// library and DCC subsystem is included here.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -241,58 +241,6 @@ enum LocoSessionModes : uint8_t {
     LSM_SHARED  = 3
 };
 
-
-// ??? merge node and port types ? can a user set this type ?
-// a 16-bit word: 4bits controller family, 6 bits major and 6 bits minor version.
-
-//------------------------------------------------------------------------------------------------------------
-// A port type can be assigned to a port. Port types start with one. The portType of zero represents the
-// NIL port type. A port type is arbitrarily defined by the firmware programmer. The port type for port 
-// zero represents the node type.
-//
-//------------------------------------------------------------------------------------------------------------
-  enum LcsPortTypeId : uint16_t {
-
-    NIL_PORT_TYPE     = 0,
-    MIN_PORT_TYPE_ID  = 1,
-    MAX_PORT_TYPE_ID  = 255
-};
-
-// ??? should we generalize this to just type for nodes and ports ?
-//------------------------------------------------------------------------------------------------------------
-// The defined board types. When the runtime is initialized, the firmware will pass the type to specify what 
-// board it expects. This value is compared to what is actually stored in the NVM of the main controller 
-// board. If they don't match, it is considered an error and the NVM needs to be configured to support the 
-// firmware. 
-//
-//------------------------------------------------------------------------------------------------------------
-enum LcsBoardType : uint16_t {
-
-    BT_NIL                  = 0,
-    BT_MAIN_CONTROLLER      = 1,
-    BT_BASE_STATION         = 2,
-    BT_BLOCK_CONTROLLER     = 3,
-    BT_CAB_HANDHELD         = 4,
-
-    BT_EXT_NIL              = 10,
-    BT_EXT_OCC_DETECT       = 11,
-    BT_EXT_SERVO            = 12,
-    BT_EXT_GPIO             = 13
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The defined chip families. There are controller chip families such as the controller family RP2040, or 
-// chip families for the NVM chips used, and so on.
-//
-//------------------------------------------------------------------------------------------------------------
-enum LcsControllerFamilyType : uint16_t {
-
-    CF_FAM_NIL              = 0,
-    CF_FAM_RPICO            = 1,
-    CF_FAM_MICROCHIP        = 3,
-    CF_FAM_NXP              = 4
-};
-
 //------------------------------------------------------------------------------------------------------------
 // The node and ports have field in the portMap for configuration options that can be set. Most options apply
 // only to port zero, which is the node itself. The constants defined here indicate the bit positions and fields
@@ -316,7 +264,6 @@ enum LcsNodePortOptions : uint16_t {
     NPO_DEBUG_DURING_SETUP      = ( 1 << 1 ),
     NPO_DISABLE_WATCHDOG        = ( 1 << 2 ),
     NPO_FORMAT_RUNTIME          = ( 1 << 3 ),
-
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -343,15 +290,15 @@ enum LcsNodePortFlags : uint16_t {
 
     NPF_NIL                             = 0,
 
-    NPF_PORT_PRESENT                    = ( 1 << 12 ),            
-    NPF_PORT_ENABLED                    = ( 1 << 11 ),
-    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1 << 10 ),
+    NPF_PORT_PRESENT                    = ( 1U << 12 ),            
+    NPF_PORT_ENABLED                    = ( 1U << 11 ),
+    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1U << 10 ),
     
-    NPF_EVENT_PENDING                   = ( 1 << 9  ),
+    NPF_EVENT_PENDING                   = ( 1U << 9  ),
 
-    NPF_EXT_BOARD_PRESENT               = ( 1U << 8 ),
-    NPF_EXT_BOARD_VALID                 = ( 1U << 7 ),
-    NPF_EXT_BOARD_READY                 = ( 1U << 6 )
+    NPF_EXT_BOARD_PRESENT               = ( 1U << 8  ),
+    NPF_EXT_BOARD_VALID                 = ( 1U << 7  ),
+    NPF_EXT_BOARD_READY                 = ( 1U << 6  )
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -372,7 +319,8 @@ enum LcsPortEventAction : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. 
+// Node, port and extension board driver attributes and functions are accessed with three main routines, 
+// GET, SET and REQ.  
 //
 // GET - the get routine will use the item numbers to retrieve the data labelled by the item. 
 //
@@ -601,31 +549,10 @@ enum LcsErrorCodes : uint8_t {
     ERR_CAN_MSG_RECV                    = 85,
     ERR_CAN_MSG_NO_MSG                  = 86,
     ERR_CAN_ID_COLLISION                = 87,
-    ERR_CAN_ID_CHANGED                  = 88,
-
+   
     ERR_EXT_BOARD_NOT_VALID             = 90,
 
     ERR_USER_SPECIFIC_BASE              = 128
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The CAN bus mode. The PICO_PIO_xxx modes use the Raspberry Pi Pico "can2040" library, which is a software
-// implementation of the CAN bus. The "can2040" library could run on the same or on the separate processor 
-// core. Technically, the PICO could also run the MCP2515 via the SPI interface, but so far we just use the
-// software version and avoid the additional controller hardware.
-//
-//------------------------------------------------------------------------------------------------------------
-enum CanBusControllerMode : uint8_t {
-
-    CAN_BUS_LIB_PICO_PIO_125K               = 1,
-    CAN_BUS_LIB_PICO_PIO_250K               = 2,
-    CAN_BUS_LIB_PICO_PIO_500K               = 3,
-    CAN_BUS_LIB_PICO_PIO_1000K              = 4,
-
-    CAN_BUS_LIB_PICO_PIO_125K_M_CORE        = 11,
-    CAN_BUS_LIB_PICO_PIO_250K_M_CORE        = 12,
-    CAN_BUS_LIB_PICO_PIO_500K_M_CORE        = 13,
-    CAN_BUS_LIB_PICO_PIO_1000K_M_CORE       = 14,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -684,11 +611,10 @@ extern "C" {
     typedef uint8_t ( *LcsMsgCallback ) ( uint8_t *msg );
     typedef uint8_t ( *LcsCmdCallback ) ( char *cmdLine );
     typedef uint8_t ( *LcsTaskCallback ) ( void );
+    typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
     
     typedef uint8_t ( *LcsReqCallback ) ( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
     typedef uint8_t ( *LcsRepCallback ) ( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
-
-    typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -700,8 +626,8 @@ extern "C" {
 // board and resources to configure comes from this map.
 // 
 //------------------------------------------------------------------------------------------------------------
-uint8_t             initRuntime( CdcResourceDescMap *dMap );
-uint8_t             startRuntime( );
+uint8_t     initRuntime( CdcResourceDescMap *dMap );
+uint8_t     startRuntime( );
 
 //------------------------------------------------------------------------------------------------------------
 // Routines to access the node/port GET/SET/REQ items. The first argument is the node/port Id. A node Id of 
@@ -709,86 +635,86 @@ uint8_t             startRuntime( );
 // another node, and a message is broadcasted.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t             nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
-uint8_t             nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
-uint8_t             nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
+uint8_t     nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 = nullptr );
+uint8_t     nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
+uint8_t     nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1 = nullptr, uint16_t *arg2 = nullptr );
 
 //------------------------------------------------------------------------------------------------------------
 // Function registration routines for callbacks, tasks, driver types, etc.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t             registerInitCallback( LcsInitCallback handler );
-uint8_t             registerPfailCallback( LcsPfailCallback handler );
-uint8_t             registerLcsMsgCallback( LcsMsgCallback functionId );
-uint8_t             registerDccMsgCallback( LcsMsgCallback functionId );
-uint8_t             registerCmdCallback( LcsCmdCallback functionId );
-uint8_t             registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
-uint8_t             registerEventCallback( LcsEventCallback functionId, uint16_t portMask = 0xFFFF );
-uint8_t             registerReqCallback( LcsReqCallback handler, uint16_t portMask = 0xFFFF );
-uint8_t             registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
-uint8_t             registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
+uint8_t     registerInitCallback( LcsInitCallback handler );
+uint8_t     registerPfailCallback( LcsPfailCallback handler );
+uint8_t     registerLcsMsgCallback( LcsMsgCallback functionId );
+uint8_t     registerDccMsgCallback( LcsMsgCallback functionId );
+uint8_t     registerCmdCallback( LcsCmdCallback functionId );
+uint8_t     registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
+uint8_t     registerEventCallback( LcsEventCallback functionId, uint16_t portMask = 0xFFFF );
+uint8_t     registerReqCallback( LcsReqCallback handler, uint16_t portMask = 0xFFFF );
+uint8_t     registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
+uint8_t     registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
 
 //------------------------------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t             sendCfg( uint16_t npId );
-uint8_t             sendOps( uint16_t npId );
-uint8_t             sendReset( uint16_t npId );
-uint8_t             sendBusOn( );
-uint8_t             sendBusOff( );
-uint8_t             sendPing( uint16_t npId );
-uint8_t             sendAck( uint16_t npId );
-uint8_t             sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
+uint8_t     sendCfg( uint16_t npId );
+uint8_t     sendOps( uint16_t npId );
+uint8_t     sendReset( uint16_t npId );
+uint8_t     sendBusOn( );
+uint8_t     sendBusOff( );
+uint8_t     sendPing( uint16_t npId );
+uint8_t     sendAck( uint16_t npId );
+uint8_t     sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
-uint8_t             sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags );
-uint8_t             sendRepNodeId( uint16_t npId, uint32_t nodeUID );
-uint8_t             sendSetNodeId( uint16_t npId, uint32_t nodeUID );
-uint8_t             sendNodeIdCollision( uint16_t npId, uint32_t nodeUID );
+uint8_t     sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags );
+uint8_t     sendRepNodeId( uint16_t npId, uint32_t nodeUID );
+uint8_t     sendSetNodeId( uint16_t npId, uint32_t nodeUID );
+uint8_t     sendNodeIdCollision( uint16_t npId, uint32_t nodeUID );
 
-uint8_t             sendGetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
-uint8_t             sendSetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
-uint8_t             sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
-uint8_t             sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
+uint8_t     sendGetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
+uint8_t     sendSetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
+uint8_t     sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
+uint8_t     sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
 
-uint8_t             sendEventOn( uint16_t npId, uint16_t eventId );
-uint8_t             sendEventOff( uint16_t npId, uint16_t eventId );
-uint8_t             sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg );
+uint8_t     sendEventOn( uint16_t npId, uint16_t eventId );
+uint8_t     sendEventOff( uint16_t npId, uint16_t eventId );
+uint8_t     sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg );
 
-uint8_t             sendTrackOn( );
-uint8_t             sendTrackOff( );
-uint8_t             sendEstop( );
+uint8_t     sendTrackOn( );
+uint8_t     sendTrackOff( );
+uint8_t     sendEstop( );
 
-uint8_t             sendReqLoc( uint16_t locAdr, uint8_t flags  );
-uint8_t             sendRelLoc( uint8_t sId  );
-uint8_t             sendRepLoc( uint8_t sId, uint16_t locAdr, uint8_t spDir, uint8_t fn1 = 0, uint8_t fn2 = 0, uint8_t fn3 = 0 );
-uint8_t             sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags );
-uint8_t             sendQueryLoc( uint8_t sId  );
-uint8_t             sendKeepLoc( uint8_t sId  );
-uint8_t             sendSetLocSpDir( uint8_t sId, uint8_t spDir );
-uint8_t             sendSetLocMode( uint8_t sId, uint8_t mode );
-uint8_t             sendSetLocFuncOn( uint8_t sId, uint8_t fNum );
-uint8_t             sendSetLocFuncOff( uint8_t sId, uint8_t fNum );
-uint8_t             sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data );
+uint8_t     sendReqLoc( uint16_t locAdr, uint8_t flags  );
+uint8_t     sendRelLoc( uint8_t sId  );
+uint8_t     sendRepLoc( uint8_t sId, uint16_t locAdr, uint8_t spDir, uint8_t fn1 = 0, uint8_t fn2 = 0, uint8_t fn3 = 0 );
+uint8_t     sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags );
+uint8_t     sendQueryLoc( uint8_t sId  );
+uint8_t     sendKeepLoc( uint8_t sId  );
+uint8_t     sendSetLocSpDir( uint8_t sId, uint8_t spDir );
+uint8_t     sendSetLocMode( uint8_t sId, uint8_t mode );
+uint8_t     sendSetLocFuncOn( uint8_t sId, uint8_t fNum );
+uint8_t     sendSetLocFuncOff( uint8_t sId, uint8_t fNum );
+uint8_t     sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data );
 
-uint8_t             sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val );
-uint8_t             sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val );
-uint8_t             sendReqLocCvProg( uint16_t cvId, uint8_t mode );
-uint8_t             sendRepLocCvProg( uint16_t cvId, uint8_t val );
+uint8_t     sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val );
+uint8_t     sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val );
+uint8_t     sendReqLocCvProg( uint16_t cvId, uint8_t mode );
+uint8_t     sendRepLocCvProg( uint16_t cvId, uint8_t val );
 
-uint8_t             sendSetBacc( uint16_t accAdr, uint8_t flags  );
-uint8_t             sendSetEacc( uint16_t accAdr, uint8_t val  );
+uint8_t     sendSetBacc( uint16_t accAdr, uint8_t flags  );
+uint8_t     sendSetEacc( uint16_t accAdr, uint8_t val  );
 
-uint8_t             sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 );
-uint8_t             sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 );
-uint8_t             sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, uint8_t arg5 );
-uint8_t             sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, uint8_t arg5, uint8_t arg6 );
+uint8_t     sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 );
+uint8_t     sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 );
+uint8_t     sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, uint8_t arg5 );
+uint8_t     sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, uint8_t arg5, uint8_t arg6 );
 
-uint8_t             sendDccAck( );
-uint8_t             sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
+uint8_t     sendDccAck( );
+uint8_t     sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
-uint8_t             sendRawMsg( uint8_t *msgBuf );
-void                printLcsMs( uint8_t *msgBuf );
+uint8_t     sendRawMsg( uint8_t *msgBuf );
+void        printLcsMs( uint8_t *msgBuf );
 
 //----------------------------------------------------------------------------------------------------------
 // The User Map interface. The LCS library offers a set of routines for the firmware to access the user
@@ -797,12 +723,12 @@ void                printLcsMs( uint8_t *msgBuf );
 // area as well as the individual extension board areas. They are declared in the internal include file.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t             usrNvmPutWord( uint32_t ofs, uint16_t word );
-uint8_t             usrNvmGetWord( uint32_t ofs, uint16_t *word );
-uint8_t             usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t             usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t             usrNvmInitArea( uint32_t ofs, uint32_t len, uint8_t val);
-uint32_t            usrNvmGetSize( );
+uint8_t     usrNvmPutWord( uint32_t ofs, uint16_t word );
+uint8_t     usrNvmGetWord( uint32_t ofs, uint16_t *word );
+uint8_t     usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+uint8_t     usrNvmInitArea( uint32_t ofs, uint32_t len, uint8_t val);
+uint32_t    usrNvmGetSize( );
 
 }; // LCS NameSpace
 

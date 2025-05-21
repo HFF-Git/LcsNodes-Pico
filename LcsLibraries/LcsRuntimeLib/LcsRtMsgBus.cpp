@@ -3,12 +3,12 @@
 // "LcsRtMsgBus" - implementation file.
 //
 //------------------------------------------------------------------------------------------------------------
-// At the message level, the LCS runtime offers a message to which all nodes are connected. Currently, it is
-// a CAN bus. Pretty straightforward and robust. This file contains the routines to set up the communication
-// as well as a set of convenience functions for sending a LCS message taking care of filling the message
-// frame. Some LCS message are of a "request/reply" nature. When a request is sent out a entry is made in
-// the pending request map. Since the message layer sees all reply message, this pending map is used to
-// filter for the request we are waiting for.
+// At the message level, the LCS runtime offers a message bus to which all nodes are connected. Currently,
+// it is a CAN bus. Pretty straightforward and robust. This file contains the routines to set up the node
+// communication as well as a set of convenience functions for sending a LCS message taking care of filling
+// the message frame. Some LCS message are of a "request/reply" nature. When a request is sent out a entry is
+// made in the pending request map. Since the message layer sees all reply message, this pending map is used 
+// to filter for the request we are waiting for.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -41,7 +41,12 @@ namespace LCS {
     extern LcsTaskMap           taskMap;
     extern LcsMsgBusCAN         *msgBus;
 
-    extern uint8_t              localMsgEvent( uint8_t *msg );
+    
+};
+
+namespace LCS {
+
+    extern uint8_t localMsgEvent( uint8_t *msg );      
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -107,7 +112,7 @@ uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
         if ( pendingReqMap.map[ i ].npId == 0 ) {
 
             pendingReqMap.map[ i ].npId = npId;
-            pendingReqMap.map[ i ].reqTimeoutTs = (( timeoutVal != 0 ) ? ts + timeoutVal : timeoutVal );
+            pendingReqMap.map[ i ].reqTimeoutTs = (( timeoutVal != 0 ) ? ts + timeoutVal : 0 );
             return ( ALL_OK );
         }
     }
@@ -153,13 +158,13 @@ bool searchPendingReqMap( uint16_t npId ) {
 //------------------------------------------------------------------------------------------------------------
 void processPendingReqMapTimeouts( ) {
 
-    uint32_t ts = CDC::getMillis( );
+    uint32_t ts = getMillis( );
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
         LcsPendingReqEntry *tPtr = &pendingReqMap.map[ i ];
 
-        if (( tPtr -> reqTimeoutTs != 0 ) && ( tPtr -> reqTimeoutTs < ts )) {
+        if (( tPtr -> reqTimeoutTs != 0 ) && ( tPtr -> reqTimeoutTs > ts )) {
 
             LcsPortMapEntry *pPtr = &portMap.map[ portId( tPtr -> npId ) ];
 
@@ -178,7 +183,6 @@ void processPendingReqMapTimeouts( ) {
 // "sendLcsMsg" will send a message when the node is either OPERATe or CONFIG mode.
 // 
 // ??? not all messages should be enabled when we are in CFG mode...
-// ??? should we also pass our own nodeId as the canId ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 
@@ -191,14 +195,12 @@ uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 // outstanding requests. In addition we can pass a timeout value to handle cases where no reply is received
 // in a given time interval.
 //
-// ??? should we also pass our own nodeId as the canId ?
 //------------------------------------------------------------------------------------------------------------
 uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout = 0 ) {
 
     if ( addToPendingReqMap( npId , timeout ) == ALL_OK )   return ( sendLcsMsg( msg, msgPri ));
     else                                                    return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
 }
-
 
 }; // namespace
 

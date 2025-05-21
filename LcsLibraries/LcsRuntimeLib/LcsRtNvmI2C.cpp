@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// LCS Runtime library - Non volatile storage based on the M24LCxxx chip family
+// LCS Runtime library - Non volatile storage I2C interface
 //
 //------------------------------------------------------------------------------------------------------------
 // This file implements the LCS runtime library non-volatile memory. The hardware is the AA24xxx chip family,
@@ -55,11 +55,12 @@ namespace LCS {
 namespace {
 
 using namespace LCS;
+using namespace CDC;
 
 //------------------------------------------------------------------------------------------------------------
 // Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize which is the unit
 // updated in case of a write. A write cannot across a page boundary and must be split into several writes
-// if necessary. Reads do not have this problem. Al chips have the same I2C address root which is "1010".
+// if necessary. Reads do not have this problem. All chips have the same I2C address root which is "1010".
 // There are three address lines A2, A1 and A0, which are used to select a chips. Up to eight chips can be
 // addressed on a single I2C bus.
 //
@@ -71,7 +72,7 @@ using namespace LCS;
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //------------------------------------------------------------------------------------------------------------
-const uint16_t      BUFFER_BLOCK_SIZE           = 16; // ??? until we remove the M24C04 chip.
+const uint16_t      BUFFER_BLOCK_SIZE           = 16; // ??? until we remove the M24C04 chip, then 32...
 
 const uint16_t      M24LC32_PAGE_SIZE           = 32;
 const uint32_t      M24LC32_MAX_SIZE            = 4096;
@@ -110,8 +111,7 @@ const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 //------------------------------------------------------------------------------------------------------------
 // Module global data. A LCS node board has two NVM channels. The "NVM" channel refers to the NVM chip on
 // main controller board. The "EXT" channel is the I2C bus that reaches out the the extension boards. On
-// each extension board there is again a small NVM chip with configuration data. Besides the hardware pins
-// there are the sizes of the chips. 
+// each extension board there is again a small NVM chip with configuration data. 
 //
 // There is no easy way to determine the size of the actual chip. By convention, the extension board NVM chip
 // has a fixed 4 Kbytes. The NVM chip on the main controller board is at least 16Kbyte. The maximum size is 
@@ -120,14 +120,11 @@ const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 // needed.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t    nodeNvmSize                         = 0;
-uint32_t    extNvmSize                          = 0;
+uint32_t    nodeNvmSize     = 0;
+uint32_t    extNvmSize      = 0;
 
-uint8_t     nodeNvmSclPin                       = CDC::UNDEFINED_PIN;
-uint8_t     nodeNvmSdaPin                       = CDC::UNDEFINED_PIN;
-
-uint8_t     extNvmSclPin                        = CDC::UNDEFINED_PIN;
-uint8_t     extNvmSdaPin                        = CDC::UNDEFINED_PIN;
+uint8_t     rNumNvm         = UNDEFINED_RES_ID;
+uint8_t     rNumExtNvm      = UNDEFINED_RES_ID;
 
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to report any errors.
@@ -149,7 +146,7 @@ uint8_t errStat( uint8_t errId ) {
 // ??? not tested yet ...
 // ??? will not work for the smaller then 4K chips. Wait until we only have 4K and higher.
 //------------------------------------------------------------------------------------------------------------
-uint32_t testNvmChipMemorySize( uint8_t sclPin, uint8_t i2cAdr ) {
+uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
     uint32_t    nvmSize         = M24LC512_MAX_SIZE;
     uint32_t    testAdr         = nvmSize - 1;
@@ -164,25 +161,25 @@ uint32_t testNvmChipMemorySize( uint8_t sclPin, uint8_t i2cAdr ) {
         tmpBuf[ 0 ] = testAdr >> 8 & 0xFF;
         tmpBuf[ 1 ] = testAdr &0xFF;
         
-        rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, 2, true );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, &originalValue, 1 );
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
+        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( rNum, i2cAdr, &originalValue, 1 );
         if ( rStat != ALL_OK ) return ( ERR_NVM_CHIP_SIZE_DETECT );
 
         tmpBuf[ 2 ] = testValue;
         
-        rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, sizeof( tmpBuf ));
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ));
         if ( rStat == ALL_OK ) {
 
-            CDC::sleepMillis( NVM_WRITE_DELAY );
+            sleepMillis( NVM_WRITE_DELAY );
 
-            rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, 2, true );
-            if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, &tmpValue, 1 );
+            rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
+            if ( rStat == ALL_OK ) rStat = i2cRead( rNum, i2cAdr, &tmpValue, 1 );
             if ( rStat == ALL_OK ) {
 
                 if ( tmpValue == testValue ) {
 
-                    rStat = CDC::i2cWrite( sclPin, i2cAdr, tmpBuf, sizeof( tmpBuf ));
-                    CDC::sleepMillis( NVM_WRITE_DELAY );
+                    rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ));
+                    sleepMillis( NVM_WRITE_DELAY );
                     return ( nvmSize );
                 }
                 else {
@@ -223,25 +220,25 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 //
 // ??? one day we take out the M24C04
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmGetBytesFromPage( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmGetBytesFromPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", 
-                sclPin, i2cAdr, ofs, buf, len );
+        printf( "nvmGetBytesFromPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", 
+                rNum, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
 
     if ( nvmSize == M24C04_MAX_SIZE ) {
 
         uint8_t tmpAdr  = i2cAdr | (( ofs >> 8 ) & 0x01 );
         uint8_t tmpData = ofs & 0xFF;
 
-        rStat = CDC::i2cWrite( sclPin, tmpAdr, &tmpData, sizeof( tmpData ), true );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, tmpAdr, buf, len );
+        rStat = i2cWrite( rNum, tmpAdr, &tmpData, sizeof( tmpData ), true );
+        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, tmpAdr, buf, len );
     }
     else {
 
@@ -250,8 +247,8 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
         adr[ 0 ] =  ( ofs  >> 8 ) & 0xFF;
         adr[ 1 ] =  ofs & 0xFF;
 
-        rStat = CDC::i2cWrite( sclPin, i2cAdr, adr, 2, true );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( sclPin, i2cAdr, buf, len );
+        rStat = i2cWrite( rNum, i2cAdr, adr, 2, true );
+        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, i2cAdr, buf, len );
     }
 
     return ( errStat( rStat ));
@@ -266,18 +263,18 @@ uint8_t nvmGetBytesFromPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8
 //
 // ??? one day we take out the M24C04
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmPutBytesInPage( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
     uint8_t dataBuf[ BUFFER_BLOCK_SIZE + 2 ];
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytesInPage: sclPin: %d, i2cAdr: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
-        sclPin, i2cAdr, ofs, buf, len );
+        printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
+        rNum, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
 
     if ( nvmSize == M24C04_MAX_SIZE ) {
 
@@ -285,7 +282,7 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 1 ] = buf[ i ];
 
         uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
-        rStat = CDC::i2cWrite( sclPin, tmpAdr, dataBuf, len + 1 );
+        rStat = i2cWrite( rNum, tmpAdr, dataBuf, len + 1 );
     }
     else {
 
@@ -294,7 +291,7 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-        rStat = CDC::i2cWrite( sclPin, i2cAdr, dataBuf, len + 2 );
+        rStat = i2cWrite( rNum, i2cAdr, dataBuf, len + 2 );
     }
 
     return ( errStat( rStat ));
@@ -306,17 +303,17 @@ uint8_t nvmPutBytesInPage( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t
 // chip to build NVMs and then we have no problems with crossing chip boundaries.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmGetBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmGetBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
-                sclPin, i2cAdr, ofs, (uint32_t) buf, len );
+        printf( "nvmGetBytes: rNum: %d, i2c: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
+                rNum, i2cAdr, ofs, (uint32_t) buf, len );
     }
 
-    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
     uint32_t  bytesLeft     = len;
@@ -324,7 +321,7 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 
     while ( bytesLeft > pageBytesLeft ) {
 
-        rStat = nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        rStat = nvmGetBytesFromPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
         if ( rStat != ALL_OK ) break;
 
         bytesLeft       -= pageBytesLeft;
@@ -333,7 +330,7 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 
     if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
-        rStat = nvmGetBytesFromPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
+        rStat = nvmGetBytesFromPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
     }
 
     return ( errStat( rStat ));
@@ -351,16 +348,16 @@ uint8_t nvmGetBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 // to the NVM, the slow mode is perhaps acceptable for now.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmPutBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytes: scl: %d, i2c: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", sclPin, i2cAdr, ofs, buf, len );
+        printf( "nvmPutBytes: rNum: %d, i2c: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
      }
 
-    uint32_t nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
     uint32_t  bytesLeft     = len;
@@ -368,7 +365,7 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 
     while ( bytesLeft > pageBytesLeft ) {
 
-        rStat = nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        rStat = nvmPutBytesInPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
         if ( rStat != ALL_OK ) break;
 
         bytesLeft       -= pageBytesLeft;
@@ -379,7 +376,7 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 
     if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
-       rStat = nvmPutBytesInPage( sclPin, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
+       rStat = nvmPutBytesInPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
        CDC::sleepMillis( NVM_WRITE_DELAY );
     }
 
@@ -391,16 +388,17 @@ uint8_t nvmPutBytes( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf,
 // the value and then write blocks at a time.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len, uint8_t val ) {
+uint8_t nvmClearArea( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint32_t len, uint8_t val ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmClearArea: scl: %d, i2c: 0x%x, ofs: 0x%x, len: %d, val: %d\n", sclPin, i2cAdr, ofs, len, val );
+        printf( "nvmClearArea: rNum: %d, i2c: 0x%x, ofs: 0x%x, len: %d, val: %d\n", 
+                rNum, i2cAdr, ofs, len, val );
     }
 
     uint8_t     tmpBuf[ BUFFER_BLOCK_SIZE ];
     uint8_t     rStat   = ALL_OK;
-    uint32_t    nvmSize = (( sclPin == nodeNvmSclPin ) ? nodeNvmSize : extNvmSize );
+    uint32_t    nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     uint32_t    limit   = ofs + len;
 
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
@@ -409,7 +407,7 @@ uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len
 
     while ( len > BUFFER_BLOCK_SIZE ) {
 
-        rStat = nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, sizeof( tmpBuf ));
+        rStat = nvmPutBytes( rNum, i2cAdr, ofs, tmpBuf, sizeof( tmpBuf ));
         if ( rStat != ALL_OK ) break;
         
         ofs += BUFFER_BLOCK_SIZE;
@@ -418,7 +416,7 @@ uint8_t nvmClearArea( uint8_t sclPin, uint8_t i2cAdr, uint32_t ofs, uint32_t len
 
     if (( rStat == ALL_OK ) && ( len > 0 )) {
 
-        rStat = nvmPutBytes( sclPin, i2cAdr, ofs, tmpBuf, len );
+        rStat = nvmPutBytes( rNum, i2cAdr, ofs, tmpBuf, len );
     }
 
     return ( errStat( rStat ));
@@ -437,19 +435,15 @@ namespace LCS {
 // "configNvm" will setup the module local variables. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t configNvm(  uint8_t     nvmSclPin, 
-                    uint8_t     nvmSdaPin,
+uint8_t configNvm(  uint8_t     rIdNvm, 
                     uint32_t    nvmSize, 
-                    uint8_t     extSclPin,
-                    uint8_t     extSdaPin,
-                    uint32_t    extSize ) {
+                    uint8_t     rIdExtNvm,
+                    uint32_t    extNvmSize ) {
 
-    nodeNvmSclPin   = nvmSclPin;
-    nodeNvmSdaPin   = nvmSdaPin;
-    extNvmSclPin    = extSclPin;
-    extNvmSdaPin    = extSdaPin;
-    nodeNvmSize     = nvmSize;
-    extNvmSize      = extSize;
+    rNumNvm     = rIdNvm;
+    rNumExtNvm  = rIdExtNvm;
+    nodeNvmSize = nvmSize;
+    extNvmSize  = extNvmSize;
 
     if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
     if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
@@ -465,27 +459,27 @@ uint8_t configNvm(  uint8_t     nvmSclPin,
 //------------------------------------------------------------------------------------------------------------
 uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t rtNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val ) {
 
-    return ( nvmClearArea( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, len, val ));
+    return ( nvmClearArea( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, len, val ));
 }
 
 uint32_t rtNvmGetSize( ) { 
@@ -504,31 +498,31 @@ uint32_t rtNvmGetSize( ) {
 uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmPutBytes( extNvmSclPin, i2cAdr, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( rNumExtNvm, i2cAdr, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmGetBytes( extNvmSclPin, i2cAdr, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( rNumExtNvm, i2cAdr, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmPutBytes( extNvmSclPin, i2cAdr, ofs, buf, len ));
+    return ( nvmPutBytes( rNumExtNvm, i2cAdr, ofs, buf, len ));
 }
 
 uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmGetBytes( extNvmSclPin, i2cAdr, ofs, buf, len ));
+    return ( nvmGetBytes( rNumExtNvm, i2cAdr, ofs, buf, len ));
 }
 
 uint8_t extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val ) {
 
     uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmClearArea( extNvmSclPin, i2cAdr, ofs, len, val ));
+    return ( nvmClearArea( rNumExtNvm, i2cAdr, ofs, len, val ));
 }
 
 uint32_t extNvmGetSize( ) {
@@ -548,7 +542,7 @@ uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
@@ -556,7 +550,7 @@ uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
@@ -564,7 +558,7 @@ uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
@@ -572,14 +566,13 @@ uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( nodeNvmSclPin, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint32_t usrNvmGetSize( ) {
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
-
-    return ( 0 ); // for now...
+    return ( nodeNvmSize - NVM_RUNTIME_MAPS_SIZE );
 }
 
 }; // namespace LCS

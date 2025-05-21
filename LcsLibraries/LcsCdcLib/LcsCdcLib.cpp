@@ -405,6 +405,7 @@ CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
 CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
+    
     if ( rMap.map[ rNum ].type == CDC_RT_UNDEFINED ) {
 
         rMap.map[ rNum ].type = type;

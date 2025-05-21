@@ -54,6 +54,7 @@ extern "C" {
 namespace LCS {
 
     extern uint16_t debugMask;
+    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -265,6 +266,15 @@ uint8_t LcsMsgBusCAN::init( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, boo
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The CAN bus used the nodeId as canBus Id.
+//
+//------------------------------------------------------------------------------------------------------------
+void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
+
+    this -> nodeId = nodeId; 
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the message priority. The
 // message length is encoded in the first message byte, which represents the LCS message opCode as well as 
 // the length of the message. The message has a certain initial priority. When we cannot send the message 
@@ -276,14 +286,14 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     can2040_msg msg;
 
-    msg.id  = buildCanBusMsgHeader( canId, msgPri );
+    msg.id  = buildCanBusMsgHeader( nodeId, msgPri );
     msg.dlc = ( msgBuf[ 0 ] >> 5 ) + 1;
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
-        printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), canId, msgPri );
+        printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), nodeId, msgPri );
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
         printf( ")\n" );
     }
@@ -296,11 +306,6 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
         else                              return ( ERR_CAN_MSG_SEND );
 
     } else return ( errStat( ALL_OK ));
-}
-
-void LcsMsgBusCAN::setCanBusId( uint16_t canId ) {
-
-    this ->canId = canId;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -332,17 +337,17 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
             printf( ")\n" );
         }
 
-        bool      rtrFlag     = ( msg.id & 0x40000000 );
-        bool      extFlag     = ( msg.id & 0x80000000 );
-        uint16_t  remoteCanId = (( extFlag ) ? ( msg.id & 0x3FFF ) : ( msg.id & 0x7F ));
+        bool      rtrFlag       = ( msg.id & 0x40000000 );
+        bool      extFlag       = ( msg.id & 0x80000000 );
+        uint16_t  remoteNodeId  = (( extFlag ) ? ( msg.id & 0x3FFF ) : ( msg.id & 0x7F ));
 
-        if (( remoteCanId == canId ) && ( msg.dlc > 0 )) {
+        if (( remoteNodeId == nodeId ) && ( msg.dlc > 0 )) {
 
             return ( errStat( ERR_CAN_ID_COLLISION ));
         }
         else if ( rtrFlag ) {
 
-            msg.id          = canId;
+            msg.id          = nodeId;
             msg.dlc         = 0;
             msg.data32[ 0 ] = 0;
             msg.data32[ 1 ] = 0;

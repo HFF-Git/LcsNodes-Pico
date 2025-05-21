@@ -3,8 +3,8 @@
 // Layout Control System - Runtime library core.
 //
 //------------------------------------------------------------------------------------------------------------
-// The file contains the runtime core routines. They implement the node state machine that reacts to messages
-// and advances according to state. The routines are called from the runtime loop in the setup file.
+// The file contains the runtime core routines. The runtime library is essentially a big state machine, which 
+// periodically scans for messages and pother work to do. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -447,7 +447,8 @@ void handleNodeStateFail( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Node State Power FAIL. This is the state after when the node starts up after a power fail. We have this
-// state so that the firmware programmer can take some recovery action before the power goes away. x
+// state so that the firmware programmer can take some recovery action before the power goes away. The next
+// state is the normal INIT state.
 //
 //------------------------------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
@@ -456,6 +457,8 @@ void handleNodeStatePfail( ) {
 
         nodeMap.pfailCallback( nodeMap.nodeId << 4 );
     }
+
+    nodeMap.nodeState = NS_INIT;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -623,13 +626,14 @@ void handleNodeState( ) {
 
         switch ( nodeMap.nodeState ) {
 
-            case NS_INIT:       handleNodeStateInit( );       break;
-            case NS_FAIL:       handleNodeStateFail( );       break;
-            case NS_REGISTER:   handleNodeStateRegister( );   break;
-            case NS_COLLISION:  handleNodeStateCollision( );  break;
-            case NS_HALTED:     handleNodeStateHalted( );     break;
-            case NS_CONFIG:     handleNodeStateConfig( );     break;
-            case NS_OPERATE:    handleNodeStateOperations( ); break;
+            case NS_INIT:       handleNodeStateInit( );         break;
+            case NS_FAIL:       handleNodeStateFail( );         break;
+            case NS_PFAIL:      handleNodeStatePfail( );        break;
+            case NS_REGISTER:   handleNodeStateRegister( );     break;
+            case NS_COLLISION:  handleNodeStateCollision( );    break;
+            case NS_HALTED:     handleNodeStateHalted( );       break;
+            case NS_CONFIG:     handleNodeStateConfig( );       break;
+            case NS_OPERATE:    handleNodeStateOperations( );   break;
             default: ;
         }
     }

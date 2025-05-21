@@ -224,7 +224,7 @@ uint8_t registerLcsDrvFunctions( ) {
 
     printf( "Register Extension Board Drivers\n" );
 
-    uint8_t ret = registerDrvFunc( BT_EXT_OCC_DETECT, lcsDrvOccDetect );
+    uint8_t ret = registerDrvFunc( CDC_BT_EXT_OCC_DETECT, lcsDrvOccDetect );
     if ( ret != ALL_OK )  printf( "Registration failed: %d\n, ret ");
 
     return( ret );

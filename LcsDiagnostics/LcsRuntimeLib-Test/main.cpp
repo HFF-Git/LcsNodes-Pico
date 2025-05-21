@@ -38,7 +38,7 @@ using namespace CDC;
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------------------------
-CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00;
+CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
 
 //----------------------------------------------------------------------------------------------------------
 // When a main controller board is used to drive an extension board, the DIO pins need to be set to 
@@ -152,7 +152,7 @@ uint8_t registerLcsCallbacks( ) {
 uint8_t registerLcsDrvFunctions( ) {
 
     printf( "Register Extension Board Drivers\n" );
-    uint8_t ret = registerDrvFunc( BT_EXT_OCC_DETECT, lcsDrvOccDetect );
+    uint8_t ret = registerDrvFunc( CDC_BT_EXT_OCC_DETECT, lcsDrvOccDetect );
     if ( ret != ALL_OK )  printf( "Registration failed: %d\n, ret ");
 
     return( ret );

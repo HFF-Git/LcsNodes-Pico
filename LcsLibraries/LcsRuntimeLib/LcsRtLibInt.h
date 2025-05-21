@@ -51,8 +51,7 @@ namespace LCS {
 // The NVM layout is a fixed one. We have the nodeMap starting at offset NVM_NODE_MAP_START. All data areas
 // follow. Their starting offset is the sum of the size of the previous structures starting. The system area
 // needs to be at least the size of the declared structures up to the use map. The optional user map occupies
-// all the remaining bytes in the NVM. A firmware programmer can access the system as well as the user map
-// areas. However, note that dangerous things can be done when modifying the system areas directly.
+// all the remaining bytes in the NVM. 
 //
 //          :-------------------------------------------:           NVM_NODE_MAP_START 
 //          :                                           :
@@ -63,10 +62,6 @@ namespace LCS {
 //          :       Node Map                            :
 //          :                                           :
 //          :-------------------------------------------:           + sizeof( NodeMap )
-//          :                                           :
-//          :       CDC Map                             :
-//          :                                           :
-//          :-------------------------------------------:           + sizeof( CdcMap )
 //          :                                           :
 //          :       Port Map                            :
 //          :                                           :
@@ -114,12 +109,11 @@ const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 // The maps have as their first word a magic word, which is just a special constant. We simply read in that
 // word and check for being a valid word for the particular map. If valid, the area was configured before
 // and we can do further checking. It would be quite unlikely that a random NVM content has this word at the
-// right spot. Also, even if the size of a map changes the magic words are not at the expected spot anymore
-// and it is time for reformatting.
+// right spot. 
 //
 //----------------------------------------------------------------------------------------------------------
-const uint32_t NVM_MWORD_MAIN           = (uint16_t) ( 'L' << 24 ) | ( 'C' << 16 ) | ( 'S' << 8 );
-const uint32_t NVM_MWORD_EXTENSION      = (uint16_t) ( 'L' << 24 ) | ( 'C' << 16 ) | ( 'E' << 8 );
+const uint32_t NVM_MWORD_MAIN           = (uint32_t) ( 'L' << 24 ) | ( 'C' << 16 ) | ( 'S' << 8 );
+const uint32_t NVM_MWORD_EXTENSION      = (uint32_t) ( 'L' << 24 ) | ( 'C' << 16 ) | ( 'E' << 8 );
 
 const uint32_t NVM_MWORD_NODE_HEADER    = NVM_MWORD_MAIN | 0x01;
 const uint32_t NVM_MWORD_CDC_MAP        = NVM_MWORD_MAIN | 0x02;
@@ -131,12 +125,13 @@ const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x06;
 const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 
 //----------------------------------------------------------------------------------------------------------
-// The node states. The node starts in the INIT state and once all is initialized and registered ends up in
-// the OPS or CFG mode.
+// The node states. Essentially, the node runtime is a big state machine. The node starts in the INIT state
+// and once all is initialized and registered ends up in the OPS or CFG mode.
 //
 //  NS_NIL            -   NIL.
 //  NS_FAIL           -   The node startup failed.
 //  NS_PFAIL          -   The node startup detected that we ended in a power failure before.
+//  NS_WATCHDOG       -   The node startup detected that we restarted because of a watchdog timeout.
 //  NS_INIT           -   The node entered the startup state.
 //  NS_REGISTER       -   The node entered the node register state, awaiting a nodeId check or new nodeId.
 //  NS_COLLISION      -   The node detected a nodeId collision on the LCS bus and stopped.
@@ -159,27 +154,11 @@ enum LcsNodeState : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Nodes, ports and drivers are accessed with three main routines, GET, SET and REQ. 
-//
-// GET - the get routine will use the item numbers to retrieve the data labelled by the item. 
-//
-// SET - the set routine will use the item numbers to set the value. Note that not all items that can be 
-// read can also be written to. An attempt will result in an error return.
-//
-// REQ - the request call will transmit the request parameters to the node / port where a registered 
-// callback or the driver entry point will be invoked. The result is returned via the parameters.
-//
-// The "item" argument specifies the item that is addressed. Items range from  0 ... 255 and are defined as
-// follows: 
-//
-//   0          -   NIL item, not used
-//   1  ..  63  -   Node / port reserved area items, global items for GET/SET/REQ requests.
-//  64  .. 127  -   User defined items, specific meaning, accessed via the REQ routine.
-// 128  .. 255  -   Node / port / driver data attributes returned from MEM for GET/SET in operations mode
-//                  and MEM with updating NVM if in configuration mode.
-// 
-// The specific items are defined in the external include file. This part here defined the boundaries for 
-// internal checking.
+// Node, port and extension board driver attributes and functions are accessed with three main routines, 
+// GET, SET and REQ. The specific items are defined in the external include file. This part here defined the
+// boundaries for internal checking. The first 63 items are predefined and reserved for the runtime itself.
+// Item 64 to 127 are user definable and typically implement node type specific functions. Finally, item 
+// 128 to 255 are user definable attribute variables.
 //
 //------------------------------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
@@ -201,6 +180,7 @@ enum ItemRanges : uint8_t {
 //------------------------------------------------------------------------------------------------------------
 // "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines. For
 // debugging purposes a debug level can be set so that diagnostic messages are displayed to the console.
+// A CAN bus message will use the nodeId as the canBus Id. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
@@ -214,31 +194,29 @@ struct LcsMsgBusCAN {
 
     uint8_t     sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
     uint8_t     receiveLcsMsg( uint8_t *msg );
-    void        setCanBusId( uint16_t canId );
-    void        setDebugLevel( uint8_t level );
+    void        setNodeId( uint16_t nodeId );
 
-    private:
+    private: 
 
-    uint16_t  canId = 0;  // ??? should we rather use the nodeId on a call ?
+    uint16_t nodeId = NIL_NODE_ID;
 };
 
 //----------------------------------------------------------------------------------------------------------
-// Each NVM memory, i.e. the NVM on the main controller board or an extension board, starts with the header
-// data structure. This structure contains information to detect that the NVM was formatted, as well as 
-// some hardware specific data to identify the board and relevant chips on it. The data in this header must 
-// be "programmed" during a board setup. This is easily accomplished through console commands and needs of 
-// course only be done once per board. The data structure size is 32 bytes and it is always at NVM offset 
+// Each NVM memory, i.e. the NVM on the main controller board or an extension board, starts with the NVM 
+// header data structure. This structure contains information to detect that the NVM was formatted, as well
+// as some hardware specific data to identify the board and relevant chips on it. The data in this header 
+// must be "programmed" during a board setup. This is easily accomplished through console commands and needs
+// of course only be done once per board. The data structure size is 32 bytes and it is always at NVM offset 
 // zero.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsNvmHeader {
 
     uint32_t    magicWord                       = 0;
-    uint16_t    boardType                       = BT_NIL;
+    uint16_t    boardType                       = CDC_BT_NIL;
     uint16_t    boardVersion                    = 0;
-    uint16_t    controllerFamily                = CF_FAM_RPICO;
-    uint16_t    nvmChipFamily                   = CF_FAM_MICROCHIP;
-    uint16_t    reservedArea[ 10 ]              = { 0 };
+    uint16_t    controllerFamily                = CDC_CF_RP_PICO;
+    uint16_t    reservedArea[ 11 ]              = { 0 };
 }; 
 
 //----------------------------------------------------------------------------------------------------------
@@ -255,18 +233,16 @@ struct LcsNvmHeaderMap {
 
 //----------------------------------------------------------------------------------------------------------
 // The nodeMap is the heart of all data on the node. When bringing up a node, we first read in the NVM
-// headers and then the node map. Once read from the NVM storage, several validity checks are performed.
+// headers and then the node map. Once read in from the NVM storage, several validity checks are performed.
 // The most important check is to compare the size of the various data structures with the runtime data 
-// size that we know from the compilation. Only when they match can we somewhat trust the rest of the data
-// maps to read. It is therefore crucial that the first locations in the NVM have the same meaning even if
-// we advance to the next major SW version. The first part to ensure this requirement is the start of the 
-// NVM header and its size. The NVM header also has a pointer to the nodeMap offset. The nodeMap immediately
-// follows this header and starts with the pairs of offsets and lengths. The number of pairs and their
-// order is architected to ensure that the tests will test for the right data structure across versions.
+// size that we know from the compilation. That is the reason that each area starts with a magic word. 
+// Only when they match can we somewhat trust the rest of the data maps to read. It is also therefore 
+// crucial that the first locations in the NVM have the same meaning even if we advance to the next major 
+// SW version.
 //
 // The nodeMap is designed as the central structure. Upon initialization, the NVM stored data is read and
 // all work continues from the memory version of the nodeMap. Nevertheless, update to nodeMap fields can
-// also be forward to their NVM counterpart. Since a node has port zero as the docking for node wide 
+// also be forwarded to their NVM counterpart. Since a node has port zero as the docking for node wide 
 // operations, the portMap entry 0 is also considered part of the node map.
 // 
 //----------------------------------------------------------------------------------------------------------
@@ -275,12 +251,12 @@ struct LcsNodeMap {
     uint32_t            magicWord                       = NVM_MWORD_NODE_MAP;
     uint32_t            nvmOfs                          = 0;
     uint32_t            nvmSize                         = sizeof( LcsNodeMap );
+    uint16_t            rtLibSwVersion                  = LCS_RT_LIB_VERSION;
+    uint16_t            rtLibSwPatchLevel               = LCS_RT_LIB_PATCH_LEVEL;
 
     uint16_t            nodeState                       = NS_NIL;
     uint16_t            nodeId                          = NIL_NODE_ID;
     uint32_t            nodeUID                         = 0L;
-    uint16_t            nodeSwVersion                   = LCS_RT_LIB_VERSION;
-    uint16_t            nodeSwPatchLevel                = LCS_RT_LIB_PATCH_LEVEL;
     uint16_t            nodeRestartCnt                  = 0;
     uint32_t            nodeSystemTime                  = 0;
    
@@ -394,9 +370,9 @@ struct LcsTaskMap {
 
 //----------------------------------------------------------------------------------------------------------
 // The pending request map keeps track of outstanding requests to another node. We add an entry when our
-// node sends a "REQ" type packet and clear the entry when the matching reply comes in. The idea is that 
-// we only invoke the callback when we expect a reply. Additionally, there is a timeout value, so that we
-// can invoke the reply callback with a timeout message if requested.
+// node sends a request and clears the entry when the matching reply comes in. The idea is that we only 
+// invoke the callback when we expect a reply. Additionally, there is a timeout value, so that we can invoke
+// the reply callback with a timeout message if requested.
 //
 //----------------------------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
@@ -417,10 +393,11 @@ struct LcsPendingReqMap {
 // required to register a callback, i.e. driver, with the runtime. The type and function label are kept in
 // the driver function map. 
 //
+// ??? do we need this, we have the callback in the port, so we just register there... ?
 //----------------------------------------------------------------------------------------------------------
 struct LcsDrvFuncEntry {
 
-    uint16_t        drvType = BT_NIL;
+    uint16_t        drvType = CDC_BT_NIL;
     LcsReqCallback  drvFunc = nullptr;
 };
 
@@ -449,16 +426,7 @@ const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_HEADER_MAP_SIZE +
                                                 NVM_NODE_DATA_SIZE  +
                                                 NVM_EVENT_MAP_SIZE;
 
-const uint32_t  NVM_MAP_SITZE               =   NVM_HEADER_MAP_SIZE +
-                                                NVM_NODE_MAP_SIZE   +
-                                                NVM_PORT_MAP_SIZE   +
-                                                NVM_NODE_DATA_SIZE  +
-                                                NVM_EVENT_MAP_SIZE;
-
 const uint32_t  NVM_HEADER_MAP_OFS          =   NVM_MAP_STORAGE_START;  
-
-const uint32_t  NVM_CDC_MAP_OFS             =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE;
 
 const uint32_t  NVM_NODE_MAP_OFS            =   NVM_MAP_STORAGE_START + 
                                                 NVM_HEADER_MAP_SIZE;

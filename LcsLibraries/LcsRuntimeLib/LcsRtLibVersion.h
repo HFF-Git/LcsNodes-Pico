@@ -25,10 +25,7 @@
 
 //------------------------------------------------------------------------------------------------------------
 // 
-//
-// ??? how do we encode a version ? family, major, minor ?
-//
-// ??? check out the pre-commit option. Perhaps generalize the python prgram to fix these constants on GIT 
+// ??? check out the pre-commit option. Perhaps generalize the python pr0gram to fix these constants on GIT 
 // commit
 //------------------------------------------------------------------------------------------------------------
 namespace LCS {

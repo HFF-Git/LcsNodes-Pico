@@ -4,17 +4,16 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // The file contains the part of the LCS Runtime Library that implements the node event handling. At the
-// heart of LCS is the concept of events. Events are broadcasted by a node and any other node that is
-// interested in it registers a callback or this event. The runtime functions provide the management of the
-// event map and the search routines.
+// heart of LCS is the concept of events. Events are broadcasted by a node and any other node interested in
+// them registers an event callback. The runtime functions provide the management of the event map and the 
+// search routines.
 //
 // The event map can be found as a MEM and an NVM structure. During operations, the sorted MEM event map is
-// the map to work with. Entries are sorted by eventId and as a secondary sort key the portId. New events
-// can be added, old removed and the map can be searched. There is a SYNC function to write the contents
-// of the MEM event map to the NV event map. The idea is that all changes are made to the MEM version and
-// then written back in one swoop.
+// the map to work with. Entries are sorted by eventId. New events can be added, old removed and the map can
+// be searched. There is a SYNC function to write the contents of the MEM event map to the NV event map. The
+// idea is that all changes are made to the MEM version and then written back in one swoop.
 //
-// On node start or reset, the NVM event map is read as part of the overall NVM read process. Since we only
+// On node start or reset, the NVM event map is read as part of the overallsetup process. Since we only
 // write a sorted version to the NVM event map, we can always assume a sorted NVM version, except when the
 // eventMap high water mark is not valid. In this case we read entry by entry from the NVM and add it 
 // sorted to the MEM twin. The high water mark specifies the number of entires actually used.
@@ -137,7 +136,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
 
-        printf( "Add to MEM Event Map: %d : 0x%x\n", eventId, eventMask );
+        printf( "addToMemEventMap: %d : 0x%x\n", eventId, eventMask );
     }
 
     int index = searchEvent( eventId );
@@ -176,7 +175,7 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
      if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
         
-        printf( "Remove from MEM Event Map: %d\n", eventId );
+        printf( "removeFromMemEventMap: %d\n", eventId );
     }
 
     int index = searchEvent( eventId );
@@ -218,7 +217,7 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 uint8_t removeEvent( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) return ( errStat( ERR_INVALID_EVENT_ID ));
-    return ( errStat( removeFromMemEventMap( eventId )));
+    return ( removeFromMemEventMap( eventId ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -241,10 +240,7 @@ int searchEvent( uint16_t eventId ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) { 
-        
-        printf( "sync EventMap \n" );  
-    }
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) printf( "syncEventMap \n" );  
 
     uint8_t rStat =  rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
                                     (uint8_t *) eventMap.map, 
@@ -268,7 +264,7 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask 
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
         
-        printf( "Get Emap Entry: %d\n", index );
+        printf( "getMemEmapEntry: %d\n", index );
     }
   
     if ( index <  eventMap.mapHwm ) {
