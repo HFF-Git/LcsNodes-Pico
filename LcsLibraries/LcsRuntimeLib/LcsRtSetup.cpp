@@ -69,7 +69,7 @@ namespace LCS {
     uint16_t                startOptions = 0;
 
     LcsMsgBusCAN            *msgBus;
-    LcsNvmHeaderMap         nvmHeaderMap;
+    LcsHeaderMap            headerMap;
     LcsNodeData             nodeData;
     LcsNodeMap              nodeMap;
     LcsPortMap              portMap;
@@ -156,26 +156,19 @@ uint8_t errStat( uint8_t errId ) {
 // the board descriptor map. The extension entries are just cleared.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupDefaultHeaderMap( LcsNvmHeaderMap *hMap ) {
+uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "setupDefaultHeaderMap\n" );
 
-    LcsNvmHeader e;
-
-    e.magicWord         = NVM_MWORD_MAIN;
-    e.boardType         = dMap.boardId;
-    e.boardVersion      = dMap.boardversion;
-    e.controllerFamily  = dMap.cFamily;
-    
-    hMap -> map[ 0 ] = e;
+    hMap -> map[ 0 ] = dMap.head;
 
     for ( int i = 1; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
 
-        LcsNvmHeader e;
+        CdcBoardDescMap e;
         hMap -> map[ i ] = e;
     }
 
-    return ( errStat( rtNvmPutBytes( NVM_MAP_STORAGE_START, (uint8_t *) &nvmHeaderMap.map[ 0 ], NVM_HEADER_MAP_SIZE ))); 
+    return ( errStat( rtNvmPutBytes( NVM_MAP_STORAGE_START, (uint8_t *) &hMap -> map[ 0 ], sizeof( CdcBoardDescMap )))); 
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -269,7 +262,7 @@ uint8_t buildNvmRuntimeStructure( ) {
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "buildNvmRuntimeStructure\n" );
 
     uint8_t rStat = ALL_OK;
-    if ( rStat == ALL_OK ) rStat = setupDefaultHeaderMap( &nvmHeaderMap );
+    if ( rStat == ALL_OK ) rStat = setupDefaultHeaderMap( &headerMap );
     if ( rStat == ALL_OK ) rStat = setupDefaultNodeMap( &nodeMap );
     if ( rStat == ALL_OK ) rStat = setupDefaultPortMap( &portMap );
     if ( rStat == ALL_OK ) rStat = setupDefaultEventMap( &eventMap );
@@ -289,23 +282,23 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
         printf( "buildNvmExtBoardStructure for board: %d\n", boardId );
     }
 
-    LcsNvmHeader head;
+    CdcBoardDescMap head;
 
-    head.magicWord = NVM_MWORD_EXT_HEADER;
+    head.mWord = NVM_MWORD_EXT_HEADER;
 
-    return ( errStat( extNvmPutBytes( boardId, 0, (uint8_t *) &head, NVM_HEADER_MAP_SIZE )));
+    return ( errStat( extNvmPutBytes( boardId, 0, (uint8_t *) &head, sizeof( CdcBoardDescMap ))));
 }
 
 //-----------------------------------------------------------------------------------------------------------
 // A little helper to print a NVM header structure for debugging purposes.
 // 
 //------------------------------------------------------------------------------------------------------------
-void printNvmHeader( LcsNvmHeader *head ) {
+void printNvmHeader( CdcBoardDescMap *head ) {
 
     uint16_t *ptr = (uint16_t *) head;
 
     printf( "NVM Head: " );
-    for ( int j = 0; j < NVM_HEADER_MAP_SIZE / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
+    for ( int j = 0; j < sizeof( CdcBoardDescMap ) / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
     printf( "\n" );     
 }
 
@@ -504,12 +497,12 @@ uint8_t setupNodeNvmHeader( ) {
         rStat = buildNvmRuntimeStructure( );
     }
 
-    LcsNvmHeader *hPtr = &nvmHeaderMap.map[ 0 ];
+    CdcBoardDescMap *hPtr = &headerMap.map[ 0 ];
 
-    rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, (uint8_t *) hPtr, NVM_HEADER_MAP_SIZE );
+    rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, (uint8_t *) hPtr, sizeof( CdcBoardDescMap ));
     if ( rStat != ALL_OK ) return ( errStat( rStat ));
 
-    if ( hPtr -> magicWord != NVM_MWORD_NODE_HEADER ) {
+    if ( hPtr -> mWord != NVM_MWORD_NODE_HEADER ) {
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -551,12 +544,12 @@ uint8_t setupExtNvmHeaders( ) {
             printf( "setupExtNvmHeaders, boardId: %d\n", i ); 
         }
 
-        LcsNvmHeader *hPtr = &nvmHeaderMap.map[ i ]; 
+        CdcBoardDescMap *hPtr = &headerMap.map[ i ]; 
 
-        rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, NVM_HEADER_MAP_SIZE );
+        rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( CdcBoardDescMap ));
         if ( rStat == ALL_OK ) {
 
-            if ( hPtr -> magicWord == NVM_MWORD_EXT_HEADER ) {
+            if ( hPtr -> mWord == NVM_MWORD_EXT_HEADER ) {
 
                 if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -566,7 +559,7 @@ uint8_t setupExtNvmHeaders( ) {
             }
             else  {
 
-                hPtr -> magicWord = 0;
+                hPtr -> mWord = 0;
 
                 if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -652,9 +645,9 @@ uint8_t setupExtensionBoards( ) {
 
     for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-        LcsNvmHeader *hPtr = &nvmHeaderMap.map[ i ];
+        CdcBoardDescMap *hPtr = &headerMap.map[ i ];
         
-        if ( hPtr -> magicWord == NVM_MWORD_EXT_HEADER ) {
+        if ( hPtr -> mWord == NVM_MWORD_EXT_HEADER ) {
 
             if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -917,7 +910,7 @@ uint8_t setupDriverFunctions( ) {
 
             for ( int j = 0; j < MAX_DRV_TYPE_MAP_ENTRIES; j++ ) {
 
-                if ( nvmHeaderMap.map[ i ].boardType == drvFuncMap.map[ j ].drvType ) {
+                if ( headerMap.map[ i ].boardInfo == drvFuncMap.map[ j ].drvType ) { // ??? drvType ?
 
                     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 

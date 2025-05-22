@@ -132,6 +132,10 @@ const uint16_t  MAX_RESOURCE_ENTRIES        = 32;
 const uint16_t  MAX_RES_NAME                = 64;
 const uint8_t   MAX_UART_BUF_SIZE           = 8;
 
+const uint32_t  WATCHDOG_TIMER_MILLIS       = 2000;
+const uint32_t  ADC_REF_VOLTAGE_MILLIS      = 3300;
+const uint16_t  ADC_DIGIT_RANGE             = 1024;
+
 //------------------------------------------------------------------------------------------------------------
 // Controller dependent code uses a set of hardware resource structures to control the controller hardware. 
 // When a particular resource, e.g. an I2C channel, is configured all further access will use the resource 
@@ -272,6 +276,8 @@ struct CdcResource {
 // using the resource descriptor map. Essentially it contain all the data from the resource descriptors and
 // depending on the descriptor type the PICO data structures necessary.
 //
+//
+// ??? fill from descMap.
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceMap {
 
@@ -361,8 +367,8 @@ void initResourceMap( CdcResourceMap *rMap ) {
     rMap -> options                     = 0;
     rMap -> debugMask                   = 0;
     rMap -> boardId                     = 0;
-    rMap -> cFamily                     = CDC_CF_C_UNDEFINED;
-    rMap -> cType                       = CDC_CF_C_UNDEFINED;
+    rMap -> cFamily                     = CDC_CF_UNDEFINED;
+    rMap -> cType                       = CDC_CF_UNDEFINED;
     rMap -> cpuCores                    = 1;
     rMap -> memorySize                  = 0;
     rMap -> eepromSize                  = 0;
@@ -931,12 +937,12 @@ uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
 
 uint16_t getAdcRefVoltage( ) {
 
-    return ( dMap.adcRefVoltageMillis );
+    return ( ADC_REF_VOLTAGE_MILLIS );
 }
 
 uint16_t getAdcDigitRange( ) {
 
-    return ( dMap.adcDigitRange );
+    return ( ADC_DIGIT_RANGE );
 }
  
 //------------------------------------------------------------------------------------------------------------
@@ -1579,14 +1585,13 @@ bool canGetTwoCores( uint8_t rNum ) {
 void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
     printf( "CDC Resource Descriptor Map for:\n" );
-    printf( "%s\n\n", dMap -> name );
+    printf( "%s\n\n", dMap -> head.name );
 
     printf( "Options: 0x%4x\n", dMap -> options );
     printf( "Debug Mask: 0x%4x\n", dMap -> debugMask );
-    printf( "Controller Family: %d, Chip: %d\n", dMap -> cFamily, dMap -> cType );
-    printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", dMap -> cpuCores, dMap -> memorySize, dMap -> eepromSize );
-    printf( "WatchDog Interval (MS): %d\n", dMap -> watchDogIntervallMillis );
-    printf( "ADC Ref Voltage: %d, Digit range: %d\n", dMap -> adcRefVoltageMillis, dMap -> adcDigitRange ); 
+    printf( "Board Info: 0x4x\n", dMap -> head.boardInfo );
+    printf( "Board Version: 0x4x\n", dMap -> head.boardVersion );
+    printf( "Board Controller: 0x4x\n", dMap -> head.boardCtrlInfo );
 
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 

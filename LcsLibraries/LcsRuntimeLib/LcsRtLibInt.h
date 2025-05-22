@@ -202,33 +202,15 @@ struct LcsMsgBusCAN {
 };
 
 //----------------------------------------------------------------------------------------------------------
-// Each NVM memory, i.e. the NVM on the main controller board or an extension board, starts with the NVM 
-// header data structure. This structure contains information to detect that the NVM was formatted, as well
-// as some hardware specific data to identify the board and relevant chips on it. The data in this header 
-// must be "programmed" during a board setup. This is easily accomplished through console commands and needs
-// of course only be done once per board. The data structure size is 32 bytes and it is always at NVM offset 
-// zero.
-//
-//----------------------------------------------------------------------------------------------------------
-struct LcsNvmHeader {
-
-    uint32_t    magicWord                       = 0;
-    uint16_t    boardType                       = CDC_BT_NIL;
-    uint16_t    boardVersion                    = 0;
-    uint16_t    controllerFamily                = CDC_CF_RP_PICO;
-    uint16_t    reservedArea[ 11 ]              = { 0 };
-}; 
-
-//----------------------------------------------------------------------------------------------------------
 // The NVM header map stores the NVM headers of the node board and the optional extension boards found. It 
 // is a MEM only structure and will be filled though reading the NVM headers at startup time. There should 
 // be at least the main controller board NVM header stored and optional up to four extension board NVM 
 // headers. 
 //
 //----------------------------------------------------------------------------------------------------------
-struct LcsNvmHeaderMap {
+struct LcsHeaderMap {
 
-    LcsNvmHeader map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
+    CdcBoardDescMap map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -412,7 +394,7 @@ struct LcsDrvFuncMap {
 // size. We can easily define the relevant offsets and sizes as constants.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint32_t  NVM_HEADER_MAP_SIZE         =   sizeof( LcsNvmHeader ); 
+const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( CdcBoardDescMap );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
 const uint32_t  NVM_PORT_MAP_SIZE           =   sizeof( LcsPortMap );
 const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
@@ -420,7 +402,7 @@ const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
 
 const uint32_t  NVM_MAP_STORAGE_START       =   0;
 
-const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_HEADER_MAP_SIZE + 
+const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_BOARD_DESC_SIZE + 
                                                 NVM_NODE_MAP_SIZE   +
                                                 NVM_PORT_MAP_SIZE   +
                                                 NVM_NODE_DATA_SIZE  +
@@ -429,27 +411,27 @@ const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_HEADER_MAP_SIZE +
 const uint32_t  NVM_HEADER_MAP_OFS          =   NVM_MAP_STORAGE_START;  
 
 const uint32_t  NVM_NODE_MAP_OFS            =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE;
+                                                NVM_BOARD_DESC_SIZE;
 
 const uint32_t  NVM_PORT_MAP_OFS            =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   +
+                                                NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE;
 
 const uint32_t  NVM_NODE_DATA_OFS           =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   +  
+                                                NVM_BOARD_DESC_SIZE   +  
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_PORT_MAP_SIZE;
     
 
 const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   +
+                                                NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_PORT_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
 
 const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START + 
-                                                NVM_HEADER_MAP_SIZE   + 
+                                                NVM_BOARD_DESC_SIZE   + 
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_PORT_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +

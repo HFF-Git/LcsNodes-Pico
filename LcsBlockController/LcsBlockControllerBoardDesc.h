@@ -79,28 +79,15 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
     //
     //  OPTION              - option flags for the board. They are set by the application.
     //  DEBUG MASK          - debug options. They are set by the application.
-    //  CFAMILY             - controller chip family.
-    //  CTYPE               - the controller chip.
-    //  CPU CORES           - the number of CPU cores in the chip.
-    //  MEMORY SIZE         - the main memory size of the controller chip.
-    //  EEPROM SIZE         - the non volatile memory size of the controller chip.
-    //  WATCHDOG INTERVAL   - the watchdog timer value in milliseconds.
-    //  ADC REF VOLTAGE     - the reference voltage for the ADC in milli volt.
-    //  ADC DIGIT RANGE     - the range of ADC conversion result. 
-    //  NAME                - the board name.
+    //  HEAD                - board / controller related info.
     //
     //--------------------------------------------------------------------------------------------------------
-    .options                    = 0,
-    .debugMask                  = 0,
-    .cFamily                    = CDC_CF_RP_PICO,
-    .cType                      = CDC_CF_C_RP_2040,
-    .cpuCores                   = 2,
-    .memorySize                 = 260*1024,
-    .eepromSize                 = 0,
-    .watchDogIntervallMillis    = 2000,
-    .adcRefVoltageMillis        = 3300,
-    .adcDigitRange              = 1024,
-    .name                       = "LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00",
+    .options    = 0,
+    .debugMask  = 0,
+
+    .head   {   .mWord = 0, .boardInfo = 0, .boardVersion = 0, .boardCtrlInfo = 0, 
+                .name  = "LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00"
+            },
 
     //--------------------------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set reflect the board for which 

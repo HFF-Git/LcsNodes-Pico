@@ -37,8 +37,7 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t             debugMask;
-
-    extern LcsNvmHeaderMap      nvmHeaderMap;
+    extern LcsHeaderMap         headerMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
@@ -372,14 +371,17 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             case ITEM_ID_HW_VERSION: {
 
                 if ( ! isInRangeU( *arg1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                *arg1 = nvmHeaderMap.map[ *arg1 ].boardVersion ;
+                *arg1 = headerMap.map[ *arg1 ].boardVersion ;
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_CONTROLLER_FAMILY: {
 
                 if ( ! isInRangeU( *arg1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                *arg1 = nvmHeaderMap.map[ *arg1 ].controllerFamily;
+               
+                // *arg1 = nvmHeaderMap.map[ *arg1 ].controllerFamily;
+                *arg1 = 0; // ???
+               
                 return ( errStat( ALL_OK ));
             }
 

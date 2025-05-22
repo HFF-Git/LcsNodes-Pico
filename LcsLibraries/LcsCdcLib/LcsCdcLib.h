@@ -143,18 +143,33 @@ const uint8_t   ILLEGAL_PIN             = 254;
 // firmware. 
 //
 //------------------------------------------------------------------------------------------------------------
-enum CdcBoardType : uint16_t {
+enum CdcBoardInfo : uint16_t {
 
     CDC_BT_NIL                  = 0,
-    CDC_BT_MAIN_CONTROLLER      = 1,
-    CDC_BT_BASE_STATION         = 2,
-    CDC_BT_BLOCK_CONTROLLER     = 3,
-    BT_CAB_HANDHELD             = 4,
+    CDC_BT_MAIN                 = 1,
+    CDC_BT_EXT                  = 2,
 
-    CDC_BT_EXT_NIL              = 10,
-    CDC_BT_EXT_OCC_DETECT       = 11,
-    CDC_BT_EXT_SERVO            = 12,
-    CDC_BT_EXT_GPIO             = 13
+    CDC_BT_MAIN_CONTROLLER      = 10,
+    CDC_BT_BASE_STATION         = 11,
+    CDC_BT_BLOCK_CONTROLLER     = 12,
+    BT_CAB_HANDHELD             = 13,
+
+    CDC_BT_EXT_OCC_DETECT       = 80,
+    CDC_BT_EXT_SV_32_IO_16      = 81,
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The controller families. Currently, there is only the Raspberry PI Pico family models.
+//
+//------------------------------------------------------------------------------------------------------------
+enum ControllerInfo : uint8_t {
+
+    CDC_CF_UNDEFINED            = 0,
+    CDC_CF_RP_PICO              = 1,
+
+    CDC_CF_C_RP_2040            = 10,
+    CDC_CF_C_RP_2350            = 11
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -194,27 +209,6 @@ enum CdcResourceIdNum : uint8_t {
     
     CDC_RN_FIRST_USER_RN    = 8, 
     CDC_RN_UNDEFINED        = 255
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The controller families. Currently, there is only the Raspberry PI Pico family models.
-//
-//------------------------------------------------------------------------------------------------------------
-enum ControllerFamily : uint8_t {
-
-    CDC_CF_UNDEFINED    = 0,
-    CDC_CF_RP_PICO      = 1
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The controller chips in a family. Currently, there is only the Raspberry PI Pico models RP2040 and RP2350.
-//
-//------------------------------------------------------------------------------------------------------------
-enum ControllerChip : uint8_t {
-
-    CDC_CF_C_UNDEFINED  = 0,
-    CDC_CF_C_RP_2040    = 1,
-    CDC_CF_C_RP_2350    = 2
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -329,6 +323,21 @@ struct CdcResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// The CdcBoardDescMap structure defines what the board actually is. It is also the first structure that can
+// be found on the controller board NVM as well as the extension board NVM.
+//
+//------------------------------------------------------------------------------------------------------------
+struct CdcBoardDescMap {
+
+    uint32_t            mWord;
+    uint16_t            boardInfo;
+    uint16_t            boardVersion;
+    uint16_t            boardCtrlInfo; 
+    uint16_t            reserved[ 11 ];
+    char                name[ MAX_RES_NAME_SIZE ];
+};
+
+//------------------------------------------------------------------------------------------------------------
 // The resource descriptor map is the data structure passed to the runtime library initialization routine.
 // The data is used in the configuration process of the particular hardware board. We will over time have 
 // several boards and consequently a map for each board version. 
@@ -338,18 +347,7 @@ struct CdcResourceDescMap {
 
     uint16_t            options;
     uint16_t            debugMask;
-    uint16_t            boardId;
-    uint32_t            boardversion;
-    uint16_t            cFamily;
-    uint16_t            cType;
-    uint16_t            cpuCores;
-    uint32_t            memorySize;
-    uint32_t            eepromSize;
-    uint32_t            watchDogIntervallMillis;
-    uint16_t            adcRefVoltageMillis;
-    uint16_t            adcDigitRange;
-    
-    char                name[ MAX_RES_NAME_SIZE ];
+    CdcBoardDescMap     head; 
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
 
