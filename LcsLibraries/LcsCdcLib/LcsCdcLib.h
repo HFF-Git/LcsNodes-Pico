@@ -330,9 +330,9 @@ struct CdcResourceDesc {
 struct CdcBoardDescMap {
 
     uint32_t            mWord;
-    uint16_t            boardInfo;
-    uint16_t            boardVersion;
-    uint16_t            boardCtrlInfo; 
+    uint16_t            boardInfo;                          // type/subtype
+    uint16_t            boardVersion;                       // major / sub version
+    uint16_t            boardCtrlInfo;                      // family / cType
     uint16_t            reserved[ 11 ];
     char                name[ MAX_RES_NAME_SIZE ];
 };

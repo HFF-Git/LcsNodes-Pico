@@ -344,7 +344,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( errStat( ALL_OK ));
             }
 
-            case ITEM_ID_SW_VERSION: {    
+            case ITEM_ID_RT_LIB_VERSION: {    
                 
                 *arg1 = nodeMap.rtLibSwVersion; 
                 return ( errStat( ALL_OK ));
@@ -368,20 +368,10 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( errStat( ALL_OK ));
             }
 
-            case ITEM_ID_HW_VERSION: {
+            case ITEM_ID_BOARD_VERSION: {
 
                 if ( ! isInRangeU( *arg1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
                 *arg1 = headerMap.map[ *arg1 ].boardVersion ;
-                return ( errStat( ALL_OK ));
-            }
-
-            case ITEM_ID_CONTROLLER_FAMILY: {
-
-                if ( ! isInRangeU( *arg1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
-               
-                // *arg1 = nvmHeaderMap.map[ *arg1 ].controllerFamily;
-                *arg1 = 0; // ???
-               
                 return ( errStat( ALL_OK ));
             }
 
@@ -548,25 +538,18 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( errStat( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeMap.nodeId )));
             }
 
-            case ITEM_ID_SW_VERSION: {
+            case ITEM_ID_RT_LIB_VERSION: {
 
                 nodeMap.rtLibSwVersion = val1;
                 return ( errStat( rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, rtLibSwVersion ), val1 )));
             }
 
-            case ITEM_ID_HW_VERSION: {
+            case ITEM_ID_BOARD_VERSION: {
 
                 if ( ! isInRangeU( val1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
 
                 // ??? board version setting ...
                 // ??? not clear what we would exactly do for the NVM header changes / config ?
-
-                return ( errStat( 255 ));
-            }
-
-            case ITEM_ID_CONTROLLER_FAMILY: {
-
-                // ??? controller family should actually become part of the version and board version ...
 
                 return ( errStat( 255 ));
             }

@@ -349,13 +349,15 @@ enum LcsItems : uint8_t {
     ITEM_ID_OPTIONS                     = 2,
     ITEM_ID_FLAGS                       = 3,
 
-    ITEM_ID_HW_VERSION                  = 5,
-    ITEM_ID_SW_VERSION                  = 4,
-    ITEM_ID_TYPE                        = 6,
-   
-    ITEM_ID_CONTROLLER_FAMILY           = 7,
-    ITEM_ID_NVM_CHIP_FAMILY             = 8,
-   
+    ITEM_ID_BOARD_INFO                  = 4,
+    ITEM_ID_BOARD_VERSION               = 5,
+    ITEM_ID_CONTROLLER_INFO             = 6,
+
+    ITEM_ID_RT_LIB_VERSION              = 7,
+    ITEM_ID_RTLIB_PATCH_LEVEL           = 8,
+
+    ITEM_ID_TYPE                        = 9,
+      
     ITEM_ID_NODE_STATE                  = 10,
     ITEM_ID_NODE_ID                     = 11,
     ITEM_ID_NODE_UID                    = 12,
