@@ -483,7 +483,7 @@ uint8_t setupPfail( CdcResourceDescMap *map ) {
 // default structure will be created. Either way we return with a valid NVM structure for the node. 
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t setupNodeNvmHeader( ) {
+uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     uint8_t rStat = ALL_OK;
 
@@ -512,6 +512,14 @@ uint8_t setupNodeNvmHeader( ) {
 
         rStat = buildNvmRuntimeStructure( );
     }
+
+// ??? check board controller family : desc.board controller - hPtr.board controller
+
+// ??? check board version : desc.board version controller - hPtr.board version controller
+
+// ??? check board info: desc.board info - hPtr.board info
+
+// ??? check name: if different, just copy new name...
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -1007,7 +1015,7 @@ uint8_t initRuntime( CdcResourceDescMap *dMap ) {
 
     if ( rStat == ALL_OK )  rStat = setupWatchdog( dMap ); 
     if ( rStat == ALL_OK )  rStat = setupPfail( dMap );
-    if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( );
+    if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( dMap );
     if ( rStat == ALL_OK )  rStat = setupExtNvmHeaders( );
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );

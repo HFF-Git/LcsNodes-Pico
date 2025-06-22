@@ -9,7 +9,7 @@ if [ "$#" -lt 2 ];
 then
 	echo "Usage: loadpico <filename> <usb address>"
     echo "The file name is the UF2 file to load"
-    echo "The USB address is the subset needed for the device file. ( /dev/cu.usbmodem[XXXX]1 )"
+    echo "The USB address is the subset needed for the device file. (e.g. /dev/cu.usbmodem[XXXX]1 )"
 	exit
 fi
 

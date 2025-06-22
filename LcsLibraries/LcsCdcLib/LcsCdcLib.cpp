@@ -380,16 +380,6 @@ void initResourceMap( CdcResourceMap *rMap ) {
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) rMap -> map[ i ].type = CDC_RT_UNDEFINED;
 } 
 
-//------------------------------------------------------------------------------------------------------------
-// A resource descriptor is found by indexing into the resource descriptor map with index and resource type.
-//
-//------------------------------------------------------------------------------------------------------------
-CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
-
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
-    if ( dMap.map[ rNum ].type == type ) return ( &dMap.map[ rNum ] );
-    else return ( nullptr );
-}
 
 //------------------------------------------------------------------------------------------------------------
 // A resource is found by indexing into the resource map with index and resource type.
@@ -398,7 +388,7 @@ CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
 CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
-    if ( rMap.map[ rNum ].type = type ) return ( nullptr );
+    if ( rMap.map[ rNum ].type != type ) return ( nullptr );
     return ( &rMap.map[ rNum ] );
 }
 
@@ -414,7 +404,8 @@ CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
     
     if ( rMap.map[ rNum ].type == CDC_RT_UNDEFINED ) {
 
-        rMap.map[ rNum ].type = type;
+        rMap.map[ rNum ].type   = type;
+        rMap.map[ rNum ].resId  = rNum;
         return ( &rMap.map[ rNum ] );
     }
     else if ( rMap.map[ rNum ].type == type ) {
@@ -533,6 +524,7 @@ void setGpioMode( uint8_t pin, uint8_t mode ) {
 }; // namespace
 
 
+
 //------------------------------------------------------------------------------------------------------------
 // Name space CDC. All routines and definitions exported are in this name space.
 //
@@ -580,6 +572,7 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
 
     if ( ! initialized ) {
 
+        initResourceMap( &rMap );
         initIsrTable( );
         configureConsoleIO( );
     }
@@ -587,15 +580,33 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
     return ( NO_ERR );
 }
  
- //------------------------------------------------------------------------------------------------------------
- // "getResourceMap" will return a pointer to the configured resource map. This is typically the map that was
- // created with the data from the resource descriptor map.
- //
- //------------------------------------------------------------------------------------------------------------
- CdcResourceMap  *getResourceMap( ) {
+//------------------------------------------------------------------------------------------------------------
+// "getResourceMap" will return a pointer to the configured resource map. This is typically the map that was
+// created with the data from the resource descriptor map.
+//
+//------------------------------------------------------------------------------------------------------------
+CdcResourceMap  *getResourceMap( ) {
 
     return ( &rMap );
- }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// A resource descriptor is found by searching the resource Id in the entries. This gives us also the 
+// flexibility of arranging the resource descriptor entries in the board descriptor.
+//
+//------------------------------------------------------------------------------------------------------------
+CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
+
+    for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
+
+        CdcResourceDesc *ptr = &dMap.map[ i ];
+        if (( ptr -> resId == rNum ) && ( ptr -> type == type )) return( ptr );
+    }
+
+    return ( nullptr );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // "fatalError" is the error communication method when we cannot get anything to work. The Raspberry Pi PICO
@@ -889,10 +900,10 @@ uint8_t configureAdc( uint8_t rNum ) {
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return ( RES_NUM_ERR );
 
-    CdcResourceDescAdc *dPtr = (CdcResourceDescAdc *) lookupResourceDesc( rNum, CDC_RT_ADC );
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_ADC );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
-    return ( configureAdc( rNum, dPtr -> adcPin, dPtr -> adcNum ));
+    return ( configureAdc( rNum, dPtr -> adc.adcPin, dPtr -> adc.adcNum ));
 }
 
 uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
@@ -900,37 +911,37 @@ uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return ( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
     
-    AdcResource *rPtr = (AdcResource *) allocateResourceType( rNum, CDC_RT_ADC );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_ADC );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
     if ( adcPin == 26 ) {
 
-        rPtr -> adcPin = 26;
-        rPtr -> adcNum = 0;
+        rPtr -> adc.adcPin = 26;
+        rPtr -> adc.adcNum = 0;
     }
     else  if ( adcPin == 27 ) {
 
-        rPtr -> adcPin = 27;
-        rPtr -> adcNum = 1;
+        rPtr -> adc.adcPin = 27;
+        rPtr -> adc.adcNum = 1;
     }
     else  if ( adcPin == 28 ) {
 
-        rPtr -> adcPin = 28;
-        rPtr -> adcNum = 2;
+        rPtr -> adc.adcPin = 28;
+        rPtr -> adc.adcNum = 2;
     }
     else return ( ADC_PIN_ERR );
 
     adc_init( );
-    adc_gpio_init( rPtr -> adcPin );
+    adc_gpio_init( rPtr -> adc.adcPin );
     return ( NO_ERR );
 }
 
 uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
 
-    AdcResource *rPtr = (AdcResource *) lookupResource( rNum, CDC_RT_ADC );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_ADC );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    adc_select_input( rPtr -> adcNum );
+    adc_select_input( rPtr -> adc.adcNum );
     *val = ( adc_read( ) >> 2 );
     return ( NO_ERR );
 }
@@ -963,59 +974,63 @@ uint8_t configureDio( uint8_t rNum ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
    
-    CdcResourceDescGpio *dPtr = (CdcResourceDescGpio *) lookupResourceDesc( rNum, CDC_RT_GPIO );
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
-   
-    return ( configureDio( rNum, dPtr -> pinA, dPtr -> pinB, dPtr -> pinMode ));
+
+    return ( configureDio( rNum, dPtr-> gpio.pinA, dPtr -> gpio.pinB, dPtr -> gpio.pinMode ));
 }
 
 uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
 
+    printf( "configureDio: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", rNum, pinA, pinB, mode );
+
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-    
-    GpioResource *rPtr = (GpioResource *) allocateResourceType( rNum, CDC_RT_GPIO );
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
-
-    rPtr -> dioPinA = pinA;
-    rPtr -> dioPinB = pinB;
-    rPtr -> handler = nullptr;
-    rPtr -> pinMode = mode % 4;
+    
+    rPtr -> gpio.dioPinA = pinA;
+    rPtr -> gpio.dioPinB = pinB;
+    rPtr -> gpio.handler = nullptr;
+    rPtr -> gpio.pinMode = mode % 4;
  
-    if ( ! validPin( rPtr -> dioPinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
-    if ( ! validPin( rPtr -> dioPinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( ! validPin( rPtr -> gpio.dioPinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( ! validPin( rPtr -> gpio.dioPinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
 
-    gpio_init( rPtr -> dioPinA );
-    setGpioMode( rPtr -> dioPinA, rPtr -> pinMode );
+    gpio_init( rPtr -> gpio.dioPinA );
+    setGpioMode( rPtr -> gpio.dioPinA, rPtr -> gpio.pinMode );
 
-    if ( rPtr -> dioPinB != UNDEFINED_PIN ) gpio_init( rPtr -> dioPinB );
-    if ( rPtr -> dioPinB != UNDEFINED_PIN ) setGpioMode( rPtr -> dioPinB, rPtr -> pinMode );
+    if ( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) gpio_init( rPtr -> gpio.dioPinB );
+    if ( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) setGpioMode( rPtr -> gpio.dioPinB, rPtr -> gpio.pinMode );
+
+    printResourceMap( );
     return ( NO_ERR );
 }
 
 uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
 
-    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> dioPinA <= MAX_INT_PIN ) {
+    if ( rPtr -> gpio.dioPinA <= MAX_INT_PIN ) {
 
         if ( dioIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( rPtr -> dioPinA, mapCdcIntEvent( event ), true, gpioCallback );
+            gpio_set_irq_enabled_with_callback( rPtr -> gpio.dioPinA, mapCdcIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( rPtr -> dioPinA, mapCdcIntEvent( event ), true);
+            gpio_set_irq_enabled( rPtr -> gpio.dioPinA, mapCdcIntEvent( event ), true);
     
-        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] = func;
+        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinA ] = func;
         dioIntHandlers.numOfHandlers ++;
     }
 
-    if (( rPtr -> dioPinB != UNDEFINED_PIN ) && ( rPtr -> dioPinB <= MAX_INT_PIN )) {
+    if (( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) && ( rPtr -> gpio.dioPinB <= MAX_INT_PIN )) {
 
         if ( dioIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( rPtr -> dioPinB, mapCdcIntEvent( event ), true, gpioCallback );
+            gpio_set_irq_enabled_with_callback( rPtr -> gpio.dioPinB, mapCdcIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( rPtr -> dioPinB, mapCdcIntEvent( event ), true);
+            gpio_set_irq_enabled( rPtr -> gpio.dioPinB, mapCdcIntEvent( event ), true);
     
-        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinB ] = func;
+        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinB ] = func;
         dioIntHandlers.numOfHandlers ++;
     }
 
@@ -1024,25 +1039,25 @@ uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
 
 uint8_t unregisterDioCallback( uint8_t rNum ) {
 
-    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> dioPinA <= MAX_INT_PIN ) {
+    if ( rPtr -> gpio.dioPinA <= MAX_INT_PIN ) {
 
-        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] != nullptr ) {
+        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinA ] != nullptr ) {
 
-            gpio_set_irq_enabled(  rPtr -> dioPinA, 0, false );
-            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinA ] = dummyIsrHandler;
+            gpio_set_irq_enabled(  rPtr -> gpio.dioPinA, 0, false );
+            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinA ] = dummyIsrHandler;
             dioIntHandlers.numOfHandlers --;
         }
     }
 
-    if (( rPtr -> dioPinB != UNDEFINED_PIN ) && ( rPtr -> dioPinB <= MAX_INT_PIN )) {
+    if (( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) && ( rPtr -> gpio.dioPinB <= MAX_INT_PIN )) {
 
-        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinB ] != nullptr ) {
+        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinB ] != nullptr ) {
 
-            gpio_set_irq_enabled(  rPtr -> dioPinB, 0, false );
-            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> dioPinB ] = dummyIsrHandler;
+            gpio_set_irq_enabled(  rPtr -> gpio.dioPinB, 0, false );
+            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinB ] = dummyIsrHandler;
             dioIntHandlers.numOfHandlers --;
         }
     }
@@ -1052,19 +1067,19 @@ uint8_t unregisterDioCallback( uint8_t rNum ) {
 
 uint8_t readDio( uint8_t rNum, bool *valA, bool *valB ) {
 
-    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> dioPinB == UNDEFINED_PIN ) {
+    if ( rPtr -> gpio.dioPinB == UNDEFINED_PIN ) {
 
-        *valA = gpio_get( rPtr -> dioPinA );
+        *valA = gpio_get( rPtr -> gpio.dioPinA );
     }
     else {
 
-        uint32_t maskData = ( 1UL << rPtr -> dioPinA ) | ( 1UL << rPtr -> dioPinB );
+        uint32_t maskData = ( 1UL << rPtr -> gpio.dioPinA ) | ( 1UL << rPtr -> gpio.dioPinB );
 
-        *valA = gpio_get( rPtr -> dioPinA );
-        *valB = gpio_get( rPtr -> dioPinB );
+        *valA = gpio_get( rPtr -> gpio.dioPinA );
+        *valB = gpio_get( rPtr -> gpio.dioPinB );
     }
 
     return ( NO_ERR );
@@ -1072,18 +1087,20 @@ uint8_t readDio( uint8_t rNum, bool *valA, bool *valB ) {
 
 uint8_t writeDio( uint8_t rNum, bool valA, bool valB ) {
 
-    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> dioPinB == UNDEFINED_PIN ) {
+   // printf( "writeDio: rNum: %d\n", rPtr -> resId );
+    
+    if ( rPtr -> gpio.dioPinB == UNDEFINED_PIN ) {
 
-        gpio_put( rPtr -> dioPinA, valA );
+        gpio_put( rPtr -> gpio.dioPinA, valA );
     }
     else {
 
-        uint32_t maskData = ( 1UL << rPtr -> dioPinA ) | ( 1UL << rPtr -> dioPinB );
-        uint32_t valData  = (( valA ) ? ( 1 << rPtr -> dioPinA ) : 0 ) | 
-                            (( valB ) ? ( 1 << rPtr -> dioPinB ) : 0 );
+        uint32_t maskData = ( 1UL << rPtr -> gpio.dioPinA ) | ( 1UL << rPtr -> gpio.dioPinB );
+        uint32_t valData  = (( valA ) ? ( 1 << rPtr -> gpio.dioPinA ) : 0 ) | 
+                            (( valB ) ? ( 1 << rPtr -> gpio.dioPinB ) : 0 );
         gpio_put_masked( maskData, valData );
     }
 
@@ -1092,19 +1109,19 @@ uint8_t writeDio( uint8_t rNum, bool valA, bool valB ) {
 
 uint8_t toggleDio( uint8_t rNum ) {
 
-    GpioResource *rPtr = (GpioResource *) lookupResource( rNum, CDC_RT_GPIO );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> pinMode != CDC_DIO_OUT ) return ( DIO_MODE_ERR );
+    if ( rPtr -> gpio.pinMode != CDC_DIO_OUT ) return ( DIO_MODE_ERR );
 
-    if ( rPtr -> dioPinB == UNDEFINED_PIN ) {
+    if ( rPtr -> gpio.dioPinB == UNDEFINED_PIN ) {
 
-        gpio_put( rPtr -> dioPinA, ! gpio_get( rPtr -> dioPinA ));
+        gpio_put( rPtr -> gpio.dioPinA, ! gpio_get( rPtr -> gpio.dioPinA ));
     }
     else {
 
-        gpio_put( rPtr -> dioPinA, ! gpio_get( rPtr -> dioPinA ));
-        gpio_put( rPtr -> dioPinB, ! gpio_get( rPtr -> dioPinB ));
+        gpio_put( rPtr -> gpio.dioPinA, ! gpio_get( rPtr -> gpio.dioPinA ));
+        gpio_put( rPtr -> gpio.dioPinB, ! gpio_get( rPtr -> gpio.dioPinB ));
     }
         
     return ( NO_ERR );
@@ -1337,10 +1354,10 @@ uint8_t configureI2C( uint8_t rNum ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
    
-    CdcResourceDescI2c *dPtr = (CdcResourceDescI2c *) lookupResourceDesc( rNum, CDC_RT_I2C );
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_I2C );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
-    return ( configureI2C( rNum, dPtr -> sclPin, dPtr -> sdaPin, dPtr -> baudRate, dPtr -> i2cTimeoutMs ));
+    return ( configureI2C( rNum, dPtr -> i2c.sclPin, dPtr -> i2c.sdaPin, dPtr -> i2c.baudRate, dPtr -> i2c.i2cTimeoutMs ));
 }
 
 uint8_t configureI2C( uint8_t rNum, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate, uint32_t timeoutVal ) {
@@ -1348,45 +1365,45 @@ uint8_t configureI2C( uint8_t rNum, uint8_t sclPin, uint8_t sdaPin, uint32_t bau
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return ( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
     
-    I2cResource *rPtr = (I2cResource *) allocateResourceType( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    rPtr -> sclPin          = sclPin;
-    rPtr -> sdaPin          = sdaPin;
-    rPtr -> baudRate        = baudRate;
-    rPtr -> timeoutValMs    = timeoutVal;
+    rPtr -> i2c.sclPin          = sclPin;
+    rPtr -> i2c.sdaPin          = sdaPin;
+    rPtr -> i2c.baudRate        = baudRate;
+    rPtr -> i2c.timeoutValMs    = timeoutVal;
 
-    if ((( 1 << rPtr -> sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << rPtr -> sdaPin ) & VALID_I2C_0_SDA_PINS )) {
+    if ((( 1 << rPtr -> i2c.sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << rPtr -> i2c.sdaPin ) & VALID_I2C_0_SDA_PINS )) {
 
-        rPtr -> i2cHw = i2c0;
+        rPtr -> i2c.i2cHw = i2c0;
     }
-    else if ((( 1 << rPtr -> sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << rPtr -> sdaPin ) & VALID_I2C_1_SDA_PINS )) {
+    else if ((( 1 << rPtr -> i2c.sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << rPtr -> i2c.sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
-        rPtr -> i2cHw = i2c1;
+        rPtr -> i2c.i2cHw = i2c1;
     }
     else return ( I2C_PORT_ERR );
 
-    i2c_init( rPtr -> i2cHw, rPtr -> baudRate );
-    i2c_set_slave_mode( rPtr -> i2cHw, false, 0 );
+    i2c_init( rPtr -> i2c.i2cHw, rPtr -> i2c.baudRate );
+    i2c_set_slave_mode( rPtr -> i2c.i2cHw, false, 0 );
     
-    gpio_set_function( rPtr -> sclPin, GPIO_FUNC_I2C );
-    gpio_set_function( rPtr -> sdaPin, GPIO_FUNC_I2C);
-    gpio_pull_up( rPtr -> sclPin );
-    gpio_pull_up( rPtr -> sdaPin );
+    gpio_set_function( rPtr -> i2c.sclPin, GPIO_FUNC_I2C );
+    gpio_set_function( rPtr -> i2c.sdaPin, GPIO_FUNC_I2C);
+    gpio_pull_up( rPtr -> i2c.sclPin );
+    gpio_pull_up( rPtr -> i2c.sdaPin );
     return ( NO_ERR );
 }
 
 uint8_t i2cRead( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool stopBit ) {
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    auto ret = i2c_read_blocking_until( rPtr -> i2cHw,
+    auto ret = i2c_read_blocking_until( rPtr -> i2c.i2cHw,
                                         i2cAdr,
                                         buf,
                                         len,
                                         stopBit,
-                                        make_timeout_time_ms( rPtr -> timeoutValMs ));
+                                        make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_I2C )) {
 
@@ -1412,15 +1429,15 @@ uint8_t i2cWrite( uint8_t rNum, uint8_t i2cAdr, uint8_t *buf, uint16_t len, bool
                 rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
     }
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    auto ret = i2c_write_blocking_until( rPtr -> i2cHw,
+    auto ret = i2c_write_blocking_until( rPtr -> i2c.i2cHw,
                                          i2cAdr,
                                          buf,
                                          len,
                                          stopBit,
-                                         make_timeout_time_ms( rPtr -> timeoutValMs ));
+                                         make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
 
     if (( debugMask & CDC_DBG_CONFIG ) && ( debugMask & CDC_DBG_PWM )) {
 
@@ -1442,36 +1459,36 @@ uint8_t i2cBusreset( uint8_t rNum ) {
         printf( "I2C Bus reset, rNum: %d\n", rNum );
     }
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
     uint8_t reset_cmd = 0x06;
-    i2c_write_blocking( rPtr -> i2cHw, 0x00, &reset_cmd, 1, false); 
+    i2c_write_blocking( rPtr -> i2c.i2cHw, 0x00, &reset_cmd, 1, false); 
     return ( NO_ERR );
 }
 
 uint8_t i2cGetSclPin( uint8_t rNum ) {
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
 
-    return ( rPtr -> sclPin );
+    return ( rPtr -> i2c.sclPin );
 }
 
 uint8_t i2cGetSdaPin( uint8_t rNum ) {
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
 
-    return ( rPtr -> sdaPin );
+    return ( rPtr -> i2c.sdaPin );
 }
 
 uint8_t i2cGetBaudrate( uint8_t rNum ) {
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( 0 );
 
-    return ( rPtr -> baudRate );
+    return ( rPtr -> i2c.baudRate );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1480,10 +1497,10 @@ uint8_t i2cGetBaudrate( uint8_t rNum ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t scanI2CBus( uint8_t rNum ) {
 
-    I2cResource *rPtr = (I2cResource *) lookupResource( rNum, CDC_RT_I2C );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> sclPin == UNDEFINED_PIN ) {
+    if ( rPtr -> i2c.sclPin == UNDEFINED_PIN ) {
 
         printf( "I2C bus for rNum: %d not configured\n", rNum );
         return ( NO_ERR );
@@ -1524,10 +1541,10 @@ uint8_t configureCanBus( uint8_t rNum ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
    
-    CdcResourceDescCanBus *dPtr = (CdcResourceDescCanBus *) lookupResourceDesc( rNum, CDC_RT_CAN_BUS );
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_CAN_BUS );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
-    return ( configureCanBus( rNum, dPtr -> rxPin, dPtr -> txPin, dPtr -> baudRate, dPtr -> twoCores ));
+    return ( configureCanBus( rNum, dPtr -> can.rxPin, dPtr -> can.txPin, dPtr -> can.baudRate, dPtr -> can.twoCores ));
 }
 
 uint8_t configureCanBus( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baudRate, bool twoCores ) {
@@ -1535,47 +1552,47 @@ uint8_t configureCanBus( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t ba
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return ( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
     
-    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    rPtr -> canPinRx = rxPin;
-    rPtr -> canPinTx = txPin;
-    rPtr -> baudRate = baudRate;
-    rPtr -> twoCores = twoCores;
+    rPtr -> can.canPinRx = rxPin;
+    rPtr -> can.canPinTx = txPin;
+    rPtr -> can.baudRate = baudRate;
+    rPtr -> can.twoCores = twoCores;
 
     return ( NO_ERR );
 }
 
 uint8_t canGetRxPin( uint8_t rNum ) {
 
-    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
 
-    return ( rPtr -> canPinRx );
+    return ( rPtr -> can.canPinRx );
 }
 
 uint8_t canGetTxPin( uint8_t rNum ) {
 
-    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
 
-    return ( rPtr -> canPinTx );
+    return ( rPtr -> can.canPinTx );
 }
 
 uint32_t canGetBaudrate( uint8_t rNum ) {
 
-    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+   CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( 0 );
 
-    return ( rPtr -> baudRate );
+    return ( rPtr -> can.baudRate );
 }
 
 bool canGetTwoCores( uint8_t rNum ) {
 
-    CanBusResource *rPtr = (CanBusResource *) allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( false );
 
-    return ( rPtr -> twoCores );
+    return ( rPtr -> can.twoCores );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1589,15 +1606,17 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
     printf( "Options: 0x%4x\n", dMap -> options );
     printf( "Debug Mask: 0x%4x\n", dMap -> debugMask );
-    printf( "Board Info: 0x4x\n", dMap -> head.boardInfo );
-    printf( "Board Version: 0x4x\n", dMap -> head.boardVersion );
-    printf( "Board Controller: 0x4x\n", dMap -> head.boardCtrlInfo );
+
+    printf( "Board MWord: 0x%4x\n", dMap -> head.mWord );
+    printf( "Board Info: 0x%4x\n", dMap -> head.boardInfo );
+    printf( "Board Version: 0x%4x\n", dMap -> head.boardVersion );
+    printf( "Board Controller: 0x%4x\n", dMap -> head.boardCtrlInfo );
 
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
         CdcResourceDesc *dPtr = &dMap -> map[ i ];
 
-        printf( "(%2d): ", i );
+        printf( "(%2d): rNum: %d, ", i, dPtr -> resId  );
 
         switch ( dPtr ->type ) {
 
@@ -1645,9 +1664,13 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
                 printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, twoCores: %d\n",
                         dPtr -> can.rxPin, dPtr -> can.txPin, dPtr -> can.baudRate, dPtr -> can.twoCores );
-            }
+            } break;
 
-            case CDC_RT_UNDEFINED: break;
+            case CDC_RT_UNDEFINED: {
+                
+                printf( "Undefined\n" );
+            
+            } break;
 
             default: printf( "Unknown type: %d\n", i );
         }
@@ -1676,7 +1699,7 @@ void printResourceMap( ) {
 
         CdcResource *rPtr = &rMap.map[ i ];
 
-        printf( "(%2d): ", i );
+         printf( "(%2d): rNum: %d, ", i, rPtr -> resId  );
 
         switch ( rPtr ->type ) {
 
@@ -1737,9 +1760,12 @@ void printResourceMap( ) {
                 printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, canId: 0x4x, twoCores: %d\n",
                         rPtr -> can.canPinRx, rPtr -> can.canPinTx, rPtr -> can.baudRate, 
                         rPtr -> can.canId, rPtr -> can.twoCores );
-            }
+            } break;
 
-            case CDC_RT_UNDEFINED: break;
+            case CDC_RT_UNDEFINED: {
+               
+                printf( "Undefined\n" );
+            } break;
 
             default: printf( "Unknown type: %d\n", i );
         }

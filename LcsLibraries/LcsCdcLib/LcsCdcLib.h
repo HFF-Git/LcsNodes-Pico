@@ -363,6 +363,7 @@ struct CdcResourceDescMap {
 //------------------------------------------------------------------------------------------------------------
 uint8_t         cdcInit( CdcResourceDescMap *dMap );
 
+CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type );
 void            printResourceDescMap( CdcResourceDescMap *dMap );
 void            printResourceMap( );
 

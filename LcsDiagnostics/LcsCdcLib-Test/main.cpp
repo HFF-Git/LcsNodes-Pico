@@ -45,8 +45,6 @@ void initCdcLib( ) {
     dMap.options    = 0;
     dMap.debugMask  = CDC_DBG_CONFIG | CDC_DBG_SETUP;
 
-    // ??? should we put console IO config into initCdcLib ?
-
     cdcInit( &dMap );
     configureConsoleIO( );
     sleepMillis( 2000 );
@@ -110,10 +108,11 @@ void testPfail( ) {
 // Test the onboard LEDs.
 //
 //----------------------------------------------------------------------------------------------------------
-void testLeds( ) {
+void testOnboardLeds( ) {
 
   printf( "Active Led Test\n" );
-  configureDio( CDC_RN_ACTIVITY_LED );
+  uint8_t rStat = configureDio( CDC_RN_ACTIVITY_LED );
+  if ( rStat != NO_ERR ) fatalError( 4 );
   
   while ( true ) {
 
@@ -140,19 +139,27 @@ void testFatalErr( ) {
 // extension connector. Note that we overwrite the Board descriptor data, since we need another pinMode.
 //
 //----------------------------------------------------------------------------------------------------------
+void configureDioInPinA( uint8_t rNum ) {
+
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO ); 
+    if ( dPtr == nullptr ) fatalError( 4 );
+
+    configureDio( rNum, dPtr -> gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+}
+
 void testDioInput( ) {
 
     printf( "DIO input test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
-    configureDio( RNUM_DIO_0, dMap.map[ RNUM_DIO_0 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_1, dMap.map[ RNUM_DIO_1 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_2, dMap.map[ RNUM_DIO_2 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_3, dMap.map[ RNUM_DIO_3 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_4, dMap.map[ RNUM_DIO_4 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_5, dMap.map[ RNUM_DIO_5 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_6, dMap.map[ RNUM_DIO_6 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
-    configureDio( RNUM_DIO_7, dMap.map[ RNUM_DIO_7 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_IN_PULLUP );
+    configureDioInPinA( RNUM_DIO_0 );
+    configureDioInPinA( RNUM_DIO_1 );
+    configureDioInPinA( RNUM_DIO_2 );
+    configureDioInPinA( RNUM_DIO_3 );
+    configureDioInPinA( RNUM_DIO_4 );
+    configureDioInPinA( RNUM_DIO_5 );
+    configureDioInPinA( RNUM_DIO_6 );
+    configureDioInPinA( RNUM_DIO_7 );
 
     while ( true ) {
 
@@ -194,19 +201,27 @@ void testDioInput( ) {
 // that we overwrite the Board descriptor data, since we need another pinMode.
 //
 //----------------------------------------------------------------------------------------------------------
+void configureDioOutPinA( uint8_t rNum ) {
+
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO ); 
+    if ( dPtr == nullptr ) fatalError( 4 );
+
+    configureDio( rNum, dPtr -> gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+}
+
 void testDioOutput( ) {
 
     printf( "DIO output test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
-    configureDio( RNUM_DIO_0, dMap.map[ RNUM_DIO_0 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_1, dMap.map[ RNUM_DIO_1 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_2, dMap.map[ RNUM_DIO_2 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_3, dMap.map[ RNUM_DIO_3 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_4, dMap.map[ RNUM_DIO_4 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_5, dMap.map[ RNUM_DIO_5 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_6, dMap.map[ RNUM_DIO_6 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_7, dMap.map[ RNUM_DIO_7 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
+    configureDioOutPinA( RNUM_DIO_0 );
+    configureDioOutPinA( RNUM_DIO_1 );
+    configureDioOutPinA( RNUM_DIO_2 );
+    configureDioOutPinA( RNUM_DIO_3 );
+    configureDioOutPinA( RNUM_DIO_4 );
+    configureDioOutPinA( RNUM_DIO_5 );
+    configureDioOutPinA( RNUM_DIO_6 );
+    configureDioOutPinA( RNUM_DIO_7 );
 
     while ( true ) {
 
@@ -237,7 +252,7 @@ void testDioOutput( ) {
         sleepMillis( 500 );
         writeDio( RNUM_DIO_7, true );
         sleepMillis( 500 );
-  }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -245,58 +260,62 @@ void testDioOutput( ) {
 // Note that we overwrite the Board descriptor data, since we need another pinMode.
 //
 //----------------------------------------------------------------------------------------------------------
+void configureDioOutPinPair( uint8_t rNum ) {
+
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO ); 
+    if ( dPtr == nullptr ) fatalError( 4 );
+
+    configureDio( rNum, dPtr -> gpio.pinA, dPtr -> gpio.pinB, CDC_DIO_OUT );
+}
+
 void testDioOutputPair( ) {
 
-  printf( "DIO output pair test\n" );
+    printf( "DIO output pair test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
-    configureDio( RNUM_DIO_0, dMap.map[ RNUM_DIO_0 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_1, dMap.map[ RNUM_DIO_1 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_2, dMap.map[ RNUM_DIO_2 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_3, dMap.map[ RNUM_DIO_3 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_4, dMap.map[ RNUM_DIO_4 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_5, dMap.map[ RNUM_DIO_5 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_6, dMap.map[ RNUM_DIO_6 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-    configureDio( RNUM_DIO_7, dMap.map[ RNUM_DIO_7 ].gpio.pinA, UNDEFINED_PIN, CDC_DIO_OUT );
-  
-  while ( true ) {
+    configureDioOutPinPair( RNUM_DIO_P_0 );
+    configureDioOutPinPair( RNUM_DIO_P_1 );
+    configureDioOutPinPair( RNUM_DIO_P_2 );
+    configureDioOutPinPair( RNUM_DIO_P_3 );
+     
+    while ( true ) {
 
-    toggleDio( CDC_RN_ACTIVITY_LED );
+        toggleDio( CDC_RN_ACTIVITY_LED );
 
-    writeDio( RNUM_DIO_P_0, false, false );
-    writeDio( RNUM_DIO_P_1, false, false );
-    writeDio( RNUM_DIO_P_2, false, false );   
-    writeDio( RNUM_DIO_P_3, false, false );
-    sleepMillis( 1000 );
+        writeDio( RNUM_DIO_P_0, false, false );
+        writeDio( RNUM_DIO_P_1, false, false );
+        writeDio( RNUM_DIO_P_2, false, false );   
+        writeDio( RNUM_DIO_P_3, false, false );
+        sleepMillis( 1000 );
 
-    writeDio( RNUM_DIO_P_0, true, false );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_0, false, true );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_0, true, true );
-    sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_0, true, false );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_0, false, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_0, true, true );
+        sleepMillis( 500 );
 
-    writeDio( RNUM_DIO_P_1, true, false );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_1, false, true );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_1, true, true );
-    sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_1, true, false );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_1, false, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_1, true, true );
+        sleepMillis( 500 );
 
-    writeDio( RNUM_DIO_P_2, true, false );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_2, false, true );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_2, true, true );
-    sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_2, true, false );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_2, false, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_2, true, true );
+        sleepMillis( 500 );
 
-    writeDio( RNUM_DIO_P_3, true, false );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_3, false, true );
-    sleepMillis( 500 );
-    writeDio( RNUM_DIO_P_3, true, true );
-    sleepMillis( 500 );
-  }
+        writeDio( RNUM_DIO_P_3, true, false );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_3, false, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_P_3, true, true );
+        sleepMillis( 500 );
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -487,12 +506,14 @@ int main( ) {
 
     initCdcLib( );
 
+    printResourceDescMap( &dMap );
+
     // testFatalErr( );
     // testConsoleIO( );
     // testPfail( );
-    // testLeds( );
+    // testOnboardLeds( );
     // testDioInput( );
-    // testDioOutput( );
+    testDioOutput( );
     // testDioOutputPair( );
     // testAdcBlockingRead( );
     // testTimer( );
