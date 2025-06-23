@@ -11,9 +11,6 @@ cmake_minimum_required( VERSION 3.29 )
 
 project( LcsRuntimeLib C CXX ASM )
 
-set( CMAKE_C_STANDARD 11 )
-set( CMAKE_CXX_STANDARD 17 )
-
 # Add the runtime library. We add the source files and also the source files from a third party lib that is 
 # available as only source files. Not very elegant yet. But it works.
 

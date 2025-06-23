@@ -257,54 +257,6 @@ enum PwmDutyCycle : uint8_t {
 // found.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CdcResourceDescTimer {
-
-    uint32_t    timerVal;
-};
-
-struct CdcResourceDescGpio {
-
-    uint8_t     pinA;
-    uint8_t     pinB;
-    uint8_t     pinMode;
-};
-
-struct CdcResourceDescAdc {
-
-    uint8_t     adcPin;
-    uint8_t     adcNum;
-};
-
-struct CdcResourceDescPwm {
-            
-    uint8_t     pinA;
-    uint8_t     pinB;
-    uint32_t    frequency;
-};
-
-struct CdcResourceDescUart {
-
-    uint8_t     rxPin;
-    uint8_t     txPin;
-    uint32_t    baudRate;
-};
-
-struct CdcResourceDescCanBus {
-
-    uint8_t     rxPin;
-    uint8_t     txPin;
-    uint32_t    baudRate;
-    bool        twoCores;
-};
-
-struct CdcResourceDescI2c {
-
-    uint8_t     sclPin;
-    uint8_t     sdaPin;
-    uint32_t    baudRate;
-    uint32_t    i2cTimeoutMs; 
-};
-
 struct CdcResourceDesc {
 
     uint8_t type;
@@ -312,13 +264,59 @@ struct CdcResourceDesc {
 
     union {
 
-        CdcResourceDescTimer    timer;
-        CdcResourceDescGpio     gpio;
-        CdcResourceDescAdc      adc;
-        CdcResourceDescPwm      pwm;
-        CdcResourceDescUart     uart;
-        CdcResourceDescCanBus   can;
-        CdcResourceDescI2c      i2c;
+        struct {
+
+            uint32_t    timerVal;
+
+        } timer;
+
+        struct {
+
+            uint8_t     pinA;
+            uint8_t     pinB;
+            uint8_t     pinMode;
+        } gpio;
+
+        struct  {
+
+            uint8_t     adcPin;
+            uint8_t     adcNum;
+
+        } adc;
+
+        struct {
+            
+            uint8_t     pinA;
+            uint8_t     pinB;
+            uint32_t    frequency;
+
+        } pwm;
+
+        struct {
+
+            uint8_t     rxPin;
+            uint8_t     txPin;
+            uint32_t    baudRate;
+
+        } uart;
+
+        struct {
+
+            uint8_t     sclPin;
+            uint8_t     sdaPin;
+            uint32_t    baudRate;
+            uint32_t    i2cTimeoutMs; 
+
+        } i2c;
+
+        struct {
+
+            uint8_t     rxPin;
+            uint8_t     txPin;
+            uint32_t    baudRate;
+            bool        twoCores;
+
+        } can;
     };
 };
 
@@ -326,10 +324,11 @@ struct CdcResourceDesc {
 // The CdcBoardDescMap structure defines what the board actually is. It is also the first structure that can
 // be found on the controller board NVM as well as the extension board NVM.
 //
+// ??? rather put back to the Lcs Lib ?
 //------------------------------------------------------------------------------------------------------------
 struct CdcBoardDescMap {
 
-    uint32_t            mWord;
+    uint32_t            boardMword;
     uint16_t            boardInfo;                          // type/subtype
     uint16_t            boardVersion;                       // major / sub version
     uint16_t            boardCtrlInfo;                      // family / cType
@@ -345,9 +344,16 @@ struct CdcBoardDescMap {
 //------------------------------------------------------------------------------------------------------------
 struct CdcResourceDescMap {
 
+    uint32_t            boardMword;
+    uint16_t            boardInfo;                      // type/subtype
+    uint16_t            boardVersion;                   // major / sub version
+    uint16_t            boardCtrlInfo;                  // family / cType
+    
+    // ??? really have them here ?
     uint16_t            options;
-    uint16_t            debugMask;
-    CdcBoardDescMap     head; 
+    uint16_t            debugMask;  
+
+    char                name[ MAX_RES_NAME_SIZE ];  
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
 

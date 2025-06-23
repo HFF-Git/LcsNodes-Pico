@@ -95,12 +95,13 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     //  HEAD                - board / controller related info.
     //
     //--------------------------------------------------------------------------------------------------------
-    .options    = 0,
-    .debugMask  = 0,
-
-    .head   {   .mWord = 0, .boardInfo = 0, .boardVersion = 0, .boardCtrlInfo = 0, 
-                .name  = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00"
-            },
+    .boardMword     = 0, 
+    .boardInfo      = 0, 
+    .boardVersion   = 0, 
+    .boardCtrlInfo  = 0, 
+    .options        = 0,
+    .debugMask      = 0,
+    .name  = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00",
 
     //--------------------------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
@@ -239,12 +240,13 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     //  HEAD                - board / controller related info.
     //
     //--------------------------------------------------------------------------------------------------------
-    .options    = 0,
-    .debugMask  = 0,
-
-    .head   {   .mWord = 0, .boardInfo = 0, .boardVersion = 0, .boardCtrlInfo = 0, 
-                .name  = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00"
-            },
+    .boardMword     = 0, 
+    .boardInfo      = 0, 
+    .boardVersion   = 0, 
+    .boardCtrlInfo  = 0, 
+    .options        = 0,
+    .debugMask      = 0,
+    .name  = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00",
 
     //--------------------------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set reflect the board for which 

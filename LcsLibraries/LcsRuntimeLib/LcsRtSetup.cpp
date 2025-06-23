@@ -160,7 +160,11 @@ uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "setupDefaultHeaderMap\n" );
 
-    hMap -> map[ 0 ] = dMap.head;
+    hMap -> map[ 0 ].boardMword     = dMap.boardMword;
+    hMap -> map[ 0 ].boardInfo      = dMap.boardInfo;
+    hMap -> map[ 0 ].boardVersion   = dMap.boardVersion;
+    hMap -> map[ 0 ].boardCtrlInfo  = dMap.boardCtrlInfo;
+    strncpy( hMap -> map[ 0 ].name, dMap.name, MAX_RES_NAME_SIZE );
 
     for ( int i = 1; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
 
@@ -282,9 +286,10 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
         printf( "buildNvmExtBoardStructure for board: %d\n", boardId );
     }
 
+    // ??? not too thrilled about it. Should we rather assign the fields ?
     CdcBoardDescMap head;
 
-    head.mWord = NVM_MWORD_EXT_HEADER;
+    head.boardMword = NVM_MWORD_EXT_HEADER;
 
     return ( errStat( extNvmPutBytes( boardId, 0, (uint8_t *) &head, sizeof( CdcBoardDescMap ))));
 }
@@ -502,7 +507,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
     rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, (uint8_t *) hPtr, sizeof( CdcBoardDescMap ));
     if ( rStat != ALL_OK ) return ( errStat( rStat ));
 
-    if ( hPtr -> mWord != NVM_MWORD_NODE_HEADER ) {
+    if ( hPtr -> boardMword != NVM_MWORD_NODE_HEADER ) {
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -557,7 +562,7 @@ uint8_t setupExtNvmHeaders( ) {
         rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( CdcBoardDescMap ));
         if ( rStat == ALL_OK ) {
 
-            if ( hPtr -> mWord == NVM_MWORD_EXT_HEADER ) {
+            if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
 
                 if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -567,7 +572,7 @@ uint8_t setupExtNvmHeaders( ) {
             }
             else  {
 
-                hPtr -> mWord = 0;
+                hPtr -> boardMword = 0;
 
                 if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -655,7 +660,7 @@ uint8_t setupExtensionBoards( ) {
 
         CdcBoardDescMap *hPtr = &headerMap.map[ i ];
         
-        if ( hPtr -> mWord == NVM_MWORD_EXT_HEADER ) {
+        if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
 
             if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
