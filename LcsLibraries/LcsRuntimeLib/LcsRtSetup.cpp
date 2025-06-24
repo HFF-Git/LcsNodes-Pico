@@ -168,11 +168,11 @@ uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 
     for ( int i = 1; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
 
-        CdcBoardDescMap e;
+        LcsBoardDesc e;
         hMap -> map[ i ] = e;
     }
 
-    return ( errStat( rtNvmPutBytes( NVM_MAP_STORAGE_START, (uint8_t *) &hMap -> map[ 0 ], sizeof( CdcBoardDescMap )))); 
+    return ( errStat( rtNvmPutBytes( NVM_MAP_STORAGE_START, (uint8_t *) &hMap -> map[ 0 ], sizeof( LcsBoardDesc )))); 
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -287,23 +287,23 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
     }
 
     // ??? not too thrilled about it. Should we rather assign the fields ?
-    CdcBoardDescMap head;
+    LcsBoardDesc head;
 
     head.boardMword = NVM_MWORD_EXT_HEADER;
 
-    return ( errStat( extNvmPutBytes( boardId, 0, (uint8_t *) &head, sizeof( CdcBoardDescMap ))));
+    return ( errStat( extNvmPutBytes( boardId, 0, (uint8_t *) &head, sizeof( LcsBoardDesc ))));
 }
 
 //-----------------------------------------------------------------------------------------------------------
 // A little helper to print a NVM header structure for debugging purposes.
 // 
 //------------------------------------------------------------------------------------------------------------
-void printNvmHeader( CdcBoardDescMap *head ) {
+void printNvmHeader( LcsBoardDesc *head ) {
 
     uint16_t *ptr = (uint16_t *) head;
 
     printf( "NVM Head: " );
-    for ( int j = 0; j < sizeof( CdcBoardDescMap ) / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
+    for ( int j = 0; j < sizeof( LcsBoardDesc ) / 2 ; j++ ) printf( "0x%x ", ptr[ j ] );
     printf( "\n" );     
 }
 
@@ -502,9 +502,9 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
         rStat = buildNvmRuntimeStructure( );
     }
 
-    CdcBoardDescMap *hPtr = &headerMap.map[ 0 ];
+    LcsBoardDesc *hPtr = &headerMap.map[ 0 ];
 
-    rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, (uint8_t *) hPtr, sizeof( CdcBoardDescMap ));
+    rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, (uint8_t *) hPtr, sizeof( LcsBoardDesc ));
     if ( rStat != ALL_OK ) return ( errStat( rStat ));
 
     if ( hPtr -> boardMword != NVM_MWORD_NODE_HEADER ) {
@@ -557,9 +557,9 @@ uint8_t setupExtNvmHeaders( ) {
             printf( "setupExtNvmHeaders, boardId: %d\n", i ); 
         }
 
-        CdcBoardDescMap *hPtr = &headerMap.map[ i ]; 
+        LcsBoardDesc *hPtr = &headerMap.map[ i ]; 
 
-        rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( CdcBoardDescMap ));
+        rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( LcsBoardDesc ));
         if ( rStat == ALL_OK ) {
 
             if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
@@ -658,7 +658,7 @@ uint8_t setupExtensionBoards( ) {
 
     for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-        CdcBoardDescMap *hPtr = &headerMap.map[ i ];
+        LcsBoardDesc *hPtr = &headerMap.map[ i ];
         
         if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
 

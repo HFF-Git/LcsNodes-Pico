@@ -249,7 +249,7 @@ void printSummary( ) {
 void dumpMemHeaderMap( ) {
 
     printf( "MEM Header Map: \n\n" );
-    dumpMemData((uint16_t *) &headerMap, sizeof( CdcBoardDescMap ), 8, true);
+    dumpMemData((uint16_t *) &headerMap, sizeof( LcsBoardDesc ), 8, true);
     printf( "\n" );
 }
 
@@ -338,13 +338,13 @@ void dumpMemRuntimeArea( ) {
 void dumpNvmHeaderMap( ) {
 
     printf( "NVM Header Map (Node): \n" );
-    dumpNvmData( NVM_NODE_MAP_OFS, sizeof(CdcBoardDescMap), 8, true );
+    dumpNvmData( NVM_NODE_MAP_OFS, sizeof(LcsBoardDesc), 8, true );
     printf( "\n" );
 
     for ( int i = 1; i <= 4; i++ ) {
     
         printf( "NVM Header Map (Ext %d): \n", i );
-        dumpExtNvmData( i, 0, sizeof(CdcBoardDescMap), 8 );
+        dumpExtNvmData( i, 0, sizeof(LcsBoardDesc), 8 );
         printf( "\n") ;
     }
 }

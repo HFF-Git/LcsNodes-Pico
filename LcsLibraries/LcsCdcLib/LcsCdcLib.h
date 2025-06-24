@@ -321,22 +321,6 @@ struct CdcResourceDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CdcBoardDescMap structure defines what the board actually is. It is also the first structure that can
-// be found on the controller board NVM as well as the extension board NVM.
-//
-// ??? rather put back to the Lcs Lib ?
-//------------------------------------------------------------------------------------------------------------
-struct CdcBoardDescMap {
-
-    uint32_t            boardMword;
-    uint16_t            boardInfo;                          // type/subtype
-    uint16_t            boardVersion;                       // major / sub version
-    uint16_t            boardCtrlInfo;                      // family / cType
-    uint16_t            reserved[ 11 ];
-    char                name[ MAX_RES_NAME_SIZE ];
-};
-
-//------------------------------------------------------------------------------------------------------------
 // The resource descriptor map is the data structure passed to the runtime library initialization routine.
 // The data is used in the configuration process of the particular hardware board. We will over time have 
 // several boards and consequently a map for each board version. 

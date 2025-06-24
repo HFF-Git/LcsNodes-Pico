@@ -201,6 +201,22 @@ struct LcsMsgBusCAN {
     uint16_t nodeId = NIL_NODE_ID;
 };
 
+//------------------------------------------------------------------------------------------------------------
+// The CdcBoardDescMap structure defines what the board actually is. It is also the first structure that can
+// be found on the controller board NVM as well as the extension board NVM.
+//
+// ??? rather put back to the Lcs Lib ?
+//------------------------------------------------------------------------------------------------------------
+struct LcsBoardDesc {
+
+    uint32_t            boardMword;
+    uint16_t            boardInfo;                          // type/subtype
+    uint16_t            boardVersion;                       // major / sub version
+    uint16_t            boardCtrlInfo;                      // family / cType
+    uint16_t            reserved[ 11 ];
+    char                name[ MAX_RES_NAME_SIZE ];
+};
+
 //----------------------------------------------------------------------------------------------------------
 // The NVM header map stores the NVM headers of the node board and the optional extension boards found. It 
 // is a MEM only structure and will be filled though reading the NVM headers at startup time. There should 
@@ -210,7 +226,7 @@ struct LcsMsgBusCAN {
 //----------------------------------------------------------------------------------------------------------
 struct LcsHeaderMap {
 
-    CdcBoardDescMap map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
+    LcsBoardDesc map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -394,7 +410,7 @@ struct LcsDrvFuncMap {
 // size. We can easily define the relevant offsets and sizes as constants.
 //
 //----------------------------------------------------------------------------------------------------------
-const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( CdcBoardDescMap );
+const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsBoardDesc );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
 const uint32_t  NVM_PORT_MAP_SIZE           =   sizeof( LcsPortMap );
 const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
