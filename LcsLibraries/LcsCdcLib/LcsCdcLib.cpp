@@ -144,18 +144,6 @@ const uint16_t  ADC_DIGIT_RANGE             = 1024;
 //
 //------------------------------------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // The resource map has an array of the resources. 
 //
@@ -186,8 +174,8 @@ struct CdcResource {
         //----------------------------------------------------------------------------------------------------
         struct {
 
-            uint8_t         dioPinA;
-            uint8_t         dioPinB;
+            uint8_t         pinA;
+            uint8_t         pinB;
             uint8_t         pinMode;
             GpioCallback    handler;
 
@@ -214,8 +202,8 @@ struct CdcResource {
         //----------------------------------------------------------------------------------------------------
         struct {
 
-            uint8_t     pwmPinA;
-            uint8_t     pwmPinB;
+            uint8_t     pinA;
+            uint8_t     pinB;
             uint32_t    frequency;
             uint        wrap;
             uint        channel;
@@ -1011,19 +999,19 @@ uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
     
-    rPtr -> gpio.dioPinA = pinA;
-    rPtr -> gpio.dioPinB = pinB;
+    rPtr -> gpio.pinA    = pinA;
+    rPtr -> gpio.pinB    = pinB;
     rPtr -> gpio.handler = nullptr;
     rPtr -> gpio.pinMode = mode % 4;
  
-    if ( ! validPin( rPtr -> gpio.dioPinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
-    if ( ! validPin( rPtr -> gpio.dioPinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( ! validPin( rPtr -> gpio.pinA, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
+    if ( ! validPin( rPtr -> gpio.pinB, VALID_GPIO_PINS )) return ( DIO_PIN_ERR );
 
-    gpio_init( rPtr -> gpio.dioPinA );
-    setGpioMode( rPtr -> gpio.dioPinA, rPtr -> gpio.pinMode );
+    gpio_init( rPtr -> gpio.pinA );
+    setGpioMode( rPtr -> gpio.pinA, rPtr -> gpio.pinMode );
 
-    if ( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) gpio_init( rPtr -> gpio.dioPinB );
-    if ( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) setGpioMode( rPtr -> gpio.dioPinB, rPtr -> gpio.pinMode );
+    if ( rPtr -> gpio.pinB != UNDEFINED_PIN ) gpio_init( rPtr -> gpio.pinB );
+    if ( rPtr -> gpio.pinB != UNDEFINED_PIN ) setGpioMode( rPtr -> gpio.pinB, rPtr -> gpio.pinMode );
 
     printResourceMap( );
     return ( NO_ERR );
@@ -1034,25 +1022,27 @@ uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> gpio.dioPinA <= MAX_INT_PIN ) {
+    if ( rPtr -> gpio.pinA <= MAX_INT_PIN ) {
 
         if ( dioIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( rPtr -> gpio.dioPinA, mapCdcIntEvent( event ), true, gpioCallback );
+            gpio_set_irq_enabled_with_callback( rPtr -> gpio.pinA, 
+                                                mapCdcIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( rPtr -> gpio.dioPinA, mapCdcIntEvent( event ), true);
+            gpio_set_irq_enabled( rPtr -> gpio.pinA, mapCdcIntEvent( event ), true);
     
-        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinA ] = func;
+        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.pinA ] = func;
         dioIntHandlers.numOfHandlers ++;
     }
 
-    if (( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) && ( rPtr -> gpio.dioPinB <= MAX_INT_PIN )) {
+    if (( rPtr -> gpio.pinB != UNDEFINED_PIN ) && ( rPtr -> gpio.pinB <= MAX_INT_PIN )) {
 
         if ( dioIntHandlers.numOfHandlers == 0 ) 
-            gpio_set_irq_enabled_with_callback( rPtr -> gpio.dioPinB, mapCdcIntEvent( event ), true, gpioCallback );
+            gpio_set_irq_enabled_with_callback( rPtr -> gpio.pinB, 
+                                                mapCdcIntEvent( event ), true, gpioCallback );
         else
-            gpio_set_irq_enabled( rPtr -> gpio.dioPinB, mapCdcIntEvent( event ), true);
+            gpio_set_irq_enabled( rPtr -> gpio.pinB, mapCdcIntEvent( event ), true);
     
-        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinB ] = func;
+        dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.pinB ] = func;
         dioIntHandlers.numOfHandlers ++;
     }
 
@@ -1064,22 +1054,22 @@ uint8_t unregisterDioCallback( uint8_t rNum ) {
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> gpio.dioPinA <= MAX_INT_PIN ) {
+    if ( rPtr -> gpio.pinA <= MAX_INT_PIN ) {
 
-        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinA ] != nullptr ) {
+        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.pinA ] != nullptr ) {
 
-            gpio_set_irq_enabled(  rPtr -> gpio.dioPinA, 0, false );
-            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinA ] = dummyIsrHandler;
+            gpio_set_irq_enabled(  rPtr -> gpio.pinA, 0, false );
+            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.pinA ] = dummyIsrHandler;
             dioIntHandlers.numOfHandlers --;
         }
     }
 
-    if (( rPtr -> gpio.dioPinB != UNDEFINED_PIN ) && ( rPtr -> gpio.dioPinB <= MAX_INT_PIN )) {
+    if (( rPtr -> gpio.pinB != UNDEFINED_PIN ) && ( rPtr -> gpio.pinB <= MAX_INT_PIN )) {
 
-        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinB ] != nullptr ) {
+        if ( dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.pinB ] != nullptr ) {
 
-            gpio_set_irq_enabled(  rPtr -> gpio.dioPinB, 0, false );
-            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.dioPinB ] = dummyIsrHandler;
+            gpio_set_irq_enabled(  rPtr -> gpio.pinB, 0, false );
+            dioIntHandlers.gpioIsrTable[ get_core_num( ) ][ rPtr -> gpio.pinB ] = dummyIsrHandler;
             dioIntHandlers.numOfHandlers --;
         }
     }
@@ -1092,16 +1082,16 @@ uint8_t readDio( uint8_t rNum, bool *valA, bool *valB ) {
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> gpio.dioPinB == UNDEFINED_PIN ) {
+    if ( rPtr -> gpio.pinB == UNDEFINED_PIN ) {
 
-        *valA = gpio_get( rPtr -> gpio.dioPinA );
+        *valA = gpio_get( rPtr -> gpio.pinA );
     }
     else {
 
-        uint32_t maskData = ( 1UL << rPtr -> gpio.dioPinA ) | ( 1UL << rPtr -> gpio.dioPinB );
+        uint32_t maskData = ( 1UL << rPtr -> gpio.pinA ) | ( 1UL << rPtr -> gpio.pinB );
 
-        *valA = gpio_get( rPtr -> gpio.dioPinA );
-        *valB = gpio_get( rPtr -> gpio.dioPinB );
+        *valA = gpio_get( rPtr -> gpio.pinA );
+        *valB = gpio_get( rPtr -> gpio.pinB );
     }
 
     return ( NO_ERR );
@@ -1114,15 +1104,15 @@ uint8_t writeDio( uint8_t rNum, bool valA, bool valB ) {
 
    // printf( "writeDio: rNum: %d\n", rPtr -> resId );
     
-    if ( rPtr -> gpio.dioPinB == UNDEFINED_PIN ) {
+    if ( rPtr -> gpio.pinB == UNDEFINED_PIN ) {
 
-        gpio_put( rPtr -> gpio.dioPinA, valA );
+        gpio_put( rPtr -> gpio.pinA, valA );
     }
     else {
 
-        uint32_t maskData = ( 1UL << rPtr -> gpio.dioPinA ) | ( 1UL << rPtr -> gpio.dioPinB );
-        uint32_t valData  = (( valA ) ? ( 1 << rPtr -> gpio.dioPinA ) : 0 ) | 
-                            (( valB ) ? ( 1 << rPtr -> gpio.dioPinB ) : 0 );
+        uint32_t maskData = ( 1UL << rPtr -> gpio.pinA ) | ( 1UL << rPtr -> gpio.pinB );
+        uint32_t valData  = (( valA ) ? ( 1 << rPtr -> gpio.pinA ) : 0 ) | 
+                            (( valB ) ? ( 1 << rPtr -> gpio.pinB ) : 0 );
         gpio_put_masked( maskData, valData );
     }
 
@@ -1136,14 +1126,14 @@ uint8_t toggleDio( uint8_t rNum ) {
 
     if ( rPtr -> gpio.pinMode != CDC_DIO_OUT ) return ( DIO_MODE_ERR );
 
-    if ( rPtr -> gpio.dioPinB == UNDEFINED_PIN ) {
+    if ( rPtr -> gpio.pinB == UNDEFINED_PIN ) {
 
-        gpio_put( rPtr -> gpio.dioPinA, ! gpio_get( rPtr -> gpio.dioPinA ));
+        gpio_put( rPtr -> gpio.pinA, ! gpio_get( rPtr -> gpio.pinA ));
     }
     else {
 
-        gpio_put( rPtr -> gpio.dioPinA, ! gpio_get( rPtr -> gpio.dioPinA ));
-        gpio_put( rPtr -> gpio.dioPinB, ! gpio_get( rPtr -> gpio.dioPinB ));
+        gpio_put( rPtr -> gpio.pinA, ! gpio_get( rPtr -> gpio.pinA ));
+        gpio_put( rPtr -> gpio.pinB, ! gpio_get( rPtr -> gpio.pinB ));
     }
         
     return ( NO_ERR );
@@ -1180,30 +1170,31 @@ uint8_t configurePwm( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint32_t frequen
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_PWM );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    rPtr -> pwm.pwmPinA         = pinA;
-    rPtr -> pwm.pwmPinB         = pinB;
+    rPtr -> pwm.pinA         = pinA;
+    rPtr -> pwm.pinB         = pinB;
     rPtr -> pwm.phaseCorrect    = true;
     rPtr -> pwm.inverted        = false;     
-    rPtr -> pwm.sliceNum        = pwm_gpio_to_slice_num( rPtr -> pwm.pwmPinA );
+    rPtr -> pwm.sliceNum        = pwm_gpio_to_slice_num( rPtr -> pwm.pinA );
     rPtr -> pwm.frequency       = frequency;              
 
-    if ( rPtr -> pwm.pwmPinB != UNDEFINED_PIN ) {
+    if ( rPtr -> pwm.pinB != UNDEFINED_PIN ) {
 
-        if ( pwm_gpio_to_slice_num( rPtr -> pwm.pwmPinA ) != pwm_gpio_to_slice_num( rPtr -> pwm.pwmPinB ))
+        if ( pwm_gpio_to_slice_num( rPtr -> pwm.pinA ) != pwm_gpio_to_slice_num( rPtr -> pwm.pinB ))
         return ( PWM_PIN_ERR );
     }
 
     if ( rPtr -> pwm.phaseCorrect ) rPtr -> pwm.frequency = rPtr -> pwm.frequency * 2;
 
     uint32_t sysClock = clock_get_hz( clk_sys );
-    uint32_t clkDiv   = sysClock / rPtr -> pwm.frequency / 4096 + ( sysClock % ( rPtr -> pwm.frequency * 4096 ) != 0 );
+    uint32_t clkDiv   = sysClock / rPtr -> pwm.frequency / 4096 + 
+                        ( sysClock % ( rPtr -> pwm.frequency * 4096 ) != 0 );
     if ( clkDiv / 16 == 0 ) clkDiv = 16;
 
     rPtr -> pwm.wrap = sysClock * 16 / clkDiv / rPtr -> pwm.frequency - 1;
    
     pwm_config pwmConfig = pwm_get_default_config( );
-    gpio_set_function( rPtr -> pwm.pwmPinA, GPIO_FUNC_PWM );
-    if ( rPtr -> pwm.pwmPinB != UNDEFINED_PIN )  gpio_set_function( rPtr -> pwm.pwmPinB, GPIO_FUNC_PWM );
+    gpio_set_function( rPtr -> pwm.pinA, GPIO_FUNC_PWM );
+    if ( rPtr -> pwm.pinB != UNDEFINED_PIN )  gpio_set_function( rPtr -> pwm.pinB, GPIO_FUNC_PWM );
     pwm_config_set_wrap( &pwmConfig, rPtr -> pwm.wrap );
     pwm_config_set_phase_correct( &pwmConfig, rPtr -> pwm.phaseCorrect );
     pwm_config_set_output_polarity( &pwmConfig, rPtr -> pwm.inverted, rPtr -> pwm.inverted );
@@ -1216,7 +1207,7 @@ uint8_t configurePwm( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint32_t frequen
    
         printf( "pinA: % d, pinB: %d, fPwm: % d, phase: % d, inverted: % d, " 
                 "clkDiv: % d, wrap: %d, sliceNum: %d\n",
-                rPtr -> pwm.pwmPinA, rPtr -> pwm.pwmPinB, rPtr -> pwm.frequency, rPtr -> pwm.phaseCorrect, 
+                rPtr -> pwm.pinA, rPtr -> pwm.pinB, rPtr -> pwm.frequency, rPtr -> pwm.phaseCorrect, 
                 rPtr -> pwm.inverted, clkDiv, rPtr -> pwm.wrap, rPtr -> pwm.sliceNum );
     }
 
@@ -1233,7 +1224,7 @@ uint8_t setPwmFrequency( uint8_t rNum, uint32_t frequency ) {
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_PWM );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    return ( configurePwm( rNum, rPtr -> pwm.pwmPinA, rPtr -> pwm.pwmPinB, frequency ));
+    return ( configurePwm( rNum, rPtr -> pwm.pinA, rPtr -> pwm.pinB, frequency ));
 }
 
 uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
@@ -1246,8 +1237,10 @@ uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_PWM );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
-    if ( rPtr -> pwm.pwmPinB != UNDEFINED_PIN ) pwm_set_gpio_level( rPtr -> pwm.pwmPinA, dutyCycleA );
-    else                                    pwm_set_both_levels( rPtr -> pwm.sliceNum, dutyCycleA, dutyCycleB );
+    if ( rPtr -> pwm.pinB != UNDEFINED_PIN ) 
+        pwm_set_gpio_level( rPtr -> pwm.pinA, dutyCycleA );
+    else                                  
+        pwm_set_both_levels( rPtr -> pwm.sliceNum, dutyCycleA, dutyCycleB );
 
     return ( NO_ERR );
 }
@@ -1321,8 +1314,10 @@ uint8_t configureUart( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baud
     uart_set_format( rPtr -> uart.uartHw, rPtr -> uart.dataBits, rPtr -> uart.stopBits, rPtr -> uart.parityMode );
     uart_set_fifo_enabled( rPtr -> uart.uartHw, false );
 
-    if      ( rPtr -> uart.uartIrq == UART0_IRQ ) irq_set_exclusive_handler( rPtr -> uart.uartIrq, uartRxCallback0 );
-    else if ( rPtr -> uart.uartIrq == UART1_IRQ ) irq_set_exclusive_handler( rPtr -> uart.uartIrq, uartRxCallback1 );
+    if ( rPtr -> uart.uartIrq == UART0_IRQ ) 
+        irq_set_exclusive_handler( rPtr -> uart.uartIrq, uartRxCallback0 );
+    else if ( rPtr -> uart.uartIrq == UART1_IRQ ) 
+        irq_set_exclusive_handler( rPtr -> uart.uartIrq, uartRxCallback1 );
 
     irq_set_enabled( rPtr -> uart.uartIrq, true );
     return ( NO_ERR );
@@ -1379,7 +1374,11 @@ uint8_t configureI2C( uint8_t rNum ) {
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_I2C );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
-    return ( configureI2C( rNum, dPtr -> i2c.sclPin, dPtr -> i2c.sdaPin, dPtr -> i2c.baudRate, dPtr -> i2c.i2cTimeoutMs ));
+    return ( configureI2C(  rNum, 
+                            dPtr -> i2c.sclPin, 
+                            dPtr -> i2c.sdaPin, 
+                            dPtr -> i2c.baudRate, 
+                            dPtr -> i2c.i2cTimeoutMs ));
 }
 
 uint8_t configureI2C( uint8_t rNum, uint8_t sclPin, uint8_t sdaPin, uint32_t baudRate, uint32_t timeoutVal ) {
@@ -1395,11 +1394,13 @@ uint8_t configureI2C( uint8_t rNum, uint8_t sclPin, uint8_t sdaPin, uint32_t bau
     rPtr -> i2c.baudRate        = baudRate;
     rPtr -> i2c.timeoutValMs    = timeoutVal;
 
-    if ((( 1 << rPtr -> i2c.sclPin ) & VALID_I2C_0_SCL_PINS ) && (( 1 << rPtr -> i2c.sdaPin ) & VALID_I2C_0_SDA_PINS )) {
+    if ((( 1 << rPtr -> i2c.sclPin ) & VALID_I2C_0_SCL_PINS ) && 
+        (( 1 << rPtr -> i2c.sdaPin ) & VALID_I2C_0_SDA_PINS )) {
 
         rPtr -> i2c.i2cHw = i2c0;
     }
-    else if ((( 1 << rPtr -> i2c.sclPin ) & VALID_I2C_1_SCL_PINS ) && (( 1 << rPtr -> i2c.sdaPin ) & VALID_I2C_1_SDA_PINS )) {
+    else if ((( 1 << rPtr -> i2c.sclPin ) & VALID_I2C_1_SCL_PINS ) && 
+             (( 1 << rPtr -> i2c.sdaPin ) & VALID_I2C_1_SDA_PINS )) {
 
         rPtr -> i2c.i2cHw = i2c1;
     }
@@ -1740,7 +1741,7 @@ void printResourceMap( ) {
             case CDC_RT_GPIO: {
 
                 printf( "GPIO: pinA: %d, pinB: %d, mode: %d\n", 
-                        rPtr -> gpio.dioPinA, rPtr -> gpio.dioPinB, rPtr -> gpio.pinMode );
+                        rPtr -> gpio.pinA, rPtr -> gpio.pinB, rPtr -> gpio.pinMode );
 
             } break;
 
@@ -1755,7 +1756,7 @@ void printResourceMap( ) {
                 bool        phaseCorrect;
 
                 printf( "PWM: pinA: %d, pinB: %d, fPwm: %d, wrap: %d, slice: %d, invert: %d, phase: %d\n",
-                        rPtr ->pwm.pwmPinA,  rPtr ->pwm.pwmPinB,  rPtr ->pwm.frequency,
+                        rPtr ->pwm.pinA,  rPtr ->pwm.pinB,  rPtr ->pwm.frequency,
                         rPtr -> pwm.sliceNum, rPtr -> pwm.inverted, rPtr -> pwm.phaseCorrect );
 
             } break;
