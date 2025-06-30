@@ -1,14 +1,13 @@
-# ------------------------------------------------------------------------------------------------------------
-#  LCS - LcsNodes cmake file
-#
+# ------------------------------------------------------------------------------
+#  CMAKE File
 #  Copyright (C) 2024 - 2025  Helmut Fieres
-# ------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# This is the CMAKE file at the LcsNodes directory level. It sets up the cmake 
+# version, the languages used, defines the project and finally initializes the 
+# Raspberry Pi Pico SDK. The actual cmake work is done in the local cmake files
+# of programs and libraries. This file will just define the subdirectories.
 #
-# This is the CMAKE file at the LcsNodes directory level. It sets up the cmake version, the languages used,
-# defines the project and finally initializes the Raspberry Pi Pico SDK. The actual cmake work is done in 
-# the local cmake files of programs and libraries. This file will just define the subdirectories.
-#
-# ------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
 Message ( "LcsNodes Cmake" )

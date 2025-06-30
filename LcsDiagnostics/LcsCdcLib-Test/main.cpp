@@ -1,45 +1,43 @@
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //
 // LCS - Controller dependent code Layer - Test Program
 //
-//------------------------------------------------------------------------------------------------------------
-// This is a little test program for the individual functions of the CDC layer. It is a rather crude program
-// and you need to recompile it for each test of a portion of the library.
+//------------------------------------------------------------------------------
+// This is a little test program for the individual functions of the CDC layer.
+// It is a rather crude program and you need to recompile it for each test of a
+// portion of the library.
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //
 // LCS - Controller dependent code Layer - Test Program
-// Copyright (C) 2022 - 2025 Helmut Fieres
+// Copyright (C) 2025 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+// more details. You should have received a copy of the GNU General Public
+// License along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 #include "LcsCdcLibTestBoardDesc.h"
 #include "LcsCdcLib.h"
 
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This is the board configuration we use. See the include file for the details.
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Init the library. 
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void initCdcLib( ) {
 
     dMap.options    = 0;
@@ -49,12 +47,14 @@ void initCdcLib( ) {
     configureConsoleIO( );
     sleepMillis( 2000 );
     printf( "Test LCS Controller dependent code library\n" );
+    printResourceDescMap( &dMap );
+    sleepMillis( 2000 );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Test the console IO.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
   configureDio( CDC_RN_ACTIVITY_LED );
@@ -83,10 +83,10 @@ void testConsoleIO ( ) {
   printf( "terminated ... \n" );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // test the power failure option.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void pfailCallback( uint8_t pin, uint8_t event ) {
 
   printf( "PFAIL..\n" );
@@ -104,10 +104,10 @@ void testPfail( ) {
   printf( "testPfail -> unplug the power cord \n" );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Test the onboard LEDs.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testOnboardLeds( ) {
 
   printf( "Active Led Test\n" );
@@ -124,21 +124,22 @@ void testOnboardLeds( ) {
   }
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Test Fatal Error LED. Note, we will not come back from this call.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testFatalErr( ) {
 
   printf( "Fatal Error Test\n" );
   fatalError( 4 );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Set the DIO pins to input, pull-up and read the values. Use a little cable to set the voltage on the
-// extension connector. Note that we overwrite the Board descriptor data, since we need another pinMode.
+//------------------------------------------------------------------------------
+// Set the DIO pins to input, pull-up and read the values. Use a little cable 
+// to set the voltage on the extension connector. Note that we overwrite the 
+// board descriptor data, since we need another pinMode.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void configureDioInPinA( uint8_t rNum ) {
 
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO ); 
@@ -195,12 +196,13 @@ void testDioInput( ) {
     }
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Set the DIO pins to output and periodically toggle the values. Use a an LED array and connect the pins of
-// the extension connector to it. The toggle Led just indicates that the board is basically working. Note 
-// that we overwrite the Board descriptor data, since we need another pinMode.
+//------------------------------------------------------------------------------
+// Set the DIO pins to output and periodically toggle the values. Use a an LED 
+// array and connect the pins of the extension connector to it. The toggle Led 
+// just indicates that the board is basically working. Note that we overwrite 
+// the Board descriptor data, since we need another pinMode.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void configureDioOutPinA( uint8_t rNum ) {
 
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO ); 
@@ -255,11 +257,12 @@ void testDioOutput( ) {
     }
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Test the DIO pin pairs. We use the first four resource IDs and pass two pins at configuration time.
-// Note that we overwrite the Board descriptor data, since we need another pinMode.
+//------------------------------------------------------------------------------
+// Test the DIO pin pairs. We use the first four resource IDs and pass two pins
+// at configuration time. Note that we overwrite the board descriptor data, 
+// since we need another pinMode.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void configureDioOutPinPair( uint8_t rNum ) {
 
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO ); 
@@ -318,10 +321,10 @@ void testDioOutputPair( ) {
     }
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Test the analog blocking read.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testAdcBlockingRead( ) {
 
   float digitToVolt = (float) 3300 / 1024 / 1000; // quick hack ...
@@ -337,20 +340,23 @@ void testAdcBlockingRead( ) {
     uint16_t    val;
     uint8_t     rStat = readAdc( RNUM_ADC_0, &val );
 
-    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", RNUM_ADC_0, val, val * digitToVolt );
+    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", 
+            RNUM_ADC_0, val, val * digitToVolt );
     sleepMillis( 1000 );
 
     rStat = readAdc( RNUM_ADC_1, &val );
 
-    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", RNUM_ADC_1, val, val * digitToVolt );
+    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", 
+            RNUM_ADC_1, val, val * digitToVolt );
     sleepMillis( 1000 );
   }
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Test the timer interrupt. The callback functions are invoked an we display the that the timer fired. 
+//------------------------------------------------------------------------------
+// Test the timer interrupt. The callback functions are invoked an we display
+// the that the timer fired. 
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void timerCallback0( uint32_t timerVal ) {
 
     printf( "Timer 0 fired: %d\n", getMillis( ));
@@ -366,25 +372,34 @@ void testTimer( ) {
     printf( "Timer test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
+    writeDio( CDC_RN_ACTIVITY_LED, true );
 
     uint8_t rStat = NO_ERR;
 
-    rStat = configureTimer( 100, timerCallback0 );
-    rStat = configureTimer( 200, timerCallback1 );
+    while ( true ) {
+    
+        printf( "Configure Timers \n");
+        rStat = configureTimer( RNUM_TIMER_0, timerCallback0 );
+        rStat = configureTimer( RNUM_TIMER_1, timerCallback1 );
 
-    writeDio( CDC_RN_ACTIVITY_LED, true );
+        printf( "Start Timers \n");
+        startRepeatingTimer( RNUM_TIMER_0, 500000 );
+        startRepeatingTimer( RNUM_TIMER_1, 250000 );
 
-    startRepeatingTimer( 100, 500000 );
-    startRepeatingTimer( 100, 250000 );
+        sleepMillis( 10000 );
 
-    while ( true ) { }
+        printf( "Stop Timers \n");
+        stopRepeatingTimer( RNUM_TIMER_0 );
+        stopRepeatingTimer( RNUM_TIMER_1 );
+    }
 }
 
-//----------------------------------------------------------------------------------------------------------
-// "testI2C" uses the I2C bus. Currently, there is no real test. The I2C routines are used by the runtime
-// library. SInce we have a HW setup for NVM read and write, might as well debug I2C it there.
+//------------------------------------------------------------------------------
+// "testI2C" uses the I2C bus. Currently, there is no real test. The I2C 
+// routines are used by the runtime library. SInce we have a HW setup for NVM
+// read and write, might as well debug I2C it there.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testI2C( ) {
 
     printf( "List I2C channels test\n" );
@@ -421,40 +436,51 @@ void testI2C( ) {
     }
 }
 
-//----------------------------------------------------------------------------------------------------------
-// "testPWMFixed" tests the PWM functionality of the DIO pins 6 and 7. We will just configure the two ports,
-// set the frequency and three values to see of the duty cycle changes. Best to see on an Oscilloscope.
+//------------------------------------------------------------------------------
+// "testPWMFixed" tests the PWM functionality of the DIO pins 6 and 7. We will 
+// just configure the two ports, set the frequency and three values to see of
+// the duty cycle changes. Best to see on an Oscilloscope.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+void configurePwmPins( uint8_t rNum ) {
+
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_PWM ); 
+    if ( dPtr == nullptr ) fatalError( 4 );
+
+    configurePwm( rNum, 
+                  dPtr -> pwm.pinA, 
+                  dPtr -> pwm.pinB, 
+                  dPtr -> pwm.frequency );     
+}
+
 void testPWMFixed( ) {
 
-  printf( "PWM fixed frequency test\n" );
+    printf( "PWM fixed frequency test\n" );
 
-  configureDio( CDC_RN_ACTIVITY_LED );
-  configurePwm( RNUM_PWM_0 );
-  configurePwm( RNUM_PWM_1 );
-
+    configureDio( CDC_RN_ACTIVITY_LED );
+    configurePwmPins( RNUM_PWM_P_0 );
+  
     while ( true ) {
 
         toggleDio( CDC_RN_ACTIVITY_LED );
     
         writePwm( RNUM_PWM_P_0, 127, 63 );
-        sleepMillis( 2000 );
+        sleepMillis( 5000 );
 
         writePwm( RNUM_PWM_P_0, 192, 127 );
-        sleepMillis( 2000 );
+        sleepMillis( 5000 );
 
         writePwm( RNUM_PWM_P_0, 63, 192 );
-        sleepMillis( 2000 );
+        sleepMillis( 5000 );
     }
 }
 
-//----------------------------------------------------------------------------------------------------------
-// "testPWMWithAnalogInput" will read in an analog value and use it as a dutyCycle for the PWM outputs. We
-// use a frequency of 100Hz, which is nicely to see on an Oscilloscope with a period length of 10ms. The
-// analog input is a bit noisy, so we ignore anything very small values.
+//------------------------------------------------------------------------------
+// "testPWMWithAnalogInput" will read in an analog value and use it as a 
+// dutyCycle for the PWM outputs. We use a frequency of 100Hz, which is nicely
+// to see on an Oscilloscope with a period length of 10ms. 
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testPWMWithAnalogInput( ) {
 
     printf( "PWM with analog input test\n" );
@@ -463,16 +489,15 @@ void testPWMWithAnalogInput( ) {
 
     uint16_t dutyCycle          = 0;
     uint16_t minimalThreshold   = 6;
-    uint8_t  rStat              = NO_ERR;
    
-    rStat = configureAdc( RNUM_ADC_0 );
-    rStat = configurePwm( RNUM_PWM_0 );
+    configureAdc( RNUM_ADC_0 );
+    configurePwmPins( RNUM_PWM_0 );
   
     while ( true ) {
 
         toggleDio( CDC_RN_ACTIVITY_LED );
 
-        rStat = readAdc( RNUM_ADC_0, &dutyCycle );
+        readAdc( RNUM_ADC_0, &dutyCycle );
 
         if ( dutyCycle < minimalThreshold ) dutyCycle = 0;
         if ( dutyCycle > 255 )              dutyCycle = 255;
@@ -482,10 +507,10 @@ void testPWMWithAnalogInput( ) {
   }
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // "testUIDGen" test the UID generation code.
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void testUIDGen( ) {
 
     printf( "UID generation test\n" );
@@ -498,15 +523,13 @@ void testUIDGen( ) {
     }
 }
 
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Main. A bit crude. Just enable what you want to test ...
 //
-//----------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int main( ) {
 
     initCdcLib( );
-
-    printResourceDescMap( &dMap );
 
     // testFatalErr( );
     // testConsoleIO( );
@@ -518,7 +541,6 @@ int main( ) {
     // testAdcBlockingRead( );
     // testTimer( );
     // testI2C( );
-    // testSPI( );
     // testPWMFixed( );
     // testPWMWithAnalogInput( );
     // testUIDGen( );

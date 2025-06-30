@@ -40,5 +40,22 @@
         "latex",
         "plaintext",
         "cpp"
-    ]
+    ],
+    "[c]": {
+        "editor.rulers": [
+            { "column": 80, "color": "#CCCCCC40" },
+            { "column": 90, "color": "#CCCCCC40" }
+        ]
+    },
+    "[cpp]": {
+        "editor.rulers": [
+            { "column": 80, "color": "#CCCCCC40" },
+            { "column": 90, "color": "#CCCCCC40" }
+        ]
+    },
+    "[cmake]": {
+        "editor.rulers": [
+            { "column": 80, "color": "#CCCCCC40" }
+        ]
+    }
 }
