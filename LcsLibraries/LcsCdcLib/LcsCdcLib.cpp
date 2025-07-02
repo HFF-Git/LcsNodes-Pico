@@ -324,10 +324,8 @@ struct GpioIsrTable {
 //
 //------------------------------------------------------------------------------
 bool                    initialized = false;
-
 CdcResourceDescMap      dMap;
 CdcResourceMap          rMap;
-
 GpioIsrTable            dioIntHandlers;
 CdcResource             *uartRes0;
 CdcResource             *uartRes1;
@@ -1448,7 +1446,10 @@ uint8_t configureUart( uint8_t rNum ) {
 //------------------------------------------------------------------------------
 //
 //------------------------------------------------------------------------------
-uint8_t configureUart( uint8_t rNum, uint8_t rxPin, uint8_t txPin, uint32_t baudRate ) {
+uint8_t configureUart( uint8_t rNum, 
+                       uint8_t rxPin, 
+                       uint8_t txPin, 
+                       uint32_t baudRate ) {
 
     if ( rNum < CDC_RN_FIRST_USER_RN  ) return ( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
@@ -1580,7 +1581,6 @@ uint8_t configureI2C( uint8_t rNum,
                       uint32_t baudRate, 
                       uint32_t timeoutVal ) {
 
-    if ( rNum < CDC_RN_FIRST_USER_RN  ) return ( RES_NUM_ERR );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
     
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_I2C );
@@ -1942,7 +1942,7 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
             case CDC_RT_I2C: {
 
                 printf( "I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
-                    "i2cRoot: 0x2x, timeout(MS): %d\n",
+                        "i2cRoot: 0x2x, timeout(MS): %d\n",
                         dPtr -> i2c.sclPin, 
                         dPtr -> i2c.sdaPin, 
                         dPtr -> i2c.baudRate, 
@@ -1952,7 +1952,8 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_CAN_BUS: {
 
-                printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, twoCores: %d\n",
+                printf( "CAN: rxPin: %d, txPin: %d, "
+                        "baudRate: %d, twoCores: %d\n",
                         dPtr -> can.rxPin, 
                         dPtr -> can.txPin, 
                         dPtr -> can.baudRate, 

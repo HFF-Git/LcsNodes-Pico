@@ -1,8 +1,8 @@
-# ------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file at the LcsCdcLib-Test directory level
 #
 #  Copyright (C) 2024 - 2025  Helmut Fieres
-# ------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 cmake_minimum_required( VERSION 3.29 )
 
 project( LcsCdcLib-Test C CXX ASM )
@@ -31,7 +31,9 @@ if ( TARGET tinyusb_device )
 
 elseif ( PICO_ON_DEVICE ) 
 
-    message(WARNING "not build test because tinyUSB submodule is not initialized in the SDK")
+    message( WARNING 
+      "not build test because tinyUSB submodule is not initialized in the SDK"
+    )
 
 endif( )
     

@@ -1,34 +1,35 @@
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library internals include file
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // The LCS library internal definitions are all grouped in this include file. A firmware writer needs to only
 // include the external include file. There is nothing in here that is needed outside.
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //
-// LCS - Runtime Library
-// Copyright (C) 2021 - 2025  Helmut Fieres
+// Layout Control System - Runtime Library internals include file
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU
-// General Public License as published by the Free Software Foundation, either version 3 of the License,
-// or any later version.
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
-// the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-// License for more details. You should have received a copy of the GNU General Public License along with
-// this program.  If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+// more details. You should have received a copy of the GNU General Public
+// License along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 #ifndef LCS_RT_LIB_INT_h
 #define LCS_RT_LIB_INT_h
 
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Include files. Besides the standard C libraries, there is the external LCS runtime include file, and the 
 // dependent code library include file.
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 #include <stdint.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -41,7 +42,7 @@
 
 namespace LCS {
 
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // The LCS Runtime needs to maintain a couple of internal data structures. As a general concept, most of the
 // data areas are stored in the NVM and mirrored by a memory copy. Upon reset or power up the memory areas 
 // are initialized from their NVM counter parts. Data that needs to be changed permanently is flushed from 
@@ -153,14 +154,14 @@ enum LcsNodeState : uint16_t {
     NS_OPERATE          = 8
 };
 
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Node, port and extension board driver attributes and functions are accessed with three main routines, 
 // GET, SET and REQ. The specific items are defined in the external include file. This part here defined the
 // boundaries for internal checking. The first 63 items are predefined and reserved for the runtime itself.
 // Item 64 to 127 are user definable and typically implement node type specific functions. Finally, item 
 // 128 to 255 are user definable attribute variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
 
     IR_NIL                      = 0,
@@ -177,12 +178,12 @@ enum ItemRanges : uint8_t {
     IR_MAX_ITEMS                = 255,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines. For
 // debugging purposes a debug level can be set so that diagnostic messages are displayed to the console.
 // A CAN bus message will use the nodeId as the canBus Id. 
 //
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
 
     public:
@@ -201,12 +202,12 @@ struct LcsMsgBusCAN {
     uint16_t nodeId = NIL_NODE_ID;
 };
 
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // The CdcBoardDescMap structure defines what the board actually is. It is also the first structure that can
 // be found on the controller board NVM as well as the extension board NVM.
 //
 // ??? rather put back to the Lcs Lib ?
-//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 struct LcsBoardDesc {
 
     uint32_t            boardMword;

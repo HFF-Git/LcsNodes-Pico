@@ -536,8 +536,8 @@ int main( ) {
     // testPfail( );
     // testOnboardLeds( );
     // testDioInput( );
-    testDioOutput( );
-    // testDioOutputPair( );
+    // testDioOutput( );
+    testDioOutputPair( );
     // testAdcBlockingRead( );
     // testTimer( );
     // testI2C( );
