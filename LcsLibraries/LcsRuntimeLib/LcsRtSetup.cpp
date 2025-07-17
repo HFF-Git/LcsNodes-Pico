@@ -29,6 +29,8 @@
 // manually correct the node data for a successful restart. In a similar way, extension board errors can be
 // be addressed.
 //
+
+??? clean up, comment sequence ....
 //------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime library setup.
