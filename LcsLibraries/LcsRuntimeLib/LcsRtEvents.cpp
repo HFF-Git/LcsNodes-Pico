@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library Firmware Update.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The file contains the part of the LCS Runtime Library that implements the 
 // node event handling. At the heart of LCS is the concept of events. Events 
 // are broadcasted by a node and any other node interested in them registers an
@@ -23,30 +23,30 @@
 // and add it sorted to the MEM twin. The high water mark specifies the number 
 // of entires actually used.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library Firmware Update. 
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the Free
-// Software Foundation, either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-// more details. You should have received a copy of the GNU General Public
-// License along with this program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 #include <stdlib.h>
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External declaration to global structures and functions.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
     extern uint16_t      debugMask;
@@ -57,18 +57,18 @@ namespace LCS {
     extern uint8_t       rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Utility routines.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
@@ -84,11 +84,11 @@ uint8_t errStat( uint8_t errId ) {
     return ( errId );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "compareEventEntry" is a little helper function to compare event and portId
 // to the data in an eventMap entry.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
 
     if      ( e1 -> eventId < eventId2 )  return ( -1 );
@@ -96,11 +96,11 @@ int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
     else return ( 0 );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The event map search function performs a binary search of the event map. If 
 // the entry cannot be found, a -1 is returned.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int searchEventMap( uint16_t eventId ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
@@ -133,12 +133,12 @@ int searchEventMap( uint16_t eventId ) {
     return ( res );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "addToMemEventMap" adds an event / port combination to the MEM event map if 
 // not already there. Given there is still room in the table, the entry is added
 // in sorted order.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
@@ -178,11 +178,11 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     return ( errStat( ALL_OK ));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "removeFromMemEventMap" removes an entry from the memory event map. The 
 // sorted order is maintained.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
      if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
@@ -205,17 +205,17 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
 } // namespace
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "addEvent" routine will add or update an eventId/eventMask combination 
 // in the event map.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) { 
@@ -226,12 +226,12 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
     return ( errStat( addToMemEventMap( eventId, eventMask )));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "removeEvent" routine will remove an event Id / port Id from the MEM 
 // event map. If the port ID is NIL_PORT_ID, all port map entries matching 
 // event Id are removed.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) {
@@ -242,13 +242,13 @@ uint8_t removeEvent( uint16_t eventId ) {
     return ( removeFromMemEventMap( eventId ));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The event search function performs a binary search of the event map using the
 // event Id and the port Id. If the port Id is NIL, a matching entry with lowest
 // portId is returned. All eventMap entries with the same eventId follow. If the
 // entry cannot be found, a -1 is returned.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int searchEvent( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) {
@@ -259,13 +259,13 @@ int searchEvent( uint16_t eventId ) {
     return ( searchEventMap( eventId ));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "syncEventMap" will write back the sorted MEM event map. We only write up to
 // the HWM mark, which points right after the last element in the sorted MEM 
 // event map. The idea is that all adds and removes are done on the MEM event 
 // map and a SYNC control call will flush the sorted MEM event map to NVM.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
@@ -287,12 +287,12 @@ uint8_t syncEventMap( ) {
     return ( errStat( rStat ));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "getMemEmapEntry" returns the eventId and event mask pair from the MEM event
 // map. It is used by the console command interface and the LCS message request
 // handler to obtain that data. The index starts at 0.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {

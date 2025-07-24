@@ -18,37 +18,34 @@
 // SSD1306Ascii - Oled Library for the Arduino world.
 // Copyright (c) 2011-2023 Bill Greiman
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #include "LcsOledDisplayLib.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
 // the core library and the firmware designers.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
     using namespace CDC;
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // SSD1306 commands.
     //
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     /** Set Lower Column Start Address for Page Addressing Mode. */
     #define SSD1306_SETLOWCOLUMN 0x00
     /** Set Higher Column Start Address for Page Addressing Mode. */
@@ -98,9 +95,9 @@ namespace {
     /** No Operation Command. */
     #define SSD1306_NOP 0XE3
 
-    //-------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     //
-    //-------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     /** Set Pump voltage value: (30H~33H) 6.4, 7.4, 8.0 (POR), 9.0. */
     #define SH1106_SET_PUMP_VOLTAGE 0X30
     /** First byte of set charge pump mode */
@@ -109,12 +106,12 @@ namespace {
     #define SH1106_PUMP_ON 0X8B
     /** Second byte charge pump off. */
     #define SH1106_PUMP_OFF 0X8A
-    //------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
 
-    //-------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // The display modes when we write to the controller.
     //
-    //-------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     enum WriteDisplayMode : uint8_t {
 
         SSD1306_MODE_CMD      = 0,
@@ -122,22 +119,22 @@ namespace {
         SSD1306_MODE_RAM_BUF  = 2
     };
 
-    //-------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     //
     // If ENABLE_NONFONT_SPACE is nonzero, a space of width FONT_WIDTH will
     // be enabled in fonts which do not have an encoding for 0X20, space.
     // ??? what to do about it ?
-    //-------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     #ifndef ENABLE_NONFONT_SPACE
     #define ENABLE_NONFONT_SPACE 1
     #endif  // ENABLE_NONFONT_SPACE
 
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Each controller is described by a device type structure. The structure contains the width and height
     // as well as a command list of commands to issue when the display is initialized.
     //
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     struct DevType {
  
         const uint8_t *initCmdList;
@@ -147,11 +144,11 @@ namespace {
         uint8_t       colOffset;
     };
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Initialization commands for a 128x32 SSD1306 oled display. This section is based on 
     // https://github.com/adafruit/Adafruit_SSD1306
     // 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     constexpr uint8_t Adafruit128x32init[ ] = {
 
         SSD1306_DISPLAYOFF,
@@ -181,11 +178,11 @@ namespace {
         0
     };
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Initialization commands for a 128x64 SSD1306 oled display. This section is based on 
     // https://github.com/adafruit/Adafruit_SSD1306
     // 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     const uint8_t Adafruit128x64init[] = {
     
         SSD1306_DISPLAYOFF,
@@ -215,12 +212,12 @@ namespace {
         0
     };
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Initialization commands for a 128x64 SH1106 oled display. This section is based on 
     // https://github.com/stanleyhuangyc/MultiLCD. The SH1106 is a 132x64 controller. We use the middle 128
     // columns.
     // 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     const uint8_t SH1106_128x64init[] = {
   
         SSD1306_DISPLAYOFF,
@@ -249,11 +246,11 @@ namespace {
         2   
     };
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // "setupHw" sets up our IO pins and the I2C channel. If the display has a reset input we also initialize
     // the reset IO and issue the reset sequence.
     //
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t setupHw( uint8_t rNumI2C, uint8_t rNumRST ) {
 
         uint8_t rStat = NO_ERR;
@@ -277,28 +274,28 @@ namespace {
         return( rStat );
     }
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     //
     //
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     static const uint8_t scaledNibble[ ] = {  0X00, 0X03, 0X0C, 0X0F, 0X30, 0X33, 0X3C, 0X3F,
                                               0XC0, 0XC3, 0XCC, 0XCF, 0XF0, 0XF3, 0XFC, 0XFF };
 
 }; // namespace
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Object constructor. Nothing to do here.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 LcsOledDisplay::LcsOledDisplay( ) {  }
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "begin" routine is the first method to call. It will configure the IO pins and setup the particular 
 // OLED display.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::begin(  uint8_t devType, 
                                 uint8_t rNumI2C, 
                                 uint8_t i2cAdr,
@@ -324,13 +321,13 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
     return( CDC::NO_ERR );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "setupDevType" will initialize the OLED display. Currently, there are three different displays supported. 
 // The Adafruit displays with a dimension for 128x64 and 128x32 use the SSD1306 controller. There is also a 
 // 1.3" OLED display which uses the SH1106 controller type. The service type descriptor contains the init
 // command sequence which is sent command by command.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsOledDisplay::setupDevType( uint8_t dType ) {
 
     const DevType *dev = nullptr;
@@ -355,10 +352,10 @@ void LcsOledDisplay::setupDevType( uint8_t dType ) {
     for ( uint8_t i = 0; i < size; i++ ) ssd1306WriteCmd( table[ i ] );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsOledDisplay::displayOn( ) {
 
     ssd1306WriteCmd( SSD1306_DISPLAYON );
@@ -413,10 +410,10 @@ void LcsOledDisplay::displayRemap180Degrees( bool mode ) {
     ssd1306WriteCmd(mode ? SSD1306_COMSCANINC : SSD1306_COMSCANDEC);
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::charWidthPixels(uint8_t c) const {
 
     if (!m_font) {
@@ -458,10 +455,10 @@ size_t LcsOledDisplay::strWidthPixels(const char* str) const {
   return sw;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::fontCharCount( ) const {
 
   return m_font ? m_font[ FONT_CHAR_COUNT ] : 0;
@@ -517,10 +514,10 @@ void LcsOledDisplay::setFont( uint8_t fontId ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::displayHeightPixels() { return m_displayHeight; }
  
 uint8_t LcsOledDisplay::displayRows() { return m_displayHeight / 8; }
@@ -566,11 +563,11 @@ void LcsOledDisplay::setColPixels( uint8_t col ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
 // ??? try to truly understand all this ...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 size_t LcsOledDisplay::writeChar( uint8_t ch ) {
 
     if ( !m_font ) {

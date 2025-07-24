@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UI Screen - implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // UI Elements of Buttons, Knobs, LEDs and displays are the atoms of a User Interface. The next level is to
 // organize these atoms into screens. A screen is a display UI element that is manipulated with the help of
 // architected UI button elements.
@@ -32,38 +32,35 @@
 // inherits from the UIScreen could overwrite these handlers and assign a new meaning to the MENU and SELECT
 // button. That's it.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UI Screen
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DEBUG_SCREEN_CALLBACK is used to show the callbacks invoked from the UI Elements for which object.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #define DEBUG_SCREEN_CALLBACK 0
 #define DEBUG_SKIP_SCREENS    0
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
   //----------------------------------------------------------------------------------------------------------
@@ -77,7 +74,7 @@ namespace {
 
 } // namespace
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The following static routines are the connection points from the UI Elements to the screen. For example,
 // a button event such as a click, will be passed to the screen methods of the current screen. When the UI
 // Element, e.g. a button, is configured, the callback function to register for the button event is the
@@ -85,7 +82,7 @@ namespace {
 // that will  route the event to the current screen handler methods. So far, there are the button and encoder
 // callbacks.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIScreen::menuButtonClickHandler( UIButton *buttonObj ) {
 
   #if DEBUG_SCREEN_CALLBACK == 1
@@ -194,13 +191,13 @@ void UIScreen::encoderPosChangeHandler( UIEncoder *encoderObj ) {
   if ( currentScreen != nullptr ) currentScreen -> encoderPosChange( encoderObj );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The UI screen constructor.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIScreen::UIScreen( ) { }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "menuButtonClick" and "selectButtonCLick" are the handler method that will manage the menu navigation.
 // The menu button click  advances in a round robin fashion through the menu child list of the actual menu
 // screen. The select button selects the first child of the current menu screen. We do not make any changes
@@ -211,7 +208,7 @@ UIScreen::UIScreen( ) { }
 // is an enable flag. When the menuButton click event is handled it will skip disabled screens. If all screens
 // are disabled, no action will be taken.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIScreen::menuButtonClick( UIButton *buttonObj ) {
 
   if ( currentScreen != nullptr ) {
@@ -251,22 +248,22 @@ void UIScreen::selectButtonClick( UIButton * buttonObj ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "menuButtonLongPress" is handler method will manage the unconditional return to the top level screen. This
 // handler can also be overwritten to implement for example a return to the first child of the current menu
 // list. However, it is convenient to always go to the first child of the root screen and have a known screen
 // where to start.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIScreen::menuButtonLongPress( UIButton * buttonObj) {
 
   if ( rootScreen -> child != nullptr ) setCurrentScreen( rootScreen -> child, true );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The UIScreen object provides dummy functions that can be overridden by a subclass.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIScreen::enterScreen( bool init ) { }
 void UIScreen::exitScreen( ) { }
 void UIScreen::buttonClick( UIButton * buttonObj ) { }
@@ -276,12 +273,12 @@ void UIScreen::upButtonClick( UIButton * buttonObj ) { }
 void UIScreen::downButtonClick( UIButton * buttonObj ) { }
 void UIScreen::encoderPosChange( UIEncoder * encoderObj ) { }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "append" is the building block for constructing menus. For a given screen, the passed screen is appended
 // to the end of the children list. The parent field becomes the object that the new screen object will be
 // appended to.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIScreen::append( UIScreen * screen ) {
 
   UIScreen *temp = child;
@@ -298,11 +295,11 @@ void UIScreen::append( UIScreen * screen ) {
   screen -> parent  = this;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "setup" method gets the whole show going. The first child of the root screen is the first screen to
 // show if it is already there.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool UIScreen::setup( ) {
 
   if (( rootScreen != nullptr ) && ( rootScreen -> child != nullptr )) {
@@ -314,11 +311,11 @@ bool UIScreen::setup( ) {
   else return ( false );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Screen can be conditionally shown. If a screen is disabled, it will stay in the list but skipped when
 // toggling through the windows.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIScreen::enableScreen( ) {
 
   enabled = true;
@@ -334,10 +331,10 @@ bool UIScreen::isEnabled( ) {
   return ( enabled );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Static Getter/Setter methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIScreen *UIScreen::getRootScreen( ) {
 
   return ( rootScreen );

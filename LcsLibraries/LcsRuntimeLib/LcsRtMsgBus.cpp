@@ -1,9 +1,9 @@
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - LCS Message routines. 
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //  At the message level, the LCS runtime offers a message bus to which all nodes are connected. Currently,
 // it is a CAN bus. Pretty straightforward and robust. This file contains the routines to set up the node
 // communication as well as a set of convenience functions for sending a LCS message taking care of filling
@@ -11,29 +11,29 @@
 // made in the pending request map. Since the message layer sees all reply message, this pending map is used 
 // to filter for the request we are waiting for.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - LCS Message routines. 
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the Free
-// Software Foundation, either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-// more details. You should have received a copy of the GNU General Public
-// License along with this program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External declaration to global structures defined in "LcsRtSetup".
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
     extern uint16_t             debugMask;
@@ -51,18 +51,18 @@ namespace LCS {
     extern uint8_t localMsgEvent( uint8_t *msg );      
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Little helper functions and constants.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
@@ -95,7 +95,7 @@ uint8_t highByte( uint16_t arg ) {
     return ( arg >> 8 ); 
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains a small pending request
 // buffer. When a request type message is sent we add the target node and a timer value to the buffer. Easy 
 // and simple. Note that there can be more than one entry for the same node / port combination in the buffer.
@@ -104,7 +104,7 @@ uint8_t highByte( uint16_t arg ) {
 // A request can also be registered with a timeout value. When the timeout expires, the caller is informed
 // that the request timed out. A timeout value of zero means that we wait indefinitely.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
 
     uint32_t ts = CDC::getMillis( );
@@ -122,11 +122,11 @@ uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
     return ( ERR_PENDING_REQ_MAP_FULL );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "removeFromPendingReqMap" removes an entry from the pending reply buffer. If the entry is not found, we
 // received a reply for a request that we do not know. Right now, we just ignore this error.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t removeFromPendingReqMap( uint16_t npId ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
@@ -137,11 +137,11 @@ uint8_t removeFromPendingReqMap( uint16_t npId ) {
     return ( ALL_OK );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "searchPendingReqMap" searches the pending request buffer for a matching node. We just return a boolean
 // answer whether the entry is there or not.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool searchPendingReqMap( uint16_t npId ) {
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
@@ -152,12 +152,12 @@ bool searchPendingReqMap( uint16_t npId ) {
     return ( false );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "processPendingReqMapTimeouts" is part of the periodic processing of the node. It will check wether any
 // requests waiting for a reply have timed out. In this case, we should invoke the reply callback with an 
 // error code and clear the entry.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void processPendingReqMapTimeouts( ) {
 
     uint32_t ts = getMillis( );
@@ -181,23 +181,23 @@ void processPendingReqMapTimeouts( ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "sendLcsMsg" will send a message when the node is either OPERATe or CONFIG mode.
 // 
 // ??? not all messages should be enabled when we are in CFG mode...
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
     return ( msgBus -> sendLcsMsg( msg, msgPri ));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some messages are requests that expect a reply. We maintain a pending request map which keeps track of 
 // outstanding requests. In addition we can pass a timeout value to handle cases where no reply is received
 // in a given time interval.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout = 0 ) {
 
     if ( addToPendingReqMap( npId , timeout ) == ALL_OK )   return ( sendLcsMsg( msg, msgPri ));
@@ -207,16 +207,16 @@ uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t time
 }; // namespace
 
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A simple helper to print an LCS message.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printLcsMsg( uint8_t *msg ) {
 
     printf( "LCS MSG: op: %d, data: ", msg[ 0 ] & 0x1F );
@@ -224,14 +224,14 @@ void printLcsMsg( uint8_t *msg ) {
     printf( "\n" );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The primary task of the receive function is to receive an LCS messages and pass them to the respective
 // handler method. In order to not always check whether a valid message was processed, this routine will
 // always return a valid message opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something
 // else happened and no further message processing is required. We also maintain a request / reply map to
 // keep track of outstanding requests transparently to the caller.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t receiveLcsMsg( uint8_t *msg ) {
 
     int rStat = msgBus -> receiveLcsMsg( msg );
@@ -259,12 +259,12 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
     } else return ( LCS_OP_NO_MSG );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // LCB message send routines. They all follow the same pattern. There is a method for each message opcode,
 // which maps the input parameters to the byte array and then send it. Depending on the type of sending
 // there are different local routines used. Straightforward.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t npId ) {
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );

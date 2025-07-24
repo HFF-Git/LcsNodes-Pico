@@ -1,46 +1,43 @@
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
 // LCS - Driver Library Code for SERVO boards
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // This source file contains the lower level library for all the servo extension board. We also call this
 // library a "driver". The driver provides a set of defined interfaces to the upper level extension library.
 // Being a driver, it truly knows the hardware underneath and maps the upper level calls to the lower level
 // hardware calls to make.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
 // Copyright (C) 2022 - 2023  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #include "LcsDrvServoLib.h"
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
 // the core library and the firmware designers.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 
 const int PCA9685_SUB_ADR_1 = 2;
 const int PCA9685_SUB_ADR_2 = 3;
@@ -236,10 +233,10 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
 
 namespace LCS {
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Each driver is just a function to handle the request.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 uint8_t lcsDrvServo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     switch( item ) {

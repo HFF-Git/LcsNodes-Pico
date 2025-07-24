@@ -1,12 +1,12 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Block Controller Board Descriptor File
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The block controller descriptor file contains the definitions for the hardware configuration values of a base
 // station board.
 // 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Base Station Board Descriptor File
 // Copyright (C) 2025 - 2025  Helmut Fieres
@@ -24,7 +24,7 @@
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #ifndef LcsDccMonitorBoardDesc_h
 #define LcsDccMonitorBoardDesc_h
  
@@ -32,17 +32,17 @@
 
 using namespace CDC;
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Setup the configuration of the HW board. The CDC resource descriptor map contains the configuration 
 // data for the board. In addition, the HW pins for I2C, analog inputs and so on are set from the current
 // RPico Defaults. Check the schematic for the board to see all pin assignments.
 //
 // One day we will have several block controller versions. Although they will perhaps differ, their the CDC
 // resource names used should not change. 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t RNUM_DCC_IN = CDC_RN_FIRST_USER_RN + 0;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information about the hardware family,
 // controller type, controller attributes and hardware resources available on the board. A resource itself
 // described the actual hardware entity that is available. It the resource primarily maps the hardware 
@@ -52,17 +52,17 @@ const uint8_t RNUM_DCC_IN = CDC_RN_FIRST_USER_RN + 0;
 // array index is used. Applications need to map resource entries to their index. The CDC library provides
 // support for this mapping.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Controller configuration and common data.
     //
     //  OPTION              - option flags for the board. They are set by the application.
     //  DEBUG MASK          - debug options. They are set by the application.
     //  HEAD                - board / controller related info.
     //
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     .boardMword     = 0, 
     .boardInfo      = 0, 
     .boardVersion   = 0, 
@@ -71,12 +71,12 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
     .debugMask      = 0,
     .name           = "LCS_DCC_MONITOR_BOARD_DESC_B_02_00",
            
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
     // the resources are defined.
     // 
     // ??? on which board would it actually run ? just a plan RP2040 board standalone ?
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     .map {
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,

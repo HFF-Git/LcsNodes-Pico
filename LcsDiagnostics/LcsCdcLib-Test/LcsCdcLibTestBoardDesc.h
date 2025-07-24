@@ -1,13 +1,13 @@
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Main Controller Board Descriptor File - For CDC Lib Test Program
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The CDC library test program uses the main controller board descriptor 
 // definitions for the hardware 
 // configuration values of the main controller board.
 // 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Base Station Board Descriptor File
 // Copyright (C) 2025 - 2025 Helmut Fieres
@@ -22,7 +22,7 @@
 // more details. You should have received a copy of the GNU General Public
 // License along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #ifndef LcsDccMonitorBoardDesc_h
 #define LcsDccMonitorBoardDesc_h
  
@@ -30,13 +30,13 @@
 
 using namespace CDC;
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Setup the configuration of the HW board. The CDC resource descriptor map 
 // contains the configuration data for the board. In addition, the HW pins for 
 // I2C, analog inputs and so on are set from the current RPico Defaults. Check
 // the schematic for the board to see all pin assignments.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t RNUM_TIMER_0  = CDC_RN_FIRST_USER_RN + 0;
 const uint8_t RNUM_TIMER_1  = CDC_RN_FIRST_USER_RN + 1;
 
@@ -67,7 +67,7 @@ const uint8_t RNUM_DIO_P_3  = CDC_RN_FIRST_USER_RN + 21;
 const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 22;
 
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information 
 // about the hardware family, controller type, controller attributes and 
 // hardware resources available on the board. A resource itself described the 
@@ -79,13 +79,13 @@ const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 22;
 // resource, the array index is used. Applications need to map resource entries
 // to their index. The CDC library provides support for this mapping.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The board descriptor for the board version "Main controller B.01.00". This i
 // a main controller board, which we use for the CDC lib test program.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
 
     //--------------------------------------------------------------------------
@@ -225,11 +225,11 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     }
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The board descriptor for the board version "Main controller B.02.00". This is
 // a main controller board, which we use for the CDC lib test program.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
 
     //--------------------------------------------------------------------------

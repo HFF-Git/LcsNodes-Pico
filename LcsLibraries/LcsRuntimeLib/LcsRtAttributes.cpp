@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime attribute management
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This file contains the LCS runtime routines that implement node access. There
 // are three routines that allow to manipulate node and port data as well as 
 // issue requests to a node or port. The "npId" will indicate which node and 
@@ -12,29 +12,29 @@
 // via a message and the message handler will call the local routines in this
 // file. 
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime attribute management
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the Free
-// Software Foundation, either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-// more details. You should have received a copy of the GNU General Public
-// License along with this program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-//------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 // External declaration to global structures and routines.
 //
-//------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 namespace LCS {
 
     using namespace CDC;
@@ -62,10 +62,10 @@ namespace LCS {
                                            uint32_t len );
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
     using namespace LCS;
@@ -314,13 +314,13 @@ namespace {
 } // namespace
 
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "nodeGet" will lookup a value from the node, port or the attribute data map.
 // The "npId" argument contains the node and port Id. However, we will only use
 // the portId portion, which represents the block index. For data attribute 
@@ -328,7 +328,7 @@ namespace LCS {
 // the NVM version of the data. For the other node or port reserved attributes 
 // the MEM version is used.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
@@ -501,13 +501,13 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "nodePut" will write a value to the node, port or the attribute data map. 
 // The "npId" argument contains the node and port Id. For data attributes the 
 // node state determines whether we also update the NVM slot. For the remaining
 // items the update of NVM is dependent on the meaning of the particular item.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
@@ -674,12 +674,12 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "nodeReq" will carry out a node or port function. A function, represented by
 // an item, can be a node or port defined item, a extension board driver defined
 // item or a user defined item.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {

@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UI Elements - include file.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // UI Elements. You start an Arduino project and the first Led is blinking, a button is pushed. Before you
 // know it, buttons need to be debounced, short and long pressed, active high or active low. You would like
 // to toggle a Led and remember its state. There are displays with different interfaces and capabilities. On
@@ -26,38 +26,35 @@
 //
 // UIScreen
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some of the UI Element classes were inspired by the work of "Matthias Hertel", here is his copyright notice.
 // I like his approach for handling events with a finite state machine very much. The button, button array,
 // encoders and LEDs are all managed by a state machine that advances with a call to the function "tick".
 //
 // ( Original state machine->  Copyright (c) by Matthias Hertel, https://www.mathertel.de. )
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UI Elements
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #ifndef UI_ELEMENTS_h
 #define UI_ELEMENTS_h
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Include files.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -67,14 +64,14 @@
 #include "LcsLcdDisplayLib.h"
 #include "LcsOledDisplayLib.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Resources and Pins use the value of 255 to indicate an invalid number.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t INVALID_ID       = 255;
 const uint8_t INVALID_PIN      = 255;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // There are quite a few displays to support. While the LCD displays just feature a fixed column and row size,
 // the Oled displays support a column and row size that depends on the font used. 
 //
@@ -85,7 +82,7 @@ const uint8_t INVALID_PIN      = 255;
 // row and column at caller level.
 //
 // ??? this needs to map to what we have for OLED and LCD...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum DisplayType : uint8_t {
 
     DT_LCD_DISPLAY_16_2         = 1,
@@ -97,12 +94,12 @@ enum DisplayType : uint8_t {
     DT_OLED_DISPLAY_128x64      = 12,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // OLED displays feature a set of fonts. A small set of all possible fonts is available for the OLED display.
 // The font type is meaningless for the LCD displays, they have only one character set.
 //
 // ??? rather put in OLED display ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum FontType : uint8_t {
 
   FT_DEF   = 0,
@@ -112,13 +109,13 @@ enum FontType : uint8_t {
   FT_10x16 = 4,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Callback function definition. UI Elements implement two kinds of callback functions. The first group is the
 // data setting and retrieval function, which is used by buttons, LEDs and encoders to work with the hardware
 // elements that represent these objects. UI elements that process events additionally implement the second
 // type callback function mechanism to inform the client on the event that occurred. For example, when a button
 // is pushed and has registered a callback function, this is the function signature invoked.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -133,7 +130,7 @@ typedef bool (*UIGetDataFunction) ( uint8_t hwId );
 }
 #endif
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The UIElements class. This is the base class for all UI elements. There are two static functions, "setup"
 // and "tick", which typically are called in the Arduino setup and loop phase. Especially the tick function
 // should be called very often, as it advances the state machine in each UI element via "processTick". The UI
@@ -141,7 +138,7 @@ typedef bool (*UIGetDataFunction) ( uint8_t hwId );
 // cannot be instantiated, only the subclasses can. Each UI Element features also a resource ID to keep a 
 // use case specific ID.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIElements {
 
     public:
@@ -167,10 +164,10 @@ struct UIElements {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "UIButton" class definition.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIButton : UIElements {
 
     public:
@@ -214,10 +211,10 @@ struct UIButton : UIElements {
     static void               setPressMillis( uint32_t ticks );
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "UIEncoder" class definition.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIEncoder : UIElements {
 
     public:
@@ -259,10 +256,10 @@ struct UIEncoder : UIElements {
     UIGetDataFunction           getDataFunc         = nullptr;
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "UILed" class definition.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UILed : UIElements {
 
     public:
@@ -293,13 +290,13 @@ struct UILed : UIElements {
     static void setBlinkIntervalMillis( uint32_t val );
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "UIDisplay" object is the common subset object for all displays. It implements a simple row x column
 // ASCII display. Although some display are far more capable, this simple display type will often do. All
 // further capabilities of an actual display are not masked and can be used. However, the code is then display
 // specific.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIDisplay : UIElements {
 
     public:
@@ -322,13 +319,13 @@ struct UIDisplay : UIElements {
     void            processTick( );
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCD display and an I2C interface are handled by this object. Like all displays defined, this object
 // implements a simple matrix of ASCII characters. The display has a set of function to manage backlight,
 // as well as cursor and blinking options. We simply inherit these functions. They are however only an
 // option for the LCD kind of display.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIDisplayLcdI2C : public UIDisplay {
 
     public:
@@ -347,12 +344,12 @@ struct UIDisplayLcdI2C : public UIDisplay {
     LcsLcdDisplay *lcd = nullptr;
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "UIDisplayOled" manages an OLED display as a matrix of row * columns Ascii characters. Although an
 // OLED display is fully graphical, we just use them for now as an ASCII display with a small set of fonts
 // and a row by column matrix size.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIDisplayOled : public UIDisplay {
 
     public:
@@ -373,7 +370,7 @@ struct UIDisplayOled : public UIDisplay {
     LcsOledDisplay *oled = nullptr;
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "UIScreen" is the central object for screens. A screen is just an array of rows and columns of ASCII
 // characters. The object contains pointers to the parent screen, the next screen at that level and a pointer
 // to an optional child list. Screen hierarchies are built by appending a screen to another screens child
@@ -391,7 +388,7 @@ struct UIDisplayOled : public UIDisplay {
 // enter and exit screen invocation must be handled by the overriding procedure.
 //
 // ??? we may have to add the process tick mechanism so that we can implement timestamp based processing...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct UIScreen {
 
   public:

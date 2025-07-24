@@ -1,45 +1,42 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UIDisplayElements - implementation file.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The UI element library features a simple display object. It is a basic ASCII matrix of rows and columns.
 // The display classes are LCD and OLED. While the LCD is rather fixed with respect to columns and rows, the
 // OLED class allows for different fonts. For OLEDs the basic raster is 8x8 pixels.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UIDisplayElements
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 #include "LcsCdcLib.h"
 #include "LcsOledDisplayLib.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The font table for the OLED display.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct {
 
 uint8_t fontId;
@@ -90,12 +87,12 @@ const uint8_t* fontList[] = {
 //============================================================================================================
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The base class constructor. A display features a row x column matrix for ASCII display. The maximum matrix
 // size is set from the display type passed.
 //
 // ???? we think in 8x8 !!!!!!
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIDisplay::UIDisplay( uint8_t dType ) {
 
   switch ( dType ) {
@@ -136,21 +133,21 @@ UIDisplay::UIDisplay( uint8_t dType ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Each UIElement has a function to process period work. So far, for displays, there is nothing to do. But
 // perhaps one day for example, we implement blinking characters on an Oled or so. Until then ...
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void  UIDisplay::processTick( ) { }
 
 //============================================================================================================
 // UIDisplayLcdI2C Section.
 //============================================================================================================
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // LCD with an I2C interface.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIDisplayLcdI2C::UIDisplayLcdI2C(   uint8_t dType, 
                                     uint8_t sclPin, 
                                     uint8_t sdaPin, 
@@ -202,7 +199,7 @@ void UIDisplayLcdI2C::clear( ) {
 // UIDisplayOled Section.
 //============================================================================================================
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Oled Version using the SSD1306 controller chip. There is no nice mapping of display function via base
 // class inheritance, as used in the LiquidCrystal displays. We need to create the OLed display object and
 // implement each generic display function if possible. The Oled Display Class implements three methods.
@@ -213,7 +210,7 @@ void UIDisplayLcdI2C::clear( ) {
 // through to their specific Oled Display Class counterparts.
 //
 // ??? watch out what display HW you really have ... it may otherwise not work...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIDisplayOled::UIDisplayOled(   uint8_t dType, 
                                 uint8_t sclPin, 
                                 uint8_t sdaPin, 

@@ -1,52 +1,49 @@
-//------------------------------------------------------------------------------------------------------------
+///----------------------------------------------------------------------------------------
 //
 // LCS Dcc Packet Formatter - implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // This file contains the DCC formatter methods. The routines are used to display a DCC packet in human
 // readable format. There are methods that analyze a DCC packet for length, checksum and instruction type.
 // The formatting routines will build a string with a binary, hexadecimal or content formatted data.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
 // LCS - DCC Packet Formatter
 // Copyright (C) 2021 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsDccPktFmtLib.h"
 #include <pico/stdio.h>
 #include <pico/stdlib.h>
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // The local namespace contains the routines that actually produce most of the the formatted string. The
 // routines are all built with the "sprintf" function and return the numbers of characters generated in the
 // passed line buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // A DCC packets is at least two bytes long. The maximum size is 12 bytes for an XPOM packet. The NMRA
 // folks currently set a maximum of 6 bytes though, which was the limit before XPOM support.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 const uint8_t     MIN_DCC_PACKET_SIZE = 2;
 const uint8_t     MAX_DCC_PACKET_SIZE = 12;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // The string buffer needs to be large enough to accommodate the string produced. A DCC packet can be up to
 // 11 bytes long, including the checksum. We will just check that the buffer is large enough using the
 // maximum sizes possible, although the maximum size is rarely needed.
@@ -55,15 +52,15 @@ const uint8_t     MAX_DCC_PACKET_SIZE = 12;
 //  BIN packet format:        11 * 9 chars + 3 = 102 chars
 //  Formatted packet format:  64 chars
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 const uint8_t DCC_PACKET_BUF_IN_FMT = 64;
 const uint8_t DCC_PACKET_BUF_IN_HEX = 58;
 const uint8_t DCC_PACKET_BUF_IN_BIN = 102;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Some utility functions.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
@@ -118,11 +115,11 @@ bool resetPacket( uint8_t *dccPkt ) {
             ( dccPkt[ 2 ] == 0 ) && ( dccPkt[ 3 ] == 0 ));
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "speed28ToStr" returns a string with the speed information decoded for the 28 speed step model. The
 // function returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int speed28ToStr( char *buf, uint8_t dataByte ) {
 
     if      (( dataByte & 0b00001111 ) == 0 )  return ( sprintf( buf, "Stop " ));
@@ -137,11 +134,11 @@ int speed28ToStr( char *buf, uint8_t dataByte ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "speed128ToStr" returns a string with the speed information decoded for the 128 speed step model. The
 // function returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int speed128ToStr( char *buf, uint8_t dataByte ) {
 
     int speed   = dataByte & 0b01111111;
@@ -157,12 +154,12 @@ int speed128ToStr( char *buf, uint8_t dataByte ) {
     else return ( 0 );
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderControlStr" implements the instruction group zero ( 000x-xxxx ) formatting. there are commands
 // to reset the controller as well as managing the consist function in this group. The function returns the
 // number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderControlStr( char *buf, uint8_t *dccPkt ) {
 
     uint8_t dccPktLen = dccPkt[ 0 ];
@@ -199,12 +196,12 @@ int decoderControlStr( char *buf, uint8_t *dccPkt ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderExtendedInstructionsStr" implements the instruction group one ( 001x-xxxx ) formatting. There are
 // all kinds of instructions in this group to control the loco speed, direction and functions. The function
 // returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderExtendedInstructionsStr( char *buf, uint8_t *dccPkt ) {
 
     uint8_t dccPktLen = dccPkt[ 0 ];
@@ -250,35 +247,35 @@ int decoderExtendedInstructionsStr( char *buf, uint8_t *dccPkt ) {
     }
 } 
   
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // This function formats the F0 to F4 function setting instruction. Some older version used F0 as the lights
 // on function. We show the bits in the format "L F4..F1". The function returns the number of characters in
 // the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderF0F4GroupStr( char *buf, uint8_t instrByte ) {
 
     return ( sprintf( buf, "L F4-F1 0x%02x ", ( instrByte & 0b00011111 )));
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // This function formats the F5 to F12 function setting instruction. The order is "F8 - F5" and "F12 - F9".
 // Instruction bit 4 select the respective group. The function returns the number of characters in the text
 // buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderF5F12GroupStr( char *buf, uint8_t instrByte ) {
 
     if ( bitRead( instrByte, 4 ))  return ( sprintf( buf, "F8-F5 0x%02x ", ( instrByte & 0b00001111 )));
     else                           return ( sprintf( buf, "F12-F9 0x%02x ", ( instrByte & 0b00001111 )));
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderExtendedAttributesStr" implements the instruction group six ( 110x-xxxx ) formatting. This group
 // contains binary state commands, function setting commands and command to set model time. The function
 // returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderExtendedAttributesStr( char *buf, uint8_t *dccPkt ) {
 
     int     cursor    = 0;
@@ -326,7 +323,7 @@ int decoderExtendedAttributesStr( char *buf, uint8_t *dccPkt ) {
     }
  } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderOtmCvProgrammingStr" implements the instruction group seven ( 1110-xxxx ) formatting for on the
 // main track programming. There is a long and a short form of this command. The short form only applies to
 // the operations mode, only for locomotives, and only a few CVs can be accessed. Also, consist addresses
@@ -340,7 +337,7 @@ int decoderExtendedAttributesStr( char *buf, uint8_t *dccPkt ) {
 // 3 bytes, i.e 4 or 5 bytes with the address, we will decode an XPOM instruction. The function returns the
 // number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderOtmCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
 
     uint8_t dccPktLen = dccPkt[ 0 ];
@@ -436,7 +433,7 @@ int decoderOtmCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
     }
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderSvcModeCvProgrammingStr" implements the instruction group seven ( 0111-xxxx ) formatting for the
 // programming track programming. Programming on the programming track uses no address and hence there is an
 // overlap in the meaning of the first  uint8_t. This routine is called when we are in SHOW_SCV_MODE. There is
@@ -444,7 +441,7 @@ int decoderOtmCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
 // still decode it. The old instruction is two bytes, the newer long form is three bytes in length. The
 // function returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderSvcModeCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
 
     uint8_t dccPktLen = dccPkt[ 0 ];
@@ -488,13 +485,13 @@ int decoderSvcModeCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
     }
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderAccessoryStr" implements the formatting of an accessory decoder command. Accessory decoders use
 // the address bytes to encoder also part of the command in the second address  uint8_t. Bit 7 selects between
 // a simple and an extended accessory decoder. Bit 3 is the activation bit, bit 0 the pair selection bit.
 // The function returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderAccessoryStr( char *buf, uint8_t *dccPkt ) {
 
     int       cursor  = 0;
@@ -515,11 +512,11 @@ int decoderAccessoryStr( char *buf, uint8_t *dccPkt ) {
     return ( cursor );
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "decoderLocoStr" formats a DCC packet for a loco. All we do in this function is to branch to the
 // instruction group handler. The function returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int decoderLocoStr( char *buf, uint8_t *dccPkt ) {
 
     int         cursor      = 0;
@@ -553,11 +550,11 @@ int decoderLocoStr( char *buf, uint8_t *dccPkt ) {
     return ( cursor );
 } 
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "dccOperationsPacketStr" formats an operations packet. An operations packet has an address followed by
 // the command and perhaps arguments. The function returns the number of characters in the string buffer.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int dccOperationsPacketStr( char *buf, uint8_t *dccPkt ) {
 
     int     cursor  = 0;
@@ -585,14 +582,14 @@ int dccOperationsPacketStr( char *buf, uint8_t *dccPkt ) {
     return ( cursor );
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "dccPacketToStr" builds a string for the DCC packet passed. There are two basic modes. The first is the
 // regular DCC packet decoding on the main track, i.e. the first  uint8_t is part of an address. Decoding will
 // branch based on the address range found. The second mode is the service mode for decoding DCC packets on
 // the programming track, where there is no address. For both modes, there is an option to list the packet
 // in HEX and BINARY. The function returns the number of characters to the passed buffer appended.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int dccPacketToStr( char *buf, uint8_t *dccPkt, bool svcMode = false ) {
 
     int cursor  = 0;
@@ -623,11 +620,11 @@ int dccPacketToStr( char *buf, uint8_t *dccPkt, bool svcMode = false ) {
     return ( cursor );
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "dccPacketHexStr" returns a string with the DCC packet in hex format, enclosed by brackets. The function
 // returns the number of characters put into the string buffer. If there is an error, the return code is
 // a -1.
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int dccPacketHexStr( char *buf, uint8_t *dccPacket ) {
 
     int     cursor = sprintf( buf, "(" );
@@ -643,12 +640,12 @@ int dccPacketHexStr( char *buf, uint8_t *dccPacket ) {
     return ( cursor );
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "dccPacketBinStr" returns a string with the DCC packet in binary format, enclosed by brackets. The
 // function returns the number of characters put into the string buffer. If there is an error, the return
 // code is a -1.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int dccPacketBinStr( char *buf, uint8_t *dccPacket ) {
 
     int     cursor = sprintf( buf, "(" );
@@ -678,11 +675,11 @@ int dccPacketBinStr( char *buf, uint8_t *dccPacket ) {
 //============================================================================================================
 //============================================================================================================
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "isXXX" methods to analyze the DCC packet. A monitor program would use them to get an idea what packet is
 // at hand. We analyze the overall length, the checksum, and decode the instruction  uint8_t.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 bool LcsDccPacketFormatter::isValidDccPacket( uint8_t *dccPacket ) {
 
     return ( validDccPkt( dccPacket ));
@@ -716,42 +713,42 @@ bool LcsDccPacketFormatter::isSvcModePacket( uint8_t *dccPacket ) {
     return (( isValidDccPacket( dccPacket )) && (( dccPacket[ 1 ] & 0b01110000 ) == 0b01110000 ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "formatDccPacketHex" returns a string with the DCC packet in hex format, enclosed by brackets. The function
 // returns the number of characters put into the string buffer. If there is an error, the return code is a -1.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketHex( char *buf, uint16_t bufLen, uint8_t *dccPacket ) {
 
     return (( bufLen >= DCC_PACKET_BUF_IN_HEX ) ? ( dccPacketHexStr( buf, dccPacket )) : -1 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "formatDccPacketBin" returns a string with the DCC packet in binary format, enclosed by brackets. The
 // function returns the number of characters put into the string buffer. If there is an error, the return
 // code is a -1.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketBin( char *buf, uint16_t bufLen, uint8_t *dccPacket ) {
 
     return (( bufLen >= DCC_PACKET_BUF_IN_BIN ) ? ( dccPacketBinStr( buf, dccPacket )) : -1 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "formatDccPacketOpsMode" formats a DCC packet as an operations mode packet. If there is an error, the
 // return code is a -1.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketOpsMode( char *buf, uint16_t bufLen, uint8_t *dccPacket ) {
 
     return (( bufLen >= DCC_PACKET_BUF_IN_FMT ) ? ( dccPacketToStr( buf, dccPacket )) : -1 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // "formatDccPacketSvcMode" formats a DCC packet as an service mode packet. If there is an error, the return
 // code is a -1.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketSvcMode( char *buf, uint16_t bufLen, uint8_t *dccPacket ) {
 
     return (( bufLen  >= DCC_PACKET_BUF_IN_FMT ) ? ( dccPacketToStr( buf, dccPacket, true )) : -1 );

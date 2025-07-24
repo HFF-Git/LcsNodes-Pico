@@ -1,11 +1,11 @@
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
 // LCS - LCD Display Driver - PICO implementation
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // This source file contains ...
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
 // ... mention whee it came from ...
 //
@@ -13,38 +13,35 @@
 // LCS - LCD Display Driver
 // Copyright (C) 2024- 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
 
 #include "LcsLcdDisplayLib.h"
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with all internal
 // variables and routines local to the file. The second part contains the exported routines to be called by
 // the core library and the firmware designers.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Commands.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t CLEAR_DISPLAY = 0x01;
 constexpr uint8_t RETURN_HOME = 0x02;
 constexpr uint8_t ENTRY_MODE_SET = 0x04;
@@ -54,19 +51,19 @@ constexpr uint8_t FUNCTION_SET = 0x20;
 constexpr uint8_t SET_CGRAM_ADDR = 0x40;
 constexpr uint8_t SET_DDRAM_ADDR = 0x80;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Flags for display entry mode set.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t ENTRY_RIGHT = 0x00;
 constexpr uint8_t ENTRY_LEFT = 0x02;
 constexpr uint8_t ENTRY_SHIFT_INCREMENT = 0x01;
 constexpr uint8_t ENTRY_SHIFT_DECREMENT = 0x00;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Flags for display on/off control.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t DISPLAY_ON = 0x04;
 constexpr uint8_t DISPLAY_OFF = 0x00;
 constexpr uint8_t CURSOR_ON = 0x02;
@@ -74,19 +71,19 @@ constexpr uint8_t CURSOR_OFF = 0x00;
 constexpr uint8_t BLINK_ON = 0x01;
 constexpr uint8_t BLINK_OFF = 0x00;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Flags for cursor or display shift.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t DISPLAY_MOVE = 0x08;
 constexpr uint8_t CURSOR_MOVE = 0x00;
 constexpr uint8_t MOVE_RIGHT = 0x04;
 constexpr uint8_t MOVE_LEFT = 0x00;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Flags for function set.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t MODE_8_BIT = 0x10;
 constexpr uint8_t MODE_4_BIT = 0x00;
 constexpr uint8_t LINE_2 = 0x08;
@@ -94,17 +91,17 @@ constexpr uint8_t LINE_1 = 0x00;
 constexpr uint8_t DOTS_5x10 = 0x04;
 constexpr uint8_t DOTS_5x8 = 0x00;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Flags for backlight control.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t BACKLIGHT = 0x08;
 constexpr uint8_t NO_BACKLIGHT = 0x00;
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // Special flags.
 //
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 constexpr uint8_t ENABLE = 0x04;
 constexpr uint8_t READ_WRITE = 0x02;
 constexpr uint8_t REGISTER_SELECT = 0x01;
@@ -115,11 +112,11 @@ constexpr uint8_t MAX_CUSTOM_CHARS = 8;
 
 }; // namespace
 
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
 // ??? we need to keep the data in private variables...
 // ??? use resource number scheme for CDC
-//------------------------------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 LcsLcdDisplay::LcsLcdDisplay (  uint8_t columns, 
                                 uint8_t rows,
                                 uint8_t sclPin,

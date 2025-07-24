@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Command Interpreter
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Based on the Raspberry Pi PICO controller USB interface, the LCS node has an
 // option to accept commands and display data. This interface is used for manual 
 // node and extension board configuration as well as debug and troubleshooting. 
@@ -10,29 +10,29 @@
 // our own node, specified with a zero node ID value, the commands is sent via the
 // bus to that node.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Command Interpreter
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the Free
-// Software Foundation, either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-// more details. You should have received a copy of the GNU General Public
-// License along with this program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External declaration to global structures and functions.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
     using namespace CDC;
@@ -55,26 +55,26 @@ namespace LCS {
     extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Local declarations.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------  
+//----------------------------------------------------------------------------------------  
 // The command line buffer.
 //
-//------------------------------------------------------------------------------  
+//----------------------------------------------------------------------------------------  
 char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "dumpMemData" lists the memory data content of the storage area passed. The data is displayed in 16-bit 
 // quantities.  Because the PICO uses little-endian format, ASCII characters may appear reversed when 
 // interpreted directly.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool printAscii = false ) {
 
     uint16_t  index   = 0;
@@ -119,12 +119,12 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool p
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // List the NVM storage data. The function receives the absolute byte offset within the NVM area and the 
 // length in bytes. The data is displayed in 16-bit quantities. Because the PICO uses little-endian format, 
 // ASCII characters may appear reversed when interpreted directly.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool printAscii = false ) {
 
     uint8_t     rStat = ALL_OK;
@@ -180,11 +180,11 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool 
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // List extension board NVM storage data. We are passed the absolute offset into the NVM area and the 
 // length in bytes.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
 
     uint8_t     rStat = ALL_OK;
@@ -229,11 +229,11 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Routines to list contents of the various memory areas. Right now, we just dump out hex data. It would be 
 // nice to show formatted data. Perhaps one day...
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printSummary( ) {
 
     printf( "LCS Node: \"" );
@@ -333,11 +333,11 @@ void dumpMemRuntimeArea( ) {
     printf( "\n" );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Routines to list contents of the various NVM areas. Right now, we just dump out hex data. It would be 
 // nice to show formatted data. Perhaps one day...
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void dumpNvmHeaderMap( ) {
 
     printf( "NVM Header Map (Node): \n" );
@@ -394,11 +394,11 @@ void dumpNvmUserArea( ) {
     printf( "\n" );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Print memory structures in a formatted way. Note that not all memory structures are printed. Some of the 
 // maps contain dynamic data, which changed rapidly. There is no point in showing that kind of data.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
@@ -444,10 +444,10 @@ void listDevicesI2C( ) {
     printf( "\n" );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Little helper functions.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
@@ -478,11 +478,11 @@ uint8_t highByte( uint16_t arg ) {
     return ( arg >> 8 ); 
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Helper routines for error status handling.
 //
 // ??? one day, combine all error strings in one routine and print them from there...
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void errorArgList( ) {
 
     printf( "Argument list error, use \"?\" )for help\n" );
@@ -496,13 +496,13 @@ void errorStatusMsg( char *msg, uint8_t ret ) {
 }; // namespace
 
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Routines in LCS name space.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "c" switches a node to CFG mode. For a local node command, we construct the LCS_OP_CFG message payload
 // data and invoke the msg handler for switching the node mode. For any other node, we will just send a LCS 
 // message.
@@ -511,7 +511,7 @@ namespace LCS {
 //
 //    returns: none
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void switchToConfigCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
@@ -531,14 +531,14 @@ void switchToConfigCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "o" switches the nodes to OPS mode. For a local node command, we construct the LCS_OP_OPS message payload
 // data and invoke the msg handler for switching the node mode. For any other node, we will just send a LCS 
 // message.
 //
 //    o [ npId ]
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void switchToOperationsCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
@@ -558,7 +558,7 @@ void switchToOperationsCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "a" adds an eventId / portId to the event map. If the portId is omitted, every port of the node will be 
 // registered for the event. For a non-local npId we will send a message.
 //
@@ -568,7 +568,7 @@ void switchToOperationsCommand( char *s ) {
 //      eventId   - the eventId.
 //      portId    - the port number.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void enterEventCommand( char *s ) {
 
     int  npId      = 0;
@@ -593,7 +593,7 @@ void enterEventCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "d" removes a eventId / portId combination from the event map. If the portId is omitted, all eventMap
 // entries with the eventId are removed.
 //
@@ -603,7 +603,7 @@ void enterEventCommand( char *s ) {
 //      eventId   - the eventId.
 //      portId    - the port number.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void removeEventCommand( char *s ) {
 
     int  npId      = 0;
@@ -628,7 +628,7 @@ void removeEventCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "f" searches the event map for the eventId / portId combination and returns the index if found. If the
 // portId is omitted, the first event map entry with the matching eventId is returned. This is a local 
 // command and cannot be called from a remote node.
@@ -638,7 +638,7 @@ void removeEventCommand( char *s ) {
 //      eventId   - the eventId.
 //      portId    - the port number.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void findEventCommand( char *s ) {
 
     int  eventId   = NIL_EVENT_ID;
@@ -653,7 +653,7 @@ void findEventCommand( char *s ) {
     printf( "Event map index: %d", ret );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "e" will send an event. We will broadcast a message and also simulates receiving an event on the local 
 // node. Sending to ourselves is also quite useful for debugging event callback handlers.
 //
@@ -664,7 +664,7 @@ void findEventCommand( char *s ) {
 //    eventId   - the event Id
 //    arg       - optional data argument for the event.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void sendEventCommand( char *s ) {
 
     uint8_t msg[ 8 ]    = { };
@@ -711,7 +711,7 @@ void sendEventCommand( char *s ) {
     if ( ret != ALL_OK ) errorStatusMsg((char *) "Send event error", ret );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "g" handles the node/port attribute query command. If the node is our node, we call the local access 
 // routines. Otherwise we send a message.
 //
@@ -722,7 +722,7 @@ void sendEventCommand( char *s ) {
 //    val1      - the argument 1 on input.
 //    val2      - the argument 2 on input.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void getNodeCommand( char *s ) {
 
     int     npId    = 0;
@@ -751,7 +751,7 @@ void getNodeCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "p" handles the node or port attribute value set command. If the node is out node, we call the local 
 // access routines. Otherwise we send a message.
 //
@@ -762,7 +762,7 @@ void getNodeCommand( char *s ) {
 //    val1      - the item value 1
 //    val2      - the item value 2 ( optional )
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void putNodeCommand( char *s ) {
 
     int     npId    = 0;
@@ -793,7 +793,7 @@ void putNodeCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "r" handles the node / port request command. If the node is out node, we call the local access routines.
 // Otherwise we send a message.
 //
@@ -804,7 +804,7 @@ void putNodeCommand( char *s ) {
 //    val1      - the item value 1
 //    val2      - the item value 2 ( optional )
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void reqNodeCommand( char *s ) {
 
     int     npId    = 0;
@@ -833,7 +833,7 @@ void reqNodeCommand( char *s ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "B" broadcasts a LCS message. Mainly used for debugging purposes. Although most commands in the LCS
 // console interface can also send messages to other nodes, not all messages are covered. This command sends
 // any kind of message, even undefined ones. 
@@ -842,7 +842,7 @@ void reqNodeCommand( char *s ) {
 //
 //    byte1 .. byte8   - the packet data in hexadecimal
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void broadcastLcsMsgCommand( char *s ) {
 
     int     inBuf[ 8 ]  = { 0 };
@@ -860,14 +860,14 @@ void broadcastLcsMsgCommand( char *s ) {
     else errorArgList( );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "s" lists status information. The level argument specifies the what and the detail level.
 //
 //    s [ level ]
 //
 //    returns:  NONE.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void listStatusCommand( char *s ) {
 
     int level = 0;
@@ -909,12 +909,12 @@ void listStatusCommand( char *s ) {
     else printSummary( );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "?" lists core library help information. We just list the available commands and a short description.
 //
 //    ?
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void listCoreLibHelpCommand( ) {
 
     printf( "\nCommands: \n" );
@@ -961,17 +961,17 @@ void listCoreLibHelpCommand( ) {
     printf( "               " " -  52  - CDC Resource Map");
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "setupSerialCommand" initializes the serial interface. We use the PICO USB as console IO. The CDC lib
 // contains functions for reading and writing to the console.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
 
     return ( CDC::configureConsoleIO( ));
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleSerialCommand" reads characters from the console. The command interpreter is a simple character
 // based input. Note that this routine is called as part of the runtime loop. Consequently, it cannot not 
 // block for IO. The interface is designed in a way that it assembles the character input when there are 
@@ -980,7 +980,7 @@ uint8_t setupSerialCommand( ) {
 // string. Since we are pretty basic on a character by character basis, we also add a bit of luxury and 
 // echo back what was typed and also process the backspace character.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
 
     char c;

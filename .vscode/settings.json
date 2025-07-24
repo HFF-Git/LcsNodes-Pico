@@ -55,7 +55,7 @@
     },
     "[cmake]": {
         "editor.rulers": [
-            { "column": 80, "color": "#CCCCCC40" }
+            { "column": 90, "color": "#CCCCCC40" }
         ]
     }
 }

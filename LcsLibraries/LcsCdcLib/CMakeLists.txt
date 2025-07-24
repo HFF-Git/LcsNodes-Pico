@@ -1,7 +1,7 @@
-# ------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 #  CMAKE File
 #  Copyright (C) 2024 - 2025  Helmut Fieres
-# ------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 project( LcsCdcLib C CXX ASM )
 
 add_library( ${PROJECT_NAME} STATIC 
@@ -11,8 +11,16 @@ add_library( ${PROJECT_NAME} STATIC
     LcsCdcLib.cpp
 ) 
 
-target_include_directories( ${PROJECT_NAME} PRIVATE ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include)
-target_include_directories( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
+target_include_directories( ${PROJECT_NAME} PRIVATE 
+
+    ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include
+)
+
+target_include_directories( ${PROJECT_NAME} INTERFACE 
+
+    ${CMAKE_CURRENT_SOURCE_DIR} 
+)
+
 target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 
 target_link_libraries( ${PROJECT_NAME} 
@@ -25,5 +33,5 @@ target_link_libraries( ${PROJECT_NAME}
     hardware_pwm
     hardware_uart
     hardware_spi
-    )
+)
 

@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UIButton - implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Buttons are one  of the most used UI Elements. Each button is essentially a state machine with a set of
 // defined callback functions. There is also a callback for obtaining the actual button value. The time for
 // debouncing, detecting a click or a long press is set for all buttons. A switch is also just a button with
@@ -10,31 +10,28 @@
 // roundabout 24 bytes. So, an array of 256 buttons would occupy quite some memory storage. But for the
 // typical case of 8 - 32 buttons, the array will do just fine.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // UIButtonElements
 // Copyright (C) 2019 - 2023  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
   //----------------------------------------------------------------------------------------------------------
@@ -73,10 +70,10 @@ namespace {
 //============================================================================================================
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The static routines for setting the time intervals. We set them for all buttons objects to the same value.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIButton::setDebounceMillis( uint32_t ticks ) {
 
   debounceMillis = ticks;
@@ -92,11 +89,11 @@ void UIButton::setPressMillis( uint32_t ticks ) {
   pressMillis = ticks;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The UI Button object. Each button has a resource ID. This could be directly the pin number but also any
 // other number by which the button is identified in callbacks. A button can also be active low or high.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIButton::UIButton( uint8_t hwId, bool activeLow ) {
   
   this -> hwId  = hwId;
@@ -165,7 +162,7 @@ uint8_t UIButton::getHwId( ) {
   return ( hwId );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "processTick" is the heart of managing a button. It is essentially a finite state machine running off the
 // current state machine state and the last value read for the button. A value matching the the defined active
 // level is considered an active value for the button. The state machine has the following states:
@@ -198,7 +195,7 @@ uint8_t UIButton::getHwId( ) {
 //                  else if the button is still active, invoke the during long press state handler, if any,
 //                  and set the state to 6.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void UIButton::processTick( ) {
 
   bool val    = (( getDataFunc != nullptr ) ? getDataFunc( hwId ) : false );

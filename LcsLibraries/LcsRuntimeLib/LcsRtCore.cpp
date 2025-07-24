@@ -1,33 +1,33 @@
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime library core.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The file contains the runtime core routines. The runtime library is essentially a big state machine, which 
 // periodically scans for messages and pother work to do. 
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library Firmware Update. 
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the Free
-// Software Foundation, either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-// more details. You should have received a copy of the GNU General Public
-// License along with this program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsRtLibInt.h"
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External declaration to global structures and functions.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
     using namespace CDC;
@@ -48,19 +48,19 @@ namespace LCS {
     extern uint8_t              rtNvmPutWord( uint32_t ofs, uint16_t word );
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LcsCoreLib implementation file local declarations and routines.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 using namespace LCS;
 using namespace CDC;
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Local constants and helper functions.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
 uint32_t        timerVal                        = 0L;
 
@@ -84,13 +84,13 @@ uint16_t portId( uint16_t npId ) {
     return ( npId & 0xF );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleNodePortEvents" will be called for processing inbound port events on each runtime loop iteration. 
 // Note that it does not matter where the events came from, i.e. whether another node sends an event or the 
 // event was created by a firmware call on this node. The event callback can optionally be delayed with a 
 // timer value.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodePortEvents( ) {
 
     uint32_t ts = getMillis( );
@@ -117,14 +117,14 @@ void handleNodePortEvents( ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handlePeriodicTasks" is called from the core library main processing loop. The idea is that there is a 
 // lot of periodic processing that needs to be one by any firmware implementation. Instead of the firmware
 // developer writing its own handler, there is a crude method that just samples the timestamps and interval 
 // and triggers the callback then the interval is reached. Note that this is not very accurate from a timing
 // perspective but will do for simple periodic processing.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handlePeriodicTasks( ) {
 
     uint32_t ts = getMillis( );
@@ -141,12 +141,12 @@ void handlePeriodicTasks( ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our node in response to a nodeId
 // setup request. If the UID matches, the message is for our node and we update our nodeId accordingly in 
 // MEM and NVM. The next node state is OPERATE.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgRepNid( uint8_t *msg ) {
 
     uint16_t nodeId   = ( msg[1] << 8 ) + msg[2];
@@ -167,11 +167,11 @@ void handleMsgRepNid( uint8_t *msg ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // LCS management deals with messages concerning the general LCS management. If there is a callback defined
 // it will be invoked. Then the node state is changed accordingly. Most updates are just to the MEM nodeMap.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgLcsMgt( uint8_t *msg ) {
 
     switch ( msg[ 0 ] ) {
@@ -248,11 +248,11 @@ void handleMsgLcsMgt( uint8_t *msg ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleMsgGetNode" processes an incoming GET message for a node or port attribute. We construct the 
 // reply message with the requested data.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgGetNode( uint8_t *msg ) {
 
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
@@ -269,11 +269,11 @@ void handleMsgGetNode( uint8_t *msg ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleMsgPutNode" processes an incoming PUT message for a node or port attribute. We update the data
 // and send a confirmation.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgPutNode( uint8_t *msg ) {
 
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
@@ -290,14 +290,14 @@ void handleMsgPutNode( uint8_t *msg ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleMsgRepNode" processes the answer to a previously sent node query. The incoming message will only
 // result in an action when we have an outstanding request for that node. That is, this handler will only
 // be called when the we passed the outstanding reply map check done before. All reply messages are routed
 // to this one callback. It is up to the firmware programmer to analyze for what and whom the reply really
 // is. 
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
 
     uint16_t  npId    = (( msg[1] << 8 ) + msg[2] );
@@ -310,11 +310,11 @@ void handleMsgRepNode( uint8_t *msg ) {
     if ( pPtr -> repCallback != nullptr ) pPtr -> repCallback( npId, item, arg1, arg2, ALL_OK );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleMsgReqNode" processes an incoming request for a node or port. The REQ message request will result
 // in invoking the register firmware callback. We send a confirmation message.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
     uint16_t npId = (( msg[1] << 8 ) + msg[2] );
@@ -331,14 +331,14 @@ void handleMsgReqNode( uint8_t *msg ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleMsgEvent" deals with the event messages for inbound ports. If the event is configured in the event
 // map, all bits set in the eventMask will result in recording the event data and the optional future time
 // stamp when the event should result in a callback. The actual event processing is done in the port event 
 // processing routine, which will manage the timely invocation of the event callbacks. The event mask has a
 // bit for each port. 
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
     uint16_t  eventId = ( msg[3] << 8 ) + msg[4];
@@ -382,18 +382,18 @@ void handleMsgEvent( uint8_t *msg ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // We received a DCC subsystem message. These messages are handled solely by firmware, which is typically
 // the base station, a handheld, or a decoder alike device. All we do is to pass the message to the call 
 // back routine. One day, we could decode the message a bit more and invoke more specialized callback.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleMsgDccMgt( uint8_t *msg ) {
 
     if ( nodeMap.dccMsgCallback != NULL ) nodeMap.dccMsgCallback( msg );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node state INIT. This is the first state after the initial library setup. The runtime init call created
 // all memory areas and initialized the data structures. After a successful runtime init call, the state is 
 // INIT and  the firmware programmer can register the necessary callback functions and do other firmware 
@@ -402,7 +402,7 @@ void handleMsgDccMgt( uint8_t *msg ) {
 // callback is handled next. Each port with a successful return code will finally be enabled and the high 
 // water mark adjusted accordingly.
 // 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
     uint8_t rStat = ALL_OK;
@@ -437,20 +437,20 @@ void handleNodeStateInit( ) {
     nodeMap.nodeState = NS_OPERATE;
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State FAIL. This is the state after the node startup failed. We simply stay in this state.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State Power FAIL. This is the state after when the node starts up after a power fail. We have this
 // state so that the firmware programmer can take some recovery action before the power goes away. The next
 // state is the normal INIT state.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
 
     if ( nodeMap.pfailCallback != nullptr ) {
@@ -461,12 +461,12 @@ void handleNodeStatePfail( ) {
     nodeMap.nodeState = NS_INIT;
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State REGISTER. This is the state after the INIT state when a nodeId setup was requested. We are
 // waiting for a nodeId reply message. If there is a timely reply message, we will handle the message reply
 // and the node state will advance. If there is no timely reply, we will resubmit the request.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateRegister( ) {
 
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
@@ -487,11 +487,11 @@ void handleNodeStateRegister( ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State COLLISION. This is the state after the node receiver routine detected a nodeId collision. We
 // will stay in this state and only react to RESET and SET_NID messages.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateCollision( ) {
 
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
@@ -503,11 +503,11 @@ void handleNodeStateCollision( ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State HALTED. The LCS communication bus was halted for all nodes. Note that the bus is still there,
 // just not active. We just listen to the BON or RESET message to get going again.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateHalted( ) {
 
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
@@ -519,12 +519,12 @@ void handleNodeStateHalted( ) {
     }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State CONFIG. A node can be placed into configuration state. We process any LCS message, handle the
 // periodic tasks registered and port events that may have been received. Note that we just listen to messages
 // valid for that mode and invoke the respective handler. All other messages are ignored.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
 
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
@@ -549,12 +549,12 @@ void handleNodeStateConfig( ) {
     handleNodePortEvents( );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node State OPERATIONS. Most of the time the node state is in operations mode. We process any LCS message, 
 // handle the periodic tasks registered and port events that may have been received. Note that we just listen
 // to messages valid for that mode and invoke the respective handler. All other messages are ignored.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeStateOperations( ) {
 
     uint8_t msg [ MAX_LCS_MSG_SIZE ];
@@ -611,12 +611,12 @@ void handleNodeStateOperations( ) {
     handleNodePortEvents( );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleNodeState" is the main routine of the node activity processing. It is the method called after all 
 // setup is done. Running in a loop, the primary function is to handle the activities according to the node 
 // state. The run loop also processes the serial commands. Note that this function will not return.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void handleNodeState( ) {
 
     while ( true ) {
@@ -641,14 +641,14 @@ void handleNodeState( ) {
 
 } // namespace
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file. These routines are callable from the user firmware
 // and thus need to check whether the library was already initialized.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS { 
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // General callback registration functions.
 //
 //      INIT    -   Callback invoked for each port when the node starts, i.e. when the firmware calls
@@ -670,7 +670,7 @@ namespace LCS {
 //
 //      TASK    -   Callback for a period task registered.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t registerInitCallback( LcsInitCallback functionId ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
@@ -763,12 +763,12 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 }
 
 // ??? perhaps in msgBus ?
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "localMsgEvent" is called by the event message send routines to cover the case where we send an event
 // and we detect it needs to also be broadcasted to other ports on the same node. In other words, the 
 // nodeId of the sending node and our node are the same.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t localMsgEvent( uint8_t *msg ) {
 
     if ( nodeMap.nodeState != NS_OPERATE ) return ( ERR_LIB_NOT_INITIALIZED );
@@ -776,11 +776,11 @@ uint8_t localMsgEvent( uint8_t *msg ) {
     return ( ALL_OK );
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "startRuntime" is the main routine of the node activity processing. We check that the library was 
 // initialized properly and mark the nodeMap flag "READY". And then we are in business.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t startRuntime( ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) printf( "Start LCS runtime\n");

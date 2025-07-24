@@ -1,10 +1,8 @@
-# ------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file at the LcsRuntimeLib directory level
 #
 #  Copyright (C) 2024 - 2024  Helmut Fieres
-# ------------------------------------------------------------------------------
-cmake_minimum_required( VERSION 3.29 )
-
+# ----------------------------------------------------------------------------------------
 project( LcsRuntimeLib C CXX ASM )
 
 add_library( ${PROJECT_NAME} STATIC    
@@ -33,7 +31,7 @@ target_link_libraries( ${PROJECT_NAME}
     LcsCdcLib
     LcsDrvOccDetectLib
     LcsDrvServoLib
-    )
+)
 
 # this is a mess.... why do we need so many include directory specificatons ?
 target_include_directories( ${PROJECT_NAME} 

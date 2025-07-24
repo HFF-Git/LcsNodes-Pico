@@ -11,17 +11,17 @@
 // Layout Control System - Runtime Library internals include file
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the Free
-// Software Foundation, either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-// more details. You should have received a copy of the GNU General Public
-// License along with this program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #ifndef LCS_RT_LIB_INT_h
 #define LCS_RT_LIB_INT_h
 
@@ -90,7 +90,7 @@ namespace LCS {
 // size and price of NVM chips as well as the memory size of the supported controller platforms, the current 
 // implementation uses fixed sizes for each map, avoiding configuration complexity.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 16;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
@@ -106,13 +106,13 @@ const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The maps have as their first word a magic word, which is just a special constant. We simply read in that
 // word and check for being a valid word for the particular map. If valid, the area was configured before
 // and we can do further checking. It would be quite unlikely that a random NVM content has this word at the
 // right spot. 
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint32_t NVM_MWORD_MAIN           = (uint32_t) ( 'L' << 24 ) | ( 'C' << 16 ) | ( 'S' << 8 );
 const uint32_t NVM_MWORD_EXTENSION      = (uint32_t) ( 'L' << 24 ) | ( 'C' << 16 ) | ( 'E' << 8 );
 
@@ -125,7 +125,7 @@ const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x06;
 
 const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The node states. Essentially, the node runtime is a big state machine. The node starts in the INIT state
 // and once all is initialized and registered ends up in the OPS or CFG mode.
 //
@@ -140,7 +140,7 @@ const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 //  NS_CONFIG         -   The node is in configuration mode.
 //  NS_OPERATE        -   The node is on operations mode.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum LcsNodeState : uint16_t {
     
     NS_NIL              = 0,
@@ -154,14 +154,14 @@ enum LcsNodeState : uint16_t {
     NS_OPERATE          = 8
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Node, port and extension board driver attributes and functions are accessed with three main routines, 
 // GET, SET and REQ. The specific items are defined in the external include file. This part here defined the
 // boundaries for internal checking. The first 63 items are predefined and reserved for the runtime itself.
 // Item 64 to 127 are user definable and typically implement node type specific functions. Finally, item 
 // 128 to 255 are user definable attribute variables.
 //
-//------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
 
     IR_NIL                      = 0,
@@ -178,12 +178,12 @@ enum ItemRanges : uint8_t {
     IR_MAX_ITEMS                = 255,
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and receive routines. For
 // debugging purposes a debug level can be set so that diagnostic messages are displayed to the console.
 // A CAN bus message will use the nodeId as the canBus Id. 
 //
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
 
     public:
@@ -202,12 +202,12 @@ struct LcsMsgBusCAN {
     uint16_t nodeId = NIL_NODE_ID;
 };
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The CdcBoardDescMap structure defines what the board actually is. It is also the first structure that can
 // be found on the controller board NVM as well as the extension board NVM.
 //
 // ??? rather put back to the Lcs Lib ?
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsBoardDesc {
 
     uint32_t            boardMword;
@@ -218,19 +218,19 @@ struct LcsBoardDesc {
     char                name[ MAX_RES_NAME_SIZE ];
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The NVM header map stores the NVM headers of the node board and the optional extension boards found. It 
 // is a MEM only structure and will be filled though reading the NVM headers at startup time. There should 
 // be at least the main controller board NVM header stored and optional up to four extension board NVM 
 // headers. 
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsHeaderMap {
 
     LcsBoardDesc map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The nodeMap is the heart of all data on the node. When bringing up a node, we first read in the NVM
 // headers and then the node map. Once read in from the NVM storage, several validity checks are performed.
 // The most important check is to compare the size of the various data structures with the runtime data 
@@ -244,7 +244,7 @@ struct LcsHeaderMap {
 // also be forwarded to their NVM counterpart. Since a node has port zero as the docking for node wide 
 // operations, the portMap entry 0 is also considered part of the node map.
 // 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
     uint32_t            magicWord                       = NVM_MWORD_NODE_MAP;
@@ -266,7 +266,7 @@ struct LcsNodeMap {
     LcsCmdCallback      cmdLineCallback                 = nullptr;
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The port map contains an array of ports, each described by a port map entry. There are 16 entries in the
 // port map. Port zero refers to the entire node, i.e. the node itself. When node data such as the node type
 // is accessed it is actually taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition
@@ -277,7 +277,7 @@ struct LcsNodeMap {
 // for the sending node, the event and its action. An event can also be invoked with a delay time.
 //
 // ??? what does an event mean for P0  as the node port, or P1 to P4 when extensions are configured ? 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
     uint16_t            options                             = 0;
@@ -309,14 +309,14 @@ struct LcsPortMap {
     LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // An LCS node and the ports on the node each have an area of variables that are in memory as well as in 
 // the node NVM. Typical usage examples are configuration items such as a limit value. Upon power up the 
 // header structure is validated and the node data from the NVM area is copied to the MEM counterpart. 
 // Although the node and port attributes are logically part of the portMap and nodeMap, they are kept in
 // this separate structure that they easy to index and accessed.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsNodeData {
 
     uint32_t    magicWord   = NVM_MWORD_NODE_DATA_MAP;
@@ -326,12 +326,12 @@ struct LcsNodeData {
     uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The event map entry contains the mapping from eventId to portId. When a node or port is interested in an 
 // event, there will be an entry with event Id and the port mask, where each port has a bit. The map is 
 // sorted by event Id and  searched for an incoming event to find the ports that are interested in the event. 
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsEventMapEntry {
 
     uint16_t eventId    = NIL_EVENT_ID;
@@ -348,12 +348,12 @@ struct LcsEventMap {
     LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The core library maintains an array of periodic task items. The structure maintains the task procedure
 // label, the time it ran the last time, and the minimum interval between invocations. Note that the timing
 // is not very accurate, but it is guaranteed that a task will eventually run when the interval is reached.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsPTaskMapEntry {
 
     LcsTaskCallback     task        = nullptr;
@@ -367,13 +367,13 @@ struct LcsTaskMap {
     LcsPTaskMapEntry    map[ MAX_TASK_MAP_ENTRIES ];
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The pending request map keeps track of outstanding requests to another node. We add an entry when our
 // node sends a request and clears the entry when the matching reply comes in. The idea is that we only 
 // invoke the callback when we expect a reply. Additionally, there is a timeout value, so that we can invoke
 // the reply callback with a timeout message if requested.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
 
     uint16_t    npId            = 0;
@@ -386,14 +386,14 @@ struct LcsPendingReqMap {
     LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // An extension board is first of all mapped to a port. Attributes are naturally accessed via the GET/PUT
 // calls then. The extension board specific functions are accessed via the REQ calls. The firmware is 
 // required to register a callback, i.e. driver, with the runtime. The type and function label are kept in
 // the driver function map. 
 //
 // ??? do we need this, we have the callback in the port, so we just register there... ?
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsDrvFuncEntry {
 
     uint16_t        drvType = CDC_BT_NIL;
@@ -406,11 +406,11 @@ struct LcsDrvFuncMap {
     LcsDrvFuncEntry map[ MAX_DRV_TYPE_MAP_ENTRIES ];
 };
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The layout of the NVM storage is fixed. There are the header and the maps allocated in a given order and
 // size. We can easily define the relevant offsets and sizes as constants.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsBoardDesc );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
 const uint32_t  NVM_PORT_MAP_SIZE           =   sizeof( LcsPortMap );

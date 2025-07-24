@@ -1,18 +1,9 @@
-# ------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 #  LCS - Block Controller cmake file at the LcsBlockController-Test directory level
 #
 #  Copyright (C) 2024 - 2025  Helmut Fieres
-# ------------------------------------------------------------------------------------------------------------
-#
-# 
-#
-# ------------------------------------------------------------------------------------------------------------
-cmake_minimum_required( VERSION 3.29 )
-
+# ----------------------------------------------------------------------------------------
 project( LcsBlockController C CXX ASM )
-
-set( CMAKE_C_STANDARD 11 )
-set( CMAKE_CXX_STANDARD 17 )
 
 if ( TARGET tinyusb_device )
 
@@ -32,7 +23,10 @@ if ( TARGET tinyusb_device )
         LcsBridgeControl.pio
     )
 
-    pico_generate_pio_header( LcsBlockController ${CMAKE_CURRENT_SOURCE_DIR}/LcsBridgeControl.pio)
+    pico_generate_pio_header( 
+        
+        LcsBlockController ${CMAKE_CURRENT_SOURCE_DIR}/LcsBridgeControl.pio
+    )
     
     target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
 
@@ -52,7 +46,10 @@ if ( TARGET tinyusb_device )
 
 elseif ( PICO_ON_DEVICE ) 
 
-    message(WARNING "not build test because tinyUSB submodule is not initialized in the SDK")
+    message(
+        
+        WARNING "not build test because tinyUSB submodule is not initialized in the SDK"
+    )
 
 endif( )
     
