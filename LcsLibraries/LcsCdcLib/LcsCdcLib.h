@@ -3,27 +3,25 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// The controller dependent code layer concentrates all processor dependent code
-// into one library. The idea is twofold. First, there needs to be a way to
-// isolate the controller specific hardware from the LCS library as well as the
-// extension module firmware. The Raspberry PI Pico offers a C++ SDK with a set
-// of libraries to invoke the desired hardware function rather than access to 
-// registers. The Pico also offers a great flexibility of pin assignment for the
-// hardware IO functions. Mapping the pins to functions is the first key goal. 
-// Second, within the hardware IO boundaries of the controller family the 
-// individual hardware pin assignment used may vary from board to board design.
-// The goal is also to describe a board by type and version.
+// The controller dependent code layer concentrates all processor dependent code into
+// one library. The idea is twofold. First, there needs to be a way to isolate the 
+// controller specific hardware from the LCS library as well as the extension module
+// firmware. The Raspberry PI Pico offers a C++ SDK with a set of libraries to invoke
+// the desired hardware function rather than access to registers. The Pico also offers
+// a great flexibility of pin assignment for the hardware IO functions. Mapping the 
+// pins to functions is the first key goal. Second, within the hardware IO boundaries
+// of the controller family the individual hardware pin assignment used may vary from
+// board to board design. The goal is also to describe a board by type and version.
 //
-// The second idea is to provide the firmware designer a set of resources based
-// on the board capabilities. A CDC resource encapsulates a certain HW function. 
-// Resources are described via a resource descriptor. A particular board is 
-// described through a data structure which contains all the resources the 
-// Board offers.
+// The second idea is to provide the firmware designer a set of resources based on the
+// board capabilities. A CDC resource encapsulates a certain HW function. Resources are
+// described via a resource descriptor. A particular board is described through a data
+// structure which contains all the resources the board offers.
 // 
 // This include file implements the CDC layer from a hardware function and board
-// configuration perspective.  Note that the CDC layer is not a generic HW 
-// abstraction. The layer is very specific to the LCS controller board 
-// requirements described in the book. 
+// configuration perspective.  Note that the CDC layer is not a generic HW abstraction.
+// The layer is very specific to the LCS controller board requirements described in
+// the book. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -56,21 +54,19 @@
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// The debug mask. The library has a debug mask where each major part of the 
-// library has a flag. Wherever debugging is needed, the bit mask will be used
-// to determine whether to print debugging data or not. From a performance 
-// perspective, the test will take just a few instructions. In other words we 
-// do not take out debugging code when going into production. Never liked this
-// kind of conditional debug anyway.
+// The debug mask. The library has a debug mask where each major part of the library
+// has a flag. Wherever debugging is needed, the bit mask will be used to determine 
+// whether to print debugging data or not. From a performance perspective, the test
+// will take just a few instructions. In other words we do not take out debugging code
+// when going into production. Never liked this kind of conditional debug anyway.
 //
 // The usage of the debug mask is generally: 
 //
 //      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_xxx )) ....
 // 
-// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or
-// disabled. This feature will also be used when we test whether we even have a
-// console to print to or not. If there is no console, all the print functions
-// will not be executed.
+// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or disabled.
+// This feature will also be used when we test whether we even have a console to print 
+// to or not. If there is no console, all the print functions will not be executed.
 //
 //----------------------------------------------------------------------------------------
 enum DebugOptions : uint16_t {
@@ -85,9 +81,9 @@ enum DebugOptions : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Error status codes. The errors are used when setting up the Hal library. 
-// During operation, all routines validate the input for correctness. If they
-// are not correct, the call is simply not performed and an error is returned.
+// Error status codes. The errors are used when setting up the Hal library. During 
+// operation, all routines validate the input for correctness. If they are not correct,
+// the call is simply not performed and an error is returned.
 //
 //----------------------------------------------------------------------------------------
 enum CdcStatus : uint8_t {
@@ -122,8 +118,8 @@ enum CdcStatus : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Callback functions signatures. So far, there are the timer callbacks and the
-// GPIO pin callback.
+// Callback functions signatures. So far, there are the timer callbacks and the GPIO
+// pin callback.
 //
 //----------------------------------------------------------------------------------------
 extern "C" {
@@ -143,11 +139,10 @@ const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
 
 //----------------------------------------------------------------------------------------
-// The defined board types. When the runtime is initialized, the firmware will 
-// pass the type to specify what board it expects. This value is compared to 
-// what is actually stored in the NVM of the main controller board. If they 
-// don't match, it is considered an error and the NVM needs to be configured to
-//  support the firmware. 
+// The defined board types. When the runtime is initialized, the firmware will pass 
+// the type to specify what board it expects. This value is compared to what is actually 
+// stored in the NVM of the main controller board. If they don't match, it is considered
+// an error and the NVM needs to be configured to support the firmware. 
 //
 //----------------------------------------------------------------------------------------
 enum CdcBoardInfo : uint16_t {
@@ -167,8 +162,7 @@ enum CdcBoardInfo : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The controller families. Currently, there is only the Raspberry PI Pico 
-// family models.
+// The controller families. Currently, there is only the Raspberry PI Pico family models.
 //
 //----------------------------------------------------------------------------------------
 enum ControllerInfo : uint8_t {
@@ -181,10 +175,9 @@ enum ControllerInfo : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The CDC resources have a type which tells us what the particular resource is.
-// Note that the are "real"  hardware resources such as a GPIO pin, but also 
-// logical resources such as a software timer. The value of 255 is used as the
-// invalid resource Id.
+// The CDC resources have a type which tells us what the particular resource is. Note
+// that the are hardware resources such as a GPIO pin, but also logical resources such
+// as a software timer. The value of 255 is used as the invalid resource Id.
 //
 //----------------------------------------------------------------------------------------
 enum CdcResourceType : uint8_t {
@@ -202,11 +195,10 @@ enum CdcResourceType : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// There are predefined resource channels common to all boards. They are for 
-// example the activity LED and the NVM I2C channel. These resources channels 
-// numbers are consequently reserved and cannot be used by the firmware 
-// programmer. The programmer identifies its resources relative to the start of
-// user definable resource numbers.
+// There are predefined resource channels common to all boards. They are for example 
+// the activity LED and the NVM I2C channel. These resources channels numbers are 
+// consequently reserved and cannot be used by the firmware programmer. The programmer
+// identifies its resources relative to the start of user definable resource numbers.
 //
 //----------------------------------------------------------------------------------------
 enum CdcResourceIdNum : uint8_t {
@@ -222,9 +214,9 @@ enum CdcResourceIdNum : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// DIO pin related definitions. A digital pin can be an input pin, with or 
-// without pull-up, or an output pin. DIO pins can also be associated with an 
-// interrupt handler. The handler itself is mapped to an edge or level event.
+// DIO pin related definitions. A digital pin can be an input pin, with or without 
+// pull-up, or an output pin. DIO pins can also be associated with an interrupt handler.
+// The handler itself is mapped to an edge or level event.
 //
 //----------------------------------------------------------------------------------------
 enum dioMode : uint8_t {
@@ -250,8 +242,7 @@ enum intEventTyp : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty 
-// cycle value.
+// PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle value.
 //
 //----------------------------------------------------------------------------------------
 enum PwmDutyCycle : uint8_t {
@@ -261,12 +252,12 @@ enum PwmDutyCycle : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The CDC resource descriptor describes a CDC resource channel. A channel is a
-// hardware entity that the CDC layer offers to the LCS library and the firmware
-// programmer. Primarily it contains the actual pin settings but also any other
-// relevant data for the particular channel. A channel entry also contains a 
-// type and the resource ID number. The resource ID specifies the index in the 
-// resource array where the resource can be found.
+// The CDC resource descriptor describes a CDC resource channel. A channel is a hardware
+// entity that the CDC layer offers to the LCS library and the firmware programmer. 
+// Primarily it contains the actual pin settings but also any other relevant data for
+// the particular channel. A channel entry also contains a type and the resource ID 
+// number. The resource ID specifies the index in the resource array where the resource
+// can be found.
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceDesc {
@@ -333,10 +324,10 @@ struct CdcResourceDesc {
 };
 
 //----------------------------------------------------------------------------------------
-// The resource descriptor map is the data structure passed to the runtime 
-// library initialization routine. The data is used in the configuration process
-// of the particular hardware board. We will over time have several boards and 
-// consequently a map for each board version. 
+// The resource descriptor map is the data structure passed to the runtime library 
+// initialization routine. The data is used in the configuration process of the 
+// particular hardware board. We will over time have several boards and consequently 
+// a map for each board version. 
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceDescMap {
@@ -355,8 +346,8 @@ struct CdcResourceDescMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The CDC library routines that make up the hardware abstraction layer. Most 
-// routines have a return code, representing the return status of the routine.
+// The CDC library routines that make up the hardware abstraction layer. Most routines
+// have a return code, representing the return status of the routine.
 //
 //----------------------------------------------------------------------------------------
 
@@ -391,11 +382,11 @@ void            sleepMicros( uint32_t val );
 uint32_t        createUid( );
 
 //----------------------------------------------------------------------------------------
-// The console IO functions. We will provide a serial IO via the USB connector
-// of the PICO. The files need to be linked with the "tinyUSB" library and the 
-// cmake file needs to set the option. Then we can use scanf and printf and so 
-// on. In addition, we need  function  that just attempts to read a character
-// and returns immediately when there is none.
+// The console IO functions. We will provide a serial IO via the USB connector of the
+// PICO. The files need to be linked with the "tinyUSB" library and the cMake file needs
+// to set the option. Then we can use scanf and printf and so on. In addition, we need
+// function  that just attempts to read a character and returns immediately when there 
+// is none.
 //
 //----------------------------------------------------------------------------------------
 uint8_t         configureConsoleIO( );

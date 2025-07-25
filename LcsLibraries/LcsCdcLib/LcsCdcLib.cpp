@@ -53,11 +53,10 @@
 #include "LcsCdcLib.h"
 
 //----------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name 
-// space with all internal variables and routines local to the file. The second 
-// part contains the exported routines to be called by the core library and the
-// firmware designers that need access to the underlying HW portion managed by
-// this lowest layer.
+// Local name space. This file has two sections. The first is this local name space
+// with all internal variables and routines local to the file. The second part contains
+// the exported routines to be called by the core library and the firmware designers 
+// that need access to the underlying HW portion managed by this lowest layer.
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -65,23 +64,22 @@ namespace {
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// Debug and Trace support. Instead of conditional compilation, we will print 
-// debug messages based on the setting of the debug mask.
+// Debug and Trace support. Instead of conditional compilation, we will print debug
+// messages based on the setting of the debug mask.
 //
 // ??? confusing with debugMask in descriptor ...
 //----------------------------------------------------------------------------------------
 uint16_t debugMask = CDC_DBG_CONFIG | CDC_DBG_PWM;
 
 //----------------------------------------------------------------------------------------
-// Valid pin mappings for the Raspberry PI Pico board. We construct a set of 
-// bitmask for the pin numbers. Pin Numbers range from 0 to 28. The bitmasks 
-// specify wether a pin can be assigned to the hardware type purpose. During
-// configuration of a CDC function, the pins are checked against these bitmasks.
-// All pins can be used as GPIO pins or PWM pins. All other hardware functions 
-// are bound to dedicated pins. Note that we do not check for assigning a pin
-// to several different hardware functions. All we check is that the pin can be
-// used for the desired purpose. A check performed by the CDC library routines
-// is simply done through:
+// Valid pin mappings for the Raspberry PI Pico board. We construct a set of bitmask
+// for the pin numbers. Pin Numbers range from 0 to 28. The bitmasks specify wether a
+// pin can be assigned to the hardware type purpose. During configuration of a CDC 
+// function, the pins are checked against these bitmasks. All pins can be used as GPIO
+// pins or PWM pins. All other hardware functions are bound to dedicated pins. Note 
+// that we do not check for assigning a pin to several different hardware functions. 
+// All we check is that the pin can be used for the desired purpose. A check performed
+// by the CDC library routines is simply done through:
 //
 //    if (( 1 <<  pin ) & VALID_xxx )
 //
@@ -123,8 +121,7 @@ const uint32_t VALID_UART_0_PINS = VALID_UART_0_TX_PINS | VALID_UART_0_RX_PINS;
 const uint32_t VALID_UART_1_PINS = VALID_UART_1_TX_PINS | VALID_UART_1_RX_PINS;
 
 //----------------------------------------------------------------------------------------
-// Characteristics of the Raspberry Pi Pico and some key constants for the CDC
-// library.
+// Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
 // 
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_CPU_CORE                = 2;
@@ -139,10 +136,9 @@ const uint32_t  ADC_REF_VOLTAGE_MILLIS      = 3300;
 const uint16_t  ADC_DIGIT_RANGE             = 1024;
 
 //----------------------------------------------------------------------------------------
-// Controller dependent code uses a set of hardware resource structures to 
-// control the controller hardware. When a particular resource, e.g. an I2C 
-// channel, is configured all further access will use the resource data for its
-// operation. 
+// Controller dependent code uses a set of hardware resource structures to control the
+// controller hardware. When a particular resource, e.g. an I2C channel, is configured
+// all further access will use the resource data for its operation. 
 //
 //----------------------------------------------------------------------------------------
 
@@ -157,11 +153,10 @@ struct CdcResource {
 
     union {
 
-        //----------------------------------------------------------------------
-        // A timer resource. We need to keep the local timer instance data for
-        // the PICO.
+        //--------------------------------------------------------------------------------
+        // A timer resource. We need to keep the local timer instance data for the PICO.
         //
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint32_t            timerVal;
@@ -170,12 +165,12 @@ struct CdcResource {
 
         } timer;
 
-        //----------------------------------------------------------------------
-        // The GPIO resource is perhaps the most fundamental resource. It 
-        // manages a HW pin. Optional, we can have two pins which then act as 
-        // pair and are read from or written to simultaneously.
+        //--------------------------------------------------------------------------------
+        // The GPIO resource is perhaps the most fundamental resource. It manages a HW
+        // pin. Optional, we can have two pins which then act as pair and are read from
+        // or written to simultaneously.
         // 
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint8_t         pinA;
@@ -185,13 +180,12 @@ struct CdcResource {
 
         } gpio;
 
-        //----------------------------------------------------------------------
-        // An ADC instance. The PICO supports up to three ADC inputs. When we 
-        // use such an input, the corresponding instance data is kept in this 
-        // structure. We also keep the PICO ADC number, so we can select the
-        // correct HW instance.
+        //--------------------------------------------------------------------------------
+        // An ADC instance. The PICO supports up to three ADC inputs. When we use such
+        // an input, the corresponding instance data is kept in this structure. We also
+        // keep the PICO ADC number, so we can select the correct HW instance.
         //
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint8_t   adcPin;
@@ -199,13 +193,12 @@ struct CdcResource {
 
         } adc;
 
-        //----------------------------------------------------------------------
-        // The PWM output resource manages a PWM configured output pin. We keep
-        // track of one or two pins, which must be on the same PWM slice. The 
-        // idea is  that we use for H-Bridge control two output signals, which
-        // act as a pair. 
+        //--------------------------------------------------------------------------------
+        // The PWM output resource manages a PWM configured output pin. We keep track 
+        // of one or two pins, which must be on the same PWM slice. The idea is  that 
+        // we use for H-Bridge control two output signals, which act as a pair. 
         //
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint8_t     pinA;
@@ -219,12 +212,12 @@ struct CdcResource {
 
         } pwm;
 
-        //----------------------------------------------------------------------
-        // UARTS are used to read in a serial stream from the RailCom detectors.
-        // There can be two hardware based UART resources. The resource also 
-        // keeps a small buffer where the data is read into.
+        //--------------------------------------------------------------------------------
+        // UARTS are used to read in a serial stream from the RailCom detectors. There
+        // can be two hardware based UART resources. The resource also keeps a small
+        // buffer where the data is read into.
         //
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint8_t           rxPin;
@@ -242,13 +235,12 @@ struct CdcResource {
 
         } uart;
     
-        //----------------------------------------------------------------------
-        // The PICO features two I2C HW channels. The resource data contains the
-        // assigned GPIO pins, the baud rate and a timeout. We also keep an I2C 
-        // address root, which comes in handy for addressing chips with the same
-        // root address.
+        //--------------------------------------------------------------------------------
+        // The PICO features two I2C HW channels. The resource data contains the GPIO
+        // pins assigned, the baud rate and a timeout. We also keep an I2C address root,
+        // which comes in handy for addressing chips with the same root address.
         //
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint8_t     sclPin;
@@ -261,13 +253,13 @@ struct CdcResource {
 
         } i2c;
 
-        //----------------------------------------------------------------------
-        // The CAN bus resource. Although our current controller does not 
-        // feature a CAN bus hardware, the resource describes the hardware 
-        // elements needed. Currently, we use a software version based on a
-        // PIO program to implement the CAN bus. 
+        //--------------------------------------------------------------------------------
+        // The CAN bus resource. Although our current controller does not feature a
+        // CAN bus hardware, the resource describes the hardware elements needed. 
+        // We currently use a software version based on a PIO program to implement the
+        // CAN bus layer. 
         // 
-        //----------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         struct {
 
             uint8_t         canPinRx;
@@ -281,10 +273,10 @@ struct CdcResource {
 };
 
 //----------------------------------------------------------------------------------------
-// The resource map is the central data structure to talk to the hardware. It 
-// is built at runtime startup using the resource descriptor map. Essentially it
-// contain all the data from the resource descriptors and depending on the 
-// descriptor type the PICO data structures necessary.
+// The resource map is the central data structure to talk to the hardware. It is built
+// at runtime startup using the resource descriptor map. Essentially it contain all the
+// data from the resource descriptors and depending on the descriptor type the PICO
+// data structures necessary.
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceMap {
@@ -306,9 +298,9 @@ struct CdcResourceMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The interrupt table for the GPIO pin interrupts. The PICO has only one 
-// interrupt handler. We will allocate a table where an interrupt handler can 
-// be set for each HW pin. 
+// The interrupt table for the GPIO pin interrupts. The PICO has only one interrupt 
+// handler. We will allocate a table where an interrupt handler can be set for each 
+// HW pin. 
 //
 //----------------------------------------------------------------------------------------
 struct GpioIsrTable {
@@ -318,9 +310,9 @@ struct GpioIsrTable {
 };
 
 //----------------------------------------------------------------------------------------
-// File local variables. We need to remember whether we initialized already. We
-// also store the descriptor and resource map. Finally, we need to have a table
-// for DIO interrupt handlers, and the instances of the HW UART instances.
+// File local variables. We need to remember whether we initialized already. We also
+// store the descriptor and resource map. Finally, we need to have a table for DIO 
+// interrupt handlers, and the instances of the HW UART instances.
 //
 //----------------------------------------------------------------------------------------
 bool                    initialized = false;
@@ -331,10 +323,9 @@ CdcResource             *uartRes0;
 CdcResource             *uartRes1;
 
 //----------------------------------------------------------------------------------------
-// "validPin" is called to check that a pin is in the correct number range, 
-// defined and matches the bitmask for the desired purpose. For example, 
-// configuring an I2C port will check that the two GPIO pins are indeed routable
-// to an I2C HW block in the PICO.
+// "validPin" is called to check that a pin is in the correct number range, defined and
+// matches the bitmask for the desired purpose. For example, configuring an I2C port 
+// will check that the two GPIO pins are indeed routable to an I2C HW block in the PICO.
 //
 //----------------------------------------------------------------------------------------
 bool validPin( uint8_t pin, uint32_t mask ) {
@@ -345,17 +336,17 @@ bool validPin( uint8_t pin, uint32_t mask ) {
 }
 
 //----------------------------------------------------------------------------------------
-// When no interrupt is configured for a GPIO pin, we set the table entry to a 
-// dummy handler. This way we do not have to check every time for a valid 
-// procedure label when we handle an interrupt.
+// When no interrupt is configured for a GPIO pin, we set the table entry to a dummy
+// handler. This way we do not have to check every time for a valid procedure label 
+// when we handle an interrupt.
 //
 //----------------------------------------------------------------------------------------
 void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
 
 //----------------------------------------------------------------------------------------
-// Setup the ISR table. The PICO can have only one interrupt handler. When you 
-// want a handler per GPIO pin, the solution is to have a table when you keep 
-// the handler on a per pin base.
+// Setup the ISR table. The PICO can have only one interrupt handler. When you want a 
+// handler per GPIO pin, the solution is to have a table when you keep the handler on
+// a per pin base.
 //
 //----------------------------------------------------------------------------------------
 void initIsrTable( ) {
@@ -397,8 +388,7 @@ void initResourceMap( CdcResourceMap *rMap ) {
 } 
 
 //----------------------------------------------------------------------------------------
-// A resource is found by indexing into the resource map with index and 
-// resource type.
+// A resource is found by indexing into the resource map with index and resource type.
 //
 //----------------------------------------------------------------------------------------
 CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
@@ -409,10 +399,10 @@ CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The configuration routines will allocate the corresponding entry in the 
-// resource map. When the entry is found but of a different type, it is an 
-// error. When there is no entry yet, the entry is initialized with the type 
-// and can be used for configuration.
+// The configuration routines will allocate the corresponding entry in the resource
+// map. When the entry is found but of a different type, it is an error. When there is 
+// no entry yet, the entry is initialized with the type and can be used for the further
+// configuration.
 //
 //----------------------------------------------------------------------------------------
 CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
@@ -433,8 +423,8 @@ CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The PICO uses a set of constants to describe the GPIO pin interrupt type.
-// We map our CDC interrupt types to the PICO GPIO_IRQ_xxx types.
+// The PICO uses a set of constants to describe the GPIO pin interrupt type. We map 
+// our CDC interrupt types to the PICO GPIO_IRQ_xxx types.
 //
 //----------------------------------------------------------------------------------------
 uint32_t mapCdcIntEvent( uint8_t event ) {
@@ -463,22 +453,21 @@ uint8_t mapPicoGpioEvent( uint32_t event ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Global Interrupt handlers. The hardware and low level library will call these
-// handlers, which in turn will invoke the respective callback function if 
-// configured. 
+// Global Interrupt handlers. The hardware and low level library will call these 
+// handlers, which in turn will invoke the respective callback function if configured. 
 //
-// The repeating timer alarm will handle timer interrupts. We stored the 
-// respective timer resource in the "user_data" field, so that we can get to 
-// the interrupt handler configured.
+// The repeating timer alarm will handle timer interrupts. We stored the respective 
+// timer resource in the "user_data" field, so that we can get to the interrupt handler
+// configured.
 //
-// The GPIO interrupt handler manages the handler for all possible IO pins. The
-// PICO can only have one interrupt routine, so we feature an array of handlers 
-// where a handler for a GPIO pin can be registered. 
+// The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
+// can only have one interrupt routine, so we feature an array of handlers where a 
+// handler for a GPIO pin can be registered. 
 // 
-// The UART handlers will handle receive interrupts of the UART hardware blocks.
-// There is no easy way to get to the resource structure where the input buffer
-// is. We therefore maintain two global variables in this file to store the 
-// configured resource for each UART HW block.
+// The UART handlers will handle receive interrupts of the UART hardware blocks. There
+// is no easy way to get to the resource structure where the input buffer is. We 
+// therefore maintain two global variables in this file to store the configured resource
+// for each UART HW block.
 // 
 //----------------------------------------------------------------------------------------
 bool repeatingTimerAlarm( repeating_timer_t *rt ) {
@@ -563,8 +552,8 @@ void setGpioMode( uint8_t pin, uint8_t mode ) {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// For debugging purposes. Instead of conditional compilations, the debug mask 
-// will enable the printing of debug and trace data.
+// For debugging purposes. Instead of conditional compilations, the debug mask will
+// enable the printing of debug and trace data.
 //
 //----------------------------------------------------------------------------------------
 void setDebugMask( uint16_t mask ) {
@@ -578,7 +567,7 @@ uint16_t getDebugMask( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Version Info.
+// Version Info and patch level.
 //
 //----------------------------------------------------------------------------------------
 uint32_t getVersion( ) {
@@ -592,9 +581,9 @@ uint32_t getPatchLevel( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// CDC library setup. The "init" routine will ready the CDC library and keep a 
-// copy of the descriptor map which will be used for the setup. The init routine
-// can be called more than once without a problem.
+// CDC library setup. The "init" routine will ready the CDC library and keep a copy of
+// the descriptor map which will be used for the setup. The init routine can be called
+// more than once without a problem.
 //
 //----------------------------------------------------------------------------------------
 uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
@@ -612,9 +601,8 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr ) {
 }
  
 //----------------------------------------------------------------------------------------
-// "getResourceMap" will return a pointer to the configured resource map. This 
-// is typically the map that was created with the data from the resource 
-// descriptor map.
+// "getResourceMap" will return a pointer to the configured resource map. This is 
+// typically the map that was created with the data from the resource descriptor map.
 //
 //----------------------------------------------------------------------------------------
 CdcResourceMap  *getResourceMap( ) {
@@ -623,9 +611,9 @@ CdcResourceMap  *getResourceMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// A resource descriptor is found by searching the resource Id in the entries. 
-// This gives us also the flexibility of arranging the resource descriptor 
-// entries in the board descriptor.
+// A resource descriptor is found by searching the resource Id in the entries. This 
+// gives us also the flexibility of arranging the resource descriptor entries in the
+//  board descriptor.
 //
 //----------------------------------------------------------------------------------------
 CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
@@ -642,22 +630,21 @@ CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "fatalError" is the error communication method when we cannot get anything 
-// to work. The Raspberry Pi PICO has a small Led on the board. We will use this
-// LED to "blink" an error code. There are up to eight codes. The sequence is 
-// as follows:
+// "fatalError" is the error communication method when we cannot get anything to work.
+// The Raspberry Pi PICO has a small Led on the board. We will use this LED to "blink"
+// an error code. There are up to eight codes. The sequence is as follows:
 //
 //    repeat forever:
 //
 //    - 1s ON, 0.5s 0FF
 //    - for ( int i = 0; i < n; i++ ) { 0.5s ON; 0.5s OFF; }
 //
-// The only way to get out of this loop is then to reset the board. Fatal errors
-// are hopefully not many. One obvious one is when we cannot detect the NVM and
-// thus know nothing about the board.
+// The only way to get out of this loop is then to reset the board. Fatal errors are
+// hopefully not many. One obvious one is when we cannot detect the NVM and thus know
+// nothing about the board.
 //
-// If we have a console, we attempt to first write an error message to the 
-// console before looping.
+// If we have a console, we attempt to first write an error message to the console 
+// before looping.
 //
 //----------------------------------------------------------------------------------------
 void fatalError( uint8_t n, char *str, uint8_t rStat ) {
@@ -718,9 +705,9 @@ void sleepMicros( uint32_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "createUid" is the routine that produces a unique ID for the node. The scheme
-// is based on a random number. Alternatively we could use the unique flash chip
-// ID on the board. 
+// "createUid" is the routine that produces a unique ID for the node. The scheme is 
+// based on a random number. Alternatively we could use the unique flash chip ID on
+// the board. 
 //
 //----------------------------------------------------------------------------------------
 uint32_t createUid( ) {
@@ -741,29 +728,28 @@ uint32_t createUid( ) {
 
 //----------------------------------------------------------------------------------------
 // Console IO section. We set up the stdio via the USB connector. As part of the
-// cdcInit call, the console configure call should be done rather early, so that
-// we can print out debug messages. In normal LCS node operation there is no USB
-// connected. Detecting a connection helps to decide whether we can report an 
-// error or need to resort to a fatal error call at startup. 
+// cdcInit call, the console configure call should be done rather early, so that we  
+// can print out debug messages. In normal LCS node operation there is no USB device
+// connected. Detecting a connection helps to decide whether we can report an error 
+// or need to resort to a fatal error call at startup. 
 //
-// There are two basic ways to detect an USB connection. The first is to simply
-// check if there is power on the USB port. The PICO features an internal GPIO
-// pin for this purpose. Using this method still does not mean that we have a 
-// computer connected to the USB, but just that there is a cable with power. 
-// Well, good enough for us. The second method truly detects that there is a USB
-// host connected. This check is provided via the PICO libraries which in turn
-// use the tinyUSB library. However, there could be a timing problem where the
-// USB stack is not ready yet and we conclude wrongly that there is no USB 
-// connection. For now, let's rather go with the crude approach to check if 
-// there is power on the VBUS pin, at the risk that there is just power on the
-// USB connector and no data.
+// There are two basic ways to detect an USB connection. The first is to simply check
+// if there is power on the USB port. The PICO features an internal GPIO pin for this
+// purpose. Using this method still does not mean that we have a computer connected to
+// the USB, but just that there is a cable with power. Well, good enough for us. The
+// second method truly detects that there is a USB host connected. This check is
+// provided via the PICO libraries which in turn use the tinyUSB library. However, 
+// there could be a timing problem where the USB stack is not ready yet and we conclude
+// wrongly that there is no USB connection. For now, let's rather go with the crude 
+// approach to check if there is power on the VBUS pin, at the risk that there is just
+// power on the USB connector and no data.
 //
-// Finally, there is a routine to get a character for the command interfaces. 
-// Since the function just reads in a character, optionally with a timeout how 
-// long to wait for any input.
+// Finally, there is a routine to get a character for the command interfaces. Since 
+// the function just reads in a character, optionally with a timeout how long to wait 
+// for any input.
 //
-// PS: The USB check way would be "return ( stdio_usb_connected( ));" instead
-//  of the GPIO check.
+// PS: The USB check way would be "return ( stdio_usb_connected( ));" instead of the
+// GPIO check.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureConsoleIO( ) {
@@ -857,11 +843,11 @@ uint8_t watchDogCausedReboot( bool *reboot ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Timer section. The CDC library features a repeating timer with a microsecond
-// resolution. There are routines to start and stop the timer as well as to 
-// allow to set a new limit. The PICO offers a high level function that 
-// schedules a repeating timer with the property of measuring the interval also
-// from the start of the callback invocation. 
+// Timer section. The CDC library features a repeating timer with a microsecond 
+// resolution. There are routines to start and stop the timer as well as to allow to
+// set a new limit. The PICO offers a high level function that schedules a repeating
+// timer with the property of measuring the interval also from the start of the 
+// callback invocation. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureTimer( uint8_t rNum, TimerCallback functionId ) {
@@ -881,6 +867,7 @@ uint8_t configureTimer( uint8_t rNum, TimerCallback functionId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Start a timer.
 //
 //----------------------------------------------------------------------------------------
 uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
@@ -897,6 +884,7 @@ uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Stop a timer.
 //
 //----------------------------------------------------------------------------------------
 uint8_t stopRepeatingTimer( uint8_t rNum ) {
@@ -909,6 +897,7 @@ uint8_t stopRepeatingTimer( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Return the upper limit value for the timer.
 //
 //----------------------------------------------------------------------------------------
 uint8_t getRepeatingTimerLimit( uint8_t rNum, uint32_t *val ) {
@@ -921,6 +910,7 @@ uint8_t getRepeatingTimerLimit( uint8_t rNum, uint32_t *val ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set a new timer limit.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setRepeatingTimerLimit( uint8_t rNum, uint32_t val ) {
@@ -934,14 +924,12 @@ uint8_t setRepeatingTimerLimit( uint8_t rNum, uint32_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// ADC section. The analog input channel represented by the pin is configured. 
-// At initialization, the ADC pin number is validated and the ADC subsystem is 
-// initialized. The PICO does an analog read in about 2us. This is so fast, it
-// is sufficient our purpose, so it does not make much sense to implement an 
-// asynchronous option. Furthermore, the ADC value scaled down to a 10-bit 
-// resolution. The PICO support up to three ADC pins at the dedicated HW pins 
-// numbers 26, 27 and 28. They also need to be mapped an ADC select number for 
-// selecting the ADC hardware.
+// ADC section. The analog input channel represented by the pin is configured. At 
+// initialization, the ADC pin number is validated and the ADC subsystem is initialized.
+// The PICO does an analog read in about 2us. This is so fast, it is sufficient for our
+// purpose, so it does not make much sense to implement an asynchronous option. The 
+// PICO support up to three ADC pins at the dedicated HW pins numbers 26, 27 and 28. 
+// They also need to be mapped an ADC select number for selecting the ADC hardware.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t rNum ) {
@@ -956,6 +944,7 @@ uint8_t configureAdc( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Configure the ADC channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
@@ -989,6 +978,7 @@ uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Read the ADC value. The resolution is 12-bits.
 //
 //----------------------------------------------------------------------------------------
 uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
@@ -997,11 +987,12 @@ uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
     adc_select_input( rPtr -> adc.adcNum );
-    *val = ( adc_read( ) >> 2 );
+    *val = adc_read( );
     return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
+// 
 //
 //----------------------------------------------------------------------------------------
 uint16_t getAdcRefVoltage( ) {
@@ -1015,20 +1006,19 @@ uint16_t getAdcDigitRange( ) {
 }
  
 //----------------------------------------------------------------------------------------
-// DIO section. A digital pin is the bread and butter hardware resource and can
-// be an input or output pin. For inputs, an internal pull-up resistor can be 
-// set.There are a couple of interfaces. First the single pin read, write and
-// toggle. Note that no cross checking is done if the pins are used by other CDC
-// functions. The DIO routines allow to pass two pins and their values. We often
-// use DIO pins as pairs. This is typically used for the H-Bridge control pins, 
-// which are set at the same time. 
+// DIO section. A digital pin is the bread and butter hardware resource and can be an
+// input or output pin. For inputs, an internal pull-up resistor can be set.There are
+// a couple of interfaces. First the single pin read, write and toggle. Note that no
+// cross checking is done if the pins are used by other CDC functions. The DIO routines
+// allow to pass two pins and their values. We often use DIO pins as pairs. This is
+// typically used for the H-Bridge control pins, which are set at the same time. 
 //
-// A GPIO pin can also have an attached interrupt handler. When we register a 
-// handler for a pin, there are two different PICO lib routines to use. When 
-// there is no handler registered so far, we register the common callback and
-// store the particular GPIO handler in our ISR handler table. Otherwise, we 
-// just store the handler in the table and enable the GPIO pin for interrupts.
-// If the resource configured two pins, the handler is set for both pins.
+// A GPIO pin can also have an attached interrupt handler. When we register a handler
+// for a pin, there are two different PICO lib routines to use. When there is no handler
+// registered so far, we register the common callback and store the particular GPIO 
+// handler in our ISR handler table. Otherwise, we just store the handler in the table
+// and enable the GPIO pin for interrupts. If the resource configured two pins, the 
+// handler is set for both pins.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureDio( uint8_t rNum ) {
@@ -1081,6 +1071,7 @@ uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Register a GPIO callback.
 //
 //----------------------------------------------------------------------------------------
 uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
@@ -1140,6 +1131,7 @@ uint8_t registerDioCallback( uint8_t rNum, uint8_t event, GpioCallback func ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Remove a GPIO callback.
 //
 //----------------------------------------------------------------------------------------
 uint8_t unregisterDioCallback( uint8_t rNum ) {
@@ -1178,6 +1170,7 @@ uint8_t unregisterDioCallback( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Read DIO data.
 //
 //----------------------------------------------------------------------------------------
 uint8_t readDio( uint8_t rNum, bool *valA, bool *valB ) {
@@ -1202,6 +1195,7 @@ uint8_t readDio( uint8_t rNum, bool *valA, bool *valB ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Write DIO data.
 //
 //----------------------------------------------------------------------------------------
 uint8_t writeDio( uint8_t rNum, bool valA, bool valB ) {
@@ -1228,6 +1222,7 @@ uint8_t writeDio( uint8_t rNum, bool valA, bool valB ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Toggle GPIO pin.
 //
 //----------------------------------------------------------------------------------------
 uint8_t toggleDio( uint8_t rNum ) {
@@ -1251,19 +1246,18 @@ uint8_t toggleDio( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// PWM section. The PICO is quite flexible when it comes to PWM signals. We 
-// implement a simple PWM capability. There is the frequency which set during 
-// configuration and there is the write operation which set the duty cycle. The
-// calculations are best described in the PICO C++ SDK. Note that although the 
-// PICO is quite flexible, the wrap and phase parameters are set for the slice 
-// and not a single channel. The same is true for the signal inverter. This is
-// normally not an issue unless you want to have separate values for PWM pins 
-// on the same slice. 
+// PWM section. The PICO is quite flexible when it comes to PWM signals. We implement
+// a simple PWM capability. There is the frequency which set during configuration and
+// there is the write operation which set the duty cycle. The calculations are best 
+// described in the PICO C++ SDK. Note that although the PICO is quite flexible, the 
+// wrap and phase parameters are set for the slice and not a single channel. The same 
+// is true for the signal inverter. This is normally not an issue unless you want to
+// have separate values for PWM pins on the same slice. 
 //
-// The "writePwm" function will just manipulate the duty cycle. When we need to
-// change the frequency we need to configure again. The "syncPwm" function will
-// reset the wrap count, which is used to implement the sync function for 
-// H-Bridges emitting a PWM signal.
+// The "writePwm" function will just manipulate the duty cycle. When we need to change
+// the frequency we need to configure again. The "syncPwm" function will reset the wrap
+// count, which is used to implement the sync function for H-Bridges emitting a PWM
+// signal.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t rNum ) {
@@ -1280,6 +1274,7 @@ uint8_t configurePwm( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Configure the PWM channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t rNum, 
@@ -1362,6 +1357,7 @@ uint8_t configurePwm( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
+// Set the PWM frequency.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setPwmFrequency( uint8_t rNum, uint32_t frequency ) {
@@ -1378,6 +1374,7 @@ uint8_t setPwmFrequency( uint8_t rNum, uint32_t frequency ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Write the PWM duty cycles.
 //
 //----------------------------------------------------------------------------------------
 uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
@@ -1405,6 +1402,7 @@ uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Sync the PWM channel, i.e. reset the PWM slice counter.
 //
 //----------------------------------------------------------------------------------------
 uint8_t syncPwm( uint8_t rNum ) {
@@ -1417,17 +1415,16 @@ uint8_t syncPwm( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// UART section. The UART interface is primarily used for the RailCom Detector 
-// that sends a serial signal. So far, only the receiver portion is implemented
-// because that is all what is needed for RailCom messages. There are two 
-// general categories. The first uses the PICO built-in UART hardware blocks. 
-// The second implements a software UART based on the PICO PIO blocks.
+// UART section. The UART interface is primarily used for the RailCom Detector that 
+// sends a serial signal. So far, only the receiver portion is implemented because that
+// is all what is needed for RailCom messages. There are two general categories. The 
+// first uses the PICO built-in UART hardware blocks. The second implements a software
+// UART based on the PICO PIO blocks.
 //
-// There are three routines. The "startUartRead" will enable the UART and start
-// reading bytes into the local buffer. The "stopUartRead" will then finish the
-// byte collection and disable the UART again. Finally, the "getUartBuffer" 
-// routine will return the bytes received. Again, note that this is not a
-// generic UART read interface.
+// There are three routines. The "startUartRead" will enable the UART and start reading
+// bytes into the local buffer. The "stopUartRead" will then finish the byte collection
+// and disable the UART again. Finally, the "getUartBuffer" routine will return the
+// bytes received. Again, note that this is not a generic UART read interface.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rNum ) {
@@ -1444,6 +1441,7 @@ uint8_t configureUart( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Configure the UART channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rNum, 
@@ -1505,6 +1503,7 @@ uint8_t configureUart( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
+// Start a UART read, i.e. enable the interrupt to receive any input.
 //
 //----------------------------------------------------------------------------------------
 uint8_t startUartRead( uint8_t rNum ) {
@@ -1518,6 +1517,7 @@ uint8_t startUartRead( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Stop the UART reading, i.e. disable the interrupt handling.
 //
 //----------------------------------------------------------------------------------------
 uint8_t stopUartRead( uint8_t rNum ) {
@@ -1530,6 +1530,7 @@ uint8_t stopUartRead( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Read the buffer of received data.
 //
 //----------------------------------------------------------------------------------------
 uint8_t getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen ) {
@@ -1552,10 +1553,9 @@ uint8_t getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen ) {
 }
 
 //----------------------------------------------------------------------------------------
-// I2C Section. The PICO has two HW blocks for I2C interfaces. The interface 
-// implements a simple read and write access to an I2C element. There is a 
-// timeout to avoid waiting forever on an operation. Finally,we have routines 
-// to get the pins and baud rate.
+// I2C Section. The PICO has two HW blocks for I2C interfaces. The interface implements
+// a simple read and write access to an I2C element. There is a timeout to avoid waiting
+// forever on an operation. Finally,we have routines to get the pins and baud rate.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t rNum ) {
@@ -1573,6 +1573,7 @@ uint8_t configureI2C( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Configure the I2C channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t rNum, 
@@ -1614,6 +1615,7 @@ uint8_t configureI2C( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
+// Read from the I2C channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t i2cRead( uint8_t rNum, 
@@ -1662,6 +1664,7 @@ uint8_t i2cRead( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
+// Write to the I2C channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t i2cWrite( uint8_t rNum, 
@@ -1712,7 +1715,8 @@ uint8_t i2cWrite( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
-//
+// Reset the I2C channel.
+// 
 //----------------------------------------------------------------------------------------
 uint8_t i2cBusreset( uint8_t rNum ) {
 
@@ -1730,6 +1734,7 @@ uint8_t i2cBusreset( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// I2C helper routines.
 //
 //----------------------------------------------------------------------------------------
 uint8_t i2cGetSclPin( uint8_t rNum ) {
@@ -1757,8 +1762,7 @@ uint8_t i2cGetBaudrate( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "scanI2CBus" is a utility routine that displays all devices found on an
-// I2C channel.
+// "scanI2CBus" is a utility routine that displays all devices found on an I2C channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t scanI2CBus( uint8_t rNum ) {
@@ -1797,11 +1801,11 @@ uint8_t scanI2CBus( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// CAN bus Section. The CAN bus is the message bus used for LCS. For the PICO 
-// there is a library "can2040" which implements the CAN protocol using the PIO
-// state machine. This saves us hardware. The resource is the structure where we
-// just keep the HW pins, the baud rate, and whether we run on one or two CPUs.
-// In other words, we do nor describe a PICO hardware block.
+// CAN bus Section. The CAN bus is the message bus used for LCS. For the PICO there 
+// is a library "can2040" which implements the CAN protocol using the PIO state machine.
+// This saves us hardware. The resource is the structure where we just keep the HW pins,
+// the baud rate, and whether we run on one or two CPUs. In other words, we do not 
+// describe a PICO hardware block.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureCanBus( uint8_t rNum ) {
@@ -1818,6 +1822,7 @@ uint8_t configureCanBus( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Configure the CAN bus.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureCanBus( uint8_t rNum, 
@@ -1841,6 +1846,7 @@ uint8_t configureCanBus( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
+// Helper functions.
 //
 //----------------------------------------------------------------------------------------
 uint8_t canGetRxPin( uint8_t rNum ) {
