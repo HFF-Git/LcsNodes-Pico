@@ -6,7 +6,6 @@
 // his file contains the part of the runtime library that deals with the remote
 // firmware update.
 //
-//
 // ??? highly processor family dependent... what to abstract ?
 //
 //----------------------------------------------------------------------------------------

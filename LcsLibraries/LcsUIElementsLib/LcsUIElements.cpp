@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------------------
 //
 // UIElements
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -25,16 +25,18 @@
 #include "LcsUIElements.h"
 
 //----------------------------------------------------------------------------------------
-// Class static variable. "resList" is the head of the linked list of UI elements. Each UI element created
+// Class static variable. "resList" is the head of the linked list of UI elements. Each
+// UI element created
 // is added.
 //
 //----------------------------------------------------------------------------------------
 static UIElements*  resList = NULL;
 
 //----------------------------------------------------------------------------------------
-// UI Element constructor. Every UI element we create has this class as a parent and is added to the global
-// linked list. This is necessary for processing the ticks, which is essentially just running down that list
-// and calling the respective handler in the UI element.
+// UI Element constructor. Every UI element we create has this class as a parent and is
+// added to the global linked list. This is necessary for processing the ticks, which is
+// essentially just running down that list and calling the respective handler in the UI
+// element.
 //
 //----------------------------------------------------------------------------------------
 UIElements::UIElements( bool atHead ) {
@@ -58,7 +60,8 @@ void UIElements::setResId( int arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setup" is the static routine to place in the program setup routine. So far, there is nothing to do.
+// "setup" is the static routine to place in the program setup routine. So far, there is
+// nothing to do.
 //
 //----------------------------------------------------------------------------------------
 uint8_t UIElements::setup( ) {
@@ -67,8 +70,8 @@ uint8_t UIElements::setup( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "insert" and "append" will add the newly created UI element to the global resource list. "insert" will
-// insert at the head, "append" will append to the list. Straightforward.
+// "insert" and "append" will add the newly created UI element to the global resource
+// list. "insert" will insert at the head, "append" will append to the list.
 //
 //----------------------------------------------------------------------------------------
 void UIElements::insert( UIElements* res ) {

@@ -3,14 +3,15 @@
 // LCS - Driver Library Code for Occupancy Detect extension boards
 //
 ///---------------------------------------------------------------------------------------
-// This source file contains the occupancy detector driver routine. It is a fairly simple driver that just 
-// reads in the track section state for the track detector circuit. The data is returned for the user defined
-// DRV_OCC_READ_MASK. The driver date area is not used for now.
+// This source file contains the occupancy detector driver routine. It is a fairly simple
+// driver that just reads in the track section state for the track detector circuit. The
+// data is returned for the user defined DRV_OCC_READ_MASK. The driver date area is not
+// used for now.
 //
 ///---------------------------------------------------------------------------------------
 //
 // LCS - Driver Library Code for Occupancy Detect extension boards
-// Copyright (C) 2022 - 2024  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -42,9 +43,9 @@ namespace LCS {
 };
 
 ///---------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name space with all internal
-// variables and routines local to the file. The second part contains the exported routines to be called by
-// the core library and the firmware designers.
+// Local name space. This file has two sections. The first is this local name space with
+// all internal variables and routines local to the file. The second part contains the
+// exported routines to be called by the core library and the firmware designers.
 //
 ///---------------------------------------------------------------------------------------
 namespace {
@@ -74,8 +75,8 @@ uint8_t PCA9555I2cAdrRoot   = 0x20;
 ///---------------------------------------------------------------------------------------
 
 ///---------------------------------------------------------------------------------------
-// The final I2C address consist of the chip fixed bits and the A0,2,3 section lines. A0 is zero hardwired,
-// A2 and A1 represent the board Id.
+// The final I2C address consist of the chip fixed bits and the A0,2,3 section lines. 
+// A0 is zero hardwired, A2 and A1 represent the board Id.
 //
 ///---------------------------------------------------------------------------------------
 uint8_t mapI2CAdr( uint8_t boardId ) {
@@ -84,8 +85,8 @@ uint8_t mapI2CAdr( uint8_t boardId ) {
 }
 
 ///---------------------------------------------------------------------------------------
-// The occupancy detect board has the PCA9555 chip as an I2C to 16-bit port input/output chip. The "readReg"
-// and "writeReg" routines allow to access the chip internal register.
+// The occupancy detect board has the PCA9555 chip as an I2C to 16-bit port input/output
+// chip. The "readReg" and "writeReg" routines allow to access the chip internal register.
 // 
 ///---------------------------------------------------------------------------------------
 uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
@@ -124,9 +125,10 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
 
     switch( item ) {
 
-        //----------------------------------------------------------------------------------------------------
-        // The driver reset function. All drivers must support a reset item. For the PCA9555 we need to set 
-        // the IO direction an data inversion registers. These are the registers found on the chip:
+        //--------------------------------------------------------------------------------
+        // The driver reset function. All drivers must support a reset item. For the 
+        // PCA9555 we need to set the IO direction an data inversion registers. These
+        // are the registers found on the chip:
         //
         // Reg 0 - Input port 0
         // Reg 1 - Input port 1
@@ -137,7 +139,7 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
         // Reg 6 - Configuration port 0
         // Reg 7 - Configuration port 1
         //
-        //----------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         case ITEM_ID_RESET: {
 
             uint8_t rStat =         writeReg( mapI2CAdr( boardId ), 4, 0xFF );
@@ -150,10 +152,10 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
 
         } break;
 
-        //----------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         // Read mask. All 16 occupancy detect inputs are stored in a 16-bit word. 
         //
-        //----------------------------------------------------------------------------------------------------
+        //--------------------------------------------------------------------------------
         case DRV_OCC_READ_MASK: {
 
             uint8_t tmp1 = readReg( mapI2CAdr( boardId ), 0 );

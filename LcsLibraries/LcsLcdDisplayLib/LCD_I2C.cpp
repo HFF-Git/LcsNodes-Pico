@@ -8,8 +8,14 @@
 ///---------------------------------------------------------------------------------------
 #include "LCD_I2C.hpp"
 
-LCD_I2C::LCD_I2C( byte address, byte columns, byte rows, i2c_inst * I2C, uint SDA, uint SCL) noexcept
-        : address(address), columns(columns), rows(rows), backlight(NO_BACKLIGHT), I2C_instance(I2C)
+LCD_I2C::LCD_I2C(    byte address, 
+                    byte columns, 
+                    byte rows, 
+                    i2c_inst * I2C, 
+                    uint SDA, 
+                    uint SCL) noexcept
+        : address(address), columns(columns), rows(rows), 
+                        backlight(NO_BACKLIGHT), I2C_instance(I2C)
 {
     static constexpr size_t BAUD_RATE = 100'000;
 

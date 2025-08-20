@@ -1,19 +1,19 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - OLED Display Driver
 //
-//------------------------------------------------------------------------------------------------------------
-// This source file contains the methods to support a set of OLED displays. A display is simply a matrix of
-// rows and columns, measured in 8x8 fields. The display will provide a several ASCII fonts to display. 
-// no graphics are supported. 
+//----------------------------------------------------------------------------------------
+// This source file contains the methods to support a set of OLED displays. A display is 
+// simply a matrix of rows and columns, measured in 8x8 fields. The display will provide
+// a several ASCII fonts to display. No graphics are supported. 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - OLED Display Driver - Raspberry Pi PIOCO implementation
-// Copyright (C) 2024 - 2024  Helmut Fieres
+// Copyright (C) 2024 - 2025  Helmut Fieres
 //
-// Bill Greiman wrote a version for the Arduino world. I took his files, and adapted them for my needs and 
-// the PICO environment. Here is the original copyright info.
+// Bill Greiman wrote a version for the Arduino world. I took his files, and adapted them
+// for my needs and  the PICO environment. Here is the original copyright info.
 //
 // SSD1306Ascii - Oled Library for the Arduino world.
 // Copyright (c) 2011-2023 Bill Greiman
@@ -33,9 +33,9 @@
 #include "LcsOledDisplayLib.h"
 
 //----------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name space with all internal
-// variables and routines local to the file. The second part contains the exported routines to be called by
-// the core library and the firmware designers.
+// Local name space. This file has two sections. The first is this local name space with
+// all internal variables and routines local to the file. The second part contains the 
+// exported routines to be called by the core library and the firmware designers.
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -131,8 +131,9 @@ namespace {
 
 
     //------------------------------------------------------------------------------------
-    // Each controller is described by a device type structure. The structure contains the width and height
-    // as well as a command list of commands to issue when the display is initialized.
+    // Each controller is described by a device type structure. The structure contains 
+    // the width and height as well as a command list of commands to issue when the 
+    // display is initialized.
     //
     //------------------------------------------------------------------------------------
     struct DevType {
@@ -145,8 +146,8 @@ namespace {
     };
 
     //------------------------------------------------------------------------------------
-    // Initialization commands for a 128x32 SSD1306 oled display. This section is based on 
-    // https://github.com/adafruit/Adafruit_SSD1306
+    // Initialization commands for a 128x32 SSD1306 oled display. This section is based 
+    // on https://github.com/adafruit/Adafruit_SSD1306
     // 
     //------------------------------------------------------------------------------------
     constexpr uint8_t Adafruit128x32init[ ] = {
@@ -179,8 +180,8 @@ namespace {
     };
 
     //------------------------------------------------------------------------------------
-    // Initialization commands for a 128x64 SSD1306 oled display. This section is based on 
-    // https://github.com/adafruit/Adafruit_SSD1306
+    // Initialization commands for a 128x64 SSD1306 oled display. This section is based 
+    // on https://github.com/adafruit/Adafruit_SSD1306
     // 
     //------------------------------------------------------------------------------------
     const uint8_t Adafruit128x64init[] = {
@@ -213,9 +214,9 @@ namespace {
     };
 
     //------------------------------------------------------------------------------------
-    // Initialization commands for a 128x64 SH1106 oled display. This section is based on 
-    // https://github.com/stanleyhuangyc/MultiLCD. The SH1106 is a 132x64 controller. We use the middle 128
-    // columns.
+    // Initialization commands for a 128x64 SH1106 oled display. This section is based 
+    // on  https://github.com/stanleyhuangyc/MultiLCD. The SH1106 is a 132x64 controller.
+    // We use the middle 128 columns.
     // 
     //------------------------------------------------------------------------------------
     const uint8_t SH1106_128x64init[] = {
@@ -247,8 +248,8 @@ namespace {
     };
 
     //------------------------------------------------------------------------------------
-    // "setupHw" sets up our IO pins and the I2C channel. If the display has a reset input we also initialize
-    // the reset IO and issue the reset sequence.
+    // "setupHw" sets up our IO pins and the I2C channel. If the display has a reset 
+    // input we also initialize the reset IO and issue the reset sequence.
     //
     //------------------------------------------------------------------------------------
     uint8_t setupHw( uint8_t rNumI2C, uint8_t rNumRST ) {
@@ -278,8 +279,9 @@ namespace {
     //
     //
     //------------------------------------------------------------------------------------
-    static const uint8_t scaledNibble[ ] = {  0X00, 0X03, 0X0C, 0X0F, 0X30, 0X33, 0X3C, 0X3F,
-                                              0XC0, 0XC3, 0XCC, 0XCF, 0XF0, 0XF3, 0XFC, 0XFF };
+    static const uint8_t scaledNibble[ ] = 
+        {  0X00, 0X03, 0X0C, 0X0F, 0X30, 0X33, 0X3C, 0X3F,
+           0XC0, 0XC3, 0XCC, 0XCF, 0XF0, 0XF3, 0XFC, 0XFF };
 
 }; // namespace
 
@@ -292,8 +294,8 @@ LcsOledDisplay::LcsOledDisplay( ) {  }
 
 
 //----------------------------------------------------------------------------------------
-// The "begin" routine is the first method to call. It will configure the IO pins and setup the particular 
-// OLED display.
+// The "begin" routine is the first method to call. It will configure the IO pins and 
+// setup the particular OLED display.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::begin(  uint8_t devType, 
@@ -322,10 +324,11 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDevType" will initialize the OLED display. Currently, there are three different displays supported. 
-// The Adafruit displays with a dimension for 128x64 and 128x32 use the SSD1306 controller. There is also a 
-// 1.3" OLED display which uses the SH1106 controller type. The service type descriptor contains the init
-// command sequence which is sent command by command.
+// "setupDevType" will initialize the OLED display. Currently, there are three different 
+// displays supported. The Adafruit displays with a dimension for 128x64 and 128x32 use
+// the SSD1306 controller. There is also a 1.3" OLED display which uses the SH1106 
+// controller type. The service type descriptor contains the init command sequence for
+// controller which is sent command by command.
 //
 //----------------------------------------------------------------------------------------
 void LcsOledDisplay::setupDevType( uint8_t dType ) {

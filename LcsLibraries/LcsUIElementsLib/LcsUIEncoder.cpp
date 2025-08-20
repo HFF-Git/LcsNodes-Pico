@@ -3,15 +3,16 @@
 // UIEncoderElements -implementation file.
 //
 //----------------------------------------------------------------------------------------
-// Rotary encoder are the second active UI element. They do have two ports and depending on the direction
-// turned, reading the values for the two ports tells the direction. Whenever the encoder is turned the
-// new position is passed via a callback. Some rotary encoders also have a push button built into the knob.
-// This will not be handled here, it is just a button for which we have the UIButton object.
+// Rotary encoder are the second active UI element. They do have two ports and depending
+// on the direction turned, reading the values for the two ports tells the direction. 
+// Whenever the encoder is turned the new position is passed via a callback. Some rotary
+// encoders also have a push button built into the knob. This will not be handled here,
+// it is just a button for which we have the UIButton object.
 //
 //----------------------------------------------------------------------------------------
 //
 // UIEncoderElements
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -30,7 +31,11 @@
 // The constructor. We are passed the hardware pins and the optional initial limits.
 //
 //----------------------------------------------------------------------------------------
-UIEncoder::UIEncoder( uint8_t hwIdA, uint8_t hwIdB, int lower, int upper, bool activeLow ) {
+UIEncoder::UIEncoder( uint8_t hwIdA, 
+                      uint8_t hwIdB, 
+                      int lower, 
+                      int upper, 
+                      bool activeLow ) {
 
     this -> hwIdA     = hwIdA;
     this -> hwIdB     = hwIdB;
@@ -43,8 +48,9 @@ UIEncoder::UIEncoder( uint8_t hwIdA, uint8_t hwIdB, int lower, int upper, bool a
 }
 
 //----------------------------------------------------------------------------------------
-// The encoder access routines. The encoder has a position, an lower and upper limit, a time delta between
-// two turns and most importantly a callback routine to invoke when the position changed.
+// The encoder access routines. The encoder has a position, an lower and upper limit, a
+// time delta between two turns and most importantly a callback routine to invoke when
+// the position changed.
 //
 //----------------------------------------------------------------------------------------
 void UIEncoder::reset( ) {
@@ -100,7 +106,9 @@ void UIEncoder::setPosition( int newPosition, bool suppressCallback ) {
         position      = newPosition;
         positionPrev  = newPosition;
 
-        if (( newPosition != position ) && ( positionChangedFunc != nullptr ) && ( ! suppressCallback ))
+        if (( newPosition != position ) && 
+            ( positionChangedFunc != nullptr ) && 
+            ( ! suppressCallback ))
         positionChangedFunc( this );
     }
 }

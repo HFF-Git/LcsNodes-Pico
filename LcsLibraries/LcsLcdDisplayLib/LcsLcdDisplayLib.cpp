@@ -31,9 +31,9 @@
 #include "LcsLcdDisplayLib.h"
 
 ///---------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name space with all internal
-// variables and routines local to the file. The second part contains the exported routines to be called by
-// the core library and the firmware designers.
+// Local name space. This file has two sections. The first is this local name space with
+// all internal variables and routines local to the file. The second part contains the 
+// exported routines to be called by the core library and the firmware designers.
 //
 ///---------------------------------------------------------------------------------------
 namespace {

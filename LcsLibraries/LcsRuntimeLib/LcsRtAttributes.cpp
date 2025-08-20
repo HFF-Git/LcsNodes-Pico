@@ -3,14 +3,13 @@
 // Layout Control System - Runtime attribute management
 //
 //----------------------------------------------------------------------------------------
-// This file contains the LCS runtime routines that implement node access. There
-// are three routines that allow to manipulate node and port data as well as 
-// issue requests to a node or port. The "npId" will indicate which node and 
-// port the call refers to. The node portion is typically our own node Id, the
-// port Id refers to a ports on the node, with a port Id of zero referring to 
-// the node itself. Any node can access another node. In this case request comes
-// via a message and the message handler will call the local routines in this
-// file. 
+// This file contains the LCS runtime routines that implement node access. There are 
+// three routines that allow to manipulate node and port data as well as  issue requests
+// to a node or port. The "npId" will indicate which node and port the call refers to. 
+// The node portion is typically our own node Id, the port Id refers to a ports on the
+// node, with a port Id of zero referring to the node itself. Any node can access another
+// node. In this case request come via a message and the message handler will call the
+// local routines in this file. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -31,10 +30,10 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External declaration to global structures and routines.
 //
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
     using namespace CDC;
@@ -70,18 +69,18 @@ namespace {
 
     using namespace LCS;
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // The node or port name cannot be set with a single LCS message. We will 
     // store the parts in this temporary buffer and set the name when all parts
     // are received.
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     char tempName[ MAX_NODE_PORT_NAME_SIZE + 1 ] = { 0 };
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Utility routines.
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
         return (( val >= lower ) && ( val <= upper ));
@@ -109,8 +108,7 @@ namespace {
 
     uint8_t errStat( uint8_t errId ) {
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "Ret: %d\n", errId );
         }
@@ -118,18 +116,17 @@ namespace {
         return ( errId );
     }
 
-    //--------------------------------------------------------------------------
-    // "readAttrMem" gets a value from the node or port attribute map in MEM. 
-    // As an internal function, we expect a valid block and item argument. The
-    // "block" argument will refer to the node and port data attributes. 
+    //------------------------------------------------------------------------------------
+    // "readAttrMem" gets a value from the node or port attribute map in MEM. As an 
+    // internal function, we expect a valid block and item argument. The "block" argument
+    // will refer to the node and port data attributes. 
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
         *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "readAttrMem: block: 0x%x, item: %d, data: 0x%x\n", 
                     block, item, *arg );
@@ -138,18 +135,17 @@ namespace {
         return ( errStat( ALL_OK ));
     }
 
-    //--------------------------------------------------------------------------
-    // "writeAttrMem" stores a value to a node or port attribute map in MEM. As
-    // an internal function, we expect a valid block and item argument. The 
-    // "block" argument will refer to the node and port data attributes. 
+    //------------------------------------------------------------------------------------
+    // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an 
+    // internal function, we expect a valid block and item argument. The "block" argument
+    // will refer to the node and port data attributes. 
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
         nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "writeAttrMem: block: 0x%x, item: %d, data: 0x%x\n", 
                     block, item, arg );
@@ -158,23 +154,21 @@ namespace {
         return ( errStat( ALL_OK ));
     }
 
-    //--------------------------------------------------------------------------
-    // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
-    // from NVM. If successful, we also store it in the MEM counterpart and then
-    // return it. This ensures that NVM and MEM are always in sync when 
-    // accessing the NVM. For the NVM access, the byte offset into the storage
-    // needs to be computed. As an internal function, we expect a valid block
-    // and item argument.
+    //------------------------------------------------------------------------------------
+    // "readAttrNvm" gets an attribute from the NVM storage. We read the value from NVM.
+    // If successful, we also store it in the MEM counterpart and then return it. This
+    // ensures that NVM and MEM are always in sync when accessing the NVM. For the NVM 
+    // access, the byte offset into the storage needs to be computed. As an internal 
+    // function, we expect a valid block and item argument.
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
         uint16_t index  = item - IR_ATTR_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "readAttrNvm: block: 0x%x, item: %d, "
                     "nvm-ofs: 0x%x, data: 0x%x\n",
@@ -187,22 +181,21 @@ namespace {
         return ( errStat( rStat ));
     }
 
-    //--------------------------------------------------------------------------
-    // "writeAttrNvm" stores an attribute to the NVM storage. If the update is
-    // successful, we also update the corresponding MEM attribute. This ensures
-    // that NVM and MEM are always in sync when accessing the NVM. For the NVM 
-    // access, the byte offset into the storage needs to be computed. As an 
-    // internal function, we expect a valid block and item argument.
+    //------------------------------------------------------------------------------------
+    // "writeAttrNvm" stores an attribute to the NVM storage. If the update is successful,
+    // we also update the corresponding MEM attribute. This ensures that NVM and MEM are
+    // always in sync when accessing the NVM. For the NVM access, the byte offset into 
+    // the storage needs to be computed. As an  internal function, we expect a valid 
+    // block and item argument.
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
         uint16_t index  = item - IR_ATTR_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
         
-        if (( debugMask & LCS_DBG_ATTRIBUTES ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_ATTRIBUTES ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "writeAttrNvm: block: 0x%x, item: %d,"
                     " nvm-ofs: 0x%x, data: 0x%x\n",
@@ -215,15 +208,14 @@ namespace {
         return ( errStat( rStat ));
     }
 
-    //--------------------------------------------------------------------------
-    // "syncAttrToMem" will copy the NVM attribute value to the MEM counterpart.
-    // All we do is just reading the NVM value again.
+    //------------------------------------------------------------------------------------
+    // "syncAttrToMem" will copy the NVM attribute value to the MEM counterpart. All we
+    // do is just reading the NVM value again.
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "syncAttrToMem: block: 0x%x, item: %d\n", block, item );
         }
@@ -232,15 +224,14 @@ namespace {
         return ( errStat( readAttrNvm( block, item, &arg )));
     }
 
-    //--------------------------------------------------------------------------
-    // "syncAttrToNvm" will take the MEM attribute value of an item and writes 
-    // it to the NVM counterpart.
+    //------------------------------------------------------------------------------------
+    // "syncAttrToNvm" will take the MEM attribute value of an item and writes it to the
+    // NVM counterpart.
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "syncAttrToNvm: block: 0x%x, item: %d\n", block, item );
         }
@@ -251,12 +242,11 @@ namespace {
         return ( errStat( rStat ));
     }
 
-    //--------------------------------------------------------------------------
-    // User callback function invocation routine. Items 64 to 127 are user 
-    // defined items. We will simply invoke a previously registered callback 
-    // passing the arguments. 
+    //------------------------------------------------------------------------------------
+    // User callback function invocation routine. Items 64 to 127 are user defined items.
+    // We will simply invoke a previously registered callback passing the arguments. 
     //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t invokeUserItemCallback( uint8_t npId, 
                                     uint8_t item, 
                                     uint16_t *arg1, 
@@ -270,16 +260,15 @@ namespace {
         else return ( errStat( ERR_INVALID_ITEM_ID ));
     }
 
-    //--------------------------------------------------------------------------
-    // "handleSyncCommand" is the handler for SYNC options. Arg1 will contain 
-    // the command, Arg2 the optional argument.
+    //------------------------------------------------------------------------------------
+    // "handleSyncCommand" is the handler for SYNC options. Arg1 will contain the command,
+    // Arg2 the optional argument.
     //
     // ??? define named constants for the options ?
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     uint8_t handleSyncCommand( uint8_t npId, uint16_t arg1, uint16_t arg2 ) {
 
-        if (( debugMask & LCS_DBG_CONFIG ) && 
-            ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
             printf( "handleSyncCommand: npId: 0x%x, arg1: %d, arg2: %d\n", 
                     npId, arg1, arg2 );
@@ -321,12 +310,11 @@ namespace {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "nodeGet" will lookup a value from the node, port or the attribute data map.
-// The "npId" argument contains the node and port Id. However, we will only use
-// the portId portion, which represents the block index. For data attribute 
-// items the node state determines whether we just access the MEM attribute or 
-// the NVM version of the data. For the other node or port reserved attributes 
-// the MEM version is used.
+// "nodeGet" will lookup a value from the node, port or the attribute data map. The 
+// "npId" argument contains the node and port Id. However, we will only use the portId
+// portion, which represents the block index. For data attribute items the node state
+// determines whether we just access the MEM attribute or the NVM version of the data. 
+// For the other node or port reserved attributes the MEM version is used.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -338,8 +326,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE) && 
-        ( nodeMap.nodeState != NS_CONFIG )) {
+    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) {
 
         return ( errStat( ERR_LIB_NOT_READY ));
     }
@@ -455,8 +442,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_NAME_1: {
 
-                if ( arg2 == nullptr ) 
-                    return ( errStat( ERR_INVALID_ATTR_ARG ));
+                if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
                 LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
                 *arg1 = ((uint16_t) ( pPtr -> name[ 0 ] << 8  ) | pPtr -> name[ 1 ] );
                 *arg2 = ((uint16_t) ( pPtr -> name[ 2 ] << 8  ) | pPtr -> name[ 3 ] );
@@ -502,10 +488,10 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodePut" will write a value to the node, port or the attribute data map. 
-// The "npId" argument contains the node and port Id. For data attributes the 
-// node state determines whether we also update the NVM slot. For the remaining
-// items the update of NVM is dependent on the meaning of the particular item.
+// "nodePut" will write a value to the node, port or the attribute data map. The "npId"
+// argument contains the node and port Id. For data attributes the node state determines
+// whether we also update the NVM slot. For the remaining items the update of NVM is 
+// dependent on the meaning of the particular item.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
@@ -675,9 +661,9 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeReq" will carry out a node or port function. A function, represented by
-// an item, can be a node or port defined item, a extension board driver defined
-// item or a user defined item.
+// "nodeReq" will carry out a node or port function. A function, represented by an item,
+// can be a node or port defined item, a extension board driver defined item or a user
+// defined item.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -689,8 +675,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE) && 
-        ( nodeMap.nodeState != NS_CONFIG )) {
+    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) {
         
         return ( errStat( ERR_LIB_NOT_READY ));
     }
@@ -737,17 +722,21 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
 
                     nodeMap.nodeId = nodeId( *arg1 );
-                    return ( errStat( rtNvmPutBytes( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
-                                                    (uint8_t *) &nodeMap.nodeId, 
-                                                    sizeof( uint16_t ))));
+                    return ( 
+                        errStat( 
+                            rtNvmPutBytes( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
+                                            (uint8_t *) &nodeMap.nodeId, 
+                                            sizeof( uint16_t ))));
                 }
                 else return ( errStat( ERR_INVALID_NODE_ID ));
             }
 
             case ITEM_ID_ENABLE_EVENT_PROCESSING: {
 
-                if ( *arg1 )    portMap.map[ portId( npId ) - 1 ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
-                else            portMap.map[ portId( npId ) - 1 ].flags &= ~ NPF_PORT_EVENT_HANDLING_ENABLED;
+                if ( *arg1 )    
+                    portMap.map[ portId( npId ) - 1 ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
+                else            
+                    portMap.map[ portId( npId ) - 1 ].flags &= ~ NPF_PORT_EVENT_HANDLING_ENABLED;
 
                 return ( errStat( ALL_OK ));
             }
@@ -756,9 +745,12 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 int option = (( arg1 == nullptr ) ? 0 : *arg1 );
 
-                if      ( *arg1 == 1 )  return ( errStat( CDC::writeDio( CDC_RN_ACTIVITY_LED, true )));
-                else if ( *arg1 == 2 )  return ( errStat( CDC::toggleDio( CDC_RN_ACTIVITY_LED )));
-                else                    return ( errStat( CDC::writeDio( CDC_RN_ACTIVITY_LED, false )));
+                if ( *arg1 == 1 )  
+                    return ( errStat( CDC::writeDio( CDC_RN_ACTIVITY_LED, true )));
+                else if ( *arg1 == 2 )  
+                    return ( errStat( CDC::toggleDio( CDC_RN_ACTIVITY_LED )));
+                else                    
+                    return ( errStat( CDC::writeDio( CDC_RN_ACTIVITY_LED, false )));
             }
 
             default: return ( errStat( ERR_INVALID_ITEM_ID ));

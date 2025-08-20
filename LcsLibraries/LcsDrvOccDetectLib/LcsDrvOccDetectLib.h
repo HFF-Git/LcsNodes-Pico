@@ -3,13 +3,13 @@
 // LCS - Driver Library Code for Occupancy Detect boards - Include file
 //
 ///---------------------------------------------------------------------------------------
-// The occupancy detect extension board is a simple board that detects the presence of an engine in a track
-// section. 
+// The occupancy detect extension board is a simple board that detects the presence of
+// an engine in a track section. 
 //
 ///---------------------------------------------------------------------------------------
 //
 // LCS - Driver Library Code for Occupancy Detect boards
-// Copyright (C) 2023 - 2024  Helmut Fieres
+// Copyright (C) 2023 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -32,7 +32,8 @@
 namespace LCS {
 
 ///---------------------------------------------------------------------------------------
-// Driver items. They are allocated in the user defined item range. Their meaning is board type specific.
+// Driver items. They are allocated in the user defined item range. Their meaning is
+// board type specific.
 //
 ///---------------------------------------------------------------------------------------
 enum LcsDrvOccDetectItems : uint8_t {

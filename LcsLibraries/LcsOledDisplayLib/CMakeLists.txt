@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file at the LcsOledDisplayLib directory level
 #
-#  Copyright (C) 2024 - 2024  Helmut Fieres
+#  Copyright (C) 2024 - 2025  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsOledDisplayLib C CXX ASM )
 

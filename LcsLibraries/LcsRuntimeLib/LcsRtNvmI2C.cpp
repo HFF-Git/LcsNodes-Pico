@@ -3,13 +3,13 @@
 // LCS Runtime library - Non volatile storage I2C interface
 //
 //----------------------------------------------------------------------------------------
-// This file implements the LCS runtime library non-volatile memory. The hardware is the AA24xxx chip family,
-// which offers an I2C protocol based chip with various capacities. They all share the same pin layout and
-// command structure.
+// This file implements the LCS runtime library non-volatile memory. The hardware is the
+// AA24xxx chip family, which offers an I2C protocol based chip with various capacities. 
+// They all share the same pin layout and command structure.
 //
-// In addition we also support the M24C04 chip, which is used on the extension boards as a configuration
-// storage. This chip will however be replaced by 24AA32, a 4K chip of the same chip family as the other
-// chips on the controller board.
+// In addition we also support the M24C04 chip, which is used on the extension boards as
+// a configuration storage. This chip will however be replaced by 24AA32, a 4K chip of
+// the same chip family as the other chips on the controller board.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -55,17 +55,19 @@ using namespace LCS;
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize which is the unit
-// updated in case of a write. A write cannot across a page boundary and must be split into several writes
-// if necessary. Reads do not have this problem. All chips have the same I2C address root which is "1010".
-// There are three address lines A2, A1 and A0, which are used to select a chips. Up to eight chips can be
+// Definitions for the M24LCxxx chips page size and total size. The chips have a pageSize
+// which is the unit updated in case of a write. A write cannot across a page boundary 
+// and must be split into several writes if necessary. Reads do not have this problem. 
+// All chips have the same I2C address root which is "1010". There are three address 
+// lines A2, A1 and A0, which are used to select a chips. Up to eight chips can be
 // addressed on a single I2C bus.
 //
-// The pageSizes on the chip are a multiple of 32bytes. For now, we use this size as the common denominator.
-// Block handling and chipSize page handling are nicely taken care of this way. The downside is however that
-// a write will update the chip page up to four times for a pageSize of 128. However, since the chips have
-// more than a million write cycles and we rarely write large chunks of data, this will hopefully not be an
-// issue in the near future.
+// The pageSizes on the chip are a multiple of 32bytes. For now, we use this size as the
+// common denominator. Block handling and chipSize page handling are nicely taken care 
+// of this way. The downside is however that a write will update the chip page up to four 
+// times for a pageSize of 128. However, since the chips have more than a million write
+// cycles and we rarely write large chunks of data, this will hopefully not be an issue
+// in the near future.
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //----------------------------------------------------------------------------------------
@@ -98,7 +100,8 @@ const uint32_t      EXT_I2C_BAUDRATE            = 50 * 1000;
 const uint8_t       NVM_WRITE_DELAY             = 0x05;
 
 //----------------------------------------------------------------------------------------
-// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The maximum size for an extension board NVM 
+// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The maximum size for an 
+// extension board NVM 
 // chip is 4Kb. 
 //
 //----------------------------------------------------------------------------------------
@@ -106,15 +109,17 @@ const uint32_t      NVM_MAX_NVM_SIZE            = 0x10000;
 const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 
 //----------------------------------------------------------------------------------------
-// Module global data. A LCS node board has two NVM channels. The "NVM" channel refers to the NVM chip on
-// main controller board. The "EXT" channel is the I2C bus that reaches out the the extension boards. On
-// each extension board there is again a small NVM chip with configuration data. 
+// Module global data. A LCS node board has two NVM channels. The "NVM" channel refers 
+// to the NVM chip on main controller board. The "EXT" channel is the I2C bus that 
+// reaches out the the extension boards. On each extension board there is again a small
+// NVM chip with configuration data. 
 //
-// There is no easy way to determine the size of the actual chip. By convention, the extension board NVM chip
-// has a fixed 4 Kbytes. The NVM chip on the main controller board is at least 16Kbyte. The maximum size is 
-// 64 Kbytes. All the chips are from a hardware perspective identical. The difference between the runtime map
-// size and the particular NVM chip maximum is considered "user NVM space" which the firmware can use as 
-// needed.
+// There is no easy way to determine the size of the actual chip. By convention, the
+// extension board NVM chip has a fixed 4 Kbytes. The NVM chip on the main controller 
+// board is at least 16Kbyte. The maximum size is 64 Kbytes. All the chips are from a 
+// hardware perspective identical. The difference between the runtime map size and the 
+// particular NVM chip maximum is considered "user NVM space" which the firmware can use
+// as needed.
 //
 //----------------------------------------------------------------------------------------
 uint32_t    nodeNvmSize     = 0;
@@ -129,15 +134,17 @@ uint8_t     rNumExtNvm      = UNDEFINED_RES_ID;
 //----------------------------------------------------------------------------------------
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) printf( "Ret: %d\n", errId );
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS ))
+        printf( "Ret: %d\n", errId );
     return ( errId );
 }
 
 //----------------------------------------------------------------------------------------
-// "testNvmChipMemorySize" will check the NVM chip for its size. Since the chip itself has no way of telling
-// its memory capacity, we need to go a rather cumbersome way. For each possible size, read the last byte,
-// store a new value there, read it again. If the values match, it is a valid memory location. Don't forget
-// to restore the previous value. If we are not successful, try the next smaller size. Currently, the LCS 
+// "testNvmChipMemorySize" will check the NVM chip for its size. Since the chip itself 
+// has no way of telling its memory capacity, we need to go a rather cumbersome way. For
+// each possible size, read the last byte, store a new value there, read it again. If 
+// the values match, it is a valid memory location. Don't forget to restore the previous
+// value. If we are not successful, try the next smaller size. Currently, the LCS 
 // hardware uses The chip family M24LCxxx with sizes of 4, 8, 16, 32 and 64Kbytes.
 //
 // ??? not tested yet ...
@@ -193,9 +200,9 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Each NVM chip has certain size. This function will round the size to the next lower chip memory size.
-// We expect however that the programmer used the correct size, so this is done just in case. The lowest
-// value is the 4Kb chip.
+// Each NVM chip has certain size. This function will round the size to the next lower 
+// chip memory size. We expect however that the programmer used the correct size, so 
+// this is done just in case. The lowest value is the 4Kb chip.
 //
 //----------------------------------------------------------------------------------------
 uint32_t roundNvmMaxSize( uint16_t chipSize ) {
@@ -210,14 +217,19 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. Although a read can 
-// cross a page boundary, we follow the same principle as we do for writes when it comes to page boundaries.
-// The read is send ing the address with retaining the bus. The PICO library will then use the restart
-// condition. Just like we did in the write buffer counterpart, we need to send the address as one buffer.
+// "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. 
+// Although a read can cross a page boundary, we follow the same principle as we do for 
+// writes when it comes to page boundaries. The read is send ing the address with 
+// retaining the bus. The PICO library will then use the restart condition. Just like we
+// did in the write buffer counterpart, we need to send the address as one buffer.
 //
 // ??? one day we take out the M24C04
 //----------------------------------------------------------------------------------------
-uint8_t nvmGetBytesFromPage( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmGetBytesFromPage( uint8_t rNum, 
+                             uint8_t i2cAdr, 
+                             uint32_t ofs, 
+                             uint8_t *buf, 
+                             uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
 
@@ -252,23 +264,29 @@ uint8_t nvmGetBytesFromPage( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmPutBytesInPage" transmits a set of data bytes only within the page boundary. In general, a write 
-// cannot cross a chip internal page boundary. The Chip expects a write to be one sequence with the address
-// bytes first followed by the data bytes with no stop or restart condition in between. This costed my
-// quite some debugging to figure this out. We will have a local buffer where we combine the address and
-// data and then send it.
+// "nvmPutBytesInPage" transmits a set of data bytes only within the page boundary. In
+// general, a write cannot cross a chip internal page boundary. The Chip expects a write
+// to be one sequence with the address bytes first followed by the data bytes with no 
+// stop or restart condition in between. This costed my quite some debugging to figure 
+// this out. We will have a local buffer where we combine the address and data and then
+// send it.
 //
 // ??? one day we take out the M24C04
 //----------------------------------------------------------------------------------------
-uint8_t nvmPutBytesInPage( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmPutBytesInPage( uint8_t rNum, 
+                           uint8_t i2cAdr, 
+                           uint32_t ofs, 
+                           uint8_t *buf, 
+                           uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
     uint8_t dataBuf[ BUFFER_BLOCK_SIZE + 2 ];
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
-        rNum, i2cAdr, ofs, buf, len );
+        printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x,"
+                " ofs: 0x%x, bufAdr: %p, len: %d\n", 
+                rNum, i2cAdr, ofs, buf, len );
     }
 
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
@@ -295,12 +313,17 @@ uint8_t nvmPutBytesInPage( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmGetBytes" reads a set of data bytes from the memory. Although read operations do not have a page
-// boundary issue, we stick to the concept to read within page boundaries as we may one day use more than
-// chip to build NVMs and then we have no problems with crossing chip boundaries.
+// "nvmGetBytes" reads a set of data bytes from the memory. Although read operations do
+// not have a page boundary issue, we stick to the concept to read within page boundaries 
+// as we may one day use more than chip to build NVMs and then we have no problems with
+// crossing chip boundaries.
 //
 //----------------------------------------------------------------------------------------
-uint8_t nvmGetBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmGetBytes( uint8_t rNum, 
+                     uint8_t i2cAdr, 
+                     uint32_t ofs, 
+                     uint8_t *buf, 
+                     uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
 
@@ -318,7 +341,11 @@ uint8_t nvmGetBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, u
 
     while ( bytesLeft > pageBytesLeft ) {
 
-        rStat = nvmGetBytesFromPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        rStat = nvmGetBytesFromPage( rNum, 
+                                     i2cAdr, 
+                                     ofs + len - bytesLeft, 
+                                     buf + len - bytesLeft, 
+                                     pageBytesLeft );
         if ( rStat != ALL_OK ) break;
 
         bytesLeft       -= pageBytesLeft;
@@ -327,31 +354,41 @@ uint8_t nvmGetBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, u
 
     if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
-        rStat = nvmGetBytesFromPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
+        rStat = nvmGetBytesFromPage( rNum, 
+                                     i2cAdr, 
+                                     ofs + len - bytesLeft, 
+                                     buf + len - bytesLeft, 
+                                     bytesLeft );
     }
 
     return ( errStat( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmPutBytes" transmits a set of data bytes to the memory. We cannot write across the internal NVM page
-// boundary and also across a chip boundary. This routine will split the data to write only within one page
-// in a given write cycle.
+// "nvmPutBytes" transmits a set of data bytes to the memory. We cannot write across the
+// internal NVM page boundary and also across a chip boundary. This routine will split 
+// the data to write only within one page in a given write cycle.
 //
-// There is a quirk with figuring out that a chip is ready for the next write instruction. The data sheet 
-// suggest a writing of one byte to see of the chip acknowledges. If not it is still in a write operation. 
-// This approach does not seem to work with the PICO i2c libraries. So, we will go the "slow" way of giving 
-// the chip the time to complete the write cycle before issuing another one. Since we do not often write 
-// to the NVM, the slow mode is perhaps acceptable for now.
+// There is a quirk with figuring out that a chip is ready for the next write instruction. 
+// The data sheet suggest a writing of one byte to see of the chip acknowledges. If not 
+// it is still in a write operation. This approach does not seem to work with the PICO 
+// i2c libraries. So, we will go the "slow" way of giving the chip the time to complete
+// the write cycle before issuing another one. Since we do not often write  to the NVM,
+// the slow mode is perhaps acceptable for now.
 //
 //----------------------------------------------------------------------------------------
-uint8_t nvmPutBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, uint32_t len ) {
+uint8_t nvmPutBytes( uint8_t rNum, 
+                     uint8_t i2cAdr, 
+                     uint32_t ofs, 
+                     uint8_t *buf, 
+                     uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytes: rNum: %d, i2c: 0x%x, ofs: 0x%x, buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
+        printf( "nvmPutBytes: rNum: %d, i2c: 0x%x, ofs: 0x%x,"
+                " buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
      }
 
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
@@ -362,7 +399,11 @@ uint8_t nvmPutBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, u
 
     while ( bytesLeft > pageBytesLeft ) {
 
-        rStat = nvmPutBytesInPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, pageBytesLeft );
+        rStat = nvmPutBytesInPage( rNum, 
+                                   i2cAdr, 
+                                   ofs + len - bytesLeft, 
+                                   buf + len - bytesLeft, 
+                                   pageBytesLeft );
         if ( rStat != ALL_OK ) break;
 
         bytesLeft       -= pageBytesLeft;
@@ -373,7 +414,11 @@ uint8_t nvmPutBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, u
 
     if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
 
-       rStat = nvmPutBytesInPage( rNum, i2cAdr, ofs + len - bytesLeft, buf + len - bytesLeft, bytesLeft );
+       rStat = nvmPutBytesInPage( rNum, 
+                                  i2cAdr, 
+                                  ofs + len - bytesLeft, 
+                                  buf + len - bytesLeft,
+                                  bytesLeft );
        CDC::sleepMillis( NVM_WRITE_DELAY );
     }
 
@@ -381,8 +426,8 @@ uint8_t nvmPutBytes( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint8_t *buf, u
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmClearArea" wipes out an area of the NVM chip. To speed up the writing, we fill a local buffer with 
-// the value and then write blocks at a time.
+// "nvmClearArea" wipes out an area of the NVM chip. To speed up the writing, we fill a
+// local buffer with the value and then write blocks at a time.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nvmClearArea( uint8_t rNum, uint8_t i2cAdr, uint32_t ofs, uint32_t len, uint8_t val ) {
@@ -449,19 +494,28 @@ uint8_t configNvm(  uint8_t     rIdNvm,
 }
 
 //----------------------------------------------------------------------------------------
-// Controller Board Runtime Map access routines. The runtime map occupies the first 8 Kbytes of the main 
-// controller NVM chip. There are routines for getting and setting a word as well as routines to read and 
-// write a buffer. All access routines are prefixed with "rt".
+// Controller Board Runtime Map access routines. The runtime map occupies the first 
+// 8 Kbytes of the main controller NVM chip. There are routines for getting and setting
+// a word as well as routines to read and write a buffer. All access routines are 
+// prefixed with "rt".
 //
 //----------------------------------------------------------------------------------------
 uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( rNumNvm, 
+                          NVM_I2C_ADR_ROOT + 0, 
+                          ofs, 
+                          (uint8_t *) &word, 
+                          sizeof( uint16_t )));
 }
 
 uint8_t rtNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( rNumNvm, 
+                          NVM_I2C_ADR_ROOT + 0, 
+                          ofs, 
+                          (uint8_t *) word, 
+                          sizeof( uint16_t )));
 }
 
 uint8_t rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
@@ -485,10 +539,11 @@ uint32_t rtNvmGetSize( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Extension Board Map access routines. These routines access the NVM on the extension board. The I2C address
-// is formed by the chip common I2C address plus the address bits of the chip to select the chip on the 
-// particular extension board. Similar to the runtime NVM access routines, there are routines for getting 
-// and setting a word as well as routines to read and  write a buffer. All access routines are prefixed with
+// Extension Board Map access routines. These routines access the NVM on the extension
+// board. The I2C address is formed by the chip common I2C address plus the address bits
+// of the chip to select the chip on the particular extension board. Similar to the 
+// runtime NVM access routines, there are routines for getting and setting a word as
+// well as routines to read and  write a buffer. All access routines are prefixed with
 // "ext".
 //
 //----------------------------------------------------------------------------------------
@@ -528,31 +583,43 @@ uint32_t extNvmGetSize( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Controller Board User Map access routines. The area between the main controller NVM chip runtime area and
-// the chips hardware maximum size is the memory area available for the firmware programmer. Again, there 
-// are routines for getting and setting a word as well as routines to read and  write a buffer. All access 
-// routines are prefixed with "usr".
+// Controller Board User Map access routines. The area between the main controller NVM 
+// chip runtime area and the chips hardware maximum size is the memory area available 
+// for the firmware programmer. Again, there are routines for getting and setting a word
+// as well as routines to read and  write a buffer. All access routines are prefixed 
+// with "usr".
 //
 //----------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) &word, sizeof( uint16_t )));
+    return ( nvmPutBytes( rNumNvm, 
+                          NVM_I2C_ADR_ROOT + 0, 
+                          ofs, 
+                          (uint8_t *) &word, 
+                          sizeof( uint16_t )));
 }
 
 uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, (uint8_t *) word, sizeof( uint16_t )));
+    return ( nvmGetBytes( rNumNvm, 
+                          NVM_I2C_ADR_ROOT + 0, 
+                          ofs, 
+                          (uint8_t *) word, 
+                          sizeof( uint16_t )));
 }
 
 uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
     return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
@@ -560,7 +627,8 @@ uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
 uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
     return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
@@ -568,7 +636,8 @@ uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
 uint32_t usrNvmGetSize( ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
     return ( nodeNvmSize - NVM_RUNTIME_MAPS_SIZE );
 }
 

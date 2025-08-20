@@ -3,10 +3,10 @@
 // LCS - Driver Library Code for SERVO boards
 //
 ///---------------------------------------------------------------------------------------
-// This source file contains the lower level library for all the servo extension board. We also call this
-// library a "driver". The driver provides a set of defined interfaces to the upper level extension library.
-// Being a driver, it truly knows the hardware underneath and maps the upper level calls to the lower level
-// hardware calls to make.
+// This source file contains the lower level library for all the servo extension board.
+// We also call this library a "driver". The driver provides a set of defined interfaces
+// to the upper level extension library. Being a driver, it truly knows the hardware
+// underneath and maps the upper level calls to the lower level hardware calls to make.
 //
 ///---------------------------------------------------------------------------------------
 //
@@ -28,9 +28,9 @@
 #include "LcsDrvServoLib.h"
 
 ///---------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name space with all internal
-// variables and routines local to the file. The second part contains the exported routines to be called by
-// the core library and the firmware designers.
+// Local name space. This file has two sections. The first is this local name space with
+// all internal variables and routines local to the file. The second part contains the 
+// exported routines to be called by the core library and the firmware designers.
 //
 ///---------------------------------------------------------------------------------------
 namespace {
@@ -107,26 +107,26 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
     return ( true );
 }
 
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   //
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   void init( ) {
 
     // WIRE.begin( );
     // reset( );
   }
 
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   //
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   void reset( ) {
 
     // writeI2C( PCA9685_MODE_1, 0 );
   }
 
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   //
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   void setPwmFreq( float freq ) {
 
 
@@ -153,11 +153,11 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
 
   }
 
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   //
-  //----------------------------------------------------------------------------------------------------------
-  // ??? idea: set the LED duty cycle staggered in the 4096 bit window, such that not all LEDs will draw
-  // current at the same time.
+  //--------------------------------------------------------------------------------------
+  // ??? idea: set the LED duty cycle staggered in the 4096 bit window, such that not
+  //  all LEDs will draw current at the same time.
 
   void setPwm( uint8_t ledNum, uint16_t on, uint16_t off ) {
 
@@ -174,9 +174,9 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
   */
   }
 
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   //
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   void setLed( uint8_t ledNum, uint16_t val, bool invert ) {
 
   /*
@@ -197,9 +197,9 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
   }
 
 
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   //
-  //----------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------
   // ??? will go into CDC....
 
   uint8_t readI2C( uint8_t adr ) {

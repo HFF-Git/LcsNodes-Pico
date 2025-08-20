@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file at the LcsDrvServoLib directory level
 #
-#  Copyright (C) 2024 - 2024  Helmut Fieres
+#  Copyright (C) 2024 - 2025  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsDrvServoLib C CXX ASM )
 

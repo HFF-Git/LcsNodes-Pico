@@ -7,7 +7,7 @@
 #include <stdint.h> // uint32_t
 #include <string.h> // memset
 
-// #include "RP2040.h" // hw_set_bits    --- out cannot be found, use "platform_defs.h -- changed HFF
+// #include "RP2040.h" // hw_set_bits  --- out cannot be found, use "platform_defs.h -- changed HFF
 
 #include "hardware/platform_defs.h"
 #include "hardware/sync.h"     // --- new, contains the dmb( ) function.

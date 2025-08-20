@@ -3,25 +3,22 @@
 // Layout Control System - Runtime Library Firmware Update.
 //
 //----------------------------------------------------------------------------------------
-// The file contains the part of the LCS Runtime Library that implements the 
-// node event handling. At the heart of LCS is the concept of events. Events 
-// are broadcasted by a node and any other node interested in them registers an
-// event callback. The runtime functions provide the management of the event 
-// map and the search routines.
+// The file contains the part of the LCS Runtime Library that implements the node even
+// handling. At the heart of LCS is the concept of events. Events are broadcasted by a
+// node and any other node interested in them registers an event callback. The runtime
+// functions provide the management of the event map and the search routines.
 //
-// The event map can be found as a MEM and an NVM structure. During operations, 
-// the sorted MEM event map is the map to work with. Entries are sorted by 
-// eventId. New events can be added, old removed and the map can be searched. 
-// There is a SYNC function to write the contents of the MEM event map to the 
-// NVM event map. The idea is that all changes are made to the MEM version and
-// then written back in one swoop.
+// The event map can be found as a MEM and an NVM structure. During operations, the 
+// sorted MEM event map is the map to work with. Entries are sorted by eventId. New 
+// events can be added, old removed and the map can be searched. There is a SYNC function
+// to write the contents of the MEM event map to the NVM event map. The idea is that all
+// changes are made to the MEM version and then written back in one swoop.
 //
-// On node start or reset, the NVM event map is read as part of the overall 
-// setup process. Since we only write a sorted version to the NVM event map, 
-// we can always assume a sorted NVM version, except when the eventMap high 
-// water mark is not valid. In this case we read entry by entry from the NVM 
-// and add it sorted to the MEM twin. The high water mark specifies the number 
-// of entires actually used.
+// On node start or reset, the NVM event map is read as part of the overall setup process.
+// Since we only write a sorted version to the NVM event map, we can always assume a 
+// sorted NVM version, except when the eventMap high water mark is not valid. In this
+// case we read entry by entry from the NVM and add it sorted to the MEM twin. The high
+// water mark specifies the number of entires actually used.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -85,8 +82,8 @@ uint8_t errStat( uint8_t errId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "compareEventEntry" is a little helper function to compare event and portId
-// to the data in an eventMap entry.
+// "compareEventEntry" is a little helper function to compare event and portId to the
+// data in an eventMap entry.
 //
 //----------------------------------------------------------------------------------------
 int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
@@ -97,8 +94,8 @@ int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The event map search function performs a binary search of the event map. If 
-// the entry cannot be found, a -1 is returned.
+// The event map search function performs a binary search of the event map. If the entry
+// cannot be found, a -1 is returned.
 //
 //----------------------------------------------------------------------------------------
 int searchEventMap( uint16_t eventId ) {
@@ -134,9 +131,9 @@ int searchEventMap( uint16_t eventId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "addToMemEventMap" adds an event / port combination to the MEM event map if 
-// not already there. Given there is still room in the table, the entry is added
-// in sorted order.
+// "addToMemEventMap" adds an event / port combination to the MEM event map if not
+// already there. Given there is still room in the table, the entry is added in sorted 
+// order.
 //
 //----------------------------------------------------------------------------------------
 uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
@@ -179,8 +176,8 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "removeFromMemEventMap" removes an entry from the memory event map. The 
-// sorted order is maintained.
+// "removeFromMemEventMap" removes an entry from the memory event map. The sorted order
+// is maintained.
 //
 //----------------------------------------------------------------------------------------
 uint8_t removeFromMemEventMap( uint16_t eventId ) {
@@ -212,8 +209,8 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// The "addEvent" routine will add or update an eventId/eventMask combination 
-// in the event map.
+// The "addEvent" routine will add or update an eventId/eventMask combination in the
+// event map.
 //
 //----------------------------------------------------------------------------------------
 uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
@@ -227,9 +224,8 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The "removeEvent" routine will remove an event Id / port Id from the MEM 
-// event map. If the port ID is NIL_PORT_ID, all port map entries matching 
-// event Id are removed.
+// The "removeEvent" routine will remove an event Id / port Id from the MEM event map.
+// If the port ID is NIL_PORT_ID, all port map entries matching event Id are removed.
 //
 //----------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId ) {
@@ -243,10 +239,10 @@ uint8_t removeEvent( uint16_t eventId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The event search function performs a binary search of the event map using the
-// event Id and the port Id. If the port Id is NIL, a matching entry with lowest
-// portId is returned. All eventMap entries with the same eventId follow. If the
-// entry cannot be found, a -1 is returned.
+// The event search function performs a binary search of the event map using the event
+// Id and the port Id. If the port Id is NIL, a matching entry with lowest portId is
+// returned. All eventMap entries with the same eventId follow. If the entry cannot be
+// found, a -1 is returned.
 //
 //----------------------------------------------------------------------------------------
 int searchEvent( uint16_t eventId ) {
@@ -260,10 +256,10 @@ int searchEvent( uint16_t eventId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "syncEventMap" will write back the sorted MEM event map. We only write up to
-// the HWM mark, which points right after the last element in the sorted MEM 
-// event map. The idea is that all adds and removes are done on the MEM event 
-// map and a SYNC control call will flush the sorted MEM event map to NVM.
+// "syncEventMap" will write back the sorted MEM event map. We only write up to the HWM
+// mark, which points right after the last element in the sorted MEM event map. The
+// idea is that all adds and removes are done on the MEM event map and a SYNC control 
+// call will flush the sorted MEM event map to NVM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
@@ -288,9 +284,9 @@ uint8_t syncEventMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "getMemEmapEntry" returns the eventId and event mask pair from the MEM event
-// map. It is used by the console command interface and the LCS message request
-// handler to obtain that data. The index starts at 0.
+// "getMemEmapEntry" returns the eventId and event mask pair from the MEM event map. It
+// is used by the console command interface and the LCS message request handler to obtain
+// that data. The index starts at 0.
 //
 //----------------------------------------------------------------------------------------
 uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask ) {

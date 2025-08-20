@@ -3,13 +3,13 @@
 // UILedElements - implementation file.
 //
 //----------------------------------------------------------------------------------------
-// LEDs are UIElements that can be turned on and off, toggled and blink. They are rather straightforward.
-// There is a callback function to retrieve the data for the LED.
+// LEDs are UIElements that can be turned on and off, toggled and blink. They are rather
+// straightforward. There is a callback function to retrieve the data for the LED.
 //
 //----------------------------------------------------------------------------------------
 //
 // UILedElements
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -31,9 +31,10 @@
 namespace {
 
 //----------------------------------------------------------------------------------------
-// LEDs can blink. All LEDs will be configured with the same blink interval value. Another option would be
-// to spend each LEd its own interval, but this would just ramp up the storage requirement and perhaps
-// rarely used. So for now, all LEDs have the same blink interval.
+// LEDs can blink. All LEDs will be configured with the same blink interval value. 
+// Another option would be to spend each LEd its own interval, but this would just ramp
+// up the storage requirement and perhaps rarely used. So for now, all LEDs have the 
+// same blink interval.
 //
 //----------------------------------------------------------------------------------------
 const uint16_t DEFAULT_BLINK_TICKS    = 1000;

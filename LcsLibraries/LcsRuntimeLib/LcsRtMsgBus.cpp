@@ -4,12 +4,13 @@
 // Layout Control System - LCS Message routines. 
 //
 //----------------------------------------------------------------------------------------
-//  At the message level, the LCS runtime offers a message bus to which all nodes are connected. Currently,
-// it is a CAN bus. Pretty straightforward and robust. This file contains the routines to set up the node
-// communication as well as a set of convenience functions for sending a LCS message taking care of filling
-// the message frame. Some LCS message are of a "request/reply" nature. When a request is sent out a entry is
-// made in the pending request map. Since the message layer sees all reply message, this pending map is used 
-// to filter for the request we are waiting for.
+//  At the message level, the LCS runtime offers a message bus to which all nodes are 
+// connected. Currently, it is a CAN bus. Pretty straightforward and robust. This file
+// contains the routines to set up the node communication as well as a set of convenience
+// functions for sending a LCS message taking care of filling the message frame. Some 
+// LCS message are of a "request/reply" nature. When a request is sent out a entry is
+// made in the pending request map. Since the message layer sees all reply message, this
+// pending map is used to filter for the request we are waiting for.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -96,13 +97,15 @@ uint8_t highByte( uint16_t arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// There are some LCS messages that expect a reply message. The library maintains a small pending request
-// buffer. When a request type message is sent we add the target node and a timer value to the buffer. Easy 
-// and simple. Note that there can be more than one entry for the same node / port combination in the buffer.
-// If the buffer is full, an error is returned. We have too many outstanding requests then.
+// There are some LCS messages that expect a reply message. The library maintains a small
+// pending request buffer. When a request type message is sent we add the target node and
+// a timer value to the buffer. Easy and simple. Note that there can be more than one 
+// entry for the same node / port combination in the buffer. If the buffer is full, an
+// error is returned. We have too many outstanding requests then.
 // 
-// A request can also be registered with a timeout value. When the timeout expires, the caller is informed
-// that the request timed out. A timeout value of zero means that we wait indefinitely.
+// A request can also be registered with a timeout value. When the timeout expires, the
+// caller is informed that the request timed out. A timeout value of zero means that we
+// wait indefinitely.
 //
 //----------------------------------------------------------------------------------------
 uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
@@ -123,8 +126,9 @@ uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "removeFromPendingReqMap" removes an entry from the pending reply buffer. If the entry is not found, we
-// received a reply for a request that we do not know. Right now, we just ignore this error.
+// "removeFromPendingReqMap" removes an entry from the pending reply buffer. If the entry
+// is not found, we received a reply for a request that we do not know. Right now, we 
+// just ignore this error.
 //
 //----------------------------------------------------------------------------------------
 uint8_t removeFromPendingReqMap( uint16_t npId ) {
@@ -138,8 +142,8 @@ uint8_t removeFromPendingReqMap( uint16_t npId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "searchPendingReqMap" searches the pending request buffer for a matching node. We just return a boolean
-// answer whether the entry is there or not.
+// "searchPendingReqMap" searches the pending request buffer for a matching node. We just
+// return a boolean answer whether the entry is there or not.
 //
 //----------------------------------------------------------------------------------------
 bool searchPendingReqMap( uint16_t npId ) {
@@ -153,9 +157,9 @@ bool searchPendingReqMap( uint16_t npId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "processPendingReqMapTimeouts" is part of the periodic processing of the node. It will check wether any
-// requests waiting for a reply have timed out. In this case, we should invoke the reply callback with an 
-// error code and clear the entry.
+// "processPendingReqMapTimeouts" is part of the periodic processing of the node. It will
+// check wether any requests waiting for a reply have timed out. In this case, we should
+// invoke the reply callback with an error code and clear the entry.
 //
 //----------------------------------------------------------------------------------------
 void processPendingReqMapTimeouts( ) {
@@ -188,20 +192,23 @@ void processPendingReqMapTimeouts( ) {
 //----------------------------------------------------------------------------------------
 uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) 
+        return ( ERR_LIB_NOT_READY );
     return ( msgBus -> sendLcsMsg( msg, msgPri ));
 }
 
 //----------------------------------------------------------------------------------------
-// Some messages are requests that expect a reply. We maintain a pending request map which keeps track of 
-// outstanding requests. In addition we can pass a timeout value to handle cases where no reply is received
-// in a given time interval.
+// Some messages are requests that expect a reply. We maintain a pending request map 
+// which keeps track of outstanding requests. In addition we can pass a timeout value to
+// handle cases where no reply is received in a given time interval.
 //
 //----------------------------------------------------------------------------------------
 uint8_t sendTimedReq( uint16_t npId, uint8_t *msg, uint8_t msgPri, uint32_t timeout = 0 ) {
 
-    if ( addToPendingReqMap( npId , timeout ) == ALL_OK )   return ( sendLcsMsg( msg, msgPri ));
-    else                                                    return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
+    if ( addToPendingReqMap( npId , timeout ) == ALL_OK )   
+        return ( sendLcsMsg( msg, msgPri ));
+    else                                                    
+        return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
 }
 
 }; // namespace
@@ -225,11 +232,12 @@ void printLcsMsg( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The primary task of the receive function is to receive an LCS messages and pass them to the respective
-// handler method. In order to not always check whether a valid message was processed, this routine will
-// always return a valid message opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something
-// else happened and no further message processing is required. We also maintain a request / reply map to
-// keep track of outstanding requests transparently to the caller.
+// The primary task of the receive function is to receive an LCS messages and pass them
+// to the respective handler method. In order to not always check whether a valid message
+// was processed, this routine will always return a valid message opCode. The "LCS_NO_MSG"
+// pseudo message is used to indicate that something else happened and no further message 
+// processing is required. We also maintain a request / reply map to keep track of 
+// outstanding requests transparently to the caller.
 //
 //----------------------------------------------------------------------------------------
 uint8_t receiveLcsMsg( uint8_t *msg ) {
@@ -243,7 +251,9 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
              printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
         }
 
-        if (( msg[ 0 ] == LCS_OP_NODE_REP ) || ( msg[ 0 ] == LCS_OP_ACK ) || ( msg[ 0 ] == LCS_OP_ERR )) {
+        if (( msg[ 0 ] == LCS_OP_NODE_REP ) || 
+            ( msg[ 0 ] == LCS_OP_ACK ) || 
+            ( msg[ 0 ] == LCS_OP_ERR )) {
 
              uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
@@ -260,14 +270,15 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// LCB message send routines. They all follow the same pattern. There is a method for each message opcode,
-// which maps the input parameters to the byte array and then send it. Depending on the type of sending
-// there are different local routines used. Straightforward.
+// LCB message send routines. They all follow the same pattern. There is a method for
+// each message opcode, which maps the input parameters to the byte array and then send
+// it. Depending on the type of sending there are different local routines used.
 //
 //----------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t npId ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) 
+        return ( ERR_LIB_NOT_READY );
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_CFG };
     msgBuf[ 1 ] = highByte( npId );
@@ -507,7 +518,12 @@ uint8_t sendRelLoc( uint8_t sId ) {
     return ( sendLcsMsg( msgBuf, MSG_PRI_NORMAL ));
 }
 
-uint8_t sendRepLoc( uint8_t sId, uint16_t locAdr, uint8_t spDir, uint8_t fn1, uint8_t fn2, uint8_t fn3  ) {
+uint8_t sendRepLoc( uint8_t sId, 
+                    uint16_t locAdr, 
+                    uint8_t spDir, 
+                    uint8_t fn1, 
+                    uint8_t fn2, 
+                    uint8_t fn3  ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REP_LOC };
     msgBuf[ 1 ] = sId;
@@ -660,7 +676,11 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 ) 
     return ( sendLcsMsg( msgBuf, MSG_PRI_NORMAL ));
 }
 
-uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, uint8_t arg5 ) {
+uint8_t sendDccPacket( uint8_t arg1, 
+                       uint8_t arg2, 
+                       uint8_t arg3, 
+                       uint8_t arg4, 
+                       uint8_t arg5 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SEND_DCC5 };
     msgBuf[ 1 ] = arg1;
@@ -671,7 +691,12 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, u
     return ( sendLcsMsg( msgBuf, MSG_PRI_NORMAL ));
 }
 
-uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4, uint8_t arg5, uint8_t arg6 ) {
+uint8_t sendDccPacket( uint8_t arg1, 
+                       uint8_t arg2, 
+                       uint8_t arg3, 
+                       uint8_t arg4, 
+                       uint8_t arg5, 
+                       uint8_t arg6 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SEND_DCC6 };
     msgBuf[ 1 ] = arg1;

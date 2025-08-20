@@ -82,14 +82,16 @@ const uint8_t* fontList[] = {
 } // namespace
 
 
-//============================================================================================================
+//========================================================================================
+//
 // UIDisplay Section.
-//============================================================================================================
+//
+//========================================================================================
 
 
 //----------------------------------------------------------------------------------------
-// The base class constructor. A display features a row x column matrix for ASCII display. The maximum matrix
-// size is set from the display type passed.
+// The base class constructor. A display features a row x column matrix for ASCII display. 
+// The maximum matrix size is set from the display type passed.
 //
 // ???? we think in 8x8 !!!!!!
 //----------------------------------------------------------------------------------------
@@ -134,15 +136,18 @@ UIDisplay::UIDisplay( uint8_t dType ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Each UIElement has a function to process period work. So far, for displays, there is nothing to do. But
-// perhaps one day for example, we implement blinking characters on an Oled or so. Until then ...
+// Each UIElement has a function to process period work. So far, for displays, there is
+// nothing to do. But perhaps one day for example, we implement blinking characters on 
+// an OLed or so. Until then ...
 //
 //----------------------------------------------------------------------------------------
 void  UIDisplay::processTick( ) { }
 
-//============================================================================================================
+//========================================================================================
+//
 // UIDisplayLcdI2C Section.
-//============================================================================================================
+//
+//========================================================================================
 
 //----------------------------------------------------------------------------------------
 // LCD with an I2C interface.
@@ -195,19 +200,21 @@ void UIDisplayLcdI2C::clear( ) {
   lcd -> clear( );
 }
 
-//============================================================================================================
+//========================================================================================
 // UIDisplayOled Section.
-//============================================================================================================
+//========================================================================================
 
 //----------------------------------------------------------------------------------------
-// Oled Version using the SSD1306 controller chip. There is no nice mapping of display function via base
-// class inheritance, as used in the LiquidCrystal displays. We need to create the OLed display object and
-// implement each generic display function if possible. The Oled Display Class implements three methods.
-// "setCursor" sets the cursor to the desired row and columns. These values are however depending on the
-// current font. The column, measured in pixels, is computed to be the column parameter times the font width
-// of the current font. The display row and column parameter need to be multiplied with the dimensions
-// needed for the current font measured in multiple of 8 pixels. The "print" and "clear" methods just pass
-// through to their specific Oled Display Class counterparts.
+// Oled Version using the SSD1306 controller chip. There is no nice mapping of display 
+// function via base class inheritance, as used in the LiquidCrystal displays. We need 
+// to create the OLed display object and implement each generic display function if 
+// possible. The Oled Display Class implements three methods. "setCursor" sets the cursor
+// to the desired row and columns. These values are however depending on the current font.
+// The column, measured in pixels, is computed to be the column parameter times the font 
+// width of the current font. The display row and column parameter need to be multiplied
+// with the dimensions needed for the current font measured in multiple of 8 pixels. The
+// "print" and "clear" methods just pass through to their specific Oled Display Class 
+// counterparts.
 //
 // ??? watch out what display HW you really have ... it may otherwise not work...
 //----------------------------------------------------------------------------------------

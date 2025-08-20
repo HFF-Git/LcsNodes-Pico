@@ -3,12 +3,11 @@
 // Layout Control System - Command Interpreter
 //
 //----------------------------------------------------------------------------------------
-// Based on the Raspberry Pi PICO controller USB interface, the LCS node has an
-// option to accept commands and display data. This interface is used for manual 
-// node and extension board configuration as well as debug and troubleshooting. 
-// Most commands are sensitive to the node/port ID. If there is another node than
-// our own node, specified with a zero node ID value, the commands is sent via the
-// bus to that node.
+// Based on the Raspberry Pi PICO controller USB interface, the LCS node has an option
+// to accept commands and display data. This interface is used for manual node and 
+// extension board configuration as well as debug and troubleshooting. Most commands are
+// sensitive to the node/port ID. If there is another node than our own node, specified
+// with a zero node ID value, the commands is sent via the  bus to that node.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -70,12 +69,15 @@ using namespace LCS;
 char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
 //----------------------------------------------------------------------------------------
-// "dumpMemData" lists the memory data content of the storage area passed. The data is displayed in 16-bit 
-// quantities.  Because the PICO uses little-endian format, ASCII characters may appear reversed when 
-// interpreted directly.
+// "dumpMemData" lists the memory data content of the storage area passed. The data is
+// displayed in 16-bit  quantities.  Because the PICO uses little-endian format, ASCII 
+// characters may appear reversed when interpreted directly.
 //
 //----------------------------------------------------------------------------------------
-void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool printAscii = false ) {
+void dumpMemData( uint16_t *area, 
+                  uint16_t len,
+                  uint8_t itemsPerLine = 8,
+                   bool printAscii = false ) {
 
     uint16_t  index   = 0;
     uint16_t  limit   = ( len + 1 ) / 2; 
@@ -104,11 +106,15 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool p
 
                 if ( index + i < limit ) {
 
-                    if ( isprint( ptr[ index + i ] >> 8  )) printf( "%c", ptr[ index + i ] >> 8 );
-                    else                                    printf( "." );
+                    if ( isprint( ptr[ index + i ] >> 8  )) 
+                        printf( "%c", ptr[ index + i ] >> 8 );
+                    else                                   
+                        printf( "." );
 
-                    if ( isprint( ptr[ index + i ] & 0xff )) printf( "%c ", ptr[ index + i ] & 0xff );
-                    else                                     printf( ". " );
+                    if ( isprint( ptr[ index + i ] & 0xff )) 
+                        printf( "%c ", ptr[ index + i ] & 0xff );
+                    else                                     
+                        printf( ". " );
                 }
             }
         }
@@ -120,12 +126,16 @@ void dumpMemData( uint16_t *area, uint16_t len, uint8_t itemsPerLine = 8, bool p
 }
 
 //----------------------------------------------------------------------------------------
-// List the NVM storage data. The function receives the absolute byte offset within the NVM area and the 
-// length in bytes. The data is displayed in 16-bit quantities. Because the PICO uses little-endian format, 
-// ASCII characters may appear reversed when interpreted directly.
+// List the NVM storage data. The function receives the absolute byte offset within the
+// NVM area and the length in bytes. The data is displayed in 16-bit quantities. Because
+// the PICO uses little-endian format, ASCII characters may appear reversed when 
+// interpreted directly.
 //
 //----------------------------------------------------------------------------------------
-void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool printAscii = false ) {
+void dumpNvmData( uint32_t start, 
+                  uint32_t len, 
+                  uint32_t itemsPerLine = 8, 
+                  bool printAscii = false ) {
 
     uint8_t     rStat = ALL_OK;
     uint32_t    limit = start + len;
@@ -150,7 +160,8 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool 
 
             if ( start + ( itemsPerLine * sizeof(uint16_t)) >= limit ) {
 
-                int tmp = ( start + ( itemsPerLine * sizeof(uint16_t)) - limit ) / sizeof( uint16_t);
+                int tmp = ( start + ( itemsPerLine * sizeof(uint16_t)) - limit ) /
+                                                                     sizeof( uint16_t);
                 for ( int i = 0; i < tmp; i++ ) printf( "       " );
             };
 
@@ -181,11 +192,14 @@ void dumpNvmData( uint32_t start, uint32_t len, uint32_t itemsPerLine = 8, bool 
 }
 
 //----------------------------------------------------------------------------------------
-// List extension board NVM storage data. We are passed the absolute offset into the NVM area and the 
-// length in bytes.
+// List extension board NVM storage data. We are passed the absolute offset into the NVM
+// area and the length in bytes.
 //
 //----------------------------------------------------------------------------------------
-void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t itemsPerLine = 8 ) {
+void dumpExtNvmData( uint8_t boardId, 
+                     uint32_t start, 
+                     uint32_t len, 
+                     uint32_t itemsPerLine = 8 ) {
 
     uint8_t     rStat = ALL_OK;
     uint32_t    limit = start + len;
@@ -230,8 +244,8 @@ void dumpExtNvmData( uint8_t boardId, uint32_t start, uint32_t len, uint32_t ite
 }
 
 //----------------------------------------------------------------------------------------
-// Routines to list contents of the various memory areas. Right now, we just dump out hex data. It would be 
-// nice to show formatted data. Perhaps one day...
+// Routines to list contents of the various memory areas. Right now, we just dump out 
+// hex data. It would be nice to show formatted data. Perhaps one day...
 //
 //----------------------------------------------------------------------------------------
 void printSummary( ) {
@@ -246,7 +260,8 @@ void printSummary( ) {
     }
      
     printf( "\", State: %d\n", nodeMap.nodeState );
-    printf( "LCS Library Version: %d.%d\n", nodeMap.rtLibSwVersion >> 8, nodeMap.rtLibSwVersion & 0xFF );
+    printf( "LCS Library Version: %d.%d\n", 
+            nodeMap.rtLibSwVersion >> 8, nodeMap.rtLibSwVersion & 0xFF );
 }
 
 void dumpMemHeaderMap( ) {
@@ -282,21 +297,24 @@ void dumpMemNodeData( ) {
     for ( int i  = 0; i < MAX_NODE_DATA_BLOCKS; i++ ) {
 
         printf( "Port %d:\n", i );
-        dumpMemData((uint16_t *) &nodeData.map[ i ], MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
+        dumpMemData((uint16_t *) &nodeData.map[ i ], 
+                    MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
         printf( "\n" );
     }
 }
 
 void dumpMemEventMap( ) {
 
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
+            MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
     dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
 }
 
 void dumpMemPendingReqMap( ) {
 
-    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", MAX_PENDING_REQ_MAP_ENTRIES, pendingReqMap.mapHwm );
+    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", 
+            MAX_PENDING_REQ_MAP_ENTRIES, pendingReqMap.mapHwm );
     dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
     printf( "\n" );
 }
@@ -310,7 +328,8 @@ void dumpMemTaskMap( ) {
 
 void dumpMemDrvFuncMap( ) {
 
-    printf( "MEM Driver Function Map: (Size: %d, Hwm: %d) \n\n", MAX_DRV_TYPE_MAP_ENTRIES, drvFuncMap.mapHwm );
+    printf( "MEM Driver Function Map: (Size: %d, Hwm: %d) \n\n", 
+            MAX_DRV_TYPE_MAP_ENTRIES, drvFuncMap.mapHwm );
 
     for ( int i  = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
@@ -334,8 +353,8 @@ void dumpMemRuntimeArea( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Routines to list contents of the various NVM areas. Right now, we just dump out hex data. It would be 
-// nice to show formatted data. Perhaps one day...
+// Routines to list contents of the various NVM areas. Right now, we just dump out hex 
+// data. It would be nice to show formatted data. Perhaps one day...
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmHeaderMap( ) {
@@ -395,8 +414,9 @@ void dumpNvmUserArea( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Print memory structures in a formatted way. Note that not all memory structures are printed. Some of the 
-// maps contain dynamic data, which changed rapidly. There is no point in showing that kind of data.
+// Print memory structures in a formatted way. Note that not all memory structures are 
+// printed. Some of the maps contain dynamic data, which changed rapidly. There is no 
+// point in showing that kind of data.
 //
 //----------------------------------------------------------------------------------------
 void printMemNodeMap( ) {
@@ -410,7 +430,8 @@ void printMemNodeMap( ) {
 
 void printMemPortMap( ) {
 
-    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
+    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", 
+            MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -428,7 +449,8 @@ void printMemPortMap( ) {
  
 void printMemEventMap( ) {
 
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
+    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
+            MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
 
     // print the entries up to the HWM, 4 in a row ?
    
@@ -503,9 +525,9 @@ void errorStatusMsg( char *msg, uint8_t ret ) {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "c" switches a node to CFG mode. For a local node command, we construct the LCS_OP_CFG message payload
-// data and invoke the msg handler for switching the node mode. For any other node, we will just send a LCS 
-// message.
+// "c" switches a node to CFG mode. For a local node command, we construct the LCS_OP_CFG
+// message payload data and invoke the msg handler for switching the node mode. For any 
+// other node, we will just send a LCS message.
 //
 //    c [ npId ]
 //
@@ -532,9 +554,9 @@ void switchToConfigCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "o" switches the nodes to OPS mode. For a local node command, we construct the LCS_OP_OPS message payload
-// data and invoke the msg handler for switching the node mode. For any other node, we will just send a LCS 
-// message.
+// "o" switches the nodes to OPS mode. For a local node command, we construct the 
+// LCS_OP_OPS message payload data and invoke the msg handler for switching the node 
+// mode. For any other node, we will just send a LCS message.
 //
 //    o [ npId ]
 //
@@ -559,8 +581,9 @@ void switchToOperationsCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "a" adds an eventId / portId to the event map. If the portId is omitted, every port of the node will be 
-// registered for the event. For a non-local npId we will send a message.
+// "a" adds an eventId / portId to the event map. If the portId is omitted, every port
+// of the node will be registered for the event. For a non-local npId we will send a 
+// message.
 //
 //      a npId eventId [ portId ]
 //
@@ -583,19 +606,25 @@ void enterEventCommand( char *s ) {
 
    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
-        uint8_t ret = nodeReq((uint16_t) tmpNpId, ITEM_ID_ADD_EVENT_MAP_ENTRY, &tmpEvent, &tmpPort );
+        uint8_t ret = nodeReq( (uint16_t) tmpNpId,
+                                ITEM_ID_ADD_EVENT_MAP_ENTRY, 
+                                &tmpEvent, 
+                                &tmpPort );
        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node enter event error", ret );
     }
     else {
 
-        uint8_t ret = sendReqNode( nodeId( tmpNpId ), ITEM_ID_ADD_EVENT_MAP_ENTRY, tmpEvent, tmpPort );                  
+        uint8_t ret = sendReqNode( nodeId( tmpNpId ), 
+                                    ITEM_ID_ADD_EVENT_MAP_ENTRY, 
+                                    tmpEvent, 
+                                    tmpPort );                  
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "d" removes a eventId / portId combination from the event map. If the portId is omitted, all eventMap
-// entries with the eventId are removed.
+// "d" removes a eventId / portId combination from the event map. If the portId is 
+// omitted, all eventMap entries with the eventId are removed.
 //
 //      d npId eventId [ portId ]
 //
@@ -629,9 +658,9 @@ void removeEventCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "f" searches the event map for the eventId / portId combination and returns the index if found. If the
-// portId is omitted, the first event map entry with the matching eventId is returned. This is a local 
-// command and cannot be called from a remote node.
+// "f" searches the event map for the eventId / portId combination and returns the index
+// if found. If the portId is omitted, the first event map entry with the matching 
+// eventId is returned. This is a local command and cannot be called from a remote node.
 //
 //      f eventId [ portId ]
 //
@@ -654,8 +683,9 @@ void findEventCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "e" will send an event. We will broadcast a message and also simulates receiving an event on the local 
-// node. Sending to ourselves is also quite useful for debugging event callback handlers.
+// "e" will send an event. We will broadcast a message and also simulates receiving an 
+// event on the local node. Sending to ourselves is also quite useful for debugging event
+// callback handlers.
 //
 //    e mode npId eventId [ arg ]
 //
@@ -712,8 +742,8 @@ void sendEventCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "g" handles the node/port attribute query command. If the node is our node, we call the local access 
-// routines. Otherwise we send a message.
+// "g" handles the node/port attribute query command. If the node is our node, we call
+// the local access routines. Otherwise we send a message.
 //
 //    <!g npId item [ val1 [ val2 ]]>
 //
@@ -731,7 +761,8 @@ void getNodeCommand( char *s ) {
     int     arg2    = 0;
     uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) return ( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) 
+        return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t) item;
@@ -742,7 +773,8 @@ void getNodeCommand( char *s ) {
 
         ret = nodeGet ( tmpNpId, tmpItem, &tmpArg1, &tmpArg2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node GET error", ret );
-        else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", tmpNpId, tmpItem, tmpArg1, tmpArg2 );
+        else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", 
+                    tmpNpId, tmpItem, tmpArg1, tmpArg2 );
     }
     else {
 
@@ -752,8 +784,8 @@ void getNodeCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "p" handles the node or port attribute value set command. If the node is out node, we call the local 
-// access routines. Otherwise we send a message.
+// "p" handles the node or port attribute value set command. If the node is out node, 
+// we call the local access routines. Otherwise we send a message.
 //
 //    <!p npId item [ val1 [ val2 ]]>
 //
@@ -771,7 +803,8 @@ void putNodeCommand( char *s ) {
     int     val2    = 0;
     uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return ( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) 
+        return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -784,7 +817,8 @@ void putNodeCommand( char *s ) {
      
         ret = nodePut( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node PUT error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
+                    tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 
@@ -794,8 +828,8 @@ void putNodeCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "r" handles the node / port request command. If the node is out node, we call the local access routines.
-// Otherwise we send a message.
+// "r" handles the node / port request command. If the node is out node, we call the 
+// local access routines. Otherwise we send a message.
 //
 //    r npId item [ val1 [ val2 ]]
 //
@@ -813,7 +847,8 @@ void reqNodeCommand( char *s ) {
     int     val2    = 0;
     uint8_t ret     = ALL_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) return ( errorArgList( ));
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) 
+        return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -824,7 +859,8 @@ void reqNodeCommand( char *s ) {
      
         ret = nodeReq( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node REQ error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
+                    tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 
@@ -834,9 +870,9 @@ void reqNodeCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "B" broadcasts a LCS message. Mainly used for debugging purposes. Although most commands in the LCS
-// console interface can also send messages to other nodes, not all messages are covered. This command sends
-// any kind of message, even undefined ones. 
+// "B" broadcasts a LCS message. Mainly used for debugging purposes. Although most 
+// commands in the LCS console interface can also send messages to other nodes, not all
+// messages are covered. This command sends any kind of message, even undefined ones. 
 //
 //    B byte1 [ byte2 ... byte8 ]
 //
@@ -848,7 +884,8 @@ void broadcastLcsMsgCommand( char *s ) {
     int     inBuf[ 8 ]  = { 0 };
     uint8_t b[ 8 ]      = { 0 };
     uint8_t nBytes  = sscanf( s, "%i %i %i %i %i %i %i %i",
-                            inBuf, inBuf + 1, inBuf + 2, inBuf + 3, inBuf + 4, inBuf + 5, inBuf + 6, inBuf + 7 );
+                            inBuf, inBuf + 1, inBuf + 2, inBuf + 3, 
+                            inBuf + 4, inBuf + 5, inBuf + 6, inBuf + 7 );
 
     if ( nBytes >= 1 && nBytes <= 8 ) {
 
@@ -861,7 +898,8 @@ void broadcastLcsMsgCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "s" lists status information. The level argument specifies the what and the detail level.
+// "s" lists status information. The level argument specifies the what and the detail 
+// level.
 //
 //    s [ level ]
 //
@@ -910,7 +948,8 @@ void listStatusCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "?" lists core library help information. We just list the available commands and a short description.
+// "?" lists core library help information. We just list the available commands and a 
+// short description.
 //
 //    ?
 //
@@ -923,7 +962,8 @@ void listCoreLibHelpCommand( ) {
 
     printf( "a npId eventId [ npId ] - add an event to the event tab\n" );
     printf( "d npId eventId [ npId ] - remove an event from the event tab\n" );
-    printf( "e npId eventId mode [ arg ] - simulate sending an event ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
+    printf( "e npId eventId mode [ arg ] - simulate sending an event"
+            " ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
     printf( "f eventId [ npId ] - search an event on the event tab\n" );
     
     printf( "g npId item - gets a node attribute\n" );
@@ -962,8 +1002,8 @@ void listCoreLibHelpCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupSerialCommand" initializes the serial interface. We use the PICO USB as console IO. The CDC lib
-// contains functions for reading and writing to the console.
+// "setupSerialCommand" initializes the serial interface. We use the PICO USB as console
+// IO. The CDC lib contains functions for reading and writing to the console.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
@@ -972,13 +1012,14 @@ uint8_t setupSerialCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleSerialCommand" reads characters from the console. The command interpreter is a simple character
-// based input. Note that this routine is called as part of the runtime loop. Consequently, it cannot not 
-// block for IO. The interface is designed in a way that it assembles the character input when there are 
-// characters until a carriage return is received. The first character is the command. If it is not a 
-// command we know and there is a command line callback, the callback gets his chance to handle the input
-// string. Since we are pretty basic on a character by character basis, we also add a bit of luxury and 
-// echo back what was typed and also process the backspace character.
+// "handleSerialCommand" reads characters from the console. The command interpreter is a
+// simple character based input. Note that this routine is called as part of the runtime
+// loop. Consequently, it cannot not block for IO. The interface is designed in a way 
+// that it assembles the character input when there are characters until a carriage 
+// return is received. The first character is the command. If it is not a command we know
+// and there is a command line callback, the callback gets his chance to handle the input
+// string. Since we are pretty basic on a character by character basis, we also add a bit
+// of luxury and echo back what was typed and also process the backspace character.
 //
 //----------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
@@ -997,8 +1038,8 @@ uint8_t handleSerialCommand( ) {
 
                     switch ( commandBuf[ 0 ] ) {
 
-                        case 'C': switchToConfigCommand( commandBuf + 1 );        break;
-                        case 'O': switchToOperationsCommand( commandBuf + 1 );    break;
+                        case 'C': switchToConfigCommand( commandBuf + 1 );      break;
+                        case 'O': switchToOperationsCommand( commandBuf + 1 );  break;
                         
                         case 'a': enterEventCommand( commandBuf + 1 );          break;
                         case 'd': removeEventCommand( commandBuf + 1 );         break;
@@ -1033,14 +1074,16 @@ uint8_t handleSerialCommand( ) {
             case '\b': {
 
                 printf( "\b \b" );
-                if ( strlen( commandBuf ) > 0 ) commandBuf[ strlen( commandBuf ) - 1 ] = '\0';
+                if ( strlen( commandBuf ) > 0 ) 
+                    commandBuf[ strlen( commandBuf ) - 1 ] = '\0';
 
             } break;
 
             default: {
 
                 printf( "%c", c );
-                if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) strncat( commandBuf, &c, 1 );
+                if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) 
+                    strncat( commandBuf, &c, 1 );
             }
         }
     }

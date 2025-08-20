@@ -3,19 +3,22 @@
 //  Layout Control System - Can Bus Interface Library, based on "can2040" library
 //
 //----------------------------------------------------------------------------------------
-// The "LcsMsgBusCAN" object implements the LCS message bus as a CAN bus. The CAN bus is a widely established
-// bus, which is quite robust. We use the standard CAN bus with a maximum CAN Id of 29 bits. In our case the
-// 16 bit node / port ID along with a 2 bit priority field is used as the CAN address.
+// The "LcsMsgBusCAN" object implements the LCS message bus as a CAN bus. The CAN bus is
+// a widely established bus, which is quite robust. We use the standard CAN bus with a 
+// maximum CAN Id of 29 bits. In our case the 16 bit node / port ID along with a 2 bit 
+// priority field is used as the CAN address.
 //
-// On the PICO, there is a library, "can2040", available that implements the CAN bus protocol in software,
-// using the PICO PIO state machines. This saves us an external controller chip. In addition, we allow for
-// the option to run the CAN bus state machine on a separate core. This is highly recommend as the LCS Runtime
-// has a lot of other things to do. Using a queue from the PICO C++ SDK, the core running the CAN state
-// machine will just queue the received message to be picked up by the other core when ready.
+// On the PICO, there is a library, "can2040", available that implements the CAN bus 
+// protocol in software, using the PICO PIO state machines. This saves us an external 
+// controller chip. In addition, we allow for the option to run the CAN bus state machine
+// on a separate core. This is highly recommend as the LCS Runtime has a lot of other 
+// things to do. Using a queue from the PICO C++ SDK, the core running the CAN state
+// machine will just queue the received message to be picked up by the other core when
+// ready.
 //
 //----------------------------------------------------------------------------------------
 //
-//  Layout Control System - Can Bus Interface Library, based on "can2040" library
+// Layout Control System - Can Bus Interface Library, based on "can2040" library
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
@@ -68,9 +71,10 @@ namespace {
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// The maximum message length of a CAN bus ( and LCS ) message. The LCS library still uses the "classic"
-// CAN bus message size. Finally, the CAN bus library for the RP2040 needs a static opaque structure. We also
-// need a receiver queue for storing the received messages when they come in.
+// The maximum message length of a CAN bus ( and LCS ) message. The LCS library still 
+// uses the "classic" CAN bus message size. Finally, the CAN bus library for the RP2040
+// needs a static opaque structure. We also need a receiver queue for storing the received
+// messages when they come in.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   MAX_CAN_MSG_SIZE  = 8;
@@ -78,9 +82,9 @@ const uint8_t   RX_QUEUE_SIZE     = 4;
 const uint8_t   TX_RETRY_TIMEOUT  = 5;
 
 //----------------------------------------------------------------------------------------
-// The setup and start of the CAN Bus can run on ether core 0 or core 1, depending whether a multi-core
-// implementation is desired. The "Can2040ConfigDesc" structure holds all the necessary configuration data
-// for the initialization routine to use.
+// The setup and start of the CAN Bus can run on ether core 0 or core 1, depending whether
+// a multi-core implementation is desired. The "Can2040ConfigDesc" structure holds all 
+// the necessary configuration data for the initialization routine to use.
 //
 //----------------------------------------------------------------------------------------
 struct Can2040ConfigDesc {
@@ -119,8 +123,8 @@ uint8_t errStat( uint8_t errId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes the canId itself and
-// flags such as EXT or RTR.
+// The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes 
+// the canId itself and flags such as EXT or RTR.
 //
 //----------------------------------------------------------------------------------------
 inline uint32_t buildCanBusMsgHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
@@ -133,8 +137,8 @@ inline uint32_t buildCanBusMsgHeader( uint16_t canId, uint8_t msgPri, bool RTR =
 }
 
 //----------------------------------------------------------------------------------------
-// The interrupt signature to register with the RP2040 for PIO interrupts. The interrupt handler itself is
-// provided by the can2040 library.
+// The interrupt signature to register with the RP2040 for PIO interrupts. The interrupt
+// handler itself is provided by the can2040 library.
 //
 //----------------------------------------------------------------------------------------
 void CanBusPIOIrqHandler( ) {
@@ -143,14 +147,16 @@ void CanBusPIOIrqHandler( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// For each messages transmitted or received this callback is invoked from within the interrupt handler, so
-// all we can do is a quick non-blocking action. The callback allows to react to a message sent, a message
-// received and an internal buffer overflow error.
+// For each messages transmitted or received this callback is invoked from within the 
+// interrupt handler, so all we can do is a quick non-blocking action. The callback
+// allows to react to a message sent, a message received and an internal buffer overflow 
+// error.
 //
-// The callback could be used to filter messages directly at this stage. Only messages that concern this
-// node should be processed. Easy said, but perhaps no so easy to do. We can basically to filtering at the
-// higher message bus level or at the lower layers. The benefit for doing it here is that when we run at the
-// other core, the main core is relieved even further. To think about one day.
+// The callback could be used to filter messages directly at this stage. Only messages 
+// that concern this node should be processed. Easy said, but perhaps no so easy to do. 
+// We can basically to filtering at the higher message bus level or at the lower layers.
+// The benefit for doing it here is that when we run at the other core, the main core is
+// relieved even further. To think about one day.
 // 
 //----------------------------------------------------------------------------------------
 void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
@@ -173,18 +179,20 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
 }
 
 //----------------------------------------------------------------------------------------
-// "canBusCore" is the routine that encapsulates the can2040 setup and launch work. For the multi-core
-// version it needs to be a routine that can be called from the current core or be launched on the other
-// core. The routine communicates the successful setup with a boolean flag in the configuration descriptor.
-// Note that the setup routine must be a void procedure with no parameters. This is expected by the launch
-// routine in the PICO C++ SDK.
+// "canBusCore" is the routine that encapsulates the can2040 setup and launch work. For 
+// the multi-core version it needs to be a routine that can be called from the current 
+// core or be launched on the other core. The routine communicates the successful setup
+// with a boolean flag in the configuration descriptor. Note that the setup routine must
+// be a void procedure with no parameters. This is expected by the launch routine in the
+// PICO C++ SDK.
 //
 //----------------------------------------------------------------------------------------
 void canBusCore( ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
-        printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d, txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
+        printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d,"
+                 "txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
                 cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
                 cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
                 cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
@@ -233,8 +241,9 @@ void canBusCore( ) {
 namespace LCS { 
 
 //----------------------------------------------------------------------------------------
-// "init" is called to setup the CAN bus interface. We will first check the parameters and setup the CAN bus.
-// Next set up the interrupt handler and start the CAN bus processing. 
+// "init" is called to setup the CAN bus interface. We will first check the parameters 
+// and setup the CAN bus. Next set up the interrupt handler and start the CAN bus 
+// processing. 
 // 
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::init( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, bool twoCores ) {
@@ -277,11 +286,11 @@ void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "sendLcsMsg" will send a data packet. We are passed the message buffer and the message priority. The
-// message length is encoded in the first message byte, which represents the LCS message opCode as well as 
-// the length of the message. The message has a certain initial priority. When we cannot send the message 
-// right away, the priority is raised. When we cannot send at the highest priority, the message send
-// failed.
+// "sendLcsMsg" will send a data packet. We are passed the message buffer and the message
+// priority. The message length is encoded in the first message byte, which represents 
+// the LCS message opCode as well as the length of the message. The message has a certain
+// initial priority. When we cannot send the message right away, the priority is raised. 
+// When we cannot send at the highest priority, the message send failed.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
@@ -295,7 +304,8 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
-        printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", CDC::getMillis( ), nodeId, msgPri );
+        printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", 
+                getMillis( ), nodeId, msgPri );
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
         printf( ")\n" );
     }
@@ -311,19 +321,21 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "receiveLcsMsg" will check for a CAN Bus message and if one is available fill the passed message buffer.
-// With the "can2040" library CAN bus messages are received via a callback function, which will store the 
-// each received message in the local receiver queue. 
+// "receiveLcsMsg" will check for a CAN Bus message and if one is available fill the 
+// passed message buffer. With the "can2040" library CAN bus messages are received via
+// a callback function, which will store the each received message in the local receiver
+// queue. 
 //
-// Besides receiving a message, there is the handling of CAN Id collisions. When we detect a non-zero length
-// message with a Can Id that is our own, we have a collision and report an error. This could happen for
-// example when a node hardware is connected to another layout. Both nodes will then stop and wait for
-// manual resolution.
+// Besides receiving a message, there is the handling of CAN Id collisions. When we detect
+// a non-zero length message with a Can Id that is our own, we have a collision and report 
+// an error. This could happen for example when a node hardware is connected to another 
+// layout. Both nodes will then stop and wait for manual resolution.
 //
-// In addition to message processing, we also need to react to RTR messages. We answer such a request with
-// sending a zero length message response. Replying to such a message from other nodes results in a status
-// return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was actually received. This is also the 
-// case when the message queue is empty.
+// In addition to message processing, we also need to react to RTR messages. We answer 
+// such a request with sending a zero length message response. Replying to such a message
+// from other nodes results in a status return of "ERR_CAN_MSG_NO_MSG" on this call as 
+// no LCS message was actually received. This is also the case when the message queue is
+// empty.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
@@ -334,7 +346,8 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 
-            printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", CDC::getMillis( ), msg.id, msg.dlc );
+            printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", 
+                    getMillis( ), msg.id, msg.dlc );
             for ( uint32_t i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msg.data[ i ] );
             printf( ")\n" );
         }
