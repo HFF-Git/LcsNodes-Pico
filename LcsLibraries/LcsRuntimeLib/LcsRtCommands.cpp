@@ -337,7 +337,7 @@ void dumpMemDrvFuncMap( ) {
         printf( "%d: Type: %d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
     }
 
-     printf( "\n" );
+    printf( "\n" );
 }
 
 void dumpMemRuntimeArea( ) {

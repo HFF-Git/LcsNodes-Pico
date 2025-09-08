@@ -3,11 +3,11 @@
 // Layout Control System - Runtime Library include file
 //
 //----------------------------------------------------------------------------------------
-// At the heart of the layout control system, LCS, is the runtime library implementing
-// the basic functions. Please refer to the document for information on concepts and
-// implementation notes. This is the external include file for the firmware programmer. 
-// All external definitions of key constants and types for the library and DCC subsystem
-// is included here.
+// At the heart of the layout control system, LCS, is the runtime library, which 
+// implements the basic functions. Please refer to the document for information on 
+// concepts and implementation notes. This is the external include file for the 
+// firmware programmer. All external definitions of key constants and types for the
+// library and DCC subsystem is included here.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -37,8 +37,7 @@
 #include "LcsCdcLib.h"
 
 //----------------------------------------------------------------------------------------
-// All LCS Library definitions are in a name space "LCS". You can prefix each constant,
-// type or function with the "LCS::" prefix, or declare using the namespace in your code. 
+// All LCS Library definitions are in a name space "LCS". 
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
@@ -46,11 +45,11 @@ namespace LCS {
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// A node is identified through the node number. Node numbers start with one. The nodeId
-// of zero represents the NIL node Id. The node Id is a 12-bit number, so up to 4095 nodes
-// can be addressed. The nodeId, a unique Id for the LCS nodes in a layout, is also used
-// as the canId used for the CAN bus. Keep in mind that a CAN bus can reasonably handle
-// about 127 nodes at the same time.
+// A node is identified through the node number. Node numbers start with one. The 
+// nodeId of zero represents the NIL node Id. The node Id is a 12-bit number, so up 
+// to 4095 nodes can be addressed. The nodeId, a unique Id for the LCS nodes in a 
+// layout, is also used as the canId used for the CAN bus. Keep in mind that a CAN 
+// bus can reasonably handle about 127 nodes at the same time.
 //
 //----------------------------------------------------------------------------------------
 enum LcsNodeId : uint16_t {
@@ -61,22 +60,23 @@ enum LcsNodeId : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Nodes have ports. The port Id identifies the port on a given node. Port numbers start
-// with one. The port number zero represents the NIL port number and usually refers to 
-// the node itself. A node can have up to 15 ports. Often the library functions expect
-// a "node/portId". Which is the concatenation of the 12-bit node Id with the 4-bit 
-// port Id.
+// Nodes have ports. The port Id identifies the port on a given node. Port numbers 
+// start with one. The port number zero represents the NIL port number and refers to 
+// the node itself. A node can thus have up to 15 ports. Often the library functions 
+// expect a "node/portId". Which is the concatenation of the 12-bit node Id with the
+// 4-bit port Id.
 //
 //----------------------------------------------------------------------------------------
 enum LcsPortId : uint8_t {
 
+    NIL_PORT_ID   = 0,
     MIN_PORT_ID   = 0,
     MAX_PORT_ID   = 15
 };
 
 //----------------------------------------------------------------------------------------
-// Events are just numbers assigned to an event by a configuration tool. Event id numbers
-// start with one. The  event number zero represents the NIL event number. The maximum
+// Events are just numbers assigned to an event by a configuration tool. Event numbers
+// start with one. The event number zero represents the NIL event number. The maximum
 // event id number is 65535. 
 //
 //----------------------------------------------------------------------------------------
@@ -117,7 +117,7 @@ enum DccSessionId : uint8_t {
 // short and long address for a decoder. The short address ranges from 1 .. 127, the 
 // long address from 1 .. to 10239. However, most base stations support just up to 9999
 // locomotives IDs and so do we. Analog engines do not really have a cabId. Still, they
-// should have a cabId assigned distinct from any DCC capId used. Refer to the book for 
+// should have a cabId assigned distinct from any DCC cabId used. Refer to the book for 
 // the details.
 //
 //----------------------------------------------------------------------------------------
@@ -129,8 +129,8 @@ enum DccCabId : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// A DCC decoder features configuration variables, called CVs. CVs are numbered starting
-// with 1, the maximum number is 1024.
+// A DCC decoder features configuration variables, called CVs. CVs are numbered 
+// starting with 1, the maximum number is 1024.
 //
 //----------------------------------------------------------------------------------------
 enum DccCvId : uint16_t {
@@ -141,9 +141,10 @@ enum DccCvId : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// "CvModeOptions" is used by the DCC CV variables access routines to specify the access
-// mode. Only options 0 and 1 are supported. The others are there for historic reasons,
-// the functionality was found in older decoders and should not be supported anymore.
+// "CvModeOptions" is used by the DCC CV variables access routines to specify the 
+// access mode. Only options 0 and 1 are supported. The others are there for historic 
+// reasons, the functionality was found in older decoders and should not be supported
+// anymore.
 //
 //----------------------------------------------------------------------------------------
 enum DccCvModeOptions : uint8_t {
@@ -156,8 +157,8 @@ enum DccCvModeOptions : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// A locomotive decoder features up to 69 functions Ids. They are numbered from 0 to 68. 
-// The function Id 255 is used to indicate a NIL function Id. 
+// A locomotive decoder features up to 69 functions Ids. They are numbered from 0 
+// to 68. The function Id 255 is used to indicate a NIL function Id. 
 //
 //----------------------------------------------------------------------------------------
 enum DccFuncId : uint8_t {
@@ -179,14 +180,14 @@ enum DccFuncGroupId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// DCC decoder function mapping Ids. The LCS system defines a set of functions used by 
-// the handhelds such as horn, lights and so on. These identifiers are standardized for
-// our handhelds and mapped to the DCC function. Note that decoders also feature a
-// function map. This is not to be confused with this mapping. 
+// DCC decoder function mapping Ids. The LCS system defines a set of functions used 
+// by the handhelds such as horn, lights and so on. These identifiers are standardized
+// for our handhelds and mapped to the DCC function. Note that decoders also feature 
+// a function map. This is not to be confused with this mapping. 
 //
 // ??? align with the cabHandheld functions buttons, etc.
 //----------------------------------------------------------------------------------------
-enum LcsDccFuncId : uint8_t {
+enum LcsDccFuncIdMap : uint8_t {
 
     NIL_LCS_DCC_FUNC_ID     = 0,
     MIN_LCS_DCC_FUNC_ID     = 1,
@@ -201,9 +202,9 @@ enum LcsDccFuncId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The DCC standard defines several speed step modes. Today, the 28 speed step option is
-// the one used in all new decoders. The other speed steps are mapped to the 128 value 
-// range.
+// The DCC standard defines several speed step modes. Today, the 28 speed step option
+// is the one used in all new decoders. The other speed steps are mapped to the 128 
+// value range.
 //
 //----------------------------------------------------------------------------------------
 enum DccSpeedSteps : uint8_t {
@@ -228,7 +229,8 @@ enum LocoSpeed : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Locomotive direction. 
+// Locomotive direction. Typically it is encoded in the DCC speed byte. For analog 
+// engines, we keep this scheme too.
 //
 //----------------------------------------------------------------------------------------
 enum LocoDirection : uint8_t {
@@ -261,10 +263,9 @@ enum LocoSessionModes : uint8_t {
 //
 //  NPO_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
 //
-//  NPO_DEBUG_DURING_SETUP  - during startup print debug info until we use the mask 
-//                            of nodeMap
+//  NPO_DEBUG_DURING_SETUP  - during startup print debug info.
 //
-//  NPO_DISABLE_WATCHDOG    - disable the watch dog timer.
+//  NPO_DISABLE_WATCHDOG    - start with a disabled watch dog timer.
 //
 //  NPO_FORMAT_RUNTIME      - format the non-volatile runtime structures in any case.
 //
@@ -291,8 +292,8 @@ enum LcsNodePortOptions : uint16_t {
 //                                          and is pending.
 //
 //  NPF_EXT_BOARD_PRESENT               -   there is an extension board associated with
-//                                          the port. For P0 this fag indicates that 
-//                                          there is an extension board at all.
+//                                          the port. For P0 this flag indicates that 
+//                                          there are an extension board at all.
 //                                          
 //  NPF_EXT_BOARD_VALID                 -   there is a valid extension board associated 
 //                                          with the port. This flag only applies to
@@ -306,15 +307,14 @@ enum LcsNodePortFlags : uint16_t {
 
     NPF_NIL                             = 0,
 
-    NPF_PORT_PRESENT                    = ( 1U << 12 ),            
-    NPF_PORT_ENABLED                    = ( 1U << 11 ),
-    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1U << 10 ),
-    
-    NPF_EVENT_PENDING                   = ( 1U << 9  ),
+    NPF_PORT_PRESENT                    = ( 1U << 1 ),            
+    NPF_PORT_ENABLED                    = ( 1U << 2 ),
+    NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1U << 3 ),
+    NPF_EVENT_PENDING                   = ( 1U << 4  ),
 
     NPF_EXT_BOARD_PRESENT               = ( 1U << 8  ),
-    NPF_EXT_BOARD_VALID                 = ( 1U << 7  ),
-    NPF_EXT_BOARD_READY                 = ( 1U << 6  )
+    NPF_EXT_BOARD_VALID                 = ( 1U << 9  ),
+    NPF_EXT_BOARD_READY                 = ( 1U << 10 )
 };
 
 //----------------------------------------------------------------------------------------
@@ -335,25 +335,27 @@ enum LcsPortEventAction : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Node, port and extension board driver attributes and functions are accessed with three 
-// main routines, GET, SET and REQ.  
+// Node, port and extension board driver attributes and functions are accessed with 
+// three main routines, GET, SET and REQ.  
 //
-// GET  -   the get routine will use the item numbers to retrieve the data labelled by 
-//          the item. 
+// GET  -   the get routine will use the item numbers to retrieve the data labelled 
+//          by the item. 
 //
-// SET  -   the set routine will use the item numbers to set the value. Note that not 
-//          all items that can be read can also be written to. An attempt will result
-//          in an error return.
+// SET  -   the set routine will use the item numbers to set the value. Note that 
+//          not all items that can be read may also be written to. An attempt will 
+//          result in an error return.
 //
-// REQ  -   the request call will transmit the request parameters to the node / port / 
-//          driver where a registered callback or the driver entry point will be invoked.
-//          The result is returned via the parameters.
+// REQ  -   the request call will transmit the request parameters to the port  
+//          driver where a registered callback or the driver entry point will be
+//          invoked. The exception is P0, the node port which is directly handed in 
+//          the library. The result is returned via the parameters.
 //
-// One argument is the item. Items range from  0 ... 255 and are defined as follows: 
+// One argument for these calls is the ITEM. Items range from  0 ... 255 and are
+// defined as follows: 
 //
 //   0          -   NIL item, not used
 //
-//   1  ..  63  -   Node / port / driver reserved area items, global items 
+//   1  ..  63  -   Node / port / driver library reserved area items, global items 
 //                  for GET/SET/REQ requests.
 //
 //  64  .. 127  -   User or driver defined items, specific meaning, accessed via 
@@ -413,10 +415,10 @@ enum LcsItems : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The debug mask. The library has a debug mask where each major part of the library has
-// a flag. There could also be flags reserved for the firmware. There is an ITEM request 
-// code to read and set this mask. Wherever debugging is needed, the bit mask will be 
-// used to determine whether to print debugging data or not. From a performance 
+// The debug mask. The library has a debug mask where each major part of the library
+// has a flag. There could also be flags reserved for the firmware. There is an ITEM
+// request code to read and set this mask. Wherever debugging is needed, the bit mask
+// will be used to determine whether to print debugging data or not. From a performance 
 // perspective, the test will take just a few instructions. In other words we do not 
 // take out debugging code when going into production. Never liked this approach of 
 // conditional debug code anyway.
@@ -425,9 +427,9 @@ enum LcsItems : uint8_t {
 //
 //      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_xxx )) ....
 // 
-// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or disabled. 
-// This feature will also be used when we test whether we even have a console or not. 
-// If there is no console, all the prints will not be executed.
+// The DBG_CONFIG bit allows for the entire debugging messages to be enabled. This
+// feature will also be used when we test whether we even have a console or not. If 
+// there is no console, all the prints will not be executed.
 //
 //----------------------------------------------------------------------------------------
 enum DebugOtions : uint16_t {
@@ -442,14 +444,13 @@ enum DebugOtions : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The message operation code identifies the LCS bus message. It is always the first data
-// byte of the message. We encode the number of payload data bytes in the first three bits
-// of the opCode. For each message length there is a maximum of 32 opCode possible. The
-// OPC  macro helps to define the opcodes. The first argument is the length of the data
-// bytes, the second the opcodeId within the group.
+// The message operation code identifies the LCS bus message. It is always the first
+// data byte of the message. We encode the number of payload data bytes in the first
+// three bits of the opCode. For each message length there is a maximum of 32 opCode 
+// possible. The OPC macro helps to define the opcodes. The first argument is the 
+// length of the data bytes, the second the opcodeId within the group.
 //
-// ??? note: this list is work in progress, please us always the names rather than 
-// the numbers.
+// NOTE: this list is work in progress, please us always the names rather than numbers.
 //----------------------------------------------------------------------------------------
 #define OPC( len, id ) ((uint8_t) (( len << 5 ) + ( id & 0x1F )))
 
@@ -514,10 +515,10 @@ enum LcsMsgOpCodes : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// LCS Core Library Error codes. The status code is used as a return value from most of 
-// the library methods. The numbers are grouped in a LCS library portion and a user 
-// firmware portion. The LCS library portion ranges from 1 to 127, the user portion from
-// 128 to 255. The value of zero is generally an "OK".
+// LCS Core Library Error codes. The status code is used as a return value from most
+// of the library methods. The numbers are grouped in a LCS library portion and a 
+// user firmware portion. The LCS library portion ranges from 1 to 127, leaving the 
+// rest for user error codes. The value of zero is generally an "OK".
 //
 //----------------------------------------------------------------------------------------
 enum LcsErrorCodes : uint8_t {
@@ -589,10 +590,11 @@ enum LcsErrorCodes : uint8_t {
 
 //----------------------------------------------------------------------------------------
 // "MsgPriority" defines the values for the message priority. It tracks the general 
-// definition found in the sendMsg routines of the LCS library. For the CAN bus, the 
-// priority is encoded in the CAN address field. A CAN Id consists of the CAN Id number 
-// and the priority. Messages start out with a hard coded priority and on message timeout
-// are raised in their priority. This done transparently to the firmware programmer.
+// definition found in the sendMsg routines of the LCS library. For the CAN bus, 
+// the priority is encoded in the CAN address field. A CAN Id consists of the CAN Id 
+// number and the priority. Messages start out with a hard coded priority and on 
+// message timeout are raised in their priority. This done transparently to the 
+// firmware programmer.
 //
 //----------------------------------------------------------------------------------------
 enum MsgPriority : uint8_t {
@@ -604,41 +606,41 @@ enum MsgPriority : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Core library callback function signatures. The entire runtime works with a set of APIs
-// to invoke a function and callbacks to get any results. Callbacks are registered by the
-// firmware at setup time.
+// Core library callback function signatures. The entire runtime works with a set 
+// of APIs to invoke a function and callbacks to get any results. Callbacks are 
+// registered by the firmware at setup time.
 //
-//      LcsInitCallback     -   a callback called at initialization time, as part of 
-//                              "startRuntime". The npId is passed so that the callback 
-//                              can detect wether a port or node is the target.
+//  LcsInitCallback     -   a callback called at initialization time, as part of 
+//                          "startRuntime". The npId is passed so that the callback 
+//                          can detect wether a port or node is the target.
 //
-//      LcsPfailCallback    -   a callback when a power fail situation is detected. The
-//                              npId is passed so that the callback can detect wether a 
-//                              port or node is the target.
+//  LcsPfailCallback    -   a callback when a power fail situation is detected. The
+//                          npId is passed so that the callback can detect wether a 
+//                          port or node is the target.
 // 
-//      LcsMsgCallback      -   is called with a LCS management message received.
+//  LcsMsgCallback      -   is called with a LCS management message received.
 //
-//      LcsCmdCallback      -   when the command interpreter detects a non LCS command, 
-//                              the command line is passed on to the callback. 
+//  LcsCmdCallback      -   when the command interpreter detects a non LCS command, 
+//                          the command line is passed on to the callback. 
 //
-//      LcsTaskCallback     -   a callback for a previously registered task. The 
-//                              callback is invoked on the configured periodic basis.
+//  LcsTaskCallback     -   a callback for a previously registered task. The 
+//                          callback is invoked on the configured periodic basis.
 //
-//      LcsReqCallback      -   a callback to invoke for a user request message. The 
-//                              callback is passed the item and a reference to the 
-//                              two input / output arguments. A request callback is 
-//                              associated with a port and is either a user defined 
-//                              callback or in case of a port associated with a port 
-//                              a driver request function.
+//  LcsReqCallback      -   a callback to invoke for a user request message. The 
+//                          callback is passed the item and a reference to the 
+//                          two input / output arguments. A request callback is 
+//                          associated with a port and is either a user defined 
+//                          callback or in case of a port associated with a port 
+//                          a driver request function.
 //      
-//      LcsRepCallback      -   a callback to return the reply message for a previous
-//                              LCS message sent. The reply can be a data reply, an ACK
-//                              or NACK or a timeout error. The arguments are the item
-//                              that was requested, the arguments and the return status
-//                              of the operation.
+// LcsRepCallback      -    a callback to return the reply message for a previous
+//                          LCS message sent. The reply can be a data reply, an ACK
+//                          or NACK or a timeout error. The arguments are the item
+//                          that was requested, the arguments and the return status
+//                          of the operation.
 //
-//      LcsEventCallback    -   a callback for a received event. The arguments are the
-//                              issuing npId, the event type and the optional arguments.
+//  LcsEventCallback    -   a callback for a received event. The arguments are the
+//                          issuing npId, the event type and the optional arguments.
 //          
 // All callback functions need to return a status, which is ALL_OK if the callback was
 // successful.
@@ -671,21 +673,22 @@ extern "C" {
 
 //----------------------------------------------------------------------------------------
 // Library functions. The main function are the initialization and start of the LCS 
-// runtime. Between "init" and "start", the firmware should do its own setup and register
-// the necessary callbacks. We will not return from the "start" routine. All calls are 
-// a plain C style library calls. 
+// runtime. Between "init" and "start", the firmware should do its own setup and 
+// register the necessary callbacks. We will not return from the "start" routine. 
+// All calls are a plain C style library calls. 
 //
-// The "initRuntime" routine is passed the resource map. Important. All there is to know
-// about the particular board and resources to configure comes from this map.
+// The "initRuntime" routine is passed the resource map. Important. All there is to
+// know about the particular board and resources to configure comes from this map.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t     initRuntime( CdcResourceDescMap *dMap );
 uint8_t     startRuntime( );
 
 //----------------------------------------------------------------------------------------
-// Routines to access the node/port GET/SET/REQ items. The first argument is the node/port
-// Id. A node Id of zero refers to the local node and the calls are direct procedure 
-// calls. A non-zero node will refer to another node, and a message is broadcasted.
+// Routines to access the node/port GET/SET/REQ items. The first argument is the 
+// node/port Id. A node Id of zero refers to the local node and the calls are direct
+// procedure calls. A non-zero node will refer to another node, and a message is 
+// broadcasted.
 //
 //----------------------------------------------------------------------------------------
 uint8_t     nodeGet( uint16_t npId, 
@@ -706,14 +709,14 @@ uint8_t     nodeReq( uint16_t npId,
 //----------------------------------------------------------------------------------------
 uint8_t     registerInitCallback( LcsInitCallback handler );
 uint8_t     registerPfailCallback( LcsPfailCallback handler );
-uint8_t     registerLcsMsgCallback( LcsMsgCallback functionId );
-uint8_t     registerDccMsgCallback( LcsMsgCallback functionId );
-uint8_t     registerCmdCallback( LcsCmdCallback functionId );
+uint8_t     registerLcsMsgCallback( LcsMsgCallback handler );
+uint8_t     registerDccMsgCallback( LcsMsgCallback handler );
+uint8_t     registerCmdCallback( LcsCmdCallback handler );
 uint8_t     registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
-uint8_t     registerEventCallback( LcsEventCallback functionId, uint16_t portMask = 0xFFFF );
+uint8_t     registerEventCallback( LcsEventCallback handler, uint16_t portMask = 0xFFFF );
 uint8_t     registerReqCallback( LcsReqCallback handler, uint16_t portMask = 0xFFFF );
 uint8_t     registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
-uint8_t     registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction );
+uint8_t     registerDrvFunc( uint16_t drvType, LcsReqCallback handler );
 
 //----------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.
@@ -726,17 +729,36 @@ uint8_t     sendBusOn( );
 uint8_t     sendBusOff( );
 uint8_t     sendPing( uint16_t npId );
 uint8_t     sendAck( uint16_t npId );
-uint8_t     sendErr( uint16_t npId, uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
+
+uint8_t     sendErr( uint16_t npId, 
+                     uint8_t errCode, 
+                     uint8_t arg1 = 0, 
+                     uint8_t arg2 = 0 );
 
 uint8_t     sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags );
 uint8_t     sendRepNodeId( uint16_t npId, uint32_t nodeUID );
 uint8_t     sendSetNodeId( uint16_t npId, uint32_t nodeUID );
 uint8_t     sendNodeIdCollision( uint16_t npId, uint32_t nodeUID );
 
-uint8_t     sendGetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
-uint8_t     sendSetNode( uint16_t npId, uint8_t item, uint16_t arg1 = 0, uint16_t arg2 = 0 );
-uint8_t     sendRepNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
-uint8_t     sendReqNode( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2  );
+uint8_t     sendGetNode( uint16_t npId, 
+                         uint8_t item, 
+                         uint16_t arg1 = 0, 
+                         uint16_t arg2 = 0 );
+
+uint8_t     sendSetNode( uint16_t npId, 
+                         uint8_t item, 
+                         uint16_t arg1 = 0, 
+                         uint16_t arg2 = 0 );
+
+uint8_t     sendRepNode( uint16_t npId, 
+                         uint8_t item, 
+                         uint16_t val1, 
+                         uint16_t val2  );
+
+uint8_t     sendReqNode( uint16_t npId, 
+                         uint8_t item, 
+                         uint16_t val1, 
+                         uint16_t val2  );
 
 uint8_t     sendEventOn( uint16_t npId, uint16_t eventId );
 uint8_t     sendEventOff( uint16_t npId, uint16_t eventId );
@@ -795,6 +817,8 @@ uint8_t     sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 uint8_t     sendRawMsg( uint8_t *msgBuf );
 void        printLcsMs( uint8_t *msgBuf );
 
+// ??? rethink this concept. We could also offer a method to address any 16-bit word 
+// in NVM via a GET / SET call, one parm being the variable number, the other the value.
 //----------------------------------------------------------------------------------------
 // The User Map interface. The LCS library offers a set of routines for the firmware to 
 // access the user NVM area. The size is dependent on what the actual chip on the board 

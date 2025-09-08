@@ -157,8 +157,7 @@ enum CdcBoardInfo : uint16_t {
     BT_CAB_HANDHELD             = 13,
 
     CDC_BT_EXT_OCC_DETECT       = 80,
-    CDC_BT_EXT_SV_32_IO_16      = 81,
-    
+    CDC_BT_EXT_SV_32_IO_16      = 81
 };
 
 //----------------------------------------------------------------------------------------
@@ -190,7 +189,6 @@ enum CdcResourceType : uint8_t {
     CDC_RT_UART         = 7,
     CDC_RT_I2C          = 8,
     CDC_RT_CAN_BUS      = 9,
-
     CDC_RT_INVALID      = 255
 };
 

@@ -1091,3 +1091,176 @@ void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
 
   printf( "\n" );
 }
+
+
+
+#if 0 
+//==============================================================================
+//
+// We need way to quickly map from cabId to sessionId. Some systems do not
+// have sessions ( e.g. RocRail ) and just send all data via CabId. I still 
+// need however to manage the sessions for refresh logic and so on.
+//
+// A quick note:
+//==============================================================================
+
+
+#define MAX_SESSIONS 256
+
+// -------------------------
+// Session state table
+// -------------------------
+typedef struct {
+    uint16_t cabId;
+    // other per-session state fields here
+} SessionState;
+
+static SessionState session_state[MAX_SESSIONS];
+static uint8_t high_water = 0;
+
+// -------------------------
+// CabId → SessionId hash map
+// -------------------------
+typedef struct {
+    uint16_t cabId;
+    uint8_t  sessionId;
+} CabMapEntry;
+
+static CabMapEntry cab_map[MAX_SESSIONS];
+
+// simple multiplicative hash
+static inline uint8_t hash16(uint16_t x) {
+    return (x * 37u) & 0xFF;
+}
+
+// Lookup
+static int cabmap_find(uint16_t cabId) {
+    uint8_t h = hash16(cabId);
+    for (uint8_t i = 0; i < MAX_SESSIONS; i++) {
+        uint8_t idx = (h + i) & 0xFF;
+        if (cab_map[idx].cabId == 0)  // empty → stop
+            return -1;
+        if (cab_map[idx].cabId == cabId)
+            return cab_map[idx].sessionId;
+    }
+    return -1;
+}
+
+// Insert (assumes table not full)
+static int cabmap_insert(uint16_t cabId, uint8_t sessionId) {
+    uint8_t h = hash16(cabId);
+    for (uint8_t i = 0; i < MAX_SESSIONS; i++) {
+        uint8_t idx = (h + i) & 0xFF;
+        if (cab_map[idx].cabId == 0 || cab_map[idx].cabId == cabId) {
+            cab_map[idx].cabId = cabId;
+            cab_map[idx].sessionId = sessionId;
+            return 0;
+        }
+    }
+    return -1; // full
+}
+
+// Remove with rehash-on-delete
+static void cabmap_remove(uint16_t cabId) {
+    uint8_t h = hash16(cabId);
+    for (uint8_t i = 0; i < MAX_SESSIONS; i++) {
+        uint8_t idx = (h + i) & 0xFF;
+
+        if (cab_map[idx].cabId == 0)
+            return; // not found
+
+        if (cab_map[idx].cabId == cabId) {
+            // clear this slot
+            cab_map[idx].cabId = 0;
+
+            // rehash the cluster that follows
+            uint8_t j = (idx + 1) & 0xFF;
+            while (cab_map[j].cabId != 0) {
+                uint16_t reCab = cab_map[j].cabId;
+                uint8_t  reSid = cab_map[j].sessionId;
+
+                cab_map[j].cabId = 0; // clear
+                cabmap_insert(reCab, reSid);
+
+                j = (j + 1) & 0xFF;
+            }
+            return;
+        }
+    }
+}
+
+// -------------------------
+// Session management
+// -------------------------
+
+// Get or create session
+int get_or_create_session(uint16_t cabId) {
+    if (cabId == 0) return -1; // nil Id not allowed
+
+    int sid = cabmap_find(cabId);
+    if (sid >= 0) return sid;
+
+    if (high_water >= MAX_SESSIONS)
+        return -1; // no room
+
+    sid = high_water++;
+    session_state[sid].cabId = cabId;
+
+    cabmap_insert(cabId, sid);
+    return sid;
+}
+
+// Free session by sessionId
+void free_session(uint8_t dead_id) {
+    uint16_t deadCabId = session_state[dead_id].cabId;
+    cabmap_remove(deadCabId);
+
+    uint8_t last_id = --high_water;
+    if (dead_id != last_id) {
+        // move last session into the freed slot
+        session_state[dead_id] = session_state[last_id];
+
+        // update mapping for moved cabId
+        cabmap_insert(session_state[dead_id].cabId, dead_id);
+    }
+}
+
+// Walk all sessions
+void walk_sessions(void (*fn)(SessionState *s)) {
+    for (uint8_t i = 0; i < high_water; i++) {
+        fn(&session_state[i]);
+    }
+}
+
+// -------------------------
+// Test harness
+// -------------------------
+void print_session(SessionState *s) {
+    printf("Session cabId=%u\n", s->cabId);
+}
+
+int main(void) {
+    printf("Creating sessions:\n");
+    int s1 = get_or_create_session(100);
+    int s2 = get_or_create_session(200);
+    int s3 = get_or_create_session(300);
+    printf("100→%d, 200→%d, 300→%d\n", s1, s2, s3);
+
+    printf("\nWalk all sessions:\n");
+    walk_sessions(print_session);
+
+    printf("\nLookup cabId=200 → sessionId=%d\n", cabmap_find(200));
+    printf("Lookup cabId=999 → sessionId=%d\n", cabmap_find(999));
+
+    printf("\nFree sessionId=%d (cabId=200)\n", s2);
+    free_session(s2);
+
+    printf("\nWalk all sessions after free:\n");
+    walk_sessions(print_session);
+
+    printf("\nLookup cabId=200 → sessionId=%d\n", cabmap_find(200));
+    printf("Lookup cabId=300 → sessionId=%d\n", cabmap_find(300));
+
+    return 0;
+}
+#endif

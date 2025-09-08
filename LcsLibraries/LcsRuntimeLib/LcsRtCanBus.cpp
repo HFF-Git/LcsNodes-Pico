@@ -246,7 +246,10 @@ namespace LCS {
 // processing. 
 // 
 //----------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::init( uint8_t rxPin, uint8_t txPin, uint32_t baudRate, bool twoCores ) {
+uint8_t LcsMsgBusCAN::init( uint8_t rxPin, 
+                            uint8_t txPin, 
+                            uint32_t baudRate, 
+                            bool twoCores ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 

@@ -3,13 +3,13 @@
 // Layout Control System - Runtime attribute management
 //
 //----------------------------------------------------------------------------------------
-// This file contains the LCS runtime routines that implement node access. There are 
-// three routines that allow to manipulate node and port data as well as  issue requests
-// to a node or port. The "npId" will indicate which node and port the call refers to. 
-// The node portion is typically our own node Id, the port Id refers to a ports on the
-// node, with a port Id of zero referring to the node itself. Any node can access another
-// node. In this case request come via a message and the message handler will call the
-// local routines in this file. 
+// This file contains the LCS runtime routines that implement node attribute access. 
+// There are  three routines that allow to manipulate node and port data as well as  
+// issue requests to a node or port. The "npId" will indicate which node and port the 
+// call refers to. The node portion is typically our own node Id, the port Id refers
+// to a ports on the node, with a port Id of zero referring to the node itself. Any node
+// can access another node. In this case request come via a message and the message 
+// handler will call the local routines in this file. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -31,7 +31,7 @@
 #include "LcsRtLibInt.h"
 
 //----------------------------------------------------------------------------------------
-// External declaration to global structures and routines.
+// External declaration to global structures and routines in other files.
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
