@@ -32,7 +32,7 @@
 namespace LCS {
 
     const char      LCS_RT_LIB_GIT_BRANCH[ ] = "git-branch";
-    const uint16_t  LCS_RT_LIB_VERSION       = 100;  // ??? for now...
+    const uint16_t  LCS_RT_LIB_VERSION       = 0x0100;  // ??? for now...
     const uint16_t  LCS_RT_LIB_PATCH_LEVEL   = 0;
     
 }

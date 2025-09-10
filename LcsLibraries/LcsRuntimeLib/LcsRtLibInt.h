@@ -112,7 +112,7 @@ const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
 //
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
-const uint16_t  MAX_NODE_PORT_NAME_SIZE         = 16;
+const uint16_t  MAX_NODE_PORT_NAME_SIZE         = 15;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
@@ -148,7 +148,6 @@ const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 //  NS_NIL          -   NIL.
 //  NS_FAIL         -   The startup failed.
 //  NS_PFAIL        -   The startup detected that we restarted after a power failure.
-//  NS_WATCHDOG     -   The startup detected that we restarted after a watchdog timeout.
 //  NS_INIT         -   The node entered the startup state.
 //  NS_REGISTER     -   The node entered the node register state to get the nodeId.
 //  NS_COLLISION    -   The node detected a nodeId collision on the LCS bus and stopped.
@@ -162,13 +161,12 @@ enum LcsNodeState : uint16_t {
     NS_NIL              = 0,
     NS_FAIL             = 1,
     NS_PFAIL            = 2,
-    NS_WATCHDOG         = 3,
-    NS_INIT             = 4,
-    NS_REGISTER         = 5,
-    NS_COLLISION        = 6,
-    NS_HALTED           = 7,
-    NS_CONFIG           = 8,
-    NS_OPERATE          = 9
+    NS_INIT             = 3,
+    NS_REGISTER         = 4,
+    NS_COLLISION        = 5,
+    NS_HALTED           = 6,
+    NS_CONFIG           = 7,
+    NS_OPERATE          = 8
 };
 
 //----------------------------------------------------------------------------------------
@@ -194,6 +192,23 @@ enum ItemRanges : uint8_t {
     IR_ATTR_RANGE_END           = 255,
 
     IR_MAX_ITEMS                = 255,
+};
+
+//----------------------------------------------------------------------------------------
+// "MsgPriority" defines the values for the message priority. It tracks the general 
+// definition found in the sendMsg routines of the LCS library. For the CAN bus, 
+// the priority is encoded in the CAN address field. A CAN Id consists of the CAN Id 
+// number and the priority. Messages start out with a hard coded priority and on 
+// message timeout are raised in their priority. This done transparently to the 
+// firmware programmer.
+//
+//----------------------------------------------------------------------------------------
+enum MsgPriority : uint8_t {
+
+    MSG_PRI_VERY_HIGH   = 0,
+    MSG_PRI_HIGH        = 1,
+    MSG_PRI_NORMAL      = 2,
+    MSG_PRI_LOW         = 3
 };
 
 //----------------------------------------------------------------------------------------
@@ -320,7 +335,7 @@ struct LcsPortMapEntry {
     uint16_t            eventDelayTime                      = 0;
     uint32_t            eventTimeStamp                      = 0L;
 
-    char                name[ MAX_NODE_PORT_NAME_SIZE ]     = { 0 };
+    char                name[ MAX_NODE_PORT_NAME_SIZE + 1 ] = { 0 };
 };
 
 struct LcsPortMap {

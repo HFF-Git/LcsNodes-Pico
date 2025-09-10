@@ -3,36 +3,36 @@
 // Layout Control System - Runtime library setup.
 //
 //----------------------------------------------------------------------------------------
-// The file implements a part of the LcsRuntimeLib that deals with the setup and start 
-// sequence of a node. There is a lot to do. First, we need to initialize the CDC layer, 
-// our lower layer foundation. Next the NVM header is located and checked for validity.
-// If valid, the nodeMap is read. It contains all the data for  setting up the entire 
-// node. If this steps fails, we either need to configure the nodeMap, or we have a data
-// error and the node is not usable and manual intervention is required.
+// The file implements a part of the LcsRuntimeLib that deals with the setup and 
+// start sequence of a node. There is a lot to do. First, we need to initialize the
+// CDC layer, our lower layer foundation. Next the NVM header is located and checked 
+// for validity. If valid, the nodeMap is read. It contains all the data for setting
+// up the entire node. If this steps fails, we either need to configure the nodeMap,
+// or we have a data error and the node is not usable and manual intervention is 
+// required.
 // 
 // With a correct node map in place, the memory structures for the node, the ports, 
-// events, callbacks and periodic tasks are created. The node is basically ready to do
-// work. For a node that has no extension boards connected, we are done.
+// events, callbacks and periodic tasks are created. The node is basically ready to
+// do work. For a node that has no extension boards connected, we are done.
 //
-// Next is the extension board setup. We try to locate all connected extension boards and
-// install the corresponding driver. A driver is just a procedure that knows how to talk
-// to the particular extension board. A failure in this part of the sequence sequence 
+// Next is the extension board setup. We try to locate all connected extension boards
+// and install the corresponding driver. A driver is just a procedure that knows how
+// to talk to the particular extension board. A failure in this part of the sequence 
 // does not necessarily mean that the node cannot be used.
 //
-// Assuming all went fine, the runtime library is ready to accept calls for registering
-// callbacks and able to execute a few other library calls. Once all this work is done, 
-// the last call of the node firmware would be to start the runtime, which would as the
+// Assuming all went fine, the runtime library is ready to accept registration calls
+// and is able to execute a few other library calls. Once all this work is done, the
+// last call of the node firmware would be to start the runtime, which would as the
 // very first thing invoke all registered initialization callbacks and the enter the 
 // processing loop. We will not return from that routine.
 //
 // An error in the setup sequence does not necessarily mean that the node is unusable. 
 // For example, when the nodeMap is not valid, the setup routine will report an error, 
-// but we can still call the runtime loop. The runtime loop will handle LCS messages and
-// also provide the console IO, which in turn allows us manually correct the node data 
-// for a successful restart. In a similar way, extension board errors can be be addressed.
+// but we can still call the runtime loop. The runtime loop will handle LCS messages 
+// and also provide the console IO, which in turn allows us manually correct the node
+// data for a successful restart. In a similar way, extension board errors can be be
+// addressed.
 //
-
-//??? clean up, comment sequence ....
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime library setup.
@@ -55,17 +55,17 @@
 #include "LcsDrvServoLib.h"
 
 //----------------------------------------------------------------------------------------
-// Runtime globals. This file contains all the global data structure declarations. They
-// are declared in the LCS name space. All other files in the runtime library will declare
-// them as "extern" if needed.
+// Runtime globals. This file contains all the global data structure declarations. 
+// They are declared in the LCS name space. All other files in the runtime library will
+// declare them as "extern" if needed.
 //
-// There is also the debug mask. The idea is to have a debug mask where each major part
-// of the library has a bit. There could also be bits reserved for the firmware. Then we
-// have control items to set these bits. Wherever debugging or tracing is needed, the 
-// bit mask will be used to determine whether to print debugging data or not. From a 
-// performance perspective, the test will take just a couple of instructions. In other
-// words we do not take out debugging code when going into production. Never liked this
-// approach of conditional debug code via "ifdefs".
+// There is also the debug mask. The idea is to have a debug mask where each major 
+// part of the library has a bit. There could also be bits reserved for the firmware.
+// Then we have control items to set these bits. Wherever debugging or tracing is 
+// needed, the bit mask will be used to determine whether to print debugging data or 
+// not. From a performance perspective, the test will take just a couple of instructions.
+// In other words we do not take out debugging code when going into production. Never
+// liked this approach of conditional debug code via "ifdefs".
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
@@ -118,8 +118,8 @@ namespace LCS {
 }
     
 //----------------------------------------------------------------------------------------
-// The LcsCoreLibConfig implementation file local declarations and routines. They are not
-// visible to the other files.
+// The LcsCoreLibConfig implementation file local declarations and routines. They are
+// not visible to the other files.
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -167,8 +167,9 @@ uint8_t errStat( uint8_t errId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultHeaderMap" initializes the NVM header map. We fill in the data for the
-// main board from the board descriptor map. The extension entries are just cleared.
+// "setupDefaultHeaderMap" initializes the NVM header map. We fill in the data for
+// the main board from the board descriptor map. The extension entries are just 
+// cleared.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
@@ -194,8 +195,8 @@ uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultNodeMap" builds the node map structure. We allocate the UID and set the
-// NVM offset to the actual value.
+// "setupDefaultNodeMap" builds the node map structure. We allocate the UID and set
+// the NVM offset to the actual value.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeMap( LcsNodeMap *nMap ) {
@@ -229,7 +230,7 @@ uint8_t setupDefaultPortMap( LcsPortMap *pMap ) {
         LcsPortMapEntry pEntry;
 
         if ( i == 0 )   snprintf( pEntry.name, MAX_NODE_PORT_NAME_SIZE, "Node" );
-        else            snprintf( pEntry.name, MAX_NODE_PORT_NAME_SIZE, "Port-%d", i + 1 );
+        else   snprintf( pEntry.name, MAX_NODE_PORT_NAME_SIZE, "Port-%d", i + 1 );
         pMap -> map[ i ] = pEntry;
     }
 
@@ -266,8 +267,8 @@ uint8_t setupDefaultEventMap( LcsEventMap *eMap ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "buildMemDefaultNodeData" builds the node data blocks. The NVM offset is set to the
-// actual value.
+// "buildMemDefaultNodeData" builds the node data blocks. The NVM offset is set to
+// the actual value.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
@@ -289,9 +290,9 @@ uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "buildNvmRuntimeStructure" initializes a new or corrupt runtime NVM with default data.
-// We initialize the MEM structures and just write them to their spot in the NVM. After
-// successful completion, we will have a valid runtime map.
+// "buildNvmRuntimeStructure" initializes a new or corrupt runtime NVM with default
+// data. We initialize the MEM structures and just write them to their spot in NVM. 
+// After successful completion, we will have a valid runtime map.
 //
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructure( ) {
@@ -310,8 +311,8 @@ uint8_t buildNvmRuntimeStructure( ) {
 
 //----------------------------------------------------------------------------------------
 // "buildNvmExtBoardStructure" initializes a new or corrupt NVM header on an extension
-// board NVM. At this point we do not know much about the extension board other than it
-// is such a board.
+// board NVM. At this point we do not know much about the extension board other than
+// it is such a board.
 //
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
@@ -320,12 +321,14 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
         
         printf( "buildNvmExtBoardStructure for board: %d\n", boardId );
     }
-
-    // ??? not too thrilled about it. Should we rather assign the fields ?
+  
     LcsBoardDesc head;
-
-    head.boardMword = NVM_MWORD_EXT_HEADER;
-
+    head.boardMword     = NVM_MWORD_EXT_HEADER; 
+    head.boardInfo      = 0;                    // type/subtype
+    head.boardVersion   = 0;                    // major / sub version
+    head.boardCtrlInfo   = 0;;                  // family / cType
+    snprintf( head.name, 8, "EXT" );            // ??? a better name ?
+  
     return ( errStat( extNvmPutBytes( boardId, 
                                       0, 
                                       (uint8_t *) &head, 
@@ -355,26 +358,26 @@ void printNvmHeader( LcsBoardDesc *head ) {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// When the node is powered on, the very first thing to do is to setup the CDC library 
-// and configure the hardware resources. Note that this may have been done before, when
-// for example the firmware programmer wants to use the resources before calling any 
-// library setup code. 
+// When the node is powered on, the very first thing to do is to setup the CDC 
+// library and configure the hardware resources. Note that this may have been done
+// before, when for example the firmware programmer wants to use the resources before
+// calling any library setup code. 
 //
 // There are two basic modes. The first is when we have a console connected. We will 
 // prompt and wait for a start command. There are several options for starting a node. 
 // The easiest is "R" which just starts the node. The "D" command will start with 
-// debugging enabled. We will set the setup debug flags to check any issues during the 
-// startup phase. Finally, there is there "F" command, which will format the NVM runtime 
-// area. However, all that is happening in this routine is to set these options to be 
-// executed at the right place in the setup sequence.
+// debugging enabled. We will set the setup debug flags to check any issues during 
+// the startup phase. Finally, there is there "F" command, which will format the NVM
+// runtime area. However, all that is happening in this routine is to set these options
+// to be executed at the right place in the setup sequence.
 //
 // The second mode is when there no console connected. In this case, Debug is disabled 
 // and we just setup the node. This mode should be the normal case for all the nodes 
 // in a layout.
 // 
-// Perhaps one day, this routine could be enhanced to allow commands to pile up the start
-// options followed by the final start command to get the show going. especially the 
-// debug mask would be a candidate.
+// Perhaps one day, this routine could be enhanced to allow commands to pile up the
+// start options followed by the final start command to get the show going. especially
+// the debug mask would be a candidate.
 //
 //----------------------------------------------------------------------------------------
 uint8_t initCdcLayer( CdcResourceDescMap *map ) {
@@ -439,9 +442,9 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The NVM library functions will work after this routine. We assume that the CDC layer 
-// was initialized and configured. In particular, we depend on the I2C configuration 
-// channels. If all is OK, we can talk to all NVMs chips on the boards making up the node.
+// The NVM library functions will work after this routine. We assume that the CDC 
+// layer was initialized and configured. In particular, we depend on the I2C channels.
+// If all is OK, we can talk to all NVMs chips on the boards making up the node.
 //
 //----------------------------------------------------------------------------------------
 uint8_t initNvmChannels( CdcResourceDescMap *map ) {
@@ -458,9 +461,9 @@ uint8_t initNvmChannels( CdcResourceDescMap *map ) {
  }
 
 //----------------------------------------------------------------------------------------
-// Next is the CAN bus setup. The message bus is the central communication mechanism. If 
-// we can also get it up early we could use it not only for configurations and operations
-// but perhaps for remote troubleshooting. 
+// Next is the CAN bus setup. The message bus is the central communication mechanism.
+// If we can also get it up early we could use it not only for configurations and 
+// operations but perhaps for remote troubleshooting. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t initCanBus( CdcResourceDescMap *map ) {
@@ -527,9 +530,9 @@ uint8_t setupPfail( CdcResourceDescMap *map ) {
 
 //----------------------------------------------------------------------------------------
 // "setupNodeNvmHeader" sets up the main controller header map entry. It is the first 
-// routine after all the basic hardware settings is in place. If we detect an invalid NVM
-// header or NVM formatting was requested, a default structure will be created. Either 
-// way we return with a valid NVM structure for the node. 
+// routine after all the basic hardware settings is in place. If we detect an invalid
+// NVM header or NVM formatting was requested, a default structure will be created. 
+// Either way we return with a valid NVM structure for the node. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
@@ -580,10 +583,10 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
 //----------------------------------------------------------------------------------------
 // With the NVM channels in place and the main controller NVM header valid, we check 
-// whether there are extension boards and read in their headers too. Entry zero of the 
-// NVM header map is always the main controller board NVM header, the optional extension
-// board NVM headers are stored in entry 1 to 4. If the read fails, there is no board at 
-// that location and we set the magic word to zero to record this fact.
+// whether there are extension boards and read in their headers too. Entry zero of 
+// the NVM header map is always the main controller board NVM header, the optional 
+// extension board NVM headers are stored in entry 1 to 4. If the read fails, there 
+// is no board at that location and we set the magic word to zero to record this fact.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupExtNvmHeaders( ) {
@@ -637,12 +640,12 @@ uint8_t setupExtNvmHeaders( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupNodeMap" sets up the nodeMap. It is the routine that is called after we read in 
-// the NVM headers. If the main controller NVM header was invalid or formatting was 
-// requested, a default structure was created. Either way we can rely on a valid map
-// layout. Note that some items are stored in Port Map entry 0, which by definition is
-// the port for the node itself. We will store these items in the port setup routine. To
-// be sure, we explicitly clear some nodeMap fields.
+// "setupNodeMap" sets up the nodeMap. It is the routine that is called after we read
+// in the NVM headers. If the main controller NVM header was invalid or formatting 
+// was requested, a default structure was created. Either way we can rely on a valid
+// map layout. Note that some items are stored in Port Map entry 0, which by definition
+// is the port for the node itself. We will store these items in the port setup routine.
+// To be sure, we explicitly clear some nodeMap fields.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
@@ -670,9 +673,9 @@ uint8_t setupNodeMap( ) {
 
 //----------------------------------------------------------------------------------------
 // "setupPortMap" will read the port data the NVM port map data area into the memory 
-// counterpart. A node can have up to 15 ports. Port 0 is the node itself. If there are
-// extension boards connected, the first N ports refer to these boards. We consult the 
-// nvmHeaderMap for detected extension boards.
+// counterpart. A node can have up to 15 ports. Port 0 is the node itself. If there 
+// are extension boards connected, the first N ports refer to these boards. We consult
+// the nvmHeaderMap for detected extension boards.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
@@ -696,8 +699,8 @@ uint8_t setupPortMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupExtensionBoards" will scan the header map for an extension board detected and
-// mark the corresponding port as a driver type port.
+// "setupExtensionBoards" will scan the header map for an extension board detected 
+// and mark the corresponding port as a driver type port.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
@@ -747,14 +750,15 @@ uint8_t setupNodeDataMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The event map stores all event/port pairs this node is interested to process. The map
-// is a sorted map and there is a high water mark, so that we only read up to the last 
-// used entry in the map. Just like other data structures we could just read in all 
-// entries. However, this is a large map. It would be better to just read up to the HWM,
-// if the HWM is valid. If this is not the case, we have to assume that there are bigger
-// issues with the event map. In this case we will read the entire map entry by entry,
-// add used entries, i.e. entries with a non-NIL event ID to the memory map. After
-// reading all entries, the newly created event map is written back to the NVM place.
+// The event map stores all event/port pairs this node is interested to process. 
+// The map is a sorted map and there is a high water mark, so that we only read up
+// to the last used entry in the map. Just like other data structures we could just
+// read in all entries. However, this is a large map. It would be better to just read 
+// up to the HWM, if the HWM is valid. If this is not the case, we have to assume that
+// there are bigger issues with the event map. In this case we will read the entire 
+// map entry by entry, add used entries, i.e. entries with a non-NIL event ID to the
+// memory map. After reading all entries, the newly created event map is written back
+// to the NVM place.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
@@ -788,7 +792,7 @@ uint8_t setupEventMap( ) {
                 LcsEventMapEntry e;
 
                 rStat = rtNvmGetBytes(  NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
-                                        i * sizeof(LcsEventMapEntry), 
+                                        ( i * sizeof(LcsEventMapEntry)), 
                                         (uint8_t *) &e, 
                                         sizeof( LcsEventMapEntry ));
 
@@ -806,9 +810,9 @@ uint8_t setupEventMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The user map is the additional NVM storage that the chip set offers beyond the area 
-// allocated for the system. Since we have no idea what the user is doing, we do nothing
-// for now. It is just a placeholder.
+// The user map is the additional NVM storage that the chip set offers beyond the 
+// area allocated for the system. Since we have no idea what the user is doing, we
+// do nothing for now. It is just a placeholder.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
@@ -843,8 +847,7 @@ uint8_t setupTaskMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupPendingReqMap" initializes the pending request map. Currently, we do not use
-// a HWM approach, but just use all entries when searching the map.
+// "setupPendingReqMap" initializes the pending request map. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPendingReqMap( ) {
@@ -859,13 +862,12 @@ uint8_t setupPendingReqMap( ) {
     pendingReqMap.mapHwm = 0;
 
     for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) taskMap.map[ i ] = tmp;
-
     return ( errStat( ALL_OK ));
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDrvFuncMap" initializes the driver function label map. This table is used when
-// we need to find the driver for an extension board type.
+// "setupDrvFuncMap" initializes the driver function label map. This table is used 
+// when we need to find the driver for an extension board type.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDrvFuncMap( ) {
@@ -902,9 +904,9 @@ uint8_t registerInternalTasks( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Driver function registration. There is a simple table which maintains extension boards
-// types and the driver REQ function for them. If the type is already registered, we
-// just overwrite the function signature. Otherwise we find a free entry and use it. 
+// Driver function registration. There is a simple table which maintains extension
+// boards types and the driver REQ function for them. For already registered types,
+// we just overwrite the function signature. Otherwise we use a free entry. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
@@ -998,8 +1000,8 @@ uint8_t setupDriverFunctions( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "powerFailHandler" is the routine called when the hardware detects an imminent loss 
-// of power. We will save crucial data to NVM. Finally, the optionally registered 
+// "powerFailHandler" is the routine called when the hardware detects an imminent 
+// loss of power. We will save crucial data to NVM. Finally, the optionally registered 
 // firmware power fail callback is called. The node state becomes "PFAIL".
 //
 //----------------------------------------------------------------------------------------
@@ -1021,45 +1023,15 @@ uint8_t powerFailHandler( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "initRuntime" is the routine that takes a controller board and initializes the whole 
-// show. It is the very first thing to call in a node firmware program. There is a lot 
-// to do. First, the CDC layer is initialized. NVM and CanBus follow. An error in this
-// stage will result in a fatal error, we are not able to set up a valid runtime.
+// "initRuntime" is the routine that takes a controller board and initializes the 
+// whole show. It is the very first thing to call in a node firmware program. There 
+// is a lot to do. This routine will invoke the various initializers, one at a time.
 //
-// If the HW setup worked, we are ready to read in the nodeMap. A nodeMap can be valid 
-// or not. It is defined as a map with valid "magic" words and reasonable values for the 
-// other fields. In case of an invalid nodeMap, a new default map is created and written
-// back to the NVM. An invalid nodeMap could result from erroneous writes to NVM locations
-// or simply a brand new HW board. If all is OK, we have a valid basic nodeMap that we
-// can work from. 
-//
-// The setup of the portMap follows. The flag field contains dynamic flags that are 
-// always reseted on node start or reset. Other fields in a map are read in from the NVM
-// first and set to a default state this way.
-// 
-// The eventMap initialization is a bit special, in that it is a rather large map and
-// potentially only a portion is used. There is an eventMao high water mark field in the
-// nodeMap that will tell how many entries are actually used in the event map. Adding 
-// increases, deleting decreases the high water mark. Note that the eventMap is a sorted
-// map. Every time we insert or remove the eventMap is rebuilt. Instead of immediately
-// updating the NVM storage, a dedicated command will SYNC between the MEM and the NVM 
-// eventMap.
-//
-// Next, we will set up the pending request map, callback function and task map. They are
-// just memory data areas to be initialized. Up to here an error detected will result in
-// a fatal error. If a console is connected the error messages are listed for analysis.
-//
-// If all is OK so far, extension boards are located, and if there are any, their 
-// initialization follows. First, we try to detect any. For all detected entries we
-// validate the extension board NVM header and set the driver for a valid header found.
-// The driver data area is copied to its memory counter part. All drivers are ready by
-// then. 
-// 
-// The overall logic of the startup routine code below is that if there is a fault, the
-// follow on steps are simply  skipped and the node is put into the FAIL state. Note that
-//  we still are able to access the node
-// via the USB console and one day also via diagnostic LCS messages. The idea is to allow
-// the correct configuration of the nodeMap, so that we can restart with a correct nodeMap. 
+// The overall logic of the startup routine code below is that if there is a fault, 
+// the follow on steps are simply  skipped and the node is put into the FAIL state. 
+// Note that we still are able to access the node via the USB console and one day 
+// also via diagnostic LCS messages. The idea is to allow the correct configuration 
+// of the nodeMap, so that we can restart with a correct nodeMap. 
 //
 // ??? how do we deal wit PFAIL restarts ?
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
@@ -1071,8 +1043,6 @@ uint8_t initRuntime( CdcResourceDescMap *dMap ) {
     if ( rStat == ALL_OK )  rStat = initCdcLayer( dMap );
     if ( rStat != ALL_OK )  fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
 
-    // ??? we need to deal with watchdog restart ?
-
     if ( rStat == ALL_OK )  rStat = initNvmChannels( dMap );
     if ( rStat != ALL_OK )  fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
 
@@ -1080,6 +1050,7 @@ uint8_t initRuntime( CdcResourceDescMap *dMap ) {
     if ( rStat != ALL_OK )  fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
 
     // ??? do we need to deal with power fail recovery and watchdog here ?
+    // ??? need to remember watch and power fail reasons...
 
     if ( rStat == ALL_OK )  rStat = setupWatchdog( dMap ); 
     if ( rStat == ALL_OK )  rStat = setupPfail( dMap );

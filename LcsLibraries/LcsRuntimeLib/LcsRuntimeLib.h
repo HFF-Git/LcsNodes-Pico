@@ -381,7 +381,7 @@ enum LcsItems : uint8_t {
     ITEM_ID_CONTROLLER_INFO             = 6,
 
     ITEM_ID_RT_LIB_VERSION              = 7,
-    ITEM_ID_RTLIB_PATCH_LEVEL           = 8,
+    ITEM_ID_RT_LIB_PATCH_LEVEL          = 8,
 
     ITEM_ID_TYPE                        = 9,
       
@@ -410,6 +410,8 @@ enum LcsItems : uint8_t {
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
     ITEM_ID_ACTIVE_LED                  = 34,
+
+    ITEM_USER_MAP_AREA                  = 35,
     
     // ??? add stop and enable periodic processing ?
 };
@@ -586,23 +588,6 @@ enum LcsErrorCodes : uint8_t {
     ERR_EXT_BOARD_NOT_VALID             = 90,
 
     ERR_USER_SPECIFIC_BASE              = 128
-};
-
-//----------------------------------------------------------------------------------------
-// "MsgPriority" defines the values for the message priority. It tracks the general 
-// definition found in the sendMsg routines of the LCS library. For the CAN bus, 
-// the priority is encoded in the CAN address field. A CAN Id consists of the CAN Id 
-// number and the priority. Messages start out with a hard coded priority and on 
-// message timeout are raised in their priority. This done transparently to the 
-// firmware programmer.
-//
-//----------------------------------------------------------------------------------------
-enum MsgPriority : uint8_t {
-
-    MSG_PRI_VERY_HIGH   = 0,
-    MSG_PRI_HIGH        = 1,
-    MSG_PRI_NORMAL      = 2,
-    MSG_PRI_LOW         = 3
 };
 
 //----------------------------------------------------------------------------------------
@@ -820,15 +805,15 @@ void        printLcsMs( uint8_t *msgBuf );
 // ??? rethink this concept. We could also offer a method to address any 16-bit word 
 // in NVM via a GET / SET call, one parm being the variable number, the other the value.
 //----------------------------------------------------------------------------------------
-// The User Map interface. The LCS library offers a set of routines for the firmware to 
-// access the user NVM area. The size is dependent on what the actual chip on the board 
-// offers. The meaning of this data area is entirely firmware specific. Note that there 
-// are also routines for accessing the runtime data area as well as the individual 
-// extension board areas. They are declared in the internal include file.
+// The User Map interface. The LCS library offers a set of routines for the firmware
+// to access the user NVM area. The size is dependent on what the actual chip on the
+// board offers. The user map can be accessed in two ways. There is the generic data 
+// buffer read and write. This is quite helpful when a data structure should be read
+// in or written to. The second method uses the GET/SET routines. In this method, the
+// user area is seen an array of attributes. The GET/SET will use the parameter one 
+// for the index, and parameter for the data value. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t     usrNvmPutWord( uint32_t ofs, uint16_t word );
-uint8_t     usrNvmGetWord( uint32_t ofs, uint16_t *word );
 uint8_t     usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t     usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
 uint8_t     usrNvmInitArea( uint32_t ofs, uint32_t len, uint8_t val);

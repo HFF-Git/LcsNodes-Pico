@@ -7,9 +7,9 @@
 // There are  three routines that allow to manipulate node and port data as well as  
 // issue requests to a node or port. The "npId" will indicate which node and port the 
 // call refers to. The node portion is typically our own node Id, the port Id refers
-// to a ports on the node, with a port Id of zero referring to the node itself. Any node
-// can access another node. In this case request come via a message and the message 
-// handler will call the local routines in this file. 
+// to a ports on the node, with a port Id of zero referring to the node itself. Any 
+// node can access another node. In this case request come via a message and the 
+// message handler will call the local routines in this file. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -103,7 +103,7 @@ namespace {
 
     uint16_t portId( uint16_t arg ) {
 
-        return ( arg & 0xF);
+        return ( arg & 0xF );
     }
 
     uint8_t errStat( uint8_t errId ) {
@@ -118,8 +118,8 @@ namespace {
 
     //------------------------------------------------------------------------------------
     // "readAttrMem" gets a value from the node or port attribute map in MEM. As an 
-    // internal function, we expect a valid block and item argument. The "block" argument
-    // will refer to the node and port data attributes. 
+    // internal function, we expect a valid block and item argument. The "block"
+    // argument will refer to the node and port data attributes. 
     //
     //------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
@@ -137,8 +137,8 @@ namespace {
 
     //------------------------------------------------------------------------------------
     // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an 
-    // internal function, we expect a valid block and item argument. The "block" argument
-    // will refer to the node and port data attributes. 
+    // internal function, we expect a valid block and item argument. The "block" 
+    // argument will refer to the node and port data attributes. 
     //
     //------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
@@ -155,11 +155,11 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // "readAttrNvm" gets an attribute from the NVM storage. We read the value from NVM.
-    // If successful, we also store it in the MEM counterpart and then return it. This
-    // ensures that NVM and MEM are always in sync when accessing the NVM. For the NVM 
-    // access, the byte offset into the storage needs to be computed. As an internal 
-    // function, we expect a valid block and item argument.
+    // "readAttrNvm" gets an attribute from the NVM storage. We read the value from
+    // the NVM area. If successful, we also store it in the MEM counterpart and then 
+    // return it. This ensures that NVM and MEM are always in sync when accessing NVM.
+    // For NVM access, the byte offset into the storage needs to be computed. As an 
+    // internal function, we expect a valid block and item argument.
     //
     //------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
@@ -182,11 +182,11 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // "writeAttrNvm" stores an attribute to the NVM storage. If the update is successful,
-    // we also update the corresponding MEM attribute. This ensures that NVM and MEM are
-    // always in sync when accessing the NVM. For the NVM access, the byte offset into 
-    // the storage needs to be computed. As an  internal function, we expect a valid 
-    // block and item argument.
+    // "writeAttrNvm" stores an attribute to the NVM storage. If the update is 
+    // successful, we also update the corresponding MEM attribute. This ensures that 
+    // NVM and MEM are always in sync when accessing the NVM. For the NVM access, the
+    // byte offset into the storage needs to be computed. As an  internal function, 
+    // we expect a valid block and item argument.
     //
     //------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
@@ -209,8 +209,8 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // "syncAttrToMem" will copy the NVM attribute value to the MEM counterpart. All we
-    // do is just reading the NVM value again.
+    // "syncAttrToMem" will copy the NVM attribute value to the MEM counterpart. 
+    // All we do is just reading the NVM value to a dummy variable.
     //
     //------------------------------------------------------------------------------------
     uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
@@ -225,8 +225,8 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // "syncAttrToNvm" will take the MEM attribute value of an item and writes it to the
-    // NVM counterpart.
+    // "syncAttrToNvm" will take the MEM attribute value of an item and writes it 
+    // to the NVM counterpart.
     //
     //------------------------------------------------------------------------------------
     uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
@@ -243,8 +243,9 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // User callback function invocation routine. Items 64 to 127 are user defined items.
-    // We will simply invoke a previously registered callback passing the arguments. 
+    // User callback function invocation routine. Items 64 to 127 are user defined
+    // items. We will simply invoke a previously registered callback passing the 
+    // arguments. 
     //
     //------------------------------------------------------------------------------------
     uint8_t invokeUserItemCallback( uint8_t npId, 
@@ -255,16 +256,15 @@ namespace {
         if ( portMap.map[ portId( npId ) ].reqCallback != nullptr ) {
 
             return ( errStat( portMap.map[ portId( npId ) ].
-                            reqCallback( portId( npId ), item, arg1, arg2 )));
+                                    reqCallback( portId( npId ), item, arg1, arg2 )));
         }
         else return ( errStat( ERR_INVALID_ITEM_ID ));
     }
 
     //------------------------------------------------------------------------------------
-    // "handleSyncCommand" is the handler for SYNC options. Arg1 will contain the command,
-    // Arg2 the optional argument.
+    // "handleSyncCommand" is the handler for SYNC options. Arg1 will contain the 
+    // command, arg2 an optional argument.
     //
-    // ??? define named constants for the options ?
     //------------------------------------------------------------------------------------
     uint8_t handleSyncCommand( uint8_t npId, uint16_t arg1, uint16_t arg2 ) {
 
@@ -336,9 +336,9 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
     if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) 
-            return ( errStat( readAttrMem(  portId( npId ), item, arg1 )));
+            return ( errStat( readAttrMem( portId( npId ), item, arg1 )));
         else if ( nodeMap.nodeState == NS_CONFIG  ) 
-            return ( errStat( readAttrNvm(  portId( npId ), item, arg1 )));
+            return ( errStat( readAttrNvm( portId( npId ), item, arg1 )));
         else                                        
             return ( errStat( ERR_INVALID_OP_FOR_NODE_STATE ));
         
@@ -354,25 +354,31 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_OPTIONS: {      
                 
-                *arg1 = portMap.map[  portId( npId ) ].options; 
+                *arg1 = portMap.map[ portId( npId ) ].options; 
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_FLAGS: { 
                 
-                *arg1 = portMap.map[  portId( npId ) ].flags; 
+                *arg1 = portMap.map[ portId( npId ) ].flags; 
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_TYPE: { 
                          
-                *arg1 = portMap.map[  portId( npId ) ].type; 
+                *arg1 = portMap.map[ portId( npId ) ].type; 
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_RT_LIB_VERSION: {    
                 
                 *arg1 = nodeMap.rtLibSwVersion; 
+                return ( errStat( ALL_OK ));
+            }
+
+            case ITEM_ID_RT_LIB_PATCH_LEVEL: {    
+                
+                *arg1 = nodeMap.rtLibSwPatchLevel; 
                 return ( errStat( ALL_OK ));
             }
 
@@ -396,10 +402,12 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_BOARD_VERSION: {
 
-                if ( ! isInRangeU( *arg1, 0, 4 )) 
-                    return ( errStat( ERR_INVALID_ATTR_ARG ));
-                *arg1 = headerMap.map[ *arg1 ].boardVersion ;
-                return ( errStat( ALL_OK ));
+                if ( isInRangeU( *arg1, 0, 4 )) {
+
+                    *arg1 = headerMap.map[ *arg1 ].boardVersion ;
+                    return ( errStat( ALL_OK ));
+                }
+                else return ( errStat( ERR_INVALID_ATTR_ARG ));
             }
 
             case ITEM_ID_NODE_UID: {
@@ -482,16 +490,22 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( errStat( ALL_OK ));
             }
 
+            case ITEM_USER_MAP_AREA: {
+
+                // ??? fetch the data word from the user area...
+                return ( errStat( ALL_OK ));
+            }
+
             default: return ( errStat( ERR_INVALID_ITEM_ID ));
         }
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "nodePut" will write a value to the node, port or the attribute data map. The "npId"
-// argument contains the node and port Id. For data attributes the node state determines
-// whether we also update the NVM slot. For the remaining items the update of NVM is 
-// dependent on the meaning of the particular item.
+// "nodePut" will write a value to the node, port or the attribute data map. The 
+// "npId" argument contains the node and port Id. For data attributes the node state
+// determines whether we also update the NVM slot. For the remaining items the update
+// of NVM is dependent on the meaning of the particular item.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
@@ -502,7 +516,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 npId, item, val1, val2  );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) {
+    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {
         
         return ( errStat( ERR_LIB_NOT_READY ));
     }
@@ -522,15 +536,15 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_DEBUG_MASK: {
 
-                if ( CDC::isConsoleConnected( )) debugMask = val1 | LCS_DBG_CONFIG;           
-                else                             debugMask = val1 & ~ LCS_DBG_CONFIG;
+                if ( isConsoleConnected( )) debugMask = val1 | LCS_DBG_CONFIG;           
+                else                        debugMask = val1 & ~ LCS_DBG_CONFIG;
               
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_OPTIONS: {
 
-                portMap.map[ 0 ].options = val1;
+                portMap.map[ portId( npId ) ].options = val1;
 
                 uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
@@ -542,19 +556,19 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_FLAGS: {
 
-                portMap.map[ 0 ].flags = val1;
+                portMap.map[ portId( npId ) ].flags = val1;
 
                 uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
                                 ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, options );
+                                offsetof( LcsPortMapEntry, flags );
 
                 return ( errStat( rtNvmPutWord( ofs, val1 )));
             }
 
             case ITEM_ID_TYPE: {
 
-                portMap.map[ portId( npId ) - 1 ].type = lowByte( val1 );
+                portMap.map[ portId( npId ) ].type = lowByte( val1 );
 
                 uint16_t ofs =  NVM_PORT_MAP_OFS +
                                 offsetof( LcsPortMap, map ) + 
@@ -567,20 +581,20 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_NODE_ID: {
 
-                nodeMap.nodeId = val1;
+                nodeMap.nodeId = nodeId( val1 );
                 return ( errStat( 
-                    rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, 
-                                  nodeId ), 
-                                  nodeMap.nodeId )));
+                            rtNvmPutWord( 
+                                NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
+                                val1 )));
             }
 
             case ITEM_ID_RT_LIB_VERSION: {
 
                 nodeMap.rtLibSwVersion = val1;
                 return ( errStat( 
-                    rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, 
-                                  rtLibSwVersion ), 
-                                  val1 )));
+                            rtNvmPutWord( 
+                                NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, rtLibSwVersion ), 
+                                val1 )));
             }
 
             case ITEM_ID_BOARD_VERSION: {
@@ -588,7 +602,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 if ( ! isInRangeU( val1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
 
                 // ??? board version setting ...
-                // ??? not clear what we would exactly do for the NVM header changes / config ?
+                // ??? only in config mode ?
+                // ??? what would we exactly do for the NVM header changes / config ?
 
                 return ( errStat( 255 ));
             }
@@ -607,24 +622,11 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
             
             case ITEM_ID_NAME_1: {
 
+                memset( tempName, 0, MAX_NODE_PORT_NAME_SIZE );
                 tempName[ 0 ] = highByte( val1 );
                 tempName[ 1 ] = lowByte( val1 );
                 tempName[ 2 ] = highByte( val2 );
                 tempName[ 3 ] = lowByte( val2 );
-
-                memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, 
-                       (uint8_t *)tempName, 
-                       MAX_NODE_PORT_NAME_SIZE );
-
-                uint16_t ofs =  NVM_PORT_MAP_OFS  +
-                                offsetof( LcsPortMap, map ) + 
-                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, name );
-                
-                return ( errStat( 
-                         rtNvmPutBytes( ofs, 
-                                        (uint8_t *)tempName, 
-                                        MAX_NODE_PORT_NAME_SIZE )));
             }
 
             case ITEM_ID_NAME_2: {
@@ -647,11 +649,31 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_NAME_4: {
 
-                memset( tempName, 0, MAX_NODE_PORT_NAME_SIZE );
                 tempName[ 12 ]  = highByte( val1 );
                 tempName[ 13 ]  = lowByte( val1 );
                 tempName[ 14 ]  = highByte( val2 );
                 tempName[ 15 ]  = lowByte( val2 );
+
+                memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, 
+                       (uint8_t *)tempName, 
+                       MAX_NODE_PORT_NAME_SIZE );
+
+                uint16_t ofs =  NVM_PORT_MAP_OFS  +
+                                offsetof( LcsPortMap, map ) + 
+                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
+                                offsetof( LcsPortMapEntry, name );
+                
+                return ( errStat( 
+                            rtNvmPutBytes( ofs, 
+                                        (uint8_t *)tempName, 
+                                        MAX_NODE_PORT_NAME_SIZE + 1 )));
+
+                return ( errStat( ALL_OK ));
+            }
+
+            case ITEM_USER_MAP_AREA: {
+
+                // ??? set the data word in the user area...
                 return ( errStat( ALL_OK ));
             }
 
@@ -661,9 +683,9 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeReq" will carry out a node or port function. A function, represented by an item,
-// can be a node or port defined item, a extension board driver defined item or a user
-// defined item.
+// "nodeReq" will carry out a node or port function. A function, represented by an
+// item, can be a node or port defined item, a extension board driver defined item 
+// or a user defined item.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -675,7 +697,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) {
+    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {
         
         return ( errStat( ERR_LIB_NOT_READY ));
     }
@@ -690,7 +712,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                CDC::sleepMillis( 10000 );
+                // pass the watchdog timer ... is there a better way ?
+                sleepMillis( 10000 ); 
                 return ( errStat( ALL_OK ));
             }
 
@@ -698,6 +721,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 // ??? we need a way to format the extension board area, when needed. 
                 // ??? applies to ports 1 to 4 when they are mapped to a driver...
+
+                // val1 = type ?
+                // val2 = ?
 
                 return ( errStat( 255 ));
             }
@@ -717,40 +743,26 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( errStat( handleSyncCommand( npId, *arg1, *arg2 )));
             }
 
-            case ITEM_ID_NODE_ID: {
-
-                if ( isInRangeU( *arg1, MIN_NODE_ID, MAX_NODE_ID )) {
-
-                    nodeMap.nodeId = nodeId( *arg1 );
-                    return ( 
-                        errStat( 
-                            rtNvmPutBytes( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
-                                            (uint8_t *) &nodeMap.nodeId, 
-                                            sizeof( uint16_t ))));
-                }
-                else return ( errStat( ERR_INVALID_NODE_ID ));
-            }
-
             case ITEM_ID_ENABLE_EVENT_PROCESSING: {
 
                 if ( *arg1 )    
-                    portMap.map[ portId( npId ) - 1 ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
+                    portMap.map[ portId( npId ) - 1 ].flags |= 
+                                            NPF_PORT_EVENT_HANDLING_ENABLED;
                 else            
-                    portMap.map[ portId( npId ) - 1 ].flags &= ~ NPF_PORT_EVENT_HANDLING_ENABLED;
+                    portMap.map[ portId( npId ) - 1 ].flags &= 
+                                            ~ NPF_PORT_EVENT_HANDLING_ENABLED;
 
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_ACTIVE_LED: {
 
-                int option = (( arg1 == nullptr ) ? 0 : *arg1 );
-
                 if ( *arg1 == 1 )  
-                    return ( errStat( CDC::writeDio( CDC_RN_ACTIVITY_LED, true )));
+                    return ( errStat( writeDio( CDC_RN_ACTIVITY_LED, true )));
                 else if ( *arg1 == 2 )  
-                    return ( errStat( CDC::toggleDio( CDC_RN_ACTIVITY_LED )));
+                    return ( errStat( toggleDio( CDC_RN_ACTIVITY_LED )));
                 else                    
-                    return ( errStat( CDC::writeDio( CDC_RN_ACTIVITY_LED, false )));
+                    return ( errStat( writeDio( CDC_RN_ACTIVITY_LED, false )));
             }
 
             default: return ( errStat( ERR_INVALID_ITEM_ID ));
