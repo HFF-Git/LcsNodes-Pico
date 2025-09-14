@@ -355,13 +355,12 @@ enum LcsPortEventAction : uint8_t {
 //
 //   0          -   NIL item, not used
 //
-//   1  ..  63  -   Node / port / driver library reserved area items, global items 
+//   1  .. 127  -   Node / port / driver library reserved area items, global items 
 //                  for GET/SET/REQ requests.
 //
-//  64  .. 127  -   User or driver defined items, specific meaning, accessed via 
-//                  the REQ routine.
-//
-// 128  .. 255  -   Node / port / driver data attributes.
+// 128  .. 255  -   Node / port / driver data attributes when using the GET/SET 
+//                  routines. User or driver defined items, specific meaning, 
+//                  accessed via the REQ routine.
 //
 // The following declarations just list the item numbers defined. The ranges are defined
 // in the internal include file. The ranges as well as the reserved items defined here 

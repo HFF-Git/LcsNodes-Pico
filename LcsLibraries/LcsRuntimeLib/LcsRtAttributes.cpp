@@ -124,7 +124,7 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
+        *arg = nodeData.map[ block ][ item - IR_USER_RANGE_START ];
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
@@ -143,7 +143,7 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
+        nodeData.map[ block ][ item - IR_USER_RANGE_START ] = arg;
 
         if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
@@ -164,7 +164,7 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
-        uint16_t index  = item - IR_ATTR_RANGE_START;
+        uint16_t index  = item - IR_USER_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
@@ -191,7 +191,7 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
-        uint16_t index  = item - IR_ATTR_RANGE_START;
+        uint16_t index  = item - IR_USER_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
         
@@ -280,7 +280,7 @@ namespace {
 
             case 2: {
 
-                if ( isInRangeU( arg2, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
+                if ( isInRangeU( arg2, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
                    return ( errStat( syncAttrToMem( portId( npId ), arg2 )));
                 } 
@@ -289,7 +289,7 @@ namespace {
 
             case 3: {
 
-                if ( isInRangeU( arg2, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
+                if ( isInRangeU( arg2, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
                    return ( errStat( syncAttrToNvm( portId( npId ), arg2 )));
                 } 
@@ -333,7 +333,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if ( arg1 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));  
     
-    if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
+    if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) 
             return ( errStat( readAttrMem( portId( npId ), item, arg1 )));
@@ -521,7 +521,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
         return ( errStat( ERR_LIB_NOT_READY ));
     }
     
-    if ( isInRangeU( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
+    if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE )
             return ( writeAttrMem( portId( npId ), item, val1 ));

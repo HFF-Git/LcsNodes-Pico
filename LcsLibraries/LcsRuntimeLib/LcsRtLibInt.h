@@ -170,12 +170,11 @@ enum LcsNodeState : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Node, port and extension board driver attributes and functions are accessed with three
-// main routines, GET, SET and REQ. The specific items are defined in the external include
-// file. This part here defined the boundaries for internal checking. The first 63 items 
-// are predefined and reserved for the runtime itself. Item 64 to 127 are user definable
-// and typically implement node type specific functions. Finally, item 128 to 255 are 
-// user definable attribute variables.
+// Node, port and extension board driver attributes and functions are accessed with 
+// three main routines, GET, SET and REQ. The specific items are defined in the external
+// include file. This part here defined the boundaries for internal checking. The first
+// 127 items are predefined and reserved for the runtime itself. Item 128 to 255 are 
+// user definable attribute variables and functions.
 //
 //----------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
@@ -183,14 +182,11 @@ enum ItemRanges : uint8_t {
     IR_NIL                      = 0,
 
     IR_LIB_MAP_RANGE_START      = 1,
-    IR_LIB_MAP_RANGE_END        = 63,
+    IR_LIB_MAP_RANGE_END        = 127,
 
-    IR_USER_RANGE_START         = 64,
-    IR_USER_RANGE_END           = 127,
+    IR_USER_RANGE_START         = 128,
+    IR_USER_RANGE_END           = 255,
  
-    IR_ATTR_RANGE_START         = 128,
-    IR_ATTR_RANGE_END           = 255,
-
     IR_MAX_ITEMS                = 255,
 };
 
