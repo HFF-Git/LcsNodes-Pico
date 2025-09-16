@@ -56,14 +56,14 @@
 
 //----------------------------------------------------------------------------------------
 // Runtime globals. This file contains all the global data structure declarations. 
-// They are declared in the LCS name space. All other files in the runtime library will
-// declare them as "extern" if needed.
+// They are declared in the LCS name space. All other files in the runtime library 
+// will declare them as "extern" if needed.
 //
 // There is also the debug mask. The idea is to have a debug mask where each major 
 // part of the library has a bit. There could also be bits reserved for the firmware.
 // Then we have control items to set these bits. Wherever debugging or tracing is 
 // needed, the bit mask will be used to determine whether to print debugging data or 
-// not. From a performance perspective, the test will take just a couple of instructions.
+// not. From a performance perspective, the test will take just a few of instructions.
 // In other words we do not take out debugging code when going into production. Never
 // liked this approach of conditional debug code via "ifdefs".
 //
@@ -1027,34 +1027,48 @@ uint8_t powerFailHandler( ) {
 // whole show. It is the very first thing to call in a node firmware program. There 
 // is a lot to do. This routine will invoke the various initializers, one at a time.
 //
-// The overall logic of the startup routine code below is that if there is a fault, 
-// the follow on steps are simply  skipped and the node is put into the FAIL state. 
-// Note that we still are able to access the node via the USB console and one day 
-// also via diagnostic LCS messages. The idea is to allow the correct configuration 
-// of the nodeMap, so that we can restart with a correct nodeMap. 
+// The first three calls are the basic setup of the CDC layer, the NVM and CanBus 
+// channel. The CDC layer setup also checks for a console presence and if so, allows 
+// for different start modes. However, if any of them fails, we have a fatal error 
+// and stop. If we have a basic hardware setup, let's check whether we are starting
+// from a watchdog timer or power fail event.
+// 
+// The remainder of the calls will setup the individual portions of the LCS runtime.
+// The overall logic of the startup code below is that if there is a fault, the follow
+// on steps are simply skipped and the node is put into the FAIL state. 
 //
-// ??? how do we deal wit PFAIL restarts ?
+// Note that we still are able to access the node via the USB console and one day 
+// also via diagnostic LCS messages. The idea is to allow problem resolution and 
+// correct configuration of the nodeMap, so that we can hopefully restart with a 
+// correct nodeMap. 
+//
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
 //----------------------------------------------------------------------------------------
-uint8_t initRuntime( CdcResourceDescMap *dMap ) {
+uint8_t initRuntime( CdcResourceDescMap *descMap ) {
 
     uint8_t rStat = ALL_OK;
+    dMap = *descMap;
 
-    if ( rStat == ALL_OK )  rStat = initCdcLayer( dMap );
-    if ( rStat != ALL_OK )  fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
+    rStat = initCdcLayer( &dMap );
+    if ( rStat != ALL_OK )  
+        fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
 
-    if ( rStat == ALL_OK )  rStat = initNvmChannels( dMap );
-    if ( rStat != ALL_OK )  fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
+    rStat = initNvmChannels( &dMap );
+    if ( rStat != ALL_OK )  
+        fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
 
-    if ( rStat == ALL_OK )  rStat = initCanBus( dMap );
-    if ( rStat != ALL_OK )  fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
+    rStat = initCanBus( &dMap );
+    if ( rStat != ALL_OK )  
+        fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
 
+    
     // ??? do we need to deal with power fail recovery and watchdog here ?
     // ??? need to remember watch and power fail reasons...
 
-    if ( rStat == ALL_OK )  rStat = setupWatchdog( dMap ); 
-    if ( rStat == ALL_OK )  rStat = setupPfail( dMap );
-    if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( dMap );
+
+    if ( rStat == ALL_OK )  rStat = setupWatchdog( &dMap ); 
+    if ( rStat == ALL_OK )  rStat = setupPfail( &dMap );
+    if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( &dMap );
     if ( rStat == ALL_OK )  rStat = setupExtNvmHeaders( );
     if ( rStat == ALL_OK )  rStat = setupNodeMap( );
     if ( rStat == ALL_OK )  rStat = setupPortMap( );
