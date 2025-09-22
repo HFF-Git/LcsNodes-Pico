@@ -304,11 +304,10 @@ void printSummary( ) {
 
     printf( "LCS Node: \"" );
 
-    LcsPortMapEntry *pPtr = &portMap.map[ 0 ];
-
-    for ( uint8_t i = 0; i < MAX_NODE_PORT_NAME_SIZE; i++ ) {
+    for ( uint8_t i = 0; i < MAX_RES_NAME_SIZE; i++ ) {
  
-        if ( pPtr -> name[ i ] != 0 ) printf( "%c", pPtr -> name[ i ] );
+        if ( headerMap.map[ 0 ].name[ i ] != 0 ) 
+            printf( "%c", headerMap.map[ 0 ].name[ i ] );
     }
      
     printf( "\", State: %d\n", nodeMap.nodeState );

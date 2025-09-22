@@ -169,7 +169,7 @@ uint8_t errStat( uint8_t errId ) {
 //----------------------------------------------------------------------------------------
 // "setupDefaultHeaderMap" initializes the NVM header map. We fill in the data for
 // the main board from the board descriptor map. The extension entries are just 
-// cleared.
+// cleared. The new NVM Node Map header is stored to NVM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
@@ -178,10 +178,10 @@ uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
         printf( "setupDefaultHeaderMap\n" );
 
     hMap -> map[ 0 ].boardMword     = dMap.boardMword;
-    hMap -> map[ 0 ].boardInfo      = dMap.boardInfo;
+    hMap -> map[ 0 ].boardType      = dMap.boardInfo;
     hMap -> map[ 0 ].boardVersion   = dMap.boardVersion;
     hMap -> map[ 0 ].boardCtrlInfo  = dMap.boardCtrlInfo;
-    strncpy( hMap -> map[ 0 ].name, dMap.name, MAX_RES_NAME_SIZE );
+    strncpy( hMap -> map[ 0 ].name, dMap.name, MAX_RES_NAME_SIZE - 1 );
 
     for ( int i = 1; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
 
@@ -195,8 +195,9 @@ uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultNodeMap" builds the node map structure. We allocate the UID and set
-// the NVM offset to the actual value.
+// "setupDefaultNodeMap" builds the node map structure. We allocate the Node UID.
+// The newly created default node map is stored to its place in the NVM. We also 
+// return the new map.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeMap( LcsNodeMap *nMap ) {
@@ -216,8 +217,10 @@ uint8_t setupDefaultNodeMap( LcsNodeMap *nMap ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultPortMap" will initialize the portMap data structure. We set a default 
-// name for the port. The NVM offset is set to the actual value.
+// "setupDefaultPortMap" will initialize the portMap data structure and write it to
+// NVM. We set a default name for the port. Port zero is the node itself, so the name
+// is "Node", all others have "Port-x" as their name. We also return the newly created 
+// portMap.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultPortMap( LcsPortMap *pMap ) {
@@ -228,9 +231,6 @@ uint8_t setupDefaultPortMap( LcsPortMap *pMap ) {
     for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         LcsPortMapEntry pEntry;
-
-        if ( i == 0 )   snprintf( pEntry.name, MAX_NODE_PORT_NAME_SIZE, "Node" );
-        else   snprintf( pEntry.name, MAX_NODE_PORT_NAME_SIZE, "Port-%d", i + 1 );
         pMap -> map[ i ] = pEntry;
     }
 
@@ -245,7 +245,8 @@ uint8_t setupDefaultPortMap( LcsPortMap *pMap ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultEventMap" initializes the event map.
+// "setupDefaultEventMap" initializes the event map and write it to NVM. We also 
+// return the newly created event map.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultEventMap( LcsEventMap *eMap ) {
@@ -267,8 +268,8 @@ uint8_t setupDefaultEventMap( LcsEventMap *eMap ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "buildMemDefaultNodeData" builds the node data blocks. The NVM offset is set to
-// the actual value.
+// "buildMemDefaultNodeData" builds the node data blocks and initializes the NVM
+// portion for it. We also return the newly created node data map. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
@@ -290,9 +291,10 @@ uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "buildNvmRuntimeStructure" initializes a new or corrupt runtime NVM with default
-// data. We initialize the MEM structures and just write them to their spot in NVM. 
-// After successful completion, we will have a valid runtime map.
+// "buildNvmRuntimeStructure" initializes a runtime NVM with default data. It is used
+// for a new board or when we detect a corrupt NVM image. We initialize the MEM 
+// structures and just write them to their spot in NVM. After successful completion, 
+// we will have a valid runtime map on NVK and MEM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructure( ) {
@@ -310,9 +312,9 @@ uint8_t buildNvmRuntimeStructure( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "buildNvmExtBoardStructure" initializes a new or corrupt NVM header on an extension
-// board NVM. At this point we do not know much about the extension board other than
-// it is such a board.
+// "buildNvmExtBoardStructure" initializes the NVM header on an extension board. At
+// this point we do not know much about the extension board other than it is such
+// a board.
 //
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
@@ -323,11 +325,11 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
     }
   
     LcsBoardDesc head;
-    head.boardMword     = NVM_MWORD_EXT_HEADER; 
-    head.boardInfo      = 0;                    // type/subtype
-    head.boardVersion   = 0;                    // major / sub version
-    head.boardCtrlInfo   = 0;;                  // family / cType
-    snprintf( head.name, 8, "EXT" );            // ??? a better name ?
+    head.boardMword      = NVM_MWORD_EXT_HEADER; 
+    head.boardType       = 0;                       // type/subtype
+    head.boardVersion    = 0;                       // major / sub version
+    head.boardCtrlInfo   = 0;;                      // family / cType
+    snprintf( head.name, 8, "EXT-%d", boardId );    // ??? a better name ?
   
     return ( errStat( extNvmPutBytes( boardId, 
                                       0, 
@@ -336,7 +338,7 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// A little helper to print a NVM header structure for debugging purposes.
+// A little helper to print a NVM header structure in HEX for debugging purposes.
 // 
 //----------------------------------------------------------------------------------------
 void printNvmHeader( LcsBoardDesc *head ) {
@@ -493,7 +495,6 @@ uint8_t initCanBus( CdcResourceDescMap *map ) {
            
             rStat = ERR_CAN_SETUP;
         }
-
     }
     
     return ( errStat( rStat ));
@@ -510,11 +511,15 @@ uint8_t setupWatchdog( CdcResourceDescMap *map ) {
         printf( "Setup watchdog\n" );
     }
 
+    // ??? put the call here ?
+
     return( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// Setup the power fail facility.
+// Setup the power fail facility. There is a pin to which the power fail detection
+// circuitry is connected. When power goes away, the falling edge on the pin will 
+// cause an interrupt and the power fail handler executes.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPfail( CdcResourceDescMap *map ) {
@@ -551,7 +556,9 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     LcsBoardDesc *hPtr = &headerMap.map[ 0 ];
 
-    rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, (uint8_t *) hPtr, sizeof( LcsBoardDesc ));
+    rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS, 
+                           (uint8_t *) hPtr, 
+                           sizeof( LcsBoardDesc ));
     if ( rStat != ALL_OK ) return ( errStat( rStat ));
 
     if ( hPtr -> boardMword != NVM_MWORD_NODE_HEADER ) {
@@ -565,13 +572,13 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
         rStat = buildNvmRuntimeStructure( );
     }
 
-// ??? check board controller family : desc.board controller - hPtr.board controller
+    // ??? check board controller family : desc.board controller - hPtr.board controller
 
-// ??? check board version : desc.board version controller - hPtr.board version controller
+    // ??? check board version : desc.board version controller - hPtr.board version controller
 
-// ??? check board info: desc.board info - hPtr.board info
+    // ??? check board info: desc.board info - hPtr.board info
 
-// ??? check name: if different, just copy new name...
+    snprintf( hPtr -> name, MAX_RES_NAME_SIZE - 1 , map -> name ); 
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
@@ -583,10 +590,10 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
 //----------------------------------------------------------------------------------------
 // With the NVM channels in place and the main controller NVM header valid, we check 
-// whether there are extension boards and read in their headers too. Entry zero of 
-// the NVM header map is always the main controller board NVM header, the optional 
-// extension board NVM headers are stored in entry 1 to 4. If the read fails, there 
-// is no board at that location and we set the magic word to zero to record this fact.
+// whether there are extension boards and read in their headers too. The optional 
+// extension board NVM headers are stored in entry 1 to 4. If the read operation fails,
+// there is no board at that location and we set the magic word to zero to record 
+// this fact.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupExtNvmHeaders( ) {
@@ -625,7 +632,7 @@ uint8_t setupExtNvmHeaders( ) {
                 if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
                     printNvmHeader( hPtr );
-                    printf( "setupExtNvmHeaders, boardId: %d -> inValid\n", i ); 
+                    printf( "setupExtNvmHeaders, boardId: %d -> invalid\n", i ); 
                 }
             }
         } 
@@ -645,7 +652,7 @@ uint8_t setupExtNvmHeaders( ) {
 // was requested, a default structure was created. Either way we can rely on a valid
 // map layout. Note that some items are stored in Port Map entry 0, which by definition
 // is the port for the node itself. We will store these items in the port setup routine.
-// To be sure, we explicitly clear some nodeMap fields.
+// To be sure, we explicitly clear some nodeMap fields, such as the callback labels.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
@@ -673,9 +680,7 @@ uint8_t setupNodeMap( ) {
 
 //----------------------------------------------------------------------------------------
 // "setupPortMap" will read the port data the NVM port map data area into the memory 
-// counterpart. A node can have up to 15 ports. Port 0 is the node itself. If there 
-// are extension boards connected, the first N ports refer to these boards. We consult
-// the nvmHeaderMap for detected extension boards.
+// counterpart. A node can have up to 15 ports. Port 0 is the node itself. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
@@ -691,8 +696,6 @@ uint8_t setupPortMap( ) {
     if ( rStat == ALL_OK ) {
 
         portMap.map[ 0 ].options = dMap.options; 
-
-        // ??? set a name from config desc  
     }
 
     return ( errStat( rStat ));
@@ -837,11 +840,13 @@ uint8_t setupTaskMap( ) {
         printf( "setupTaskMap\n" );
     }
 
-    LcsPTaskMapEntry tmp;
-
     taskMap.mapHwm = 0;
 
-    for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) taskMap.map[ i ] = tmp;
+    for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) {
+        
+        LcsPTaskMapEntry tmp;
+        taskMap.map[ i ] = tmp;
+    }
 
     return ( errStat( ALL_OK ));
 }
@@ -852,8 +857,6 @@ uint8_t setupTaskMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupPendingReqMap( ) {
 
-    LcsPTaskMapEntry tmp;
-
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupPendingReqMap\n" );
@@ -861,7 +864,12 @@ uint8_t setupPendingReqMap( ) {
 
     pendingReqMap.mapHwm = 0;
 
-    for ( int i = 0; i < MAX_TASK_MAP_ENTRIES; i++ ) taskMap.map[ i ] = tmp;
+    for ( int i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
+        
+        LcsPendingReqEntry tmp;
+        pendingReqMap.map[ i ] = tmp;
+    }
+    
     return ( errStat( ALL_OK ));
 }
 
@@ -890,7 +898,7 @@ uint8_t setupDrvFuncMap( ) {
 
 //----------------------------------------------------------------------------------------
 // The runtime library will one day perhaps a set of internal functions to execute 
-// periodically. Right now, this routine will do nothing.
+// periodically. They should be added here. Right now, this routine will do nothing.
 //
 //----------------------------------------------------------------------------------------
 uint8_t registerInternalTasks( ) {
@@ -982,11 +990,12 @@ uint8_t setupDriverFunctions( ) {
 
             for ( int j = 0; j < MAX_DRV_TYPE_MAP_ENTRIES; j++ ) {
 
-                if ( headerMap.map[ i ].boardInfo == drvFuncMap.map[ j ].drvType ) { // ??? drvType ?
+                if ( headerMap.map[ i ].boardType == drvFuncMap.map[ j ].drvType ) { 
 
                     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
 
-                        printf( "setupDriverFunctions, board: %d, drvType entry: %d\n", i, j );
+                        printf( "setupDriverFunctions, board: %d,"
+                                " drvType entry: %d\n", i, j );
                     }
 
                     pPtr -> reqCallback = drvFuncMap.map[ j ].drvFunc;
@@ -1001,8 +1010,9 @@ uint8_t setupDriverFunctions( ) {
 
 //----------------------------------------------------------------------------------------
 // "powerFailHandler" is the routine called when the hardware detects an imminent 
-// loss of power. We will save crucial data to NVM. Finally, the optionally registered 
-// firmware power fail callback is called. The node state becomes "PFAIL".
+// loss of power. Our chance to save crucial data to NVM. Finally, the optionally 
+// registered firmware power fail callback is called. The node state becomes "PFAIL".
+// Upon restart, we check this state and know that we came back after a power fail.
 //
 //----------------------------------------------------------------------------------------
 uint8_t powerFailHandler( ) {
@@ -1061,11 +1071,6 @@ uint8_t initRuntime( CdcResourceDescMap *descMap ) {
     if ( rStat != ALL_OK )  
         fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
 
-    
-    // ??? do we need to deal with power fail recovery and watchdog here ?
-    // ??? need to remember watch and power fail reasons...
-
-
     if ( rStat == ALL_OK )  rStat = setupWatchdog( &dMap ); 
     if ( rStat == ALL_OK )  rStat = setupPfail( &dMap );
     if ( rStat == ALL_OK )  rStat = setupNodeNvmHeader( &dMap );
@@ -1080,11 +1085,16 @@ uint8_t initRuntime( CdcResourceDescMap *descMap ) {
     if ( rStat == ALL_OK )  rStat = setupPendingReqMap( );
     if ( rStat == ALL_OK )  rStat = setupDrvFuncMap( );
     if ( rStat == ALL_OK )  rStat = registerInternalTasks( );
-    if ( rStat != ALL_OK )  fatalError( 4, (char *) "Node setup Setup failed", rStat );
-
+ 
     if ( rStat == ALL_OK )  {
         
-        if ( nodeMap.nodeState != NS_PFAIL ) nodeMap.nodeState = NS_INIT;
+        if ( nodeMap.nodeState == NS_PFAIL ) {
+            
+            // ??? we came back fro a PFAIL ?
+            // ??? handle it ...
+        }
+        
+        nodeMap.nodeState = NS_INIT;
     }    
     else nodeMap.nodeState = NS_FAIL;
         

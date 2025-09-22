@@ -75,7 +75,7 @@ namespace {
     // are received.
     //
     //------------------------------------------------------------------------------------
-    char tempName[ MAX_NODE_PORT_NAME_SIZE + 1 ] = { 0 };
+    char tempName[ MAX_RES_NAME_SIZE + 1 ] = { 0 };
 
     //------------------------------------------------------------------------------------
     // Utility routines.
@@ -448,41 +448,47 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
             }
 
+            #if 0 // take out...
             case ITEM_ID_NAME_1: {
 
                 if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
-                *arg1 = ((uint16_t) ( pPtr -> name[ 0 ] << 8  ) | pPtr -> name[ 1 ] );
-                *arg2 = ((uint16_t) ( pPtr -> name[ 2 ] << 8  ) | pPtr -> name[ 3 ] );
+                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 0 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 1 ] );
+                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 2 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 3 ] );
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_NAME_2: {
 
                 if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
-                *arg1 = ((uint16_t) ( pPtr -> name[ 4 ] << 8  ) | pPtr -> name[ 5 ] );
-                *arg2 = ((uint16_t) ( pPtr -> name[ 6 ] << 8  ) | pPtr -> name[ 7 ] );
+                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 4 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 5 ] );
+                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 6 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 7 ] );
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_NAME_3: {
 
                 if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG )); 
-                LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
-                *arg1 = ((uint16_t) ( pPtr -> name[ 8 ] << 8  )  | pPtr -> name[ 9 ] );
-                *arg2 = ((uint16_t) ( pPtr -> name[ 10 ] << 8  ) | pPtr -> name[ 11 ] );
+                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 8 ] << 8  )  | 
+                                      headerMap.map[ 0 ].name[ 9 ] );
+                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 10 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 11 ] );
                 return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_NAME_4: {
 
                 if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
-                *arg1 = ((uint16_t) ( pPtr -> name[ 12 ] << 8  ) | pPtr -> name[ 13 ] );
-                *arg2 = ((uint16_t) ( pPtr -> name[ 14 ] << 8  ) | pPtr -> name[ 15 ] );
+                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 12 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 13 ] );
+                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 14 ] << 8  ) | 
+                                      headerMap.map[ 0 ].name[ 15 ] );
                 return ( errStat( ALL_OK ));
             }
+            #endif
 
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
@@ -619,10 +625,12 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
                 return ( errStat( rtNvmPutWord( ofs, val1 )));
             }
+
+            #if 0 // perhaps take this out... nodes and pots just have numbers...
             
             case ITEM_ID_NAME_1: {
 
-                memset( tempName, 0, MAX_NODE_PORT_NAME_SIZE );
+                memset( tempName, 0, MAX_RES_NAME_SIZE );
                 tempName[ 0 ] = highByte( val1 );
                 tempName[ 1 ] = lowByte( val1 );
                 tempName[ 2 ] = highByte( val2 );
@@ -654,22 +662,19 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 tempName[ 14 ]  = highByte( val2 );
                 tempName[ 15 ]  = lowByte( val2 );
 
-                memcpy((uint8_t *) portMap.map[ portId( npId ) ].name, 
+                memcpy( headerMap.map[ 0 ].name, 
                        (uint8_t *)tempName, 
-                       MAX_NODE_PORT_NAME_SIZE );
+                       MAX_RES_NAME_SIZE );
 
-                uint16_t ofs =  NVM_PORT_MAP_OFS  +
-                                offsetof( LcsPortMap, map ) + 
-                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, name );
+                uint16_t ofs =  NVM_HEADER_MAP_OFS + offsetof( LcsBoardDesc, name );
                 
-                return ( errStat( 
-                            rtNvmPutBytes( ofs, 
-                                        (uint8_t *)tempName, 
-                                        MAX_NODE_PORT_NAME_SIZE + 1 )));
+                return ( errStat( rtNvmPutBytes( ofs, 
+                                                 (uint8_t *)tempName, 
+                                                 MAX_RES_NAME_SIZE )));
 
                 return ( errStat( ALL_OK ));
             }
+            #endif
 
             case ITEM_USER_MAP_AREA: {
 

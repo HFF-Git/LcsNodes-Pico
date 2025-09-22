@@ -112,7 +112,7 @@ const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
 //
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
-const uint16_t  MAX_NODE_PORT_NAME_SIZE         = 15;
+const uint16_t  MAX_BOARD_NAME_SIZE             = 15;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
@@ -241,7 +241,7 @@ struct LcsMsgBusCAN {
 struct LcsBoardDesc {
 
     uint32_t            boardMword;
-    uint16_t            boardInfo;                      // type/subtype
+    uint16_t            boardType;                      // type/subtype
     uint16_t            boardVersion;                   // major / sub version
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            reserved[ 11 ];
@@ -330,8 +330,6 @@ struct LcsPortMapEntry {
     uint16_t            eventAction                         = PEA_EVENT_IDLE;
     uint16_t            eventDelayTime                      = 0;
     uint32_t            eventTimeStamp                      = 0L;
-
-    char                name[ MAX_NODE_PORT_NAME_SIZE + 1 ] = { 0 };
 };
 
 struct LcsPortMap {
