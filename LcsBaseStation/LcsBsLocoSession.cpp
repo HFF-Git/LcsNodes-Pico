@@ -1093,6 +1093,13 @@ void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
 }
 
 
+// ??? we need to rework the session code to accept a cabId without a session
+// and create that session on the fly.
+//
+// Not sure what this will do to the concept of stealing and sharing a session.
+// But RocRail and Co. only work this way.... 
+
+
 
 #if 0 
 //==============================================================================
