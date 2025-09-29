@@ -1,15 +1,15 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Block Controller - Include file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // ??? this is a first cut at the block controller software. It remains to be seen what we should factor out
 // and use across base station and block controller.
 //
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Block Controller
 // Copyright (C) 2024 - 2024  Helmut Fieres
@@ -27,7 +27,7 @@
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #ifndef LcsBlockController_h
 #define LcsBlockController_h
 
@@ -35,7 +35,32 @@
 #include "LcsRuntimeLib.h"
 #include "LcsDrvOccDetectLib.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+// We need a simple set of function to control a block via RocRail. They are simple
+// LcsNodes function items.
+//
+// Set Block Mode ( DCC / analog ) 
+// Set Speed/Direction
+// Get Section Mask
+// Set Turnout ( N / T )
+// Get Turnout Position ( N / T )
+// Set Signal ( state )
+// Set Track Power ( ON / off )
+// 
+
+// The setting of turnouts, signals, mode, speed/direction etc. are attributes that 
+// can be queried read only ? ( otherwise we need more function items )
+
+// We also need static / configured values:
+//
+// Block length
+// Number of sections
+// Section lengths
+// Next / previous blocs
+// and so on ...
+
+
+//----------------------------------------------------------------------------------------
 //
 //
 // There are predefined events that the controller node will send.
@@ -47,12 +72,13 @@
 //  - 
 //  
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 
-//------------------------------------------------------------------------------------------------------------
-// The block controller maintains a set of debug flags. The overall concept is very similar to the LCS runtime
-// library debug mask. Then following debug flags are defined:
+//----------------------------------------------------------------------------------------
+// The block controller maintains a set of debug flags. The overall concept is very
+// similar to the LCS runtime library debug mask. Then following debug flags are 
+// defined:
 //
 //      DBG_BC_CONFIG                   -   DEBUG base station enabled
 //      DBG_BC_SETUP                    -   show the setup steps
@@ -64,7 +90,7 @@
 //
 //      if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SESSION )) 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum BlockControllerDebugFlags : uint16_t {
 
     DBG_BC_CONFIG                  = 1 << 15,       // DEBUG enabled
@@ -74,26 +100,27 @@ enum BlockControllerDebugFlags : uint16_t {
     DBG_BC_RAILCOM                 = 1 << 4         // show the RailCom activity
 };
 
-//------------------------------------------------------------------------------------------------------------
-// The way to interact with nodes and ports is via ITEM numbers used in GET/PUT/REQ calls. There are defined
-// items at the node level which apply to all ports. Ports represent a block. The majority of items refer to
-// a block. 
+//----------------------------------------------------------------------------------------
+// The way to interact with nodes and ports is via ITEM numbers used in GET/PUT/REQ 
+// calls. There are defined items at the node level which apply to all ports. Ports 
+// represent a block. The majority of items refer to a block. 
 //
-// There is a static item portion, which configures the block. This is data is entered when the block is
-// configured and stored in the NVM.
+// There is a static item portion, which configures the block. This is data is entered
+// when the block is configured and stored in the NVM.
 //
-// The dynamic item part will contain values that initially are fed from the NVM but change during operations.
+// The dynamic item part will contain values that initially are fed from the NVM but
+// change during operations.
 //
 // The request item part maps to user defined items that control the block operation.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum BlockControllerItems : uint8_t {
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Configuration items. Static. Store in NVM.
     //
     // Option, flags, name come from the port portion...
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     BC_ITEM_BLOCK_NAME                  = 0,   // maps to port item.
     BC_ITEM_BLOCK_OPTIONS               = 0,   // maps to port item.
     BC_ITEM_BLOCK_FLAGS                 = 0,   // maps to port item.
@@ -145,10 +172,10 @@ enum BlockControllerItems : uint8_t {
     BC_ITEM_EVENT_ID_BLOCK_EXIT         = 0,
     BC_ITEM_EVENT_ID_BLOCK_OVL          = 0,
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     //
     // ??? on a per node basis...
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     BC_ITEM_INIT_CURRENT_MA             = 0,
     BC_ITEM_LIMIT_CURRENT_MA            = 0,
     BC_ITEM_MAX_CURRENT_MA              = 0,
@@ -160,12 +187,14 @@ enum BlockControllerItems : uint8_t {
     BC_ITEM_OVL_EVENT_THRESHOLD         = 0,
     BC_ITEM_OVL_RESTART_THRESHOLD       = 0,
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Dynamic GET items.
     //
-    // ??? most of the items will be the result of a REQ item and reflect the state of the block.
+    // ??? most of the items will be the result of a REQ item and reflect the state
+    // of the block.
+    //
     // ??? we should not use PUT but rather use REQ with callbacks...
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     BC_ITEM_BLOCK_STATE                 = 64,  // gets state  / REQ to control
     BC_ITEM_BLOCK_ROUTE                 = 0,   // gets state  / REQ to control
 
@@ -193,11 +222,11 @@ enum BlockControllerItems : uint8_t {
     // dynamic values
     //  - timeout values of all kinds ?
 
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Request items.
     //
     // ??? rather make the slots for GET/PUT ?
-    //--------------------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
    
    
    // ??? I am not even clear whether we need the signals ?
@@ -218,11 +247,11 @@ enum BlockControllerItems : uint8_t {
 
 
 
-//------------------------------------------------------------------------------------------------------------
-// Base station errors. Note that they need to be in the assigned to the user number range of errors defined 
-// in the LCS runtime library. 
+//----------------------------------------------------------------------------------------
+// Base station errors. Note that they need to be in the assigned to the user number
+// range of errors defined in the LCS runtime library. 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum BlockControllerErrors : uint8_t {
 
     BLOCK_CONTROLLER_ERR_BASE       = 128,
@@ -236,20 +265,20 @@ enum BlockControllerErrors : uint8_t {
     ERR_PIO_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 16
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Setup options to set for the DCC track. They are set when the track object is created.
 //
 //  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
 //  DT_OPT_RAILCOM             - The track support Railcom detection.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum BlockControllerTrackOptions : uint16_t {
 
     BT_OPT_DEFAULT_SETTING      = 0,
     BT_OPT_RAILCOM              = 1 << 1
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The block track object has a set of flags to indicate its current status.
 //
 //  DT_F_POWER_ON             - The track is under power.
@@ -261,7 +290,7 @@ enum BlockControllerTrackOptions : uint16_t {
 //  DT_F_RAILCOM_MSG_PENDING  - If railcom is enabled, a received datagram is indicated.
 //  DT_F_CONFIG_ERROR         - The passed configuration descriptor has invalid options configured.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum TrackFlags : uint16_t {
 
     BT_F_DEFAULT_SETTING      = 0,
@@ -271,12 +300,12 @@ enum TrackFlags : uint16_t {
     BT_F_CONFIG_ERROR         = 1 << 15
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The following constants are for the current consumption RMS measurement. The idea is to record the measured
 // ADC values in a circular buffer, every time a certain amount of milliseconds has passed. This work is done
 // by the DCC track state machine as part of the power on state.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
 const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
@@ -298,7 +327,7 @@ enum BlockTrackMode : uint16_t {
     BT_MODE_DCC        = 3
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The block controller can contain up to four blocks. Each block track is described by the LcsBlockDesc
 // descriptor. There are the hardware pins sel1Pin1, selPin2, sensePin and uartRxPin. In addition there are
 // the limits for current consumption values, all specified in milliAmps. The initial current sets the current
@@ -309,7 +338,7 @@ enum BlockTrackMode : uint16_t {
 // per Ampere drawn. Finally, there are threshold times for managing the track overload and restart 
 // capability.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsBlockTrackDesc {
 
     uint16_t    options;
@@ -333,7 +362,7 @@ struct LcsBlockTrackDesc {
     uint16_t    overloadRestartThreshold        = 0;
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "LcsBlockTrack" manages the track of a block. This primarily the power management and control of the 
 // H-Bridge settings. There is one object per track block. At the heart of the object is a state machine that
 // is executed very often for measuring the power consumption and overload detection logic. The tack can 
@@ -341,7 +370,7 @@ struct LcsBlockTrackDesc {
 // the H-Bridge, in analog mode a PWM signal is used to set the H-Bridge emitting a PWM signal with a 
 // positive or negative voltage.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsBlockTrack {
 
     public:
@@ -426,12 +455,12 @@ struct LcsBlockTrack {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LcsOccDetect" manages an Occupancy detector extension board. The track power output of a block controller
 // track is routed to an extension board which implements a set of current detectors. The extension board is
 // access via the extension I2C bus.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsOccDetect {
 
     public:
@@ -446,11 +475,11 @@ struct LcsOccDetect {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LcsSignal" manages a signal. A block has a signal for each direction to indicate the state of the next
 // block in a route.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsSignalControl {
 
     public:
@@ -464,11 +493,11 @@ struct LcsSignalControl {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LcsTurnout" manages the optional turnouts at the end of a block.
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsTurnoutControl {
 
     public:
@@ -480,10 +509,10 @@ struct LcsTurnoutControl {
     // ??? need to remember the extension board ID.
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LcsRailComDetect" manages the optional RailCom interface for the block.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsRailComDetect {
 
     public:
@@ -495,7 +524,7 @@ struct LcsRailComDetect {
     // ??? need to remember the extension board ID.
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LcsBlockControl" manages a block. A block consists mainly of the tack itself and the optional elements
 // detectors, signal and turnouts. The block logic, i.e. what to do when the next block is occupied, is 
 // handled here.
@@ -505,7 +534,7 @@ struct LcsRailComDetect {
 // ??? how to assign occ detect an signals to the block ?
 // ??? should message handling be a separate part ?
 // ??? can we build the control logic in such a way that it is configurable via ITEMs ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsBlockControl {
 
     LcsBlockControl(  );
@@ -519,13 +548,13 @@ struct LcsBlockControl {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A LCS block controller node can host up to four blocks. This object is the main object that manages the
 // blocks on the node.
 //
 // ??? the node descriptor is an array of block descriptors. They are kept in the NVM ?
 // ??? manages the LCS messages and forwards them to the target block.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct LcsBlockControllerNode {
 
     public: 
