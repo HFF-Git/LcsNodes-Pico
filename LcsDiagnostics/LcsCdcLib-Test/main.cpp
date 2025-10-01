@@ -57,30 +57,51 @@ void initCdcLib( ) {
 //----------------------------------------------------------------------------------------
 void testConsoleIO ( ) {
 
-  configureDio( CDC_RN_ACTIVITY_LED );
-  writeDio( CDC_RN_ACTIVITY_LED, true );
-  sleepMillis( 1000 );
+    configureDio( CDC_RN_ACTIVITY_LED );
+    writeDio( CDC_RN_ACTIVITY_LED, true );
+    sleepMillis( 1000 );
 
-  printf( "Test Console IO..\n" );
-  printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+    printf( "Test Console IO..\n" );
+    printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
 
-  printf( "->" );
+    printf( "->" );
 
-  while ( true ) {
+    while ( true ) {
 
-    char c = getConsoleChar( );
-    if ( c != 0 ) {
+        char c = getConsoleChar( );
+        if ( c != 0 ) {
 
-      if ( c == 'q' ) break;
+        if ( c == 'q' ) break;
       
-      printf( "%c\n", c );
+            printf( "%c\n", c );
       
-       printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
-       printf( "->" );
+            printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+            printf( "->" );
+        }
     }
-  }
 
-  printf( "terminated ... \n" );
+    printf( "terminated ... \n" );
+}
+
+//----------------------------------------------------------------------------------------
+// "testEcho" simply echoes what is sent to the PICO via the USB console. We need 
+// it for RocRail testing of RocNet Messages...
+//
+//----------------------------------------------------------------------------------------
+void echoConsole( ) {
+
+    configureDio( CDC_RN_ACTIVITY_LED );
+    writeDio( CDC_RN_ACTIVITY_LED, true );
+    sleepMillis( 1000 );
+
+    printf( "Show Console IO input\n" );
+    printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+
+    while ( true ) {
+
+        char c = getConsoleChar( );
+        printf( "%c\n", c );
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -544,6 +565,8 @@ int main( ) {
     // testPWMFixed( );
     // testPWMWithAnalogInput( );
     // testUIDGen( );
+    
+    // echoConsole( );
 
     return( 0 );
 }
