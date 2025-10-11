@@ -70,8 +70,6 @@
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    using namespace CDC;
-
     uint16_t                debugMask    = 0;
     uint16_t                startOptions = 0;
 

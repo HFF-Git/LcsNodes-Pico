@@ -147,9 +147,9 @@ void CanBusPIOIrqHandler( ) {
 
 //----------------------------------------------------------------------------------------
 // For each messages transmitted or received this callback is invoked from within 
-// the interrupt handler, so all we can do is a quick non-blocking action. The callback
-// allows to react to a message sent, a message received and an internal buffer 
-// overflow error.
+// the interrupt handler, so all we can do is a quick non-blocking action. The 
+// callback allows to react to a message sent, a message received and an internal 
+// buffer overflow error.
 //
 // The callback could be used to filter messages at this stage. Only messages that 
 // concern this node should be processed. Easy said, but perhaps no so easy to do. 
@@ -158,7 +158,9 @@ void CanBusPIOIrqHandler( ) {
 // main core is relieved even further. To think about one day.
 // 
 //----------------------------------------------------------------------------------------
-void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_msg *msg ) {
+void canBusEventCallback( struct can2040 *cd, 
+                          uint32_t notify, 
+                          struct can2040_msg *msg ) {
 
     if ( notify == CAN2040_NOTIFY_RX ) {
 
@@ -167,6 +169,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
         if ( ! queue_try_add( &rxQueue, msg )) {
 
             // ??? we could not add ... what to do ?
+            // ??? we cannot wait or repeat, on the critical path ...
         }
     }
     else if ( notify == CAN2040_NOTIFY_TX ) {
@@ -175,7 +178,7 @@ void canBusEventCallback( struct can2040 *cd, uint32_t notify, struct can2040_ms
     }
     else if ( notify == CAN2040_NOTIFY_ERROR ) {
 
-        // ??? internal buffer overflow ... what to do ?
+        // ??? internal can2040 buffer overflow ... what to do ?
     }
 }
 
@@ -247,10 +250,10 @@ namespace LCS {
 // processing. 
 // 
 //----------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::init( uint8_t rxPin, 
-                            uint8_t txPin, 
+uint8_t LcsMsgBusCAN::init( uint8_t  rxPin, 
+                            uint8_t  txPin, 
                             uint32_t baudRate, 
-                            bool twoCores ) {
+                            bool     twoCores ) {
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_CAN_BUS )) {
 

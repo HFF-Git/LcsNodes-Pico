@@ -4,7 +4,7 @@
 //
 //----------------------------------------------------------------------------------------
 // This file contains the LCS runtime routines that implement node attribute access. 
-// There are  three routines that allow to manipulate node and port data as well as  
+// There are three routines that allow to manipulate node and port data as well as  
 // issue requests to a node or port. The "npId" will indicate which node and port the 
 // call refers to. The node portion is typically our own node Id, the port Id refers
 // to a ports on the node, with a port Id of zero referring to the node itself. Any 
@@ -243,7 +243,7 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // User callback function invocation routine. Items 64 to 127 are user defined
+    // User callback function invocation routine. Items 128 to 255 are user defined
     // items. We will simply invoke a previously registered callback passing the 
     // arguments. 
     //
@@ -314,7 +314,8 @@ namespace LCS {
 // "npId" argument contains the node and port Id. However, we will only use the portId
 // portion, which represents the block index. For data attribute items the node state
 // determines whether we just access the MEM attribute or the NVM version of the data. 
-// For the other node or port reserved attributes the MEM version is used.
+// A node state of CONFIG will access NVM, since you are configuring a node. For the
+// other node or port reserved attributes the MEM version is used.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -448,48 +449,6 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
             }
 
-            #if 0 // take out...
-            case ITEM_ID_NAME_1: {
-
-                if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 0 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 1 ] );
-                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 2 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 3 ] );
-                return ( errStat( ALL_OK ));
-            }
-
-            case ITEM_ID_NAME_2: {
-
-                if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 4 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 5 ] );
-                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 6 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 7 ] );
-                return ( errStat( ALL_OK ));
-            }
-
-            case ITEM_ID_NAME_3: {
-
-                if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG )); 
-                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 8 ] << 8  )  | 
-                                      headerMap.map[ 0 ].name[ 9 ] );
-                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 10 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 11 ] );
-                return ( errStat( ALL_OK ));
-            }
-
-            case ITEM_ID_NAME_4: {
-
-                if ( arg2 == nullptr ) return ( errStat( ERR_INVALID_ATTR_ARG ));
-                *arg1 = ((uint16_t) ( headerMap.map[ 0 ].name[ 12 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 13 ] );
-                *arg2 = ((uint16_t) ( headerMap.map[ 0 ].name[ 14 ] << 8  ) | 
-                                      headerMap.map[ 0 ].name[ 15 ] );
-                return ( errStat( ALL_OK ));
-            }
-            #endif
-
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 *arg1 = portMap.map[ portId( npId ) ].eventDelayTime;
@@ -498,7 +457,8 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_USER_MAP_AREA: {
 
-                // ??? fetch the data word from the user area...
+                // ??? fetch the data word from the user area... to do ...
+                // ??? this may become the extended attribute concept...
                 return ( errStat( ALL_OK ));
             }
 
@@ -510,7 +470,8 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 //----------------------------------------------------------------------------------------
 // "nodePut" will write a value to the node, port or the attribute data map. The 
 // "npId" argument contains the node and port Id. For data attributes the node state
-// determines whether we also update the NVM slot. For the remaining items the update
+// determines whether we also update the NVM slot.  A node state of CONFIG will 
+// access NVM, since you are configuring a node. For the remaining items the update
 // of NVM is dependent on the meaning of the particular item.
 //
 //----------------------------------------------------------------------------------------
@@ -603,17 +564,6 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                                 val1 )));
             }
 
-            case ITEM_ID_BOARD_VERSION: {
-
-                if ( ! isInRangeU( val1, 0, 4 )) return ( errStat( ERR_INVALID_ATTR_ARG ));
-
-                // ??? board version setting ...
-                // ??? only in config mode ?
-                // ??? what would we exactly do for the NVM header changes / config ?
-
-                return ( errStat( 255 ));
-            }
-
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 portMap.map[ portId( npId ) ].eventDelayTime = val1;
@@ -626,59 +576,10 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( errStat( rtNvmPutWord( ofs, val1 )));
             }
 
-            #if 0 // perhaps take this out... nodes and pots just have numbers...
-            
-            case ITEM_ID_NAME_1: {
-
-                memset( tempName, 0, MAX_RES_NAME_SIZE );
-                tempName[ 0 ] = highByte( val1 );
-                tempName[ 1 ] = lowByte( val1 );
-                tempName[ 2 ] = highByte( val2 );
-                tempName[ 3 ] = lowByte( val2 );
-            }
-
-            case ITEM_ID_NAME_2: {
-
-                tempName[ 4 ]   = highByte( val1 );
-                tempName[ 5 ]   = lowByte( val1 );
-                tempName[ 6 ]   = highByte( val2 );
-                tempName[ 7 ]   = lowByte( val2 );
-                return ( errStat( ALL_OK ));
-            }
-
-            case ITEM_ID_NAME_3: {
-
-                tempName[ 8 ]   = highByte( val1 );
-                tempName[ 9 ]   = lowByte( val1 );
-                tempName[ 10 ]  = highByte( val2 );
-                tempName[ 11 ]  = lowByte( val2 );
-                return ( errStat( ALL_OK ));
-            }
-
-            case ITEM_ID_NAME_4: {
-
-                tempName[ 12 ]  = highByte( val1 );
-                tempName[ 13 ]  = lowByte( val1 );
-                tempName[ 14 ]  = highByte( val2 );
-                tempName[ 15 ]  = lowByte( val2 );
-
-                memcpy( headerMap.map[ 0 ].name, 
-                       (uint8_t *)tempName, 
-                       MAX_RES_NAME_SIZE );
-
-                uint16_t ofs =  NVM_HEADER_MAP_OFS + offsetof( LcsBoardDesc, name );
-                
-                return ( errStat( rtNvmPutBytes( ofs, 
-                                                 (uint8_t *)tempName, 
-                                                 MAX_RES_NAME_SIZE )));
-
-                return ( errStat( ALL_OK ));
-            }
-            #endif
-
             case ITEM_USER_MAP_AREA: {
 
                 // ??? set the data word in the user area...
+                // ??? becomes extended Attribute concept.
                 return ( errStat( ALL_OK ));
             }
 
@@ -717,7 +618,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                // pass the watchdog timer ... is there a better way ?
+                // just pass the watchdog timer ... is there a better way ?
+                // or at least put it into a small routine...
                 sleepMillis( 10000 ); 
                 return ( errStat( ALL_OK ));
             }
@@ -726,7 +628,6 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 // ??? we need a way to format the extension board area, when needed. 
                 // ??? applies to ports 1 to 4 when they are mapped to a driver...
-
                 // val1 = type ?
                 // val2 = ?
 

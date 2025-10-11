@@ -6,9 +6,9 @@
 // Based on the Raspberry Pi PICO controller USB interface, the LCS node has an 
 // option to accept commands and display data via a serial interface. This interface 
 // is used for manual node and extension board configuration as well as debug and 
-// troubleshooting. Most commands are sensitive to the node/port ID. If there is another
-// node than our own node, specified with a zero node ID value, the commands is sent 
-// via the  bus to that node.
+// troubleshooting. Most commands are sensitive to the node/port ID. If there is 
+// another node than our own node, specified with a zero node ID value, the commands
+// is sent via the  bus to that node.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -35,8 +35,6 @@
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    using namespace CDC;
-    
     extern uint16_t             debugMask;
     extern LcsHeaderMap         headerMap;
     extern LcsNodeMap           nodeMap;
@@ -50,12 +48,11 @@ namespace LCS {
 
     extern CdcResourceDescMap   dMap;
 
+    extern int                  searchEvent( uint16_t eventId );
+    extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
     extern uint8_t              extNvmGetWord(  uint8_t boardId, 
                                                 uint32_t ofs, 
                                                 uint16_t *word );
-
-    extern int                  searchEvent( uint16_t eventId );
-    extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
 };
 
 //----------------------------------------------------------------------------------------
@@ -248,7 +245,7 @@ void dumpNvmData( uint32_t start,
 // NVM area and the length in bytes.
 //
 //----------------------------------------------------------------------------------------
-void dumpExtNvmData( uint8_t boardId, 
+void dumpExtNvmData( uint8_t  boardId, 
                      uint32_t start, 
                      uint32_t len, 
                      uint32_t itemsPerLine = 8 ) {
@@ -634,7 +631,9 @@ void enterEventCommand( char *s ) {
 
 //----------------------------------------------------------------------------------------
 // "d" removes a eventId / portId combination from the event map. If the portId is 
-// omitted, all eventMap entries with the eventId are removed.
+// omitted, all eventMap entries with the eventId are removed. The npId is the node
+// it refers to. If zero or our node, we issue a local request, otherwise we issue
+// a LCS Msg request.
 //
 //      d npId eventId [ portId ]
 //
