@@ -226,10 +226,10 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 //
 // ??? one day we take out the M24C04
 //----------------------------------------------------------------------------------------
-uint8_t nvmGetBytesFromPage( uint8_t rNum, 
-                             uint8_t i2cAdr, 
+uint8_t nvmGetBytesFromPage( uint8_t  rNum, 
+                             uint8_t  i2cAdr, 
                              uint32_t ofs, 
-                             uint8_t *buf, 
+                             uint8_t  *buf, 
                              uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
@@ -249,17 +249,17 @@ uint8_t nvmGetBytesFromPage( uint8_t rNum,
         uint8_t tmpData = ofs & 0xFF;
 
         rStat = i2cWrite( rNum, tmpAdr, &tmpData, sizeof( tmpData ), true );
-        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, tmpAdr, buf, len );
+        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, tmpAdr, buf, len, false );
     }
     else {
 
         uint8_t adr[ 2 ];
 
-        adr[ 0 ] =  ( ofs  >> 8 ) & 0xFF;
+        adr[ 0 ] =  ( ofs >> 8 ) & 0xFF;
         adr[ 1 ] =  ofs & 0xFF;
 
         rStat = i2cWrite( rNum, i2cAdr, adr, 2, true );
-        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, i2cAdr, buf, len );
+        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, i2cAdr, buf, len, false );
     }
 
     return ( errStat( rStat ));

@@ -1679,14 +1679,25 @@ uint8_t i2cWrite( uint8_t  rNum,
 
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
+ 
+    printf( "About to call PICO write: i2cAdr: %x, slc: %d, sda: %d, time: %d, stop: %d \n", 
+            i2cAdr, rPtr -> i2c.sclPin, rPtr -> i2c.sdaPin, rPtr -> i2c.timeoutValMs, stopBit );
 
-    auto ret = i2c_write_blocking_until( 
-                            rPtr -> i2c.i2cHw,
-                            i2cAdr,
-                            buf,
-                            len,
-                            stopBit,
-                            make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
+    int ret = 0;
+
+    for (int i = 0; i < 20; ++i) {
+
+        ret = i2c_write_blocking_until( rPtr->i2c.i2cHw, 
+                        i2cAdr, 
+                        buf, 
+                        len, 
+                        stopBit, 
+                        make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
+        printf("write ret=%d\n", ret);
+        if (ret >= 0) break;
+
+        sleep_ms(1);
+    }
 
     if (( rMap.debugMask & CDC_DBG_CONFIG ) && ( rMap.debugMask & CDC_DBG_PWM )) {
 
