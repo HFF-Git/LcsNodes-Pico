@@ -361,7 +361,7 @@ void initIsrTable( ) {
 void initResourceMap( CdcResourceMap *rMap ) {
 
     rMap -> options                     = 0;
-    rMap -> debugMask                   = CDC_DBG_ALL;
+    rMap -> debugMask                   = 0;
     rMap -> boardId                     = 0;
     rMap -> cFamily                     = CDC_CF_UNDEFINED;
     rMap -> cType                       = CDC_CF_UNDEFINED;
@@ -1016,11 +1016,12 @@ uint16_t getAdcDigitRange( ) {
 uint8_t configureDio( uint8_t rNum ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-   
+
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
 
-    return ( configureDio( rNum, dPtr-> gpio.pinA, 
+    return ( configureDio( rNum, 
+                           dPtr -> gpio.pinA, 
                            dPtr -> gpio.pinB, 
                            dPtr -> gpio.pinMode ));
 }
@@ -1029,7 +1030,7 @@ uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
 
     if (( rMap.debugMask & CDC_DBG_CONFIG ) && ( rMap.debugMask & CDC_DBG_GPIO )) {
 
-        printf( "configureDio: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", 
+        printf( "configureDio-detail: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", 
                 rNum, pinA, pinB, mode );
     }
 
@@ -1385,7 +1386,7 @@ uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
     }
     else {
                             
-        printf( "Write Pwm: Slice: %d\n", rPtr -> pwm.sliceNum );
+        // printf( "Write Pwm: Slice: %d\n", rPtr -> pwm.sliceNum );
         pwm_set_both_levels( rPtr -> pwm.sliceNum, dutyCycleA, dutyCycleB );
     }
 
@@ -1575,7 +1576,7 @@ uint8_t configureI2C( uint8_t  rNum,
 
     if (( rMap.debugMask & CDC_DBG_CONFIG ) && ( rMap.debugMask & CDC_DBG_I2C )) {
 
-        printf( "configureI2C: rNum: %d, slc: %d, sda: %d, baud: %d, tVal: %d\n",
+        printf( "configureI2C: rNum: %d, scl: %d, sda: %d, baud: %d, tVal: %d\n",
                 rNum, sclPin, sdaPin, baudRate, timeoutVal  );
     }
 
@@ -1680,12 +1681,8 @@ uint8_t i2cWrite( uint8_t  rNum,
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
  
-    printf( "About to call PICO write: i2cAdr: %x, slc: %d, sda: %d, time: %d, stop: %d \n", 
-            i2cAdr, rPtr -> i2c.sclPin, rPtr -> i2c.sdaPin, rPtr -> i2c.timeoutValMs, stopBit );
-
     int ret = 0;
-
-    for (int i = 0; i < 20; ++i) {
+    for ( int i = 0; i < 10; ++i ) {
 
         ret = i2c_write_blocking_until( rPtr->i2c.i2cHw, 
                         i2cAdr, 
@@ -1693,8 +1690,7 @@ uint8_t i2cWrite( uint8_t  rNum,
                         len, 
                         stopBit, 
                         make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
-        printf("write ret=%d\n", ret);
-        if (ret >= 0) break;
+        if ( ret >= 0 ) break;
 
         sleep_ms(1);
     }
@@ -1895,11 +1891,9 @@ bool canGetTwoCores( uint8_t rNum ) {
 //----------------------------------------------------------------------------------------
 void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
-    printf( "CDC Resource Descriptor Map for:\n" );
-    printf( "%s\n", dMap -> name );
+    printf( "CDC Resource Descriptor Map for:" );
+    printf( "%s\n", dMap -> boardName );
 
-    printf( "Options: 0x%4x\n", dMap -> options );
-    printf( "Debug Mask: 0x%4x\n", dMap -> debugMask );
     printf( "Board MWord: 0x%4x\n", dMap ->boardMword );
     printf( "Board Info: 0x%4x\n", dMap -> boardInfo );
     printf( "Board Version: 0x%4x\n", dMap -> boardVersion );

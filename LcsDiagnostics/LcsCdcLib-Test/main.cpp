@@ -37,11 +37,9 @@ CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
 //----------------------------------------------------------------------------------------
 // Init the library. 
 //
+// ??? perhaps pass the debug options here... ?
 //----------------------------------------------------------------------------------------
 void initCdcLib( ) {
-
-    dMap.options    = 0;
-    dMap.debugMask  = CDC_DBG_CONFIG | CDC_DBG_SETUP;
 
     cdcInit( &dMap );
     configureConsoleIO( );

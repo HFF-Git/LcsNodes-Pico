@@ -303,8 +303,8 @@ void printSummary( ) {
 
     for ( uint8_t i = 0; i < MAX_RES_NAME_SIZE; i++ ) {
  
-        if ( headerMap.map[ 0 ].name[ i ] != 0 ) 
-            printf( "%c", headerMap.map[ 0 ].name[ i ] );
+        if ( headerMap.map[ 0 ].boardName[ i ] != 0 ) 
+            printf( "%c", headerMap.map[ 0 ].boardName[ i ] );
     }
      
     printf( "\", State: %d\n", nodeMap.nodeState );

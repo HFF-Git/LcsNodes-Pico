@@ -275,10 +275,10 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 //
 // ??? one day we take out the M24C04
 //----------------------------------------------------------------------------------------
-uint8_t nvmPutBytesInPage( uint8_t rNum, 
-                           uint8_t i2cAdr, 
+uint8_t nvmPutBytesInPage( uint8_t  rNum, 
+                           uint8_t  i2cAdr, 
                            uint32_t ofs, 
-                           uint8_t *buf, 
+                           uint8_t  *buf, 
                            uint32_t len ) {
 
     uint8_t rStat = ALL_OK;
@@ -286,9 +286,8 @@ uint8_t nvmPutBytesInPage( uint8_t rNum,
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x,"
-                " ofs: 0x%x, bufAdr: %p, len: %d\n", 
-                rNum, i2cAdr, ofs, buf, len );
+        printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
+                "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
     }
 
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
@@ -331,8 +330,8 @@ uint8_t nvmGetBytes( uint8_t rNum,
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmGetBytes: rNum: %d, i2c: 0x%x, ofs: 0x%x, bufAdr: %p, len: %d\n", 
-                rNum, i2cAdr, ofs, (uint32_t) buf, len );
+        printf( "nvmGetBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
+                "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
     }
 
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
@@ -389,7 +388,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
 
     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "nvmPutBytes: rNum: %d, i2c: 0x%x, ofs: 0x%x,"
+        printf( "nvmPutBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x,"
                 " buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
      }
 
@@ -411,7 +410,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
 
-        CDC::sleepMillis( NVM_WRITE_DELAY );
+        sleepMillis( NVM_WRITE_DELAY );
     }
 
     if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {

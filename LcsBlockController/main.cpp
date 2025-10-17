@@ -59,7 +59,7 @@ LcsBlockTrack                   *block2         = nullptr;
 void setupConfigInfo( ) {
 
     dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
-    dMap.options |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
+   // dMap.options |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
     
     cdcInit( &dMap );
     configureConsoleIO( );

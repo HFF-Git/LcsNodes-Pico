@@ -393,11 +393,6 @@ enum LcsItems : uint8_t {
     ITEM_ID_EVENT_MAP_ENTRIES           = 15,
     ITEM_ID_ATTR_MAP_ENTRIES            = 16,
 
-    ITEM_ID_NAME_1                      = 17,
-    ITEM_ID_NAME_2                      = 18,
-    ITEM_ID_NAME_3                      = 19,
-    ITEM_ID_NAME_4                      = 20,
-
     ITEM_ID_RESET                       = 22,
     ITEM_ID_SYNC                        = 23,
     ITEM_ID_FORMAT                      = 24,

@@ -337,10 +337,10 @@ struct CdcResourceDescMap {
     uint16_t            boardCtrlInfo;                  // family / cType
     
     // ??? really have them here ?
-    uint16_t            options;
-    uint16_t            debugMask;  
+    // uint16_t            options;
+    // uint16_t            debugMask;  
 
-    char                name[ MAX_RES_NAME_SIZE ];  
+    char                boardName[ MAX_RES_NAME_SIZE ];  
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
 

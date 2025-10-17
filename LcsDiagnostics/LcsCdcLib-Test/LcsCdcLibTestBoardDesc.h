@@ -99,9 +99,7 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     .boardInfo      = 0, 
     .boardVersion   = 0, 
     .boardCtrlInfo  = 0, 
-    .options        = 0,
-    .debugMask      = 0,
-    .name           = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00",
+    .boardName      = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00",
            
     //--------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values 
@@ -244,9 +242,7 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     .boardInfo      = 0, 
     .boardVersion   = 0, 
     .boardCtrlInfo  = 0, 
-    .options        = 0,
-    .debugMask      = 0,
-    .name           = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00",
+    .boardName      = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00",
 
     //--------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values 

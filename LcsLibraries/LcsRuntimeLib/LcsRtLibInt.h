@@ -73,7 +73,7 @@ namespace LCS {
 //          :                                           :
 //          :-------------------------------------------:       + sizeof( PortMap )
 //          :                                           :
-//          :       Attribute Map                       :
+//          :       Mode Map Data                       :
 //          :                                           :
 //          :-------------------------------------------:       + sizeof( NodeMapData )
 //          :                                           :
@@ -245,7 +245,7 @@ struct LcsBoardDesc {
     uint16_t            boardVersion;                   // major / sub version
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            reserved[ 11 ];
-    char                name[ MAX_RES_NAME_SIZE ];
+    char                boardName[ MAX_RES_NAME_SIZE ];
 };
 
 //----------------------------------------------------------------------------------------

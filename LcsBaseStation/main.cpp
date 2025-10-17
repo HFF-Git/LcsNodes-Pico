@@ -102,8 +102,6 @@ void setupConfigInfo( ) {
     dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
     dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
 
-    dMap.options                                |= NPO_SKIP_NODE_ID_CONFIG;
-
     cdcInit( &dMap );
     configureConsoleIO( );
     sleepMillis( 2000 );
