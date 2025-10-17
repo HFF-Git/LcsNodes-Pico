@@ -558,14 +558,13 @@ int main( ) {
     // testOnboardLeds( );
     // testDioInput( );
     // testDioOutput( );
-    testDioOutputPair( );
+    // testDioOutputPair( );
     // testAdcBlockingRead( );
     // testTimer( );
-    // testI2C( );
+    testI2C( );
     // testPWMFixed( );
     // testPWMWithAnalogInput( );
     // testUIDGen( );
-    
     // echoConsole( );
 
     return( 0 );

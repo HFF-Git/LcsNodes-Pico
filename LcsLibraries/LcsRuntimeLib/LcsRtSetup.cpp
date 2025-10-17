@@ -70,7 +70,7 @@
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    uint16_t                debugMask    = 0;
+    uint16_t                debugMask    = LCS_DBG_ALL;
     uint16_t                startOptions = 0;
 
     LcsMsgBusCAN            *msgBus;
@@ -91,13 +91,11 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint8_t  configNvm(  uint8_t     nvmSclPin, 
-                                uint8_t     nvmSdaPin,
-                                uint32_t    nvmSize, 
-                                uint8_t     extNvmSclPin    = CDC::UNDEFINED_PIN,
-                                uint8_t     extNvmSdaPin    = CDC::UNDEFINED_PIN,
-                                uint32_t    extNvmSize      = 0 );
-        
+    extern uint8_t configNvm(  uint8_t     rIdNvm, 
+                               uint32_t    nvmSize, 
+                               uint8_t     rIdExtNvm,
+                               uint32_t    extNvmSize );
+    
     extern uint8_t  extNvmGetBytes( uint8_t boardId, 
                                     uint32_t ofs, 
                                     uint8_t *buf, 
@@ -297,8 +295,10 @@ uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructure( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) 
+    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+
         printf( "buildNvmRuntimeStructure\n" );
+    }
 
     uint8_t rStat = ALL_OK;
     if ( rStat == ALL_OK ) rStat = setupDefaultHeaderMap( &headerMap );
@@ -410,7 +410,7 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 
                  printf( "Starting - debug mode\n" );
 
-                debugMask       = LCS_DBG_CONFIG | LCS_DBG_SETUP | LCS_DBG_EVENTS;
+                debugMask       = LCS_DBG_ALL;
                 startOptions    = NPO_NIL;
                 return ( ALL_OK );
             }
@@ -418,7 +418,6 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 
                 printf( "Starting - format mode\n" );
 
-                debugMask       &= ~ LCS_DBG_CONFIG;
                 debugMask       = LCS_DBG_CONFIG | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 startOptions    = NPO_FORMAT_RUNTIME;
                 return ( ALL_OK );
@@ -435,7 +434,7 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
     }
     else {
         
-        debugMask       &= ~ LCS_DBG_CONFIG;
+        debugMask       = 0;
         startOptions    = NPO_NIL;
         return ( ALL_OK );
     }
@@ -457,6 +456,11 @@ uint8_t initNvmChannels( CdcResourceDescMap *map ) {
     uint8_t rStat = NO_ERR;
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_NVM );
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_EXT_NVM );
+
+    if ( rStat == NO_ERR ) rStat = configNvm( CDC_RN_NVM, 
+                                              1024*32, 
+                                              CDC_RN_EXT_NVM, 
+                                              1024 * 4 );
     return ( errStat( rStat ));
  }
 
@@ -1056,6 +1060,9 @@ uint8_t initRuntime( CdcResourceDescMap *descMap ) {
 
     uint8_t rStat = ALL_OK;
     dMap = *descMap;
+
+    // ??? find a better to deal with debug mask...
+    debugMask = LCS_DBG_ALL;
 
     rStat = initCdcLayer( &dMap );
     if ( rStat != ALL_OK )  

@@ -77,7 +77,8 @@ enum DebugOptions : uint16_t {
     CDC_DBG_SPI         = ( 1U << 2 ),
     CDC_DBG_PWM         = ( 1U << 3 ),
     CDC_DBG_UART        = ( 1U << 4 ),
-    CDC_DBG_GPIO        = ( 1U << 5 )
+    CDC_DBG_GPIO        = ( 1U << 5 ),
+    CDC_DBG_ALL         = ( 0xFFFF )
 };
 
 //----------------------------------------------------------------------------------------

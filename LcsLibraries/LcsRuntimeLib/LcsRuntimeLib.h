@@ -441,7 +441,8 @@ enum DebugOtions : uint16_t {
     LCS_DBG_CAN_BUS         = ( 1U << 2 ),
     LCS_DBG_MSG_BUS         = ( 1U << 3 ),
     LCS_DBG_ATTRIBUTES      = ( 1U << 4 ),
-    LCS_DBG_EVENTS          = ( 1U << 5 )
+    LCS_DBG_EVENTS          = ( 1U << 5 ),
+    LCS_DBG_ALL             = ( 0xFFFF )
 };
 
 //----------------------------------------------------------------------------------------
