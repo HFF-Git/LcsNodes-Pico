@@ -188,7 +188,10 @@ int main( ) {
 
     uint8_t rStat = ALL_OK;
 
-    if ( rStat == ALL_OK ) rStat = initRuntime( &dMap );
+    if ( rStat == ALL_OK ) rStat = initRuntime( &dMap, 
+                                                NPO_SKIP_NODE_ID_CONFIG, 
+                                                LCS_DBG_ENABLE | LCS_DBG_SETUP );
+
     if ( rStat == ALL_OK ) rStat = setupPinsForExtBoardTests( );
     if ( rStat == ALL_OK ) rStat = registerLcsCallbacks( );
     if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );

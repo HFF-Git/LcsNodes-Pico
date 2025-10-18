@@ -79,10 +79,9 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
     //  HEAD                - board / controller related info.
     //
     //--------------------------------------------------------------------------------------------------------
-    .boardMword     = 0, 
-    .boardInfo      = 0, 
+    .boardInfo      = CDC_BT_MAIN_CONTROLLER, 
+    .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = 0, 
-    .boardCtrlInfo  = 0, 
     .boardName      = "LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00",
 
     //--------------------------------------------------------------------------------------------------------

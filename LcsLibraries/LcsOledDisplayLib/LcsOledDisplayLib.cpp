@@ -696,7 +696,7 @@ void LcsOledDisplay::writeDisplay( uint8_t b, uint8_t mode ) {
     buf[ 0 ] = ( mode == SSD1306_MODE_CMD ) ? 0X00 : 0X40;
     buf[ 1 ] = b;
 
-   uint8_t rStat = CDC::i2cWrite( sclPin, i2cAdr, buf, 2 );
+   uint8_t rStat = CDC::i2cWrite( sclPin, i2cAdr, buf, 2, false );
 
     // ??? into a debug bracket ?
    if ( rStat != CDC::NO_ERR ) printf( "Error in writing to display: %d\n", rStat );

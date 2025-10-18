@@ -73,7 +73,7 @@ bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
 
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
 
         printf( "Ret: %d\n", errId );
     }
@@ -100,7 +100,7 @@ int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
 //----------------------------------------------------------------------------------------
 int searchEventMap( uint16_t eventId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
         
         printf( "Search Event Map: %d ", eventId );
     }
@@ -122,7 +122,7 @@ int searchEventMap( uint16_t eventId ) {
         }
     }
     
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
         
         printf( "-> %d\n", res );
     }
@@ -138,7 +138,7 @@ int searchEventMap( uint16_t eventId ) {
 //----------------------------------------------------------------------------------------
 uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
 
         printf( "addToMemEventMap: %d : 0x%x\n", eventId, eventMask );
     }
@@ -182,7 +182,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 //----------------------------------------------------------------------------------------
 uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
-     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
         
         printf( "removeFromMemEventMap: %d\n", eventId );
     }
@@ -264,7 +264,7 @@ int searchEvent( uint16_t eventId ) {
 //----------------------------------------------------------------------------------------
 uint8_t syncEventMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
         
         printf( "syncEventMap \n" );  
     }
@@ -291,7 +291,7 @@ uint8_t syncEventMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
         
         printf( "getMemEmapEntry: %d\n", index );
     }

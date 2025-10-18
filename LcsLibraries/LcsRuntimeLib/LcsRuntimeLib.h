@@ -427,17 +427,21 @@ enum LcsItems : uint8_t {
 // feature will also be used when we test whether we even have a console or not. If 
 // there is no console, all the prints will not be executed.
 //
+// The LCS debug flags occupy the upper half of the 16 bit debug mask, the lower
+// half is used by CDC.
+//
 //----------------------------------------------------------------------------------------
 enum DebugOtions : uint16_t {
 
-    LCS_DBG_CONFIG          = ( 1U << 15 ),
-    LCS_DBG_SETUP           = ( 1U << 0 ),
-    LCS_DBG_NVM_ACCESS      = ( 1U << 1 ),
-    LCS_DBG_CAN_BUS         = ( 1U << 2 ),
-    LCS_DBG_MSG_BUS         = ( 1U << 3 ),
-    LCS_DBG_ATTRIBUTES      = ( 1U << 4 ),
-    LCS_DBG_EVENTS          = ( 1U << 5 ),
-    LCS_DBG_ALL             = ( 0xFFFF )
+    LCS_DBG_ENABLE          = 0x8000,
+    LCS_DBG_SETUP           = 0x0100,
+    LCS_DBG_NVM_ACCESS      = 0x0200,
+    LCS_DBG_CAN_BUS         = 0x0400,
+    LCS_DBG_MSG_BUS         = 0x0800,
+    LCS_DBG_ATTRIBUTES      = 0x1000,
+    LCS_DBG_EVENTS          = 0x2000,
+    LCD_DBG_RESERVED        = 0x4000,
+    LCS_DBG_ALL             = 0xFF00
 };
 
 //----------------------------------------------------------------------------------------
@@ -661,7 +665,9 @@ extern "C" {
 // know about the particular board and resources to configure comes from this map.
 // 
 //----------------------------------------------------------------------------------------
-uint8_t     initRuntime( CdcResourceDescMap *dMap );
+uint8_t     initRuntime( CdcResourceDescMap *dMap, 
+                         LcsNodePortOptions options = NPO_NIL,
+                         uint16_t debugMask = 0 );
 uint8_t     startRuntime( );
 
 //----------------------------------------------------------------------------------------

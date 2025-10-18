@@ -57,28 +57,31 @@ namespace CDC {
 // The debug mask. The library has a debug mask where each major part of the library
 // has a flag. Wherever debugging is needed, the bit mask will be used to determine 
 // whether to print debugging data or not. From a performance perspective, the test
-// will take just a few instructions. In other words we do not take out debugging code
-// when going into production. Never liked this kind of conditional debug anyway.
+// will take just a few instructions. In other words we do not take out debugging 
+// code when going into production. Never liked this kind of conditional debug anyway.
 //
 // The usage of the debug mask is generally: 
 //
 //      if (( debugMask & DBG_CONFIG ) && ( debugMask & DBG_xxx )) ....
 // 
-// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or disabled.
-// This feature will also be used when we test whether we even have a console to print 
-// to or not. If there is no console, all the print functions will not be executed.
+// The DBG_CONFIG bit allows for the entire debugging messages to be enabled or 
+// disabled. This feature will also be used when we test whether we even have a 
+// console to print to or not. If there is no console, all the print functions will 
+// not be executed.
+//
+// The CDC debug flags occupy the right half of the 16-bit debug mask for the runtime.
 //
 //----------------------------------------------------------------------------------------
 enum DebugOptions : uint16_t {
 
-    CDC_DBG_CONFIG      = ( 1U << 15 ),
-    CDC_DBG_SETUP       = ( 1U << 0 ),
-    CDC_DBG_I2C         = ( 1U << 1 ),
-    CDC_DBG_SPI         = ( 1U << 2 ),
-    CDC_DBG_PWM         = ( 1U << 3 ),
-    CDC_DBG_UART        = ( 1U << 4 ),
-    CDC_DBG_GPIO        = ( 1U << 5 ),
-    CDC_DBG_ALL         = ( 0xFFFF )
+    CDC_DBG_ENABLE      = 0x0080,
+    CDC_DBG_SETUP       = 0x0001,
+    CDC_DBG_I2C         = 0x0002,
+    CDC_DBG_PWM         = 0x0004,
+    CDC_DBG_UART        = 0x0008,
+    CDC_DBG_GPIO        = 0x0010,
+    CDC_DBG_RESERVED    = 0x0020,    
+    CDC_DBG_ALL         = 0x00FF
 };
 
 //----------------------------------------------------------------------------------------
@@ -165,7 +168,7 @@ enum CdcBoardInfo : uint16_t {
 // The controller families. Currently, there is only the Raspberry PI Pico family models.
 //
 //----------------------------------------------------------------------------------------
-enum ControllerInfo : uint8_t {
+enum CdcControllerInfo : uint8_t {
 
     CDC_CF_UNDEFINED            = 0,
     CDC_CF_RP_PICO              = 1,
@@ -196,9 +199,10 @@ enum CdcResourceType : uint8_t {
 //----------------------------------------------------------------------------------------
 // There are predefined resource channels common to all boards. They are for example 
 // the activity LED and the NVM I2C channel. These resources channels numbers are 
-// consequently reserved and cannot be used by the firmware programmer. The programmer
-// identifies its resources relative to the start of user definable resource numbers.
-//
+// consequently reserved and cannot be used by the firmware programmer. The first 
+// 8 resource channels numbers are reserved. The programmer identifies its resources
+// relative to the start of user definable resource numbers -> CDC_RN_FIRST_USER_RN.
+// 
 //----------------------------------------------------------------------------------------
 enum CdcResourceIdNum : uint8_t {
 
@@ -218,7 +222,7 @@ enum CdcResourceIdNum : uint8_t {
 // The handler itself is mapped to an edge or level event.
 //
 //----------------------------------------------------------------------------------------
-enum dioMode : uint8_t {
+enum CdcDioMode : uint8_t {
 
     CDC_DIO_IN              = 0,
     CDC_DIO_OUT             = 1,
@@ -230,7 +234,7 @@ enum dioMode : uint8_t {
 // GPIO interrupts are detected as level change or edge changes.
 //
 //----------------------------------------------------------------------------------------
-enum intEventTyp : uint8_t {
+enum CdcIntEventTyp : uint8_t {
 
     CDC_EVT_NONE            = 0,
     CDC_EVT_LOW             = 1,
@@ -244,7 +248,7 @@ enum intEventTyp : uint8_t {
 // PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle value.
 //
 //----------------------------------------------------------------------------------------
-enum PwmDutyCycle : uint8_t {
+enum CdcPwmDutyCycle : uint8_t {
 
     CDC_MIN_DUTY_CCYCLE     = 0,
     CDC_MAX_DUTY_CYCLE      = 255
@@ -326,20 +330,16 @@ struct CdcResourceDesc {
 // The resource descriptor map is the data structure passed to the runtime library 
 // initialization routine. The data is used in the configuration process of the 
 // particular hardware board. We will over time have several boards and consequently 
-// a map for each board version. 
+// a map for each board version. The descriptor map will contain the board type,
+// version and controller family. There is the array of defined resource channels
+// for the board.
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceDescMap {
 
-    uint32_t            boardMword;
-    uint16_t            boardInfo;                      // type/subtype
+    CdcBoardInfo        boardInfo;                      // board type/subtype
+    CdcControllerInfo   boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
-    uint16_t            boardCtrlInfo;                  // family / cType
-    
-    // ??? really have them here ?
-    // uint16_t            options;
-    // uint16_t            debugMask;  
-
     char                boardName[ MAX_RES_NAME_SIZE ];  
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
@@ -351,10 +351,13 @@ struct CdcResourceDescMap {
 //----------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------
-// Basic init and error handling.
+// Basic init and error handling. The init function accepts the descriptor map and
+// in addition option flags and the debug mask passed from LCS init or the caller. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t         cdcInit( CdcResourceDescMap *dMap );
+uint8_t         cdcInit( CdcResourceDescMap *dMap, 
+                         uint16_t           options = 0, 
+                         uint16_t           debugMask = 0 );
 
 CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type );
 void            printResourceDescMap( CdcResourceDescMap *dMap );
@@ -364,11 +367,11 @@ uint32_t        getVersion( );
 uint32_t        getPatchLevel( );
 
 void            fatalError( uint8_t errNum, 
-                            char *str = nullptr,  
+                            char    *str  = nullptr,  
                             uint8_t rStat = NO_ERR );
 
 uint16_t        getDebugMask( );
-void            setDebugMask( uint16_t mask = 0 );
+void            setDebugMask( uint16_t mask );
 
 //----------------------------------------------------------------------------------------
 // General utility routines.
@@ -432,8 +435,8 @@ uint8_t         readAdc( uint8_t rNum, uint16_t *val );
 uint8_t         configureDio( uint8_t rNum );
 uint8_t         configureDio(   uint8_t rNum, 
                                 uint8_t pinA, 
-                                uint8_t pinB = UNDEFINED_PIN, 
-                                uint8_t pinMode = CDC_DIO_DEFAULT );
+                                uint8_t pinB, 
+                                uint8_t pinMode );
 uint8_t         readDio( uint8_t rNum, bool *valA, bool *valB = nullptr );
 uint8_t         writeDio( uint8_t rNum, bool valA, bool valB = false );
 uint8_t         toggleDio( uint8_t rNum );
@@ -484,16 +487,16 @@ uint8_t         configureI2C( uint8_t rNum,
                               uint32_t baudRate, 
                               uint32_t timeOut );
 uint8_t         i2cBusreset( uint8_t rNum );
-uint8_t         i2cWrite( uint8_t rNum, 
-                          uint8_t i2cAdr, 
-                          uint8_t *buf, 
+uint8_t         i2cWrite( uint8_t  rNum, 
+                          uint8_t  i2cAdr, 
+                          uint8_t  *buf, 
                           uint16_t len, 
-                          bool stopBit = false );
-uint8_t         i2cRead( uint8_t rNum,
-                         uint8_t i2cAdr, 
-                         uint8_t *buf, 
+                          bool     stopBit );
+uint8_t         i2cRead( uint8_t  rNum,
+                         uint8_t  i2cAdr, 
+                         uint8_t  *buf, 
                          uint16_t len, 
-                         bool stopBit = false );
+                         bool     stopBit = false );
 
 uint8_t         i2cGetSclPin( uint8_t rNum );
 uint8_t         i2cGetSdaPin( uint8_t rNum );

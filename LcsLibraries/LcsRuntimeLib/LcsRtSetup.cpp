@@ -154,7 +154,7 @@ uint16_t portId( uint16_t npId ) {
 
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
         printf( "Ret: %d\n", errId );
     }
@@ -170,10 +170,10 @@ uint8_t errStat( uint8_t errId ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) 
         printf( "setupDefaultHeaderMap\n" );
 
-    hMap -> map[ 0 ].boardMword     = dMap.boardMword;
+    hMap -> map[ 0 ].boardMword     = NVM_MWORD_NODE_HEADER;
     hMap -> map[ 0 ].boardType      = dMap.boardInfo;
     hMap -> map[ 0 ].boardVersion   = dMap.boardVersion;
     hMap -> map[ 0 ].boardCtrlInfo  = dMap.boardCtrlInfo;
@@ -206,7 +206,7 @@ uint8_t setupDefaultHeaderMap( LcsHeaderMap *hMap ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeMap( LcsNodeMap *nMap ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP ))
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP ))
         printf( "setupDefaultNodeMap\n" );
 
     LcsNodeMap tmp;
@@ -229,7 +229,7 @@ uint8_t setupDefaultNodeMap( LcsNodeMap *nMap ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultPortMap( LcsPortMap *pMap ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) 
         printf( "setupDefaultPortMap\n" );
 
     for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
@@ -255,7 +255,7 @@ uint8_t setupDefaultPortMap( LcsPortMap *pMap ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
          printf( "setupDefaultNodeData\n" );
     }
@@ -280,7 +280,7 @@ uint8_t setupDefaultNodeData( LcsNodeData *nData ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultEventMap( LcsEventMap *eMap ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
         printf( "setupDefaultEventMap\n" );
     }
@@ -310,7 +310,7 @@ uint8_t setupDefaultEventMap( LcsEventMap *eMap ) {
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmRuntimeStructure( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
         printf( "buildNvmRuntimeStructure\n" );
     }
@@ -332,7 +332,7 @@ uint8_t buildNvmRuntimeStructure( ) {
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "buildNvmExtBoardStructure for board: %d\n", boardId );
     }
@@ -395,13 +395,11 @@ namespace LCS {
 // the debug mask would be a candidate.
 //
 //----------------------------------------------------------------------------------------
-uint8_t initCdcLayer( CdcResourceDescMap *map ) {
+uint8_t initCdcLayer( ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
-    dMap = *map;
-
-    cdcInit( map );
+    cdcInit( &dMap, startOptions, debugMask );
 
     uint8_t rStat = configureDio( CDC_RN_ACTIVITY_LED );
    
@@ -417,7 +415,7 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 
                 printf( "Starting - normal mode\n" );
 
-                debugMask       &= ~ LCS_DBG_CONFIG;
+                debugMask       &= ~ LCS_DBG_ENABLE;
                 startOptions    = NPO_NIL;
                 return ( ALL_OK );
             }
@@ -425,7 +423,7 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 
                  printf( "Starting - debug mode\n" );
 
-                debugMask       = LCS_DBG_CONFIG | LCS_DBG_SETUP;
+                debugMask       = LCS_DBG_ENABLE | LCS_DBG_SETUP;
                 startOptions    = NPO_NIL;
                 return ( ALL_OK );
             }
@@ -433,7 +431,7 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 
                 printf( "Starting - format mode\n" );
 
-                debugMask       = LCS_DBG_CONFIG | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
+                debugMask       = LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 startOptions    = NPO_FORMAT_RUNTIME;
                 return ( ALL_OK );
             }
@@ -461,9 +459,9 @@ uint8_t initCdcLayer( CdcResourceDescMap *map ) {
 // If all is OK, we can talk to all NVMs chips on the boards making up the node.
 //
 //----------------------------------------------------------------------------------------
-uint8_t initNvmChannels( CdcResourceDescMap *map ) {
+uint8_t initNvmChannels( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
  
          printf( "Init NvmChannels\n" ); 
     }
@@ -471,6 +469,8 @@ uint8_t initNvmChannels( CdcResourceDescMap *map ) {
     uint8_t rStat = NO_ERR;
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_NVM );
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_EXT_NVM );
+
+    // ??? where do we get the sizes for NVM ? dMap ?
 
     if ( rStat == NO_ERR ) rStat = configNvm( CDC_RN_NVM, 
                                               1024*32, 
@@ -485,9 +485,9 @@ uint8_t initNvmChannels( CdcResourceDescMap *map ) {
 // operations but perhaps for remote troubleshooting. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t initCanBus( CdcResourceDescMap *map ) {
+uint8_t initCanBus( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "Init Can Bus\n" );
     }
@@ -505,7 +505,7 @@ uint8_t initCanBus( CdcResourceDescMap *map ) {
 
         if ( rStat != ALL_OK ) {
 
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                 printf( "Init Can Bus, CAN status: %d\n", rStat );
             }
@@ -523,14 +523,14 @@ uint8_t initCanBus( CdcResourceDescMap *map ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "Setup watchdog\n" );
     }
 
     // ??? put the call here ?
 
-    return ( errStat( rStat ));
+    return ( errStat( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -541,7 +541,7 @@ uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupPfail( CdcResourceDescMap *map ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "Setup Pfail\n" );
     }
@@ -561,7 +561,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupNodeNvmHeader\n" );
     }
@@ -580,7 +580,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     if ( hPtr -> boardMword != NVM_MWORD_NODE_HEADER ) {
 
-        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
             printNvmHeader( hPtr);
             printf( "setupHeaderMap: invalid header, re-format\n" );
@@ -597,7 +597,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     snprintf( hPtr -> boardName, MAX_RES_NAME_SIZE - 1 , map -> boardName ); 
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
         printNvmHeader( hPtr);
     }
@@ -615,7 +615,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupExtNvmHeaders( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupExtNvmHeaders\n" );
     }
@@ -624,7 +624,7 @@ uint8_t setupExtNvmHeaders( ) {
 
     for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-        if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
             printf( "setupExtNvmHeaders, boardId: %d\n", i ); 
         }
@@ -636,7 +636,7 @@ uint8_t setupExtNvmHeaders( ) {
 
             if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
 
-                if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+                if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                     printNvmHeader( hPtr );
                     printf( "boardId: %d -> valid\n", i ); 
@@ -646,7 +646,7 @@ uint8_t setupExtNvmHeaders( ) {
 
                 hPtr -> boardMword = 0;
 
-                if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+                if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                     printNvmHeader( hPtr );
                     printf( "boardId: %d -> invalid\n", i ); 
@@ -655,7 +655,7 @@ uint8_t setupExtNvmHeaders( ) {
         } 
         else {
             
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP ))
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP ))
                 printf( "boardId not present: %d, rStat: %d\n", i, rStat ); 
         }          
     }
@@ -675,7 +675,7 @@ uint8_t setupExtNvmHeaders( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupNodeMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupNodeMap\n" );
     }
@@ -703,7 +703,7 @@ uint8_t setupNodeMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupPortMap\n" );
     }
@@ -722,7 +722,7 @@ uint8_t setupPortMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupExtensionBoards( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "setupExtensionBoards\n" );
     }
@@ -733,7 +733,7 @@ uint8_t setupExtensionBoards( ) {
         
         if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
 
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                 printf( "Valid Extension Board detected: %d\n", i );
             }
@@ -754,7 +754,7 @@ uint8_t setupExtensionBoards( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupNodeDataMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupNodeDataMap\n" );
     }
@@ -780,7 +780,7 @@ uint8_t setupNodeDataMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupEventMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "setupEventMap, entries: %d, HWM: %d\n", 
                 MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
@@ -837,7 +837,7 @@ uint8_t setupEventMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupUserMap\n" );
     }
@@ -852,7 +852,7 @@ uint8_t setupUserMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupTaskMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
         
         printf( "setupTaskMap\n" );
     }
@@ -874,7 +874,7 @@ uint8_t setupTaskMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupPendingReqMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupPendingReqMap\n" );
     }
@@ -897,7 +897,7 @@ uint8_t setupPendingReqMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDrvFuncMap( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "setupDrvFuncMap\n" );
     }
@@ -920,7 +920,7 @@ uint8_t setupDrvFuncMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t registerInternalTasks( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "registerInternalTasks\n" );
     }
@@ -936,7 +936,7 @@ uint8_t registerInternalTasks( ) {
 //----------------------------------------------------------------------------------------
 uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
         printf( "registerDrvFunc, type: %d, func: %p\n", drvType, drvReqFunction );
     }
@@ -948,7 +948,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
         if ( drvFuncMap.map[ i ].drvType == drvType ) {
 
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                 printf( "registerDrvFunc, overwrite: %d\n", i );
             }
@@ -963,7 +963,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 
         if ( drvFuncMap.mapHwm < MAX_DRV_TYPE_MAP_ENTRIES ) {
 
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                 printf( "registerDrvFunc, allocate: %d\n", drvFuncMap.mapHwm );
             }
@@ -974,7 +974,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
         }
         else {
 
-            if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
             
                 printf( "registerDrvFunc, table full\n" );
                 rStat = ERR_DRV_FUNC_MAP_FULL;
@@ -993,7 +993,7 @@ uint8_t registerDrvFunc(  uint16_t drvType, LcsReqCallback drvReqFunction ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDriverFunctions( ) {
 
-     if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
         printf( "setupDriverFunctions\n" );
     }
@@ -1009,7 +1009,7 @@ uint8_t setupDriverFunctions( ) {
 
                 if ( headerMap.map[ i ].boardType == drvFuncMap.map[ j ].drvType ) { 
 
-                    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) {
+                    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
                         printf( "setupDriverFunctions, board: %d,"
                                 " drvType entry: %d\n", i, j );
@@ -1034,7 +1034,7 @@ uint8_t setupDriverFunctions( ) {
 //----------------------------------------------------------------------------------------
 uint8_t powerFailHandler( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP )) { 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) { 
         
         printf( "powerFailHandler\n" );
     }
@@ -1071,27 +1071,29 @@ uint8_t powerFailHandler( ) {
 //
 // ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
 //----------------------------------------------------------------------------------------
-uint8_t initRuntime( CdcResourceDescMap *descMap ) {
+uint8_t initRuntime( CdcResourceDescMap *descMap, 
+                     LcsNodePortOptions options,
+                     uint16_t           dbgMask ) {
 
     uint8_t rStat = ALL_OK;
-    dMap = *descMap;
 
-    // ??? find a better to deal with debug mask...
-    debugMask = LCS_DBG_CONFIG | LCS_DBG_SETUP;
+    dMap            = *descMap;
+    startOptions    = options;
+    debugMask       = dbgMask;
 
-    rStat = initCdcLayer( &dMap );
+    rStat = initCdcLayer( );
     if ( rStat != ALL_OK ) {
 
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
 
-    rStat = initNvmChannels( &dMap );
+    rStat = initNvmChannels( );
     if ( rStat != ALL_OK ) {
 
         fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
     }
 
-    rStat = initCanBus( &dMap );
+    rStat = initCanBus( );
     if ( rStat != ALL_OK ) {
 
         fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );

@@ -132,11 +132,10 @@ const uint32_t NVM_MWORD_EXTENSION      = (uint32_t) ( 'L' << 24 ) |
                                                      ( 'E' << 8 );
 
 const uint32_t NVM_MWORD_NODE_HEADER    = NVM_MWORD_MAIN | 0x01;
-const uint32_t NVM_MWORD_CDC_MAP        = NVM_MWORD_MAIN | 0x02;
-const uint32_t NVM_MWORD_NODE_MAP       = NVM_MWORD_MAIN | 0x03;
-const uint32_t NVM_MWORD_PORT_MAP       = NVM_MWORD_MAIN | 0x04;
-const uint32_t NVM_MWORD_NODE_DATA_MAP  = NVM_MWORD_MAIN | 0x05;
-const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x06;
+const uint32_t NVM_MWORD_NODE_MAP       = NVM_MWORD_MAIN | 0x02;
+const uint32_t NVM_MWORD_PORT_MAP       = NVM_MWORD_MAIN | 0x03;
+const uint32_t NVM_MWORD_NODE_DATA_MAP  = NVM_MWORD_MAIN | 0x04;
+const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x05;
 
 const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 
@@ -242,8 +241,8 @@ struct LcsBoardDesc {
 
     uint32_t            boardMword;
     uint16_t            boardType;                      // type/subtype
-    uint16_t            boardVersion;                   // major / sub version
     uint16_t            boardCtrlInfo;                  // family / cType
+    uint16_t            boardVersion;                   // major / sub version
     uint16_t            reserved[ 11 ];
     char                boardName[ MAX_RES_NAME_SIZE ];
 };

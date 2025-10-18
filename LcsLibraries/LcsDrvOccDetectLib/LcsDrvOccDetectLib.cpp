@@ -109,7 +109,7 @@ uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
     buf[ 0 ] = reg;
     buf[ 1 ] = val;
 
-    return( i2cWrite( rNumI2C, i2cAdr, buf, 2 ));
+    return( i2cWrite( rNumI2C, i2cAdr, buf, 2, false ));
 }
 
 } // namespace

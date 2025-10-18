@@ -84,10 +84,9 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     //  HEAD                - board / controller related info.
     //
     //--------------------------------------------------------------------------------------------------------
-    .boardMword     = 0, 
-    .boardInfo      = 0, 
+    .boardInfo      = CDC_BT_NIL, 
+    .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = 0, 
-    .boardCtrlInfo  = 0, 
     .boardName      = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00",
 
     //--------------------------------------------------------------------------------------------------------

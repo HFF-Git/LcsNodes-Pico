@@ -816,7 +816,7 @@ uint8_t localMsgEvent( uint8_t *msg ) {
 //----------------------------------------------------------------------------------------
 uint8_t startRuntime( ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_SETUP ))
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP ))
         printf( "Start LCS runtime\n");
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );

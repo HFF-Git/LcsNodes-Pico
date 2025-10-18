@@ -134,7 +134,7 @@ uint8_t     rNumExtNvm      = UNDEFINED_RES_ID;
 //----------------------------------------------------------------------------------------
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS ))
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS ))
         printf( "Ret: %d\n", errId );
     return ( errId );
 }
@@ -172,7 +172,7 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
         tmpBuf[ 2 ] = testValue;
         
-        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ));
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ), false );
         if ( rStat == ALL_OK ) {
 
             sleepMillis( NVM_WRITE_DELAY );
@@ -183,7 +183,7 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
                 if ( tmpValue == testValue ) {
 
-                    rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ));
+                    rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ), false );
                     sleepMillis( NVM_WRITE_DELAY );
                     return ( nvmSize );
                 }
@@ -234,7 +234,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
         printf( "nvmGetBytesFromPage: rNum: %d, i2cAdr: 0x%x," 
                 " ofs: 0x%x, buf: %p, len: %d\n", 
@@ -284,7 +284,7 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
     uint8_t rStat = ALL_OK;
     uint8_t dataBuf[ BUFFER_BLOCK_SIZE + 2 ];
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
         printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
                 "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
@@ -298,7 +298,7 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 1 ] = buf[ i ];
 
         uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
-        rStat = i2cWrite( rNum, tmpAdr, dataBuf, len + 1 );
+        rStat = i2cWrite( rNum, tmpAdr, dataBuf, len + 1, false );
     }
     else {
 
@@ -307,7 +307,7 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
 
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-        rStat = i2cWrite( rNum, i2cAdr, dataBuf, len + 2 );
+        rStat = i2cWrite( rNum, i2cAdr, dataBuf, len + 2, false );
     }
 
     return ( errStat( rStat ));
@@ -328,7 +328,7 @@ uint8_t nvmGetBytes( uint8_t rNum,
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
         printf( "nvmGetBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
                 "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
@@ -386,7 +386,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
 
     uint8_t rStat = ALL_OK;
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
         printf( "nvmPutBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x,"
                 " buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
@@ -437,7 +437,7 @@ uint8_t nvmClearArea( uint8_t rNum,
                       uint32_t len, 
                       uint8_t val ) {
 
-    if (( debugMask & LCS_DBG_CONFIG ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
         printf( "nvmClearArea: rNum: %d, i2c: 0x%x, ofs: 0x%x, len: %d, val: %d\n", 
                 rNum, i2cAdr, ofs, len, val );

@@ -76,7 +76,7 @@ uint8_t sclPin;
     uint8_t buf[ 2 ];
     uint8_t rStat = CDC::NO_ERR;
     
-    rStat = CDC::i2cWrite( sclPin, i2cAdr, &reg, 1 );
+    rStat = CDC::i2cWrite( sclPin, i2cAdr, &reg, 1, true );
     if ( rStat == CDC::NO_ERR ) {
 
         rStat = CDC::i2cRead( sclPin, i2cAdr, buf, 1 );
@@ -91,7 +91,7 @@ uint8_t writeReg( uint8_t reg, uint8_t val ) {
     buf[ 0 ] = reg;
     buf[ 1 ] = val;
 
-    return( CDC::i2cWrite( sclPin, i2cAdr, buf, 2 ));
+    return( CDC::i2cWrite( sclPin, i2cAdr, buf, 2, false ));
 }
 
 bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
@@ -101,7 +101,7 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
 
     while ( ret != CDC::NO_ERR ) {
 
-        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1 );
+        ret = CDC::i2cWrite( sclPin, i2cAdr, &tmp, 1, false );
     }
 
     return ( true );
