@@ -380,15 +380,15 @@ void printNvmHeader( LcsBoardDesc *head ) {
     uint16_t *ptr  = (uint16_t *)head;
     size_t   words = sizeof(LcsBoardDesc) / 2;
 
-    printf("NVM Header ( %zu words ):\n", words);
+    printf( "NVM Header ( %zu words ):\n", words );
 
     for ( size_t j = 0; j < words; j++ ) {
     
         printf( "0x%04x ", ptr[j] );
-        if ((( j + 1 ) % 8 ) == 0 ) printf("\n");
+        if ((( j + 1 ) % 8 ) == 0 ) printf( "\n" );
     }
 
-    if (( words % 4 ) != 8 ) printf("\n");
+    if (( words % 4 ) != 8 ) printf( "\n" );
 }
 
 }; // namespace
@@ -446,39 +446,39 @@ namespace LCS {
 
                     debugMask &= ~LCS_DBG_ENABLE;
                     startOptions = NPO_NIL;
-                    return (ALL_OK );
+                    return ( ALL_OK );
                 }
-                else if ((ch == 'D') || (ch == 'd')) {
+                else if (( ch == 'D' ) || ( ch == 'd' )) {
 
-                    printf("Starting - debug mode\n");
+                    printf( "Starting - debug mode\n" );
 
                     debugMask = LCS_DBG_ENABLE | LCS_DBG_SETUP;
                     startOptions = NPO_NIL;
-                    return (ALL_OK );
+                    return ( ALL_OK );
                 }
-                else if ((ch == 'F') || (ch == 'f')) {
+                else if (( ch == 'F' ) || ( ch == 'f' )) {
 
-                    printf("Starting - format mode\n");
+                    printf( "Starting - format mode\n" );
 
-                    debugMask = LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
+                    debugMask    = LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                     startOptions = NPO_FORMAT_RUNTIME;
-                    return (ALL_OK );
+                    return ( ALL_OK );
                 }
-                else if (ch == '?') {
+                else if ( ch == '?' ) {
 
-                    printf("Setup options:\n");
-                    printf("r, R -> start the node with debug initially disabled\n");
-                    printf("d, D -> start the node with \"setup\" debug options enabled\n");
-                    printf("f, F -> start the node with a newly formatted runtime map\n");
+                    printf( "Setup options:\n" );
+                    printf( "r, R -> start the node with debug initially disabled\n" );
+                    printf( "d, D -> start the node with \"setup\" debug options enabled\n" );
+                    printf( "f, F -> start the node with a newly formatted runtime map\n" );
                 }
-                else printf("\n");
+                else printf( "\n" );
             }
         }
         else {
 
             debugMask = 0;
             startOptions = NPO_NIL;
-            return (ALL_OK );
+            return ( ALL_OK );
         }
     }
 
