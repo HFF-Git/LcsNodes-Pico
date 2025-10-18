@@ -637,6 +637,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 // there is no board at that location and we set the magic word to zero to record 
 // this fact.
 //
+// Note that this routine always returns a success, even if there were internal errors.
 //----------------------------------------------------------------------------------------
 uint8_t setupExtNvmHeaders( ) {
 
@@ -648,11 +649,6 @@ uint8_t setupExtNvmHeaders( ) {
     uint8_t rStat = ALL_OK;
 
     for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
-
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
-
-            printf( "setupExtNvmHeaders, boardId: %d\n", i ); 
-        }
 
         LcsBoardDesc *hPtr = &headerMap.map[ i ]; 
 
@@ -680,8 +676,10 @@ uint8_t setupExtNvmHeaders( ) {
         } 
         else {
             
-            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP ))
-                printf( "boardId not present: %d, rStat: %d\n", i, rStat ); 
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+                printf( "boardId: %d -> not present\n", i ); 
+            }
         }          
     }
 
@@ -916,7 +914,7 @@ uint8_t setupPendingReqMap( ) {
 
 //----------------------------------------------------------------------------------------
 // "setupDrvFuncMap" initializes the driver function label map. This table is used 
-// when we need to find the driver for an extension board type.
+// when we need to find the driver label for an extension board type.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDrvFuncMap( ) {
@@ -1142,7 +1140,7 @@ uint8_t initRuntime( CdcResourceDescMap *descMap,
         
         if ( nodeMap.nodeState == NS_PFAIL ) {
             
-            // ??? we came back fro a PFAIL ?
+            // ??? we came back from a PFAIL ?
             // ??? handle it ...
         }
         
