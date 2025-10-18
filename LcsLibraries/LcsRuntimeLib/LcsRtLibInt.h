@@ -239,7 +239,7 @@ struct LcsMsgBusCAN {
 struct LcsBoardDesc {
 
     uint32_t            boardMword;
-    uint16_t            boardType;                      // type/subtype
+    uint16_t            boardInfo;                      // type/subtype
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
     uint16_t            reserved[ 11 ];
