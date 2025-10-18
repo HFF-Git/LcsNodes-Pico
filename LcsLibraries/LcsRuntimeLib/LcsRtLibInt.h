@@ -112,7 +112,6 @@ const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
 //
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
-const uint16_t  MAX_BOARD_NAME_SIZE             = 15;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 

@@ -66,7 +66,6 @@ const uint8_t RNUM_DIO_P_3  = CDC_RN_FIRST_USER_RN + 21;
 
 const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 22;
 
-
 //----------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information 
 // about the hardware family, controller type, controller attributes and 
