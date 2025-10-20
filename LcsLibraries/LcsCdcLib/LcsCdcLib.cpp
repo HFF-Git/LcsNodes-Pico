@@ -1892,9 +1892,10 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
     printf( "CDC Resource Descriptor Map for:" );
     printf( "%s\n", dMap -> boardName );
 
-    printf( "Board Type: 0x%4x\n", dMap -> boardInfo );
-    printf( "Board Controller: 0x%4x\n", dMap -> boardCtrlInfo );
-    printf( "Board Version: 0x%4x\n", dMap -> boardVersion );
+    printf( "Board Type: %d\n", dMap -> boardInfo );
+    printf( "Board Controller: %d\n", dMap -> boardCtrlInfo );
+    printf( "Board Version: %d.%d\n", ( dMap -> boardVersion >> 8 ) & 0xff,
+                                      ( dMap -> boardVersion & 0xFF ));
     
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
@@ -1987,11 +1988,12 @@ void printResourceMap( ) {
     printf( "CDC Resource Map for:" );
     printf( "%s\n", rMap.name );
 
-    printf( "Options: 0x%4x\n", rMap.options );
-    printf( "Debug Mask: 0x%4x\n", rMap.debugMask );
+    printf( "Options: 0x%04x\n", rMap.options );
+    printf( "Debug Mask: 0x%04x\n", rMap.debugMask );
     printf( "Controller Family: %d, Chip: %d\n", rMap.cFamily, rMap.cType );
     printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", 
             rMap.cpuCores, rMap.memorySize, rMap.eepromSize );
+            
     printf( "WatchDog Interval (MS): %d\n", rMap.watchDogIntervallMillis );
     printf( "ADC Ref Voltage: %d, Digit range: %d\n", 
             rMap.adcRefVoltageMillis, rMap.adcDigitRange ); 

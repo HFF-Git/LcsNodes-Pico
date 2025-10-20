@@ -470,6 +470,15 @@ void dumpNvmUserArea( ) {
 // point in showing that kind of data.
 //
 //----------------------------------------------------------------------------------------
+void printHeaderMap( ) {
+
+    printf( "Header Map: \n\n" );
+
+    // ??? to do ...
+
+    printf( "\n" );
+}
+
 void printMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
@@ -948,9 +957,10 @@ void listStatusCommand( char *s ) {
             case 25:    dumpNvmEventMap( );             break;
             case 26:    dumpNvmRuntimeArea( );          break;
 
-            case 41:    printMemNodeMap( );             break;
-            case 42:    printMemPortMap( );             break;
-            case 43:    printMemEventMap( );            break;
+            case 41:    printHeaderMap( );              break;
+            case 42:    printMemNodeMap( );             break;
+            case 43:    printMemPortMap( );             break;
+            case 44:    printMemEventMap( );            break;
             
             case 50:    listDevicesI2C( );              break;   
             case 51:    printResourceDescMap( &dMap );  break;
@@ -978,7 +988,7 @@ void listCoreLibHelpCommand( ) {
     printf( "a npId eventId [ npId ] - add an event to the event tab\n" );
     printf( "d npId eventId [ npId ] - remove an event from the event tab\n" );
     printf( "e npId eventId mode [ arg ] - simulate sending an event"
-            " ( mode: 0 - ON, 1 - OFF, 2 - EVT\n" );
+            " ( mode: 0 - ON, 1 - OFF, 2 - EVT )\n" );
     printf( "f eventId [ npId ] - search an event on the event tab\n" );
     
     printf( "g npId item - gets a node attribute\n" );
@@ -1012,8 +1022,8 @@ void listCoreLibHelpCommand( ) {
     printf( "               " " -  44  - MEM Event Map formatted\n" );
 
     printf( "               " " -  50  - I2C Devices\n" );
-    printf( "               " " -  51  - CDC Resource Desc Map");
-    printf( "               " " -  52  - CDC Resource Map");
+    printf( "               " " -  51  - CDC Resource Desc Map\n");
+    printf( "               " " -  52  - CDC Resource Map\n");
 }
 
 //----------------------------------------------------------------------------------------
