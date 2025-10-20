@@ -86,7 +86,7 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .boardInfo      = CDC_BT_NIL, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
-    .boardVersion   = 0, 
+    .boardVersion   = (( 2U << 8 ) | 0 ),  
     .boardName      = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00",
 
     //--------------------------------------------------------------------------------------------------------

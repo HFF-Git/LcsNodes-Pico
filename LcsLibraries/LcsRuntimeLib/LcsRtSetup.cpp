@@ -377,7 +377,7 @@ uint8_t buildNvmExtBoardStructure(uint8_t boardId)
 //----------------------------------------------------------------------------------------
 void printNvmHeader( LcsBoardDesc *head ) {
 
-    uint16_t *ptr  = (uint16_t *)head;
+    uint16_t *ptr  = (uint16_t *) head;
     size_t   words = sizeof(LcsBoardDesc) / 2;
 
     printf( "NVM Header ( %zu words ):\n", words );
@@ -388,7 +388,7 @@ void printNvmHeader( LcsBoardDesc *head ) {
         if ((( j + 1 ) % 8 ) == 0 ) printf( "\n" );
     }
 
-    if (( words % 4 ) != 8 ) printf( "\n" );
+    if (( words % 8 ) != 0 ) printf( "\n" );
 }
 
 }; // namespace
@@ -523,16 +523,16 @@ namespace LCS {
             printf("Init Can Bus\n");
         }
 
-        uint8_t rStat = configureCanBus(CDC_RN_CAN_BUS);
+        uint8_t rStat = configureCanBus( CDC_RN_CAN_BUS );
 
         if ( rStat == ALL_OK ) {
 
             msgBus = new LcsMsgBusCAN( );
 
-            rStat = msgBus->init(canGetRxPin(CDC_RN_CAN_BUS),
-                                 canGetTxPin(CDC_RN_CAN_BUS),
-                                 canGetBaudrate(CDC_RN_CAN_BUS),
-                                 canGetTwoCores(CDC_RN_CAN_BUS));
+            rStat = msgBus->init( canGetRxPin( CDC_RN_CAN_BUS ),
+                                  canGetTxPin( CDC_RN_CAN_BUS ),
+                                  canGetBaudrate( CDC_RN_CAN_BUS ),
+                                  canGetTwoCores( CDC_RN_CAN_BUS ));
 
             if ( rStat != ALL_OK ) {
 
@@ -545,7 +545,7 @@ namespace LCS {
             }
         }
 
-        return ( errStat((char *)"initCanBus", rStat));
+        return ( errStat((char *)"initCanBus", rStat ));
     }
 
     //----------------------------------------------------------------------------------------
@@ -711,7 +711,7 @@ namespace LCS {
 
         if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
-            printNvmHeader(hPtr);
+            printNvmHeader( hPtr );
         }
 
         return ( errStat((char *)"setupNodeNvmHeader", rStat));

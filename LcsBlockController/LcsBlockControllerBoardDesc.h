@@ -84,7 +84,7 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
     //--------------------------------------------------------------------------------------------------------
     .boardInfo      = CDC_BT_BLOCK_CONTROLLER, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
-    .boardVersion   = 0, 
+    .boardVersion   = (( 2U << 8 ) | 0 ),  
     .boardName      = "LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00",
             
     //--------------------------------------------------------------------------------------------------------

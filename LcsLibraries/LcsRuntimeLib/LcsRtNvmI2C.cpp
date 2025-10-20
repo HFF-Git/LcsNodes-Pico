@@ -134,67 +134,204 @@ uint8_t     rNumExtNvm      = UNDEFINED_RES_ID;
 //----------------------------------------------------------------------------------------
 uint8_t errStat( uint8_t errId ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS ))
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
+
         printf( "Ret: %d\n", errId );
+    }
+
     return ( errId );
 }
 
 //----------------------------------------------------------------------------------------
-// "testNvmChipMemorySize" will check the NVM chip for its size. Since the chip itself 
-// has no way of telling its memory capacity, we need to go a rather cumbersome way. 
-// For each possible size, read the last byte, store a new value there, read it again.
-// If the values match, it is a valid memory location. Don't forget to restore the 
-// previous value. If we are not successful, try the next smaller size. Currently, 
-// the LCS hardware uses The chip family M24LCxxx with sizes of 4, 8, 16, 32 and 
-// 64Kbytes.
+// "testNvmChipMemorySize" detects the size of an I²C EEPROM (M24LCxxx family).
+// These chips have no internal register to report their capacity, so the only way
+// to determine the size is by probing memory locations and observing whether
+// higher addresses are actually addressable or just mirrored (aliased) copies
+// of lower ones.
 //
-// ??? not tested yet ...
-// ??? will not work for the smaller then 4K chips. Wait until we only have 4K and higher.
+// Algorithm:
+//
+//   1. Start with the largest supported size (e.g. 64 Kbytes for M24LC512).
+//   2. For this assumed size "N":
+//        - Let A  = N - 1  (the last byte of this address range)
+//        - Let A2 = A - N/2 (the midpoint address)
+//   3. Read and store the original values at A and A2.
+//   4. Write a known test value (e.g. 0xAB) to address A.
+//   5. Read back both A and A2.
+//        • If *both* locations changed to the test value, the EEPROM has aliased
+//          the top half of the address space onto the bottom half — the assumed
+//          size N is too large.  Halve N and repeat the test.
+//        • If only A changed (A2 kept its original content), then A and A2 are
+//          distinct physical addresses, so N is the actual device size.
+//   6. Restore all modified bytes to their original contents before returning.
+//
+// This approach works because all M24LCxx devices have power-of-two sizes and,
+// when addressed beyond their actual capacity, their internal address counter
+// simply wraps around, creating mirrored address regions.
+//
+// Notes:
+//   • Two-byte addressing is used (valid for 24LC32 and larger).
+//   • The function currently tests 32-, 64-, 128-, 256-, and 512-Kbit parts,
+//     corresponding to 4, 8, 16, 32, and 64 Kbytes of memory.
+//   • Devices smaller than 32-Kbit (24LC16/08/04) use 1-byte addressing and
+//     separate I²C sub-addresses; support for those can be added separately.
 //----------------------------------------------------------------------------------------
 uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
-    uint32_t    nvmSize         = M24LC512_MAX_SIZE;
-    uint32_t    testAdr         = nvmSize - 1;
-    uint8_t     originalValue   = 0;
-    uint8_t     testValue       = 0xab;
-    uint8_t     tmpValue        = 0;
-    uint8_t     tmpBuf[ 3 ]     = { 0 };
-    uint8_t     rStat           = ALL_OK;
-    
+    uint32_t nvmSize    = M24LC512_MAX_SIZE;
+    uint32_t testAdr    = nvmSize - 1;
+    uint32_t mirrorAdr  = 0;
+    uint8_t originalA   = 0x00;
+    uint8_t originalA2  = 0x00;
+    uint8_t testValue   = 0xAB;
+    uint8_t readA       = 0;
+    uint8_t readA2      = 0;
+    uint8_t tmpBuf[3]   = {0};
+    uint8_t rStat       = ALL_OK;
+
     while ( nvmSize >= M24LC32_MAX_SIZE ) {
 
-        tmpBuf[ 0 ] = testAdr >> 8 & 0xFF;
-        tmpBuf[ 1 ] = testAdr &0xFF;
-        
+        testAdr     = nvmSize - 1;
+        mirrorAdr   = testAdr - ( nvmSize / 2 );
+
+        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+            printf( "Testing Size=%lu, testAdr=%04lX, mirrorAdr=%04lX\n", 
+                    (unsigned long) nvmSize,
+                    (unsigned long) testAdr, 
+                    (unsigned long) mirrorAdr );
+        }
+
+        // Read original at A
+        tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
+        tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+        rStat = i2cWrite(rNum, i2cAdr, tmpBuf, 2, true);
+        if ( rStat == ALL_OK ) rStat = i2cRead(rNum, i2cAdr, &originalA, 1);
+        if ( rStat != ALL_OK ) return ( 0 );
+
+        // Read original at A2
+        tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF);
+        tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if ( rStat == ALL_OK ) rStat = CDC::i2cRead( rNum, i2cAdr, &originalValue, 1 );
-        if ( rStat != ALL_OK ) return ( ERR_NVM_CHIP_SIZE_DETECT );
+        if ( rStat == ALL_OK ) rStat = i2cRead(rNum, i2cAdr, &originalA2, 1);
+        if ( rStat != ALL_OK ) return ( 0 );
 
-        tmpBuf[ 2 ] = testValue;
-        
-        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ), false );
-        if ( rStat == ALL_OK ) {
+        // Write testValue to A
+        tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF);
+        tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+        tmpBuf[2] = testValue;
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
+        if (rStat != ALL_OK) return ( 0 );
 
+        sleepMillis(NVM_WRITE_DELAY);
+
+        // Read back A
+        tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
+        tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
+        if (rStat == ALL_OK) rStat = i2cRead( rNum, i2cAdr, &readA, 1) ;
+        if (rStat != ALL_OK) {
+
+            // attempt to restore originals before returning error
+            tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF);
+            tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+            tmpBuf[2] = originalA;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
+            sleepMillis(NVM_WRITE_DELAY);
+            return ( 0 );
+        }
+
+        // Read back A2
+        tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF);
+        tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
+        if (rStat == ALL_OK) rStat = i2cRead( rNum, i2cAdr, &readA2, 1 );
+        if (rStat != ALL_OK) {
+
+            // restore A and A2 originals where possible, then return
+            tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
+            tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+            tmpBuf[2] = originalA;
+            i2cWrite(rNum, i2cAdr, tmpBuf, 3, false );
+
+            sleepMillis(NVM_WRITE_DELAY);
+            
+            tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8) & 0xFF );
+            tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
+            tmpBuf[2] = originalA2;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
+            
+            sleepMillis( NVM_WRITE_DELAY );
+            return ( 0 );
+        }
+
+        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+            printf( "Read back A=%02X A2=%02X\n", readA, readA2 );
+        }
+
+        if (( readA == testValue ) && ( readA2 == testValue )) {
+
+            // aliasing detected -> N too big
+            // restore originals and continue with next smaller size
+
+            tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
+            tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+            tmpBuf[2] = originalA;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false) ;
+            sleepMillis(NVM_WRITE_DELAY);
+
+            tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8) & 0xFF );
+            tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
+            tmpBuf[2] = originalA2;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
+            sleepMillis(NVM_WRITE_DELAY);
+
+            nvmSize /= 2;
+            continue;
+
+        } else if ( readA == testValue ) {
+
+            // write stuck only at A -> addressable, so N is actual size
+            // restore original at A and return N
+
+            tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
+            tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+            tmpBuf[2] = originalA;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
             sleepMillis( NVM_WRITE_DELAY );
 
-            rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-            if ( rStat == ALL_OK ) rStat = i2cRead( rNum, i2cAdr, &tmpValue, 1 );
-            if ( rStat == ALL_OK ) {
+            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
-                if ( tmpValue == testValue ) {
-
-                    rStat = i2cWrite( rNum, i2cAdr, tmpBuf, sizeof( tmpBuf ), false );
-                    sleepMillis( NVM_WRITE_DELAY );
-                    return ( nvmSize );
-                }
-                else {
-                    
-                    nvmSize = nvmSize / 2;
-                    testAdr = nvmSize - 1;
-                }
+                printf( "Size computed: %d\n", nvmSize );
             }
-        }   
-        else return ( ERR_NVM_CHIP_SIZE_DETECT ); 
+            
+            return ( nvmSize );
+
+        } else {
+
+            // write didn't stick at A (unexpected), treat as error or reduce size
+            // restore originals and reduce size
+
+            tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
+            tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+            tmpBuf[2] = originalA;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
+            sleepMillis( NVM_WRITE_DELAY );
+
+            tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF );
+            tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
+            tmpBuf[2] = originalA2;
+            i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
+            sleepMillis( NVM_WRITE_DELAY );
+
+            nvmSize /= 2;
+        }
+    }
+
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+        printf( "Size computed: %d\n", nvmSize );
     }
 
     return ( nvmSize );
@@ -487,6 +624,12 @@ uint8_t configNvm(  uint8_t     rIdNvm,
                     uint8_t     rIdExtNvm,
                     uint32_t    extNvmSize ) {
 
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+        printf( "configNvm: rIdNvm: %d, defSize: %d, rIdExNvm: %d, defSize: %d\n",
+                rIdNvm, nvmSize, rIdExtNvm, extNvmSize ); 
+    }
+
     rNumNvm     = rIdNvm;
     rNumExtNvm  = rIdExtNvm;
     nodeNvmSize = nvmSize;
@@ -495,7 +638,11 @@ uint8_t configNvm(  uint8_t     rIdNvm,
     if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
     if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
 
-    return ( ALL_OK );
+    int testSize = testNvmChipMemorySize( rIdNvm, 0x50 ); // ??? ugly i2cAdr
+
+    if ( testSize < nodeNvmSize ) nodeNvmSize = testSize;
+
+    return ( errStat( ALL_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -588,13 +735,15 @@ uint32_t extNvmGetSize( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Controller Board User Map access routines. The area between the main controller NVM 
-// chip runtime area and the chips hardware maximum size is the memory area available 
-// for the firmware programmer. Again, there are routines for getting and setting a
-// word as well as routines to read and  write a buffer. All access routines are 
-// prefixed with "usr".
+// Controller Board User Map access routines. The area between the main controller 
+// NVM chip runtime area and the chips hardware maximum size is the memory area 
+// available for the firmware programmer. Again, there are routines for getting and
+// setting a word as well as routines to read and  write a buffer. All access routines
+// are  prefixed with "usr".
 //
 // ??? adapt he get/put word routines to work based on index ...
+// ??? how about modeling an array of user attributes, accessible via an ITEM ?
+// ??? then we could get rid of these routines...
 //----------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
 
