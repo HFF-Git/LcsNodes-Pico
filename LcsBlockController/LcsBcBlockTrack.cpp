@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Block Controller - Block Track
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The Block Controller track power module manages the track of the block. Each block is associated with a
 // port on the node and the this object essentially controls the H-Bridge. At the heart is a state machine 
 // manages the power state. The power consumption is measured on a periodic base and an overload leads to
@@ -12,57 +12,56 @@
 // to route the DCC signal from the LCS bus to the H-Bridge. The second mode is the analog mode. There are 
 // two sub modes, which are forward and reverse PWM setting. 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Block Controller - Block Track
 // Copyright (C) 2024 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 #include <math.h>
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External global variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 extern uint16_t debugMask;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The Block Track Object local definitions. The hardware lower layers can be found in controller dependent 
 // code (CDC) layer.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 using namespace LCS;
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Block controller global limits. Perhaps to move to a configurable place...
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t MILLI_VOLT_PER_DIGIT                 = 5; // ??? correct value ... rather a float ?
 const uint16_t MILLI_VOLT_PER_AMP                   = 1500;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Block track power management is a state machine managing the setting of the power track. Maximum values 
 // for the track power start and stop sequence as well as limits for power overload events are defined. 
 // We also define reasonable default values.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t MAX_START_TIME_THRESHOLD_MILLIS      = 2000;
 const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS       = 1000;
 const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS   = 500;
@@ -75,11 +74,11 @@ const uint16_t DEF_OVERLOAD_TIME_THRESHOLD_MILLIS   = 300;
 const uint16_t DEF_OVERLOAD_EVENT_COUNT             = 10;
 const uint16_t DEF_OVERLOAD_RESTART_COUNT           = 10;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Track state machine state definitions. See the track state machine routine for an explanation of the 
 // individual states.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum DccTrackState : uint8_t {
 
     TRACK_POWER_OFF       = 0,
@@ -91,21 +90,21 @@ enum DccTrackState : uint8_t {
     TRACK_POWER_STOP2     = 6
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Utility routine for number range checks.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Conversion functions between milliAmps and digit values as report4de by the analog to digital converter
 // hardware. For a better precision, the formula uses 32 bit computation and stores the result back in a 
 // 16 bit quantity. 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t milliAmpToDigitValue( uint16_t milliAmp, uint16_t digitsPerAmp ) {
 
     #if 0
@@ -141,13 +140,13 @@ uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
 using namespace LCS;
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Object instance section. The DccTrack constructor. Nothing to do so far.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 LcsBlockTrack::LcsBlockTrack( ) { }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "setupDccTrack" performs the setup tasks for the DCC track.  We will configure the hardware, the DCC
 // packet options such as preamble and postamble length, the initial state machine state current consumption
 // limit and load the initial packet into the active buffer. There is quite a list of parameters and options
@@ -164,7 +163,7 @@ LcsBlockTrack::LcsBlockTrack( ) { }
 // file static variables. This is necessary for the interrupt handlers to work. If any of the checks fails,
 // the flag field will have the error bit set.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SETUP )) {
@@ -236,7 +235,7 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
     return ( rStat );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "setBlockTrackState" sets the control output pins for the block controller H-Bridge. The H-Bridge has two
 // half bridge control in puts and an enable input. The setting of these three inputs are encoded into a 
 // pair of select pins with the following settings:
@@ -252,7 +251,7 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 //
 //      BT_MODE_DCC         -   both select pins are set to one.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
@@ -305,11 +304,11 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
 // ??? quick hack for debugging analog ...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
 
     if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
@@ -326,7 +325,7 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
     else return ( 255 );
 } 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Track power is not just a matter of turning power on or off. To address all the requirements of the DCC
 // standard, the track is managed by a state machine that implements the start and stop sequences. They will 
 // also be executed in analog mode. It is important that we do not really block the progress of the entire
@@ -372,7 +371,7 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
 // requested. In the interest of minimizing the controller load, the calculation is done in digit values
 // the result is presented in then in milliAmps.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBlockTrack::runTrackStateMachine( ) {
 
     switch ( trackState ) {
@@ -499,10 +498,10 @@ void LcsBlockTrack::runTrackStateMachine( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some getter functions. Straightforward.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBlockTrack::getFlags( ) {
 
     return ( flags );
@@ -533,12 +532,12 @@ bool LcsBlockTrack::isPowerOverload( ) {
     return ( flags & BT_F_POWER_OVERLOAD );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Track power management functions. The actual state of track power is kept in the track status field
 // and can be queried or set by setting the respective flag. Starting and stopping track power is done by
 // setting the respective START or STOP state.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBlockTrack::powerStart( ) {
 
     trackState = TRACK_POWER_START1;
@@ -549,7 +548,7 @@ void LcsBlockTrack::powerStop( ) {
     trackState = TRACK_POWER_STOP1;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Power Consumption Management. There are two key values. The first is the actual current consumption as
 // measured by the ADC hardware on each ZERO DCC bit. This value is used to do the power overload checking.
 // The second value is the high water mark built from these measurements. This values is used for the DCC
@@ -557,7 +556,7 @@ void LcsBlockTrack::powerStop( ) {
 // measurement values are actually ADC digit values for performance reason. Only on limit setting and external
 // data access are these values converted from and to milliAmps.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBlockTrack::getLimitCurrent( ) {
 
     return ( limitCurrentMilliAmp );
@@ -587,7 +586,7 @@ void LcsBlockTrack::setLimitCurrent( uint16_t val ) {
     limitCurrentDigitValue  = milliAmpToDigitValue( val, digitsPerAmp );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "getRMSCurrent" function returns the power consumption based on the samples taken and stored in the
 // sample buffer. The function computes the square root of the sum of the squares of the array elements. The
 // result is returned in milliAmps. Note that our measurement is based on unsigned 16-bit quantities that come
@@ -596,7 +595,7 @@ void LcsBlockTrack::setLimitCurrent( uint16_t val ) {
 // consumption, the error should be not a big issue. We will not use RMS values for power overload detection
 // or decoder ACK detection.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBlockTrack::getRMSCurrent( ) {
 
     uint32_t res = 0;
@@ -606,11 +605,11 @@ uint16_t LcsBlockTrack::getRMSCurrent( ) {
     return ( digitValueToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE ), digitsPerAmp ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This function is called whenever we want to measure the power consumption. Typically this routine will be
 // called from an timer or interrupt handler.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBlockTrack::powerMeasurement( ) {
 
     if ( flags & BT_F_MEASUREMENT_ON ) {
@@ -628,10 +627,10 @@ void LcsBlockTrack::powerMeasurement( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Print out the DCC Track configuration data. For debugging purposes.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBlockTrack::printTrackConfig( ) {
 
     printf( "Track Config: \n" );
@@ -652,10 +651,10 @@ void LcsBlockTrack::printTrackConfig( ) {
     printf( "Limit Digit Value: %d\n", limitCurrentDigitValue );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Print out the DCC Track status.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBlockTrack::printTrackStatus( ) {
 
     printf( ", Track Status: ( 0x%x ) -> ", flags );

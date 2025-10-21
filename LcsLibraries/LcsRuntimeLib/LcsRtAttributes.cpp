@@ -77,40 +77,11 @@ namespace {
     //------------------------------------------------------------------------------------
     char tempName[ MAX_RES_NAME_SIZE + 1 ] = { 0 };
 
-    //------------------------------------------------------------------------------------
-    // Utility routines.
-    //
-    //------------------------------------------------------------------------------------
-    bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-        return (( val >= lower ) && ( val <= upper ));
-    }
-
-    uint8_t lowByte( uint16_t arg ) { 
-        
-        return ( arg & 0xFF ); 
-    }
-    
-    uint8_t highByte( uint16_t arg ) { 
-        
-        return ( arg >> 8 ); 
-    }
-
-     uint16_t nodeId( uint16_t arg ) {
-
-        return ( arg >> 4 );
-    }
-
-    uint16_t portId( uint16_t arg ) {
-
-        return ( arg & 0xF );
-    }
-
     uint8_t errStat( uint8_t errId ) {
 
         if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
-            printf( "Ret: %d\n", errId );
+            printf( "-> %d\n", errId );
         }
 
         return ( errId );

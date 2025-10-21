@@ -25,6 +25,7 @@
 #ifndef LcsDvrOccDetectLib_h
 #define LcsDvrOccDetectLib_h
 
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"

@@ -33,6 +33,7 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t             debugMask;
+    extern uint16_t             startOptions;
    
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
@@ -64,26 +65,6 @@ using namespace CDC;
 //----------------------------------------------------------------------------------------
 const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
 uint32_t        timerVal                        = 0L;
-
-bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-  return (( val >= lower ) && ( val <= upper ));
-}
-
-uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
-
-    return (( nodeId << 4 ) | ( portId & 0xF ));
-}
-
-uint16_t nodeId( uint16_t npId ) {
-
-    return ( npId >> 4 );
-}
-
-uint16_t portId( uint16_t npId ) {
-
-    return ( npId & 0xF );
-}
 
 //----------------------------------------------------------------------------------------
 // "handleNodePortEvents" will be called for processing inbound port events on each 
@@ -443,8 +424,10 @@ void handleNodeStatePfail( ) {
 // to P4 are sent a RESET request, so that any hardware initialization can be done. 
 // Any other port with a registered callback is handled next. Each port with a
 // successful return code will finally be enabled and the high water mark adjusted
-//accordingly.
+// accordingly.
 // 
+// ??? is there anything that we will need to remember in NVM ? 
+// ??? It does not look like it!!!!
 //----------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
@@ -468,7 +451,7 @@ void handleNodeStateInit( ) {
         }
     }
 
-    if ( ! ( portMap.map[ 0 ].options & NPO_SKIP_NODE_ID_CONFIG )) {
+    if ( ! ( startOptions & NPO_SKIP_NODE_ID_CONFIG )) {
 
         sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
         timerVal  = getMillis( );

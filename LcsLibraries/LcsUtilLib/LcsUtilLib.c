@@ -1,11 +1,14 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Occupancy Detect
+// Layout Control System - Utility routines
+//
+//----------------------------------------------------------------------------------------
+// 
 //
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller
-// Copyright (C) 2014 - 2024  Helmut Fieres
+// Layout Control System - Command Interpreter
+// Copyright (C) 2025 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -17,8 +20,8 @@
 // have received a copy of the GNU General Public License along with this program. 
 // If not, see <http://www.gnu.org/licenses/>.
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
 //----------------------------------------------------------------------------------------
 
-// ??? contains the routines that manage the track section occupancy detection
+// ??? any non-inlined C routines would come here...
+
+

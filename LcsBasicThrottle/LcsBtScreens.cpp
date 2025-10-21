@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Screens implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This file contains the screen methods for the cab handheld screens. All cab handheld screens have a
 // common screen layout. The screen is divided into a top line, which has room for a title and the labelling
 // of the adjacent buttons MENU and UP. Likewise, there is a bottom line with room for some status flags
@@ -26,50 +26,49 @@
 // on an 8-pixel raster. So, a 128x64 screen has 16 columns and 8 rows. A font that takes two rows starts at
 // the lower row of the two rows it occupies.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Screens implementation file
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBasicThrottle.h"
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 extern  UIDisplay   *oled;
 extern  UIEncoder   *encoder;
 extern  CabStack    *cabStack;
 extern  CabMsgBus   *msgBus;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The screens use text fields with pre-assigned text content. These constant string tokens are grouped here
 // and returned when needed. Perhaps one day, this allows also support for several languages. The table is
 // not sorted right now, the lookup routine just does a linear search.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum ScreenTextTokens : uint8_t {
 
     SCR_TX_NIL                  = 0,
@@ -113,10 +112,10 @@ enum ScreenTextTokens : uint8_t {
     SCR_TX_DIAG                 = 53,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Screen token text table and lookup function.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct {
 
     uint8_t   textId;
@@ -169,10 +168,10 @@ char *lookupTextStr( uint16_t textId ) {
     return ((char *) "" );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The logical functions names for the cab handled UI elements and lookup function.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct  {
 
     uint8_t mapId;
@@ -205,10 +204,10 @@ char *lookupMapStr( uint16_t mapId ) {
     return ((char *) "" );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 char *lookupDccFuncTypeStr( uint8_t dccFuncOptId ) {
 
     switch ( dccFuncOptId ) {
@@ -220,11 +219,11 @@ char *lookupDccFuncTypeStr( uint8_t dccFuncOptId ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Data to the screen are printed using this central routine. We expect the row, column and font
 // information. The rest is just like you are used from the "printf" family.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 template<typename... Args>
 void printFieldStr( uint8_t col, uint8_t row, uint8_t fontId, const char* fmt, Args... args ) {
 
@@ -237,10 +236,10 @@ void printFieldStr( uint8_t col, uint8_t row, uint8_t fontId, const char* fmt, A
     oled -> print( buf );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // ??? a bit sloppy, what to test before doing ?
 
 void clearLine( int line ) {
@@ -256,10 +255,10 @@ void clearLines( int start, int len ) {
 }; // namespace
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Global variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 OperateScreen               *operateScreen              = nullptr;
 EngineOnOffScreen           *engineOnOffScreen          = nullptr;
 EngineLightsScreen          *engineLightsScreen         = nullptr;
@@ -282,7 +281,7 @@ ConfigFunctionSelectScreen  *configFunctionSelectScreen = nullptr;
 ConfigFunctionEditScreen    *configFunctionEditScreen   = nullptr;
 TestUIScreen                *testUIScreen               = nullptr;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "createScreens" will create the screen objects and build the screen hierarchy. There are the XXX menu
 // screens, which become children to the root screen. This list forms the top line of screens. A menu screen
 // will itself have one or more child screens. The MENU button will toggle through a screen list. The
@@ -290,7 +289,7 @@ TestUIScreen                *testUIScreen               = nullptr;
 // overwritten and will then not handle navigation. This is typically the case when the leaf screen is
 // using the buttons for screen specific purposes.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupScreens( ) {
 
     operateScreen               = new OperateScreen( );
@@ -338,12 +337,12 @@ uint8_t setupScreens( ) {
     return ( LCS::ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Cab Handheld Screen common Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // All cab handheld screens have a common screen layout. The screen is divided into a top line, which has
 // room for a title and the labelling of the adjacent buttons MENU and UP. Likewise, there is a bottom line
 // with room for some status flags and the label fields for SELECT and DOWN. In between are two lines in a
@@ -369,7 +368,7 @@ uint8_t setupScreens( ) {
 // For all printing functions, there is one template method, which uses the "printf" family style. All that
 // is added is the screen location and font data.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void CabHandheldScreen::printMenuLabel( char *str )          { printFieldStr( 0, 0, FT_8x8, "%3s", str ); }
 void CabHandheldScreen::printMenuLabel( uint16_t textId )    { printMenuLabel( lookupTextStr( textId )); }
 
@@ -385,16 +384,16 @@ void CabHandheldScreen::printSelectLabel( uint16_t textId )  { printSelectLabel(
 void CabHandheldScreen::printDownLabel( char *str )          { printFieldStr( 13, 7, FT_8x8, "%3s", str ); }
 void CabHandheldScreen::printDownLabel( uint16_t textId )    { printDownLabel( lookupTextStr( textId )); }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Cab Handheld Top Menu Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The menu screens. This is the top level screen list. They are straightforward. All we do is to show the
 // menu and select labels and a text that says what this menu is.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 TopMenuItemScreen::TopMenuItemScreen( uint8_t item ) {
 
     this -> item = item;
@@ -409,18 +408,18 @@ void TopMenuItemScreen::enterScreen( bool init ) {
     printFieldStr( 3, 3, FT_8x16, "%s", lookupTextStr( item ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Scrollable Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some screens display a list of items that you can scroll through. The UP, DOWN buttons and also the encoder
 // knob allow for a scrolling function. This class allows for a convenient constructions of such screens. The
 // "showScreenData" method can be overridden to display the actual content. Before the object can be used,
 // the "setScreenData" method sets up the screen title and the encoder limits.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 ScrollableScreen::ScrollableScreen( UIEncoder *encoder ) {
 
     this -> encoder = encoder;
@@ -480,16 +479,16 @@ int ScrollableScreen::getIndex( ) {
     return ( index );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Operate Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "OperateScreen" is our main screen. It has all the relevant control elements and information items that
 // are necessary to run the current loco.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void OperateScreen::enterScreen( bool init ) {
 
     oled -> clear( );
@@ -611,16 +610,16 @@ void OperateScreen::showCabData( ) {
     else if ( functionSet == 2 ) printFieldStr( 0, 7, FT_8x8, "F5  F6  F7  F8  " );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Engine On/Off Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Engine on and off screen. Especially a diesel engine needs to first turn its prime mover on first. And you
 // cannot turn it off when the engine is not stopped.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void EngineOnOffScreen::enterScreen( bool init ) {
 
     oled -> clear( );
@@ -658,17 +657,17 @@ void EngineOnOffScreen::downButtonClick( UIButton *buttonObj ) {
     printFieldStr( 3, 3, FT_8x16, "Engine Off " );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Engine Lights Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Engine lights screen. An engine has front and rear lights.
 //
 // OFF, DIM and BRIGHT, optional BRIGHT+DITCH LIGHTS ( Diesels only ? )
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void EngineLightsScreen::enterScreen( bool init ) {
 
     oled -> clear( );
@@ -712,17 +711,17 @@ void EngineLightsScreen::buttonClick( UIButton *buttonObj ) {
   
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Select Cab Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Select Cab Screen. There is a stack of known cabs.We can scroll through the list with UP/DOWN and the
 // encoder knob. The SELECT button will make the entry shown the current loco. The MENU button click is
 // overwritten, so that we do not enter this screen over and over.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 SelectCabScreen::SelectCabScreen( UIEncoder *encoder ) : ScrollableScreen( encoder ) { }
 
 void SelectCabScreen::enterScreen( bool init ) {
@@ -755,17 +754,17 @@ void SelectCabScreen::showScreenData( int index ) {
     printFieldStr( 5, 7, FT_8x8, "%d", index );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Save Cab Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Save cab Screen. The current cab can be saved to the cab stack. We can scroll through the list with UP/DOWN
 // and the encoder knob. The SELECT button will store the current cab to the selected slot. The MENU button
 // click is overwritten, so that we do not enter this screen over and over.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 SaveCabScreen::SaveCabScreen( UIEncoder *encoder ) : ScrollableScreen( encoder ) { }
 
 void SaveCabScreen::enterScreen( bool init ) {
@@ -797,12 +796,12 @@ void SaveCabScreen::showScreenData( int index ) {
     printFieldStr( 5, 7, FT_8x8, "%d", index );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // New Cab Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // New Cab Screen. There needs to be a way to set an engine cab number. We will display 4 digits among we
 // can toggle with the MENU button. The UP/DOWN buttons advance the current digit position. The optional
 // encoder knob offers a fast way to scroll a digit. The number of valid arguments in a digit is determined 
@@ -813,7 +812,7 @@ void SaveCabScreen::showScreenData( int index ) {
 //
 // ??? we could also get initial data from the base station if the cab is known there... tbd.
 // ??? what about the short address ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 NewCabScreen::NewCabScreen( UIEncoder *encoder ) {
 
     this -> encoder = encoder;
@@ -942,17 +941,17 @@ int NewCabScreen::itemLimit( int index ) {
     else                    return ( 9 );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Set DCC Function Select Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Set DCC function select screen. DCC has a set of 69 functions, F0 to F68. This screen selects the function
 // we want to set. UP/DOWN and the encoder knob allow for scrolling through the list. Upon SELECT, the set
 // function "operate" screen is entered.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 SetFunctionSelectScreen::SetFunctionSelectScreen( UIEncoder *encoder ) : ScrollableScreen( encoder ) { }
 
 void SetFunctionSelectScreen::enterScreen( bool init ) {
@@ -974,17 +973,17 @@ void SetFunctionSelectScreen::showScreenData( int index ) {
                     (( functionState ) ? ((char *) "ON " ) : ((char *) "OFF" )));
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Set DCC Function Operate Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Set DCC function operate screen. The set function operate screen allows to set and reset the DCC function.
 // The UP/DOWN buttons are used for ON and OFF setting. The MENU button gets us back to the cab handheld
 // operate screen.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void SetFunctionOperateScreen::enterScreen( bool init ) {
 
     functionId = (( ScrollableScreen *) getParentScreen( )) -> getIndex( );
@@ -1027,18 +1026,18 @@ void SetFunctionOperateScreen::showScreenData( ) {
                     (( functionState ) ? ((char *) "ON " ) : ((char *) "OFF" )));
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Configure Cab Function Select Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Config function select screen. The cab handheld UI elements such as the buttons HORN, BELL and functions 
 // need to be mapped to their DCC function code for the particular engine. This screen will select the logical
 // function to map. On SELECT, we will enter the child screen, which will actually configure the item. The
 // MENU button click is disabled, so that we do not enter this screen over and over.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 ConfigFunctionSelectScreen::ConfigFunctionSelectScreen( UIEncoder *encoder ) : ScrollableScreen( encoder ) { }
 
 void ConfigFunctionSelectScreen::enterScreen( bool init ) {
@@ -1058,19 +1057,19 @@ void ConfigFunctionSelectScreen::showScreenData( int index ) {
     printFieldStr( 0, 2, FT_8x16, "CabF: %s", lookupMapStr( index ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Configure Cab Function Edit Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Config function edit screen. We are the child of the config function select screen, which has the index
 // of the selected item. The edit screen uses the UP and DOWN buttons for the selection of the DCC function
 // Id. The MENU button toggles through the function options to set and the SELECT button will confirm the
 // setting and we return to the Config Function Menu. Note, we also override the enterScreen to display the
 // rather static data so that the screen is not flickering.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 ConfigFunctionEditScreen::ConfigFunctionEditScreen( UIEncoder *encoder ) : ScrollableScreen( encoder ) { }
 
 void ConfigFunctionEditScreen::enterScreen( bool init ) {
@@ -1114,18 +1113,18 @@ void ConfigFunctionEditScreen::showScreenData( int index ) {
     printFieldStr( 0, 4, FT_8x16, "DccF: %02d %s", index, lookupDccFuncTypeStr( dccFuncOptId ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //  Test UI Elements Screen Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Test UI Elements. This menu is a very handy menu to test the individual UI elements for basic function.
 // It is invoked from the DIAG menu. The UI tests use all buttons so, we can only return via the MENU button
 // long press function to the main menu. This screen is a child screen of the test UI elements screen found
 // in the DIAG menu.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void TestUIScreen::enterScreen( bool init ) {
 
     oled -> clear( );

@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Base Station - DCC Track - implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC track object is one of the the key objects for the DCC subsystem. It is responsible for the DCC 
 // track signal generation and the power management functions. There will be exactly two objects of this kind,
 // one for the MAIN track and the other for the PROG track. The DCC track object has two major functional 
@@ -11,40 +11,39 @@
 // monitor the current consumption. Finally, for the RailCom option, the cutout generation and receiving 
 // of the RailCOm packets is handled.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Base Station DCC Track implementation file
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
 #include <math.h>
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External global variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 extern uint16_t debugMask;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a debugging option to set the
 // clock much slower so that the waveform can be seen.
 //
 // ??? take out, we are past that ...... since a long time. -> one last check than out ...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #define DEBUG_WAVE_FORM 0               
 
@@ -54,29 +53,29 @@ extern uint16_t debugMask;
 #define TICK_IN_MICROSECONDS  29
 #endif
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DccTrack Object local definitions. The DCC track object is a bit special. There are exactly two object
 // instances created, MAIN and PROG. Both however share the global mechanism for generating the DCC hardware
 // signals. There are callback functions for the DCC timer and the serial I/O capability for the RailCom 
 // feature. The hardware lower layers can be found in controller dependent code (CDC) layer.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 using namespace LCS;
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC Track will allocate two DCC Track Objects. For the interrupt system to work, references to the
 // objects must be static variables. The initialization sequence outside of this class will allocate the two
 // objects and we keep a copy of the respective DCC track object created right here.
 //
 // ??? when we use the global variables in the "main" file, can this go away ?
- //------------------------------------------------------------------------------------------------------------
+ //----------------------------------------------------------------------------------------
 LcsBaseStationDccTrack  *mainTrack  = nullptr;
 LcsBaseStationDccTrack  *progTrack  = nullptr;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC packet definitions. A DCC packet payload is at most 15 bytes long, excluding the checksum byte. This
 // is true for XPOM and DCC-A support, otherwise it is according to NMRA up to 6 bytes. The preamble is a
 // series of "ONE" bits, which helps the decoders to sync to the bit stream. The standard specifies a
@@ -84,7 +83,7 @@ LcsBaseStationDccTrack  *progTrack  = nullptr;
 // one "ONE" bit. If the cutout period option is enabled, the cutout overlays the first ONE bits the
 // preamble.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t   MAIN_PACKET_PREAMBLE_LEN    = 17;
 const uint8_t   MAIN_PACKET_POSTAMBLE_LEN   = 1;
 const uint8_t   PROG_PACKET_PREAMBLE_LEN    = 22;
@@ -96,24 +95,24 @@ const uint8_t   MIN_DCC_PACKET_REPEATS      = 0;
 const uint8_t   MAX_DCC_PACKET_REPEATS      = 8;
 const uint8_t   RAILCOM_BUFFER_SIZE         = 8;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Constant values definition. We need the RESET and IDLE packet as well as a bit mask for a quick bit
 // select in the data byte.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 DccPacket       idleDccPacket       = { 3, 0, { 0xFF, 0x00, 0xFF }};
 DccPacket       resetDccPacket      = { 3, 0, { 0x00, 0x00, 0x00 }};
 const uint8_t   bitMask9[ ]         = { 0x00, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Programming decoders require to detect a short rise in power consumption. The value is at least 60mA,
 // but decoders can raise anything from 100mA to 250mA. This is a bit touchy and the value set to 100mA
 // was done after testing several decoders. Still, a bit flaky ...
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t ACK_TRESHOLD_VAL      = 100;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC signal generator thinks in ticks. With a DCC ONE based on 58 microseconds and a DCC ZERO based
 // on 116 microseconds half period, we define a tick as a 29 microsecond interval. Although, ONE and ZERO
 // bit signals could be implemented using a multiple of 58 microseconds, the cutout function requires a
@@ -121,26 +120,26 @@ const uint8_t ACK_TRESHOLD_VAL      = 100;
 // previous packet. Luckily 2 * 29 is 58, 2 * 58 is 116. Perfect for DCC packets.
 //
 // ??? think directly in microseconds ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t TIMER_RES_ID                 = 100; // arbitrarily chosen
 const uint32_t TICKS_29_MICROS              =  1;
 const uint32_t TICKS_58_MICROS              =  TICKS_29_MICROS * 2;
 const uint32_t TICKS_116_MICROS             =  TICKS_29_MICROS * 4;
 const uint32_t TICKS_CUTOUT_MICROS          =  TICKS_29_MICROS * 16;
 
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 // Base Station global limits. Perhaps to move to a configurable place...
 //
-//-------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
 const uint16_t MILLI_VOLT_PER_DIGIT         = 5;
 const uint16_t MILLI_VOLT_PER_AMP           = 1500;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC track power management is also a a state machine managing the state of the power track. Maximum values
 // for the DCC track power start and stop sequence as well as limits for power overload events are defined. 
 // We also define reasonable default values.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t MAX_START_TIME_THRESHOLD_MILLIS     = 2000;
 const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS      = 1000;
 const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS  = 500;
@@ -153,11 +152,11 @@ const uint16_t DEF_OVERLOAD_TIME_THRESHOLD_MILLIS  = 300;
 const uint16_t DEF_OVERLOAD_EVENT_COUNT            = 10;
 const uint16_t DEF_OVERLOAD_RESTART_COUNT          = 10;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Track state machine state definitions. See the track state machine routine for an explanation of the 
 // individual states.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum DccTrackState : uint8_t {
 
     DCC_TRACK_POWER_OFF       = 0,
@@ -169,11 +168,11 @@ enum DccTrackState : uint8_t {
     DCC_TRACK_POWER_STOP2     = 6
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Track signal state machine states. See the DCC signal state machine routine for an explanation of
 // the states.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum DccSignalState : uint8_t {
 
     DCC_SIG_CUTOUT_START      = 0,
@@ -201,12 +200,12 @@ uint8_t ticksForState[ ] = {
     TICKS_116_MICROS        // DCC_SIG_ZERO_SECOND_HALF
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Track signal state machine follow up request items. The signal state machine first sets the hardware
 // signal for both tracks and then determines whether a follow up action is required. See the track state
 // machine routine for an explanation of the individual follow up actions.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum DccSignalStateFollowup : uint8_t {
 
     DCC_SIG_FOLLOW_UP_NONE                = 0,
@@ -218,7 +217,7 @@ enum DccSignalStateFollowup : uint8_t {
     DCC_SIG_FOLLOW_UP_RAILCOM_MSG         = 6,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The hardware timer needs to be set to the ticks we want to pass before interrupting again. There are
 // three things to remember between interrupts. First, the current time interval, which tells us how many
 // ticks will have passed when the timer interrupts again. Next, for each DCC track signal state we need to
@@ -226,18 +225,18 @@ enum DccSignalStateFollowup : uint8_t {
 // interrupt, the passed ticks are subtracted from the ticks left counters. When the counter becomes zero,
 // the state machine for the track will run.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 volatile uint8_t timeToInterrupt    = 0;
 volatile uint8_t timeLeftMainTrack  = 0;
 volatile uint8_t timeLeftProgTrack  = 0;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC track object maintains an internal log facility for test and debugging purposes. During operation
 // a set of log entries can be recorded to a log buffer. A log entry consist of the header byte, which 
 // contains in the first byte the 4-bit log id and the 4-bit length of the log data. A log entry can therefore
 // record up to 16 bytes of payload.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum LogId : uint8_t {
 
     LOG_NIL       = 0,
@@ -252,11 +251,11 @@ enum LogId : uint8_t {
     LOG_INV       = 15
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The log buffer and the log index. When writing to the log buffer, the index will always point to the
 // next available position. Once the buffer is full, no further data can be added.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t  LOG_BUF_SIZE            = 4096;
 
 bool            logEnabled              = false;
@@ -264,14 +263,14 @@ bool            logActive               = false;
 uint16_t        logBufIndex             = 0;
 uint8_t         logBuf[ LOG_BUF_SIZE ]  = { 0 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // RailCom decoder table. The Railcom communication will send raw bytes where only four bits are "one" in
 // a byte ( hamming weight 4 ). The first two bytes are labelled "channel1" and the remaining six bytes
 // are labelled "channel2". The actual data is then encode using the table below. Each raw byte will be
 // translated to a 6 bits of data for the datagram to assemble. In total there are therefore a maximum
 // of 48bits that are transmitted in a railcom message.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum RailComDataBytes : uint8_t {
 
     INV   = 0xff,
@@ -334,10 +333,10 @@ const uint8_t railComDecode[256] = {
     INV,    INV,    INV,    INV,    INV,    INV,    INV,    INV,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Railcom datagrams are sent from a mobile or a stationary decoder.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum railComDatagramType : uint8_t {
 
     RX_DG_TYPE_UNDEFINED  = 0,
@@ -345,7 +344,7 @@ enum railComDatagramType : uint8_t {
     RC_DG_TYPE_STAT       = 2
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Each mobile decoder railcom datagram will start with an ID field of four bits. Channel one will use only
 // the ADR_HIG and ADR_LOW Ids. All IDs can be used for channel 2. Since decoders answer on channel one
 // for each DCC packet they receive, here is a good chance that channel 1 will contains nonsense data. This
@@ -370,7 +369,7 @@ enum railComDatagramType : uint8_t {
 // datagram in one packet or 3 12-bit packets and so on. Finally, unused bytes in channel two could contain
 // an ACK to fill them up.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum railComDatagramMobId : uint8_t {
 
     RC_DG_MOB_ID_POM        = 0,
@@ -386,7 +385,7 @@ enum railComDatagramMobId : uint8_t {
     RC_DG_MOB_ID_SEARCH     = 14
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Similar to the mobile decode, a stationary decoder datagram will start an ID field of four bits. Stationary
 // decoders also define a datagram with "SRQ" and no ID field to request service from the base station.
 //
@@ -403,7 +402,7 @@ enum railComDatagramMobId : uint8_t {
 //      RC_DG_STAT_ID_XPOM_4    ( 11 )  - 36bit
 //      RC_DG_STAT_ID_TEST      ( 12 )  - ignore
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum railComDatagramStatId : uint8_t {
 
     RC_DG_STAT_ID_SRQ       = 0,
@@ -419,19 +418,19 @@ enum railComDatagramStatId : uint8_t {
     RC_DG_STAT_ID_TEST      = 12
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Utility routine for number range checks.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Utility function to map a DCC address to a railcom decoder type.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 
     if      (( adr >= 1 )   && ( adr <= 127 ))  return ( RC_DG_TYPE_MOB );
@@ -440,12 +439,12 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
     else                                        return ( RX_DG_TYPE_UNDEFINED );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Conversion functions between milliAmps and digit values as report4de by the analog to digital converter
 // hardware. For a better precision, the formula uses 32 bit computation and stores the result back in a 
 // 16 bit quantity. 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t milliAmpToDigitValue( uint16_t milliAmp, uint16_t digitsPerAmp ) {
 
     #if 0
@@ -468,7 +467,7 @@ uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
     return ((uint16_t) ((((uint32_t) digitValue ) * 1000 ) / ((uint32_t) digitsPerAmp )));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DccTrack timer interrupt handler routine implements the heartbeat of the DCC system. The two DCC
 // track signal generators state machines MAIN and PROG use the same timer interrupt handler. Upon the timer
 // interrupt, we first will update the time left counters. If a counter falls to zero, the signal state
@@ -497,7 +496,7 @@ uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
 // or even longer for the cutout itself and give us some more room.
 //
 // ??? we could use timerVal, but this is in microseconds, not ticks. Convert one day...
-//--------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------
 void timerCallback( uint32_t timerVal ) {
 
     uint8_t followUpMain = DCC_SIG_FOLLOW_UP_NONE;
@@ -536,13 +535,13 @@ void timerCallback( uint32_t timerVal ) {
 
 } // timerCallback
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // When all DCC track objects are initialized, the last thing to do before operation is to  start the timer
 // heartbeat. We start b firing up the timer with a first short delay, so when it expires the timer routine
 // will be called. The current time tick of zero and no ticks left, so the state machine for the signals 
 // will run.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void initDccTrackProcessing( ) {
 
     timeToInterrupt    = 0;
@@ -610,12 +609,12 @@ uint8_t printLogEntry( uint16_t index ) {
     else return ( 0 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // There are a couple of routines to write the log data. For convenience, some of the log entry types are
 // available as a direct call. The order of data entry for numeric types is big endian, i.e. most significant
 // byte first.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
 
     if ( logActive ) {
@@ -658,13 +657,13 @@ void writeLogVal( uint8_t valId, uint16_t val ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The log management routines. A typical transaction to log would start the logging process and then end
 // it after the operation to analyze/debug. The "enableLog" call should be used to enable the logging
 // process all together, the other calls will only do work when the log is enabled. With this call the
 // recording process could be controlled from a command line setting or so.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void enableLog( bool arg ) {
 
     logEnabled = arg;
@@ -692,11 +691,11 @@ void endLog( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A simple routine to print out the log data, one entry on one line.
 //
 // ??? what is exactly the stop condition ? The END entry having a length of zero ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printLog( ) {
 
     if ( logEnabled ) {
@@ -738,24 +737,24 @@ void printLog( ) {
 //============================================================================================================
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "startDccProcessing" will kick off the DCC timer for the track signal processing. The idea is that the
 // program first creates all the DCC track objects, does whatever else needs to be initialized and then starts
 // the signal generation with this routine.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::startDccProcessing( ) {
 
     initDccTrackProcessing( );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Object instance section. The DccTrack constructor. Nothing to do so far.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 LcsBaseStationDccTrack::LcsBaseStationDccTrack( ) { }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "setupDccTrack" performs the setup tasks for the DCC track.  We will configure the hardware, the DCC
 // packet options such as preamble and postamble length, the initial state machine state current consumption
 // limit and load the initial packet into the active buffer. There is quite a list of parameters and options
@@ -772,7 +771,7 @@ LcsBaseStationDccTrack::LcsBaseStationDccTrack( ) { }
 // file static variables. This is necessary for the interrupt handlers to work. If any of the checks fails,
 // the flag field will have the error bit set.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDesc ) {
 
 
@@ -878,7 +877,7 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
     return ( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC signal generation is done through a state machine that is invoked when the DCC timer interrupts. The
 // interrupt timer thinks in multiples of 29us, which we will just call a "tick" in the description below. It
 // runs as part of the timer interrupt handler, so we need to be short and quick. First, the HW signals are
@@ -937,7 +936,7 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
 // recommended to set the processor frequency to 20Mhz, which you can do in your own design, but not on
 // an Arduino board.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::runDccSignalStateMachine(
 
     volatile uint8_t  *timeToInterrupt,
@@ -1053,7 +1052,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "getNextBit" routine works through the active packet buffer bit for bit. A packet consists of the
 // optional cutout sequence, the preamble bits, the data bytes separated by a ZERO bit and the postamble bits.
 // The cutout option, the preamble and postamble are configured at DCC track object init time. The preamble
@@ -1065,7 +1064,7 @@ void LcsBaseStationDccTrack::runDccSignalStateMachine(
 // the first bit to send is the data byte separator, which is always a zero. We run from 0 to 8 through the
 // bit mask, the first bit being the ZERO bit.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::getNextBit( ) {
 
     if ( preambleSent < preambleLen ) {
@@ -1091,7 +1090,7 @@ void LcsBaseStationDccTrack::getNextBit( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // If all bits of a packet have been processed, the next packet will be determined during the last ONE bit
 // transmission of the postamble. If there is a non-zero repeat count on the current packet, the same packet
 // is sent again until the repeat count drops to zero. On a zero repeat count, we check if there is a pending
@@ -1110,7 +1109,7 @@ void LcsBaseStationDccTrack::getNextBit( ) {
 // a DCC_LOG record. We distinguish between a RESET, an IDLE and a data packet. Note that these records will
 // only be written when DCC logging is enabled.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::getNextPacket( ) {
 
     bytesSent     = 0;
@@ -1149,7 +1148,7 @@ void LcsBaseStationDccTrack::getNextPacket( ) {
     dccPacketsSend ++;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Railcom. If the cutout period and the RailCom feature is enabled, the signal state machine will also start
 // and stop the UART reader for RailCom data. The final message is then to handle that message. In the cutout
 // period, a decoder sends 8 data bytes. They are divided into two channels, 2bytes and another 6 bytes. The
@@ -1164,7 +1163,7 @@ void LcsBaseStationDccTrack::getNextPacket( ) {
 // ??? we could store the last loco address in some global variable.
 // ??? we could store the channel 2 datagram in the corresponding session.
 // ??? still, both pieces of data needs to go somewhere before the next message is received...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::startRailComIO( ) {
 
     startUartRead( rNumUartRx );
@@ -1227,7 +1226,7 @@ uint8_t LcsBaseStationDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
     } else return ( 0 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC track power is not just a matter of turning power on or off. To address all the requirements of the
 // standard, the track is managed by a state machine that implements the start and stop sequences. It is also
 // important that we do not really block the progress of the entire base station, so any timing calls are
@@ -1273,7 +1272,7 @@ uint8_t LcsBaseStationDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
 // when requested. In the interest of minimizing the controller load, the calculation is done in digit values
 // the result is presented in then in milliAmps.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
 
     switch ( trackState ) {
@@ -1405,10 +1404,10 @@ void LcsBaseStationDccTrack::runDccTrackStateMachine( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some getter functions. Straightforward.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBaseStationDccTrack::getFlags( ) {
 
     return ( flags );
@@ -1459,12 +1458,12 @@ bool LcsBaseStationDccTrack::isRailComOn( ) {
     return ( flags & DT_F_RAILCOM_MODE_ON );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC track power management functions. The actual state of track power is kept in the track status field
 // and can be queried or set by setting the respective flag. Starting and stopping track power is done by
 // setting the respective START or STOP state.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::powerStart( ) {
 
     trackState = DCC_TRACK_POWER_START1;
@@ -1517,7 +1516,7 @@ void LcsBaseStationDccTrack::railComOff( ) {
     if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) flags &= ~DT_F_RAILCOM_MODE_ON;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Power Consumption Management. There are two key values. The first is the actual current consumption as
 // measured by the ADC hardware on each ZERO DCC bit. This value is used to do the power overload checking.
 // The second value is the high water mark built from these measurements. This values is used for the DCC
@@ -1525,7 +1524,7 @@ void LcsBaseStationDccTrack::railComOff( ) {
 // measurement values are actually ADC digit values for performance reason. Only on limit setting and external
 // data access are these values converted from and to milliAmps.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBaseStationDccTrack::getLimitCurrent( ) {
 
     return ( limitCurrentMilliAmp );
@@ -1555,7 +1554,7 @@ void LcsBaseStationDccTrack::setLimitCurrent( uint16_t val ) {
     limitCurrentDigitValue  = milliAmpToDigitValue( val, digitsPerAmp );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The "getRMSCurrent" function returns the power consumption based on the samples taken and stored in the
 // sample buffer. The function computes the square root of the sum of the squares of the array elements. The
 // result is returned in milliAmps. Note that our measurement is based on unsigned 16-bit quantities that come
@@ -1564,7 +1563,7 @@ void LcsBaseStationDccTrack::setLimitCurrent( uint16_t val ) {
 // consumption, the error should be not a big issue. We will not use RMS values for power overload detection
 // or decoder ACK detection.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBaseStationDccTrack::getRMSCurrent( ) {
 
     uint32_t res = 0;
@@ -1574,14 +1573,14 @@ uint16_t LcsBaseStationDccTrack::getRMSCurrent( ) {
     return ( digitValueToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE ), digitsPerAmp ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This function is called whenever a power measurement operation completes from the analog conversion
 // interrupt handler. This typically takes place on the first half of the DCC "0" bit. If power measurement
 // is enabled, we increment the number of samples taken, check the measured value for an overload situation
 // and also set the high water mark accordingly. Since we are part of an interrupt handler, keep the amount
 // work really short.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::powerMeasurement( ) {
 
     if ( flags & DT_F_MEASUREMENT_ON ) {
@@ -1598,7 +1597,7 @@ void LcsBaseStationDccTrack::powerMeasurement( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC decoder programming requires the detection of a current consumption change. This is the way a DCC
 // decoder signals an acknowledgement. To detect the consumption change we need first an idea what the actual
 // average current baseline consumption of the decoder is. This method will send the required DCC reset packets
@@ -1608,7 +1607,7 @@ void LcsBaseStationDccTrack::powerMeasurement( ) {
 // ??? although the routines for decoder ACK detection work, they will produce quite a number of packets.
 // During this time, other LCS work is blocked. Perhaps we need a kind of state machine approach to cut the
 // long sequence in smaller chunks to allow other work in between.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t LcsBaseStationDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
     if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
@@ -1640,7 +1639,7 @@ uint16_t LcsBaseStationDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend 
     return (( sum + resetPacketsToSend - 1 ) / resetPacketsToSend );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "decoderAckDetect" is the counterpart to the decoder ack setup routine. The setup method established a base
 // line for the power consumption and put the decoder in CV programming mode by sending the RESET packets. The
 // decoder ACK detect routine now sends out resets packets to follow the programming packets required and
@@ -1654,7 +1653,7 @@ uint16_t LcsBaseStationDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend 
 // ??? although the routines for decoder ACK detection work, they will produce quite a number of packets.
 // During this time, other LCS work is blocked. Perhaps we need a kind of state machine approach to cut the
 // long sequence in smaller chunks to allow other work in between.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool LcsBaseStationDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t retries ) {
 
     if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
@@ -1693,7 +1692,7 @@ bool LcsBaseStationDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t 
     return ( false );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // LoadPacket is the central entry point to submit a DCC packet. The incoming packet is the the data to be
 // sent without checksum, i.e. it is just the payload. The DCC track signal generator has two packet buffers.
 // The first buffer holds the packet currently being transmitted. The second is the pending buffer. If it is
@@ -1705,7 +1704,7 @@ bool LcsBaseStationDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t 
 // ??? For a high number of session we may want to think about a queuing approach. Right now, this routine
 // waits when there is a packet already queued, i.e. pending. This may cause issues in delaying other tasks
 // such as receiving a CAN bus message.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::loadPacket( const uint8_t *packet, uint8_t len, uint8_t repeat ) {
 
     if ( ! isInRangeU( len, MIN_DCC_PACKET_SIZE, MAX_DCC_PACKET_SIZE )) return;
@@ -1729,14 +1728,14 @@ void LcsBaseStationDccTrack::loadPacket( const uint8_t *packet, uint8_t len, uin
     flags         |= DT_F_DCC_PACKET_PENDING;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The log management routines. A typical transaction to log would start the logging process and then end
 // it after the operation to analyze/debug. The "enableLog" call should be used to enable the logging
 // process all together, the other calls will only do work when the log is enabled. With this call the
 // recording process could be controlled from a command line setting or so. "beginLog" and "endLog" start 
 // and end a recording sequence.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::enableLog( bool arg ) {
 
     logEnabled = arg;
@@ -1764,12 +1763,12 @@ void LcsBaseStationDccTrack::endLog( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // There are a couple of routines to write the log data when the logging is active. For convenience, some of
 // the log entry types are available as a direct call. The order of data entry for numeric types is big endian,
 // i.e. most significant byte first.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
 
     if ( logActive ) {
@@ -1812,11 +1811,11 @@ void LcsBaseStationDccTrack::writeLogVal( uint8_t valId, uint16_t val ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Print out the log data, one entry on one line. We only print the log buffer when there is no log sequence
 // active.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::printLog( ) {
 
     if ( logEnabled ) {
@@ -1846,10 +1845,10 @@ void LcsBaseStationDccTrack::printLog( ) {
     else printf( "DCC Log disabled\n" );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Print out the DCC Track configuration data. For debugging purposes.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::printDccTrackConfig( ) {
 
     printf( "DccTrack Config: " );
@@ -1878,10 +1877,10 @@ void LcsBaseStationDccTrack::printDccTrackConfig( ) {
     printf( " PreambleLen: %d, PostambleLen: %d\n", preambleLen, postambleLen );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Print out the DCC Track status.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::printDccTrackStatus( ) {
 
     printf( "DccTrack: " );

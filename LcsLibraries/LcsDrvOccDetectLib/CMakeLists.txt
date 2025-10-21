@@ -23,8 +23,9 @@ target_sources ( ${PROJECT_NAME} INTERFACE
 
 target_link_libraries( ${PROJECT_NAME} 
 
-    LcsRuntimeLib 
+    LcsUtilLib
     LcsCdcLib 
+    LcsRuntimeLib 
     pico_stdlib 
 )
 

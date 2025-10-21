@@ -61,36 +61,6 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 
-bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-  return (( val >= lower ) && ( val <= upper ));
-}
-
-uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
-
-    return (( nodeId << 4 ) | ( portId & 0xF ));
-}
-
-uint16_t nodeId( uint16_t npId ) {
-
-    return ( npId >> 4 );
-}
-
-uint16_t portId( uint16_t npId ) {
-
-    return ( npId & 0xF );
-}
-
-uint8_t lowByte( uint16_t arg ) { 
-    
-    return ( arg & 0xFF ); 
-}
-
-uint8_t highByte( uint16_t arg ) { 
-    
-    return ( arg >> 8 ); 
-}
-
 //----------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains a
 // small pending request buffer. When a request type message is sent we add the target

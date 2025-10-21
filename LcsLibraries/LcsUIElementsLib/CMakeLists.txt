@@ -28,6 +28,7 @@ target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 target_link_libraries( ${PROJECT_NAME} 
 
     pico_stdlib 
+    LcsUtilLib
     LcsCdcLib
     LcsLcdDisplayLib
     LcsOledDisplayLib

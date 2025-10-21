@@ -1,14 +1,14 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - DCC Monitor, Raspberry PI Pico Implementation
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC monitor is a utility that analyzes a DCC signal received and displays information about signal
 // polarity, cutout detection, and so on. Most importantly, it displays the DCC packet in human readable
 // format. The design is build upon the former DCC Sniffer program, however this monitor is a complete re-
 // design and implementation.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - DCC Monitor, Raspberry PI Pico Implementation
 // Copyright (C) 2019 - 2024  Helmut Fieres
@@ -20,51 +20,51 @@
 //  - Refactored to Version 2.0: Jürgen Winkler, March 2016
 //  - Entirely rewritten to Version 3.0: Helmut Fieres, Oct 2020
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU
-// General Public License as published by the Free Software Foundation, either version 3 of the License,
-// or any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
-// the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-// License for more details. You should have received a copy of the GNU General Public License along with
-// this program.  If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - DCC Monitor, Raspberry PI Pico Implementation
 // Copyright (C) 2020 - 2024 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+/// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsDccMonitorBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsDccPktFmtLib.h"
 #include <cstring>
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #define DEBUG_PACKET_FORMATTER 1
 
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Configuration settings.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint16_t    ELAPSED_TIME_40               = 40;
 const uint16_t    ELAPSED_TIME_80               = 80;
 const uint16_t    ELAPSED_TIME_200              = 200;
@@ -79,11 +79,11 @@ const uint16_t    DEFAULT_DCC_PACKETS           = 64;
 const uint16_t    DEFAULT_REFRESH_TIME_MILLIS   = 4000;
 const uint16_t    MAX_PREAMBLE_READ_ATTEMPTS    = 1024;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // We want to record the ranges of signal wave lengths we see. A simple TsRange object is used to remember
 // the highest and lowest value seen in between resets.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 struct TsRange {
 
   uint32_t low   = UINT32_MAX;
@@ -105,30 +105,30 @@ struct TsRange {
   uint32_t getLow( )  { return ( low );   }
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 CdcResourceDescMap dMap = LCS_DCC_MONITOR_BOARD_DESC_B_02_00;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC bit stream and packet declarations. The bit stream buffer is a circular buffer. The bit detecting
 // routine add at the head, the packet assembler reads from the tail.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 volatile uint8_t  bitBufHead = 0;
 volatile uint8_t  bitBufTail = 0;
 volatile uint8_t  bitBuffer[ BIT_BUFFER_SIZE ];
 volatile bool     cutoutDetected = false;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Packet buffer declarations. During a time period, identical packets are remembered. This way, we only
 // see new packets added. This has the not so nice effect that identical packets are not shown again. For
 // example, turning F1 ON, then OFF, and then ON again in a period will not show the second turning ON. The
 // same is true for for the loco speed up or down. Although correct, it looks a bit erratic on the screen,
 // giving you the impression that the command was not sent. Once the time period expired, the buffer is reset.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t           dccPacketBufferSize       = DEFAULT_DCC_PACKETS;
 uint32_t          refreshTimeInMillis       = DEFAULT_REFRESH_TIME_MILLIS;
 uint32_t          timeToRefreshInMillis     = getMillis( ) + refreshTimeInMillis;
@@ -147,10 +147,10 @@ TsRange           aboveSignal;
 uint8_t           dccPacket[ DCC_MAX_PACKET_SIZE ];
 uint32_t          packetBuffer[ MAX_DCC_PACKETS ];
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Packet string declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum dccPacketShowOptions : uint8_t {
 
   SHOW_VERBOSE            = 0x01,
@@ -165,10 +165,10 @@ enum dccPacketShowOptions : uint8_t {
 uint8_t  showFlags = SHOW_LOC | SHOW_ACC | SHOW_BIN | SHOW_IDLE_RESET | SHOW_VERBOSE;
 char     lineBuf[ LINE_BUFFER_SIZE ];
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Forwards.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void fillPacket( );
 
 //----------------------------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ void setupConfigInfo( ) {
 }
 
 // ??? factor out as a separate object to detect and receive packets ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Getting the bits essentially means detecting the signal edge and then examine the signal some period later
 // to see what the level is. A simple interrupt on the rising edge starting a timer interrupt period of 80
 // microseconds and then reading the signal value in the timer interrupt routine should do. If low we are in
@@ -194,11 +194,11 @@ void setupConfigInfo( ) {
 // Packets are zeroes and ones, with a one having a 58 micro seconds and a zero having a 100 second half cycle.
 // Note that the second approach does not even need a timer anymore. For now,
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 volatile uint32_t lastRisingTs   = 0;
 volatile uint32_t lastFallingTs  = 0;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This routine is invoked by a changing signal on the signal pin. We read in the value from the signal pin.
 // A value of high means that we we detected a rising edge, for which we will just record the timestamp. On
 // a signal value of low we will compute the elapsed time and compare against our threshold. Smaller than the
@@ -210,7 +210,7 @@ volatile uint32_t lastFallingTs  = 0;
 //
 // ??? if this is still not really good, we need a new approach .... to be designed then ...
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void dccEdgeChange( uint8_t pin, uint8_t event ) {
 
   uint32_t  edgeChangeTs  = CDC::getMicros( );
@@ -253,11 +253,11 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Attach an interrupt handler to the HW pin to detect a changing edge in the signal. We read in the signal
 // from EXT_INT_PIN from the CDC configuration.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void startBitDetection( ) {
 
   bitBufHead = 1;
@@ -280,14 +280,14 @@ void stopBitDetection( ) {
   // CDC::configureExtInt( cfg.EXT_INT_PIN, nullptr );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "getBit" is the routine that works with the interrupt routine to fill the data buffer. If there are bits
 // in the bit buffer, the routine will remove from the tail of the bit buffer. If there are no bits in the
 // buffer, this routine will wait indefinitely for bits to arrive.
 //
 // ??? this is a bit unfortunate to wait forever when there are a no signal issues....
 // ??? perhaps need a separate timer that just checks on the timer interrupt whether we made progress...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t getBit( ) {
 
   while ( bitBufTail == bitBufHead );
@@ -298,11 +298,11 @@ uint8_t getBit( ) {
   return (val );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "checkForPreamble" is the routine that makes sure we have seen a valid preamble. This means at least
 //  DCC_MIN_PRAMBLE_BITS bits ONE followed by a ZERO bit.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void checkForPreamble( ) {
 
   bool      preambleFound         = false;
@@ -333,7 +333,7 @@ void checkForPreamble( ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "getPacket" is the routine finally assembles a DCC packet from the bit stream and verifies that the packet
 // has a valid checksum. Exclusive ORing all bytes of the DCC packet should result in a zero value. The first
 // byte of the packet contains the packet length. We also do some of the statistics for valid, error, reset
@@ -341,7 +341,7 @@ void checkForPreamble( ) {
 // with valid packets from a list of test packets.
 //
 // ?? what if there is garbage ? how do we stop after a preamble the reading of bits that don't make sense ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool getPacket( ) {
 
   uint8_t checkSum = 0;
@@ -390,12 +390,12 @@ bool getPacket( ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "isNewPacket" searches the DCC packet buffer. It uses the packet length, the first two bytes and the
 // checksum to build a packet key. If the packet is not found and there is still room in the buffer we add it
 // to the buffer and indicate a new packet.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool isNewPacket( uint8_t *dccPkt ) {
 
   uint32_t pp = dccPkt[ 0 ];
@@ -421,11 +421,11 @@ bool isNewPacket( uint8_t *dccPkt ) {
   return ( false );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "showStatistics" will generate the statistical output to show on every elapsed recording cycle when the
 // verbose option is enabled.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void showStatistics( ) {
 
   if ( showFlags & SHOW_VERBOSE ) {
@@ -453,7 +453,7 @@ void showStatistics( ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "showPackets" handles the DCC packets received. First we remember whether the last received packet was a
 // RESET packet. This is needed for detecting that we should switch to service mode packet interpretation.
 // If the new packet is not previously shown in the current display time interval, it will be displayed.
@@ -461,7 +461,7 @@ void showStatistics( ) {
 // For both modes, there is an option to list the packet in HEX and BINARY. The function returns the number
 // of characters to the passed buffer appended.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void showPackets( ) {
 
   bool lastPacketWasReset = LcsDccPacketFormatter::isResetPacket( dccPacket );
@@ -510,12 +510,12 @@ void showPackets( ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Packet buffer section. There is the idea of an interval in which packets are observed. Identical
 // packets need not be printed out again. At refresh time the array is cleared and the collection starts
 // again.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void refreshBuffer( ) {
 
   if ( CDC::getMillis( ) > timeToRefreshInMillis ) {
@@ -540,20 +540,20 @@ void refreshBuffer( ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Console IO section, welcome message.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printWelcome( ) {
 
   printf( "DCC Packet Analyzer\n" );
   printf( "Updates every %d seconds\n", refreshTimeInMillis / 1000 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Console IO section, command line interface.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void checkUserInput( ) {
 
   char ch = CDC::getConsoleChar( );
@@ -736,12 +736,12 @@ void checkUserInput( ) {
   }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Packet test data section. It helps a lot to test the correct formatting without being connected to an
 // actual layout. The test data DCC packets are returned one after the other to also test sequences such as
 // a reset packet followed by programming mode packet.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #if DEBUG_PACKET_FORMATTER == 1
 
 uint8_t       debugFormatterTestIndex = 0;
@@ -811,12 +811,12 @@ const uint8_t testData[  ] [ 7 ]      = {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // For the DEBUG option, this routine fills the DCC packet buffer with packet selected from the list and
 // builds the checksum. The packet data contains the length of the packet including the checksum, which we
 // compute and store as the last byte.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void fillPacket( ) {
 
   debugFormatterTestIndex = ( debugFormatterTestIndex + 1 ) % ( sizeof( testData ) / 7 );

@@ -1,30 +1,29 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Block Controller
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This source file contains ...
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Block Controller - Raspberry PI Pico Implementation
 // Copyright (C) 2024 - 2024 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBlockControllerBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
@@ -36,10 +35,10 @@ using namespace CDC;
 
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Block Controller global data.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t                        debugMask = DBG_BC_CONFIG | DBG_BC_SETUP | DBG_BC_TRACK_POWER_MGMT;
 
 CdcResourceDescMap              dMap;
@@ -116,10 +115,10 @@ uint8_t setupBlockDesc2( ) {
     return( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some little helper functions.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t printStatus (uint8_t status ) {
 
   printf( "Status: " );
@@ -164,13 +163,13 @@ uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t
     return ( bcNode -> handleLcsEventCallback( npId, eId, eAction, eData ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // We need to run the track state machines on a periodic basis.
 //
 //
 // ??? we actually need an array of track machines ?
 // ??? or should we register each one individually ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t trackStateMachine( ) {
 
     if ( block1 != nullptr ) block1 -> runTrackStateMachine( );
@@ -294,12 +293,12 @@ int main( ) {
 
 
 #if 0
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Configure a Bridge PIO instance.
 // 
 // ??? not used yet, under development....
 // ??? we need to get the right PIO program mix...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void setupPioProgramInstance ( int index ) {
 
     printf( "setupPioProgramInstance: index: %d\n", index );
@@ -321,10 +320,10 @@ void setupPioProgramInstance ( int index ) {
 
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Switching routines when going from PIO control to PWM control of a pin and back.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void switchToPwm( uint gpio ) {
 
     printf( "switchToPwm: %d/n", gpio );
@@ -337,10 +336,10 @@ void switchToPio( uint gpio ) {
     gpio_set_function( gpio, GPIO_FUNC_PIO0 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Control the Bridge. We have to claim the PWM if needed and release it later on.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void setPioSelect( int index, int sel ) {
 
     printf( "setPioSelect: index: %d, sel: %d\n", index, sel );
@@ -354,10 +353,10 @@ void setPioSelect( int index, int sel ) {
     else if ( sel == 2 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 1 ] );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Globals. Example.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const int   MAX_BRIDGE_INSTANCES        = 4;
 PIO         pio                         = pio0;
 uint        sm[ MAX_BRIDGE_INSTANCES ]  = { 0 };

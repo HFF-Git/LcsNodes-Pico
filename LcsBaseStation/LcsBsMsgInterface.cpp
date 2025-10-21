@@ -1,54 +1,53 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Base Station - LCS Msg Interface - implementation file.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // ...
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Base Station - LCS Msg Interface - implementation file.
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Namespaces.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 using namespace LCS;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // External global variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 extern uint16_t debugMask;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The base station message interface local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some helper functions.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printLcsMsg( uint8_t *msg ) {
 
     int msgLen = (( msg[ 0 ] >> 5 ) + 1 ) % 8;
@@ -59,15 +58,6 @@ void printLcsMsg( uint8_t *msg ) {
     printf( "]" ); 
 } 
 
-uint8_t lowByte( uint16_t arg ) { 
-    
-    return( arg & 0xFF ); 
-}
-
-uint8_t highByte( uint16_t arg ) { 
-    
-    return( arg >> 8 ); 
-}   
   
 }; // namespace
 
@@ -79,17 +69,17 @@ uint8_t highByte( uint16_t arg ) {
 //============================================================================================================
 //============================================================================================================
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //  The object constructor. Nothing really to do right now.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 LcsBaseStationMsgInterface::LcsBaseStationMsgInterface( ) { }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Set up the base station LCS message interface. We store away the coreLib, locoSession and the two DCC track
 // object references.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
 
     LcsBaseStationLocoSession   *locoSessions,
@@ -108,11 +98,11 @@ uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
     return ( ALL_OK );
 } 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "handleLcsMsg" is the registered message handler for the LCS core library to invoke for an incoming LCS
 // DCC type message. Essentially, this routine is a big switch statement.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
     if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {

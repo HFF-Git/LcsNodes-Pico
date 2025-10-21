@@ -27,6 +27,7 @@
 #ifndef LcsLcdDisplayLib_h
 #define LcsLcdDisplayLib_h
 
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 
 class LcsLcdDisplay final {

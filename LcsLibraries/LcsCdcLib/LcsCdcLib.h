@@ -46,6 +46,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <cstring>
+#include "LcsUtilLib.h"
 
 //----------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.

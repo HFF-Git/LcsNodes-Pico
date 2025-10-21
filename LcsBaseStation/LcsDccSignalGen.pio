@@ -1,38 +1,39 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Block Controller PIO Program File
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // 
 // 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Block Controller PIO Program File
 // Copyright (C) 2025 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the 
+// terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE. See the GNU General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// You should have received a copy of the GNU General Public License along with this 
+// program. If not, see http://www.gnu.org/licenses
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // DCC Signal Generator. I
 //
-// ??? it would be a great idea to let the DCC signals being produced bei a PIO state machine. Right now,
-// there is a timer wich interrupts teh CPU every signal edge change. Letting a PIO state machine process
-// a DCC byte would be a great relief.
+// ??? it would be a great idea to let the DCC signals being produced bei a PIO state 
+// machine. Right now, there is a timer wich interrupts teh CPU every signal edge change.
+// Letting a PIO state machine process a DCC byte would be a great relief.
 // 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 .program dcc_signal_gen
 
 // ??? to do ... first sketch, not quite what i want ....
@@ -108,10 +109,10 @@ continue_bit:
 .wrap
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // C program code for PIO setup part.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 % c-sdk {
 
 #include <stdio.h>
@@ -119,11 +120,11 @@ continue_bit:
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // PIO program for DCC signal generation. 
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 static inline void dcc_signal_gen( PIO pio, uint sm, uint pin_out ) {
 
     pio_gpio_init( pio, pin_out );
@@ -135,6 +136,5 @@ static inline void dcc_signal_gen( PIO pio, uint sm, uint pin_out ) {
     pio_sm_init( pio, sm, 0, &c );
     pio_sm_set_enabled( pio, sm, true );
 }
-
 
 %}

@@ -22,10 +22,19 @@ if ( TARGET tinyusb_device )
         LcsDccSignalGen.pio
     )
 
-    pico_generate_pio_header( LcsBaseStation 
-        ${CMAKE_CURRENT_SOURCE_DIR}/LcsDccSignalGen.pio)
+    pico_generate_pio_header( 
+        
+        LcsBaseStation 
+        ${CMAKE_CURRENT_SOURCE_DIR}/LcsDccSignalGen.pio
+    )
 
-    target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
+    target_link_libraries( ${PROJECT_NAME} 
+    
+        LcsRuntimeLib 
+        LcsCdcLib 
+        LcsUtilLib 
+        pico_stdlib 
+    )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )

@@ -28,6 +28,7 @@ target_link_libraries( ${PROJECT_NAME}
     pico_multicore
     hardware_sync
     hardware_regs
+    LcsUtilLib
     LcsCdcLib
     LcsDrvOccDetectLib
     LcsDrvServoLib

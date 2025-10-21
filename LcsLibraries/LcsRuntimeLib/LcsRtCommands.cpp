@@ -28,6 +28,7 @@
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
+#include "LcsUtilLib.h"
 
 //----------------------------------------------------------------------------------------
 // External declaration to global structures and functions.
@@ -68,40 +69,6 @@ using namespace LCS;
 //
 //----------------------------------------------------------------------------------------  
 char commandBuf [ MAX_COMMAND_LINE_SIZE ];
-
-//----------------------------------------------------------------------------------------
-// Little helper functions.
-//
-//----------------------------------------------------------------------------------------
-bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-}
-
-uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
-
-    return (( nodeId << 4 ) | ( portId & 0xF ));
-}
-
-uint16_t nodeId( uint16_t npId ) {
-
-    return ( npId >> 4 );
-}
-
-uint16_t portId( uint16_t npId ) {
-
-    return ( npId & 0xF );
-}
-
-uint8_t lowByte( uint16_t arg ) { 
-    
-    return ( arg & 0xFF ); 
-}
-
-uint8_t highByte( uint16_t arg ) { 
-    
-    return ( arg >> 8 ); 
-}
 
 //----------------------------------------------------------------------------------------
 // Helper routines for error status handling.
@@ -328,6 +295,8 @@ void dumpMemNodeMap( ) {
 
 void dumpMemPortMap( ) {
 
+    dumpMemData((uint16_t *) &portMap, sizeof( LcsPortMap ), 8, true );
+
     printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", 
             MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
 
@@ -411,7 +380,7 @@ void dumpMemRuntimeArea( ) {
 void dumpNvmHeaderMap( ) {
 
     printf( "NVM Header Map (Node): \n" );
-    dumpNvmData( NVM_NODE_MAP_OFS, sizeof(LcsBoardDesc), 8, true );
+    dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsBoardDesc), 8, true );
     printf( "\n" );
 
     for ( int i = 1; i <= 4; i++ ) {

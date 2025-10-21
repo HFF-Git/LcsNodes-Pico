@@ -1,8 +1,8 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Base Station
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This is the main program for the LCS base station. Every layout would need at least a base station. Its
 // primary task is to manage the DCC loco sessions, generate the DCC signals and manage the dual DCC track
 // power outputs.
@@ -16,25 +16,24 @@
 // ??? we need an idea of system time like DCC. To be broadcasted periodically.
 // ??? we also need a broadcast of the layout system capabilities....
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBaseStationBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
@@ -43,10 +42,10 @@
 using namespace LCS;
 using namespace CDC;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Base station global data.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint16_t                        debugMask;
 CdcResourceDescMap              dMap;
 LcsBaseStationCommand           serialCmd;
@@ -107,10 +106,10 @@ void setupConfigInfo( ) {
     sleepMillis( 2000 );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Some little helper functions.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void printLcsMsg( uint8_t *msg ) {
 
   int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
@@ -182,13 +181,13 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
     return( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCS core library ends in a loop that manages its internal workings, invoking the callbacks where
 // needed. One set of callbacks are the periodic tasks. The base station needs to periodically run the DCC
 // track state machine for power consumption measurement and so on.  Another periodic task is to refresh the 
 // active locomotive session entries.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t bsMainTrackCallback( ) {
 
     mainTrack.runDccTrackStateMachine( );
@@ -207,11 +206,11 @@ uint8_t bsRefreshActiveSessionCallback( ) {
     return( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // When the base station node receives a request with an item defined in the user item range or the base
 // station itself issues such a request, the defined callback is invoked.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
@@ -220,20 +219,20 @@ uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
     return( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // When the base station gets a reply message for a request previously sent, this callback is invoked.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
 
     printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
     return( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // For any event on the LCS system that the base station is interested in, this callback is invoked.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
 
     printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
@@ -258,10 +257,10 @@ uint8_t initThrottle( ) {
     return( rStat );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This routine initializes the Loco Session Map Object.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupLocoSessions( ) {
 
   LcsBaseStationSessionMapDesc sessionDesc;
@@ -273,11 +272,11 @@ uint8_t setupLocoSessions( ) {
   return ( printStatus( locoSessions.setupSessionMap( &sessionDesc, &mainTrack, &progTrack )));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This routine initializes the MAIN track object.
 //
 // ??? define constants such as: SENSE_0R1_OPAMP_11 to set the milliVolts per Amp.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int setupDccTrackMain( ) {
 
   LcsBaseStationTrackDesc mainTrackDesc;
@@ -303,11 +302,11 @@ int setupDccTrackMain( ) {
   return ( printStatus( mainTrack.setupDccTrack( &mainTrackDesc )));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // This routine initializes the PROG track object.
 //
 // ??? define constants such as: SENSE_0R1_OPAMP_11 to set the milliVolts per Amp.
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupDccTrackProg( ) {
 
   LcsBaseStationTrackDesc progTrackDesc;
@@ -333,21 +332,21 @@ uint8_t setupDccTrackProg( ) {
   return ( printStatus( progTrack.setupDccTrack( &progTrackDesc )));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The base station has also a command interpreter, primarily for the DCC++ commands.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
 
   printf( "Setup Serial Command -> " );
   return ( printStatus( serialCmd.setupSerialCommand( &locoSessions, &mainTrack, &progTrack )));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The LCS message interface is initialized in the LCS core library. This routine will set up the receiver
 // handler for incoming LCS message that concern the base station.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupMsgInterface( ) {
 
   printf( "Setup LCS Msg Interface -> " );

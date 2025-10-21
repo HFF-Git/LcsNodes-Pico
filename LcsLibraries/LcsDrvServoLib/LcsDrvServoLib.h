@@ -24,6 +24,7 @@
 #ifndef LcsDvrServoLib_h
 #define LcsDvrServoLib_h
 
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "LcsRtLibInt.h"
 #include "LcsRuntimeLib.h"

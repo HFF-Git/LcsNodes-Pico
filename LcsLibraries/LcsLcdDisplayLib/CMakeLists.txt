@@ -23,6 +23,7 @@ target_sources ( ${PROJECT_NAME} INTERFACE
 
 target_link_libraries( ${PROJECT_NAME} 
 
+    LcsUtilLib
     LcsCdcLib 
     pico_stdlib 
     hardware_i2c 

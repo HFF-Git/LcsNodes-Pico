@@ -1,54 +1,53 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Stack implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The cab stack of cab entries and the current cab are the central structure to manage the engines known
 // to the cab handheld. Most of cab handheld functions apply to the current cab. The current cab can be
 // saved and restored form a stack of cab entries. Finally, engine descriptions can be loaded from and stored
 // to a central place such as the base station.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Stack implementation file
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsBasicThrottle.h"
 #include <malloc.h>
 
 using namespace LCS;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Global variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 CabStack  *cabStack = nullptr;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t MAX_CAB_LIST_ENTRIES = 8;
 
 bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
@@ -59,11 +58,11 @@ bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
 }; // namespace
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "C" will create the local cab table and read in the entries from the NVM area.
 //
 // ??? optional: we could read from the base station any changes to the loco attributes... ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupCabStack( ) {
 
     cabStack = new CabStack( );
@@ -74,17 +73,17 @@ uint8_t setupCabStack( ) {
     return ( LCS::ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Cab Stack Entry Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The cab entry is the central structure to describe a cab. It contains the locomotive address, its speed
 // and direction, all the function settings and some other flags and data. The structure is organized in
 // a set of 16 bit aligned data fields to allow for an easy transfer of items to and from a basestation.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void CabEntry::reset( uint16_t cabId ) {
 
     flags             = 0;
@@ -102,10 +101,10 @@ uint8_t CabEntry::dccSpeedAndDirectionByte( ) {
     return (( speed & 0x7F ) | (( direction & 0x1 ) << 7 ));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The DCC function bitmap getter/setter functions. The function ID starts with zero to 68.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool CabEntry::getDccFuncState( uint8_t fNum ) {
 
     return (( isInRange( fNum, LCS::MIN_DCC_FUNC_ID, LCS::MAX_DCC_FUNC_ID )) ?
@@ -126,11 +125,11 @@ void CabEntry::toggleDccFuncState( uint8_t fNum ) {
     setDccFuncState( fNum, ( ! getDccFuncState( fNum )));
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Getter/Setter for the cab handheld function ID assigned DCC function Id. The cab handheld function ID
 // starts with one.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t CabEntry::getDccFuncIdForChFuncId( uint8_t cNum ) {
 
     return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) : 0 );
@@ -144,11 +143,11 @@ void CabEntry::setDccFuncIdForChFuncId( uint8_t cNum, uint8_t fNum ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Getter/Setter for the cab handheld function ID assigned DCC function type. The cab handheld function ID
 // starts with one.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t CabEntry::getDccFuncTypeForChFuncId( uint8_t cNum ) {
 
     return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? ( cabFuncIdMap[ cNum - 1 ] >> 6 ) : 0 );
@@ -162,10 +161,10 @@ void CabEntry::setDccFuncTypeForChFuncId( uint8_t cNum, uint8_t typ ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // More getter/Setter methods...
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t CabEntry::getCabId( ) {
 
     return ( cabId );
@@ -239,11 +238,11 @@ void  CabEntry::setSessionState( uint8_t state ) {
 }
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A cab entry needs to be set and saved from a central structure kept at for example the base station.
 // The methods below allow to get the data from the cab entry in the defined number of 16-bit words.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t CabEntry::getDataByItem( uint8_t item, uint16_t *arg ) {
 
     // ??? a big case statement to return the data by item
@@ -259,11 +258,11 @@ uint8_t CabEntry::setDataByItem( uint8_t item, uint16_t arg ) {
 }
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void CabEntry::printCabEntry( ) {
 
     printf( "Cab Id: %d, %c, sId: %d, sState: %d, speed: %d, dir: %d \n", 
@@ -288,18 +287,18 @@ void CabEntry::printCabEntry( ) {
 }
 
 
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // Cab Stack Methods.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A cab handheld can manage a set of cab entries. One entry is the active cab, the others are in a list
 // of cab entries. The slots are numbered from one to MAX. Each entry describe an engine and its specific
 // settings. The cabEntry stack is restored from the NVM at handheld start. An entry is updated when we change
 // the configuration data for a cab.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 CabStack::CabStack( ) {
 
     cabSlots = (CabEntry *) calloc( MAX_CAB_LIST_ENTRIES, sizeof( CabEntry ));

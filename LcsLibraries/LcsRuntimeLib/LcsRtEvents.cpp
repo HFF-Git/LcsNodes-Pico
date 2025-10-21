@@ -66,11 +66,6 @@ using namespace LCS;
 // Utility routines.
 //
 //----------------------------------------------------------------------------------------
-bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-}
-
 uint8_t errStat( uint8_t errId ) {
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {

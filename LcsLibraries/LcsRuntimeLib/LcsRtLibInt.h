@@ -116,6 +116,15 @@ const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 
 //----------------------------------------------------------------------------------------
+// The default sizes for the chips on the board. For the main boards, we will figure
+// out the real size during startup. For the extension boards, the size is fixed 
+// for now.
+//
+//----------------------------------------------------------------------------------------
+const int       NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
+const int       NVM_EXT_BOARD_DEF_SIZE          = 4 * 1024;
+
+//----------------------------------------------------------------------------------------
 // The maps have as their first word a magic word, which is just a special constant. We 
 // simply read in that word and check it for being a valid word for the particular map. 
 // If valid, the area was configured before and we can do further checking. It would be 
@@ -281,6 +290,8 @@ struct LcsNodeMap {
     uint32_t            nvmSize                         = sizeof( LcsNodeMap );
     uint16_t            rtLibSwVersion                  = LCS_RT_LIB_VERSION;
     uint16_t            rtLibSwPatchLevel               = LCS_RT_LIB_PATCH_LEVEL;
+
+    uint16_t            startOptions                    = 0;
 
     uint16_t            nodeState                       = NS_NIL;
     uint16_t            nodeId                          = NIL_NODE_ID;

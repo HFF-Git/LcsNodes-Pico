@@ -1,29 +1,28 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld UI elements implementation file
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // ???
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld UI elements implementation file
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 #include "LcsBasicThrottle.h"
 
 using namespace LCS;
@@ -33,18 +32,18 @@ extern UIEncoder        *encoder;
 extern CabStack         *cabStack;
 extern CabMsgBus        *msgBus;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 namespace {
 
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Global variables.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 UIDisplay       *oled                       = nullptr;
 
 UIButton        *upButton                   = nullptr;
@@ -63,10 +62,10 @@ UIButton        *revButton                  = nullptr;
 UIEncoder       *encoder                    = nullptr;
 UIButton        *encoderButton              = nullptr;
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Configure the UI Resource Elements. 
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupIOPins( ) {
 
     configureDio( RNUM_MENU_BUTTON );
@@ -88,14 +87,14 @@ uint8_t setupIOPins( ) {
     return ( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "getData" is the interface for the UI elements to read in the state of buttons and encoders. It uses the
 // hardware resource ID stored with an UI Element. The interpretation is up to the function. For example,
 // when we have direct pins, then it is the pin number on the controller chip, when the UI element is
 // connected via an I2C expander or a shift register, it is the position on the chip.
 //
 // ??? comment on inverse logic ?
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 bool getData( uint8_t hwId ) {
 
     bool val;
@@ -112,11 +111,11 @@ bool getData( uint8_t hwId ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Create the Buttons and the Encoder objects. We also attached to each UI element the data retrieval
 // function.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t createUIElements( ) {
 
   upButton      = new UIButton( RNUM_UP_BUTTON );
@@ -169,14 +168,14 @@ uint8_t createUIElements( ) {
   return ( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // "LinkScreens" will link the button and encoder UI elements to the screen class static functions that will
 // pass the respective UI element event to the current screen. So, for example, a button click will be passed
 // to the static function in the screen class, which in turn forwards it to the current screen, or handle it
 // directly. When writing a screen object, all UI elements that you want to react to need to implement the
 // handlers for the incoming events.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t linkScreens( ) {
 
   menuButton -> attachLongPressStart( UIScreen::menuButtonLongPressHandler );
@@ -218,12 +217,12 @@ uint8_t linkScreens( ) {
   return ( ALL_OK );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Create the Buttons and the Encoder objects. We also attach to each UI element the data retrieval function.
 // This function will differ for a set of UI Elements directly connected to controller GPIO pins versus UI
 // Elements connected to an I2C Expander.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupUIElements( ) {
 
   uint8_t rStat = createUIElements( );

@@ -1,36 +1,35 @@
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Block Controller - RailCom Support
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS Block Controller
 // Copyright (C) 2014 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
-// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This program is free software: you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-// for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// http://www.gnu.org/licenses
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
+// have received a copy of the GNU General Public License along with this program. 
+// If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 // ??? to work on ...
 
 #if 0 
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Utility function to map a DCC address to a railcom decoder type.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 
     if      (( adr >= 1 )   && ( adr <= 127 ))  return ( RC_DG_TYPE_MOB );
@@ -40,14 +39,14 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 }
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // RailCom decoder table. The Railcom communication will send raw bytes where only four bits are "one" in
 // a byte ( hamming weight 4 ). The first two bytes are labelled "channel1" and the remaining six bytes
 // are labelled "channel2". The actual data is then encode using the table below. Each raw byte will be
 // translated to a 6 bits of data for the datagram to assemble. In total there are therefore a maximum
 // of 48bits that are transmitted in a railcom message.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum RailComDataBytes : uint8_t {
 
     INV   = 0xff,
@@ -110,10 +109,10 @@ const uint8_t railComDecode[256] = {
     INV,    INV,    INV,    INV,    INV,    INV,    INV,    INV,
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Railcom datagrams are sent from a mobile or a stationary decoder.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum railComDatagramType : uint8_t {
 
     RX_DG_TYPE_UNDEFINED  = 0,
@@ -121,7 +120,7 @@ enum railComDatagramType : uint8_t {
     RC_DG_TYPE_STAT       = 2
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Each mobile decoder railcom datagram will start with an ID field of four bits. Channel one will use only
 // the ADR_HIG and ADR_LOW Ids. All IDs can be used for channel 2. Since decoders answer on channel one
 // for each DCC packet they receive, here is a good chance that channel 1 will contains nonsense data. This
@@ -146,7 +145,7 @@ enum railComDatagramType : uint8_t {
 // datagram in one packet or 3 12-bit packets and so on. Finally, unused bytes in channel two could contain
 // an ACK to fill them up.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum railComDatagramMobId : uint8_t {
 
     RC_DG_MOB_ID_POM        = 0,
@@ -162,7 +161,7 @@ enum railComDatagramMobId : uint8_t {
     RC_DG_MOB_ID_SEARCH     = 14
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Similar to the mobile decode, a stationary decoder datagram will start an ID field of four bits. Stationary
 // decoders also define a datagram with "SRQ" and no ID field to request service from the base station.
 //
@@ -179,7 +178,7 @@ enum railComDatagramMobId : uint8_t {
 //      RC_DG_STAT_ID_XPOM_4    ( 11 )  - 36bit
 //      RC_DG_STAT_ID_TEST      ( 12 )  - ignore
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum railComDatagramStatId : uint8_t {
 
     RC_DG_STAT_ID_SRQ       = 0,
@@ -195,11 +194,11 @@ enum railComDatagramStatId : uint8_t {
     RC_DG_STAT_ID_TEST      = 12
 };
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The RailCom buffer size. During the cutout period up to eight bytes of raw data are sent by the decoder if
 // the Railcom option is enabled.
 //
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t   RAILCOM_BUF_SIZE = 8;
 
 
@@ -218,7 +217,7 @@ struct RailCom {
 
 
 
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Railcom. If the cutout period and the RailCom feature is enabled, the signal state machine will also start
 // and stop the UART reader for RailCom data. The final message is then to handle that message. In the cutout
 // period, a decoder sends 8 data bytes. They are divided into two channels, 2bytes and another 6 bytes. The
@@ -233,7 +232,7 @@ struct RailCom {
 // ??? we could store the last loco address in some global variable.
 // ??? we could store the channel 2 datagram in the corresponding session.
 // ??? still, both pieces of data needs to go somewhere before the next message is received...
-//------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void LcsBaseStationDccTrack::startRailComIO( ) {
 
     CDC::startUartRead( uartRxPin );

@@ -64,6 +64,7 @@
 #include <inttypes.h>
 #include <limits.h>
 
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "LcsLcdDisplayLib.h"
 #include "LcsOledDisplayLib.h"

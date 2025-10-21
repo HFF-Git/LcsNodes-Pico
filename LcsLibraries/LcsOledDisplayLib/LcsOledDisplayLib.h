@@ -30,6 +30,7 @@
 #ifndef LcsOledDisplayLib_h
 #define LcsOledDisplayLib_h
 
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "fonts/allFonts.h"
 
