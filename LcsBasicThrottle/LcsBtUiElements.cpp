@@ -165,7 +165,7 @@ uint8_t createUIElements( ) {
                             i2cGetSdaPin( CDC_RN_EXT_NVM ),
                             0x50 ); // ??? fix ...
 
-  return ( ALL_OK );
+  return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -214,7 +214,7 @@ uint8_t linkScreens( ) {
   encoderButton -> attachClick( UIScreen::buttonClickHandler );
   encoder -> attachPositionChanged( UIScreen::encoderPosChangeHandler );
 
-  return ( ALL_OK );
+  return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -226,8 +226,8 @@ uint8_t linkScreens( ) {
 uint8_t setupUIElements( ) {
 
   uint8_t rStat = createUIElements( );
-  if ( rStat == ALL_OK ) rStat = setupIOPins( );
-  if ( rStat == ALL_OK ) rStat = linkScreens( );
+  if ( rStat == NO_ERR ) rStat = setupIOPins( );
+  if ( rStat == NO_ERR ) rStat = linkScreens( );
 
   return ( rStat );
 }

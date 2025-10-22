@@ -100,7 +100,7 @@ uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
         rStat = i2cRead( rNumI2C, i2cAdr, buf, 1 );
         return( buf[ 0 ] );
     }
-    else return( ALL_OK );
+    else return( NO_ERR );
 }
 
 uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {

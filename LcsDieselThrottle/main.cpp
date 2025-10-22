@@ -45,7 +45,7 @@ CdcResourceDescMap dMap;
 //----------------------------------------------------------------------------------------------------------
 uint8_t printStatus( uint8_t status ) {
 
-    if ( status == ALL_OK ) printf( "-> OK" );
+    if ( status == NO_ERR ) printf( "-> OK" );
     else                    printf( "-> FAILED: %d\n", status );
        
     return ( status );
@@ -58,7 +58,7 @@ uint8_t printStatus( uint8_t status ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t initThrottle( ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
     printf( "LCS Diesel Cab Throttle\n" );
     printf( "Under construction ... stay tuned\n\n");
@@ -74,7 +74,7 @@ uint8_t initThrottle( ) {
 uint8_t startLcsRuntime( ) {
 
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -83,8 +83,8 @@ uint8_t startLcsRuntime( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = ALL_OK;
-    if ( rStat == ALL_OK ) rStat = initThrottle( );
-    if ( rStat == ALL_OK ) rStat = startLcsRuntime( );
-    return( ALL_OK );
+    uint8_t rStat = NO_ERR;
+    if ( rStat == NO_ERR ) rStat = initThrottle( );
+    if ( rStat == NO_ERR ) rStat = startLcsRuntime( );
+    return( NO_ERR );
 }

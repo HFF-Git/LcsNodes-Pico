@@ -105,7 +105,7 @@ uint8_t removeFromPendingReqMap( uint16_t npId ) {
             pendingReqMap.map[ i ].npId = NIL_NODE_ID;
     }
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ uint8_t sendTimedReq( uint16_t npId,
                       uint8_t msgPri, 
                       uint32_t timeout = 0 ) {
 
-    if ( addToPendingReqMap( npId , timeout ) == ALL_OK )   
+    if ( addToPendingReqMap( npId , timeout ) == NO_ERR )   
         return ( sendLcsMsg( msg, msgPri ));
     else                                                    
         return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );

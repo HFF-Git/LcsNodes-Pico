@@ -90,7 +90,7 @@ uint8_t setupBlockDesc1( ) {
     block1Desc.overloadEventThreshold          = 10;
     block1Desc.overloadRestartThreshold        = 5;
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 uint8_t setupBlockDesc2( ) {
@@ -112,7 +112,7 @@ uint8_t setupBlockDesc2( ) {
     block2Desc.overloadEventThreshold          = 10;
     block2Desc.overloadRestartThreshold        = 5;
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ uint8_t trackStateMachine( ) {
 
     if ( block1 != nullptr ) block1 -> runTrackStateMachine( );
     if ( block2 != nullptr ) block2 -> runTrackStateMachine( );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -215,7 +215,7 @@ uint8_t registerCallbacks( ) {
     registerEventCallback( lcsEventCallback );
     registerTaskCallback( trackStateMachine, TRACK_STATE_TIME_INTERVAL );
 
-    return( printStatus( ALL_OK ));
+    return( printStatus( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -227,7 +227,7 @@ uint8_t registerLcsDrvFunctions( ) {
     printf( "Register Extension Board Drivers\n" );
 
     uint8_t ret = registerDrvFunc( CDC_BT_EXT_OCC_DETECT, lcsDrvOccDetect );
-    if ( ret != ALL_OK )  printf( "Registration failed: %d\n, ret ");
+    if ( ret != NO_ERR )  printf( "Registration failed: %d\n, ret ");
 
     return( ret );
 }
@@ -242,7 +242,7 @@ uint8_t startBlockController( ) {
 
     printf( "Start Block controller\n" );
 
-    uint8_t rStat = ALL_OK; 
+    uint8_t rStat = NO_ERR; 
 
     setupBlockDesc1( );
     setupBlockDesc2( );
@@ -254,11 +254,11 @@ uint8_t startBlockController( ) {
 
     printf( "Configure Block 1\n" );
     rStat = block1 -> setupBlockTrack( &block1Desc );
-    if ( rStat != ALL_OK ) printStatus( rStat );
+    if ( rStat != NO_ERR ) printStatus( rStat );
 
     printf( "Configure Block 2\n" );
     rStat = block2 -> setupBlockTrack( &block2Desc );
-    if ( rStat != ALL_OK ) printStatus( rStat );
+    if ( rStat != NO_ERR ) printStatus( rStat );
 
     printf( "Block 1 Config:\n" );
     if ( block1 != nullptr ) block1 -> printTrackConfig( );
@@ -266,13 +266,13 @@ uint8_t startBlockController( ) {
     printf( "Block 2 Config:\n" );
     if ( block2 != nullptr ) block2 -> printTrackConfig( );
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Ready...\n" );
         startRuntime( );
     }
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -281,12 +281,12 @@ uint8_t startBlockController( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
-    if ( rStat == ALL_OK ) rStat = initThrottle( );
-    if ( rStat == ALL_OK ) rStat = registerCallbacks( );
-    if ( rStat == ALL_OK ) rStat = registerLcsDrvFunctions( );
-    if ( rStat == ALL_OK ) return( startBlockController( ));
+    if ( rStat == NO_ERR ) rStat = initThrottle( );
+    if ( rStat == NO_ERR ) rStat = registerCallbacks( );
+    if ( rStat == NO_ERR ) rStat = registerLcsDrvFunctions( );
+    if ( rStat == NO_ERR ) return( startBlockController( ));
 }
 
 

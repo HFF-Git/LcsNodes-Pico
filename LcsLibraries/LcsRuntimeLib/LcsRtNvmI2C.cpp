@@ -187,14 +187,16 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
     uint8_t readA       = 0;
     uint8_t readA2      = 0;
     uint8_t tmpBuf[3]   = {0};
-    uint8_t rStat       = ALL_OK;
+    uint8_t rStat       = NO_ERR;
 
     while ( nvmSize >= M24LC32_MAX_SIZE ) {
 
         testAdr     = nvmSize - 1;
         mirrorAdr   = testAdr - ( nvmSize / 2 );
 
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+        if (( debugMask & LCS_DBG_ENABLE )  && 
+            ( debugMask & LCS_DBG_SETUP )   &&
+            ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
             printf( "Testing Size=%lu, testAdr=%04lX, mirrorAdr=%04lX\n", 
                     (unsigned long) nvmSize,
@@ -206,22 +208,22 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
         tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
         tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
         rStat = i2cWrite(rNum, i2cAdr, tmpBuf, 2, true);
-        if ( rStat == ALL_OK ) rStat = i2cRead(rNum, i2cAdr, &originalA, 1);
-        if ( rStat != ALL_OK ) return ( 0 );
+        if ( rStat == NO_ERR ) rStat = i2cRead(rNum, i2cAdr, &originalA, 1);
+        if ( rStat != NO_ERR ) return ( 0 );
 
         // Read original at A2
         tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF);
         tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if ( rStat == ALL_OK ) rStat = i2cRead(rNum, i2cAdr, &originalA2, 1);
-        if ( rStat != ALL_OK ) return ( 0 );
+        if ( rStat == NO_ERR ) rStat = i2cRead(rNum, i2cAdr, &originalA2, 1);
+        if ( rStat != NO_ERR ) return ( 0 );
 
         // Write testValue to A
         tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF);
         tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
         tmpBuf[2] = testValue;
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
-        if (rStat != ALL_OK) return ( 0 );
+        if (rStat != NO_ERR) return ( 0 );
 
         sleepMillis(NVM_WRITE_DELAY);
 
@@ -229,8 +231,8 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
         tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
         tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if (rStat == ALL_OK) rStat = i2cRead( rNum, i2cAdr, &readA, 1) ;
-        if (rStat != ALL_OK) {
+        if (rStat == NO_ERR) rStat = i2cRead( rNum, i2cAdr, &readA, 1) ;
+        if (rStat != NO_ERR) {
 
             // attempt to restore originals before returning error
             tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF);
@@ -245,8 +247,8 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
         tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF);
         tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if (rStat == ALL_OK) rStat = i2cRead( rNum, i2cAdr, &readA2, 1 );
-        if (rStat != ALL_OK) {
+        if (rStat == NO_ERR) rStat = i2cRead( rNum, i2cAdr, &readA2, 1 );
+        if (rStat != NO_ERR) {
 
             // restore A and A2 originals where possible, then return
             tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
@@ -265,7 +267,9 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
             return ( 0 );
         }
 
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+        if (( debugMask & LCS_DBG_ENABLE )  && 
+            ( debugMask & LCS_DBG_SETUP )   &&
+            ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
             printf( "Read back A=%02X A2=%02X\n", readA, readA2 );
         }
@@ -301,7 +305,9 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
             i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
             sleepMillis( NVM_WRITE_DELAY );
 
-            if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+            if (( debugMask & LCS_DBG_ENABLE )  && 
+                ( debugMask & LCS_DBG_SETUP )   &&
+                ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
                 printf( "Size computed: %d\n", nvmSize );
             }
@@ -331,7 +337,7 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
-        printf( "Size computed: %d\n", nvmSize );
+        printf( "testNvmChipMemorySize: Size computed: %d\n", nvmSize );
     }
 
     return ( nvmSize );
@@ -369,7 +375,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
                              uint8_t  *buf, 
                              uint32_t len ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
@@ -386,7 +392,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
         uint8_t tmpData = ofs & 0xFF;
 
         rStat = i2cWrite( rNum, tmpAdr, &tmpData, sizeof( tmpData ), true );
-        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, tmpAdr, buf, len, false );
+        if ( rStat == NO_ERR ) rStat = i2cRead( rNum, tmpAdr, buf, len, false );
     }
     else {
 
@@ -396,7 +402,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
         adr[ 1 ] =  ofs & 0xFF;
 
         rStat = i2cWrite( rNum, i2cAdr, adr, 2, true );
-        if ( rStat == ALL_OK ) rStat = i2cRead( rNum, i2cAdr, buf, len, false );
+        if ( rStat == NO_ERR ) rStat = i2cRead( rNum, i2cAdr, buf, len, false );
     }
 
     return ( errStat( rStat ));
@@ -418,7 +424,7 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
                            uint8_t  *buf, 
                            uint32_t len ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
     uint8_t dataBuf[ BUFFER_BLOCK_SIZE + 2 ];
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
@@ -463,7 +469,7 @@ uint8_t nvmGetBytes( uint8_t rNum,
                      uint8_t *buf, 
                      uint32_t len ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
@@ -484,13 +490,13 @@ uint8_t nvmGetBytes( uint8_t rNum,
                                      ofs + len - bytesLeft, 
                                      buf + len - bytesLeft, 
                                      pageBytesLeft );
-        if ( rStat != ALL_OK ) break;
+        if ( rStat != NO_ERR ) break;
 
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
     }
 
-    if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
+    if (( rStat == NO_ERR ) && ( bytesLeft > 0 )) {
 
         rStat = nvmGetBytesFromPage( rNum, 
                                      i2cAdr, 
@@ -521,7 +527,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
                      uint8_t *buf, 
                      uint32_t len ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
@@ -542,7 +548,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
                                    ofs + len - bytesLeft, 
                                    buf + len - bytesLeft, 
                                    pageBytesLeft );
-        if ( rStat != ALL_OK ) break;
+        if ( rStat != NO_ERR ) break;
 
         bytesLeft       -= pageBytesLeft;
         pageBytesLeft   = BUFFER_BLOCK_SIZE;
@@ -550,7 +556,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
         sleepMillis( NVM_WRITE_DELAY );
     }
 
-    if (( rStat == ALL_OK ) && ( bytesLeft > 0 )) {
+    if (( rStat == NO_ERR ) && ( bytesLeft > 0 )) {
 
        rStat = nvmPutBytesInPage( rNum, 
                                   i2cAdr, 
@@ -581,7 +587,7 @@ uint8_t nvmClearArea( uint8_t rNum,
     }
 
     uint8_t     tmpBuf[ BUFFER_BLOCK_SIZE ];
-    uint8_t     rStat   = ALL_OK;
+    uint8_t     rStat   = NO_ERR;
     uint32_t    nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     uint32_t    limit   = ofs + len;
 
@@ -592,13 +598,13 @@ uint8_t nvmClearArea( uint8_t rNum,
     while ( len > BUFFER_BLOCK_SIZE ) {
 
         rStat = nvmPutBytes( rNum, i2cAdr, ofs, tmpBuf, sizeof( tmpBuf ));
-        if ( rStat != ALL_OK ) break;
+        if ( rStat != NO_ERR ) break;
         
         ofs += BUFFER_BLOCK_SIZE;
         len -= BUFFER_BLOCK_SIZE;
     }
 
-    if (( rStat == ALL_OK ) && ( len > 0 )) {
+    if (( rStat == NO_ERR ) && ( len > 0 )) {
 
         rStat = nvmPutBytes( rNum, i2cAdr, ofs, tmpBuf, len );
     }
@@ -626,8 +632,7 @@ uint8_t configNvm(  uint8_t     rIdNvm,
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
-        printf( "configNvm: rIdNvm: %d, defSize: %d, rIdExNvm: %d, defSize: %d\n",
-                rIdNvm, nvmSize, rIdExtNvm, extNvmSize ); 
+        printf( "configNvm\n" ); 
     }
 
     rNumNvm     = rIdNvm;
@@ -638,9 +643,15 @@ uint8_t configNvm(  uint8_t     rIdNvm,
     if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
     if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
 
-    int testSize = testNvmChipMemorySize( rIdNvm, 0x50 ); // ??? ugly i2cAdr
+    int testSize = testNvmChipMemorySize( rIdNvm, NVM_I2C_ADR_ROOT );
 
     if ( testSize < nodeNvmSize ) nodeNvmSize = testSize;
+
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+        printf( "configNvm: rIdNvm: %d, size: %d, rIdExNvm: %d, size: %d\n",
+                rIdNvm, nodeNvmSize, rIdExtNvm, extNvmSize ); 
+    }
 
     return ( errStat( ALL_OK ));
 }

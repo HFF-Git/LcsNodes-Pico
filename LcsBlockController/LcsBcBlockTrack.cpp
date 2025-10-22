@@ -319,7 +319,7 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
     if (( frequency >= 50 ) && ( frequency < 30000U )) {
 
         uint8_t rStat = configurePwm( rNumControl );
-        if ( rStat == NO_ERR ) CDC::setPwmFrequency( rNumControl, frequency );
+        if ( rStat == ALL_OK ) CDC::setPwmFrequency( rNumControl, frequency );
         return( rStat );
     }
     else return ( 255 );

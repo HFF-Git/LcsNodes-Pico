@@ -143,7 +143,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     if ( index >= 0 ) {
 
         eventMap.map[ index ].eventMask; 
-        return ( errStat( ALL_OK ));
+        return ( errStat( NO_ERR ));
     }  
 
     if ( eventMap.mapHwm >= MAX_EVENT_MAP_ENTRIES ) {
@@ -167,7 +167,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     eventMap.map[ index ].eventMask = eventMask;
     eventMap.mapHwm++;
 
-    return ( errStat( ALL_OK ));
+    return ( errStat( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
             eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
-    return ( errStat( ALL_OK ));
+    return ( errStat( NO_ERR ));
 }
 
 } // namespace

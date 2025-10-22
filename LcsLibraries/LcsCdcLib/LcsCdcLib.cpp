@@ -1901,26 +1901,28 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
         CdcResourceDesc *dPtr = &dMap -> map[ i ];
 
-        printf( "(%2d): rNum: %d, ", i, dPtr -> resId  );
+       // printf( "(%2d): rNum: %d, ", i, dPtr -> resId  );
 
         switch ( dPtr ->type ) {
 
             case CDC_RT_TIMER: {
 
-                printf( "Timer: val: %d\n", dPtr -> timer.timerVal );
+                printf( "rNum: %2d, Timer: val: %d\n", 
+                        dPtr -> resId, dPtr -> timer.timerVal );
 
             } break;
 
             case CDC_RT_ADC: {
 
-                printf( "ADC: pin: %d, select: %d\n", 
-                        dPtr -> adc.adcPin, dPtr -> adc.adcNum );
+                printf( "rNum: %2d, ADC: pin: %d, select: %d\n", 
+                        dPtr -> resId, dPtr -> adc.adcPin, dPtr -> adc.adcNum );
 
             } break;
 
             case CDC_RT_GPIO: {
 
-                printf( "GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                printf( "rNum: %2d, GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                        dPtr -> resId,
                         dPtr -> gpio.pinA, 
                         dPtr -> gpio.pinB, 
                         dPtr -> gpio.pinMode );
@@ -1929,7 +1931,8 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_PWM: {
 
-                printf( "PWM: pinA: %d, pinB: %d, fPwm: %d\n",
+                printf( "rNum: %2d, PWM: pinA: %d, pinB: %d, fPwm: %d\n",
+                        dPtr -> resId,
                         dPtr ->pwm.pinA, 
                         dPtr ->pwm.pinB,  
                         dPtr ->pwm.frequency );
@@ -1938,7 +1941,8 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_UART: {
 
-                printf( "UART: rxPin: %d, txPin: %d, baudRate: %d\n",
+                printf( "rNum: %2d, UART: rxPin: %d, txPin: %d, baudRate: %d\n",
+                    dPtr -> resId,
                     dPtr -> uart.rxPin,  
                     dPtr -> uart.txPin,  
                     dPtr -> uart.baudRate );
@@ -1947,8 +1951,9 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_I2C: {
 
-                printf( "I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
+                printf( "rNum: %2d, I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
                         "i2cRoot: 0x2x, timeout(MS): %d\n",
+                        dPtr -> resId,
                         dPtr -> i2c.sclPin, 
                         dPtr -> i2c.sdaPin, 
                         dPtr -> i2c.baudRate, 
@@ -1958,8 +1963,9 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_CAN_BUS: {
 
-                printf( "CAN: rxPin: %d, txPin: %d, "
+                printf( "rNum: %2d, CAN: rxPin: %d, txPin: %d, "
                         "baudRate: %d, twoCores: %d\n",
+                        dPtr -> resId,
                         dPtr -> can.rxPin, 
                         dPtr -> can.txPin, 
                         dPtr -> can.baudRate, 
@@ -1968,8 +1974,6 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_UNDEFINED: {
                 
-                printf( "Undefined\n" );
-            
             } break;
 
             default: printf( "Unknown type: %d\n", i );
@@ -2002,26 +2006,26 @@ void printResourceMap( ) {
 
         CdcResource *rPtr = &rMap.map[ i ];
 
-         printf( "(%2d): rNum: %d, ", i, rPtr -> resId  );
-
         switch ( rPtr ->type ) {
 
             case CDC_RT_TIMER: {
 
-                printf( "Timer: val: %d\n", rPtr -> timer.timerVal );
+                printf( "rNum: %d, Timer: val: %d\n", 
+                         rPtr -> resId, rPtr -> timer.timerVal );
 
             } break;
 
             case CDC_RT_ADC: {
 
-                printf( "ADC: pin: %d, select: %d\n", 
-                        rPtr -> adc.adcPin, rPtr -> adc.adcNum );
+                printf( "rNum: %d, ADC: pin: %d, select: %d\n", 
+                        rPtr -> resId, rPtr -> adc.adcPin, rPtr -> adc.adcNum );
 
             } break;
 
             case CDC_RT_GPIO: {
 
-                printf( "GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                printf( "rNum: %d, GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                        rPtr -> resId,
                         rPtr -> gpio.pinA, 
                         rPtr -> gpio.pinB, 
                         rPtr -> gpio.pinMode );
@@ -2038,8 +2042,9 @@ void printResourceMap( ) {
                 bool        inverted;
                 bool        phaseCorrect;
 
-                printf( "PWM: pinA: %d, pinB: %d, fPwm: %d, wrap: %d, "
+                printf( "rNum: %d, PWM: pinA: %d, pinB: %d, fPwm: %d, wrap: %d, "
                         "slice: %d, invert: %d, phase: %d\n",
+                        rPtr -> resId,
                         rPtr ->pwm.pinA,  
                         rPtr ->pwm.pinB,  
                         rPtr ->pwm.frequency,
@@ -2051,11 +2056,12 @@ void printResourceMap( ) {
 
             case CDC_RT_UART: {
 
-                printf( "UART: rxPin: %d, txPin: %d, baudRate: %d, "
+                printf( "rNum: %d, UART: rxPin: %d, txPin: %d, baudRate: %d, "
                         "dataBits: %d, parity: %d, stopBits: %d\n",
+                        rPtr -> resId,
                         rPtr -> uart.rxPin,  
                         rPtr -> uart.txPin, 
-                         rPtr -> uart.baudSetting,
+                        rPtr -> uart.baudSetting,
                         rPtr -> uart.dataBits, 
                         rPtr -> uart.parityMode, 
                         rPtr -> uart.stopBits );
@@ -2064,8 +2070,9 @@ void printResourceMap( ) {
 
             case CDC_RT_I2C: {
 
-                printf( "I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
+                printf( "rNum: %d, I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
                         "i2cRoot: 0x2x, timeout(MS): %d\n",
+                        rPtr -> resId,
                         rPtr -> i2c.sclPin, 
                         rPtr -> i2c.sdaPin, 
                         rPtr -> i2c.baudRate, 
@@ -2076,8 +2083,9 @@ void printResourceMap( ) {
 
             case CDC_RT_CAN_BUS: {
 
-                printf( "CAN: rxPin: %d, txPin: %d, baudRate: %d, "
+                printf( "rNum: %d, CAN: rxPin: %d, txPin: %d, baudRate: %d, "
                         "canId: 0x4x, twoCores: %d\n",
+                        rPtr -> resId,
                         rPtr -> can.canPinRx, 
                         rPtr -> can.canPinTx, 
                         rPtr -> can.baudRate, 
@@ -2086,8 +2094,7 @@ void printResourceMap( ) {
             } break;
 
             case CDC_RT_UNDEFINED: {
-               
-                printf( "Undefined\n" );
+            
             } break;
 
             default: printf( "Unknown type: %d\n", i );

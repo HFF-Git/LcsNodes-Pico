@@ -139,7 +139,7 @@ uint8_t lcsInitCallback( uint16_t npId ) {
         default:    printf( "Port Init Callback: 0x%x\n", npId &  0xF   );
     } 
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ uint8_t lcsPfailCallback( uint16_t npId ) {
         default:    printf( "Port Power Fail Callback: 0x%x\n", npId &  0xF   );
     } 
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ uint8_t lcsPfailCallback( uint16_t npId ) {
 uint8_t lcsCmdCallback( char *cmdLine ) {
 
     serialCmd.handleSerialCommand( cmdLine );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 
     for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
     printf( "\n" );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -191,19 +191,19 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 uint8_t bsMainTrackCallback( ) {
 
     mainTrack.runDccTrackStateMachine( );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 uint8_t bsProgTrackCallback( ) {
 
     progTrack.runDccTrackStateMachine( );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 uint8_t bsRefreshActiveSessionCallback( ) {
 
     locoSessions.refreshActiveSessions( );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
     if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
     if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -226,7 +226,7 @@ uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
 uint8_t lcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
 
     printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -236,7 +236,7 @@ uint8_t lcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg
 uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
 
     printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -374,7 +374,7 @@ uint8_t registerCallbacks( ) {
     registerTaskCallback( bsProgTrackCallback, PROG_TRACK_STATE_TIME_INTERVAL );
     registerTaskCallback( bsRefreshActiveSessionCallback, SESSION_REFRESH_TASK_INTERVAL );
 
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -385,15 +385,15 @@ uint8_t registerCallbacks( ) {
 //----------------------------------------------------------------------------------------------------------
 uint8_t startBaseStation( ) {
 
-    uint8_t rStat = ALL_OK; 
+    uint8_t rStat = NO_ERR; 
     
-    if ( rStat == ALL_OK ) rStat = setupSerialCommand( );
-    if ( rStat == ALL_OK ) rStat = setupMsgInterface( );
-    if ( rStat == ALL_OK ) rStat = setupLocoSessions( );
-    if ( rStat == ALL_OK ) rStat = setupDccTrackMain( );
-    if ( rStat == ALL_OK ) rStat = setupDccTrackProg( );
+    if ( rStat == NO_ERR ) rStat = setupSerialCommand( );
+    if ( rStat == NO_ERR ) rStat = setupMsgInterface( );
+    if ( rStat == NO_ERR ) rStat = setupLocoSessions( );
+    if ( rStat == NO_ERR ) rStat = setupDccTrackMain( );
+    if ( rStat == NO_ERR ) rStat = setupDccTrackProg( );
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         LcsBaseStationDccTrack::startDccProcessing( );
 
@@ -408,7 +408,7 @@ uint8_t startBaseStation( ) {
         startRuntime( );
   }
 
-  return( ALL_OK );
+  return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -417,9 +417,9 @@ uint8_t startBaseStation( ) {
 //----------------------------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
-    if ( rStat == ALL_OK ) rStat = initThrottle( );
-    if ( rStat == ALL_OK ) rStat = registerCallbacks( );
-    if ( rStat == ALL_OK ) return( startBaseStation( ));
+    if ( rStat == NO_ERR ) rStat = initThrottle( );
+    if ( rStat == NO_ERR ) rStat = registerCallbacks( );
+    if ( rStat == NO_ERR ) return( startBaseStation( ));
 }

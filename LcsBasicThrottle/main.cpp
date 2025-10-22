@@ -62,7 +62,7 @@ extern uint8_t          setupCabStack( );
 //----------------------------------------------------------------------------------------
 uint8_t printStatus( uint8_t status ) {
 
-    if ( status == ALL_OK ) printf( "-> OK\n" );
+    if ( status == NO_ERR ) printf( "-> OK\n" );
     else                    printf( "-> FAILED: %d\n", status );
        
     return ( status );
@@ -88,43 +88,43 @@ void setupConfigInfo( ) {
 //----------------------------------------------------------------------------------------
 uint8_t initThrottle( ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
     setupConfigInfo( );
 
     printf( "LCS Basic Throttle\n" );
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Init RuntimeLib " );
         rStat = initRuntime( &dMap );
     }
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Setup Msg Bus " );
         rStat = printStatus( setupMsgBus( ));
     }
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Setup UI Elements " );
         rStat = printStatus( setupUIElements( ));
     }
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Setup Screens " );
         rStat = printStatus( setupScreens( ));
     }
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Setup Cab Stack " );
         rStat = printStatus( setupCabStack ( ));
     }
 
-    if ( rStat == ALL_OK ) {
+    if ( rStat == NO_ERR ) {
 
         printf( "Start Screen\n" );
         registerTaskCallback( UIElements::tick, 10  ); // 10ms tick ?
@@ -151,6 +151,6 @@ void startThrottle( ) {
 int main( ) {
 
     uint8_t rStat = initThrottle( );
-    if ( rStat == ALL_OK ) startThrottle( );
+    if ( rStat == NO_ERR ) startThrottle( );
     return( 0 );
 }

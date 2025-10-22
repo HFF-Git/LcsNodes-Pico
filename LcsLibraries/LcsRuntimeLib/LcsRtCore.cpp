@@ -253,7 +253,7 @@ void handleMsgGetNode( uint8_t *msg ) {
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
         uint8_t   ret   = nodeGet( npId, item, &arg1, &arg2 );
 
-        if ( ret == ALL_OK )  sendRepNode( npId, item, arg1, arg2 );
+        if ( ret == NO_ERR )  sendRepNode( npId, item, arg1, arg2 );
         else                  sendErr( npId, ret, 0, 0 );
     }
 }
@@ -274,7 +274,7 @@ void handleMsgPutNode( uint8_t *msg ) {
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
         uint8_t   ret   = nodePut( npId, item, arg1, arg2 );
 
-        if ( ret == ALL_OK )  sendAck( npId );
+        if ( ret == NO_ERR )  sendAck( npId );
         else                  sendErr( npId, ret, arg1, arg2 );
     }
 }
@@ -318,7 +318,7 @@ void handleMsgReqNode( uint8_t *msg ) {
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
         uint8_t   ret   = nodeReq( npId, item, &arg1, &arg2 );
 
-        if ( ret == ALL_OK )  sendRepNode( npId, item, arg1, arg2 );
+        if ( ret == NO_ERR )  sendRepNode( npId, item, arg1, arg2 );
         else                  sendErr( npId, ret, 0, 0 );
     }
 }
@@ -431,7 +431,7 @@ void handleNodeStatePfail( ) {
 //----------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
-    uint8_t rStat = ALL_OK;
+    uint8_t rStat = NO_ERR;
 
     setupDriverFunctions( );
 
@@ -440,7 +440,7 @@ void handleNodeStateInit( ) {
         if ( nodeMap.initCallback != nullptr ) {
                 
             rStat = nodeMap.initCallback(( nodeMap.nodeId << 4 ) | i );
-            if ( rStat == ALL_OK ) {
+            if ( rStat == NO_ERR ) {
                 
                 portMap.map[ i ].flags |= NPF_PORT_PRESENT;
                 portMap.map[ i ].flags |= NPF_PORT_ENABLED;

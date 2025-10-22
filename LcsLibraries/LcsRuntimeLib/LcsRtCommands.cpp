@@ -37,6 +37,7 @@
 namespace LCS {
 
     extern uint16_t             debugMask;
+    extern uint16_t             startOptions;
     extern LcsHeaderMap         headerMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
@@ -77,7 +78,7 @@ char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 //----------------------------------------------------------------------------------------
 void errorArgList( ) {
 
-    printf( "Argument list error, use \"?\" )for help\n" );
+    printf( "Argument list error, use \"?\" for help\n" );
 }
 
 void errorStatusMsg( char *msg, uint8_t ret ) {
@@ -148,12 +149,12 @@ void dumpMemData( uint16_t *area,
 // when interpreted directly.
 //
 //----------------------------------------------------------------------------------------
-void dumpNvmData( uint32_t start, 
-                  uint32_t len, 
-                  uint32_t itemsPerLine = 8, 
-                  bool printAscii = false ) {
+void dumpNvmData( uint32_t  start, 
+                  uint32_t  len, 
+                  uint32_t  itemsPerLine = 8, 
+                  bool      printAscii = false ) {
 
-    uint8_t     rStat = ALL_OK;
+    uint8_t     rStat = NO_ERR;
     uint32_t    limit = start + len;
     uint16_t    val   = 0;
 
@@ -168,7 +169,8 @@ void dumpNvmData( uint32_t start,
             if ( ofs < limit ) {
 
                 rStat = rtNvmGetWord( ofs, &val );
-                if ( rStat == ALL_OK ) printf( "0x%04x ", val );
+                if ( rStat == NO_ERR ) printf( "0x%04x ", val );
+                else printf( "**** " );
             }
         }
 
@@ -176,8 +178,9 @@ void dumpNvmData( uint32_t start,
 
             if ( start + ( itemsPerLine * sizeof(uint16_t)) >= limit ) {
 
-                int tmp = ( start + ( itemsPerLine * sizeof(uint16_t)) - limit ) /
-                                                                     sizeof( uint16_t);
+                int tmp = ( start + 
+                    ( itemsPerLine * sizeof(uint16_t)) - limit ) / sizeof( uint16_t);
+
                 for ( int i = 0; i < tmp; i++ ) printf( "       " );
             };
 
@@ -190,7 +193,7 @@ void dumpNvmData( uint32_t start,
                 if ( ofs < limit ) {
 
                     rStat = rtNvmGetWord( ofs, &val );
-                    if ( rStat == ALL_OK ) {
+                    if ( rStat == NO_ERR ) {
 
                         if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
                         else                       printf( "." );
@@ -217,7 +220,7 @@ void dumpExtNvmData( uint8_t  boardId,
                      uint32_t len, 
                      uint32_t itemsPerLine = 8 ) {
 
-    uint8_t     rStat = ALL_OK;
+    uint8_t     rStat = NO_ERR;
     uint32_t    limit = start + len;
     uint16_t    val   = 0;
 
@@ -232,7 +235,8 @@ void dumpExtNvmData( uint8_t  boardId,
             if ( ofs < limit ) {
 
                 rStat = extNvmGetWord( boardId, ofs, &val );
-                if ( rStat == ALL_OK ) printf( "0x%04x ", val );
+                if ( rStat == NO_ERR ) printf( "0x%04x  ", val );
+                else printf( "****  " );
             }
         }
 
@@ -243,7 +247,7 @@ void dumpExtNvmData( uint8_t  boardId,
             if ( ofs < limit ) {
 
                 rStat = extNvmGetWord( boardId, ofs, &val );
-                if ( rStat == ALL_OK ) {
+                if ( rStat == NO_ERR ) {
                     
                     if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
                     else                       printf( "." );
@@ -264,25 +268,17 @@ void dumpExtNvmData( uint8_t  boardId,
 // hex data. It would be nice to show formatted data. Perhaps one day...
 //
 //----------------------------------------------------------------------------------------
-void printSummary( ) {
-
-    printf( "LCS Node: \"" );
-
-    for ( uint8_t i = 0; i < MAX_RES_NAME_SIZE; i++ ) {
- 
-        if ( headerMap.map[ 0 ].boardName[ i ] != 0 ) 
-            printf( "%c", headerMap.map[ 0 ].boardName[ i ] );
-    }
-     
-    printf( "\", State: %d\n", nodeMap.nodeState );
-    printf( "LCS Library Version: %d.%d\n", 
-            nodeMap.rtLibSwVersion >> 8, nodeMap.rtLibSwVersion & 0xFF );
-}
-
 void dumpMemHeaderMap( ) {
 
     printf( "MEM Header Map: \n\n" );
-    dumpMemData((uint16_t *) &headerMap, sizeof( LcsBoardDesc ), 8, true);
+
+    for ( int i = 0; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
+
+        printf( "Header: %d\n", i );
+        dumpMemData((uint16_t *) &headerMap.map[ i ], sizeof( LcsBoardDesc ), 8, true );
+        printf( "\n" );
+    }
+
     printf( "\n" );
 }
 
@@ -295,18 +291,16 @@ void dumpMemNodeMap( ) {
 
 void dumpMemPortMap( ) {
 
-    dumpMemData((uint16_t *) &portMap, sizeof( LcsPortMap ), 8, true );
-
-    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", 
-            MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
+    printf( "MEM Port Map: \n\n" );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        printf( "Port %d:\n", i + 1 );
-        dumpMemData((uint16_t *) &portMap.map[ i ], 
-                    sizeof( LcsPortMapEntry ), 8, true );
+        printf( "Port %d:\n", i );
+        dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ));
         printf( "\n" );
     }
+    
+    printf( "\n" );
 }
  
 void dumpMemNodeData( ) {
@@ -326,6 +320,7 @@ void dumpMemEventMap( ) {
 
     printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
             MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
+
     dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
     printf( "\n" );
 }
@@ -334,6 +329,7 @@ void dumpMemPendingReqMap( ) {
 
     printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", 
             MAX_PENDING_REQ_MAP_ENTRIES, pendingReqMap.mapHwm );
+
     dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
     printf( "\n" );
 }
@@ -341,7 +337,8 @@ void dumpMemPendingReqMap( ) {
 void dumpMemTaskMap( ) {
 
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
-            MAX_TASK_MAP_ENTRIES, taskMap.map );
+            MAX_TASK_MAP_ENTRIES, taskMap.mapHwm );
+
     dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
     printf( "\n" );
 }
@@ -354,7 +351,7 @@ void dumpMemDrvFuncMap( ) {
     for ( int i  = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
         LcsDrvFuncEntry *entry = &drvFuncMap.map[ i ];
-        printf( "%d: Type: %d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
+        printf( "%02d: Type: %d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
     }
 
     printf( "\n" );
@@ -374,7 +371,7 @@ void dumpMemRuntimeArea( ) {
 
 //----------------------------------------------------------------------------------------
 // Routines to list contents of the various NVM areas. Right now, we just dump out hex 
-// data. It would be nice to show formatted data. Perhaps one day...
+// data. It would be nice to also show formatted data. Perhaps one day...
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmHeaderMap( ) {
@@ -398,17 +395,10 @@ void dumpNvmNodeMap( ) {
     printf( "\n" );
 }
 
-void dumpNvmPortMap( ) {
-
-    printf( "NVM Port Map Dump: \n\n" );
-    dumpNvmData( NVM_PORT_MAP_OFS , NVM_PORT_MAP_SIZE );
-    printf( "\n" );
-}
-
 void dumpNvmNodeData( ) {
 
     printf( "NVM Node Data Dump: \n\n" );
-    dumpNvmData( NVM_NODE_DATA_OFS , NVM_NODE_DATA_SIZE );
+    dumpNvmData( NVM_NODE_DATA_OFS, NVM_NODE_DATA_SIZE, 8, true );
     printf( "\n" );
 }
 
@@ -434,16 +424,39 @@ void dumpNvmUserArea( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Print memory structures in a formatted way. Note that not all memory structures are 
-// printed. Some of the maps contain dynamic data, which changes rapidly. There is no 
-// point in showing that kind of data.
+// Print memory structures in a formatted way. Note that not all memory structures 
+// are printed. Some of the maps contain dynamic data, which changes rapidly. There
+// is no point in showing that kind of data.
 //
 //----------------------------------------------------------------------------------------
+void printSummary( ) {
+
+    printf( "LCS Node: \"" );
+
+    for ( uint8_t i = 0; i < MAX_RES_NAME_SIZE; i++ ) {
+ 
+        if ( headerMap.map[ 0 ].boardName[ i ] != 0 ) 
+            printf( "%c", headerMap.map[ 0 ].boardName[ i ] );
+    }
+     
+    printf( "\", State: %d\n", nodeMap.nodeState );
+    printf( "LCS Library Version: %d.%d\n", 
+            highByte( nodeMap.rtLibSwVersion ),
+            lowByte( nodeMap.rtLibSwVersion ));
+}
+
 void printHeaderMap( ) {
 
     printf( "Header Map: \n\n" );
 
     // ??? to do ...
+
+    uint32_t            boardMword;
+    uint16_t            boardInfo;                      // type/subtype
+    uint16_t            boardCtrlInfo;                  // family / cType
+    uint16_t            boardVersion;                   // major / sub version
+    uint16_t            reserved[ 11 ];
+    char                boardName[ MAX_RES_NAME_SIZE ];
 
     printf( "\n" );
 }
@@ -452,8 +465,18 @@ void printMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
 
-    // ??? to do ...
+    printf( "NodeId: %d, nodeUID: %d\n",
+            nodeMap.nodeId,
+            nodeMap.nodeUID );
 
+    printf( "RtLib SW Version: %d.%d.%d\n", 
+            highByte( nodeMap.rtLibSwVersion ), 
+            lowByte( nodeMap.rtLibSwVersion ),
+            nodeMap.rtLibSwPatchLevel );
+
+    printf( "Options: 0x%04x\n", startOptions );
+    printf( "Restart Count: %d\n", nodeMap.nodeRestartCnt );
+    printf( "Node State: %d\n", nodeMap.nodeState );
     printf( "\n" );
 }
 
@@ -466,11 +489,13 @@ void printMemPortMap( ) {
 
         LcsPortMapEntry *ptr = &portMap.map[ i ];
 
-        printf( "Port %02d: Type: %02d, Options: 0x%04x, Flags: 0x%04x\n", 
+        printf( "Port %02d: Type: %02d, Flags: 0x%04x\n", 
                 i + 1,  
                 ptr -> type,
-                ptr -> options,
                 ptr -> flags );
+
+        dumpMemData((uint16_t *) &portMap.map[ i ], 
+                    sizeof( LcsPortMapEntry ), 8, true );
 
         printf( "\n" );
     }
@@ -478,12 +503,30 @@ void printMemPortMap( ) {
  
 void printMemEventMap( ) {
 
+    const int itemsPerLine = 4;
+
     printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
             MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
 
-    // print the entries up to the HWM, 4 in a row ?
-   
-    printf( "\n" );
+    if ( eventMap.mapHwm > 0 ) {
+
+        for ( int i = 0; i < eventMap.mapHwm; i++ ) {
+
+            for ( int j = 0; j < itemsPerLine; j++ ) {
+
+                if (( i * itemsPerLine ) + j < eventMap.mapHwm ) {
+
+                    printf( "%d:0x4x ", 
+                    eventMap.map[ ( i * itemsPerLine ) + j ].eventId, 
+                    eventMap.map[ ( i * itemsPerLine ) + j ].eventMask );
+                }
+            }
+
+            printf( "\n" );
+            i += itemsPerLine;
+        }
+    }
+    else printf( "No entries in map\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -522,7 +565,7 @@ void switchToConfigCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%i", &npId ) < 1 ) return ( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) > 1 ) return ( errorArgList( ));
 
     uint16_t tmpNpId = (uint16_t) npId;
 
@@ -549,7 +592,7 @@ void switchToOperationsCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%i", &npId ) < 1 ) return ( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) > 1 ) return ( errorArgList( ));
 
     uint16_t tmpNpId = (uint16_t) npId;
 
@@ -757,7 +800,7 @@ void getNodeCommand( char *s ) {
         return ( errorArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
-    uint8_t  tmpItem    = (uint8_t) item;
+    uint8_t  tmpItem    = (uint8_t)  item;
     uint16_t tmpArg1    = (uint16_t) arg1;
     uint16_t tmpArg2    = (uint16_t) arg2;
 
@@ -766,7 +809,7 @@ void getNodeCommand( char *s ) {
         ret = nodeGet ( tmpNpId, tmpItem, &tmpArg1, &tmpArg2 );
         if ( ret != ALL_OK ) errorStatusMsg((char *) "Node GET error", ret );
         else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", 
-                    tmpNpId, tmpItem, tmpArg1, tmpArg2 );
+                     tmpNpId, tmpItem, tmpArg1, tmpArg2 );
     }
     else {
 
@@ -911,9 +954,9 @@ void listStatusCommand( char *s ) {
 
             case 1:     dumpMemHeaderMap( );            break;
             case 2:     dumpMemNodeMap( );              break;
-            case 3:     dumpMemPortMap( );              break;
-            case 4:     dumpMemNodeData( );             break;
-            case 5:     dumpMemEventMap( );             break;
+            case 3:     dumpMemNodeData( );             break;
+            case 4:     dumpMemEventMap( );             break;
+            case 5:     dumpMemPortMap( );              break;
             case 6:     dumpMemPendingReqMap( );        break;
             case 7:     dumpMemTaskMap( );              break;
             case 8:     dumpMemDrvFuncMap( );           break;
@@ -921,10 +964,9 @@ void listStatusCommand( char *s ) {
 
             case 21:    dumpNvmHeaderMap( );            break;
             case 22:    dumpNvmNodeMap( );              break;
-            case 23:    dumpNvmPortMap( );              break;
-            case 24:    dumpNvmNodeData( );             break;
-            case 25:    dumpNvmEventMap( );             break;
-            case 26:    dumpNvmRuntimeArea( );          break;
+            case 23:    dumpNvmNodeData( );             break;
+            case 24:    dumpNvmEventMap( );             break;
+            case 29:    dumpNvmRuntimeArea( );          break;
 
             case 41:    printHeaderMap( );              break;
             case 42:    printMemNodeMap( );             break;
@@ -970,9 +1012,9 @@ void listCoreLibHelpCommand( ) {
     printf( "               " " -   0  - summary\n" );
     printf( "               " " -   1  - MEM Header Map\n" );
     printf( "               " " -   2  - MEM Node Map\n" );
-    printf( "               " " -   3  - MEM Port Map\n" );
-    printf( "               " " -   4  - MEM Node Data\n" );
-    printf( "               " " -   5  - MEM Event Map\n" );
+    printf( "               " " -   3  - MEM Node Data\n" );
+    printf( "               " " -   4  - MEM Event Map\n" );
+    printf( "               " " -   5  - MEM Port Map\n" );
     printf( "               " " -   6  - MEM Pending Request Map\n" );
     printf( "               " " -   7  - MEM Task Map\n" );
     printf( "               " " -   8  - MEM Driver Function Map\n" );
@@ -980,10 +1022,9 @@ void listCoreLibHelpCommand( ) {
 
     printf( "               " " -  21  - NVM Header Map\n" );      
     printf( "               " " -  22  - NVM Node Map\n" );
-    printf( "               " " -  23  - NVM Port Map\n" );
-    printf( "               " " -  24  - NVM Node Data\n" );
-    printf( "               " " -  25  - NVM Event Map\n" );
-    printf( "               " " -  26  - NVM Runtime Area\n" );
+    printf( "               " " -  23  - NVM Node Data\n" );
+    printf( "               " " -  24  - NVM Event Map\n" );
+    printf( "               " " -  29  - NVM Runtime Area\n" );
 
     printf( "               " " -  41  - MEM Header Map formatted\n" );            
     printf( "               " " -  42  - MEM Node Map formatted\n" );
@@ -1062,7 +1103,11 @@ uint8_t handleSerialCommand( ) {
                 }
                
                 commandBuf[ 0 ] = '\0';
-                printf( "->");
+                if      ( nodeMap.nodeState == NS_CONFIG )  printf( "(c)->" );
+                else if ( nodeMap.nodeState == NS_OPERATE ) printf( "(o)->" );
+                else                                        printf( "->" );
+
+                
             
             } break;
 

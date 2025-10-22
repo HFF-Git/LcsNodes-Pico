@@ -44,20 +44,20 @@
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// The LCS Runtime needs to maintain a couple of internal data structures. As a general 
-// concept, most of the data areas are stored in the NVM. Upon reset or power up the 
-// memory areas are initialized from their NVM counter parts. 
+// The LCS Runtime needs to maintain a couple of internal data structures. As a 
+// general concept, most of the data areas are stored in the NVM. Upon reset or 
+// power up the memory areas are initialized from their NVM counter parts. 
 // 
-// Data that needs to be changed permanently is flushed from memory to NVM so that it is
-// the initial value on the next restart. All data is stored in controller native 
-// endianness. Only the messages exchanged via the LcsMsgBus are transmitted in big 
-// endian order.
+// Data that needs to be changed permanently is flushed from memory to NVM so that
+// it is the initial value on the next restart. All data is stored in controller 
+// native endianness. Only the messages exchanged via the LcsMsgBus are transmitted
+// in big endian order.
 //
 // The NVM layout is a fixed one. We have the nodeMap starting at NVM_NODE_MAP_START
-// offset. All data areas follow. Their starting offset is the sum of the size of the 
-// previous structures starting. The system area needs to be at least the size of the 
-// declared structures up to the use map. The optional user map occupies all the remaining
-// bytes in the NVM. 
+// offset. All data areas follow. Their starting offset is the sum of the size of 
+// the previous structures starting. The system area needs to be at least the size 
+// of the declared structures up to the use map. The optional user map occupies all
+// the remaining bytes in the NVM. 
 //
 //          :-------------------------------------------:       NVM_NODE_MAP_START 
 //          :                                           :
@@ -68,10 +68,6 @@ namespace LCS {
 //          :       Node Map                            :
 //          :                                           :
 //          :-------------------------------------------:       + sizeof( NodeMap )
-//          :                                           :
-//          :       Port Map                            :
-//          :                                           :
-//          :-------------------------------------------:       + sizeof( PortMap )
 //          :                                           :
 //          :       Mode Map Data                       :
 //          :                                           :
@@ -89,12 +85,12 @@ namespace LCS {
 //          :                                           :
 //          :-------------------------------------------:       0xNNNN  
 //
-// All data areas have a fixed size which is the maximum size for the particular map. For
-// example, there is room for 16 ports, even if the firmware would only use let's say 4. 
-// In general, each of the runtime map also could have been designed in a way that they
-// are dynamically configurable in size. Considering the size and price of NVM chips as
-// well as the memory size of the supported controller platforms, using fixed sizes 
-// for each map avoids configuration complexity.
+// All data areas have a fixed size which is the maximum size for the particular map.
+// For example, there is room for 16 ports, even if the firmware would only use let's
+// say 4. In general, each of the runtime map also could have been designed in a way 
+// that they are dynamically configurable in size. Considering the size and price of
+// NVM chips as well as the memory size of the supported controller platforms, using
+// fixed sizes for each map avoids configuration complexity.
 //
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
@@ -141,9 +137,8 @@ const uint32_t NVM_MWORD_EXTENSION      = (uint32_t) ( 'L' << 24 ) |
 
 const uint32_t NVM_MWORD_NODE_HEADER    = NVM_MWORD_MAIN | 0x01;
 const uint32_t NVM_MWORD_NODE_MAP       = NVM_MWORD_MAIN | 0x02;
-const uint32_t NVM_MWORD_PORT_MAP       = NVM_MWORD_MAIN | 0x03;
-const uint32_t NVM_MWORD_NODE_DATA_MAP  = NVM_MWORD_MAIN | 0x04;
-const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x05;
+const uint32_t NVM_MWORD_NODE_DATA_MAP  = NVM_MWORD_MAIN | 0x03;
+const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x04;
 
 const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
 
@@ -282,6 +277,9 @@ struct LcsHeaderMap {
 // forwarded to their NVM counterpart. Since a node has port zero as the docking for
 // node wide operations, the portMap entry 0 is also considered part of the node map.
 // 
+// ??? right now, we do not have any data that would be stored via this map to NVM.
+// ??? if this would be the case one day, we add an array of these items as a field.
+//
 //----------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
@@ -290,8 +288,6 @@ struct LcsNodeMap {
     uint32_t            nvmSize                         = sizeof( LcsNodeMap );
     uint16_t            rtLibSwVersion                  = LCS_RT_LIB_VERSION;
     uint16_t            rtLibSwPatchLevel               = LCS_RT_LIB_PATCH_LEVEL;
-
-    uint16_t            startOptions                    = 0;
 
     uint16_t            nodeState                       = NS_NIL;
     uint16_t            nodeId                          = NIL_NODE_ID;
@@ -304,51 +300,6 @@ struct LcsNodeMap {
     LcsMsgCallback      lcsMsgCallback                  = nullptr;
     LcsMsgCallback      dccMsgCallback                  = nullptr;
     LcsCmdCallback      cmdLineCallback                 = nullptr;
-};
-
-//----------------------------------------------------------------------------------------
-// The port map contains an array of ports, each described by a port map entry. There 
-// are 16 entries in the port map. Port zero refers to the entire node, i.e. the node 
-// itself. When node data such as the node type is accessed it is actually taken from 
-// the P0 port map entry. Port 1 to 15 are regular ports. In addition, P1 to P4 are 
-// optionally associated with an extension board if one is detected during startup. Each
-// port has an area of attributes, which are stored in the data block area. They map to 
-// ITEM numbers 128 to 255.
-//
-// The portMap entry also contains the fields that deal with the actual event received
-// that the port is interested in. There are fields for the sending node, the event and
-// its action. An event can also be invoked with a delay time.
-//
-// ??? what does an event mean for P0  as the node port, or P1 to P4 when extensions
-// are configured ? 
-//----------------------------------------------------------------------------------------
-struct LcsPortMapEntry {
-
-    uint16_t            options                             = 0;
-    uint16_t            flags                               = 0;
-    uint16_t            type                                = 0;
-    uint16_t            lastErr                             = 0;
-   
-    LcsReqCallback      reqCallback                         = nullptr;
-    LcsRepCallback      repCallback                         = nullptr;
-    LcsEventCallback    eventCallback                       = nullptr;
-
-    uint16_t            eventNpId                           = 0;
-    uint16_t            eventId                             = NIL_EVENT_ID;
-    uint16_t            eventValue                          = 0;
-    uint16_t            eventAction                         = PEA_EVENT_IDLE;
-    uint16_t            eventDelayTime                      = 0;
-    uint32_t            eventTimeStamp                      = 0L;
-};
-
-struct LcsPortMap {
-
-    uint32_t        magicWord   = NVM_MWORD_PORT_MAP;
-    uint32_t        nvmOfs      = 0;
-    uint32_t        nvmSize     = sizeof( LcsPortMap );
-    uint32_t        mapHwm      = 0;
-   
-    LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
@@ -390,6 +341,49 @@ struct LcsEventMap {
     uint32_t            mapHwm      = 0;
 
     LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
+};
+
+//----------------------------------------------------------------------------------------
+// The port map contains an array of ports, each described by a port map entry. 
+// There are 16 entries in the port map. Port zero refers to the entire node, i.e. 
+// the node itself. When node data such as the node type is accessed it is actually 
+// taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition, 
+// P1 to P4 are optionally associated with an extension board if one is detected 
+// during startup. Each port has an area of attributes, which are stored in the data
+// block area. They map to ITEM numbers 128 to 255.
+//
+// The portMap entry also contains the fields that deal with the actual event received
+// that the port is interested in. There are fields for the sending node, the event and
+// its action. An event can also be invoked with a delay time.
+//
+// ??? what does an event mean for P0  as the node port, or P1 to P4 when extensions
+// are configured ? 
+//----------------------------------------------------------------------------------------
+struct LcsPortMapEntry {
+
+    uint16_t            flags                               = 0;
+    uint16_t            type                                = 0;
+    uint16_t            lastErr                             = 0;
+   
+    LcsReqCallback      reqCallback                         = nullptr;
+    LcsRepCallback      repCallback                         = nullptr;
+    LcsEventCallback    eventCallback                       = nullptr;
+
+    uint16_t            eventNpId                           = 0;
+    uint16_t            eventId                             = NIL_EVENT_ID;
+    uint16_t            eventValue                          = 0;
+    uint16_t            eventAction                         = PEA_EVENT_IDLE;
+    uint16_t            eventDelayTime                      = 0;
+    uint32_t            eventTimeStamp                      = 0L;
+};
+
+struct LcsPortMap {
+
+ //   uint32_t        magicWord   = NVM_MWORD_PORT_MAP;
+ //   uint32_t        nvmOfs      = 0;
+ //   uint32_t        nvmSize     = sizeof( LcsPortMap );
+    uint32_t        mapHwm      = 0;
+    LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
@@ -460,7 +454,6 @@ struct LcsDrvFuncMap {
 //----------------------------------------------------------------------------------------
 const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsBoardDesc );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
-const uint32_t  NVM_PORT_MAP_SIZE           =   sizeof( LcsPortMap );
 const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
 const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
 
@@ -468,7 +461,6 @@ const uint32_t  NVM_MAP_STORAGE_START       =   0;
 
 const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_BOARD_DESC_SIZE + 
                                                 NVM_NODE_MAP_SIZE   +
-                                                NVM_PORT_MAP_SIZE   +
                                                 NVM_NODE_DATA_SIZE  +
                                                 NVM_EVENT_MAP_SIZE;
 
@@ -477,27 +469,20 @@ const uint32_t  NVM_HEADER_MAP_OFS          =   NVM_MAP_STORAGE_START;
 const uint32_t  NVM_NODE_MAP_OFS            =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE;
 
-const uint32_t  NVM_PORT_MAP_OFS            =   NVM_MAP_STORAGE_START + 
-                                                NVM_BOARD_DESC_SIZE   +
-                                                NVM_NODE_MAP_SIZE;
-
 const uint32_t  NVM_NODE_DATA_OFS           =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   +  
-                                                NVM_NODE_MAP_SIZE     +
-                                                NVM_PORT_MAP_SIZE;
+                                                NVM_NODE_MAP_SIZE;
     
 
 const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
-                                                NVM_PORT_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
 
 const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   + 
                                                 NVM_NODE_MAP_SIZE     +
-                                                NVM_PORT_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +
                                                 NVM_EVENT_MAP_SIZE;
 

@@ -39,6 +39,7 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t         debugMask;
+    extern uint16_t         startOptions;
     extern LcsHeaderMap     headerMap;
     extern LcsNodeMap       nodeMap;
     extern LcsNodeData      nodeData;
@@ -103,7 +104,7 @@ namespace {
                     block, item, *arg );
         }
 
-        return ( errStat( ALL_OK ));
+        return ( errStat( NO_ERR ));
     }
 
     //------------------------------------------------------------------------------------
@@ -122,7 +123,7 @@ namespace {
                     block, item, arg );
         }
 
-        return ( errStat( ALL_OK ));
+        return ( errStat( NO_ERR ));
     }
 
     //------------------------------------------------------------------------------------
@@ -147,7 +148,7 @@ namespace {
         }
 
         uint8_t rStat = rtNvmGetWord( ofs, arg );
-        if ( rStat == ALL_OK ) rStat = writeAttrMem( block, item, *arg );
+        if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, *arg );
         
         return ( errStat( rStat ));
     }
@@ -174,7 +175,7 @@ namespace {
         }
 
         uint8_t rStat = rtNvmPutWord( ofs, arg );
-        if ( rStat == ALL_OK ) rStat = writeAttrMem( block, item, arg );
+        if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, arg );
         
         return ( errStat( rStat ));
     }
@@ -209,7 +210,7 @@ namespace {
 
         uint16_t    arg     = 0;
         uint8_t     rStat   = readAttrMem( block, item, &arg );
-        if ( rStat == ALL_OK ) rStat = writeAttrNvm( block, item, arg );
+        if ( rStat == NO_ERR ) rStat = writeAttrNvm( block, item, arg );
         return ( errStat( rStat ));
     }
 
@@ -293,9 +294,10 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
 
-        printf( "nodeGet: npId: 0x%x, item: :%d", npId, item  );
+        printf( "nodeGet: npId: 0x%x, item: %d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
+        printf( "\n" );
     }
 
     if (( nodeMap.nodeState != NS_OPERATE) && ( nodeMap.nodeState != NS_CONFIG )) {
@@ -326,7 +328,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_OPTIONS: {      
                 
-                *arg1 = portMap.map[ portId( npId ) ].options; 
+                *arg1 = startOptions; 
                 return ( errStat( ALL_OK ));
             }
 
@@ -480,41 +482,16 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( errStat( ALL_OK ));
             }
 
-            case ITEM_ID_OPTIONS: {
-
-                portMap.map[ portId( npId ) ].options = val1;
-
-                uint16_t ofs =  NVM_PORT_MAP_OFS +
-                                offsetof( LcsPortMap, map ) + 
-                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, options );
-
-                return ( errStat( rtNvmPutWord( ofs, val1 )));
-            }
-
             case ITEM_ID_FLAGS: {
 
                 portMap.map[ portId( npId ) ].flags = val1;
-
-                uint16_t ofs =  NVM_PORT_MAP_OFS +
-                                offsetof( LcsPortMap, map ) + 
-                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, flags );
-
-                return ( errStat( rtNvmPutWord( ofs, val1 )));
+                return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_TYPE: {
 
                 portMap.map[ portId( npId ) ].type = lowByte( val1 );
-
-                uint16_t ofs =  NVM_PORT_MAP_OFS +
-                                offsetof( LcsPortMap, map ) + 
-                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, type );
-
-                return ( errStat( rtNvmPutWord( ofs, 
-                    portMap.map[ portId( npId ) ].type )));
+                return ( errStat( ALL_OK ));
             }
 
             case ITEM_ID_NODE_ID: {
@@ -538,13 +515,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 portMap.map[ portId( npId ) ].eventDelayTime = val1;
-
-                uint16_t ofs =  NVM_PORT_MAP_OFS +
-                                offsetof( LcsPortMap, map ) + 
-                                ( portId( npId ) * sizeof( LcsPortMapEntry )) +
-                                offsetof( LcsPortMapEntry, eventDelayTime );
-
-                return ( errStat( rtNvmPutWord( ofs, val1 )));
+                return ( errStat( ALL_OK ));
             }
 
             case ITEM_USER_MAP_AREA: {
@@ -572,6 +543,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         printf( "nodeReq: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
         if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
+        printf( "\n" );
     }
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {

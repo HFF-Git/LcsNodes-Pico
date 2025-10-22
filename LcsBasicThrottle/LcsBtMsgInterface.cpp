@@ -60,7 +60,7 @@ CabMsgBus *msgBus = nullptr;
 uint8_t setupMsgBus( ) {
 
     msgBus = new CabMsgBus( );
-    return( ALL_OK );
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ uint8_t setupMsgBus( ) {
 uint8_t initCallback ( uint16_t npId, uint16_t flags ) {
 
     printf( "initCallback -> npId: 0x%x\n", npId );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -85,7 +85,7 @@ uint8_t nodeGetCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
     printf( ":" );
     if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
     printf( "\n" );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ uint8_t nodePutCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
     printf( ":" );
     if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
     printf( "\n" );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ uint8_t nodeReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
     printf( ":" );
     if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
     printf( "\n" );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ uint8_t nodeRepCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
     printf( ":" );
     if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
     printf( "\n" );
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -214,7 +214,7 @@ void dccMsgCallback( uint8_t *msg ) {
 uint8_t CabMsgBus::sendSpeedAndDir( CabEntry *cab ) {
 
     // ??? build the LCS message from the cab entry ...
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -225,7 +225,7 @@ uint8_t CabMsgBus::sendDccFuncVal( CabEntry *cab, uint8_t dccFundId ) {
 
     // ??? get val from bitmap...
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -234,7 +234,7 @@ uint8_t CabMsgBus::sendDccFuncVal( CabEntry *cab, uint8_t dccFundId ) {
 //----------------------------------------------------------------------------------------
 uint8_t CabMsgBus::sendEngineOnOff( CabEntry *cab ) {
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -243,7 +243,7 @@ uint8_t CabMsgBus::sendEngineOnOff( CabEntry *cab ) {
 //----------------------------------------------------------------------------------------
 uint8_t CabMsgBus::requestLocoSession( CabEntry *cab ) {
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -254,7 +254,7 @@ uint8_t CabMsgBus::closeLocoSession( CabEntry *cab ) {
 
     // ??? not clear yet, a dispatch ? a true close ? what else ...
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -265,7 +265,7 @@ uint8_t CabMsgBus::loadCabData( CabEntry *cab ) {
 
     // ??? we will load all data from the Basestation Dictionary for the engine... can be done one word at a time ...
 
-    return ( ALL_OK );
+    return ( NO_ERR );
 }
 
 // ??? is there a need for an "update CAB data ". E.g. when we change a config item ... why not update too ?
