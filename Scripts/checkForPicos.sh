@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #-------------------------------------------------------------------------------------------------------------
-# "chckForPicos.sh" is a helper script to check for PICO terminal IO files and automatically opens a terminal
+# "checkForPicos.sh" is a helper script to check for PICO terminal IO files and automatically opens a terminal
 # window for a new PICO. The script could run in the background and save some typing for connecting the PICOs.
 # On the Mac the PICO opens a terminal file under the path "/dev/cu.usbmodem" and the USB port number.
 #

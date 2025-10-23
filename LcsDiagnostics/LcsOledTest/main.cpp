@@ -37,10 +37,9 @@ CdcResourceDescMap  dMap    = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00;
 UIDisplay           *oled   = nullptr;
 
 //----------------------------------------------------------------------------------------
-// Set up the CDC hardware data. Since we handle any board, all that needs to be configured are the two
-// LEDs, the PFAIL pin, the two I2C channels and the CAN  Bus.
+// Set up the CDC hardware data. Since we handle any board, all that needs to be 
+// configured are the two LEDs, the PFAIL pin, the two I2C channels and the CAN  Bus.
 //
-// Current mapping: Main Controller Board B.01.00 - PICO - newest version.
 //----------------------------------------------------------------------------------------
 uint8_t initCdcLib( ) {
 

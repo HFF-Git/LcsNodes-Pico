@@ -94,8 +94,8 @@ void errorStatusMsg( char *msg, uint8_t ret ) {
 //----------------------------------------------------------------------------------------
 void dumpMemData( uint16_t *area, 
                   uint16_t len,
-                  uint8_t itemsPerLine = 8,
-                  bool printAscii = false ) {
+                  uint8_t  itemsPerLine = 8,
+                  bool     printAscii   = false ) {
 
     uint16_t  index   = 0;
     uint16_t  limit   = ( len + 1 ) / 2; 
@@ -311,7 +311,7 @@ void dumpMemNodeData( ) {
 
         printf( "Port %d:\n", i );
         dumpMemData((uint16_t *) &nodeData.map[ i ], 
-                    MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
+                    MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ), 8, true );
         printf( "\n" );
     }
 }
@@ -362,6 +362,7 @@ void dumpMemRuntimeArea( ) {
     printf( "MEM Area Dump: \n\n" );
     dumpMemNodeMap( );
     dumpMemPortMap( );
+    dumpMemNodeData( );
     dumpMemEventMap( );
     dumpMemPendingReqMap( );
     dumpMemTaskMap( );
@@ -1002,9 +1003,9 @@ void listCoreLibHelpCommand( ) {
             " ( mode: 0 - ON, 1 - OFF, 2 - EVT )\n" );
     printf( "f eventId [ npId ] - search an event on the event tab\n" );
     
-    printf( "g npId item - gets a node attribute\n" );
-    printf( "p npId item val1 [ val2 ] - puts a node attribute\n" );
-    printf( "r npId item val1 [ val2 ] - request a node function\n" );
+    printf( "g npId item [ val1 [ val2 ]] - gets a node attribute\n" );
+    printf( "p npId item val1 [ val2 ]    - puts a node attribute\n" );
+    printf( "r npId item [ val1 [ val2 ]] - request a node function\n" );
 
     printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
 

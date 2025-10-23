@@ -630,11 +630,6 @@ uint8_t configNvm(  uint8_t     rIdNvm,
                     uint8_t     rIdExtNvm,
                     uint32_t    extNvmSize ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
-
-        printf( "configNvm\n" ); 
-    }
-
     rNumNvm     = rIdNvm;
     rNumExtNvm  = rIdExtNvm;
     nodeNvmSize = nvmSize;
@@ -647,13 +642,13 @@ uint8_t configNvm(  uint8_t     rIdNvm,
 
     if ( testSize < nodeNvmSize ) nodeNvmSize = testSize;
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
         printf( "configNvm: rIdNvm: %d, size: %d, rIdExNvm: %d, size: %d\n",
                 rIdNvm, nodeNvmSize, rIdExtNvm, extNvmSize ); 
     }
 
-    return ( errStat( ALL_OK ));
+    return ( ALL_OK );
 }
 
 //----------------------------------------------------------------------------------------

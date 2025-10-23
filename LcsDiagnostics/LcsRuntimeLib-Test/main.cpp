@@ -42,9 +42,9 @@ using namespace CDC;
 CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
 
 //----------------------------------------------------------------------------------------
-// When a main controller board is used to drive an extension board, the DIO pins need
-// to be set to the value 1 for both pins. This is equivalent to leaving the extension
-// boards select input pins open.
+// When a main controller board is used to drive an extension board, the DIO pins 
+// need to be set to the value 1 for both pins. This is equivalent to leaving the 
+// extension boards select input pins open.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPinsForExtBoardTests( ) {
@@ -173,13 +173,28 @@ uint8_t registerLcsDrvFunctions( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Init runtime and welcome.
+//
+//----------------------------------------------------------------------------------------
+uint8_t initLcsRuntime( ) {
+
+    uint8_t rStat = initRuntime( &dMap, 
+                                 NPO_SKIP_NODE_ID_CONFIG, 
+                                LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_ATTRIBUTES );
+
+    printf( "LCS Runtime Lib Test Program Setup ==============================\n" );
+    return( rStat );
+    
+}
+
+//----------------------------------------------------------------------------------------
 // This is the last routine we call when the setup worked fine. We actually never 
 // return.
 //
 //----------------------------------------------------------------------------------------
 void startLcsRuntime( ) {
 
-    printf( "Start runtime\n" );
+    printf( "LCS Runtime Lib Test Program Start Runtime ======================\n" );
     startRuntime( );
 }
 
@@ -189,13 +204,10 @@ void startLcsRuntime( ) {
 //----------------------------------------------------------------------------------------
 int main( ) {
 
-   uint8_t rStat = initRuntime( &dMap, 
-                                NPO_SKIP_NODE_ID_CONFIG, 
-                                LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_ATTRIBUTES );
-
+    uint8_t rStat = initLcsRuntime( );
     if ( rStat == NO_ERR ) rStat = setupPinsForExtBoardTests( );
     if ( rStat == NO_ERR ) rStat = registerLcsCallbacks( );
     if ( rStat == NO_ERR ) rStat = registerLcsDrvFunctions( );
-    if ( rStat == NO_ERR ) startRuntime( );
+    if ( rStat == NO_ERR ) startLcsRuntime( );
     return( NO_ERR );
 }

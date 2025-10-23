@@ -410,7 +410,7 @@ enum LcsItems : uint8_t {
 
     ITEM_ID_ACTIVE_LED                  = 34,
 
-    ITEM_USER_MAP_AREA                  = 35,
+   
     
     // ??? add stop and enable periodic processing ?
 };
