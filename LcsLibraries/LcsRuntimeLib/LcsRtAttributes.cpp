@@ -71,13 +71,9 @@ namespace {
     using namespace LCS;
 
     //------------------------------------------------------------------------------------
-    // The node or port name cannot be set with a single LCS message. We will 
-    // store the parts in this temporary buffer and set the name when all parts
-    // are received.
+    // Error status help message.
     //
     //------------------------------------------------------------------------------------
-    char tempName[ MAX_RES_NAME_SIZE + 1 ] = { 0 };
-
     uint8_t errStat( uint8_t errId ) {
 
         if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
@@ -97,13 +93,6 @@ namespace {
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
 
         *arg = nodeData.map[ block ][ item - IR_USER_RANGE_START ];
-
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
-
-            printf( "readAttrMem: block: 0x%x, item: %d, data: 0x%x\n", 
-                    block, item, *arg );
-        }
-
         return ( errStat( NO_ERR ));
     }
 
@@ -116,13 +105,6 @@ namespace {
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 
         nodeData.map[ block ][ item - IR_USER_RANGE_START ] = arg;
-
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
-
-            printf( "writeAttrMem: block: 0x%x, item: %d, data: 0x%x\n", 
-                    block, item, arg );
-        }
-
         return ( errStat( NO_ERR ));
     }
 
@@ -139,13 +121,6 @@ namespace {
         uint16_t index  = item - IR_USER_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
-
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
-
-            printf( "readAttrNvm: block: 0x%x, item: %d, "
-                    "nvm-ofs: 0x%x, data: 0x%x\n",
-                     block, item, ofs, *arg );
-        }
 
         uint8_t rStat = rtNvmGetWord( ofs, arg );
         if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, *arg );
@@ -166,14 +141,7 @@ namespace {
         uint16_t index  = item - IR_USER_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
-        
-        if (( debugMask & LCS_DBG_ATTRIBUTES ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
-
-            printf( "writeAttrNvm: block: 0x%x, item: %d,"
-                    " nvm-ofs: 0x%x, data: 0x%x\n",
-                    block, item, ofs, arg );
-        }
-
+    
         uint8_t rStat = rtNvmPutWord( ofs, arg );
         if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, arg );
         
@@ -187,13 +155,12 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
 
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
-            printf( "syncAttrToMem: block: 0x%x, item: %d\n", block, item );
+            uint16_t arg = 0;
+            return ( readAttrNvm( block, item, &arg ));
         }
-
-        uint16_t arg = 0;
-        return ( errStat( readAttrNvm( block, item, &arg )));
+        else return ( ERR_INVALID_ITEM_ID );
     }
 
     //------------------------------------------------------------------------------------
@@ -203,15 +170,14 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
 
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
-            printf( "syncAttrToNvm: block: 0x%x, item: %d\n", block, item );
+            uint16_t    arg     = 0;
+            uint8_t     rStat   = readAttrMem( block, item, &arg );
+            if ( rStat == NO_ERR ) rStat = writeAttrNvm( block, item, arg );
+            return ( rStat );
         }
-
-        uint16_t    arg     = 0;
-        uint8_t     rStat   = readAttrMem( block, item, &arg );
-        if ( rStat == NO_ERR ) rStat = writeAttrNvm( block, item, arg );
-        return ( errStat( rStat ));
+        else return ( ERR_INVALID_ITEM_ID );
     }
 
     //------------------------------------------------------------------------------------
@@ -228,48 +194,9 @@ namespace {
         if ( portMap.map[ portId( npId ) ].reqCallback != nullptr ) {
 
             return ( errStat( portMap.map[ portId( npId ) ].
-                                    reqCallback( portId( npId ), item, arg1, arg2 )));
+                                reqCallback( portId( npId ), item, arg1, arg2 )));
         }
         else return ( errStat( ERR_INVALID_ITEM_ID ));
-    }
-
-    //------------------------------------------------------------------------------------
-    // "handleSyncCommand" is the handler for SYNC options. Arg1 will contain the 
-    // command, arg2 an optional argument.
-    //
-    //------------------------------------------------------------------------------------
-    uint8_t handleSyncCommand( uint8_t npId, uint16_t arg1, uint16_t arg2 ) {
-
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
-
-            printf( "handleSyncCommand: npId: 0x%x, arg1: %d, arg2: %d\n", 
-                    npId, arg1, arg2 );
-        }
-
-        switch ( arg1 ) {
-
-            case 1:  return ( errStat( syncEventMap( ))); 
-
-            case 2: {
-
-                if ( isInRangeU( arg2, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
-
-                   return ( errStat( syncAttrToMem( portId( npId ), arg2 )));
-                } 
-                else return ( errStat( ERR_INVALID_ITEM_ID ));
-            }
-
-            case 3: {
-
-                if ( isInRangeU( arg2, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
-
-                   return ( errStat( syncAttrToNvm( portId( npId ), arg2 )));
-                } 
-                else return ( errStat( ERR_INVALID_ITEM_ID ));
-            }
-
-            default: return ( errStat( 255 ));
-        }
     }
     
 } // namespace
@@ -567,7 +494,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( errStat( ALL_OK ));
             }
 
-            case ITEM_ID_FORMAT: {
+            case ITEM_ID_FORMAT_EXT: {
 
                 // ??? we need a way to format the extension board area, when needed. 
                 // ??? applies to ports 1 to 4 when they are mapped to a driver...
@@ -587,9 +514,19 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( errStat( removeEvent( *arg1 )));
             }
 
-            case ITEM_ID_SYNC: {
+            case ITEM_ID_SYNC_EVENT_MAP: {
 
-                return ( errStat( handleSyncCommand( npId, *arg1, *arg2 )));
+                return ( errStat( syncEventMap( )));
+            }
+
+            case ITEM_ID_SYNC_TO_MEM: {
+
+                return( errStat( syncAttrToMem( portId( npId ), *arg1 )));
+            }
+
+            case ITEM_ID_SYNC_TO_NVM: {
+
+                return( errStat( syncAttrToMem( portId( npId ), *arg1 )));
             }
 
             case ITEM_ID_ENABLE_EVENT_PROCESSING: {

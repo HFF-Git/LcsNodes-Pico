@@ -395,13 +395,17 @@ enum LcsItems : uint8_t {
     ITEM_ID_ATTR_MAP_ENTRIES            = 16,
 
     ITEM_ID_RESET                       = 22,
-    ITEM_ID_SYNC                        = 23,
-    ITEM_ID_FORMAT                      = 24,
     
-    ITEM_ID_ADD_EVENT_MAP_ENTRY         = 25,
-    ITEM_ID_DEL_EVENT_MAP_ENTRY         = 26,
-    ITEM_ID_GET_EVENT_MAP_ENTRY         = 27,
-    ITEM_ID_EVENT_DELAY_TICKS           = 21,
+    ITEM_ID_SYNC_EVENT_MAP              = 24,
+    ITEM_ID_SYNC_TO_NVM                 = 25,
+    ITEM_ID_SYNC_TO_MEM                 = 26,
+
+    ITEM_ID_FORMAT_EXT                  = 27,
+    
+    ITEM_ID_ADD_EVENT_MAP_ENTRY         = 28,
+    ITEM_ID_DEL_EVENT_MAP_ENTRY         = 29,
+    ITEM_ID_GET_EVENT_MAP_ENTRY         = 30,
+    ITEM_ID_EVENT_DELAY_TICKS           = 31,
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
     ITEM_ID_ACTIVE_LED                  = 34,
