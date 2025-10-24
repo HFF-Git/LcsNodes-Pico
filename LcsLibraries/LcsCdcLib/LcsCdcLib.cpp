@@ -50,6 +50,7 @@
 #include "hardware/spi.h"
 
 #include "LcsCdcLibVersion.h"
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 
 //----------------------------------------------------------------------------------------
@@ -273,8 +274,9 @@ struct CdcResource {
 //----------------------------------------------------------------------------------------
 struct CdcResourceMap {
 
-    uint16_t            options;
-    uint16_t            debugMask;
+   // uint16_t            options;
+   // uint16_t            debugMask;
+
     uint16_t            boardId;     
     uint16_t            cFamily;
     uint16_t            cType;
@@ -308,6 +310,8 @@ struct GpioIsrTable {
 //
 //----------------------------------------------------------------------------------------
 bool                    initialized = false;
+uint16_t                debugMask   = 0;
+uint16_t                options     = 0;
 CdcResourceDescMap      dMap;
 CdcResourceMap          rMap;
 GpioIsrTable            dioIntHandlers;
@@ -360,13 +364,11 @@ void initIsrTable( ) {
 //----------------------------------------------------------------------------------------
 void initResourceMap( CdcResourceMap *rMap ) {
 
-    rMap -> options                     = 0;
-    rMap -> debugMask                   = 0;
     rMap -> boardId                     = 0;
     rMap -> cFamily                     = CDC_CF_UNDEFINED;
     rMap -> cType                       = CDC_CF_UNDEFINED;
-    rMap -> cpuCores                    = 1;
-    rMap -> memorySize                  = 0;
+    rMap -> cpuCores                    = 2;
+    rMap -> memorySize                  = 264 * 1024;
     rMap -> eepromSize                  = 0;
     rMap -> watchDogIntervallMillis     = 2000;
     rMap -> adcRefVoltageMillis         = 3300;
@@ -550,12 +552,12 @@ namespace CDC {
 //----------------------------------------------------------------------------------------
 void setDebugMask( uint16_t mask ) {
 
-    rMap.debugMask = mask;
+    debugMask = mask;
 }
 
 uint16_t getDebugMask( ) {
 
-    return ( rMap.debugMask );
+    return ( debugMask );
 }
 
 //----------------------------------------------------------------------------------------
@@ -585,8 +587,8 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMa
     if ( ! initialized ) {
 
         initResourceMap( &rMap );
-        rMap.debugMask = debugMask;
-        rMap.options   = options;
+        debugMask = debugMask;
+        options   = options;
 
         initIsrTable( );
         configureConsoleIO( );
@@ -1028,7 +1030,7 @@ uint8_t configureDio( uint8_t rNum ) {
 
 uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_GPIO )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_GPIO )) {
 
         printf( "configureDio-detail: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", 
                 rNum, pinA, pinB, mode );
@@ -1274,7 +1276,7 @@ uint8_t configurePwm( uint8_t rNum,
                       uint8_t pinB, 
                       uint32_t frequency ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_PWM )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_PWM )) {
 
         printf( "Configure Pwm: rNum: %d, pinA: %d, pinB: %d, f: %d\n",
                 rNum, pinA, pinB, frequency );
@@ -1330,7 +1332,7 @@ uint8_t configurePwm( uint8_t rNum,
     pwm_set_clkdiv_int_frac( rPtr -> pwm.sliceNum, clkDiv / 16, clkDiv & 0xF );
     pwm_set_enabled( rPtr -> pwm.sliceNum, true );
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_PWM )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_PWM )) {
    
         printf( "pinA: % d, pinB: %d, fPwm: % d, phase: % d, inverted: % d, " 
                 "clkDiv: % d, wrap: %d, sliceNum: %d\n",
@@ -1353,7 +1355,7 @@ uint8_t configurePwm( uint8_t rNum,
 //----------------------------------------------------------------------------------------
 uint8_t setPwmFrequency( uint8_t rNum, uint32_t frequency ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_PWM )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_PWM )) {
         
         printf( "Set PWMFrequency: rNum: %d, f: %d\n", rNum, frequency );
     }
@@ -1370,7 +1372,7 @@ uint8_t setPwmFrequency( uint8_t rNum, uint32_t frequency ) {
 //----------------------------------------------------------------------------------------
 uint8_t writePwm( uint8_t rNum, uint8_t dutyCycleA, uint8_t dutyCycleB ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_PWM )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_PWM )) {
         
         printf( "Write PWM: rNum: %d, dutyA: %d, dutyB: %d\n", 
                 rNum, dutyCycleA, dutyCycleB );
@@ -1572,7 +1574,7 @@ uint8_t configureI2C( uint8_t  rNum,
                       uint32_t baudRate, 
                       uint32_t timeoutVal ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_I2C )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
         printf( "configureI2C: rNum: %d, scl: %d, sda: %d, baud: %d, tVal: %d\n",
                 rNum, sclPin, sdaPin, baudRate, timeoutVal  );
@@ -1631,20 +1633,19 @@ uint8_t i2cRead( uint8_t  rNum,
                             stopBit,
                             make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_I2C )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
         printf( "i2cRead: rNum: %d, i2c: 0x%x, buf: %p, "
                 "buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
                 rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
 
-        if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_I2C )) {
+        if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
             
             if ( ret == PICO_ERROR_GENERIC ) { 
                 
                 printf( "I2C read, PICO generic error\n" );
             }
-
-            if ( ret == PICO_ERROR_TIMEOUT ) { 
+            else if ( ret == PICO_ERROR_TIMEOUT ) { 
                 
                 printf( "I2C read, PICO timeout error\n" );
             }
@@ -1669,7 +1670,7 @@ uint8_t i2cWrite( uint8_t  rNum,
                   uint16_t len, 
                   bool     stopBit ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_I2C )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
         
         printf( "i2cWrite: rNum: %d, i2cAdr: 0x%x, buf: %p, "
                 "buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
@@ -1693,16 +1694,15 @@ uint8_t i2cWrite( uint8_t  rNum,
         sleep_ms(1);
     }
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_PWM )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_PWM )) {
 
-        if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_I2C )) {
+        if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
             if ( ret == PICO_ERROR_GENERIC ){
                 
                 printf( "I2C write, PICO generic error\n" );
             }
-
-            if ( ret == PICO_ERROR_TIMEOUT ) { 
+            else if ( ret == PICO_ERROR_TIMEOUT ) { 
                 
                 printf( "I2C write, PICO timeout error\n" );
             }
@@ -1722,7 +1722,7 @@ uint8_t i2cWrite( uint8_t  rNum,
 //----------------------------------------------------------------------------------------
 uint8_t i2cBusreset( uint8_t rNum ) {
 
-    if (( rMap.debugMask & CDC_DBG_ENABLE ) && ( rMap.debugMask & CDC_DBG_I2C )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
         printf( "I2C Bus reset, rNum: %d\n", rNum );
     }
@@ -1736,8 +1736,9 @@ uint8_t i2cBusreset( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// I2C helper routines.
-//
+// I2C helper routines. Although we work with resource numbers, sometimes we need 
+// to pass the physical pin numbers and the baudrate to an external library.
+// 
 //----------------------------------------------------------------------------------------
 uint8_t i2cGetSclPin( uint8_t rNum ) {
 
@@ -1764,7 +1765,8 @@ uint8_t i2cGetBaudrate( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "scanI2CBus" is a utility routine that displays all devices found on an I2C channel.
+// "scanI2CBus" is a utility routine that displays all devices found on an I2C 
+// channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t scanI2CBus( uint8_t rNum ) {
@@ -1992,9 +1994,10 @@ void printResourceMap( ) {
     printf( "CDC Resource Map for:" );
     printf( "%s\n", rMap.name );
 
-    printf( "Options: 0x%04x\n", rMap.options );
-    printf( "Debug Mask: 0x%04x\n", rMap.debugMask );
-    printf( "Controller Family: %d, Chip: %d\n", rMap.cFamily, rMap.cType );
+    printf( "Options: 0x%04x\n", options );
+    printf( "Debug Mask: 0x%04x\n", debugMask );
+
+    printf( "Controller Family: %d\n", dMap.boardCtrlInfo );
     printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", 
             rMap.cpuCores, rMap.memorySize, rMap.eepromSize );
             
