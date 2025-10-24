@@ -274,9 +274,6 @@ struct CdcResource {
 //----------------------------------------------------------------------------------------
 struct CdcResourceMap {
 
-   // uint16_t            options;
-   // uint16_t            debugMask;
-
     uint16_t            boardId;     
     uint16_t            cFamily;
     uint16_t            cType;

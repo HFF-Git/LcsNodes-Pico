@@ -141,7 +141,7 @@ namespace {
         uint16_t index  = item - IR_USER_RANGE_START;
         uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
             (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
-    
+
         uint8_t rStat = rtNvmPutWord( ofs, arg );
         if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, arg );
         
@@ -503,7 +503,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_SYNC_TO_NVM: {
 
-                return( errStat( syncAttrToMem( portId( npId ), *arg1 )));
+                return( errStat( syncAttrToNvm( portId( npId ), *arg1 )));
             }
 
             case ITEM_ID_ADD_EVENT_MAP_ENTRY: {
