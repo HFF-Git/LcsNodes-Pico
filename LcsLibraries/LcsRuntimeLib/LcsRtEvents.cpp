@@ -49,9 +49,10 @@ namespace LCS {
     extern uint16_t     debugMask;
     extern LcsEventMap  eventMap;
 
-    extern int          searchEvent( uint16_t eventId );
     extern uint8_t      rtNvmPutWord( uint32_t ofs, uint16_t word );
     extern uint8_t      rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+    extern uint8_t rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
+    extern uint8_t rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
 };
 
 //----------------------------------------------------------------------------------------
@@ -66,11 +67,12 @@ using namespace LCS;
 // Utility routines.
 //
 //----------------------------------------------------------------------------------------
-uint8_t errStat( uint8_t errId ) {
+uint8_t errStat( char *name, uint8_t errId ) {
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
 
-        printf( "Ret: %d\n", errId );
+        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
+        else                    printf( "%s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -95,11 +97,6 @@ int compareEventEntry( LcsEventMapEntry *e1, uint16_t eventId2 ) {
 //----------------------------------------------------------------------------------------
 int searchEventMap( uint16_t eventId ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
-        
-        printf( "Search Event Map: %d ", eventId );
-    }
-    
     int   res   = -1;
     int   low   = 0;
     int   high  = eventMap.mapHwm - 1;
@@ -119,7 +116,7 @@ int searchEventMap( uint16_t eventId ) {
     
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
         
-        printf( "-> %d\n", res );
+        printf((char *) "searchEventMap: eventId: %d -> %d\n", eventId, res );
     }
 
     return ( res );
@@ -133,22 +130,17 @@ int searchEventMap( uint16_t eventId ) {
 //----------------------------------------------------------------------------------------
 uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
-
-        printf( "addToMemEventMap: %d : 0x%x\n", eventId, eventMask );
-    }
-
-    int index = searchEvent( eventId );
+    int index = searchEventMap( eventId );
 
     if ( index >= 0 ) {
 
-        eventMap.map[ index ].eventMask; 
-        return ( errStat( NO_ERR ));
+        eventMap.map[ index ].eventMask = eventMask; 
+        return ( errStat((char *) "addToMemEventMap", LCS_OK ));
     }  
 
     if ( eventMap.mapHwm >= MAX_EVENT_MAP_ENTRIES ) {
 
-         return ( errStat( ERR_EVENT_MAP_FULL ));
+         return ( errStat((char *) "addToMemEventMap", ERR_EVENT_MAP_FULL ));
     }
        
     index = eventMap.mapHwm;
@@ -167,7 +159,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     eventMap.map[ index ].eventMask = eventMask;
     eventMap.mapHwm++;
 
-    return ( errStat( NO_ERR ));
+    return ( errStat((char *) "addToMemEventMap", NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -177,12 +169,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
 //----------------------------------------------------------------------------------------
 uint8_t removeFromMemEventMap( uint16_t eventId ) {
 
-     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
-        
-        printf( "removeFromMemEventMap: %d\n", eventId );
-    }
-
-    int index = searchEvent( eventId );
+    int index = searchEventMap( eventId );
 
     if ( index >= 0 ) {
 
@@ -192,7 +179,7 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
             eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
-    return ( errStat( NO_ERR ));
+    return ( errStat((char *) "removeFromMemEventMap", LCS_OK ));
 }
 
 } // namespace
@@ -204,30 +191,30 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// The "addEvent" routine will add or update an eventId/eventMask combination in the
-// event map.
+// The "addEventMask" routine will add or update an eventId/eventMask combination 
+// in the event map.
 //
 //----------------------------------------------------------------------------------------
-uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
+uint8_t setEventMask( uint16_t eventId, uint16_t eventMask ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) { 
         
-        return ( errStat( ERR_INVALID_EVENT_ID ));
+        return ( errStat((char *) "setEventMask", ERR_INVALID_EVENT_ID ));
     }
 
-    return ( errStat( addToMemEventMap( eventId, eventMask )));
+    return ( addToMemEventMap( eventId, eventMask ));
 }
 
 //----------------------------------------------------------------------------------------
-// The "removeEvent" routine will remove an event Id / port Id from the MEM event 
+// The "removeEventMask" routine will remove an event Id / port Id from the MEM event 
 // map.
 //
 //----------------------------------------------------------------------------------------
-uint8_t removeEvent( uint16_t eventId ) {
+uint8_t removeEventMask( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) {
         
-        return ( errStat( ERR_INVALID_EVENT_ID ));
+        return ( errStat((char *) "removeEventMask", ERR_INVALID_EVENT_ID ));
     }
 
     return ( removeFromMemEventMap( eventId ));
@@ -244,38 +231,93 @@ int searchEvent( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) {
         
-        return ( errStat( ERR_INVALID_EVENT_ID ));
+        return ( errStat((char *) "searchEvent", ERR_INVALID_EVENT_ID ));
     }
 
     return ( searchEventMap( eventId ));
 }
 
 //----------------------------------------------------------------------------------------
-// "syncEventMap" will write back the sorted MEM event map. We only write up to the
-// HWM mark, which points right after the last element in the sorted MEM event map. 
-// The idea is that all adds and removes are done on the MEM event map and a SYNC 
-// control call will flush the sorted MEM event map to NVM.
+// "syncEventMapToNvm" will write back the sorted MEM event map. We only write up
+// to the HWM mark, which points right after the last element in the sorted MEM 
+// event map. The idea is that all adds and removes are done on the MEM event map 
+// and a SYNC control call will flush the sorted MEM event map to NVM.
 //
 //----------------------------------------------------------------------------------------
-uint8_t syncEventMap( ) {
+uint8_t syncEventMapToNvm( ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
-        
-        printf( "syncEventMap \n" );  
-    }
+    uint8_t rStat = rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
+                                   (uint8_t *) eventMap.map, 
+                                   eventMap.mapHwm * sizeof( LcsEventMapEntry ));
 
-    uint8_t rStat =  
-        rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
-                       (uint8_t *) eventMap.map, 
-                       eventMap.mapHwm * sizeof( LcsEventMapEntry ));
-
-    if ( rStat == ALL_OK ) {
+    if ( rStat == LCS_OK ) {
 
         uint32_t ofs = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm );
         rStat = rtNvmPutWord( ofs, eventMap.mapHwm );
     }
 
-    return ( errStat( rStat ));
+    return ( errStat((char *) "syncEventMapToNvm", rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+// "syncEventMapToMem" will read back the sorted NVM event map. The event map stores
+// all events this node is interested to process. The map is a sorted map of event 
+// Id and port mask pairs. There is a high water mark, so that we only read up to the 
+// last used entry in the map. We just read up to the HWM, if the HWM is valid. If not,
+// we have to assume that there are issues with the event map. In this case we will
+// read the entire  map entry by entry, add used entries, i.e. entries with a non-NIL 
+// event ID to the memory map. After reading all entries, the newly created event map
+// is written back to the NVM. We now have a valid map again and write back to NVM so
+// that there is also a valid map. This routine is also called during the node setup
+// sequence. 
+//
+//----------------------------------------------------------------------------------------
+uint8_t syncEventMapToMem( ) {
+
+    uint32_t hwm   = 0;
+    uint8_t  rStat = rtNvmGetBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm ),
+                                   (uint8_t *) &hwm,
+                                   sizeof(uint32_t));
+    if ( rStat == LCS_OK ) {
+
+        if ( hwm < MAX_EVENT_MAP_ENTRIES ) {
+
+            rStat = rtNvmGetBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
+                                   (uint8_t *) &eventMap.map,
+                                   hwm * sizeof( LcsEventMapEntry ));
+
+            eventMap.mapHwm = hwm;
+        }
+        else {
+
+            for ( int i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
+
+                LcsEventMapEntry e;
+                eventMap.map[i] = e;
+            }
+
+            eventMap.mapHwm = 0;
+            for ( int i = 0; i < MAX_EVENT_MAP_ENTRIES; i++ ) {
+
+                LcsEventMapEntry e;
+
+                rStat = rtNvmGetBytes( 
+                            NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
+                                            (i * sizeof(LcsEventMapEntry)),
+                            (uint8_t *) &e,
+                            sizeof( LcsEventMapEntry ));
+
+                if (( rStat == LCS_OK ) && ( e.eventId != NIL_EVENT_ID )) {
+
+                    setEventMask( e.eventId, e.eventMask );
+                }
+            }
+
+            rStat = syncEventMapToNvm( );
+        }
+    }
+
+    return ( errStat((char *) "syncEventMapToMem", rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -286,18 +328,13 @@ uint8_t syncEventMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
-        
-        printf( "getMemEmapEntry: %d\n", index );
-    }
-  
     if ( index <  eventMap.mapHwm ) {
 
         *eventId    = eventMap.map[ index ].eventId;
         *eventMask  = eventMap.map[ index ].eventMask;
-        return ( errStat( ALL_OK ));
+        return ( errStat((char *) "getMemEmapEntry", LCS_OK ));
     }
-    else return ( errStat( ERR_INVALID_EVENT_MAP_INDEX ));
+    else return ( errStat((char *) "getMemEmapEntry", ERR_INVALID_EVENT_MAP_INDEX ));
 }
 
 };

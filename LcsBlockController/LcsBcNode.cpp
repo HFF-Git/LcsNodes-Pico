@@ -70,7 +70,7 @@ uint8_t LcsBlockControllerNode::handleInitCallback( uint16_t npId ) {
         default:    printf( "Port Init Callback: 0x%x\n", npId &  0xF   );
     } 
 
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ uint8_t LcsBlockControllerNode::handleResetCallback( uint16_t npId ) {
         default:    printf( "Port Reset Callback: 0x%x\n", npId &  0xF   );
     } 
 
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ uint8_t LcsBlockControllerNode::handlePfailCallback( uint16_t npId ) {
         default:    printf( "Port Power Fail Callback: 0x%x\n", npId &  0xF   );
     } 
 
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -114,7 +114,7 @@ uint8_t LcsBlockControllerNode::handleLcsMsgCallback( uint8_t *msg ) {
 
     printf( "MsgCallback: ", msg  );
     printLcsMsg( msg );
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 
@@ -163,7 +163,7 @@ uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, uint8_t ite
         }
     }
 
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, uint8_t ite
 uint8_t LcsBlockControllerNode::handleLcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
 
     printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -185,6 +185,6 @@ uint8_t LcsBlockControllerNode::handleLcsRepCallback( uint16_t npId, uint8_t ite
 uint8_t LcsBlockControllerNode::handleLcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
 
     printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
-    return( ALL_OK );
+    return( LCS_OK );
 }
 

@@ -867,14 +867,14 @@ uint8_t LcsBaseStationDccTrack::setupDccTrack( LcsBaseStationTrackDesc* trackDes
         flags |= DT_F_RAILCOM_MODE_ON;
 
         uint8_t rStat = configureUart( rNumUartRx );
-        if ( rStat != ALL_OK ) {
+        if ( rStat != LCS_OK ) {
 
             flags = DT_F_CONFIG_ERROR;
             return ( ERR_DCC_TRACK_CONFIG );
         }
     }
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1203,7 +1203,7 @@ uint8_t LcsBaseStationDccTrack::handleRailComMsg( ) {
     }
 
     flags &= ~ DT_F_RAILCOM_MSG_PENDING;
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 // ??? not very useful, but good for debugging and initial testing .... and it works like a champ :-)

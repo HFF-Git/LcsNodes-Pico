@@ -334,7 +334,7 @@ uint8_t setupScreens( ) {
     setFunctionSelectScreen     -> append( setFunctionOperateScreen );
     configFunctionSelectScreen  -> append( configFunctionEditScreen );
 
-    return ( LCS::ALL_OK );
+    return ( LCS::LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -902,7 +902,7 @@ void NewCabScreen::selectButtonClick( UIButton * buttonId ) {
 
     uint8_t rStat = msgBus -> requestLocoSession( currentCab );
 
-    if ( rStat == LCS::ALL_OK ) {
+    if ( rStat == LCS::LCS_OK ) {
 
         UIScreen::setCurrentScreen( operateScreen );
     }

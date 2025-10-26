@@ -121,7 +121,7 @@ void printLcsMsg( uint8_t *msg ) {
 uint8_t printStatus (uint8_t status ) {
 
   printf( "Status: " );
-  if ( status == LCS::ALL_OK ) printf( "OK\n" );
+  if ( status == LCS::LCS_OK ) printf( "OK\n" );
   else printf ( "FAILED: %d\n", status );
   return ( status );
 }

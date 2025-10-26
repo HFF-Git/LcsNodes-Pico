@@ -59,7 +59,7 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
     this -> mainTrack     = mainTrack;
     this -> progTrack     = progTrack;
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ void LcsBaseStationCommand::openSessionCmd( char *s ) {
 
     int ret = locoSessions -> requestSession( cabId, LSM_NORMAL, &sId );
 
-    printf( "<O %d>", (( ret == ALL_OK ) ? sId : -1 ));
+    printf( "<O %d>", (( ret == LCS_OK ) ? sId : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -369,7 +369,7 @@ void LcsBaseStationCommand::readCVCmd( char *s ) {
 
     ret = locoSessions -> readCV( cvId, 0, &val );
 
-    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 ));
+    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == LCS_OK ) ? val : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -401,7 +401,7 @@ void LcsBaseStationCommand::writeCVByteCmd( char *s ) {
 
     ret = locoSessions -> writeCVByte( cvId, val );
 
-    printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == ALL_OK ) ? val : -1 ));
+    printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == LCS_OK ) ? val : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -435,7 +435,7 @@ void LcsBaseStationCommand::writeCVBitCmd( char *s ) {
 
     ret = locoSessions -> writeCVBit( cvId, bitPos, bitVal );
 
-    printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, (( ret == ALL_OK ) ? bitVal : -1 ));
+    printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, (( ret == LCS_OK ) ? bitVal : -1 ));
 }
 
 //----------------------------------------------------------------------------------------

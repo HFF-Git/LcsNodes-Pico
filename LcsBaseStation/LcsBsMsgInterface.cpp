@@ -95,7 +95,7 @@ uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
     this -> mainTrack     = mainTrack;
     this -> progTrack     = progTrack;
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 } 
 
 //----------------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                     cabId, flags, ret , sId );
             }
 
-            if ( ret == ALL_OK ) {
+            if ( ret == LCS_OK ) {
 
                 SessionMapEntry *smePtr = locoSessions -> getSessionMapEntryPtr( sId );
 
@@ -197,7 +197,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                 printf( "LCS_OP_REL_LOC: %d -> Ret: %d\n", sId, ret );
             }
 
-            if ( ret == ALL_OK ) sendDccErr( ERR_LOCO_SESSION_CANCELLED );
+            if ( ret == LCS_OK ) sendDccErr( ERR_LOCO_SESSION_CANCELLED );
             else                 sendDccErr( ERR_SESSION_NOT_FOUND, sId );
 
         }  break;
@@ -213,8 +213,8 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t spDir = msg[ 2 ];
             int     ret   = locoSessions -> markSessionAlive( sId );
 
-            if ( ret == ALL_OK ) ret = locoSessions -> setThrottle( sId, spDir & 0x7f, ( spDir & 0x80 ) >> 7 );
-            if ( ret != ALL_OK ) sendDccErr( ret, sId );
+            if ( ret == LCS_OK ) ret = locoSessions -> setThrottle( sId, spDir & 0x7f, ( spDir & 0x80 ) >> 7 );
+            if ( ret != LCS_OK ) sendDccErr( ret, sId );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -233,8 +233,8 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t flags = msg[ 2 ];
             int     ret   = locoSessions -> markSessionAlive( sId );
 
-            if ( ret == ALL_OK ) ret = locoSessions -> updateSession( sId, flags );
-            if ( ret != ALL_OK ) sendDccErr( ret, sId );
+            if ( ret == LCS_OK ) ret = locoSessions -> updateSession( sId, flags );
+            if ( ret != LCS_OK ) sendDccErr( ret, sId );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -255,8 +255,8 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t dccByte = msg[ 3 ];
             int     ret     = locoSessions -> markSessionAlive( sId );
 
-            if ( ret == ALL_OK ) ret = locoSessions -> setDccFunctionGroup( sId, fGroup, dccByte );
-            if ( ret != ALL_OK ) sendDccErr( ret, sId );
+            if ( ret == LCS_OK ) ret = locoSessions -> setDccFunctionGroup( sId, fGroup, dccByte );
+            if ( ret != LCS_OK ) sendDccErr( ret, sId );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -278,10 +278,10 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t fNum  = msg[ 2 ];
             int     ret   = locoSessions -> markSessionAlive( sId );
 
-            if ( ret == ALL_OK )
+            if ( ret == LCS_OK )
             ret = locoSessions -> setDccFunctionBit( sId, fNum, (( msg[0] == LCS_OP_LOC_FON ) ? 1 : 0 ));
 
-            if ( ret != ALL_OK ) sendDccErr( ret, sId );
+            if ( ret != LCS_OK ) sendDccErr( ret, sId );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -301,7 +301,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t sId = msg[ 1 ];
             int     ret = locoSessions -> markSessionAlive( sId );
 
-            if ( ret != ALL_OK ) sendDccErr( ret, sId );
+            if ( ret != LCS_OK ) sendDccErr( ret, sId );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -323,8 +323,8 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t   val   = msg[ 5 ];
             int       ret   = locoSessions -> markSessionAlive( sId );
 
-            if ( ret == ALL_OK ) ret = locoSessions -> writeCVMain( sId, cvId, mode, val );
-            if ( ret != ALL_OK ) sendDccErr( ret, sId );
+            if ( ret == LCS_OK ) ret = locoSessions -> writeCVMain( sId, cvId, mode, val );
+            if ( ret != LCS_OK ) sendDccErr( ret, sId );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -357,7 +357,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t   val   = msg[ 4 ];
             int       ret   = locoSessions -> writeCV( cvId, mode, val );
 
-            if ( ret != ALL_OK ) sendDccErr( ret );
+            if ( ret != LCS_OK ) sendDccErr( ret );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
@@ -388,7 +388,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint8_t   val   = 0;
             int       ret   = locoSessions -> readCV( cvId, mode, &val );
 
-            if ( ret == ALL_OK )  sendRepLocCvProg( cvId, val );
+            if ( ret == LCS_OK )  sendRepLocCvProg( cvId, val );
             else                  sendDccErr( ret );
 
             if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {

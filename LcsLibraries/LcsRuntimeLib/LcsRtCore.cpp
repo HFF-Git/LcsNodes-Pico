@@ -298,7 +298,7 @@ void handleMsgRepNode( uint8_t *msg ) {
     LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
 
     if ( pPtr -> repCallback != nullptr ) 
-        pPtr -> repCallback( npId, item, arg1, arg2, ALL_OK );
+        pPtr -> repCallback( npId, item, arg1, arg2, LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -331,6 +331,7 @@ void handleMsgReqNode( uint8_t *msg ) {
 // routine, which will manage the timely invocation of the event callbacks. The event
 // mask has a bit for each port. 
 //
+// ??? what if we are the sender of this event ?
 //----------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
@@ -691,7 +692,7 @@ uint8_t registerInitCallback( LcsInitCallback functionId ) {
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.initCallback = functionId;
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerPfailCallback( LcsInitCallback functionId ) {
@@ -699,7 +700,7 @@ uint8_t registerPfailCallback( LcsInitCallback functionId ) {
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.pfailCallback = functionId;
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
@@ -707,7 +708,7 @@ uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.lcsMsgCallback = functionId;
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
@@ -715,7 +716,7 @@ uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.dccMsgCallback = functionId;
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
@@ -723,7 +724,7 @@ uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     nodeMap.cmdLineCallback = functionId;
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerEventCallback( LcsEventCallback functionId, uint16_t portMask ) {
@@ -735,7 +736,7 @@ uint8_t registerEventCallback( LcsEventCallback functionId, uint16_t portMask ) 
         if ( portMask & ( 1 << i )) portMap.map[ i ].eventCallback = functionId;
     }
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
@@ -747,7 +748,7 @@ uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
         if ( portMask & ( 1 << i )) portMap.map[ i ].reqCallback = functionId;
     }
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
@@ -759,7 +760,7 @@ uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
         if ( portMask & ( 1 << i )) portMap.map[ i ].repCallback = functionId;
     }
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
@@ -772,7 +773,7 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
         taskMap.map[ taskMap.mapHwm ].interval   = interval;
         taskMap.map[ taskMap.mapHwm ].timeStamp  = getMillis( );
         taskMap.mapHwm ++;
-        return ( ALL_OK );
+        return ( LCS_OK );
 
     } else return ( ERR_TASK_MAP_SIZE_EXCEEDED );
 }
@@ -783,12 +784,13 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 // ports on the same node. In other words, the nodeId of the sending node and our
 // node are the same.
 //
+// ??? how to prevent that we send it also to the originating port and loop ?
 //----------------------------------------------------------------------------------------
 uint8_t localMsgEvent( uint8_t *msg ) {
 
     if ( nodeMap.nodeState != NS_OPERATE ) return ( ERR_LIB_NOT_INITIALIZED );
     handleMsgEvent( msg );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -805,7 +807,7 @@ uint8_t startRuntime( ) {
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
     
     handleNodeState( );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 }; // namespace LCS

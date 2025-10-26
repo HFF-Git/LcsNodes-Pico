@@ -648,7 +648,7 @@ uint8_t configNvm(  uint8_t     rIdNvm,
                 rIdNvm, nodeNvmSize, rIdExtNvm, extNvmSize ); 
     }
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------

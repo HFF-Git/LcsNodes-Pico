@@ -339,35 +339,39 @@ enum LcsPortEventAction : uint8_t {
 // Node, port and extension board driver attributes and functions are accessed with 
 // three main routines, GET, SET and REQ.  
 //
-// GET  -   the get routine will use the item numbers to retrieve the data labelled 
-//          by the item. 
+// GET  -   the get routine retrieves the data labelled by the item. On input, two
+//          arguments can be passed, on output, two values can be returned.
 //
-// SET  -   the set routine will use the item numbers to set the value. Note that 
-//          not all items that can be read may also be written to. An attempt will 
-//          result in an error return.
+// SET  -   the set routine will set the value. On input, two arguments can be passed,
+//          on output, two values can be returned. Note that not all items that can
+//          be read with a GET call may also be written to. An attempt will result
+//          in an error return.
 //
 // REQ  -   the request call will transmit the request parameters to the port  
 //          driver where a registered callback or the driver entry point will be
-//          invoked. The exception is P0, the node port which is directly handed in 
-//          the library. The result is returned via the parameters.
+//          invoked. The exception is port zero, the node port, which is directly 
+//          handled by the library. The result is returned via the parameters.
 //
 // One argument for these calls is the ITEM. Items range from  0 ... 255 and are
 // defined as follows: 
 //
 //   0          -   NIL item, not used
 //
-//   1  .. 127  -   Node / port / driver library reserved area items, global items 
-//                  for GET/SET/REQ requests.
+//   1  .. 127  -   Node / port / driver library reserved items for GET/SET/REQ 
+//                  requests.
 //
 // 128  .. 255  -   Node / port / driver data attributes when using the GET/SET 
-//                  routines. User or driver defined items, specific meaning, 
-//                  accessed via the REQ routine.
+//                  routines. 
 //
-// The following declarations just list the item numbers defined. The ranges are defined
-// in the internal include file. The ranges as well as the reserved items defined here 
-// should not be tampered with.
+//                  User or driver defined items using the REQ routines with a
+//                  specific meaning. 
 //
-// ??? to be sorted when more stable...
+// The following declarations just list the item numbers defined. The valid ranges
+// are defined in the internal include file. The ranges as well as the reserved items 
+// defined here should not be tampered with. Note that the item numbers for GET/PUT 
+// and REQ can be the same but mean entirely different things. 
+//
+// ??? to be sorted when more stable... what is a good sorting ?
 // ??? how about an item that allows to set / clear a bit in a mask ?
 //----------------------------------------------------------------------------------------
 enum LcsItems : uint8_t {
@@ -396,21 +400,22 @@ enum LcsItems : uint8_t {
 
     ITEM_ID_RESET                       = 22,
     
-    ITEM_ID_SYNC_EVENT_MAP              = 24,
+    ITEM_ID_SYNC_EVENT_MAP_MEM          = 23,
+    ITEM_ID_SYNC_EVENT_MAP_NVM          = 24,
     ITEM_ID_SYNC_TO_NVM                 = 25,
     ITEM_ID_SYNC_TO_MEM                 = 26,
 
     ITEM_ID_FORMAT_EXT                  = 27,
     
-    ITEM_ID_ADD_EVENT_MAP_ENTRY         = 28,
-    ITEM_ID_DEL_EVENT_MAP_ENTRY         = 29,
-    ITEM_ID_GET_EVENT_MAP_ENTRY         = 30,
-    ITEM_ID_EVENT_DELAY_TICKS           = 31,
+    ITEM_ID_SET_EVENT_MASK              = 28,
+    ITEM_ID_REMOVE_EVENT_MASK           = 29,
+    ITEM_ID_LOOKUP_EVENT_ENTRY          = 30,
+
+    ITEM_ID_GET_EVENT_MAP_ENTRY         = 31,
+    ITEM_ID_EVENT_DELAY_TICKS           = 32,
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,
 
-    ITEM_ID_ACTIVE_LED                  = 34,
-
-   
+    ITEM_ID_ACTIVE_LED                  = 41,
     
     // ??? add stop and enable periodic processing ?
 };
@@ -529,7 +534,7 @@ enum LcsMsgOpCodes : uint8_t {
 //----------------------------------------------------------------------------------------
 enum LcsErrorCodes : uint8_t {
 
-    ALL_OK                              = 0,
+    LCS_OK                              = 0,
     ERR_NOT_IMPLEMENTED                 = 1,
     ERR_NOT_SUPPORTED                   = 2,
     ERR_LIB_NOT_INITIALIZED             = 3,

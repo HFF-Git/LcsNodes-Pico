@@ -84,7 +84,7 @@ uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
             pendingReqMap.map[ i ].npId = npId;
             pendingReqMap.map[ i ].reqTimeoutTs = 
                             (( timeoutVal != 0 ) ? ts + timeoutVal : 0 );
-            return ( ALL_OK );
+            return ( LCS_OK );
         }
     }
     
@@ -214,7 +214,7 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 
     int rStat = msgBus -> receiveLcsMsg( msg );
 
-    if ( rStat == ALL_OK )  {
+    if ( rStat == LCS_OK )  {
 
         if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_MSG_BUS )) {
             

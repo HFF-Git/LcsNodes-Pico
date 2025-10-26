@@ -70,7 +70,7 @@ uint8_t setupCabStack( ) {
 
     cabStack -> printCabSlots( );
 
-    return ( LCS::ALL_OK );
+    return ( LCS::LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ uint8_t CabStack::loadCabSlotsFromNVM( ) {
 
   // ??? to do ...
 
-  return( LCS::ALL_OK );
+  return( LCS::LCS_OK );
 }
 
 uint8_t CabStack::updateCabSlotInNVM( int index ) {
@@ -342,7 +342,7 @@ uint8_t CabStack::updateCabSlotInNVM( int index ) {
     // ??? to do ...
   }
 
-  return( LCS::ALL_OK );
+  return( LCS::LCS_OK );
 }
 
 uint8_t CabStack::getMaxEntries( ) {

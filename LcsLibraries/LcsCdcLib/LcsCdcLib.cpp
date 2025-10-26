@@ -1734,7 +1734,7 @@ uint8_t i2cBusreset( uint8_t rNum ) {
 
 //----------------------------------------------------------------------------------------
 // I2C helper routines. Although we work with resource numbers, sometimes we need 
-// to pass the physical pin numbers and the baudrate to an external library.
+// to pass the physical pin numbers and the baud rate to an external library.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t i2cGetSclPin( uint8_t rNum ) {

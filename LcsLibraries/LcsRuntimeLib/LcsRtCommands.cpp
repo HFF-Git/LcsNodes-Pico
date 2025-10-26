@@ -74,14 +74,13 @@ char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 //----------------------------------------------------------------------------------------
 // Helper routines for error status handling.
 //
-// ??? one day, combine all error strings in one routine and print them from there...
 //----------------------------------------------------------------------------------------
-void errorArgList( ) {
+void errArgList( ) {
 
     printf( "Argument list error, use \"?\" for help\n" );
 }
 
-void errorStatusMsg( char *msg, uint8_t ret ) {
+void errStat( char *msg, uint8_t ret ) {
 
     printf( "Error: %s ( %d )\n", msg, ret );
 }
@@ -566,7 +565,7 @@ void switchToConfigCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%i", &npId ) > 1 ) return ( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) > 1 ) return ( errArgList( ));
 
     uint16_t tmpNpId = (uint16_t) npId;
 
@@ -577,7 +576,7 @@ void switchToConfigCommand( char *s ) {
     else {
 
         uint8_t ret = sendCfg( tmpNpId );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node send error", ret );
     }
 }
 
@@ -593,7 +592,7 @@ void switchToOperationsCommand( char *s ) {
 
     int npId = NIL_NODE_ID;
 
-    if ( sscanf( s, "%i", &npId ) > 1 ) return ( errorArgList( ));
+    if ( sscanf( s, "%i", &npId ) > 1 ) return ( errArgList( ));
 
     uint16_t tmpNpId = (uint16_t) npId;
 
@@ -604,177 +603,8 @@ void switchToOperationsCommand( char *s ) {
     else {
 
         uint8_t ret = sendOps( tmpNpId );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node send error", ret );
     }
-}
-
-//----------------------------------------------------------------------------------------
-// "a" adds an eventId / portId to the event map. If the portId is omitted, every port
-// of the node will be registered for the event. For a non-local npId we will send a 
-// message.
-//
-//      a npId eventId [ portId ]
-//
-//      npId      - the node and port Id for which the event is added.
-//      eventId   - the eventId.
-//      portId    - the port number.
-//
-//----------------------------------------------------------------------------------------
-void enterEventCommand( char *s ) {
-
-    int  npId      = 0;
-    int  eventId   = NIL_EVENT_ID;
-    int  portId    = 0;
-
-    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 2 ) 
-        return ( errorArgList( ));
-
-    uint16_t tmpNpId    = (uint16_t) npId;
-    uint16_t tmpEvent   = (uint16_t) eventId;
-    uint16_t tmpPort    = (uint16_t) portId;
-
-   if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
-
-        uint8_t ret = nodeReq( (uint16_t) tmpNpId,
-                                ITEM_ID_ADD_EVENT_MAP_ENTRY, 
-                                &tmpEvent, 
-                                &tmpPort );
-       if ( ret != ALL_OK ) errorStatusMsg((char *) "Node enter event error", ret );
-    }
-    else {
-
-        uint8_t ret = sendReqNode( nodeId( tmpNpId ), 
-                                   ITEM_ID_ADD_EVENT_MAP_ENTRY, 
-                                   tmpEvent, 
-                                   tmpPort );                  
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
-    }
-}
-
-//----------------------------------------------------------------------------------------
-// "d" removes a eventId / portId combination from the event map. If the portId is 
-// omitted, all eventMap entries with the eventId are removed. The npId is the node
-// it refers to. If zero or our node, we issue a local request, otherwise we issue
-// a LCS Msg request.
-//
-//      d npId eventId [ portId ]
-//
-//      npId      - the node and port Id for which the event is added.
-//      eventId   - the eventId.
-//      portId    - the port number.
-//
-//----------------------------------------------------------------------------------------
-void removeEventCommand( char *s ) {
-
-    int  npId      = 0;
-    int  eventId   = NIL_EVENT_ID;
-    int  portId    = 0;
-
-    if ( sscanf( s, "%i %i %i ", &npId, &eventId, &portId ) < 1 ) 
-       return ( errorArgList( ));
-
-    uint16_t tmpNpId    = (uint16_t) npId;
-    uint16_t tmpEvent   = (uint16_t) eventId;
-    uint16_t tmpPort    = (uint16_t) portId;
-
-    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
-
-        int ret = nodeReq( tmpNpId, ITEM_ID_DEL_EVENT_MAP_ENTRY, &tmpEvent, &tmpPort );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node remove event error", ret );
-    }
-    else {
-
-        uint8_t ret = sendReqNode( tmpNpId, 
-                                   ITEM_ID_DEL_EVENT_MAP_ENTRY, 
-                                   tmpEvent, 
-                                   tmpPort );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node send error", ret );
-    }
-}
-
-//----------------------------------------------------------------------------------------
-// "f" searches the event map for the eventId / portId combination and returns the 
-// index if found. If the portId is omitted, the first event map entry with the 
-// matching eventId is returned. This is a local command and cannot be called from 
-// a remote node.
-//
-//      f eventId [ portId ]
-//
-//      eventId   - the eventId.
-//      portId    - the port number.
-//
-//----------------------------------------------------------------------------------------
-void findEventCommand( char *s ) {
-
-    int  eventId   = NIL_EVENT_ID;
-    int  portId    = 0;
-
-    if ( sscanf( s, "%i %i ", &eventId, &portId ) < 1 ) return ( errorArgList( ));
-
-    uint16_t tmpEvent   = (uint16_t) eventId;
-    uint16_t tmpPort    = (uint16_t) portId;
-
-    int ret = searchEvent( tmpEvent );
-    printf( "Event map index: %d", ret );
-}
-
-//----------------------------------------------------------------------------------------
-// "e" will send an event. We will broadcast a message and also simulates receiving 
-// an event on the local node. Sending to ourselves is also quite useful for debug
-// event callback handlers.
-//
-//    e mode npId eventId [ arg ]
-//
-//    mode      - 0 - ON, 1 - OFF, 2 - DATA
-//    npId      - the sending node / port Id
-//    eventId   - the event Id
-//    arg       - optional data argument for the event.
-//
-//----------------------------------------------------------------------------------------
-void sendEventCommand( char *s ) {
-
-    uint8_t msg[ 8 ]    = { };
-    int     npId        = NIL_NODE_ID;
-    int     eventId     = NIL_EVENT_ID;
-    int     mode        = 0;
-    int     arg         = 0;
-    int     len         = 0;
-    uint8_t ret         = ALL_OK;
-
-    len = sscanf( s, "%i %i %i %i", &mode, &npId, &eventId, &arg );
-
-    uint16_t tmpNpId    = (uint16_t) npId;
-    uint16_t tmpEvent   = (uint16_t) eventId;
-    uint16_t tmpArg     = (uint16_t) arg;
-
-    if ( len < 3 ) return ( errorArgList( ));
-
-    msg[ 0 ] = 0;
-    msg[ 1 ] = highByte( tmpNpId );
-    msg[ 2 ] = lowByte( tmpNpId );
-    msg[ 3 ] = highByte( tmpEvent );
-    msg[ 4 ] = lowByte( tmpEvent );
-    msg[ 5 ] = highByte( tmpArg );
-    msg[ 6 ] = lowByte( tmpArg );
-    msg[ 7 ] = 0;
-
-    if ( mode == 0 ) {
-
-        msg[ 0 ] = LCS_OP_EVT_ON;
-        ret = sendEventOn( tmpNpId, tmpEvent ); 
-    }
-    else if ( mode == 0 ) {
-
-        msg[ 0 ] = LCS_OP_EVT_OFF;
-        ret = sendEventOn( tmpNpId, tmpEvent ); 
-    }
-    else if ( mode == 2 ) {
-
-        msg[ 0 ] = LCS_OP_EVT;
-        ret = sendEvent( tmpNpId, tmpEvent, tmpArg ); 
-    }
-
-    if ( ret != ALL_OK ) errorStatusMsg((char *) "Send event error", ret );
 }
 
 //----------------------------------------------------------------------------------------
@@ -795,10 +625,10 @@ void getNodeCommand( char *s ) {
     int     item    = 0;
     int     arg1    = 0;
     int     arg2    = 0;
-    uint8_t ret     = ALL_OK;
+    uint8_t ret     = LCS_OK;
 
     if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) 
-        return ( errorArgList( ));
+        return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -808,14 +638,14 @@ void getNodeCommand( char *s ) {
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
         ret = nodeGet ( tmpNpId, tmpItem, &tmpArg1, &tmpArg2 );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node GET error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
         else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", 
                      tmpNpId, tmpItem, tmpArg1, tmpArg2 );
     }
     else {
 
         ret = sendGetNode( tmpNpId, tmpItem, tmpArg1, tmpArg2 );
-         if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node GET error", ret );
+         if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
     }
 }
 
@@ -837,10 +667,10 @@ void putNodeCommand( char *s ) {
     int     item    = 0;
     int     val1    = 0;
     int     val2    = 0;
-    uint8_t ret     = ALL_OK;
+    uint8_t ret     = LCS_OK;
 
     if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) 
-        return ( errorArgList( ));
+        return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -852,14 +682,14 @@ void putNodeCommand( char *s ) {
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
         ret = nodePut( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node PUT error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Node PUT error", ret );
         else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
                     tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 
         ret = sendSetNode( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node PUT error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node PUT error", ret );
     }
 }
 
@@ -881,10 +711,10 @@ void reqNodeCommand( char *s ) {
     int     item    = 0;
     int     val1    = 0;
     int     val2    = 0;
-    uint8_t ret     = ALL_OK;
+    uint8_t ret     = LCS_OK;
 
     if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) 
-        return ( errorArgList( ));
+        return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
@@ -894,15 +724,52 @@ void reqNodeCommand( char *s ) {
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
         ret = nodeReq( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Node REQ error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Node REQ error", ret );
         else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
                     tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 
         ret = sendReqNode( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Remote Node REQ error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node REQ error", ret );
     }
+}
+
+//----------------------------------------------------------------------------------------
+// "e" will send an event. We will broadcast a message and also simulate receiving 
+// an event on the local node. Sending to ourselves is also quite useful for debug
+// event callback handlers.
+//
+//    e mode npId eventId [ arg ]
+//
+//    mode      - 0 - ON, 1 - OFF, 2 - DATA
+//    npId      - the sending node / port Id
+//    eventId   - the event Id
+//    arg       - optional data argument for the data event.
+//
+//----------------------------------------------------------------------------------------
+void sendEventCommand( char *s ) {
+
+    int     npId        = NIL_NODE_ID;
+    int     eventId     = NIL_EVENT_ID;
+    int     mode        = 0;
+    int     arg         = 0;
+    int     len         = 0;
+    uint8_t ret         = LCS_OK;
+
+    len = sscanf( s, "%i %i %i %i", &mode, &npId, &eventId, &arg );
+
+    uint16_t tmpNpId    = (uint16_t) npId;
+    uint16_t tmpEvent   = (uint16_t) eventId;
+    uint16_t tmpArg     = (uint16_t) arg;
+
+    if ( len < 3 ) return ( errArgList( ));
+
+    if      ( mode == 0 ) ret = sendEventOn( tmpNpId, tmpEvent ); 
+    else if ( mode == 1 ) ret = sendEventOff( tmpNpId, tmpEvent ); 
+    else if ( mode == 2 ) ret = sendEvent( tmpNpId, tmpEvent, tmpArg ); 
+
+    if ( ret != LCS_OK ) errStat((char *) "Send event error", ret );
 }
 
 //----------------------------------------------------------------------------------------
@@ -929,9 +796,9 @@ void broadcastLcsMsgCommand( char *s ) {
         for ( int i = 0; i < 8; i++ ) b[ i ] == (uint8_t) inBuf[ i ];
 
         uint8_t ret = msgBus -> sendLcsMsg( b ); 
-        if ( ret != ALL_OK ) errorStatusMsg((char *) "Can Bus send error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Can Bus send error", ret );
     }
-    else errorArgList( );
+    else errArgList( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -993,19 +860,15 @@ void listStatusCommand( char *s ) {
 //----------------------------------------------------------------------------------------
 void listCoreLibHelpCommand( ) {
 
-    printf( "\nCommands: \n" );
+    printf( "Commands: \n\n" );
     printf( "c [ npId ] - enter config mode\n" );
     printf( "o [ npId ] - enter operations mode\n" );
 
-    printf( "a npId eventId [ npId ] - add an event to the event tab\n" );
-    printf( "d npId eventId [ npId ] - remove an event from the event tab\n" );
-    printf( "e npId eventId mode [ arg ] - simulate sending an event"
-            " ( mode: 0 - ON, 1 - OFF, 2 - EVT )\n" );
-    printf( "f eventId [ npId ] - search an event on the event tab\n" );
-    
     printf( "g npId item [ val1 [ val2 ]] - gets a node attribute\n" );
     printf( "p npId item val1 [ val2 ]    - puts a node attribute\n" );
     printf( "r npId item [ val1 [ val2 ]] - request a node function\n" );
+    printf( "e npId eventId mode [ arg ] - simulate sending an event"
+            " ( mode: 0 - ON, 1 - OFF, 2 - EVT )\n" );
 
     printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
 
@@ -1078,14 +941,10 @@ uint8_t handleSerialCommand( ) {
                         case 'C': switchToConfigCommand( commandBuf + 1 );      break;
                         case 'O': switchToOperationsCommand( commandBuf + 1 );  break;
                         
-                        case 'a': enterEventCommand( commandBuf + 1 );          break;
-                        case 'd': removeEventCommand( commandBuf + 1 );         break;
-                        case 'f': findEventCommand( commandBuf + 1 );           break;
-                        case 'e': sendEventCommand( commandBuf + 1 );           break;
-                        
                         case 'g': getNodeCommand( commandBuf + 1 );             break;
                         case 'p': putNodeCommand( commandBuf + 1 );             break;
                         case 'r': reqNodeCommand( commandBuf + 1 );             break;
+                        case 'e': sendEventCommand( commandBuf + 1 );           break;
 
                         case 'B': broadcastLcsMsgCommand( commandBuf + 1 );     break;
 
@@ -1108,8 +967,6 @@ uint8_t handleSerialCommand( ) {
                 else if ( nodeMap.nodeState == NS_OPERATE ) printf( "(o)->" );
                 else                                        printf( "->" );
 
-                
-            
             } break;
 
             case '\b': {
@@ -1129,7 +986,7 @@ uint8_t handleSerialCommand( ) {
         }
     }
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 }; // namespace LCS

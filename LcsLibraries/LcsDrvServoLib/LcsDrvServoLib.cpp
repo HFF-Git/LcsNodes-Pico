@@ -260,7 +260,7 @@ uint8_t lcsDrvServo( uint8_t boardId, uint8_t item, uint16_t *arg1, uint16_t *ar
             // have a 16 bit mask for the bits, write both a when we set something ?
             // writeI2C ( config reg 1, 2 )
 
-            return( ALL_OK );
+            return( LCS_OK );
 
         } break;
 

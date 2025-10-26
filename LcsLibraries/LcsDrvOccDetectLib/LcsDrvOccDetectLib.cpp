@@ -143,9 +143,9 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
         case ITEM_ID_RESET: {
 
             uint8_t rStat =         writeReg( mapI2CAdr( boardId ), 4, 0xFF );
-            if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 5, 0xFF );
-            if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 6, 0xFF );
-            if ( rStat == ALL_OK )  writeReg( mapI2CAdr( boardId ), 7, 0xFF );
+            if ( rStat == LCS_OK )  writeReg( mapI2CAdr( boardId ), 5, 0xFF );
+            if ( rStat == LCS_OK )  writeReg( mapI2CAdr( boardId ), 6, 0xFF );
+            if ( rStat == LCS_OK )  writeReg( mapI2CAdr( boardId ), 7, 0xFF );
 
             printf( "Occ Detect RESET: ret: %d\n", rStat );
             return( rStat );
@@ -162,7 +162,7 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
             uint8_t tmp2 = readReg( mapI2CAdr( boardId ), 1 );
 
             *arg1 = ( tmp1 << 8 ) | tmp2; 
-            return( ALL_OK );
+            return( LCS_OK );
 
         } break;
 

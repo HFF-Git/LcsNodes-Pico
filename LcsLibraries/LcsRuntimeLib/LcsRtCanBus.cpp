@@ -280,7 +280,7 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
     if ( cfg.mcRunOnCore1 ) multicore_launch_core1( canBusCore );
     else canBusCore( );
 
-    return ( errStat( ALL_OK ));
+    return ( errStat( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -325,7 +325,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
         if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
         else                              return ( ERR_CAN_MSG_SEND );
 
-    } else return ( errStat( ALL_OK ));
+    } else return ( errStat( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -380,7 +380,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
         else {
 
             memcpy( msgBuf, msg.data, msg.dlc );
-            return ( errStat( ALL_OK ));
+            return ( errStat( LCS_OK ));
         }
     }
     else return ( errStat( ERR_CAN_MSG_NO_MSG ));

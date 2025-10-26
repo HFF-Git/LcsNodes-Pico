@@ -53,7 +53,7 @@ LcsBlockControl::LcsBlockControl(  ) {
         default: ;
     }
 
-    return( ALL_OK );
+    return( LCS_OK );
 }
 
 

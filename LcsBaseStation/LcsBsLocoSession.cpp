@@ -202,7 +202,7 @@ uint8_t LcsBaseStationLocoSession::setupSessionMap(
 
     for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapLimit; smePtr++ ) initSessionEntry( smePtr );
 
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -229,7 +229,7 @@ uint8_t LcsBaseStationLocoSession::requestSession( uint16_t cabId, uint8_t mode,
             smePtr -> flags |= SME_SPDIR_ONLY_REFRESH;
 
             *sId = smePtr - sessionMap + 1;
-            return ( ALL_OK );
+            return ( LCS_OK );
         }
 
         case LSM_STEAL: {
@@ -262,7 +262,7 @@ uint8_t LcsBaseStationLocoSession::releaseSession( uint8_t sId ) {
     if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
     deallocateSessionEntry( smePtr );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -290,7 +290,7 @@ uint8_t LcsBaseStationLocoSession::markSessionAlive( uint8_t sId ) {
     if ( smePtr == nullptr ) return ( ERR_INVALID_SESSION_ID );
 
     smePtr -> lastKeepAliveTime = CDC::getMillis( );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -494,7 +494,7 @@ uint8_t LcsBaseStationLocoSession::setThrottle( SessionMapEntry *smePtr, uint8_t
     }
 
     mainTrack -> loadPacket( pBuf, pLen );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -576,7 +576,7 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr,
     }
 
     mainTrack -> loadPacket( pBuf, pLen, 4 );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -629,7 +629,7 @@ uint8_t LcsBaseStationLocoSession::writeCVByteMain( uint8_t sId, uint16_t cvId, 
     pBuf[pLen++] = val;
 
     mainTrack -> loadPacket( pBuf, pLen, 4 );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -658,7 +658,7 @@ uint8_t LcsBaseStationLocoSession::writeCVBitMain( uint8_t sId, uint16_t cvId, u
     pBuf[pLen++] = 0xF0 + (( val % 2 ) << 3 ) + ( bitPos % 8 );
 
     mainTrack -> loadPacket( pBuf, pLen, 4 );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -728,7 +728,7 @@ uint8_t LcsBaseStationLocoSession::readCVByte( uint16_t cvId, uint8_t *val ) {
     pBuf[2] = bValue;
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //----------------------------------------------------------------------------------------
@@ -772,11 +772,11 @@ uint8_t LcsBaseStationLocoSession::readCVBit( uint16_t cvId, uint8_t bitPos, uin
         if ( progTrack -> decoderAckDetect( base, 9 )) {
 
             *val = 1;
-            return ( ALL_OK );
+            return ( LCS_OK );
         }
         else return ( ERR_CV_OP_FAILED );
     }
-    else return ( ALL_OK );
+    else return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -834,7 +834,7 @@ uint8_t LcsBaseStationLocoSession::writeCVByte( uint16_t cvId, uint8_t val ) {
     pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //----------------------------------------------------------------------------------------
@@ -867,7 +867,7 @@ uint8_t LcsBaseStationLocoSession::writeCVBit( uint16_t cvId, uint8_t bitPos, ui
     bitWrite( &pBuf[2], 4, false );
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? ALL_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ? LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //----------------------------------------------------------------------------------------
@@ -881,7 +881,7 @@ uint8_t LcsBaseStationLocoSession::writeDccPacketMain( uint8_t *pBuf, uint8_t pL
     if ( ! validDccPacketRepeatCnt( nRepeat )) return ( ERR_INVALID_REPEATS );
 
     mainTrack -> loadPacket( pBuf, pLen, nRepeat );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -895,7 +895,7 @@ uint8_t LcsBaseStationLocoSession::writeDccPacketProg( uint8_t *pBuf, uint8_t pL
     if ( ! validDccPacketRepeatCnt( nRepeat )) return ( ERR_INVALID_REPEATS );
 
     progTrack -> loadPacket( pBuf, pLen, nRepeat );
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------

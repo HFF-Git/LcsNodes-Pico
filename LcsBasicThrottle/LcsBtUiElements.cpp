@@ -84,7 +84,7 @@ uint8_t setupIOPins( ) {
     configureDio( RNUM_ENCODER_A );
     configureDio( RNUM_ENCODER_B );
  
-    return ( ALL_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------

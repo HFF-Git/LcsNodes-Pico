@@ -180,7 +180,8 @@ uint8_t initLcsRuntime( ) {
 
     uint8_t rStat = initRuntime( &dMap, 
                                  NPO_SKIP_NODE_ID_CONFIG, 
-                                LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_ATTRIBUTES );
+                                LCS_DBG_ENABLE | LCS_DBG_SETUP | 
+                                LCS_DBG_ATTRIBUTES | LCS_DBG_EVENTS );
 
     printf( "LCS Runtime Lib Test Program Setup ==============================\n" );
     return( rStat );
