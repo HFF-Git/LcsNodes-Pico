@@ -274,10 +274,10 @@ enum LocoSessionModes : uint8_t {
 enum LcsNodePortOptions : uint16_t {
 
     NPO_NIL                     = 0,
-    NPO_SKIP_NODE_ID_CONFIG     = ( 1 << 0 ),
-    NPO_DEBUG_DURING_SETUP      = ( 1 << 1 ),
-    NPO_DISABLE_WATCHDOG        = ( 1 << 2 ),
-    NPO_FORMAT_RUNTIME          = ( 1 << 3 ),
+    NPO_SKIP_NODE_ID_CONFIG     = ( 1U << 0 ),
+    NPO_DEBUG_DURING_SETUP      = ( 1U << 1 ),
+    NPO_DISABLE_WATCHDOG        = ( 1U << 2 ),
+    NPO_FORMAT_RUNTIME          = ( 1U << 3 ),
 };
 
 //----------------------------------------------------------------------------------------
@@ -682,8 +682,9 @@ extern "C" {
 // 
 //----------------------------------------------------------------------------------------
 uint8_t     initRuntime( CdcResourceDescMap *dMap, 
-                         LcsNodePortOptions options = NPO_NIL,
-                         uint16_t debugMask = 0 );
+                         uint16_t           startOptions = 0,
+                         uint16_t           debugMask    = 0 );
+
 uint8_t     startRuntime( );
 
 //----------------------------------------------------------------------------------------
@@ -694,9 +695,9 @@ uint8_t     startRuntime( );
 //
 //----------------------------------------------------------------------------------------
 uint8_t     nodeGet( uint16_t npId, 
-                     uint8_t item, 
+                     uint8_t  item, 
                      uint16_t *arg1,
-                    uint16_t *arg2 = nullptr );
+                     uint16_t *arg2 = nullptr );
 
 uint8_t     nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
 

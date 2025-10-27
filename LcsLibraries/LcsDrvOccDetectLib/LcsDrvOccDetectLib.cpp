@@ -27,10 +27,6 @@
 
 #include "LcsDrvOccDetectLib.h"
 
-
-// ???? need to have a better way to get to the CDC stuff....
-// ??? or library stuff....
-
 ///---------------------------------------------------------------------------------------
 // External declaration to global structures defined in "LcsRtSetup".
 //
@@ -40,6 +36,7 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t debugMask;
+    extern uint16_t startOptions;
 };
 
 ///---------------------------------------------------------------------------------------

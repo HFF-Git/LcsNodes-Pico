@@ -67,6 +67,27 @@ const uint32_t  NODE_SETUP_RETRY_TIMER_VAL_MS   = 1000L;
 uint32_t        timerVal                        = 0L;
 
 //----------------------------------------------------------------------------------------
+// Reset.
+//
+//
+//----------------------------------------------------------------------------------------
+void reset( uint16_t npId ) {
+
+    if ( portId( npId ) == 0 ) {
+
+        sendAck( npId );
+        sleepMillis( 10000 );
+    }
+    else {
+
+        // ??? have a reset callback ?
+        // ??? for EXT devices invoke the RESET function on the handler
+
+        sendAck( npId );
+    }
+}
+
+//----------------------------------------------------------------------------------------
 // "handleNodePortEvents" will be called for processing inbound port events on each 
 // runtime loop iteration. Note that it does not matter where the events came from, 
 // i.e. whether another node sends an event or the event was created by a firmware 
@@ -202,12 +223,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_RESET: {
 
             uint16_t npId = (( msg[1] << 8 ) + msg[2] );
-            sendAck( npId );
+            reset( npId );
 
-            // ??? a better way to handle resets other than watchdog ?
-
-            sleepMillis( 10000 );
-            
         } break;
 
         case LCS_OP_SET_NID: {
@@ -331,7 +348,6 @@ void handleMsgReqNode( uint8_t *msg ) {
 // routine, which will manage the timely invocation of the event callbacks. The event
 // mask has a bit for each port. 
 //
-// ??? what if we are the sender of this event ?
 //----------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
@@ -393,7 +409,6 @@ void handleMsgDccMgt( uint8_t *msg ) {
 // Node State FAIL. This is the state after the node startup failed. We simply stay in
 // this state.
 //
-// ??? figure out a way to blink the LED ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
@@ -428,7 +443,7 @@ void handleNodeStatePfail( ) {
 // accordingly.
 // 
 // ??? is there anything that we will need to remember in NVM ? 
-// ??? It does not look like it!!!!
+// ??? should all ports get a reset call ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
@@ -782,9 +797,11 @@ uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
 // "localMsgEvent" is called by the event message send routines to cover the case 
 // where we send an event and we detect it needs to also be broadcasted to other 
 // ports on the same node. In other words, the nodeId of the sending node and our
-// node are the same.
+// node are the same. Care needs to be taken in the port callback that we do not
+// end up in an endless loop. A callback that sends an event to which itself is 
+// registered for would lead to a loop. In other words, you cannot send an event
+// to which you are registered for.
 //
-// ??? how to prevent that we send it also to the originating port and loop ?
 //----------------------------------------------------------------------------------------
 uint8_t localMsgEvent( uint8_t *msg ) {
 

@@ -350,7 +350,7 @@ void dumpMemDrvFuncMap( ) {
     for ( int i  = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
         LcsDrvFuncEntry *entry = &drvFuncMap.map[ i ];
-        printf( "%02d: Type: %d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
+        printf( "%2d: Type: %2d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
     }
 
     printf( "\n" );
@@ -438,25 +438,33 @@ void printSummary( ) {
         if ( headerMap.map[ 0 ].boardName[ i ] != 0 ) 
             printf( "%c", headerMap.map[ 0 ].boardName[ i ] );
     }
+
+    printf( "\"\n" );
      
-    printf( "\", State: %d\n", nodeMap.nodeState );
-    printf( "LCS Library Version: %d.%d\n", 
+    printf( "Library Version: %d.%d, Patch Level: %d\n", 
             highByte( nodeMap.rtLibSwVersion ),
-            lowByte( nodeMap.rtLibSwVersion ));
+            lowByte( nodeMap.rtLibSwVersion ), 
+            LCS_RT_LIB_PATCH_LEVEL );  
+
+    printf( "Git Branch: %s\n", LCS_RT_LIB_GIT_BRANCH );
 }
 
 void printHeaderMap( ) {
 
     printf( "Header Map: \n\n" );
 
-    // ??? to do ...
+    for ( int i = 0; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
 
-    uint32_t            boardMword;
-    uint16_t            boardInfo;                      // type/subtype
-    uint16_t            boardCtrlInfo;                  // family / cType
-    uint16_t            boardVersion;                   // major / sub version
-    uint16_t            reserved[ 11 ];
-    char                boardName[ MAX_RES_NAME_SIZE ];
+        if ( headerMap.map[ i ].boardMword != 0 ) {
+
+            printf( "%d: ", i );
+            printf( "Board: %s\n", headerMap.map[ i ].boardName );
+            printf( "   " "Type: 0x%04x, Ctrl: 0x%04x, Version: 0x%04x\n",
+                    headerMap.map[ i ].boardInfo,
+                    headerMap.map[ i ].boardCtrlInfo,
+                    headerMap.map[ i ].boardVersion );
+        }   
+    }
 
     printf( "\n" );
 }
@@ -516,7 +524,7 @@ void printMemEventMap( ) {
 
                 if (( i * itemsPerLine ) + j < eventMap.mapHwm ) {
 
-                    printf( "%d:0x4x ", 
+                    printf( "(E: %d, M: 0x%04x) ", 
                     eventMap.map[ ( i * itemsPerLine ) + j ].eventId, 
                     eventMap.map[ ( i * itemsPerLine ) + j ].eventMask );
                 }
@@ -838,8 +846,8 @@ void listStatusCommand( char *s ) {
 
             case 41:    printHeaderMap( );              break;
             case 42:    printMemNodeMap( );             break;
-            case 43:    printMemPortMap( );             break;
             case 44:    printMemEventMap( );            break;
+            case 45:    printMemPortMap( );             break;
             
             case 50:    listDevicesI2C( );              break;   
             case 51:    printResourceDescMap( &dMap );  break;
@@ -873,31 +881,20 @@ void listCoreLibHelpCommand( ) {
     printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
 
     printf( "s [ level ] - list status, default is summary\n" );
-    printf( "               " " -   0  - summary\n" );
-    printf( "               " " -   1  - MEM Header Map\n" );
-    printf( "               " " -   2  - MEM Node Map\n" );
-    printf( "               " " -   3  - MEM Node Data\n" );
-    printf( "               " " -   4  - MEM Event Map\n" );
-    printf( "               " " -   5  - MEM Port Map\n" );
-    printf( "               " " -   6  - MEM Pending Request Map\n" );
-    printf( "               " " -   7  - MEM Task Map\n" );
-    printf( "               " " -   8  - MEM Driver Function Map\n" );
-    printf( "               " " -   9  - MEM Runtime Area\n" );
+    printf( "   " " -   0           - Board summary\n" );
+    printf( "   " " -   1 (21) (41) - MEM (NVM) (FMT) Header Map\n" );
+    printf( "   " " -   2 (22) (42) - MEM (NVM) (FMT) Node Map\n" );
+    printf( "   " " -   3 (23)      - MEM (NVM) Node Data\n" );
+    printf( "   " " -   4 (24) (44) - MEM (NVM) (FMT) Event Map\n" );
+    printf( "   " " -   5 (45)      - MEM Port Map\n" );
+    printf( "   " " -   6           - MEM Pending Request Map\n" );
+    printf( "   " " -   7           - MEM Task Map\n" );
+    printf( "   " " -   8           - MEM Driver Function Map\n" );
+    printf( "   " " -   9  (29)     - MEM (NVM) Runtime Area\n" );
 
-    printf( "               " " -  21  - NVM Header Map\n" );      
-    printf( "               " " -  22  - NVM Node Map\n" );
-    printf( "               " " -  23  - NVM Node Data\n" );
-    printf( "               " " -  24  - NVM Event Map\n" );
-    printf( "               " " -  29  - NVM Runtime Area\n" );
-
-    printf( "               " " -  41  - MEM Header Map formatted\n" );            
-    printf( "               " " -  42  - MEM Node Map formatted\n" );
-    printf( "               " " -  43  - MEM Port Map formatted\n" );
-    printf( "               " " -  44  - MEM Event Map formatted\n" );
-
-    printf( "               " " -  50  - I2C Devices\n" );
-    printf( "               " " -  51  - CDC Resource Desc Map\n");
-    printf( "               " " -  52  - CDC Resource Map\n");
+    printf( "   " " -  50  - Scan I2C Devices\n" );
+    printf( "   " " -  51  - CDC Resource Desc Map\n");
+    printf( "   " " -  52  - CDC Resource Map\n");
 }
 
 //----------------------------------------------------------------------------------------

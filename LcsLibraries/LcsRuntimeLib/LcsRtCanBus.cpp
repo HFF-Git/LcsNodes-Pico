@@ -157,6 +157,14 @@ void CanBusPIOIrqHandler( ) {
 // layers. The benefit for doing it here is that when we run at the other core, the 
 // main core is relieved even further. To think about one day.
 // 
+// ??? idea: we could group the LCS messages in a way that we can filter out.
+//
+// ANY - all messages are passed
+// SYS - system wide messages
+// DCC - DCC messages 
+// GET/PUT - foreign node data access are filtered.
+// REQ - foreign node request is filtered.
+// ...
 //----------------------------------------------------------------------------------------
 void canBusEventCallback( struct can2040 *cd, 
                           uint32_t notify, 
@@ -165,11 +173,11 @@ void canBusEventCallback( struct can2040 *cd,
     if ( notify == CAN2040_NOTIFY_RX ) {
 
         // read completed successfully
+        // filter ....
 
         if ( ! queue_try_add( &rxQueue, msg )) {
 
             // ??? we could not add ... what to do ?
-            // ??? we cannot wait or repeat, on the critical path ...
         }
     }
     else if ( notify == CAN2040_NOTIFY_TX ) {

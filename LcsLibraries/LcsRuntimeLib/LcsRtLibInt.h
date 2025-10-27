@@ -263,22 +263,17 @@ struct LcsHeaderMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The nodeMap is the heart of all data on the node. When bringing up a node, we first 
-// read in the NVM header and then the node map. Once read in from the NVM storage, 
-// several validity checks are performed. The most important check is to compare the 
-// size of the various data structures with the runtime data size that we know from the 
-// compilation. That is the reason that each area starts with a magic word. Only when 
-// they match can we somewhat trust the rest of the data maps to read. It is also 
-// therefore crucial that the first locations in the NVM have the same meaning even if
-// we advance to the next major SW version. The data read is copied to its memory 
-// counterpart and all work continues from the memory version. 
+// The nodeMap is the heart of all data on the node. When bringing up a node, we 
+// first read in the NVM header and then the node map. Once read in from the NVM 
+// storage, several validity checks are performed. The most important check is to 
+// compare the size of the various data structures with the runtime data size that 
+// we know from the compilation. That is the reason that each NVM area starts with 
+// a  magic word. Only when they match can we somewhat trust the rest of the data 
+// maps to read.
 //
 // During configuration and operation state, update to nodeMap fields can also be 
-// forwarded to their NVM counterpart. Since a node has port zero as the docking for
+// forwarded to their NVM counterpart. Since a node has port zero as the port for
 // node wide operations, the portMap entry 0 is also considered part of the node map.
-// 
-// ??? right now, we do not have any data that would be stored via this map to NVM.
-// ??? if this would be the case one day, we add an array of these items as a field.
 //
 //----------------------------------------------------------------------------------------
 struct LcsNodeMap {
@@ -350,14 +345,14 @@ struct LcsEventMap {
 // taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition, 
 // P1 to P4 are optionally associated with an extension board if one is detected 
 // during startup. Each port has an area of attributes, which are stored in the data
-// block area. They map to ITEM numbers 128 to 255.
+// block area. They map to ITEM numbers 128 to 255. In addition, each port supports
+// a set of request functions, which are mapped also from 128 to 255. Attributes
+// are accessed via GET/SET, functions via REQ calls.
 //
-// The portMap entry also contains the fields that deal with the actual event received
-// that the port is interested in. There are fields for the sending node, the event and
-// its action. An event can also be invoked with a delay time.
+// The portMap entry also contains the fields that deal with the actual event 
+// received that the port is interested in. There are fields for the sending node, 
+// the event itself and its action. An event can also be invoked with a delay time.
 //
-// ??? what does an event mean for P0  as the node port, or P1 to P4 when extensions
-// are configured ? 
 //----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
@@ -379,10 +374,7 @@ struct LcsPortMapEntry {
 
 struct LcsPortMap {
 
- //   uint32_t        magicWord   = NVM_MWORD_PORT_MAP;
- //   uint32_t        nvmOfs      = 0;
- //   uint32_t        nvmSize     = sizeof( LcsPortMap );
-    uint32_t        mapHwm      = 0;
+    uint32_t        mapHwm = 0;
     LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 

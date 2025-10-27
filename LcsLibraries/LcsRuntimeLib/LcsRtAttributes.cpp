@@ -242,7 +242,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if ( arg1 == nullptr ) {
             
-        return ( errStat( (char *) "nodeGet", ERR_INVALID_ATTR_ARG )); 
+        return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG )); 
     }
     
     if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
@@ -267,25 +267,25 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             case ITEM_ID_DEBUG_MASK: {   
                 
                 *arg1 = debugMask; 
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_OPTIONS: {      
                 
                 *arg1 = startOptions; 
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_RT_LIB_VERSION: {    
                 
                 *arg1 = nodeMap.rtLibSwVersion; 
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_RT_LIB_PATCH_LEVEL: {    
                 
                 *arg1 = nodeMap.rtLibSwPatchLevel; 
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_NODE_STATE: {   
@@ -297,25 +297,25 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             case ITEM_ID_NODE_ID: {      
                 
                 *arg1 = nodeMap.nodeId; 
-                return ( errStat( (char *) "nodeGet",LCS_OK ));
+                return ( errStat((char *) "nodeGet",LCS_OK ));
             }
 
             case ITEM_ID_NODE_UID: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat( (char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = nodeMap.nodeUID >> 16;
                 *arg2 = nodeMap.nodeUID & 0xFFFF;
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_RESTART_COUNT: {
                 
                 *arg1 = nodeMap.nodeRestartCnt; 
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_BOARD_VERSION: {
@@ -323,45 +323,45 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( isInRangeU( *arg1, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
 
                     *arg1 = headerMap.map[ *arg1 ].boardVersion ;
-                    return ( errStat( (char *) "nodeGet", LCS_OK ));
+                    return ( errStat((char *) "nodeGet", LCS_OK ));
                 }
-                else return ( errStat( (char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                else return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
             }
 
             case ITEM_ID_PORT_MAP_ENTRIES: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat( (char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = MAX_PORT_MAP_ENTRIES;
                 *arg2 = portMap.mapHwm;
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_EVENT_MAP_ENTRIES: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat( (char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = MAX_EVENT_MAP_ENTRIES;
                 *arg2 = eventMap.mapHwm;
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_ATTR_MAP_ENTRIES: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat( (char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = MAX_ATTR_MAP_ENTRIES;
                 *arg2 = MAX_ATTR_MAP_ENTRIES;
-                return ( errStat( (char *) "nodeGet", LCS_OK ));
+                return ( errStat((char *) "nodeGet", LCS_OK ));
             }
 
             case ITEM_ID_FLAGS: { 
@@ -407,10 +407,8 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 // "nodePut" will write a value to the node, port or the attribute data map. The 
 // "npId" argument contains the node and port Id. However, we will only use the 
 // portId portion, which represents the block index. For data attribute items the 
-// node state determines whether we just update the MEM attribute or the NVM version
-// of the data synced with the memory counterpart. A node state of CONFIG will update
-// NVM, since you are configuring a node. For the other node or port reserved 
-// attributes the MEM version is used.
+// node state determines whether we just update the MEM attribute or both MEM and
+// NVM version. Node state CONFIG will update NVM too. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
@@ -441,7 +439,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
         else                                       
              return ( errStat((char *) "nodePut", ERR_INVALID_OP_FOR_NODE_STATE ));
         
-    } else {
+    } 
+    else {
 
         switch ( item ) {
 
@@ -527,10 +526,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                // just pass the watchdog timer ... is there a better way ?
-                // or at least put it into a small routine...
-                 // ??? add a routine to setup
-                sleepMillis( 10000 ); 
+                // ??? we have a routine to do resets via messages... 
+                // ??? should we even have a way to invoke via REQ calls ?
+                
                 return ( errStat((char *) "nodeReq", LCS_OK ));
             }
 
@@ -539,9 +537,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 // ??? we need a way to format the extension board area, when needed. 
                 // ??? applies to ports 1 to 4 when they are mapped to a driver...
                 // val1 = type ?
-                // val2 = ?
-                // ??? add a routine to setup
-
+                // val2 = boardId
+               
                 return ( errStat((char *) "nodeReq", 255 ));
             }
 

@@ -25,16 +25,16 @@
 #define LCS_RT_LIB_VERSION_h
 
 //----------------------------------------------------------------------------------------
+// We have a GIT pre-commit script that modifies the following constants. On each
+// commit the patch level increases. A new version / sub version needs to be set 
+// by hand.
 // 
-// ??? check out the pre-commit option. Perhaps generalize the python program
-// to fix these constants on GIT commit
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
     const char      LCS_RT_LIB_GIT_BRANCH[ ] = "git-branch";
-    const uint16_t  LCS_RT_LIB_VERSION       = 0x0100;  // ??? for now...
+    const uint16_t  LCS_RT_LIB_VERSION       = 0x0100;
     const uint16_t  LCS_RT_LIB_PATCH_LEVEL   = 0;
-    
 }
 
 #endif

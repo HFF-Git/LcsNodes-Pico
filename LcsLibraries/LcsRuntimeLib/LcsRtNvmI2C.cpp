@@ -71,7 +71,8 @@ using namespace CDC;
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //----------------------------------------------------------------------------------------
-const uint16_t      BUFFER_BLOCK_SIZE           = 16; // ??? until we remove the M24C04 chip, then 32...
+const uint16_t      MAX_BUFFER_BLOCK_SIZE       = 128;
+const uint16_t      DEF_BUFFER_BLOCK_SIZE       = 16;
 
 const uint16_t      M24LC32_PAGE_SIZE           = 32;
 const uint32_t      M24LC32_MAX_SIZE            = 4096;
@@ -122,11 +123,14 @@ const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 // can use as needed.
 //
 //----------------------------------------------------------------------------------------
-uint32_t    nodeNvmSize     = 0;
-uint32_t    extNvmSize      = 0;
+uint32_t    nodeNvmSize         = 0;
+uint32_t    nodeNvmBlockSize    = DEF_BUFFER_BLOCK_SIZE;
 
-uint8_t     rNumNvm         = UNDEFINED_RES_ID;
-uint8_t     rNumExtNvm      = UNDEFINED_RES_ID;
+uint32_t    extNvmSize          = 0;
+uint32_t    extNvmBlockSize     = DEF_BUFFER_BLOCK_SIZE;
+
+uint8_t     rNumNvm             = UNDEFINED_RES_ID;
+uint8_t     rNumExtNvm          = UNDEFINED_RES_ID;
 
 //----------------------------------------------------------------------------------------
 // A little helper function to report any errors.
@@ -143,7 +147,24 @@ uint8_t errStat( uint8_t errId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "testNvmChipMemorySize" detects the size of an I²C EEPROM (M24LCxxx family).
+// Each NVM chip has certain size. This function will round the size to the next 
+// lower chip memory size. We expect however that the programmer used the correct 
+// size, so this is done just in case. The lowest value is the 4Kb chip.
+//
+//----------------------------------------------------------------------------------------
+uint32_t roundNvmMaxSize( uint16_t chipSize ) {
+
+    if      ( chipSize <= M24C04_MAX_SIZE )   return ( M24C04_MAX_SIZE );
+    else if ( chipSize <= M24LC32_MAX_SIZE )  return ( M24LC32_MAX_SIZE );
+    else if ( chipSize <= M24LC64_MAX_SIZE )  return ( M24LC64_MAX_SIZE );
+    else if ( chipSize <= M24LC128_MAX_SIZE ) return ( M24LC128_MAX_SIZE );
+    else if ( chipSize <= M24LC256_MAX_SIZE ) return ( M24LC256_MAX_SIZE );
+    else if ( chipSize <= M24LC512_MAX_SIZE ) return ( M24LC512_MAX_SIZE );
+    else                                      return ( M24LC32_MAX_SIZE );
+}
+
+//----------------------------------------------------------------------------------------
+// "determineNvmChipMemorySize" detects the size of an I2C EEPROM (M24LCxxx family).
 // These chips have no internal register to report their capacity, so the only way
 // to determine the size is by probing memory locations and observing whether
 // higher addresses are actually addressable or just mirrored (aliased) copies
@@ -175,8 +196,9 @@ uint8_t errStat( uint8_t errId ) {
 //     corresponding to 4, 8, 16, 32, and 64 Kbytes of memory.
 //   • Devices smaller than 32-Kbit (24LC16/08/04) use 1-byte addressing and
 //     separate I²C sub-addresses; support for those can be added separately.
+//
 //----------------------------------------------------------------------------------------
-uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
+uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
     uint32_t nvmSize    = M24LC512_MAX_SIZE;
     uint32_t testAdr    = nvmSize - 1;
@@ -344,20 +366,33 @@ uint32_t testNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Each NVM chip has certain size. This function will round the size to the next 
-// lower chip memory size. We expect however that the programmer used the correct 
-// size, so this is done just in case. The lowest value is the 4Kb chip.
-//
+// The NVJ chips have an internal page size for writing. Depending on the chip memory
+// size, the buffer is different.
+// 
 //----------------------------------------------------------------------------------------
-uint32_t roundNvmMaxSize( uint16_t chipSize ) {
+uint32_t determineBufferBlockSize(uint32_t size) {
 
-    if      ( chipSize <= M24C04_MAX_SIZE )   return ( M24C04_MAX_SIZE );
-    else if ( chipSize <= M24LC32_MAX_SIZE )  return ( M24LC32_MAX_SIZE );
-    else if ( chipSize <= M24LC64_MAX_SIZE )  return ( M24LC64_MAX_SIZE );
-    else if ( chipSize <= M24LC128_MAX_SIZE ) return ( M24LC128_MAX_SIZE );
-    else if ( chipSize <= M24LC256_MAX_SIZE ) return ( M24LC256_MAX_SIZE );
-    else if ( chipSize <= M24LC512_MAX_SIZE ) return ( M24LC512_MAX_SIZE );
-    else                                      return ( M24LC32_MAX_SIZE );
+    uint32_t bufSize = 0;
+
+    switch (size) {
+
+        case 4 * 1024:   
+        case 8 * 1024:   bufSize = 32; break;
+
+        case 16 * 1024: 
+        case 32 * 1024:  bufSize = 64; break;
+
+        case 64 * 1024:  bufSize = 128; break;
+
+        default:         bufSize = 16; 
+    }
+
+    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
+
+        printf( "determineBufferBlockSize: Size computed: %d\n", bufSize );
+    }
+
+    return( bufSize );
 }
 
 //----------------------------------------------------------------------------------------
@@ -367,7 +402,7 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 // retaining the bus. The PICO library will then use the restart condition. Just like
 // we did in the write buffer counterpart, we need to send the address as one buffer.
 //
-// ??? one day we take out the M24C04
+// ??? with the next PCB versions, we take out the M24C04
 //----------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t  rNum, 
                              uint8_t  i2cAdr, 
@@ -416,7 +451,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 // to figure  this out. We will have a local buffer where we combine the address and
 // data and then send it.
 //
-// ??? one day we take out the M24C04
+// ??? with the next PCB versions, we take out the M24C04
 //----------------------------------------------------------------------------------------
 uint8_t nvmPutBytesInPage( uint8_t  rNum, 
                            uint8_t  i2cAdr, 
@@ -425,7 +460,7 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
                            uint32_t len ) {
 
     uint8_t rStat = NO_ERR;
-    uint8_t dataBuf[ BUFFER_BLOCK_SIZE + 2 ];
+    uint8_t dataBuf[ MAX_BUFFER_BLOCK_SIZE + 2 ];
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
@@ -445,8 +480,8 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
     }
     else {
 
-        dataBuf[ 0 ]    = ( ofs  >> 8 ) & 0xFF;
-        dataBuf[ 1 ]    = ofs & 0xFF;
+        dataBuf[ 0 ] = ( ofs  >> 8 ) & 0xFF;
+        dataBuf[ 1 ] = ofs & 0xFF;
 
         for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
@@ -480,8 +515,10 @@ uint8_t nvmGetBytes( uint8_t rNum,
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
+    uint32_t bufSize = (( rNum == rNumNvm ) ? nodeNvmBlockSize : extNvmBlockSize );
+
     uint32_t  bytesLeft     = len;
-    uint32_t  pageBytesLeft = BUFFER_BLOCK_SIZE - ofs % BUFFER_BLOCK_SIZE;
+    uint32_t  pageBytesLeft = bufSize - ofs % bufSize;
 
     while ( bytesLeft > pageBytesLeft ) {
 
@@ -493,7 +530,7 @@ uint8_t nvmGetBytes( uint8_t rNum,
         if ( rStat != NO_ERR ) break;
 
         bytesLeft       -= pageBytesLeft;
-        pageBytesLeft   = BUFFER_BLOCK_SIZE;
+        pageBytesLeft   = bufSize;
     }
 
     if (( rStat == NO_ERR ) && ( bytesLeft > 0 )) {
@@ -538,8 +575,10 @@ uint8_t nvmPutBytes( uint8_t rNum,
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
+    uint32_t bufSize = (( rNum == rNumNvm ) ? nodeNvmBlockSize : extNvmBlockSize );
+
     uint32_t  bytesLeft     = len;
-    uint32_t  pageBytesLeft = BUFFER_BLOCK_SIZE - ofs % BUFFER_BLOCK_SIZE;
+    uint32_t  pageBytesLeft = bufSize - ofs % bufSize;
 
     while ( bytesLeft > pageBytesLeft ) {
 
@@ -551,7 +590,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
         if ( rStat != NO_ERR ) break;
 
         bytesLeft       -= pageBytesLeft;
-        pageBytesLeft   = BUFFER_BLOCK_SIZE;
+        pageBytesLeft   = bufSize;
 
         sleepMillis( NVM_WRITE_DELAY );
     }
@@ -586,22 +625,22 @@ uint8_t nvmClearArea( uint8_t rNum,
                 rNum, i2cAdr, ofs, len, val );
     }
 
-    uint8_t     tmpBuf[ BUFFER_BLOCK_SIZE ];
+    uint8_t     tmpBuf[ DEF_BUFFER_BLOCK_SIZE ];
     uint8_t     rStat   = NO_ERR;
     uint32_t    nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     uint32_t    limit   = ofs + len;
 
     if ( ofs + len > nvmSize ) return ( errStat( ERR_NVM_SIZE_EXCEEDED ));
 
-    for ( int i = 0; i < BUFFER_BLOCK_SIZE; i ++ ) tmpBuf[ i ] = val;
+    for ( int i = 0; i < DEF_BUFFER_BLOCK_SIZE; i ++ ) tmpBuf[ i ] = val;
 
-    while ( len > BUFFER_BLOCK_SIZE ) {
+    while ( len > DEF_BUFFER_BLOCK_SIZE ) {
 
         rStat = nvmPutBytes( rNum, i2cAdr, ofs, tmpBuf, sizeof( tmpBuf ));
         if ( rStat != NO_ERR ) break;
         
-        ofs += BUFFER_BLOCK_SIZE;
-        len -= BUFFER_BLOCK_SIZE;
+        ofs += DEF_BUFFER_BLOCK_SIZE;
+        len -= DEF_BUFFER_BLOCK_SIZE;
     }
 
     if (( rStat == NO_ERR ) && ( len > 0 )) {
@@ -638,14 +677,18 @@ uint8_t configNvm(  uint8_t     rIdNvm,
     if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
     if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
 
-    int testSize = testNvmChipMemorySize( rIdNvm, NVM_I2C_ADR_ROOT );
-
+    uint32_t testSize = determineNvmChipMemorySize( rIdNvm, NVM_I2C_ADR_ROOT );
     if ( testSize < nodeNvmSize ) nodeNvmSize = testSize;
+
+    nodeNvmBlockSize = determineBufferBlockSize( nodeNvmSize );
+    extNvmBlockSize  = DEF_BUFFER_BLOCK_SIZE;
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_NVM_ACCESS )) {
 
-        printf( "configNvm: rIdNvm: %d, size: %d, rIdExNvm: %d, size: %d\n",
-                rIdNvm, nodeNvmSize, rIdExtNvm, extNvmSize ); 
+        printf( "configNvm: rIdNvm: %d, size: %d, blockSize: %d,"
+                "rIdExNvm: %d, size: %d, blockSize: %d\n",
+                rIdNvm, nodeNvmSize, nodeNvmBlockSize, 
+                rIdExtNvm, extNvmSize, extNvmBlockSize ); 
     }
 
     return ( LCS_OK );

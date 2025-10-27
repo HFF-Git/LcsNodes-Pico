@@ -267,14 +267,14 @@ uint8_t buildNvmRuntimeStructure( ) {
 // a board.
 //
 //----------------------------------------------------------------------------------------
-uint8_t buildNvmExtBoardStructure(uint8_t boardId) {
+uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
 
     LcsBoardDesc head;
     head.boardMword     = NVM_MWORD_EXT_HEADER;
     head.boardInfo      = 0;    // type/subtype
     head.boardVersion   = 0;    // major / sub version
     head.boardCtrlInfo  = 0;    // family / cType
-    snprintf( head.boardName, 8, "EXT-%d", boardId ); // ??? a better name ?
+    snprintf( head.boardName, 8, "EXT-%d", boardId );
 
     return ( errStat((char *) "buildNvmExtBoardStructure",
                      extNvmPutBytes( boardId,
@@ -333,7 +333,7 @@ namespace LCS {
 // start options followed by the final start command to get the show going. Especially
 // the debug mask would be a candidate.
 //
-//------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t initCdcLayer( ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
@@ -455,8 +455,7 @@ uint8_t initCanBus( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 
-    // ??? put the call here ?
-
+    watchDogEnable( ! ( startOptions & NPO_DISABLE_WATCHDOG ));    
     return ( errStat((char *) "setupWatchdog", LCS_OK ));
 }
 
@@ -564,10 +563,6 @@ uint8_t setupNodeNvmHeader(CdcResourceDescMap *map)
 
         return ( errStat((char *)"setupNodeNvmHeader", rStat ));
     }
-
-    // ??? what do we actually check ? what do we rebuild ?
-    // ??? since we trust the resource desc map, we implicitly do not trust the HW...
-    // ??? think about it ...
 
     if (( hPtr -> boardInfo != dMap.boardInfo ) &&
         ( hPtr -> boardCtrlInfo != dMap.boardCtrlInfo )) {
@@ -996,10 +991,9 @@ uint8_t powerFailHandler( ) {
 // correct configuration of the nodeMap, so that we can hopefully restart with a
 // correct nodeMap.
 //
-// ??? we could have also callbacks for the "restart" case ? or pass to init a flag...
 //----------------------------------------------------------------------------------------
 uint8_t initRuntime( CdcResourceDescMap  *descMap,
-                     LcsNodePortOptions  options,
+                     uint16_t            options,
                      uint16_t            dbgMask) {
 
     uint8_t rStat = LCS_OK;
@@ -1047,7 +1041,6 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         if ( nodeMap.nodeState == NS_PFAIL ) {
 
             // ??? we came back from a PFAIL ?
-            // ??? handle it ...
         }
 
         nodeMap.nodeState = NS_INIT;
