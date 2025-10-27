@@ -29,8 +29,8 @@
 //----------------------------------------------------------------------------------------
 // DCC Signal Generator. I
 //
-// ??? it would be a great idea to let the DCC signals being produced bei a PIO state 
-// machine. Right now, there is a timer wich interrupts teh CPU every signal edge change.
+// ??? it would be a great idea to let the DCC signals being produced with a PIO state 
+// machine. Right now, there is a timer which interrupts the CPU every signal edge change.
 // Letting a PIO state machine process a DCC byte would be a great relief.
 // 
 //----------------------------------------------------------------------------------------
@@ -44,7 +44,7 @@
 
 .wrap_target
 
-// ??? when do we know that we need to do a cutput / preamble ?
+// ??? when do we know that we need to do a cutout / preamble ?
 
 cutout_phase:
     set pins, 0b01 [1]              ; 1 tick high
@@ -65,16 +65,16 @@ main_loop:
     ; Main data loop
     ; should we rather ask for bytes than pack words ?
     ; we then handle variable sized DCC packets..
-    ; we need to programatically set the x for the number of bytes, up to 15 
+    ; we need to programmatically set the x for the number of bytes, up to 15 
     ; we just tale a byte at a time to get it out. 
-    ; then we go back to cutout / preambe. 
+    ; then we go back to cutout / preamble. 
     ; this is also the time where we interrupt to get the next packet.
     ; and trigger any other follow up... such as power sense.
 
 pull_next_word:
     pull block              ; Get 32 bits from FIFO
     mov isr, osr            ; Copy to input shift register
-    set x, 3                ; Max 4 bytes per word // ??? what idf there are less ?
+    set x, 3                ; Max 4 bytes per word // ??? what if there are less ?
 
 process_byte:
     in null, 24             ; Discard unused bits

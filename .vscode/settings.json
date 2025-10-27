@@ -57,5 +57,15 @@
         "editor.rulers": [
             { "column": 90, "color": "#CCCCCC40" }
         ]
-    }
+    },
+    "[pio]": {
+    "editor.rulers": [
+        { "column": 80, "color": "#CCCCCC40" },
+        { "column": 90, "color": "#CCCCCC40" }
+    ],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+    },
+    "editor.formatOnSave": false,
+    "editor.formatOnType": false
 }
