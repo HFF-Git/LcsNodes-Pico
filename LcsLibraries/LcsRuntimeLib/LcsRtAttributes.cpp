@@ -73,12 +73,20 @@ namespace {
     using namespace LCS;
 
     //------------------------------------------------------------------------------------
-    // Error status help message.
-    //
+    // "debugEnabled" and "retStat" are the debug support routines. We can easily 
+    // check whether debug is enabled at all. The return status routine will print 
+    // out a return status message when debugging is enabled. The macro "RET_STAT" 
+    // is a nice helper that adds the function name to the message.
+    // 
     //------------------------------------------------------------------------------------
-    uint8_t errStat(char *name, uint8_t errId ) {
+    inline bool attrDebugEnabled(  ) {
 
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
+        return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )); 
+    }
+
+    inline uint8_t retStat( char *name, uint8_t errId ) {
+
+        if ( attrDebugEnabled( )) {
 
             if ( errId == LCS_OK )  printf( "%s: OK\n", name );
             else                    printf( "%s: %d\n", name, errId );
@@ -86,6 +94,8 @@ namespace {
 
         return ( errId );
     }
+
+    #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
     //------------------------------------------------------------------------------------
     // "readAttrMem" gets a value from the node or port attribute map in MEM. As an 
@@ -196,11 +206,10 @@ namespace {
 
         if ( portMap.map[ portId( npId ) ].reqCallback != nullptr ) {
 
-            return ( 
-                portMap.map[ portId( npId ) ].reqCallback( portId( npId ), 
-                                                                   item, 
-                                                                   arg1, 
-                                                                   arg2 ));
+            return ( portMap.map[ portId( npId ) ].reqCallback( portId( npId ), 
+                                                                item, 
+                                                                arg1, 
+                                                                arg2 ));
         }
         else return ( ERR_INVALID_ITEM_ID );
     }
@@ -226,7 +235,8 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
+    
+    if ( attrDebugEnabled( )) {
 
         printf( "nodeGet: npId: 0x%x, item: %d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
@@ -237,28 +247,26 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
     if (( nodeMap.nodeState != NS_OPERATE) && 
         ( nodeMap.nodeState != NS_CONFIG )) {
 
-        return ( errStat((char *) "nodeGet", ERR_LIB_NOT_READY ));
+        return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
 
     if ( arg1 == nullptr ) {
             
-        return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG )); 
+        return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
     }
     
     if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
-            return ( errStat(( char *) "nodeGet",
-                            readAttrMem( portId( npId ), item, arg1 )));
+            return ( RET_STAT( readAttrMem( portId( npId ), item, arg1 )));
         }
         else if ( nodeMap.nodeState == NS_CONFIG  ) {
 
-            return ( errStat((char *) "nodeGet",
-                            readAttrNvm( portId( npId ), item, arg1 )));
+            return ( RET_STAT( readAttrNvm( portId( npId ), item, arg1 )));
         }
         else                                        
-            return ( errStat((char *) "nodeGet", ERR_INVALID_OP_FOR_NODE_STATE ));
+            return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
         
     } else {
 
@@ -267,55 +275,55 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             case ITEM_ID_DEBUG_MASK: {   
                 
                 *arg1 = debugMask; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_OPTIONS: {      
                 
                 *arg1 = startOptions; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_RT_LIB_VERSION: {    
                 
                 *arg1 = nodeMap.rtLibSwVersion; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_RT_LIB_PATCH_LEVEL: {    
                 
                 *arg1 = nodeMap.rtLibSwPatchLevel; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_NODE_STATE: {   
                 
                 *arg1 = nodeMap.nodeState; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_NODE_ID: {      
                 
                 *arg1 = nodeMap.nodeId; 
-                return ( errStat((char *) "nodeGet",LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_NODE_UID: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = nodeMap.nodeUID >> 16;
                 *arg2 = nodeMap.nodeUID & 0xFFFF;
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_RESTART_COUNT: {
                 
                 *arg1 = nodeMap.nodeRestartCnt; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_BOARD_VERSION: {
@@ -323,70 +331,70 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 if ( isInRangeU( *arg1, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
 
                     *arg1 = headerMap.map[ *arg1 ].boardVersion ;
-                    return ( errStat((char *) "nodeGet", LCS_OK ));
+                    return ( RET_STAT( LCS_OK ));
                 }
-                else return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                else return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
             }
 
             case ITEM_ID_PORT_MAP_ENTRIES: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = MAX_PORT_MAP_ENTRIES;
                 *arg2 = portMap.mapHwm;
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_EVENT_MAP_ENTRIES: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = MAX_EVENT_MAP_ENTRIES;
                 *arg2 = eventMap.mapHwm;
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_ATTR_MAP_ENTRIES: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
                 }
 
                 *arg1 = MAX_ATTR_MAP_ENTRIES;
                 *arg2 = MAX_ATTR_MAP_ENTRIES;
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_FLAGS: { 
                 
                 *arg1 = portMap.map[ portId( npId ) ].flags; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_TYPE: { 
                          
                 *arg1 = portMap.map[ portId( npId ) ].type; 
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_LOOKUP_EVENT_ENTRY: {
 
                 *arg1 = searchEvent( *arg1 );
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_GET_EVENT_MAP_ENTRY: {
 
                 if ( arg2 == nullptr ) {
                     
-                    return ( errStat((char *) "nodeGet", ERR_INVALID_ATTR_ARG ));
+                    return ( RET_STAT(  ERR_INVALID_ATTR_ARG ));
                 }
 
                 return ( getMemEmapEntry( *arg1, arg1, arg2 ));
@@ -395,10 +403,10 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 *arg1 = portMap.map[ portId( npId ) ].eventDelayTime;
-                return ( errStat((char *) "nodeGet", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
-            default: return ( errStat((char *) "nodeGet", ERR_INVALID_ITEM_ID ));
+            default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
 }
@@ -413,7 +421,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 //----------------------------------------------------------------------------------------
 uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
+    if ( attrDebugEnabled( )) {
 
         printf( "nodePut: npId: 0x%x, item: %d, val1:%d, val2: %d\n",
                 npId, item, val1, val2  );
@@ -421,23 +429,21 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {
         
-        return ( errStat((char *) "nodePut", ERR_LIB_NOT_READY ));
+        return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
     
     if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
-            return ( errStat((char *) "nodePut", 
-                             writeAttrMem( portId( npId ), item, val1 )));
+            return ( RET_STAT( writeAttrMem( portId( npId ), item, val1 )));
         }
         else if ( nodeMap.nodeState == NS_CONFIG ) { 
 
-            return ( errStat((char *) "nodePut",
-                             writeAttrNvm( portId( npId ), item, val1 )));
+            return ( RET_STAT( writeAttrNvm( portId( npId ), item, val1 )));
         }
         else                                       
-             return ( errStat((char *) "nodePut", ERR_INVALID_OP_FOR_NODE_STATE ));
+             return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
         
     } 
     else {
@@ -449,46 +455,44 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 if ( isConsoleConnected( )) debugMask = val1 | LCS_DBG_ENABLE;           
                 else                        debugMask = val1 & ~ LCS_DBG_ENABLE;
               
-                return ( errStat((char *) "nodePut", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_NODE_ID: {
 
                 nodeMap.nodeId = nodeId( val1 );
-                return ( errStat((char *) "nodePut", 
-                                 rtNvmPutWord( 
+                return ( RET_STAT( rtNvmPutWord( 
                                     NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
-                                    val1 )));
+                                        val1 )));
             }
 
             case ITEM_ID_RT_LIB_VERSION: {
 
                 nodeMap.rtLibSwVersion = val1;
-                return ( errStat((char *) "nodePut",
-                            rtNvmPutWord( 
-                                NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, rtLibSwVersion ), 
+                return ( RET_STAT( rtNvmPutWord( 
+                            NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, rtLibSwVersion ), 
                                 val1 )));
             }
 
             case ITEM_ID_FLAGS: {
 
                 portMap.map[ portId( npId ) ].flags = val1;
-                return ( errStat((char *) "nodePut", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_TYPE: {
 
                 portMap.map[ portId( npId ) ].type = lowByte( val1 );
-                return ( errStat((char *) "nodePut", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_EVENT_DELAY_TICKS: {
 
                 portMap.map[ portId( npId ) ].eventDelayTime = val1;
-                return ( errStat((char *) "nodePut", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
-            default: return ( errStat((char *) "nodePut", ERR_INVALID_ITEM_ID ));
+            default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
 }
@@ -502,7 +506,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 //----------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_ATTRIBUTES )) {
+    if ( attrDebugEnabled( )) {
 
         printf( "nodeReq: 0x%x:%d", npId, item  );
         if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
@@ -512,13 +516,12 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {
         
-        return ( errStat((char *) "nodeReq", ERR_LIB_NOT_READY ));
+        return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
     
     if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
-        return ( errStat((char *) "nodeReq", 
-                         invokeUserItemCallback( npId, item, arg1, arg2 )));
+        return ( RET_STAT( invokeUserItemCallback( npId, item, arg1, arg2 )));
     
     } else {
 
@@ -529,7 +532,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 // ??? we have a routine to do resets via messages... 
                 // ??? should we even have a way to invoke via REQ calls ?
                 
-                return ( errStat((char *) "nodeReq", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_FORMAT_EXT: {
@@ -539,41 +542,37 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 // val1 = type ?
                 // val2 = boardId
                
-                return ( errStat((char *) "nodeReq", 255 ));
+                return ( RET_STAT( 255 ));
             }
 
             case ITEM_ID_SYNC_TO_MEM: {
 
-                return( errStat((char *) "nodeReq", 
-                                syncAttrToMem( portId( npId ), *arg1 )));
+                return( RET_STAT( syncAttrToMem( portId( npId ), *arg1 )));
             }
 
             case ITEM_ID_SYNC_TO_NVM: {
 
-                return( errStat((char *) "nodeReq", 
-                                syncAttrToNvm( portId( npId ), *arg1 )));
+                return( RET_STAT( syncAttrToNvm( portId( npId ), *arg1 )));
             }
 
             case ITEM_ID_SET_EVENT_MASK: {
 
-                return ( errStat((char *) "nodeReq", 
-                                 setEventMask( *arg1, *arg2 )));
+                return ( RET_STAT( setEventMask( *arg1, *arg2 )));
             }
 
             case ITEM_ID_REMOVE_EVENT_MASK: {
 
-                return ( errStat((char *) "nodeReq", 
-                                 removeEventMask( *arg1 )));
+                return ( RET_STAT( removeEventMask( *arg1 )));
             }
 
             case ITEM_ID_SYNC_EVENT_MAP_MEM: {
 
-                return ( errStat((char *) "nodeReq", syncEventMapToMem( )));
+                return ( RET_STAT( syncEventMapToMem( )));
             }
 
             case ITEM_ID_SYNC_EVENT_MAP_NVM: {
 
-                return ( errStat((char *) "nodeReq", syncEventMapToNvm( )));
+                return ( RET_STAT( syncEventMapToNvm( )));
             }
 
             case ITEM_ID_ENABLE_EVENT_PROCESSING: {
@@ -589,27 +588,24 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                                             ~ NPF_PORT_EVENT_HANDLING_ENABLED;
                 }
 
-                return ( errStat((char *) "nodeReq", LCS_OK ));
+                return ( RET_STAT( LCS_OK ));
             }
 
             case ITEM_ID_ACTIVE_LED: {
 
                 if ( *arg1 == 1 ) {
 
-                    return ( errStat((char *) "nodeReq", 
-                                writeDio( CDC_RN_ACTIVITY_LED, true )));
+                    return ( RET_STAT( writeDio( CDC_RN_ACTIVITY_LED, true )));
                 }
                 else if ( *arg1 == 2 ) { 
 
-                    return ( errStat((char *) "nodeReq",
-                                     toggleDio( CDC_RN_ACTIVITY_LED )));
+                    return ( RET_STAT( toggleDio( CDC_RN_ACTIVITY_LED )));
                 }
                 else                    
-                    return ( errStat((char *) "nodeReq",
-                                     writeDio( CDC_RN_ACTIVITY_LED, false )));
+                    return ( RET_STAT( writeDio( CDC_RN_ACTIVITY_LED, false )));
             }
 
-            default: return ( errStat((char *) "nodeReq", ERR_INVALID_ITEM_ID ));
+            default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
 }

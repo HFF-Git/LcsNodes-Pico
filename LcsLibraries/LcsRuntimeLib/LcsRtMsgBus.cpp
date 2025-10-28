@@ -75,7 +75,7 @@ const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 //----------------------------------------------------------------------------------------
 uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
 
-    uint32_t ts = CDC::getMillis( );
+    uint32_t ts = getMillis( );
 
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 

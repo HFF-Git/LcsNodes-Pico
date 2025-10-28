@@ -64,12 +64,20 @@ namespace {
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// Utility routines.
-//
+// "eventsDebugEnabled" and "retStat" are the debug support routines. We can easily 
+// check whether debug is enabled at all. The return status routine will print 
+// out a return status message when debugging is enabled. The macro "RET_STAT" 
+// is a nice helper that adds the function name to the message.
+// 
 //----------------------------------------------------------------------------------------
-uint8_t errStat( char *name, uint8_t errId ) {
+inline bool eventsDebugEnabled(  ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
+    return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )); 
+}
+
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( eventsDebugEnabled( )) {
 
         if ( errId == LCS_OK )  printf( "%s: OK\n", name );
         else                    printf( "%s: %d\n", name, errId );
@@ -77,6 +85,8 @@ uint8_t errStat( char *name, uint8_t errId ) {
 
     return ( errId );
 }
+
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
 // "compareEventEntry" is a little helper function to compare event and portId to 
@@ -114,7 +124,7 @@ int searchEventMap( uint16_t eventId ) {
         }
     }
     
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )) {
+    if ( eventsDebugEnabled( )) {
         
         printf((char *) "searchEventMap: eventId: %d -> %d\n", eventId, res );
     }
@@ -135,12 +145,12 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     if ( index >= 0 ) {
 
         eventMap.map[ index ].eventMask = eventMask; 
-        return ( errStat((char *) "addToMemEventMap", LCS_OK ));
+        return ( RET_STAT( LCS_OK ));
     }  
 
     if ( eventMap.mapHwm >= MAX_EVENT_MAP_ENTRIES ) {
 
-         return ( errStat((char *) "addToMemEventMap", ERR_EVENT_MAP_FULL ));
+         return ( RET_STAT( ERR_EVENT_MAP_FULL ));
     }
        
     index = eventMap.mapHwm;
@@ -159,7 +169,7 @@ uint8_t addToMemEventMap( uint16_t eventId, uint16_t eventMask ) {
     eventMap.map[ index ].eventMask = eventMask;
     eventMap.mapHwm++;
 
-    return ( errStat((char *) "addToMemEventMap", NO_ERR ));
+    return ( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -179,7 +189,7 @@ uint8_t removeFromMemEventMap( uint16_t eventId ) {
             eventMap.map[ i ] = eventMap.map[ i + 1 ];
     }
 
-    return ( errStat((char *) "removeFromMemEventMap", LCS_OK ));
+    return ( RET_STAT( LCS_OK ));
 }
 
 } // namespace
@@ -199,7 +209,7 @@ uint8_t setEventMask( uint16_t eventId, uint16_t eventMask ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) { 
         
-        return ( errStat((char *) "setEventMask", ERR_INVALID_EVENT_ID ));
+        return ( RET_STAT( ERR_INVALID_EVENT_ID ));
     }
 
     return ( addToMemEventMap( eventId, eventMask ));
@@ -214,7 +224,7 @@ uint8_t removeEventMask( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) {
         
-        return ( errStat((char *) "removeEventMask", ERR_INVALID_EVENT_ID ));
+        return ( RET_STAT( ERR_INVALID_EVENT_ID ));
     }
 
     return ( removeFromMemEventMap( eventId ));
@@ -231,7 +241,7 @@ int searchEvent( uint16_t eventId ) {
 
     if ( ! isInRangeU( eventId, MIN_EVENT_ID, MAX_EVENT_ID )) {
         
-        return ( errStat((char *) "searchEvent", ERR_INVALID_EVENT_ID ));
+        return ( RET_STAT( ERR_INVALID_EVENT_ID ));
     }
 
     return ( searchEventMap( eventId ));
@@ -256,7 +266,7 @@ uint8_t syncEventMapToNvm( ) {
         rStat = rtNvmPutWord( ofs, eventMap.mapHwm );
     }
 
-    return ( errStat((char *) "syncEventMapToNvm", rStat ));
+    return ( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -317,7 +327,7 @@ uint8_t syncEventMapToMem( ) {
         }
     }
 
-    return ( errStat((char *) "syncEventMapToMem", rStat ));
+    return ( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -332,9 +342,9 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask 
 
         *eventId    = eventMap.map[ index ].eventId;
         *eventMask  = eventMap.map[ index ].eventMask;
-        return ( errStat((char *) "getMemEmapEntry", LCS_OK ));
+        return ( RET_STAT( LCS_OK ));
     }
-    else return ( errStat((char *) "getMemEmapEntry", ERR_INVALID_EVENT_MAP_INDEX ));
+    else return ( RET_STAT( ERR_INVALID_EVENT_MAP_INDEX ));
 }
 
 };

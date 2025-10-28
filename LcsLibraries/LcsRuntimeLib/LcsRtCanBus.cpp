@@ -108,18 +108,29 @@ struct can2040          cBus;
 queue_t                 rxQueue;
 
 //----------------------------------------------------------------------------------------
-// Utility functions.
-//
+// "canBusDebugEnabled" and "retStat" are the debug support routines. We can easily 
+// check whether debug is enabled at all. The return status routine will print 
+// out a return status message when debugging is enabled. The macro "RET_STAT" 
+// is a nice helper that adds the function name to the message.
+// 
 //----------------------------------------------------------------------------------------
-uint8_t errStat( uint8_t errId ) {
+inline bool canBusDebugEnabled(  ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )) {
+    return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )); 
+}
 
-        printf( "Ret: %d\n", errId );
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( canBusDebugEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
+        else                    printf( "%s: %d\n", name, errId );
     }
 
     return ( errId );
 }
+
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
 // The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes 
@@ -201,7 +212,7 @@ void canBusEventCallback( struct can2040 *cd,
 //----------------------------------------------------------------------------------------
 void canBusCore( ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )) {
+    if ( canBusDebugEnabled( )) {
 
         printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d,"
                  "txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
@@ -232,7 +243,7 @@ void canBusCore( ) {
 
     cfg.mcSetupOK = true;
 
-   if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )) {
+    if ( canBusDebugEnabled( )) {
 
         printf( "CAN Bus Initialized, runs on Core: %d\n", get_core_num( ));
     }
@@ -263,7 +274,7 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
                             uint32_t baudRate, 
                             bool     twoCores ) {
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )) {
+    if ( canBusDebugEnabled( )) {
 
         printf( "Init Can Bus -> rxPin: %d, txPin: %d, BaudRate: %d, twoCores: %d\n", 
                 rxPin, txPin, baudRate, twoCores );
@@ -271,7 +282,7 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
 
     if (( rxPin == UNDEFINED_PIN ) || ( txPin == UNDEFINED_PIN )) {
     
-        return ( errStat( ERR_CAN_BUS_INIT ));
+        return ( RET_STAT( ERR_CAN_BUS_INIT ));
     }
 
     cfg.mcSetupOK       = true;
@@ -288,7 +299,7 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
     if ( cfg.mcRunOnCore1 ) multicore_launch_core1( canBusCore );
     else canBusCore( );
 
-    return ( errStat( LCS_OK ));
+    return ( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -333,7 +344,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
         if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
         else                              return ( ERR_CAN_MSG_SEND );
 
-    } else return ( errStat( LCS_OK ));
+    } else return ( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -359,7 +370,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
     if ( queue_try_remove( &rxQueue, &msg )) {
 
-        if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )) {
+        if ( canBusDebugEnabled( )) {
 
             printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", 
                     getMillis( ), msg.id, msg.dlc );
@@ -373,7 +384,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
         if (( remoteNodeId == nodeId ) && ( msg.dlc > 0 )) {
 
-            return ( errStat( ERR_CAN_ID_COLLISION ));
+            return ( RET_STAT( ERR_CAN_ID_COLLISION ));
         }
         else if ( rtrFlag ) {
 
@@ -383,15 +394,15 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
             msg.data32[ 1 ] = 0;
 
             can2040_transmit( &cBus, &msg );
-            return ( errStat( ERR_CAN_MSG_NO_MSG ));
+            return ( RET_STAT( ERR_CAN_MSG_NO_MSG ));
         }
         else {
 
             memcpy( msgBuf, msg.data, msg.dlc );
-            return ( errStat( LCS_OK ));
+            return ( RET_STAT( LCS_OK ));
         }
     }
-    else return ( errStat( ERR_CAN_MSG_NO_MSG ));
+    else return ( RET_STAT( ERR_CAN_MSG_NO_MSG ));
 }
 
 }; // namespace LCS

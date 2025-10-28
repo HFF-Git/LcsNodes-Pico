@@ -17,10 +17,10 @@
 // terms of the GNU General Public License as published by the Free Software Foundation,
 // either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
+// have received a copy of the GNU General Public License along with this program.
 // If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
@@ -33,11 +33,12 @@
 ///---------------------------------------------------------------------------------------
 namespace LCS {
 
-    using namespace CDC;
+using namespace CDC;
 
-    extern uint16_t debugMask;
-    extern uint16_t startOptions;
-};
+extern uint16_t debugMask;
+extern uint16_t startOptions;
+
+}; // namespace LCS
 
 ///---------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space with
@@ -51,11 +52,11 @@ using namespace LCS;
 using namespace CDC;
 
 ///---------------------------------------------------------------------------------------
-// 
+//
 //
 ///---------------------------------------------------------------------------------------
-uint8_t rNumI2C             = CDC_RN_EXT_NVM;
-uint8_t PCA9555I2cAdrRoot   = 0x20;
+uint8_t rNumI2C = CDC_RN_EXT_NVM;
+uint8_t PCA9555I2cAdrRoot = 0x20;
 
 ///---------------------------------------------------------------------------------------
 // The PCA9555 chip features a set of eight registers.
@@ -72,32 +73,31 @@ uint8_t PCA9555I2cAdrRoot   = 0x20;
 ///---------------------------------------------------------------------------------------
 
 ///---------------------------------------------------------------------------------------
-// The final I2C address consist of the chip fixed bits and the A0,2,3 section lines. 
+// The final I2C address consist of the chip fixed bits and the A0,2,3 section lines.
 // A0 is zero hardwired, A2 and A1 represent the board Id.
 //
 ///---------------------------------------------------------------------------------------
 uint8_t mapI2CAdr( uint8_t boardId ) {
 
-    return( PCA9555I2cAdrRoot | (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 ));
+    return ( PCA9555I2cAdrRoot | ( ( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 ) );
 }
 
 ///---------------------------------------------------------------------------------------
 // The occupancy detect board has the PCA9555 chip as an I2C to 16-bit port input/output
 // chip. The "readReg" and "writeReg" routines allow to access the chip internal register.
-// 
+//
 ///---------------------------------------------------------------------------------------
 uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
 
     uint8_t rStat = NO_ERR;
     uint8_t buf[ 2 ];
-    
+
     rStat = i2cWrite( rNumI2C, i2cAdr, &reg, 1, true );
     if ( rStat == CDC::NO_ERR ) {
-
         rStat = i2cRead( rNumI2C, i2cAdr, buf, 1 );
-        return( buf[ 0 ] );
-    }
-    else return( NO_ERR );
+        return ( buf[ 0 ] );
+    } else
+        return ( NO_ERR );
 }
 
 uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
@@ -106,24 +106,26 @@ uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
     buf[ 0 ] = reg;
     buf[ 1 ] = val;
 
-    return( i2cWrite( rNumI2C, i2cAdr, buf, 2, false ));
+    return ( i2cWrite( rNumI2C, i2cAdr, buf, 2, false ) );
 }
 
 } // namespace
 
-
 namespace LCS {
 
-///---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Each driver is just a function to handle the request.
 //
-///---------------------------------------------------------------------------------------
-uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+//----------------------------------------------------------------------------------------
+uint8_t lcsDrvOccDetect( uint16_t boardId, 
+                         uint8_t item, 
+                         uint16_t *arg1, 
+                         uint16_t *arg2 ) {
 
-    switch( item ) {
+    switch ( item ) {
 
         //--------------------------------------------------------------------------------
-        // The driver reset function. All drivers must support a reset item. For the 
+        // The driver reset function. All drivers must support a reset item. For the
         // PCA9555 we need to set the IO direction an data inversion registers. These
         // are the registers found on the chip:
         //
@@ -139,18 +141,18 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
         //--------------------------------------------------------------------------------
         case ITEM_ID_RESET: {
 
-            uint8_t rStat =         writeReg( mapI2CAdr( boardId ), 4, 0xFF );
-            if ( rStat == LCS_OK )  writeReg( mapI2CAdr( boardId ), 5, 0xFF );
-            if ( rStat == LCS_OK )  writeReg( mapI2CAdr( boardId ), 6, 0xFF );
-            if ( rStat == LCS_OK )  writeReg( mapI2CAdr( boardId ), 7, 0xFF );
+            uint8_t rStat = writeReg( mapI2CAdr( boardId ), 4, 0xFF );
+            if ( rStat == LCS_OK ) writeReg( mapI2CAdr( boardId ), 5, 0xFF );
+            if ( rStat == LCS_OK ) writeReg( mapI2CAdr( boardId ), 6, 0xFF );
+            if ( rStat == LCS_OK ) writeReg( mapI2CAdr( boardId ), 7, 0xFF );
 
             printf( "Occ Detect RESET: ret: %d\n", rStat );
-            return( rStat );
+            return ( rStat );
 
         } break;
 
         //--------------------------------------------------------------------------------
-        // Read mask. All 16 occupancy detect inputs are stored in a 16-bit word. 
+        // Read mask. All 16 occupancy detect inputs are stored in a 16-bit word.
         //
         //--------------------------------------------------------------------------------
         case DRV_OCC_READ_MASK: {
@@ -158,13 +160,13 @@ uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_
             uint8_t tmp1 = readReg( mapI2CAdr( boardId ), 0 );
             uint8_t tmp2 = readReg( mapI2CAdr( boardId ), 1 );
 
-            *arg1 = ( tmp1 << 8 ) | tmp2; 
-            return( LCS_OK );
+            *arg1 = ( tmp1 << 8 ) | tmp2;
+            return ( LCS_OK );
 
         } break;
 
-        default: return( ERR_INVALID_DRV_ITEM );
+        default: return ( ERR_INVALID_DRV_ITEM );
     }
 }
 
-} // namespace
+} // namespace LCS

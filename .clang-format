@@ -1,0 +1,77 @@
+# Base style and language
+BasedOnStyle: LLVM
+Language: Cpp
+
+# --- Indentation & spacing ---
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: true
+SpacesInSquareBrackets: true
+SpacesInAngles: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceAfterLogicalNot: false
+SpaceAfterComma: true
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterFunctionDeclarationName: false
+  AfterFunctionDefinitionName: false
+  AfterIfMacros: true
+  AfterWhile: true
+  AfterFor: true
+  AfterSwitch: true
+  AfterCatch: true
+  AfterCase: false
+SpaceAfterReturn: true
+
+IndentCaseLabels: true          # indent `case` labels one level (optional style)
+CaseIndent: 4                   # spaces to indent inside cases
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 2
+
+# --- Braces & layout ---
+BraceWrapping:
+  AfterNamespace: false
+  AfterClass: false
+  AfterControlStatement: false
+  AfterFunction: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeElse: false
+  BeforeWhile: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+AllowShortBlocksOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+
+# --- Pointers & references ---
+PointerAlignment: Right
+ReferenceAlignment: Right
+
+# --- Line limits & wrapping ---
+ColumnLimit: 90
+PenaltyExcessCharacter: 50
+ReflowComments: false
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+# --- Includes & preprocessor ---
+SortIncludes: false
+IncludeBlocks: Preserve
+IndentPPDirectives: AfterHash
+
+# --- Misc ---
+KeepEmptyLinesAtTheStartOfBlocks: true
+Cpp11BracedListStyle: true
+DerivePointerAlignment: false
+MaxEmptyLinesToKeep: 2
+

@@ -4,7 +4,7 @@
 //
 ///---------------------------------------------------------------------------------------
 // The occupancy detect extension board is a simple board that detects the presence of
-// an engine in a track section. 
+// an engine in a track section.
 //
 ///---------------------------------------------------------------------------------------
 //
@@ -15,10 +15,10 @@
 // terms of the GNU General Public License as published by the Free Software Foundation,
 // either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
+// have received a copy of the GNU General Public License along with this program.
 // If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
@@ -30,7 +30,8 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-namespace LCS {
+namespace LCS
+{
 
 ///---------------------------------------------------------------------------------------
 // Driver items. They are allocated in the user defined item range. Their meaning is
@@ -39,9 +40,8 @@ namespace LCS {
 ///---------------------------------------------------------------------------------------
 enum LcsDrvOccDetectItems : uint8_t {
 
-  DRV_OCC_READ_MASK    = IR_USER_RANGE_START + 0,
-  DRV_OCC_yyy          = IR_USER_RANGE_START + 1,
-  
+    DRV_OCC_READ_MASK = IR_USER_RANGE_START + 0,
+    DRV_OCC_yyy = IR_USER_RANGE_START + 1
 };
 
 ///---------------------------------------------------------------------------------------
@@ -50,6 +50,6 @@ enum LcsDrvOccDetectItems : uint8_t {
 ///---------------------------------------------------------------------------------------
 uint8_t lcsDrvOccDetect( uint16_t boardId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
 
-} // namespace 
+} // namespace LCS
 
 #endif
