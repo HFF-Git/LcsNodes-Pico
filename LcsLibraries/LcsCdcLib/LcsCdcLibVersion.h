@@ -31,7 +31,7 @@
 namespace CDC {
 
     const char      CDC_LIB_GIT_BRANCH[ ] = "git-branch";
-    const uint16_t  CDC_LIB_VERSION       = 1;
+    const uint16_t  CDC_LIB_VERSION       = ( 1U << 8 ) | 1U;
     const uint16_t  CDC_LIB_PATCH_LEVEL   = 0;
 }
 

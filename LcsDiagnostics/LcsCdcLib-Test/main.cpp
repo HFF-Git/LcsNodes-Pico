@@ -398,8 +398,8 @@ void testTimer( ) {
     while ( true ) {
     
         printf( "Configure Timers \n");
-        rStat = configureTimer( RNUM_TIMER_0, timerCallback0 );
-        rStat = configureTimer( RNUM_TIMER_1, timerCallback1 );
+        rStat = configureTimer( RNUM_TIMER_0, CDC_INT_PRI_DEFAULT, timerCallback0 );
+        rStat = configureTimer( RNUM_TIMER_1, CDC_INT_PRI_DEFAULT, timerCallback1 );
 
         printf( "Start Timers \n");
         startRepeatingTimer( RNUM_TIMER_0, 500000 );

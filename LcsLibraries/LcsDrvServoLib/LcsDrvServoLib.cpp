@@ -3,15 +3,16 @@
 // LCS - Driver Library Code for SERVO boards
 //
 ///---------------------------------------------------------------------------------------
-// This source file contains the lower level library for all the servo extension board.
-// We also call this library a "driver". The driver provides a set of defined interfaces
-// to the upper level extension library. Being a driver, it truly knows the hardware
-// underneath and maps the upper level calls to the lower level hardware calls to make.
+// This source file contains the lower level library for all the servo extension 
+// board. We also call this library a "driver". The driver provides a set of defined 
+// interfaces to the upper level extension library. Being a driver, it truly knows 
+// the hardware underneath and maps the upper level calls to the lower level hardware
+// calls to make.
 //
 ///---------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2023  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -28,9 +29,9 @@
 #include "LcsDrvServoLib.h"
 
 ///---------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name space with
-// all internal variables and routines local to the file. The second part contains the 
-// exported routines to be called by the core library and the firmware designers.
+// Local name space. This file has two sections. The first is this local name space 
+// with all internal variables and routines local to the file. The second part contains
+// the exported routines to be called by the core library and the firmware designers.
 //
 ///---------------------------------------------------------------------------------------
 namespace {
@@ -62,16 +63,7 @@ const int PCA9685_LED_ALL_OFF_H_ADR = 0xFD;
 uint8_t i2cAdr;
 uint8_t sclPin;
 
-
-  bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
-
-  return (( val >= lower ) && ( val <= upper ));
-}
-
-
-
-
-  uint8_t readReg( uint8_t reg ) {
+uint8_t readReg( uint8_t reg ) {
 
     uint8_t buf[ 2 ];
     uint8_t rStat = CDC::NO_ERR;
@@ -229,8 +221,10 @@ bool chipReady( uint8_t sclPin, uint8_t i2cAdr ) {
 
 }; // namespace
 
-
-
+//----------------------------------------------------------------------------------------
+// The LCS name space routines declared in this file.
+//
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
 ///---------------------------------------------------------------------------------------

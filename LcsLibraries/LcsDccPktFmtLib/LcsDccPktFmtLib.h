@@ -3,8 +3,8 @@
 // LCS DCC Packet Formatter - Include file
 //
 ///---------------------------------------------------------------------------------------
-// The DCC packet formatter is a set of static routines that will analyze and print a DCC
-// packet in human readable terms. 
+// The DCC packet formatter is a set of static routines that will analyze and print
+// a DCC packet in human readable terms. 
 //
 ///---------------------------------------------------------------------------------------
 //
@@ -34,10 +34,10 @@
 #include <inttypes.h>
 
 ///---------------------------------------------------------------------------------------
-// The LCS DCC packet formatter declarations. There are a set of options for setting up
-// the formatting options and the actual formatting method. The options allow formatting
-// DCC packets for locomotives, accessories and CV programming packets. Additionally, 
-// each packet can be also shows in a  hex or binary format.
+// The LCS DCC packet formatter declarations. There are a set of options for setting
+// up the formatting options and the actual formatting method. The options allow 
+// formatting DCC packets for locomotives, accessories and CV programming packets.
+// Additionally, each packet can be also shows in a  hex or binary format.
 //
 ///---------------------------------------------------------------------------------------
 namespace LcsDccPacketFormatter {

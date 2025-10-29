@@ -92,11 +92,9 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     //------------------------------------------------------------------------------------
     // Controller configuration and common data.
     //
-    //  MWORD           - the boardId magic word.
     //  INFO            - 
     //  VERSION         - 
     //  CTRLINFO        - 
-    //  DEBUG MASK      - debug options. They are set by the application.
     //  NAME            - the board name.
     //
     //------------------------------------------------------------------------------------
@@ -236,10 +234,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
 
     //------------------------------------------------------------------------------------
     // Controller configuration and common data.
-    //
-    //  OPTION              - option flags for the board. They are set by the application.
-    //  DEBUG MASK          - debug options. They are set by the application.
-    //  HEAD                - board / controller related info.
     //
     //------------------------------------------------------------------------------------
     .boardInfo      = CDC_BT_MAIN_CONTROLLER, 

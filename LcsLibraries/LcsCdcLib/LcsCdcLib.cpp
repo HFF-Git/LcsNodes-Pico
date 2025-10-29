@@ -34,6 +34,11 @@
 // If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <cstring>
+
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
 #include "tusb_config.h"
@@ -127,6 +132,21 @@ const uint8_t   MAX_UART_BUF_SIZE           = 8;
 const uint32_t  WATCHDOG_TIMER_MILLIS       = 2000;
 const uint32_t  ADC_REF_VOLTAGE_MILLIS      = 3300;
 const uint16_t  ADC_DIGIT_RANGE             = 1024;
+
+
+//----------------------------------------------------------------------------------------
+// The default time intervals. The debounce value will determine when we consider
+// a button pushed. The click value defines how ling we press a button for a click
+// and the press value defines what is considered a long push. There is also the
+// option to detect a double click. Care needs to be taken that the click interval
+// is not too long, which would result in a long press, and not too short, which
+// would lead to not even consider a double click. The default values are the result
+// of testing some common tactical switch buttons.
+//
+//----------------------------------------------------------------------------------------
+const uint16_t  DEFAULT_DEBOUNCE_MILLIS   = 40;
+const uint16_t  DEFAULT_CLICK_MILLIS      = 40;
+const uint16_t  DEFAULT_PRESS_MILLIS      = 500;
 
 //----------------------------------------------------------------------------------------
 // Controller dependent code uses a set of hardware resource structures to control the
@@ -262,6 +282,27 @@ struct CdcResource {
             bool            twoCores;
 
         } can;
+
+        //--------------------------------------------------------------------------------
+        // The Button resource. 
+        // 
+        //--------------------------------------------------------------------------------
+        struct {
+
+            uint8_t         pin;
+            uint8_t         buttonState;
+            bool            longPressed;
+            bool            activeLow;
+            uint32_t        startTime;
+            uint32_t        stopTime;
+
+            ButtonCallback  clickFunc;
+            ButtonCallback  doubleClickFunc;
+            ButtonCallback  longPressStartFunc;
+            ButtonCallback  longPressStopFunc;
+            ButtonCallback  duringLongPressFunc;
+
+        } button;
     };
 };
 
@@ -307,13 +348,30 @@ struct GpioIsrTable {
 //
 //----------------------------------------------------------------------------------------
 bool                    initialized = false;
+
 uint16_t                debugMask   = 0;
 uint16_t                options     = 0;
+
 CdcResourceDescMap      dMap;
 CdcResourceMap          rMap;
+
 GpioIsrTable            dioIntHandlers;
-CdcResource             *uartRes0;
-CdcResource             *uartRes1;
+
+CdcResource             *uartRes0           = nullptr;
+CdcResource             *uartRes1           = nullptr;
+
+// ??? touchy stuff. How do we make sure the pool is not claimed yet.
+// ??? produces hard asserts....
+alarm_pool              *highPriAlarmPool   = nullptr;
+alarm_pool              *lowPriAlarmPool    = nullptr;
+
+//----------------------------------------------------------------------------------------
+// Button stuff ...
+//
+//----------------------------------------------------------------------------------------
+uint16_t                debounceMillis      = DEFAULT_DEBOUNCE_MILLIS;
+uint16_t                clickMillis         = DEFAULT_CLICK_MILLIS;
+uint16_t                pressMillis         = DEFAULT_PRESS_MILLIS;
 
 //----------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and
@@ -448,17 +506,17 @@ uint8_t mapPicoGpioEvent( uint32_t event ) {
 // handlers, which in turn will invoke the respective callback function if configured. 
 //
 // The repeating timer alarm will handle timer interrupts. We stored the respective 
-// timer resource in the "user_data" field, so that we can get to the interrupt handler
-// configured.
+// timer resource in the "user_data" field, so that we can get to the interrupt 
+// handler configured.
 //
 // The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
 // can only have one interrupt routine, so we feature an array of handlers where a 
 // handler for a GPIO pin can be registered. 
 // 
-// The UART handlers will handle receive interrupts of the UART hardware blocks. There
-// is no easy way to get to the resource structure where the input buffer is. We 
-// therefore maintain two global variables in this file to store the configured resource
-// for each UART HW block.
+// The UART handlers will handle receive interrupts of the UART hardware blocks. 
+// There is no easy way to get to the resource structure where the input buffer is.
+// We therefore maintain two global variables in this file to store the configured 
+// resource for each UART HW block.
 // 
 //----------------------------------------------------------------------------------------
 bool repeatingTimerAlarm( repeating_timer_t *rt ) {
@@ -576,6 +634,7 @@ uint32_t getPatchLevel( ) {
 // the descriptor map which will be used for the setup. The init routine can be called
 // more than once without a problem.
 //
+// ??? start an internal timer ?
 //----------------------------------------------------------------------------------------
 uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMask ) {
 
@@ -589,6 +648,9 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMa
 
         initIsrTable( );
         configureConsoleIO( );
+
+        // ??? a good place to create alarm pools and start an internal
+        // timer for the "tick" function. 
     }
 
     return ( NO_ERR );
@@ -843,8 +905,9 @@ uint8_t watchDogCausedReboot( bool *reboot ) {
 // timer with the property of measuring the interval also from the start of the 
 // callback invocation. 
 //
+// ??? add priority for handler ?
 //----------------------------------------------------------------------------------------
-uint8_t configureTimer( uint8_t rNum, TimerCallback functionId ) {
+uint8_t configureTimer( uint8_t rNum, uint8_t pri, TimerCallback functionId ) {
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
   
@@ -862,17 +925,38 @@ uint8_t configureTimer( uint8_t rNum, TimerCallback functionId ) {
 //----------------------------------------------------------------------------------------
 // Start a timer.
 //
+// ??? where to set priority ?
+// ??? we would need a different alarm pool with a higher priority for our PRI alarms.
+// We would need two different alarm pools. ( or three ? )
+// to which we add the timers...
 //----------------------------------------------------------------------------------------
 uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
 
     CdcResource *ptr = lookupResource( rNum, CDC_RT_TIMER );
     if ( ptr == nullptr ) return ( TIMER_RES_ERR );
 
+    // ??? try t figure this out...
+#if 0
+    // Create a high-priority alarm pool using hardware timer 2.
+    // Timer 0 is the highest priority, so timer 2 is higher than the default pool's timer.
+    alarm_pool_t *apFast = alarm_pool_create(2, 1);
+
+    // Add a high-priority timer to the new pool.
+    alarm_pool_add_repeating_timer_us(apFast, 100, CallbackA, NULL, &rtA);
+
+    // Add a default-priority timer.
+    // This uses the default alarm pool, which has a lower priority.
+    add_repeating_timer_ms(50, CallbackB, NULL, &rtB);
+#endif
+
     int64_t limit = val;
     add_repeating_timer_us( - limit, 
                             repeatingTimerAlarm, 
                             ptr, 
                             &ptr -> timer.timerData );
+
+    // set_timer_priority( ptr -> timer.timerData., TIMER_PRIO_HIGH);
+
     return ( NO_ERR );
 }
 
@@ -916,86 +1000,6 @@ uint8_t setRepeatingTimerLimit( uint8_t rNum, uint32_t val ) {
     return ( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------
-// ADC section. The analog input channel represented by the pin is configured. At 
-// initialization, the ADC pin number is validated and the ADC subsystem is initialized.
-// The PICO does an analog read in about 2us. This is so fast, it is sufficient for our
-// purpose, so it does not make much sense to implement an asynchronous option. The 
-// PICO support up to three ADC pins at the dedicated HW pins numbers 26, 27 and 28. 
-// They also need to be mapped an ADC select number for selecting the ADC hardware.
-//
-//----------------------------------------------------------------------------------------
-uint8_t configureAdc( uint8_t rNum ) {
-
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-  
-    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_ADC );
-    if ( dPtr == nullptr ) return ( RES_NUM_ERR );
-   
-    return ( configureAdc( rNum, dPtr -> adc.adcPin, dPtr -> adc.adcNum ));
-}
-
-//----------------------------------------------------------------------------------------
-// Configure the ADC channel.
-//
-//----------------------------------------------------------------------------------------
-uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
-
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-   
-    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_ADC );
-    if ( rPtr == nullptr ) return ( RES_NUM_ERR );
-
-    if ( adcPin == 26 ) {
-
-        rPtr -> adc.adcPin = 26;
-        rPtr -> adc.adcNum = 0;
-    }
-    else  if ( adcPin == 27 ) {
-
-        rPtr -> adc.adcPin = 27;
-        rPtr -> adc.adcNum = 1;
-    }
-    else  if ( adcPin == 28 ) {
-
-        rPtr -> adc.adcPin = 28;
-        rPtr -> adc.adcNum = 2;
-    }
-    else return ( ADC_PIN_ERR );
-
-    adc_init( );
-    adc_gpio_init( rPtr -> adc.adcPin );
-    return ( NO_ERR );
-}
-
-//----------------------------------------------------------------------------------------
-// Read the ADC value. The resolution is 12-bits.
-//
-//----------------------------------------------------------------------------------------
-uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
-
-    CdcResource *rPtr = lookupResource( rNum, CDC_RT_ADC );
-    if ( rPtr == nullptr ) return ( RES_NUM_ERR );
-
-    adc_select_input( rPtr -> adc.adcNum );
-    *val = adc_read( );
-    return ( NO_ERR );
-}
-
-//----------------------------------------------------------------------------------------
-// 
-//
-//----------------------------------------------------------------------------------------
-uint16_t getAdcRefVoltage( ) {
-
-    return ( ADC_REF_VOLTAGE_MILLIS );
-}
-
-uint16_t getAdcDigitRange( ) {
-
-    return ( ADC_DIGIT_RANGE );
-}
- 
 //----------------------------------------------------------------------------------------
 // DIO section. A digital pin is the bread and butter hardware resource and can be an
 // input or output pin. For inputs, an internal pull-up resistor can be set.There are
@@ -1161,6 +1165,26 @@ uint8_t unregisterDioCallback( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Get the HW pin numbers. Used by external non-LCS libraries.
+//
+//----------------------------------------------------------------------------------------
+uint8_t getGpioPinA( uint8_t rNum) {
+
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    return( rPtr -> gpio.pinA );
+}
+
+uint8_t getGpioPinB( uint8_t rNum ) {
+
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_GPIO );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    return( rPtr -> gpio.pinB );
+}
+
+//----------------------------------------------------------------------------------------
 // Read DIO data.
 //
 //----------------------------------------------------------------------------------------
@@ -1236,6 +1260,86 @@ uint8_t toggleDio( uint8_t rNum ) {
     return ( NO_ERR );
 }
 
+//----------------------------------------------------------------------------------------
+// ADC section. The analog input channel represented by the pin is configured. At 
+// initialization, the ADC pin number is validated and the ADC subsystem is initialized.
+// The PICO does an analog read in about 2us. This is so fast, it is sufficient for our
+// purpose, so it does not make much sense to implement an asynchronous option. The 
+// PICO support up to three ADC pins at the dedicated HW pins numbers 26, 27 and 28. 
+// They also need to be mapped an ADC select number for selecting the ADC hardware.
+//
+//----------------------------------------------------------------------------------------
+uint8_t configureAdc( uint8_t rNum ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
+  
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_ADC );
+    if ( dPtr == nullptr ) return ( RES_NUM_ERR );
+   
+    return ( configureAdc( rNum, dPtr -> adc.adcPin, dPtr -> adc.adcNum ));
+}
+
+//----------------------------------------------------------------------------------------
+// Configure the ADC channel.
+//
+//----------------------------------------------------------------------------------------
+uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
+   
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_ADC );
+    if ( rPtr == nullptr ) return ( RES_NUM_ERR );
+
+    if ( adcPin == 26 ) {
+
+        rPtr -> adc.adcPin = 26;
+        rPtr -> adc.adcNum = 0;
+    }
+    else  if ( adcPin == 27 ) {
+
+        rPtr -> adc.adcPin = 27;
+        rPtr -> adc.adcNum = 1;
+    }
+    else  if ( adcPin == 28 ) {
+
+        rPtr -> adc.adcPin = 28;
+        rPtr -> adc.adcNum = 2;
+    }
+    else return ( ADC_PIN_ERR );
+
+    adc_init( );
+    adc_gpio_init( rPtr -> adc.adcPin );
+    return ( NO_ERR );
+}
+
+//----------------------------------------------------------------------------------------
+// Read the ADC value. The resolution is 12-bits.
+//
+//----------------------------------------------------------------------------------------
+uint8_t readAdc( uint8_t rNum, uint16_t *val ) {
+
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_ADC );
+    if ( rPtr == nullptr ) return ( RES_NUM_ERR );
+
+    adc_select_input( rPtr -> adc.adcNum );
+    *val = adc_read( );
+    return ( NO_ERR );
+}
+
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+uint16_t getAdcRefVoltage( ) {
+
+    return ( ADC_REF_VOLTAGE_MILLIS );
+}
+
+uint16_t getAdcDigitRange( ) {
+
+    return ( ADC_DIGIT_RANGE );
+}
+ 
 //----------------------------------------------------------------------------------------
 // PWM section. The PICO is quite flexible when it comes to PWM signals. We implement
 // a simple PWM capability. There is the frequency which set during configuration and
@@ -1868,7 +1972,7 @@ uint8_t canGetTxPin( uint8_t rNum ) {
 
 uint32_t canGetBaudrate( uint8_t rNum ) {
 
-   CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( 0 );
 
     return ( rPtr -> can.baudRate );
@@ -1880,6 +1984,255 @@ bool canGetTwoCores( uint8_t rNum ) {
     if ( rPtr == nullptr ) return ( false );
 
     return ( rPtr -> can.twoCores );
+}
+
+// ??? this file gets big :-(
+
+
+//----------------------------------------------------------------------------------------
+// Button Section.
+//
+//----------------------------------------------------------------------------------------
+uint8_t configureButton( uint8_t rNum ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
+
+    CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_BUTTON );
+    if ( dPtr == nullptr ) return ( RES_NUM_ERR );
+
+    return( configureButton( rNum, dPtr -> button.pin, dPtr -> button.activeLow ));
+}
+
+uint8_t configureButton( uint8_t rNum, uint8_t hwPin, bool aLow ) {
+
+    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
+    
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( RES_NUM_ERR );
+
+    rPtr -> button.pin                  = hwPin;
+    rPtr -> button.buttonState          = 0;
+    rPtr -> button.longPressed          = false;
+    rPtr -> button.activeLow            = aLow;
+    rPtr -> button.startTime            = 0;
+    rPtr -> button.stopTime             = 0;
+    rPtr -> button.clickFunc            = nullptr;
+    rPtr -> button.doubleClickFunc      = nullptr;
+    rPtr -> button.longPressStartFunc   = nullptr;
+    rPtr -> button.longPressStopFunc    = nullptr;
+    rPtr -> button.duringLongPressFunc  = nullptr;
+
+    return ( NO_ERR );
+}
+
+uint8_t attachClick( uint8_t rNum, ButtonCallback functionId ) {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    rPtr -> button.clickFunc = functionId;
+    return ( NO_ERR );
+}
+
+uint8_t attachDoubleClick( uint8_t rNum, ButtonCallback functionId ) {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    rPtr -> button.doubleClickFunc = functionId;
+    return ( NO_ERR );
+}
+
+uint8_t attachLongPressStart( uint8_t rNum, ButtonCallback functionId ) {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    rPtr -> button.longPressStartFunc = functionId;
+    return ( NO_ERR );
+}
+
+uint8_t attachLongPressStop( uint8_t rNum, ButtonCallback functionId ) {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    rPtr -> button.longPressStopFunc = functionId;
+    return ( NO_ERR );
+}
+
+uint8_t attachDuringLongPress( uint8_t rNum, ButtonCallback functionId )  {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    rPtr -> button.duringLongPressFunc = functionId;
+    return ( NO_ERR );
+}
+ 
+bool isLongPressed( uint8_t rNum )  {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    return ( rPtr -> button.longPressed );
+}
+
+uint32_t getDurationPressedMillis( uint8_t rNum )  {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    return ( rPtr -> button.stopTime - rPtr -> button.startTime  );
+}
+
+uint32_t getPressedMillisSinceStart( uint8_t rNum )  {
+
+    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_BUTTON );
+    if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
+
+    return ( getMillis( ) - rPtr -> button.startTime );
+}
+
+//----------------------------------------------------------------------------------------
+// "buttonTick" is the heart of managing a button. It is essentially a finite state 
+// machine running off the current state machine state and the last value read for
+// the button. A value matching the the defined active level is considered an active
+// value for the button. The state machine has the following states:
+//
+//    State 0     - the button becomes active. Remember the starting time and set 
+//                  the state to 1.
+//
+//    State 1     - if the button is inactive before the debouncing time window, it 
+//                  is perhaps a glitch, ignore, go back to state 0.
+//
+//                  else if the button is inactive remember the stopping time and 
+//                  set the state to 2.
+//
+//                  else if the button is active and the time for a long press is 
+//                  exceeded, mark a long pressed event and invoke the start and
+//                  during long press handlers, if any. Set the new state to 4.
+//
+//                  else set the sate to 1.
+//
+//    State 2     - if there are no double click handlers defined or the elapsed
+//                  time for a click is reached, invoke a click function and set 
+//                  the state to 0.
+//
+//                  else if the button is active again set the state to 3 and 
+//                  remember the starting time.
+//
+//    State 3     - if the button is not active and the elapsed time is larger than
+//                  the debouncing time, it is another click. Coming from state 2 
+//                  this is considered a double click event. Invoke the double click
+//                  handler, if any, remember the stopping time and set the state 
+//                  to 0.
+//
+//    State 4     - the previous start was a recognized long press. If the button 
+//                  became non active, remember the stopping time, invoke the end
+//                  of long press handler and set the state to 0.
+//
+//                  else if the button is still active, invoke the during long press 
+//                  state handler, if any, and set the state to 6.
+//
+//----------------------------------------------------------------------------------------
+uint8_t buttonTick( CdcResource *rPtr ) {
+
+    bool val    = gpio_get( rPtr -> button.pin );
+    bool active = (( rPtr -> button.activeLow ) ? !val : val );
+
+    #if 0 // use this when you suspect that the activeLow setting is messed up.
+    printf( "HwId: %d, val: %d, active: %d\n",
+            rPtr -> button.pin, val, active );
+    #endif
+
+    uint32_t  now         = getMillis( );
+    uint32_t  elapsedTime = now - rPtr -> button.startTime;
+    uint8_t   curState    = rPtr -> button.buttonState;
+    uint8_t   nextState   = 0;
+
+    if ( curState == 0 ) {
+
+        if ( active ) {
+
+            rPtr -> button.startTime  = now;
+            nextState  = 1;
+        }
+        else nextState = 0;
+    }
+    else if ( curState == 1 ) {
+
+        if (( ! active ) && ( elapsedTime < debounceMillis )) {
+
+            nextState = 0;
+        }
+        else if (( ! active ) && ( elapsedTime >= debounceMillis )) {
+
+            rPtr -> button.stopTime  = now;
+            nextState = 2;
+        }
+        else if (( active ) && ( elapsedTime > pressMillis )) {
+
+            rPtr -> button.longPressed = true;
+            nextState   = 4;
+
+            if ( rPtr -> button.longPressStartFunc ) 
+                rPtr -> button.longPressStartFunc( rPtr -> resId );
+        }
+        else nextState = 1;
+    }
+    else if ( curState == 2 ) {
+
+        if (( rPtr -> button.doubleClickFunc == NULL ) || 
+            ( elapsedTime > clickMillis )) {
+
+            if ( rPtr -> button.clickFunc ) 
+                rPtr -> button.clickFunc( rPtr -> resId );
+        
+            nextState = 0;
+        }
+        else if (( active ) && ( elapsedTime > debounceMillis )) {
+
+            rPtr -> button.startTime = now;
+            nextState = 3;
+        }
+        else nextState = 2;
+    }
+    else if ( curState == 3 ) {
+
+        if (( ! active ) && ( elapsedTime > debounceMillis )) {
+
+            rPtr -> button.stopTime  = now;
+            nextState = 0;
+
+            if ( rPtr -> button.doubleClickFunc ) 
+                rPtr -> button.doubleClickFunc( rPtr -> resId );
+        }
+        else nextState = 3;
+    }
+    else if ( curState == 4 ) {
+
+        if ( ! active ) {
+
+            rPtr -> button.longPressed = false;
+            rPtr -> button.stopTime    = now;
+            nextState   = 0;
+
+            if ( rPtr -> button.longPressStopFunc ) 
+                rPtr -> button.longPressStopFunc( rPtr -> resId );
+        }
+        else {
+
+            rPtr -> button.longPressed = true;
+            nextState   = 4;
+
+            if ( rPtr -> button.duringLongPressFunc ) 
+                rPtr -> button.duringLongPressFunc( rPtr -> resId );
+        }
+    }
+    else nextState = 0;
+
+    rPtr -> button.buttonState = nextState;
 }
 
 //----------------------------------------------------------------------------------------
@@ -1969,6 +2322,15 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
                         dPtr -> can.txPin, 
                         dPtr -> can.baudRate, 
                         dPtr -> can.twoCores );
+            } break;
+
+            case CDC_RT_BUTTON: {
+
+                printf( "rNum: %2d, pin: %d, activeLow: %d \n",
+                        dPtr -> resId,
+                        dPtr -> button.pin,
+                        dPtr -> button.activeLow );
+
             } break;
 
             case CDC_RT_UNDEFINED: {
@@ -2091,6 +2453,15 @@ void printResourceMap( ) {
                         rPtr -> can.baudRate, 
                         rPtr -> can.canId, 
                         rPtr -> can.twoCores );
+            
+            } break;
+
+            case CDC_RT_BUTTON: {
+    
+                printf( "rNum: %d, activeLow: %d\n", 
+                        rPtr -> resId,
+                        rPtr -> button.activeLow );
+
             } break;
 
             case CDC_RT_UNDEFINED: {

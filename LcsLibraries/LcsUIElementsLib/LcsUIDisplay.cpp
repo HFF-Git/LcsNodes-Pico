@@ -3,14 +3,15 @@
 // UIDisplayElements - implementation file.
 //
 //----------------------------------------------------------------------------------------
-// The UI element library features a simple display object. It is a basic ASCII matrix of rows and columns.
-// The display classes are LCD and OLED. While the LCD is rather fixed with respect to columns and rows, the
-// OLED class allows for different fonts. For OLEDs the basic raster is 8x8 pixels.
+// The UI element library features a simple display object. It is a basic ASCII 
+// matrix of rows and columns.The display classes are LCD and OLED. While the LCD
+// is rather fixed with respect to columns and rows, the OLED class allows for 
+// different fonts. For OLEDs the basic raster is 8x8 pixels.
 //
 //----------------------------------------------------------------------------------------
 //
 // UIDisplayElements
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -18,9 +19,9 @@
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
@@ -39,8 +40,8 @@ namespace {
 //----------------------------------------------------------------------------------------
 struct {
 
-uint8_t fontId;
-const uint8_t *font;
+    uint8_t         fontId;
+    const uint8_t   *font;
 
 } FontTab[ ] = {
 
@@ -219,14 +220,12 @@ void UIDisplayLcdI2C::clear( ) {
 // ??? watch out what display HW you really have ... it may otherwise not work...
 //----------------------------------------------------------------------------------------
 UIDisplayOled::UIDisplayOled(   uint8_t dType, 
-                                uint8_t sclPin, 
-                                uint8_t sdaPin, 
-                                uint8_t I2cAddress ) : UIDisplay( dType ) {
+                                uint8_t rNumI2C, 
+                                uint8_t i2cAdr, 
+                                uint8_t rNumRST ) : UIDisplay( dType ) {
 
     oled = new LcsOledDisplay( );
-
-   // oled -> begin( ODT_OLED_DISPLAY_128x64_SH1106, sclPin, sdaPin, I2cAddress );
-    oled -> begin( ODT_OLED_DISPLAY_128x64_SSD1306, sclPin, sdaPin, I2cAddress );
+    oled -> begin( ODT_OLED_DISPLAY_128x64_SSD1306, rNumI2C, i2cAdr, rNumRST );
    
 
     switch ( dType ) {

@@ -8,7 +8,7 @@
 ///---------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Include File
-// Copyright (C) 2022 - 2023  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -29,6 +29,10 @@
 #include "LcsRtLibInt.h"
 #include "LcsRuntimeLib.h"
 
+//----------------------------------------------------------------------------------------
+// The LCS name space routines declared in this file.
+//
+//----------------------------------------------------------------------------------------
 namespace LCS {
 
 ///---------------------------------------------------------------------------------------
@@ -39,7 +43,6 @@ enum LcsDrvServoItems : uint8_t {
 
     DRV_SERVO_xxx = IR_USER_RANGE_START + 0,
     
-  
 };
 
 ///---------------------------------------------------------------------------------------

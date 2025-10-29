@@ -1,3 +1,5 @@
+#if 0
+
 ///---------------------------------------------------------------------------------------
 // @file LCD_I2C.cpp
 // @author Cristian Cristea
@@ -183,3 +185,4 @@ void LCD_I2C::CreateCustomChar(byte location, array const char_map) const noexce
     Send_Command(SET_CGRAM_ADDR | (location << 3));
     for (size_t i = 0; i < CUSTOM_SYMBOL_SIZE; ++i) Send_Register_Select(char_map.at(i));
 }
+#endif

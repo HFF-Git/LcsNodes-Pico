@@ -22,6 +22,11 @@
 // configuration perspective.  Note that the CDC layer is not a generic HW abstraction.
 // The layer is very specific to the LCS controller board requirements described in
 // the book. 
+
+
+// ??? major changes ahead ..... 
+
+
 //
 //----------------------------------------------------------------------------------------
 //
@@ -46,7 +51,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <cstring>
-
 
 //----------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.
@@ -81,7 +85,10 @@ enum DebugOptions : uint16_t {
     CDC_DBG_PWM         = 0x0004,
     CDC_DBG_UART        = 0x0008,
     CDC_DBG_GPIO        = 0x0010,
-    CDC_DBG_RESERVED    = 0x0020,    
+    CDC_DBG_RESERVED    = 0x0020,  
+    
+    // ??? we have two more options ...
+
     CDC_DBG_ALL         = 0x00FF
 };
 
@@ -131,6 +138,11 @@ extern "C" {
 
     typedef void ( *TimerCallback ) ( uint32_t timerVal );
     typedef void ( *GpioCallback ) ( uint8_t pin, uint8_t event );
+
+    // ??? perhaps pass more data ...
+
+    typedef void ( *ButtonCallback ) ( uint8_t rNum );
+    typedef void ( *EncoderCallback ) ( uint8_t rNum );
 }
 
 //----------------------------------------------------------------------------------------
@@ -181,7 +193,9 @@ enum CdcControllerInfo : uint8_t {
 //----------------------------------------------------------------------------------------
 // The CDC resources have a type which tells us what the particular resource is. Note
 // that the are hardware resources such as a GPIO pin, but also logical resources such
-// as a software timer. The value of 255 is used as the invalid resource Id.
+// as a software timer. Finally, there are resources build on top of the bare bone HW
+// resources. Examples are the button and encoder resources. The value of 255 is used 
+// as the invalid resource Id.
 //
 //----------------------------------------------------------------------------------------
 enum CdcResourceType : uint8_t {
@@ -194,6 +208,14 @@ enum CdcResourceType : uint8_t {
     CDC_RT_UART         = 7,
     CDC_RT_I2C          = 8,
     CDC_RT_CAN_BUS      = 9,
+
+    // ??? new types 
+
+    CDC_RT_BUTTON       = 10,
+    CDC_RT_ENCODER      = 11,
+    CDC_RT_LED          = 12,
+    CDC_RT_DISPLAY      = 14,
+
     CDC_RT_INVALID      = 255
 };
 
@@ -212,8 +234,11 @@ enum CdcResourceIdNum : uint8_t {
     CDC_RN_CAN_BUS          = 2,
     CDC_RN_NVM              = 3,
     CDC_RN_EXT_NVM          = 4,
-    
+    CDC_RN_RESERVED_1       = 5,
+    CDC_RN_RESERVED_2       = 6,
+    CDC_RN_RESERVED_3       = 7,
     CDC_RN_FIRST_USER_RN    = 8, 
+
     CDC_RN_UNDEFINED        = 255
 };
 
@@ -246,6 +271,18 @@ enum CdcIntEventTyp : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
+// The timer interrupt routines feature a simple interrupt priority scheme.
+//
+//----------------------------------------------------------------------------------------
+enum CdcTimrIntPriority : uint8_t {
+
+    CDC_INT_PRI_DEFAULT     = 128,
+    CDC_INT_PRI_HIGH        = 0,
+    CDC_INT_PRI_MEDIUM      = 64,
+    CDC_INT_PRI_LOW         = 128
+};
+
+//----------------------------------------------------------------------------------------
 // PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle value.
 //
 //----------------------------------------------------------------------------------------
@@ -274,6 +311,7 @@ struct CdcResourceDesc {
         struct {
 
             uint32_t    timerVal;
+            uint8_t     priority;
 
         } timer;
 
@@ -282,6 +320,7 @@ struct CdcResourceDesc {
             uint8_t     pinA;
             uint8_t     pinB;
             uint8_t     pinMode;
+
         } gpio;
 
         struct  {
@@ -324,6 +363,28 @@ struct CdcResourceDesc {
             bool        twoCores;
 
         } can;
+
+        struct {
+
+            uint8_t     pin;
+            bool        activeLow;
+
+        } button;
+
+        struct {
+
+            uint8_t     pinA;
+            uint8_t     pinB;
+            bool        activeLow;
+
+        } encoder;
+
+        struct {
+
+            uint8_t     pin;
+
+        } led;
+
     };
 };
 
@@ -415,7 +476,7 @@ uint8_t         watchDogCausedReboot( bool *reboot );
 // Timer management routines.
 //
 //----------------------------------------------------------------------------------------
-uint8_t         configureTimer( uint8_t rNum, TimerCallback functionId );
+uint8_t         configureTimer( uint8_t rNum, uint8_t priority, TimerCallback functionId );
 uint8_t         startRepeatingTimer( uint8_t rNum, uint32_t val );
 uint8_t         stopRepeatingTimer( uint8_t rNum );
 uint8_t         setRepeatingTimerLimit( uint8_t rNum, uint32_t val );
@@ -445,6 +506,9 @@ uint8_t         registerDioCallback( uint8_t rNum,
                                      uint8_t event, 
                                      GpioCallback func );
 uint8_t         unregisterDioCallback( uint8_t rNum );
+
+uint8_t         getGpioPinA( uint8_t rNum) ;
+uint8_t         getGpioPinB( uint8_t rNum );
 
 //----------------------------------------------------------------------------------------
 // PWM output routines.
@@ -487,12 +551,15 @@ uint8_t         configureI2C( uint8_t rNum,
                               uint8_t sdaPin, 
                               uint32_t baudRate, 
                               uint32_t timeOut );
+
 uint8_t         i2cBusreset( uint8_t rNum );
+
 uint8_t         i2cWrite( uint8_t  rNum, 
                           uint8_t  i2cAdr, 
                           uint8_t  *buf, 
                           uint16_t len, 
                           bool     stopBit );
+
 uint8_t         i2cRead( uint8_t  rNum,
                          uint8_t  i2cAdr, 
                          uint8_t  *buf, 
@@ -519,6 +586,69 @@ uint8_t         canGetTxPin( uint8_t rNum );
 uint32_t        canGetBaudrate( uint8_t rNum );
 bool            canGetTwoCores( uint8_t rNum );
 
+//----------------------------------------------------------------------------------------
+// Button resource routines.
+//
+//----------------------------------------------------------------------------------------
+uint8_t         configureButton( uint8_t rNum );
+
+uint8_t         configureButton( uint8_t rNum,
+                                 uint8_t hwPin, 
+                                 bool activeLow );
+
+uint8_t         attachClick( uint8_t rNum, ButtonCallback functionId );
+uint8_t         attachDoubleClick( uint8_t rNum, ButtonCallback functionId );
+uint8_t         attachLongPressStart( uint8_t rNum, ButtonCallback functionId ) ;
+uint8_t         attachLongPressStop( uint8_t rNum, ButtonCallback functionId );
+uint8_t         attachDuringLongPress( uint8_t rNum, ButtonCallback functionId );
+    
+bool            isLongPressed( uint8_t rNum );
+uint32_t        getDurationPressedMillis( uint8_t rNum );
+uint32_t        getPressedMillisSinceStart( uint8_t rNum );
+
+//----------------------------------------------------------------------------------------
+// Encoder resource routines.
+//
+//----------------------------------------------------------------------------------------
+uint8_t         configureEncoder( uint8_t   rNum );
+
+uint8_t         configureEncoder( uint8_t   rNum,
+                                  uint8_t   pinA,
+                                  uint8_t   pinB,
+                                  int       lower,
+                                  int       upper,
+                                  bool      activeLow );
+
+uint8_t         setEncoderLimits( uint8_t rNum, int lower, int upper );
+
+void            setEncoderPosition( uint8_t rNum,
+                                    int     newPosition,
+                                    bool    supressCallback = false );  
+                                    
+int             getEncoderPosition( uint8_t rNum );
+    
+int             getEncoderLowerLimit( uint8_t rNum );    
+int             getEncoderUpperLimit( uint8_t rNum );
+
+void            attacPositionChanged( uint8_t rNum, 
+                                      EncoderCallback functionId );
+    
 };
+
+//----------------------------------------------------------------------------------------
+// LED resource routines.
+//
+//----------------------------------------------------------------------------------------
+uint8_t         configureLed( uint8_t rNum );
+uint8_t         configureLed( uint8_t rNum, uint8_t pin );
+
+bool            isLedOn( uint8_t rNum );
+bool            isLedOff( uint8_t rNum );
+uint8_t         setLedOn( uint8_t rNum ); 
+uint8_t         setLedOff( uint8_t rNum ); 
+
+void            toggleLed( uint8_t rNum );
+void            blinkLed( uint8_t rNum );
+
 
 #endif

@@ -3,10 +3,9 @@
 // LCS - Driver Library Code for Occupancy Detect extension boards
 //
 ///---------------------------------------------------------------------------------------
-// This source file contains the occupancy detector driver routine. It is a fairly simple
-// driver that just reads in the track section state for the track detector circuit. The
-// data is returned for the user defined DRV_OCC_READ_MASK. The driver date area is not
-// used for now.
+// This source file contains the occupancy detector driver routine. It is a fairly
+// simple driver that just reads in the track section state for the track detector 
+// circuit. The data is returned for the user defined DRV_OCC_READ_MASK. 
 //
 ///---------------------------------------------------------------------------------------
 //
@@ -41,9 +40,10 @@ extern uint16_t startOptions;
 }; // namespace LCS
 
 ///---------------------------------------------------------------------------------------
-// Local name space. This file has two sections. The first is this local name space with
-// all internal variables and routines local to the file. The second part contains the
-// exported routines to be called by the core library and the firmware designers.
+// Local name space. This file has two sections. The first is this local name space
+// with all internal variables and routines local to the file. The second part 
+// contains the exported routines to be called by the core library and the firmware
+// designers.
 //
 ///---------------------------------------------------------------------------------------
 namespace {
@@ -83,8 +83,8 @@ uint8_t mapI2CAdr( uint8_t boardId ) {
 }
 
 ///---------------------------------------------------------------------------------------
-// The occupancy detect board has the PCA9555 chip as an I2C to 16-bit port input/output
-// chip. The "readReg" and "writeReg" routines allow to access the chip internal register.
+// The occupancy detect board has the PCA9555 chip as an I2C to 16-bit port I/O chip.
+// The "readReg" and "writeReg" routines allow to access the chip internal register.
 //
 ///---------------------------------------------------------------------------------------
 uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {

@@ -1,3 +1,4 @@
+#if 0
 ///---------------------------------------------------------------------------------------
 // @file LCD_I2C.hpp
 // @author Cristian Cristea
@@ -282,4 +283,4 @@ class LCD_I2C final {
      */
     void CreateCustomChar( byte location, array char_map ) const noexcept;
 };
-
+#endif

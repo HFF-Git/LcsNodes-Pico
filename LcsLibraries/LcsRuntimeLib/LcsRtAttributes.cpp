@@ -216,7 +216,6 @@ namespace {
     
 } // namespace
 
-
 //----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //

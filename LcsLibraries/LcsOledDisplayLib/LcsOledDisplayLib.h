@@ -8,10 +8,10 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - OLED Display Driver - Include file
-// Copyright (C) 2024 - 2024  Helmut Fieres
+// Copyright (C) 2024 - 2025  Helmut Fieres
 //
-// Bill Greiman wrote a version for the Arduino world. I took his files, and adapted them
-// for my needs and  the PICO environment. Here is the original copyright info.
+// Bill Greiman wrote a version for the Arduino world. I took his files, and adapted
+// them for my needs and  the PICO environment. Here is the original copyright info.
 //
 // SSD1306Ascii - Oled Library for the Arduino world.
 // Copyright (c) 2011-2023 Bill Greiman
@@ -76,8 +76,6 @@ struct LcsOledDisplay  {
 
     LcsOledDisplay( );
 
-    // ??? we need to pass two resources instead of the pins ...
-
     uint8_t begin(  uint8_t     devType, 
                     uint8_t     rNumI2C, 
                     uint8_t     i2cAddr, 
@@ -119,7 +117,10 @@ struct LcsOledDisplay  {
     bool            invertMode( ) const;
     void            setInvertMode( bool mode );
 
-    uint8_t         letterSpacingPixels( ) const { return m_magFactor * m_letterSpacing; }
+    uint8_t         letterSpacingPixels( ) const { 
+                
+                        return m_magFactor * m_letterSpacing; 
+                    }
 
     uint8_t         magFactor( ) const { return m_magFactor; }
     void            set1X( ) { m_magFactor = 1; }
@@ -131,7 +132,10 @@ struct LcsOledDisplay  {
     void            setContrast( uint8_t value) ;
     void            setCursor( uint8_t colInPixels, uint8_t rowIn8Pixels );
     
-    void            setLetterSpacingPixels( uint8_t pixels ) { m_letterSpacing = pixels; }
+    void            setLetterSpacingPixels( uint8_t pixels ) {
+                             m_letterSpacing = pixels; 
+                    }
+    
     void            setRow(uint8_t rowIn8Pixels );
 
     size_t          writeChar( uint8_t ch );
@@ -144,10 +148,9 @@ struct LcsOledDisplay  {
     void            ssd1306WriteRamBuffered( uint8_t val );
     void            writeDisplay( uint8_t b, uint8_t mode );
 
-    uint8_t         i2cAdr = CDC::UNDEFINED_PIN;
-    uint8_t         sclPin = CDC::UNDEFINED_PIN;
-    uint8_t         sdaPin = CDC::UNDEFINED_PIN;
-    uint8_t         rstPin = CDC::UNDEFINED_PIN;
+    uint8_t         rNumI2C = 0;
+    uint8_t         rNumRST = 0;
+    uint8_t         i2cAdr  = 0;
 
     uint8_t         m_col;                      // Cursor column in pixels.
     uint8_t         m_row;                      // Cursor RAM row.

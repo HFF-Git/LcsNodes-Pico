@@ -3,15 +3,15 @@
 // LCS Dcc Packet Formatter - implementation file
 //
 ///---------------------------------------------------------------------------------------
-// This file contains the DCC formatter methods. The routines are used to display a DCC 
-// packet in human readable format. There are methods that analyze a DCC packet for 
-// length, checksum and instruction type. The formatting routines will build a string 
-// with a binary, hexadecimal or content formatted data.
+// This file contains the DCC formatter methods. The routines are used to display 
+// a DCC packet in human readable format. There are methods that analyze a DCC packet
+// for length, checksum and instruction type. The formatting routines will build a 
+// string with a binary, hexadecimal or content formatted data.
 //
 ///---------------------------------------------------------------------------------------
 //
 // LCS - DCC Packet Formatter
-// Copyright (C) 2021 - 2024  Helmut Fieres
+// Copyright (C) 2021 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -29,27 +29,27 @@
 #include <pico/stdlib.h>
 
 ///---------------------------------------------------------------------------------------
-// The local namespace contains the routines that actually produce most of the formatted
-// string. The routines are all built with the "sprintf" function and return the numbers
-// of characters generated in the passed line buffer.
+// The local namespace contains the routines that actually produce most of the 
+// formatted string. The routines are all built with the "sprintf" function and 
+// return the numbers of characters generated in the passed line buffer.
 //
 ///---------------------------------------------------------------------------------------
 namespace {
 
 ///---------------------------------------------------------------------------------------
-// A DCC packets is at least two bytes long. The maximum size is 12 bytes for an XPOM 
-// packet. The NMRA folks currently set a maximum of 6 bytes though, which was the limit
-// before XPOM support.
+// A DCC packets is at least two bytes long. The maximum size is 12 bytes for an
+// XPOM packet. The NMRA folks currently set a maximum of 6 bytes though, which was 
+// the limit before XPOM support.
 //
 ///---------------------------------------------------------------------------------------
 const uint8_t     MIN_DCC_PACKET_SIZE = 2;
 const uint8_t     MAX_DCC_PACKET_SIZE = 12;
 
 ///---------------------------------------------------------------------------------------
-// The string buffer needs to be large enough to accommodate the string produced. A DCC
-// packet can be up to 11 bytes long, including the checksum. We will just check that 
-// the buffer is large enough using the maximum sizes possible, although the maximum size
-// is rarely needed.
+// The string buffer needs to be large enough to accommodate the string produced. 
+// A DCC packet can be up to 11 bytes long, including the checksum. We will just 
+// check that the buffer is large enough using the maximum sizes possible, although
+// the maximum size is rarely needed.
 //
 //  HEX packet format:        11 * 5 chars + 3 = 58 chars
 //  BIN packet format:        11 * 9 chars + 3 = 102 chars
@@ -120,8 +120,9 @@ bool resetPacket( uint8_t *dccPkt ) {
 } 
 
 ///---------------------------------------------------------------------------------------
-// "speed28ToStr" returns a string with the speed information decoded for the 28 speed 
-// step model. The function returns the number of characters in the string buffer.
+// "speed28ToStr" returns a string with the speed information decoded for the 28 
+// speed step model. The function returns the number of characters in the string
+// buffer.
 //
 ///---------------------------------------------------------------------------------------
 int speed28ToStr( char *buf, uint8_t dataByte ) {
@@ -139,8 +140,9 @@ int speed28ToStr( char *buf, uint8_t dataByte ) {
 }
 
 ///---------------------------------------------------------------------------------------
-// "speed128ToStr" returns a string with the speed information decoded for the 128 speed 
-// step model. The function returns the number of characters in the string buffer.
+// "speed128ToStr" returns a string with the speed information decoded for the 128
+// speed step model. The function returns the number of characters in the string 
+// buffer.
 //
 ///---------------------------------------------------------------------------------------
 int speed128ToStr( char *buf, uint8_t dataByte ) {
@@ -203,8 +205,8 @@ int decoderControlStr( char *buf, uint8_t *dccPkt ) {
 ///---------------------------------------------------------------------------------------
 // "decoderExtendedInstructionsStr" implements the instruction group one ( 001x-xxxx ) 
 // formatting. There are all kinds of instructions in this group to control the loco 
-// speed, direction and functions. The function returns the number of characters in the
-// string buffer.
+// speed, direction and functions. The function returns the number of characters in 
+// the string buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderExtendedInstructionsStr( char *buf, uint8_t *dccPkt ) {
@@ -267,8 +269,8 @@ int decoderF0F4GroupStr( char *buf, uint8_t instrByte ) {
 
 ///---------------------------------------------------------------------------------------
 // This function formats the F5 to F12 function setting instruction. The order is 
-// "F8 - F5" and "F12 - F9". Instruction bit 4 select the respective group. The function
-// returns the number of characters in the text buffer.
+// "F8 - F5" and "F12 - F9". Instruction bit 4 select the respective group. The 
+// function returns the number of characters in the text buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderF5F12GroupStr( char *buf, uint8_t instrByte ) {
@@ -281,9 +283,9 @@ int decoderF5F12GroupStr( char *buf, uint8_t instrByte ) {
 
 ///---------------------------------------------------------------------------------------
 // "decoderExtendedAttributesStr" implements the instruction group six ( 110x-xxxx ) 
-// formatting. This group  contains binary state commands, function setting commands and 
-// command to set model time. The function returns the number of characters in the 
-// string buffer.
+// formatting. This group  contains binary state commands, function setting commands
+// and command to set model time. The function returns the number of characters in 
+// the string buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderExtendedAttributesStr( char *buf, uint8_t *dccPkt ) {
@@ -353,19 +355,19 @@ int decoderExtendedAttributesStr( char *buf, uint8_t *dccPkt ) {
 
 ///---------------------------------------------------------------------------------------
 // "decoderOtmCvProgrammingStr" implements the instruction group seven ( 1110-xxxx ) 
-// formatting for on the main track programming. There is a long and a short form of 
-// this command. The short form only applies to the operations mode, only for locomotives, 
-// and only a few CVs can be accessed. Also, consist addresses are not allowed. The short
-// form is two bytes in length. The long form applies to both locomotives and accessory
-// decoders. This form is three bytes in length.
+// formatting for on the main track programming. There is a long and a short form 
+// of this command. The short form only applies to the operations mode, only for 
+// locomotives, and only a few CVs can be accessed. Also, consist addresses are not
+// allowed. The short form is two bytes in length. The long form applies to both 
+// locomotives and accessory decoders. This form is three bytes in length.
 //
-// In addition, there is the XPOM instruction, which allows in operations mode only a 
-// quick access to the range of CVs that are otherwise only accessible via CV31/CV32. 
-// XPOM allows to access a linear address range of 16Mb and the access of up to 4 data 
-// bytes in one instruction. The instruction looks identical to the CV long access form,
-// except for the length of the packet. If the instruction part is greater than 3 bytes,
-// i.e 4 or 5 bytes with the address, we will decode an XPOM instruction. The function 
-// returns the number of characters in the string buffer.
+// In addition, there is the XPOM instruction, which allows in operations mode only
+// a quick access to the range of CVs that are otherwise only accessible via CV31 
+// and CV32. XPOM allows to access a linear address range of 16Mb and the access of
+// up to 4 data bytes in one instruction. The instruction looks identical to the CV
+// long access form, except for the length of the packet. If the instruction part is
+// greater than 3 bytes, i.e 4 or 5 bytes with the address, we will decode an XPOM
+// instruction. The function returns the number of characters in the string buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderOtmCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
@@ -477,12 +479,13 @@ int decoderOtmCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
 
 ///---------------------------------------------------------------------------------------
 // "decoderSvcModeCvProgrammingStr" implements the instruction group seven ( 0111-xxxx )
-// formatting for the programming track programming. Programming on the programming track
-// uses no address and hence there is an overlap in the meaning of the first  uint8_t. 
-// This routine is called when we are in SHOW_SCV_MODE. There is also an older access 
-// mode called register mode access. Although it should not be used anymore, we will 
-// still decode it. The old instruction is two bytes, the newer long form is three bytes
-// in length. The function returns the number of characters in the string buffer.
+// formatting for the programming track programming. Programming on the programming 
+// track uses no address and hence there is an overlap in the meaning of the first  
+// byte. This routine is called when we are in SHOW_SCV_MODE. There is also an older
+// access mode called register mode access. Although it should not be used anymore, 
+// we will still decode it. The old instruction is two bytes, the newer long form is
+// three bytes in length. The function returns the number of characters in the string 
+// buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderSvcModeCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
@@ -532,10 +535,10 @@ int decoderSvcModeCvProgrammingStr( char *buf, uint8_t *dccPkt ) {
 
 ///---------------------------------------------------------------------------------------
 // "decoderAccessoryStr" implements the formatting of an accessory decoder command. 
-// Accessory decoders use the address bytes to encoder also part of the command in the
-// second address  uint8_t. Bit 7 selects between a simple and an extended accessory 
-// decoder. Bit 3 is the activation bit, bit 0 the pair selection bit. The function 
-// returns the number of characters in the string buffer.
+// Accessory decoders use the address bytes to encoder also part of the command in 
+// the second address  uint8_t. Bit 7 selects between a simple and an extended 
+// accessory decoder. Bit 3 is the activation bit, bit 0 the pair selection bit. 
+// The function returns the number of characters in the string buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderAccessoryStr( char *buf, uint8_t *dccPkt ) {
@@ -560,9 +563,9 @@ int decoderAccessoryStr( char *buf, uint8_t *dccPkt ) {
 } 
 
 ///---------------------------------------------------------------------------------------
-// "decoderLocoStr" formats a DCC packet for a loco. All we do in this function is to 
-// branch to the instruction group handler. The function returns the number of characters
-// in the string buffer.
+// "decoderLocoStr" formats a DCC packet for a loco. All we do in this function is 
+// to branch to the instruction group handler. The function returns the number of 
+// characters in the string buffer.
 //
 ///---------------------------------------------------------------------------------------
 int decoderLocoStr( char *buf, uint8_t *dccPkt ) {
@@ -600,9 +603,9 @@ int decoderLocoStr( char *buf, uint8_t *dccPkt ) {
 } 
 
 ///---------------------------------------------------------------------------------------
-// "dccOperationsPacketStr" formats an operations packet. An operations packet has an 
-// address followed by the command and perhaps arguments. The function returns the number
-// of characters in the string buffer.
+// "dccOperationsPacketStr" formats an operations packet. An operations packet has 
+// an address followed by the command and perhaps arguments. The function returns the
+// number of characters in the string buffer.
 //
 ///---------------------------------------------------------------------------------------
 int dccOperationsPacketStr( char *buf, uint8_t *dccPkt ) {
@@ -633,13 +636,13 @@ int dccOperationsPacketStr( char *buf, uint8_t *dccPkt ) {
 }
 
 ///---------------------------------------------------------------------------------------
-// "dccPacketToStr" builds a string for the DCC packet passed. There are two basic modes.
-// The first is the regular DCC packet decoding on the main track, i.e. the first uint8_t
-// is part of an address. Decoding will branch based on the address range found. The 
-// second mode is the service mode for decoding DCC packets on the programming track, 
-// where there is no address. For both modes, there is an option to list the packet in 
-// HEX and BINARY. The function returns the number of characters to the passed buffer 
-// appended.
+// "dccPacketToStr" builds a string for the DCC packet passed. There are two basic 
+// modes. The first is the regular DCC packet decoding on the main track, i.e. the
+// first byte is part of an address. Decoding will branch based on the address range
+// found. The second mode is the service mode for decoding DCC packets on the 
+// programming track, where there is no address. For both modes, there is an option 
+// to list the packet in HEX and BINARY. The function returns the number of characters
+// to the passed buffer appended.
 //
 ///---------------------------------------------------------------------------------------
 int dccPacketToStr( char *buf, uint8_t *dccPkt, bool svcMode = false ) {
@@ -695,9 +698,9 @@ int dccPacketHexStr( char *buf, uint8_t *dccPacket ) {
 }
 
 ///---------------------------------------------------------------------------------------
-// "dccPacketBinStr" returns a string with the DCC packet in binary format, enclosed by
-// brackets. The function returns the number of characters put into the string buffer. 
-// If there is an error, the return code is a -1.
+// "dccPacketBinStr" returns a string with the DCC packet in binary format, enclosed
+// by brackets. The function returns the number of characters put into the string 
+// buffer. If there is an error, the return code is a -1.
 //
 ///---------------------------------------------------------------------------------------
 int dccPacketBinStr( char *buf, uint8_t *dccPacket ) {
@@ -728,9 +731,9 @@ int dccPacketBinStr( char *buf, uint8_t *dccPacket ) {
 // Class part.
 //
 //========================================================================================
-// "isXXX" methods to analyze the DCC packet. A monitor program would use them to get an
-// idea what packet is at hand. We analyze the overall length, the checksum, and decode
-// the instruction  uint8_t.
+// "isXXX" methods to analyze the DCC packet. A monitor program would use them to get
+// an idea what packet is at hand. We analyze the overall length, the checksum, and 
+// decode the instruction byte.
 //
 ///---------------------------------------------------------------------------------------
 bool LcsDccPacketFormatter::isValidDccPacket( uint8_t *dccPacket ) {
@@ -768,9 +771,9 @@ bool LcsDccPacketFormatter::isSvcModePacket( uint8_t *dccPacket ) {
 }
 
 ///---------------------------------------------------------------------------------------
-// "formatDccPacketHex" returns a string with the DCC packet in hex format, enclosed by 
-// brackets. The function returns the number of characters put into the string buffer. 
-// If there is an error, the return code is a -1.
+// "formatDccPacketHex" returns a string with the DCC packet in hex format, enclosed
+// by brackets. The function returns the number of characters put into the string 
+// buffer. If there is an error, the return code is a -1.
 //
 ///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketHex(  char *buf, 
@@ -782,9 +785,9 @@ int LcsDccPacketFormatter::formatDccPacketHex(  char *buf,
 }
 
 ///---------------------------------------------------------------------------------------
-// "formatDccPacketBin" returns a string with the DCC packet in binary format, enclosed 
-// by brackets. The function returns the number of characters put into the string buffer.
-// If there is an error, the return code is a -1.
+// "formatDccPacketBin" returns a string with the DCC packet in binary format, 
+// enclosed by brackets. The function returns the number of characters put into the
+// string buffer. If there is an error, the return code is a -1.
 //
 ///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketBin(  char *buf, 
@@ -796,8 +799,8 @@ int LcsDccPacketFormatter::formatDccPacketBin(  char *buf,
 }
 
 ///---------------------------------------------------------------------------------------
-// "formatDccPacketOpsMode" formats a DCC packet as an operations mode packet. If there
-// is an error, the return code is a -1.
+// "formatDccPacketOpsMode" formats a DCC packet as an operations mode packet. If 
+// there is an error, the return code is a -1.
 //
 ///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketOpsMode(  char *buf, 
@@ -809,8 +812,8 @@ int LcsDccPacketFormatter::formatDccPacketOpsMode(  char *buf,
 }
 
 ///---------------------------------------------------------------------------------------
-// "formatDccPacketSvcMode" formats a DCC packet as an service mode packet. If there is
-// an error, the return code is a -1.
+// "formatDccPacketSvcMode" formats a DCC packet as an service mode packet. If there
+// is an error, the return code is a -1.
 //
 ///---------------------------------------------------------------------------------------
 int LcsDccPacketFormatter::formatDccPacketSvcMode(  char *buf, 
