@@ -8,7 +8,18 @@ add_library( ${PROJECT_NAME} STATIC
     
     LcsCdcLibVersion.h
     LcsCdcLib.h 
+    LcsCdcLibInt.h
     LcsCdcLib.cpp
+    LcsCdcLibTimer.cpp
+    LcsCdcLibGPIO.cpp
+    LcsCdcLibADC.cpp
+    LcsCdcLibI2C.cpp
+    LcsCdcLibUART.cpp
+    LcsCdcLibPWM.cpp
+    LcsCdcLibCAN.cpp
+    LcsCdcLibButton.cpp
+    LcsCdcLibEncoder.cpp
+    LcsCdcLibLed.cpp
 ) 
 
 target_include_directories( ${PROJECT_NAME} PRIVATE 

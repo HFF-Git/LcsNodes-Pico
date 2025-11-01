@@ -22,11 +22,6 @@
 // configuration perspective.  Note that the CDC layer is not a generic HW abstraction.
 // The layer is very specific to the LCS controller board requirements described in
 // the book. 
-
-
-// ??? major changes ahead ..... 
-
-
 //
 //----------------------------------------------------------------------------------------
 //
