@@ -32,5 +32,5 @@ target_link_libraries( ${PROJECT_NAME}
     LcsCdcLib
     LcsLcdDisplayLib
     LcsOledDisplayLib
-    )
+)
 

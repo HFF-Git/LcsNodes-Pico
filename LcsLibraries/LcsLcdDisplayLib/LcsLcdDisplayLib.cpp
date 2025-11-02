@@ -38,6 +38,8 @@
 ///---------------------------------------------------------------------------------------
 namespace {
 
+using namespace CDC;
+
 ///---------------------------------------------------------------------------------------
 // Commands.
 //
@@ -109,43 +111,56 @@ constexpr uint8_t COMMAND = 0x00;
 constexpr uint8_t CHAR = 0x01;
 
 constexpr uint8_t MAX_CUSTOM_CHARS = 8;
+constexpr uint8_t CUSTOM_SYMBOL_SIZE = 8;
+
+constexpr uint16_t DELAY = 600;
 
 }; // namespace
 
-///---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
-// ??? we need to keep the data in private variables...
-// ??? use resource number scheme for CDC
-///---------------------------------------------------------------------------------------
-LcsLcdDisplay::LcsLcdDisplay (  uint8_t columns, 
-                                uint8_t rows,
-                                uint8_t sclPin,
-                                uint8_t sdaPin,
-                                uint8_t i2cAdr ) noexcept {
+// 
+//----------------------------------------------------------------------------------------
+LcsLcdDisplay::LcsLcdDisplay ( uint8_t rNum,
+                               uint8_t i2cAdr,
+                               uint8_t columns, 
+                               uint8_t rows ) noexcept {
 
+    this -> rNum    = rNum;
+    this -> address = i2cAdr;
+    this -> columns = columns;
+    this -> rows    = rows;
 
-                    }
+    displayMode     = ENTRY_LEFT | ENTRY_SHIFT_DECREMENT;
+    displayFunction = MODE_4_BIT | LINE_2 | DOTS_5x8;
+    displayControl  = DISPLAY_ON | CURSOR_OFF | BLINK_OFF;
+
+    sendCommand( 0x03 );
+    sendCommand( 0x03 );
+    sendCommand( 0x03 );
+    sendCommand( 0x02 );
+
+    sendCommand( ENTRY_MODE_SET | displayMode );
+    sendCommand( FUNCTION_SET | displayFunction );
+
+    displayOn( );
+    clear( );
+    home( );
+}
 
 void  LcsLcdDisplay::i2cWriteByte( uint8_t val ) noexcept {
     
-  static uint8_t data;
-
-  data = val | backLight;
-
-  // ??? fix how to get there ...
- //  i2c_write_blocking( I2C_instance, address, &data, 1, false);
-
+  static uint8_t data = val | backLight;
+  i2cWrite( rNum, address, &val, 1, false );
 }
 
 void  LcsLcdDisplay::pulseEnable( uint8_t val ) noexcept {
 
-    static constexpr uint16_t DELAY = 600;
-
-    CDC::sleepMicros(DELAY);
-    i2cWriteByte(val | ENABLE);
-    CDC::sleepMicros(DELAY);
-    i2cWriteByte(val & ~ENABLE);
-    CDC::sleepMicros(DELAY);
+    sleepMicros( DELAY );
+    i2cWriteByte( val | ENABLE );
+    sleepMicros( DELAY );
+    i2cWriteByte( val & ~ENABLE );
+    sleepMicros( DELAY );
 }
 
 void  LcsLcdDisplay::sendNibble(uint8_t val) noexcept {
@@ -154,7 +169,7 @@ void  LcsLcdDisplay::sendNibble(uint8_t val) noexcept {
     pulseEnable(val);
 }
 
-void  LcsLcdDisplay::sendByte(uint8_t val, uint8_t mode) noexcept {
+void  LcsLcdDisplay::sendByte( uint8_t val, uint8_t mode ) noexcept {
 
     static constexpr uint8_t UPPER_NIBBLE = 0B1111'0000;
 
@@ -164,23 +179,23 @@ void  LcsLcdDisplay::sendByte(uint8_t val, uint8_t mode) noexcept {
     high = val & UPPER_NIBBLE;
     low = (val << 4) & UPPER_NIBBLE;
 
-    sendNibble(high | mode);
-    sendNibble(low | mode);
+    sendNibble( high | mode );
+    sendNibble( low | mode );
 }
 
 void  LcsLcdDisplay::sendCommand( uint8_t val ) noexcept {
 
-    sendByte(val, COMMAND);
+    sendByte( val, COMMAND );
 }
 
-void  LcsLcdDisplay::sendChar(uint8_t val) noexcept {
+void  LcsLcdDisplay::sendChar( uint8_t val ) noexcept {
     
-    sendByte(val, CHAR);
+    sendByte( val, CHAR );
 }
 
 void  LcsLcdDisplay::sendRegisterSelect( uint8_t val ) noexcept {
 
-    sendByte(val, REGISTER_SELECT);
+    sendByte( val, REGISTER_SELECT );
 }
 
 void LcsLcdDisplay::displayOn( ) noexcept {
@@ -192,7 +207,7 @@ void LcsLcdDisplay::displayOn( ) noexcept {
 void LcsLcdDisplay::displayOff() noexcept {
 
     displayControl &= ~DISPLAY_ON;
-    sendCommand(DISPLAY_CONTROL | displayControl);
+    sendCommand( DISPLAY_CONTROL | displayControl );
 }
 
 void LcsLcdDisplay::backlightOn() noexcept {
@@ -210,13 +225,13 @@ void LcsLcdDisplay::backlightOff() noexcept {
 void LcsLcdDisplay::cursorOn() noexcept {
 
     displayControl |= CURSOR_ON;
-    sendCommand( DISPLAY_CONTROL | displayControl);
+    sendCommand( DISPLAY_CONTROL | displayControl) ;
 }
 
 void LcsLcdDisplay::cursorOff() noexcept {
 
     displayControl &= ~CURSOR_ON;
-    sendCommand(DISPLAY_CONTROL | displayControl);
+    sendCommand( DISPLAY_CONTROL | displayControl );
 }
 
 void LcsLcdDisplay::cursorBlinkOn() noexcept {
@@ -227,42 +242,48 @@ void LcsLcdDisplay::cursorBlinkOn() noexcept {
 
 void LcsLcdDisplay::cursorBlinkOff() noexcept {
     displayControl &= ~BLINK_ON;
-    sendCommand(DISPLAY_CONTROL | displayControl);
+    sendCommand( DISPLAY_CONTROL | displayControl );
 }
 
 void LcsLcdDisplay::setTextLeftToRight() noexcept {
 
     displayMode |= ENTRY_LEFT;
-    sendCommand(ENTRY_MODE_SET | displayMode);
+    sendCommand( ENTRY_MODE_SET | displayMode );
 }
 
 void LcsLcdDisplay::setTextRightToLeft() noexcept {
 
     displayMode &= ~ENTRY_LEFT;
-    sendCommand(ENTRY_MODE_SET | displayMode);
+    sendCommand( ENTRY_MODE_SET | displayMode );
 }
 
 void LcsLcdDisplay::clear( ) noexcept {
 
-    sendCommand(CLEAR_DISPLAY);
+    sendCommand( CLEAR_DISPLAY );
 }
 
 void LcsLcdDisplay::home( ) noexcept {
 
-    sendCommand(RETURN_HOME);
+    sendCommand( RETURN_HOME );
 }
 
-void LcsLcdDisplay::setCursor( uint8_t row, uint8_t column) noexcept {
+void LcsLcdDisplay::setCursor( uint8_t row, uint8_t column ) noexcept {
 
-  // ??? check this out ... the famous 4 column issue ?
-  /*
-    static const std::array ROW_OFFSETS = {0x00, 0x40, 0x00 + columns, 0x40 + columns };
+    if ( row    > rows    ) row     = rows;
+    if ( column > columns ) column  = columns;
 
-    row = std::min( rows, row );
-    column = std::min( columns, column );
-    sendCommand( SET_DDRAM_ADDR | ( ROW_OFFSETS.at(row) + column ));
-  */
+    uint8_t val;
 
+    switch ( row ) {
+
+        case 0:  val = 0;               break;
+        case 1:  val = 0x40;            break;
+        case 2:  val = 0x00 + columns;  break;
+        case 3:  val = 0x40 + columns;  break;
+        default: val = 0;
+    }
+
+    sendCommand( SET_DDRAM_ADDR | ( val + column ));
 }
 
 void LcsLcdDisplay::printChar( char ch ) noexcept {
@@ -272,7 +293,12 @@ void LcsLcdDisplay::printChar( char ch ) noexcept {
 
 void LcsLcdDisplay::printString( char *str ) noexcept {
 
-  //  ??? for (char const CHARACTER: str) printChar(CHARACTER);
+    int len = strlen( str );
+
+    if ( len > 0 ) {
+
+        for ( int i = 0; i < len; i++ ) printChar( str[ i ] );
+    }
 }
 
 void LcsLcdDisplay::printCustomChar( uint8_t location ) noexcept {
@@ -280,16 +306,14 @@ void LcsLcdDisplay::printCustomChar( uint8_t location ) noexcept {
     sendRegisterSelect( location );
 }
 
-void LcsLcdDisplay::createCustomChar( uint8_t location, uint8_t *char_map ) noexcept
-{
-    
-  /* 
-    location = std::min(MAX_CUSTOM_CHARS, location);
-    sendCommand(SET_CGRAM_ADDR | (location << 3));
-    for (size_t i = 0; i < CUSTOM_SYMBOL_SIZE; ++i)
-    {
-        Send_Register_Select(char_map.at(i));
+void LcsLcdDisplay::createCustomChar( uint8_t location, uint8_t *charMap ) noexcept {
+
+    if ( location > MAX_CUSTOM_CHARS ) location = MAX_CUSTOM_CHARS;
+    sendCommand( SET_CGRAM_ADDR | ( location << 3 ));
+
+    for (size_t i = 0; i < CUSTOM_SYMBOL_SIZE; ++i) {
+
+        sendRegisterSelect( charMap[ i ] );
     }
-  */
 }
   

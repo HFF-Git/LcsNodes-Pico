@@ -3,23 +3,24 @@
 // UILedElements - implementation file.
 //
 //----------------------------------------------------------------------------------------
-// LEDs are UIElements that can be turned on and off, toggled and blink. They are rather
-// straightforward. There is a callback function to retrieve the data for the LED.
+// LEDs are UIElements that can be turned on and off, toggled and blink. They are 
+// rather straightforward. There is a callback function to retrieve the data for 
+// the LED.
 //
 //----------------------------------------------------------------------------------------
 //
 // UILedElements
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
@@ -32,9 +33,9 @@ namespace {
 
 //----------------------------------------------------------------------------------------
 // LEDs can blink. All LEDs will be configured with the same blink interval value. 
-// Another option would be to spend each LEd its own interval, but this would just ramp
-// up the storage requirement and perhaps rarely used. So for now, all LEDs have the 
-// same blink interval.
+// Another option would be to spend each LED its own interval, but this would just 
+// ramp up the storage requirement and perhaps rarely used. So for now, all LEDs 
+// have the  same blink interval.
 //
 //----------------------------------------------------------------------------------------
 const uint16_t DEFAULT_BLINK_TICKS    = 1000;
@@ -55,9 +56,9 @@ void UILed::setBlinkIntervalMillis( uint32_t val ) {
 //
 //
 //----------------------------------------------------------------------------------------
-UILed::UILed( uint8_t hwId ) {
+UILed::UILed( uint8_t rNum ) {
 
-     this -> hwId  = hwId;
+    this -> rNum = rNum;
 }
 
 void UILed::attachSetDataFunction( UISetDataFunction functionId ) {
@@ -109,12 +110,12 @@ void UILed::processTick( ) {
 
     if ( ledBlink ) {
 
-        if (( CDC::getMillis( ) - lastChange ) > blickIntervalInMillis ) {
+        if (( getMillis( ) - lastChange ) > blickIntervalInMillis ) {
 
-            lastChange  = CDC::getMillis( );
+            lastChange  = getMillis( );
             ledOn       = ! ledOn;
         }
     }
 
-    setDataFunc( hwId, ledOn );
+    setDataFunc( rNum, ledOn );
 }

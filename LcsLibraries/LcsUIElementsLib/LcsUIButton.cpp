@@ -49,7 +49,7 @@ namespace {
         BS_ACTIVE_LOW     = 0x80,
         BS_LONG_PRESSED   = 0x40,
         BS_STATE          = 0x0F
-     };
+    };
 
     //------------------------------------------------------------------------------------
     // The default time intervals. The debounce value will determine when we consider
@@ -106,70 +106,70 @@ void UIButton::setPressMillis( uint32_t ticks ) {
 //----------------------------------------------------------------------------------------
 UIButton::UIButton( uint8_t hwId, bool activeLow ) {
   
-  this -> hwId  = hwId;
+    this -> rNum = hwId;
 
-  if ( activeLow )  buttonState |= BS_ACTIVE_LOW;
-  else              buttonState &= ~ BS_ACTIVE_LOW;
+    if ( activeLow )  buttonState |= BS_ACTIVE_LOW;
+    else              buttonState &= ~ BS_ACTIVE_LOW;
 
-  reset( );
+    reset( );
 }
 
 void UIButton::reset( ) {
 
-  buttonState   &= ~ BS_STATE;
-  buttonState   &= ~ BS_LONG_PRESSED;
-  startTime     = 0;
-  stopTime      = 0;
+    buttonState   &= ~ BS_STATE;
+    buttonState   &= ~ BS_LONG_PRESSED;
+    startTime     = 0;
+    stopTime      = 0;
 }
 
-void UIButton::attachClick( UIButtonCallBackFunction functionId ) {
+void UIButton::attachClick( UIButtonCbFunction functionId ) {
 
-  clickFunc = functionId;
+    clickFunc = functionId;
 }
 
-void UIButton::attachDoubleClick( UIButtonCallBackFunction functionId ) {
+void UIButton::attachDoubleClick( UIButtonCbFunction functionId ) {
 
-  doubleClickFunc = functionId;
+    doubleClickFunc = functionId;
 }
 
-void UIButton::attachLongPressStart( UIButtonCallBackFunction functionId ) {
+void UIButton::attachLongPressStart( UIButtonCbFunction functionId ) {
 
-  longPressStartFunc = functionId;
+    longPressStartFunc = functionId;
 }
 
-void UIButton::attachLongPressStop( UIButtonCallBackFunction functionId ) {
+void UIButton::attachLongPressStop( UIButtonCbFunction functionId ) {
 
-  longPressStopFunc = functionId;
+    longPressStopFunc = functionId;
 }
 
-void UIButton::attachDuringLongPress( UIButtonCallBackFunction functionId ) {
+void UIButton::attachDuringLongPress( UIButtonCbFunction functionId ) {
 
-  duringLongPressFunc = functionId;
+    duringLongPressFunc = functionId;
 }
 
 void UIButton::attachGetDataFunction( UIGetDataFunction functionId ) {
 
-  getDataFunc = functionId;
+    getDataFunc = functionId;
 }
 
 bool UIButton::isLongPressed( ) {
 
-  return ( buttonState & BS_LONG_PRESSED );
+    return ( buttonState & BS_LONG_PRESSED );
 }
 
 uint32_t UIButton::getDurationPressedMillis(  ) {
 
-  return ( stopTime - startTime  );
+    return ( stopTime - startTime  );
 }
 
 uint32_t UIButton::getPressedMillisSinceStart( ) {
 
-  return ( getMillis( ) - startTime );
+    return ( getMillis( ) - startTime );
 }
 
-uint8_t UIButton::getHwId( ) {
+uint8_t UIButton::getResId( ) {
 
-  return ( hwId );
+    return ( rNum );
 }
 
 //----------------------------------------------------------------------------------------
@@ -216,96 +216,96 @@ uint8_t UIButton::getHwId( ) {
 //----------------------------------------------------------------------------------------
 void UIButton::processTick( ) {
 
-  bool val    = (( getDataFunc != nullptr ) ? getDataFunc( hwId ) : false );
-  bool active = (( buttonState & BS_ACTIVE_LOW ) ? !val : val );
+    bool val    = (( getDataFunc != nullptr ) ? getDataFunc( rNum ) : false );
+    bool active = (( buttonState & BS_ACTIVE_LOW ) ? !val : val );
 
-  #if 0 // use this when you suspect that the activeLow setting is messed up.
-  Serial.print( "HwId: " );
-  Serial.print( hwId );
-  Serial.print( ":" );
-  Serial.print( val );
-  Serial.print( ":" );
-  Serial.println( active );
-  #endif
+    #if 0 // use this when you suspect that the activeLow setting is messed up.
+    Serial.print( "HwId: " );
+    Serial.print( hwId );
+    Serial.print( ":" );
+    Serial.print( val );
+    Serial.print( ":" );
+    Serial.println( active );
+    #endif
 
-  uint32_t  now         = getMillis( );
-  uint32_t  elapsedTime = now - startTime;
-  uint8_t   curState    = buttonState & BS_STATE;
-  uint8_t   nextState   = 0;
+    uint32_t  now         = getMillis( );
+    uint32_t  elapsedTime = now - startTime;
+    uint8_t   curState    = buttonState & BS_STATE;
+    uint8_t   nextState   = 0;
 
-  if ( curState == 0 ) {
+    if ( curState == 0 ) {
 
-    if ( active ) {
+        if ( active ) {
 
-      startTime  = now;
-      nextState  = 1;
+            startTime  = now;
+            nextState  = 1;
+        }
+        else nextState = 0;
+    }
+    else if ( curState == 1 ) {
+
+        if (( ! active ) && ( elapsedTime < debounceMillis )) {
+
+            nextState = 0;
+        }
+        else if (( ! active ) && ( elapsedTime >= debounceMillis )) {
+
+            stopTime  = now;
+            nextState = 2;
+        }
+        else if (( active ) && ( elapsedTime > pressMillis )) {
+
+            buttonState |= BS_LONG_PRESSED;
+            nextState   = 4;
+
+            if ( longPressStartFunc ) longPressStartFunc( this );
+        }
+        else nextState = 1;
+    }
+    else if ( curState == 2 ) {
+
+        if (( doubleClickFunc == NULL ) || ( elapsedTime > clickMillis )) {
+
+            if ( clickFunc ) clickFunc( this );
+            nextState = 0;
+        }
+        else if (( active ) && ( elapsedTime > debounceMillis )) {
+
+            startTime = now;
+            nextState = 3;
+        }
+        else nextState = 2;
+    }
+    else if ( curState == 3 ) {
+
+        if (( ! active ) && ( elapsedTime > debounceMillis )) {
+
+            stopTime  = now;
+            nextState = 0;
+
+            if ( doubleClickFunc ) doubleClickFunc( this );
+        }
+        else nextState = 3;
+    }
+    else if ( curState == 4 ) {
+
+        if ( ! active ) {
+
+            buttonState &= ~ BS_LONG_PRESSED;
+            stopTime    = now;
+            nextState   = 0;
+
+            if ( longPressStopFunc ) longPressStopFunc( this );
+        }
+        else {
+
+            buttonState |= BS_LONG_PRESSED;
+            nextState   = 4;
+
+            if ( duringLongPressFunc ) duringLongPressFunc( this );
+        }
     }
     else nextState = 0;
-  }
-  else if ( curState == 1 ) {
 
-    if (( ! active ) && ( elapsedTime < debounceMillis )) {
-
-      nextState = 0;
-    }
-    else if (( ! active ) && ( elapsedTime >= debounceMillis )) {
-
-      stopTime  = now;
-      nextState = 2;
-    }
-    else if (( active ) && ( elapsedTime > pressMillis )) {
-
-      buttonState |= BS_LONG_PRESSED;
-      nextState   = 4;
-
-      if ( longPressStartFunc ) longPressStartFunc( this );
-    }
-    else nextState = 1;
-  }
-  else if ( curState == 2 ) {
-
-    if (( doubleClickFunc == NULL ) || ( elapsedTime > clickMillis )) {
-
-      if ( clickFunc ) clickFunc( this );
-      nextState = 0;
-    }
-    else if (( active ) && ( elapsedTime > debounceMillis )) {
-
-      startTime = now;
-      nextState = 3;
-    }
-    else nextState = 2;
-  }
-  else if ( curState == 3 ) {
-
-    if (( ! active ) && ( elapsedTime > debounceMillis )) {
-
-      stopTime  = now;
-      nextState = 0;
-
-      if ( doubleClickFunc ) doubleClickFunc( this );
-    }
-    else nextState = 3;
-  }
-  else if ( curState == 4 ) {
-
-    if ( ! active ) {
-
-      buttonState &= ~ BS_LONG_PRESSED;
-      stopTime    = now;
-      nextState   = 0;
-
-      if ( longPressStopFunc ) longPressStopFunc( this );
-    }
-    else {
-
-      buttonState |= BS_LONG_PRESSED;
-      nextState   = 4;
-
-      if ( duringLongPressFunc ) duringLongPressFunc( this );
-    }
-  }
-  else nextState = 0;
-
-  buttonState = ( buttonState & ~ BS_STATE ) + nextState;
+    buttonState = ( buttonState & ~ BS_STATE ) + nextState;
 }

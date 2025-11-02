@@ -11,32 +11,31 @@
 // UIElements
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 
 //----------------------------------------------------------------------------------------
-// Class static variable. "resList" is the head of the linked list of UI elements. Each
-// UI element created
-// is added.
+// Class static variable. "resList" is the head of the linked list of UI elements. 
+// Each UI element created is added.
 //
 //----------------------------------------------------------------------------------------
 static UIElements*  resList = NULL;
 
 //----------------------------------------------------------------------------------------
-// UI Element constructor. Every UI element we create has this class as a parent and is
-// added to the global linked list. This is necessary for processing the ticks, which is
-// essentially just running down that list and calling the respective handler in the UI
-// element.
+// UI Element constructor. Every UI element we create has this class as a parent 
+// and is added to the global linked list. This is necessary for processing the ticks,
+// which is essentially just running down that list and calling the respective handler
+// in the UI element.
 //
 //----------------------------------------------------------------------------------------
 UIElements::UIElements( bool atHead ) {
@@ -60,8 +59,8 @@ void UIElements::setResId( int arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setup" is the static routine to place in the program setup routine. So far, there is
-// nothing to do.
+// "setup" is the static routine to place in the program setup routine. So far, 
+// there is nothing to do.
 //
 //----------------------------------------------------------------------------------------
 uint8_t UIElements::setup( ) {
@@ -98,7 +97,8 @@ void UIElements::append( UIElements* res ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "tick" is the static routine to be called to advance the UI elements state machine.
+// "tick" is the static routine to be called to advance the individual UI elements
+// state machine.
 //
 //----------------------------------------------------------------------------------------
 uint8_t UIElements::tick( ) {

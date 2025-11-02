@@ -54,8 +54,7 @@ const uint8_t RNUM_F2_BUTTON        = CDC_RN_FIRST_USER_RN + 9;
 const uint8_t RNUM_F3_BUTTON        = CDC_RN_FIRST_USER_RN + 10;
 const uint8_t RNUM_F4_BUTTON        = CDC_RN_FIRST_USER_RN + 11;
 const uint8_t RNUM_ENCODER_BUTTON   = CDC_RN_FIRST_USER_RN + 12;
-const uint8_t RNUM_ENCODER_A        = CDC_RN_FIRST_USER_RN + 13;
-const uint8_t RNUM_ENCODER_B        = CDC_RN_FIRST_USER_RN + 14;
+const uint8_t RNUM_ENCODER_KNOB     = CDC_RN_FIRST_USER_RN + 13;
 
 //----------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information about the hardware family,
@@ -158,12 +157,8 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
             .gpio { .pinA = 14, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
         },
 
-        {   .type = CDC_RT_GPIO, .resId = RNUM_ENCODER_A,
-            .gpio { .pinA = 12, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
-        },
-
-        {   .type = CDC_RT_GPIO, .resId = RNUM_ENCODER_B,
-            .gpio { .pinA = 13, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        {   .type = CDC_RT_GPIO, .resId = RNUM_ENCODER_KNOB,
+            .gpio { .pinA = 12, .pinB = 13, .pinMode = CDC_DIO_IN_PULLUP } 
         }
     }
 };

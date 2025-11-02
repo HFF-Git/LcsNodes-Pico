@@ -70,12 +70,13 @@
 #include "LcsLcdDisplayLib.h"
 #include "LcsOledDisplayLib.h"
 
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // Resources and Pins use the value of 255 to indicate an invalid number.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t INVALID_ID       = 255;
-const uint8_t INVALID_PIN      = 255;
 
 //----------------------------------------------------------------------------------------
 // There are quite a few displays to support. While the LCD displays just feature 
@@ -126,16 +127,18 @@ enum FontType : uint8_t {
 // the second type callback function mechanism to inform the client on the event 
 // that occurred. For example, when a button is pushed and has registered a callback 
 // function, this is the function signature invoked.
+//
 //----------------------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void (*UITimerCallBackFunction) ( struct UITimer *timerObj );
-typedef void (*UIButtonCallBackFunction) ( struct UIButton *buttonObj );
-typedef void (*UIEncoderCallBackFunction) ( struct UIEncoder *encoderObj );
-typedef void (*UISetDataFunction) ( uint8_t hwId, bool val );
-typedef bool (*UIGetDataFunction) ( uint8_t hwId );
+typedef void ( *UITimerCallBackFunction ) ( struct UITimer *timerObj );
+typedef void ( *UIButtonCbFunction ) ( struct UIButton *buttonObj );
+typedef void ( *UIEncoderCbFunction ) ( struct UIEncoder *encoderObj );
+typedef void ( *UISetDataFunction ) ( uint8_t rNum, bool val );
+typedef bool ( *UIGetDataFunction ) ( uint8_t rNum );
+typedef bool ( *UIGetDataFunctionPair ) ( uint8_t rNum, bool *val1, bool *val2 );
 
 #ifdef __cplusplus
 }
@@ -143,7 +146,7 @@ typedef bool (*UIGetDataFunction) ( uint8_t hwId );
 
 //----------------------------------------------------------------------------------------
 // The UIElements class. This is the base class for all UI elements. There are two
-// static functions, "setup" and "tick", which typically are called in the Arduino 
+// static functions, "setup" and "tick", which typically are called in the firmware 
 // setup and loop phase. Especially the tick function should be called very often, 
 // as it advances the state machine in each UI element via "processTick". The UI 
 // elements themselves are added to a linked list so that we can process all elements
@@ -184,43 +187,43 @@ struct UIButton : UIElements {
 
     public:
 
-    UIButton( uint8_t hwId, bool activeLow = false );
+    UIButton( uint8_t rNum, bool activeLow = false );
 
-    void                      attachClick( UIButtonCallBackFunction functionId );
-    void                      attachDoubleClick( UIButtonCallBackFunction functionId );
-    void                      attachLongPressStart( UIButtonCallBackFunction functionId ) ;
-    void                      attachLongPressStop( UIButtonCallBackFunction functionId );
-    void                      attachDuringLongPress( UIButtonCallBackFunction functionId );
-    void                      attachGetDataFunction( UIGetDataFunction functionId );
+    void                attachClick( UIButtonCbFunction functionId );
+    void                attachDoubleClick( UIButtonCbFunction functionId );
+    void                attachLongPressStart( UIButtonCbFunction functionId ) ;
+    void                attachLongPressStop( UIButtonCbFunction functionId );
+    void                attachDuringLongPress( UIButtonCbFunction functionId );
+    void                attachGetDataFunction( UIGetDataFunction functionId );
 
-    void                      setActiveLow( bool val );
-    bool                      isLongPressed( );
-    uint32_t                  getDurationPressedMillis( );
-    uint32_t                  getPressedMillisSinceStart( );
-    uint8_t                   getHwId( );
+    void                setActiveLow( bool val );
+    bool                isLongPressed( );
+    uint32_t            getDurationPressedMillis( );
+    uint32_t            getPressedMillisSinceStart( );
+    uint8_t             getResId( );
 
-    void                      reset( );
-    void                      processTick( );
+    void                reset( );
+    void                processTick( );
 
     private:
 
-    uint8_t                   hwId                  = INVALID_PIN;
-    uint8_t                   buttonState           = 0;
-    uint32_t                  startTime             = 0;
-    uint32_t                  stopTime              = 0;
+    uint8_t             rNum                = UNDEFINED_RES_ID;
+    uint8_t             buttonState         = 0;
+    uint32_t            startTime           = 0;
+    uint32_t            stopTime            = 0;
 
-    UIButtonCallBackFunction  clickFunc             = nullptr;
-    UIButtonCallBackFunction  doubleClickFunc       = nullptr;
-    UIButtonCallBackFunction  longPressStartFunc    = nullptr;
-    UIButtonCallBackFunction  longPressStopFunc     = nullptr;
-    UIButtonCallBackFunction  duringLongPressFunc   = nullptr;
-    UIGetDataFunction         getDataFunc           = nullptr;
+    UIButtonCbFunction  clickFunc           = nullptr;
+    UIButtonCbFunction  doubleClickFunc     = nullptr;
+    UIButtonCbFunction  longPressStartFunc  = nullptr;
+    UIButtonCbFunction  longPressStopFunc   = nullptr;
+    UIButtonCbFunction  duringLongPressFunc = nullptr;
+    UIGetDataFunction   getDataFunc         = nullptr;
 
     public:
 
-    static void               setDebounceMillis( uint32_t ticks );
-    static void               setClickMillis( uint32_t ticks );
-    static void               setPressMillis( uint32_t ticks );
+    static void         setDebounceMillis( uint32_t ticks );
+    static void         setClickMillis( uint32_t ticks );
+    static void         setPressMillis( uint32_t ticks );
 };
 
 //----------------------------------------------------------------------------------------
@@ -231,48 +234,45 @@ struct UIEncoder : UIElements {
 
     public:
 
-    UIEncoder(  uint8_t hwIdA, 
-                uint8_t hwIdB, 
-                int lower = INT_MIN, 
-                int upper = INT_MAX, 
-                bool activeLow = false );
+    UIEncoder(  uint8_t rNum,
+                int     lower     = INT_MIN, 
+                int     upper     = INT_MAX, 
+                bool    activeLow = false );
 
-    void                        reset( );
-    void                        processTick( void );
+    void                    reset( );
+    void                    processTick( void );
 
-    void                        setLimits( int lower, int upper );
-    int                         getLowerLimit( );
-    int                         getUpperLimit( );
-    int                         getPosition( );
+    void                    setLimits( int lower, int upper );
+    int                     getLowerLimit( );
+    int                     getUpperLimit( );
+    int                     getPosition( );
+    uint8_t                 getResId( );
 
-    void                        setPosition( int newPosition,
-                                             bool supressCallback = false );
+    void                    setPosition( int  newPosition,
+                                         bool supressCallback = false );
                                              
-    uint32_t                    getMillisBetweenRotations( );
-    void                        attachPositionChanged( UIEncoderCallBackFunction functionId );
-    void                        attachGetDataFunction( UIGetDataFunction functionId );
-    uint8_t                     getHwIdA( );
-    uint8_t                     getHwIdB( );
-
+    uint32_t                getMillisBetweenRotations( );
+    void                    attachPositionChanged( UIEncoderCbFunction functionId );
+    void                    attachGetDataFunction( UIGetDataFunctionPair functionId );
+   
     private:
 
-    uint8_t                     hwIdA               = INVALID_PIN;
-    uint8_t                     hwIdB               = INVALID_PIN;
+    uint8_t                 rNum                = UNDEFINED_RES_ID;
+   
+    bool                    idAVal              = false;
+    bool                    idBVal              = false;
 
-    bool                        idAVal              = false;
-    bool                        idBVal              = false;
+    bool                    activeLow           = false;
+    bool                    oldState            = false;
+    int                     position            = 0;
+    int                     positionPrev        = 0;
+    int                     upperLimit          = INT_MAX;
+    int                     lowerLimit          = INT_MIN;
+    uint32_t                positionTime        = 0;
+    uint32_t                positionTimePrev    = 0;
 
-    bool                        activeLow           = false;
-    bool                        oldState            = false;
-    int                         position            = 0;
-    int                         positionPrev        = 0;
-    int                         upperLimit          = INT_MAX;
-    int                         lowerLimit          = INT_MIN;
-    uint32_t                    positionTime        = 0;
-    uint32_t                    positionTimePrev    = 0;
-
-    UIEncoderCallBackFunction   positionChangedFunc = nullptr;
-    UIGetDataFunction           getDataFunc         = nullptr;
+    UIEncoderCbFunction     positionChangedFunc = nullptr;
+    UIGetDataFunctionPair   getDataFunc         = nullptr;
 };
 
 //----------------------------------------------------------------------------------------
@@ -283,7 +283,7 @@ struct UILed : UIElements {
 
     public:
 
-    UILed( uint8_t hwId );
+    UILed( uint8_t rNum );
 
     void processTick( );
     void attachSetDataFunction( UISetDataFunction functionId );
@@ -298,7 +298,7 @@ struct UILed : UIElements {
 
     private:
 
-    uint8_t             hwId         = INVALID_PIN;
+    uint8_t             rNum          = UNDEFINED_RES_ID;
     bool                ledOn         = false;
     bool                ledBlink      = false;
     uint32_t            lastChange    = 0;
@@ -310,10 +310,10 @@ struct UILed : UIElements {
 };
 
 //----------------------------------------------------------------------------------------
-// The "UIDisplay" object is the common subset object for all displays. It implements a
-// simple row x column ASCII display. Although some display are far more capable, this 
-// simple display type will often do. All further capabilities of an actual display are 
-// not masked and can be used. However, the code is then display specific.
+// The "UIDisplay" object is the common subset object for all displays. It implements
+// a simple row x column ASCII display. Although some display are far more capable, 
+// this simple display type will often do. All further capabilities of an actual 
+// display are not masked and can be used. However, the code is then display specific.
 //
 //----------------------------------------------------------------------------------------
 struct UIDisplay : UIElements {
@@ -340,10 +340,10 @@ struct UIDisplay : UIElements {
 
 //----------------------------------------------------------------------------------------
 // The LCD display and an I2C interface are handled by this object. Like all displays 
-// defined, this object implements a simple matrix of ASCII characters. The display has
-// a set of function to manage backlight as well as cursor and blinking options. We 
-// simply inherit these functions. They are however only an option for the LCD kind of
-// display.
+// defined, this object implements a simple matrix of ASCII characters. The display 
+// has a set of function to manage backlight as well as cursor and blinking options.
+// We simply inherit these functions. They are however only an option for the LCD 
+// kind of display.
 //
 //----------------------------------------------------------------------------------------
 struct UIDisplayLcdI2C : public UIDisplay {
@@ -351,9 +351,8 @@ struct UIDisplayLcdI2C : public UIDisplay {
     public:
 
     UIDisplayLcdI2C( uint8_t dType, 
-                     uint8_t sclPin, 
-                     uint8_t sdaPin, 
-                     uint8_t I2CAddress = 0x27 );
+                     uint8_t rNum, 
+                     uint8_t i2cAdr = 0x27 );
 
     void    displayOn( );
     void    displayOff( );
@@ -361,6 +360,7 @@ struct UIDisplayLcdI2C : public UIDisplay {
     uint8_t print( const char *s );
     uint8_t print( char ch );
     void    clear( );
+    void    clearLine( uint8_t row );
 
     private: 
 
@@ -378,9 +378,8 @@ struct UIDisplayOled : public UIDisplay {
     public:
 
     UIDisplayOled( uint8_t dType, 
-                   uint8_t sclPin,
-                   uint8_t sdaPin, 
-                   uint8_t I2cAddress = 0x3C );
+                   uint8_t rNum,
+                   uint8_t i2cAdr = 0x3C );
 
     void    displayOn( );
     void    displayOff( );
@@ -397,28 +396,27 @@ struct UIDisplayOled : public UIDisplay {
 };
 
 //----------------------------------------------------------------------------------------
-// The "UIScreen" is the central object for screens. A screen is just an array of rows
-// and columns of ASCII characters. The object contains pointers to the parent screen, 
-// the next screen at that level and a pointer to an optional child list. Screen 
-// hierarchies are built by appending a screen to another screens child list. The 
-// UIScreen class provides callbacks for for handling UIElement events, which can be 
-// overridden to implement screen specific actions. The "menu" and "select" will as 
-// default handler have the menu navigation function, all other UIElements just end in
-// a dummy function to be overridden if needed. A menu button toggles through the child
-// list, the select button selects the first child of the current menu as next screen,
-// if available. The "enterScreen", "exitScreen" methods are cab be overridden to provide
-// entry and exit processing, such as showing the initial screen content or cleaning up
-// data when leaving a screen.
+// The "UIScreen" is the central object for screens. A screen is just an array of 
+// rows and columns of ASCII characters. The object contains pointers to the parent
+// screen, the next screen at that level and a pointer to an optional child list. 
+// Screen hierarchies are built by appending a screen to another screens child list. 
+// The UIScreen class provides callbacks for for handling UIElement events, which can
+// be overridden to implement screen specific actions. The "menu" and "select" will 
+// as default handler have the menu navigation function, all other UIElements just 
+// end in a dummy function to be overridden if needed. A menu button toggles through
+// the child list, the select button selects the first child of the current menu as
+// next screen, if available. The "enterScreen", "exitScreen" methods are cab be 
+// overridden to provide entry and exit processing, such as showing the initial 
+// screen content or cleaning up data when leaving a screen.
 //
-// UIElement actions from buttons and encoders are passed to the active screen via the 
-// respective element callback. There are static class functions that are registered at
-// the UIElements and when invoked pass the data to the current screen. If UIScreen class
-// contains dummy functions to avoid implementing dummy functions in the derived screen
-// classes. Also, when overriding the menu and select button in a derived class, the 
-// enter and exit screen invocation must be handled by the overriding procedure.
+// UIElement actions from buttons and encoders are passed to the active screen via 
+// the respective element callback. There are static class functions that are 
+// registered at the UIElements and when invoked pass the data to the current screen.
+// If UIScreen class contains dummy functions to avoid implementing dummy functions
+// in the derived screen classes. Also, when overriding the menu and select button 
+// in a derived class, the enter and exit screen invocation must be handled by the
+// overriding procedure.
 //
-// ??? we may have to add the process tick mechanism so that we can implement timestamp
-// based processing...
 //----------------------------------------------------------------------------------------
 struct UIScreen {
 

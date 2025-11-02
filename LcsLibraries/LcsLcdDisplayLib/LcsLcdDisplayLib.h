@@ -34,11 +34,10 @@ class LcsLcdDisplay final {
 
     public:
 
-    LcsLcdDisplay ( uint8_t columns, 
-                    uint8_t rows,
-                    uint8_t sclPin,
-                    uint8_t sdaPin,
-                    uint8_t i2cAdr ) noexcept;
+    LcsLcdDisplay ( uint8_t rNum,
+                    uint8_t i2cAdr,
+                    uint8_t columns, 
+                    uint8_t rows ) noexcept;
 
     void displayOn( ) noexcept;
     void displayOff( ) noexcept;
@@ -76,6 +75,7 @@ class LcsLcdDisplay final {
     void sendChar(uint8_t val) noexcept;
     void sendRegisterSelect( uint8_t val ) noexcept;
 
+    uint8_t rNum;
     uint8_t address;
     uint8_t columns;
     uint8_t rows;

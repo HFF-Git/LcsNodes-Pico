@@ -155,11 +155,10 @@ void  UIDisplay::processTick( ) { }
 //
 //----------------------------------------------------------------------------------------
 UIDisplayLcdI2C::UIDisplayLcdI2C(   uint8_t dType, 
-                                    uint8_t sclPin, 
-                                    uint8_t sdaPin, 
-                                    uint8_t I2CAddress ) : UIDisplay( dType ) {
+                                    uint8_t rNum, 
+                                    uint8_t i2cAdr ) : UIDisplay( dType ) {
 
-  lcd = new LcsLcdDisplay ( maxColumns, maxRows, sclPin, sdaPin, I2CAddress );
+  lcd = new LcsLcdDisplay ( rNum, i2cAdr, maxColumns, maxRows );
 }
 
 void UIDisplayLcdI2C::displayOn( ) {
@@ -201,54 +200,59 @@ void UIDisplayLcdI2C::clear( ) {
   lcd -> clear( );
 }
 
+void UIDisplayLcdI2C::clearLine( uint8_t row ) {
+
+    lcd -> setCursor( 0, row );
+    for ( int i = 0; i < maxColumns; i++ ) lcd -> printChar( ' ' );
+}
+
 //========================================================================================
 // UIDisplayOled Section.
 //========================================================================================
 
 //----------------------------------------------------------------------------------------
-// Oled Version using the SSD1306 controller chip. There is no nice mapping of display 
-// function via base class inheritance, as used in the LiquidCrystal displays. We need 
+// Oled Version using the SSD1306 controller chip. There is no nice mapping of 
+// display function via base class inheritance, as used in the LCD displays. We need 
 // to create the OLed display object and implement each generic display function if 
-// possible. The Oled Display Class implements three methods. "setCursor" sets the cursor
-// to the desired row and columns. These values are however depending on the current font.
-// The column, measured in pixels, is computed to be the column parameter times the font 
-// width of the current font. The display row and column parameter need to be multiplied
-// with the dimensions needed for the current font measured in multiple of 8 pixels. The
-// "print" and "clear" methods just pass through to their specific Oled Display Class 
-// counterparts.
+// possible. The Oled Display Class implements three methods. "setCursor" sets the 
+// cursor to the desired row and columns. These values are however depending on the
+// current font. The column, measured in pixels, is computed to be the column parameter
+// times the font width of the current font. The display row and column parameter 
+// need to be multiplied with the dimensions needed for the current font measured 
+// in multiple of 8 pixels. The "print" and "clear" methods just pass through to 
+// their specific Oled Display Class counterparts.
 //
 // ??? watch out what display HW you really have ... it may otherwise not work...
 //----------------------------------------------------------------------------------------
 UIDisplayOled::UIDisplayOled(   uint8_t dType, 
-                                uint8_t rNumI2C, 
-                                uint8_t i2cAdr, 
-                                uint8_t rNumRST ) : UIDisplay( dType ) {
+                                uint8_t rNum, 
+                                uint8_t i2cAdr ) : UIDisplay( dType ) {
 
     oled = new LcsOledDisplay( );
-    oled -> begin( ODT_OLED_DISPLAY_128x64_SSD1306, rNumI2C, i2cAdr, rNumRST );
+    oled -> begin( ODT_OLED_DISPLAY_128x64_SSD1306, rNum, i2cAdr );
    
-
     switch ( dType ) {
 
-        case DT_OLED_DISPLAY_128x32: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
-        case DT_OLED_DISPLAY_128x64: oled -> setFont( FontTab[ FT_8x8 ].font );    break;
+        case DT_OLED_DISPLAY_128x32: oled -> setFont( FontTab[ FT_8x8 ].font ); break;
+        case DT_OLED_DISPLAY_128x64: oled -> setFont( FontTab[ FT_8x8 ].font ); break;
         default:                     oled -> setFont( FontTab[ FT_DEF ].font );
     }
 }
 
 void UIDisplayOled::displayOn( ) {
 
-  oled -> displayOn( );
+    oled -> displayOn( );
 }
 
 void UIDisplayOled::displayOff( ) {
 
-  oled -> displayOff( );
+    oled -> displayOff( );
 }
 
 void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
 
-    uint8_t lCol = (( col > maxColumns ) ? maxColumns : col ) * oled -> fontWidthPixels( );
+    uint8_t lCol = (( col > maxColumns ) ? 
+                            maxColumns : col ) * oled -> fontWidthPixels( );
     uint8_t lRow = row;
     uint8_t fRow = oled -> fontRows( );
 
@@ -260,13 +264,13 @@ void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
 
 void UIDisplayOled::setFont( uint8_t fontId ) {
 
-  switch ( fontId ) {
+    switch ( fontId ) {
 
-    case FT_5x7:  oled -> setFont( FontTab[ FT_5x7 ].font );  break;
-    case FT_8x8:  oled -> setFont( FontTab[ FT_8x8 ].font );  break;
-    case FT_8x16: oled -> setFont( FontTab[ FT_8x16 ].font ); break;
-    default: oled -> setFont( FontTab[ FT_DEF ].font );
-  }
+        case FT_5x7:  oled -> setFont( FontTab[ FT_5x7 ].font );  break;
+        case FT_8x8:  oled -> setFont( FontTab[ FT_8x8 ].font );  break;
+        case FT_8x16: oled -> setFont( FontTab[ FT_8x16 ].font ); break;
+        default: oled -> setFont( FontTab[ FT_DEF ].font );
+    }
 }
 
 uint8_t UIDisplayOled::print( const char *buf ) {
@@ -282,17 +286,17 @@ uint8_t UIDisplayOled::print( const char *buf ) {
 
 uint8_t UIDisplayOled::print( char ch ) {
 
-  return ( oled -> writeChar( ch ));
+    return ( oled -> writeChar( ch ));
 }
 
 void UIDisplayOled::clear( ) {
 
-  oled -> setCursor( 0, 0 );
-  oled -> clear( );
+    oled -> setCursor( 0, 0 );
+    oled -> clear( );
 }
 
 void UIDisplayOled::clearLine( uint8_t row ) {
 
-  setCursor( 0, row );
-  for ( int i = 0; i < maxColumns; i++ ) oled -> writeChar( ' ' );
+    setCursor( 0, row );
+    for ( int i = 0; i < maxColumns; i++ ) oled -> writeChar( ' ' );
 }

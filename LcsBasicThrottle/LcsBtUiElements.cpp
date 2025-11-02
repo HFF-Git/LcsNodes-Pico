@@ -10,15 +10,15 @@
 // LCS - Cab Handheld UI elements implementation file
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -81,39 +81,50 @@ uint8_t setupIOPins( ) {
     configureDio( RNUM_F3_BUTTON );
     configureDio( RNUM_F4_BUTTON );
     configureDio( RNUM_ENCODER_BUTTON );
-    configureDio( RNUM_ENCODER_A );
-    configureDio( RNUM_ENCODER_B );
- 
+    configureDio( RNUM_ENCODER_KNOB );
     return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// "getData" is the interface for the UI elements to read in the state of buttons and encoders. It uses the
-// hardware resource ID stored with an UI Element. The interpretation is up to the function. For example,
-// when we have direct pins, then it is the pin number on the controller chip, when the UI element is
-// connected via an I2C expander or a shift register, it is the position on the chip.
+// "getData" and getDataPair are the interfaces for the UI elements to read in the 
+// state of buttons and encoders. They use the hardware resource ID stored with an
+// UI Element. The interpretation how to get the data is up to the function. For 
+// example, when we have direct pins, then it is the pin number on the controller
+// chip, when the UI element is connected via an I2C expander or a shift register,
+// it is the position on the chip.
 //
-// ??? comment on inverse logic ?
+// ??? encoders think different ? ( inverse ? )
 //----------------------------------------------------------------------------------------
-bool getData( uint8_t hwId ) {
+bool getData( uint8_t rNum ) {
 
     bool val;
 
-    if (( hwId == RNUM_ENCODER_A ) || ( hwId == RNUM_ENCODER_B )) {
+    // ??? what value do we actually return ? active low ?
+    // ??? take out the encoder part, after test and final implementation...
 
-        readDio( hwId, &val );
+    if ( rNum == RNUM_ENCODER_KNOB ) {
+
+        readDio( rNum, &val );
         return ( val == true );
     }
     else {
 
-        readDio( hwId, &val );
+        readDio( rNum, &val );
         return ( val == false );
     }
 }
 
+bool getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
+
+    // ??? what value do we actually return ? active low ?
+
+    readDio( rNum, valA, valB );
+    return( true );
+}
+
 //----------------------------------------------------------------------------------------
-// Create the Buttons and the Encoder objects. We also attached to each UI element the data retrieval
-// function.
+// Create the Buttons and the Encoder objects. We also attached to each UI element
+// the data retrieval function.
 //
 //----------------------------------------------------------------------------------------
 uint8_t createUIElements( ) {
@@ -132,7 +143,7 @@ uint8_t createUIElements( ) {
   revButton     = new UIButton( RNUM_REV_BUTTON );
 
   encoderButton = new UIButton( RNUM_ENCODER_BUTTON );
-  encoder       = new UIEncoder( RNUM_ENCODER_A, RNUM_ENCODER_B, -10, 10, false  );
+  encoder       = new UIEncoder( RNUM_ENCODER_KNOB, -10, 10, false  );
 
   menuButton ->     attachGetDataFunction( getData );
   selectButton ->   attachGetDataFunction( getData );
@@ -144,7 +155,7 @@ uint8_t createUIElements( ) {
   fwdButton ->      attachGetDataFunction( getData );
   revButton ->      attachGetDataFunction( getData );
 
-  encoder ->        attachGetDataFunction( getData );
+  encoder ->        attachGetDataFunction( getDataPair );
   encoderButton ->  attachGetDataFunction( getData );
 
   f1Button ->       attachGetDataFunction( getData );
@@ -160,10 +171,7 @@ uint8_t createUIElements( ) {
   f4Button ->       setResId( DCC_F_M_F4 );
   encoderButton ->  setResId( DCC_F_M_ENC_BTN );
 
-  oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, 
-                            i2cGetSclPin( CDC_RN_EXT_NVM ),
-                            i2cGetSdaPin( CDC_RN_EXT_NVM ),
-                            0x50 ); // ??? fix ...
+  oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, CDC_RN_EXT_NVM, 0x3C );
 
   return ( NO_ERR );
 }

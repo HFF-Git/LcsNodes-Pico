@@ -581,6 +581,9 @@ uint8_t         canGetTxPin( uint8_t rNum );
 uint32_t        canGetBaudrate( uint8_t rNum );
 bool            canGetTwoCores( uint8_t rNum );
 
+
+
+// ??? perhaps take out again ... they are not really CDC elements...
 //----------------------------------------------------------------------------------------
 // Button resource routines.
 //
