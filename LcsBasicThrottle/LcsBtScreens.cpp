@@ -3,11 +3,12 @@
 // LCS - Cab Handheld Cab Screens implementation file
 //
 //----------------------------------------------------------------------------------------
-// This file contains the screen methods for the cab handheld screens. All cab handheld screens have a
-// common screen layout. The screen is divided into a top line, which has room for a title and the labelling
-// of the adjacent buttons MENU and UP. Likewise, there is a bottom line with room for some status flags
-// and the label fields for SELECT and DOWN. In between are two lines in a larger font which are the screen
-// content.
+// This file contains the screen methods for the cab handheld screens. All cab 
+// handheld screens have a common screen layout. The screen is divided into a top 
+// line, which has room for a title and the labelling of the adjacent buttons MENU 
+// and UP. Likewise, there is a bottom line with room for some status flags and 
+// the label fields for SELECT and DOWN. In between are two lines in a larger font
+// which are the screen content.
 //
 //
 //                         0    2 3              12 13  15
@@ -21,25 +22,26 @@
 //      Top Line    ->    : Sel  :  Status Flags   : Down :
 //                        :------:-----------------:------:
 //
-// There are methods to set these fields easy and straightforward. The top and bottom line are printed in an
-// 8x8 font, the two main lines in a 8x16 font. Note that the display object expects rows and columns based
-// on an 8-pixel raster. So, a 128x64 screen has 16 columns and 8 rows. A font that takes two rows starts at
-// the lower row of the two rows it occupies.
+// There are methods to set these fields easy and straightforward. The top and bottom
+// line are printed in an 8x8 font, the two main lines in a 8x16 font. Note that the
+// display object expects rows and columns based on an 8-pixel raster. So, a 128x64
+// screen has 16 columns and 8 rows. A font that takes two rows starts at the lower
+// row of the two rows it occupies.
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Screens implementation file
 // Copyright (C) 2019 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -155,13 +157,14 @@ struct {
     { .textId = SCR_TX_CONFIG_FUNC_L, .textStr = (char *) "Config Func"   },
     { .textId = SCR_TX_OPTIONS,       .textStr = (char *) "Options"       },
     { .textId = SCR_TX_DIAG,          .textStr = (char *) "Diag"          },
-    { .textId = SCR_TX_UI_TEST,       .textStr = (char *) "UI Test"       },
-
+    { .textId = SCR_TX_UI_TEST,       .textStr = (char *) "UI Test"       }
 };
 
 char *lookupTextStr( uint16_t textId ) {
 
-    for ( unsigned int i = 0; i < sizeof( screenTextTokensTab ) / sizeof( *screenTextTokensTab ); i++ ) {
+    const int tabSize = sizeof( screenTextTokensTab ) / sizeof( *screenTextTokensTab );
+
+    for ( int i = 0; i < tabSize; i++ ) {
 
         if ( screenTextTokensTab[ i ].textId == textId ) 
             return ( screenTextTokensTab[ i ].textStr );
@@ -198,7 +201,9 @@ struct  {
 
 char *lookupMapStr( uint16_t mapId ) {
 
-    for ( unsigned int i = 0; i < sizeof( dccMapFunctionTab ) / sizeof( *dccMapFunctionTab ); i++ ) {
+    const int tabSize = sizeof( dccMapFunctionTab ) / sizeof( *dccMapFunctionTab );
+
+    for ( int i = 0; tabSize / sizeof( *dccMapFunctionTab ); i++ ) {
 
         if ( dccMapFunctionTab[ i ].mapId == mapId ) 
             return ( dccMapFunctionTab[ i ].mapStr );
@@ -245,10 +250,8 @@ void printFieldStr( uint8_t col,
 
 //----------------------------------------------------------------------------------------
 //
-//
-//----------------------------------------------------------------------------------------
 // ??? a bit sloppy, what to test before doing ?
-
+//----------------------------------------------------------------------------------------
 void clearLine( int line ) {
 
     oled -> clearLine( line );
@@ -342,7 +345,7 @@ uint8_t setupScreens( ) {
     setFunctionSelectScreen     -> append( setFunctionOperateScreen );
     configFunctionSelectScreen  -> append( configFunctionEditScreen );
 
-    return ( LCS::LCS_OK );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -435,8 +438,9 @@ void CabHandheldScreen::printDownLabel( uint16_t textId ) {
 //  Cab Handheld Top Menu Screen Methods.
 //
 //----------------------------------------------------------------------------------------
-// The menu screens. This is the top level screen list. They are straightforward. All we do is to show the
-// menu and select labels and a text that says what this menu is.
+// The menu screens. This is the top level screen list. They are straightforward. 
+// All we do is to show the menu and select labels and a text that says what this
+// menu is.
 //
 //----------------------------------------------------------------------------------------
 TopMenuItemScreen::TopMenuItemScreen( uint8_t item ) {
@@ -552,24 +556,18 @@ void OperateScreen::enterScreen( bool init ) {
 
 void OperateScreen::buttonClick( UIButton *buttonObj ) {
 
-    uint8_t   cNum          = buttonObj -> getResId( );
+    uint8_t   rNum          = buttonObj -> getResId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
+    uint8_t   fNum          = currentCab -> mapRnumFuncSetToDccFuncMapId( rNum, 
+                                                                          functionSet );
 
-    if ( functionSet == 2 ) {
-
-        if      ( cNum == DCC_F_M_F1 )  cNum = DCC_F_M_F5;
-        else if ( cNum == DCC_F_M_F2 )  cNum = DCC_F_M_F6;
-        else if ( cNum == DCC_F_M_F3 )  cNum = DCC_F_M_F7;
-        else if ( cNum == DCC_F_M_F4 )  cNum = DCC_F_M_F8;
-    }
-
-    if ( currentCab -> getDccFuncTypeForChFuncId( cNum ) == DCC_F_M_T_TOG ) {
+    if ( currentCab -> getDccFuncTypeForChFuncId( fNum ) == DCC_F_M_T_TOG ) {
 
         currentCab -> toggleDccFuncState( 
-                currentCab -> getDccFuncIdForChFuncId( cNum ));
+                currentCab -> getDccFuncIdForChFuncId( fNum ));
 
         msgBus -> sendDccFuncVal( currentCab, 
-                                  currentCab -> getDccFuncIdForChFuncId( cNum ));
+                                  currentCab -> getDccFuncIdForChFuncId( fNum ));
     }
 
     showCabData( );
@@ -578,28 +576,21 @@ void OperateScreen::buttonClick( UIButton *buttonObj ) {
 void OperateScreen::buttonLongPressStart( UIButton *buttonObj ) {
 
     uint8_t   rNum          = buttonObj -> getResId( );
-    uint8_t   cNum          = buttonObj -> getResId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
+    uint8_t   fNum          = currentCab -> mapRnumFuncSetToDccFuncMapId( rNum, 
+                                                                          functionSet );
 
     if      ( rNum == RNUM_FWD_BUTTON ) cabStack -> currentCab.setDirection( 1 );
     else if ( rNum == RNUM_REV_BUTTON ) cabStack -> currentCab.setDirection( 2 );
     else {
 
-        if ( functionSet == 2 ) {
-
-            if      ( cNum == DCC_F_M_F1 )  cNum = DCC_F_M_F5;
-            else if ( cNum == DCC_F_M_F2 )  cNum = DCC_F_M_F6;
-            else if ( cNum == DCC_F_M_F3 )  cNum = DCC_F_M_F7;
-            else if ( cNum == DCC_F_M_F4 )  cNum = DCC_F_M_F8;
-        }
-
-        if ( currentCab -> getDccFuncTypeForChFuncId( cNum ) == DCC_F_M_T_MOM ) {
+        if ( currentCab -> getDccFuncTypeForChFuncId( fNum ) == DCC_F_M_T_MOM ) {
 
             currentCab -> setDccFuncState( 
-                    currentCab -> getDccFuncIdForChFuncId( cNum ), true );
+                    currentCab -> getDccFuncIdForChFuncId( fNum ), true );
 
             msgBus -> sendDccFuncVal( currentCab, 
-                                      currentCab -> getDccFuncIdForChFuncId( cNum ));
+                                      currentCab -> getDccFuncIdForChFuncId( fNum ));
         }
     }
 
@@ -608,24 +599,18 @@ void OperateScreen::buttonLongPressStart( UIButton *buttonObj ) {
 
 void OperateScreen::buttonLongPressStop( UIButton *buttonObj ) {
 
-    uint8_t   cNum          = buttonObj -> getResId( );
+    uint8_t   rNum          = buttonObj -> getResId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
+    uint8_t   fNum          = currentCab -> mapRnumFuncSetToDccFuncMapId( rNum, 
+                                                                          functionSet );
 
-    if ( functionSet == 2 ) {
-
-        if      ( cNum == DCC_F_M_F1 )  cNum = DCC_F_M_F5;
-        else if ( cNum == DCC_F_M_F2 )  cNum = DCC_F_M_F6;
-        else if ( cNum == DCC_F_M_F3 )  cNum = DCC_F_M_F7;
-        else if ( cNum == DCC_F_M_F4 )  cNum = DCC_F_M_F8;
-    }
-
-    if ( currentCab -> getDccFuncTypeForChFuncId( cNum ) == DCC_F_M_T_MOM ) {
+    if ( currentCab -> getDccFuncTypeForChFuncId( fNum ) == DCC_F_M_T_MOM ) {
 
         currentCab -> setDccFuncState( 
-            currentCab -> getDccFuncIdForChFuncId( cNum ), false );
+            currentCab -> getDccFuncIdForChFuncId( fNum ), false );
 
         msgBus -> sendDccFuncVal( currentCab, 
-                                  currentCab -> getDccFuncIdForChFuncId( cNum ));
+                                  currentCab -> getDccFuncIdForChFuncId( fNum ));
     }
 
     showCabData( );
@@ -649,7 +634,7 @@ void OperateScreen::encoderPosChange( UIEncoder *encoderObj ) {
 
 void OperateScreen::showCabData( ) {
 
-    if ( cabStack -> currentCab.getCabId( ) != LCS::NIL_CAB_ID ) {
+    if ( cabStack -> currentCab.getCabId( ) != NIL_CAB_ID ) {
 
         printFieldStr( 0, 2, FT_8x16, "Cab: %04d %c",
                         cabStack -> currentCab.getCabId( ),
@@ -676,8 +661,8 @@ void OperateScreen::showCabData( ) {
 //  Engine On/Off Screen Methods.
 //
 //----------------------------------------------------------------------------------------
-// Engine on and off screen. Especially a diesel engine needs to first turn its prime
-// mover on first. And you cannot turn it off when the engine is not stopped.
+// Engine on and off screen. Especially a diesel engine needs to first turn its 
+// prime mover on first. And you cannot turn it off when the engine is not stopped.
 //
 //----------------------------------------------------------------------------------------
 void EngineOnOffScreen::enterScreen( bool init ) {
@@ -806,7 +791,7 @@ void SelectCabScreen::selectButtonClick( UIButton *buttonObj ) {
 
 void SelectCabScreen::showScreenData( int index ) {
 
-    if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != LCS::NIL_CAB_ID ) {
+    if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != NIL_CAB_ID ) {
 
         printFieldStr( 0, 2, FT_8x16, "Cab: %04d", 
                        cabStack -> cabSlots[ index - 1 ].getCabId( ));
@@ -850,7 +835,7 @@ void SaveCabScreen::selectButtonClick( UIButton *buttonObj ) {
 
 void SaveCabScreen::showScreenData( int index ) {
 
-    if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != LCS::NIL_CAB_ID ) {
+    if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != NIL_CAB_ID ) {
 
         printFieldStr( 0, 2, FT_8x16, "Cab: %04d", 
                        cabStack -> cabSlots[ index - 1 ].getCabId( ));
@@ -876,7 +861,7 @@ void SaveCabScreen::showScreenData( int index ) {
 // entering. We make the current cab this new cab. Note, that it would need to be 
 // explicitly saved.
 //
-// ??? we could also get initial data from the base station if the cab is known ... tbd.
+// ??? we could also get initial data from the base station for a known cab ... tbd.
 // ??? what about the short address ?
 //----------------------------------------------------------------------------------------
 NewCabScreen::NewCabScreen( UIEncoder *encoder ) {
@@ -968,7 +953,7 @@ void NewCabScreen::selectButtonClick( UIButton * buttonId ) {
 
     uint8_t rStat = msgBus -> requestLocoSession( currentCab );
 
-    if ( rStat == LCS::LCS_OK ) {
+    if ( rStat == LCS_OK ) {
 
         UIScreen::setCurrentScreen( operateScreen );
     }
@@ -1136,12 +1121,13 @@ void ConfigFunctionSelectScreen::showScreenData( int index ) {
 //  Configure Cab Function Edit Screen Methods.
 //
 //----------------------------------------------------------------------------------------
-// Config function edit screen. We are the child of the config function select screen,
-// which has the index of the selected item. The edit screen uses the UP and DOWN 
-// buttons for the selection of the DCC function Id. The MENU button toggles through
-// the function options to set and the SELECT button will confirm the setting and we
-// return to the Config Function Menu. Note, we also override the enterScreen to 
-// display the rather static data so that the screen is not flickering.
+// Config function edit screen. We are the child of the config function select 
+// screen, which has the index of the selected item. The edit screen uses the UP 
+// and DOWN buttons for the selection of the DCC function Id. The MENU button 
+// toggles through the function options to set and the SELECT button will confirm 
+// the setting and we return to the Config Function Menu. Note, we also override 
+// the enterScreen to display the rather static data so that the screen is not 
+// flickering.
 //
 //----------------------------------------------------------------------------------------
 ConfigFunctionEditScreen::ConfigFunctionEditScreen( UIEncoder *encoder ) : 
@@ -1149,8 +1135,8 @@ ConfigFunctionEditScreen::ConfigFunctionEditScreen( UIEncoder *encoder ) :
 
 void ConfigFunctionEditScreen::enterScreen( bool init ) {
 
-    low           = LCS::MIN_DCC_FUNC_ID;
-    high          = LCS::MAX_DCC_FUNC_ID;
+    low           = MIN_DCC_FUNC_ID;
+    high          = MAX_DCC_FUNC_ID;
 
     ScrollableScreen::enterScreen( init );
     printTitle( SCR_TX_CONFIG_FUNC );
@@ -1197,10 +1183,11 @@ void ConfigFunctionEditScreen::showScreenData( int index ) {
 //  Test UI Elements Screen Methods.
 //
 //----------------------------------------------------------------------------------------
-// Test UI Elements. This menu is a very handy menu to test the individual UI elements
-// for basic function. It is invoked from the DIAG menu. The UI tests use all buttons
-// so, we can only return via the MENU button long press function to the main menu. 
-// This screen is a child screen of the test UI elements screen found in the DIAG menu.
+// Test UI Elements. This menu is a very handy menu to test the individual UI
+// elements for basic function. It is invoked from the DIAG menu. The UI tests use
+// all buttons so, we can only return via the MENU button long press function to 
+// the main menu. This screen is a child screen of the test UI elements screen 
+// found in the DIAG menu.
 //
 //----------------------------------------------------------------------------------------
 void TestUIScreen::enterScreen( bool init ) {
@@ -1239,15 +1226,32 @@ void TestUIScreen::buttonClick( UIButton *buttonId ) {
 
     switch ( buttonId -> getResId( )) {
 
-        case RNUM_HORN_BUTTON:      printFieldStr( 0, 2, FT_8x16, "HORN CLICK" );     break;
-        case RNUM_BELL_BUTTON:      printFieldStr( 0, 2, FT_8x16, "BELL CLICK" );     break;
-        case RNUM_FWD_BUTTON:       printFieldStr( 0, 2, FT_8x16, "FWD CLICK" );      break;
-        case RNUM_REV_BUTTON:       printFieldStr( 0, 2, FT_8x16, "REV CLICK" );      break;
-        case RNUM_F1_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F1 CLICK" );       break;
-        case RNUM_F2_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F2 CLICK" );       break;
-        case RNUM_F3_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F3 CLICK" );       break;
-        case RNUM_F4_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F4 CLICK" );       break;
-        case RNUM_ENCODER_BUTTON:   printFieldStr( 0, 2, FT_8x16, "ENCODER CLICK" );  break;
+        case RNUM_HORN_BUTTON:     
+            printFieldStr( 0, 2, FT_8x16, "HORN CLICK" );     break;
+        
+        case RNUM_BELL_BUTTON:      
+            printFieldStr( 0, 2, FT_8x16, "BELL CLICK" );     break;
+        
+        case RNUM_FWD_BUTTON:       
+            printFieldStr( 0, 2, FT_8x16, "FWD CLICK" );      break;
+        
+        case RNUM_REV_BUTTON:       
+            printFieldStr( 0, 2, FT_8x16, "REV CLICK" );      break;
+        
+        case RNUM_F1_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F1 CLICK" );       break;
+
+        case RNUM_F2_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F2 CLICK" );       break;
+    
+        case RNUM_F3_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F3 CLICK" );       break;
+    
+        case RNUM_F4_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F4 CLICK" );       break;
+
+        case RNUM_ENCODER_BUTTON:   
+            printFieldStr( 0, 2, FT_8x16, "ENCODER CLICK" );  break;
     }
 }
 
@@ -1257,15 +1261,32 @@ void TestUIScreen::buttonLongPressStart( UIButton *buttonObj ) {
 
     switch ( buttonObj -> getResId( )) {
 
-        case RNUM_HORN_BUTTON:      printFieldStr( 0, 2, FT_8x16, "HORN LP START" );     break;
-        case RNUM_BELL_BUTTON:      printFieldStr( 0, 2, FT_8x16, "BELL LP START" );     break;
-        case RNUM_FWD_BUTTON:       printFieldStr( 0, 2, FT_8x16, "FWD LP START" );      break;
-        case RNUM_REV_BUTTON:       printFieldStr( 0, 2, FT_8x16, "REV LP START" );      break;
-        case RNUM_F1_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F1 LP START" );       break;
-        case RNUM_F2_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F2 LP START" );       break;
-        case RNUM_F3_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F3 LP START" );       break;
-        case RNUM_F4_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F4 LP START" );       break;
-        case RNUM_ENCODER_BUTTON:   printFieldStr( 0, 2, FT_8x16, "ENCODER LP START" );  break;
+        case RNUM_HORN_BUTTON:      
+            printFieldStr( 0, 2, FT_8x16, "HORN LP START" );     break;
+        
+        case RNUM_BELL_BUTTON:      
+            printFieldStr( 0, 2, FT_8x16, "BELL LP START" );     break;
+        
+        case RNUM_FWD_BUTTON:       
+            printFieldStr( 0, 2, FT_8x16, "FWD LP START" );      break;
+        
+        case RNUM_REV_BUTTON:       
+            printFieldStr( 0, 2, FT_8x16, "REV LP START" );      break;
+
+        case RNUM_F1_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F1 LP START" );       break;
+
+        case RNUM_F2_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F2 LP START" );       break;
+
+        case RNUM_F3_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F3 LP START" );       break;
+
+        case RNUM_F4_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F4 LP START" );       break;
+
+        case RNUM_ENCODER_BUTTON:   
+            printFieldStr( 0, 2, FT_8x16, "ENCODER LP START" );  break;
     }
 }
 
@@ -1275,15 +1296,32 @@ void TestUIScreen::buttonLongPressStop( UIButton *buttonObj ) {
 
     switch ( buttonObj -> getResId( )) {
 
-        case RNUM_HORN_BUTTON:      printFieldStr( 0, 2, FT_8x16, "HORN LP STOP" );     break;
-        case RNUM_BELL_BUTTON:      printFieldStr( 0, 2, FT_8x16, "BELL LP STOP" );     break;
-        case RNUM_FWD_BUTTON:       printFieldStr( 0, 2, FT_8x16, "FWD LP STOP" );      break;
-        case RNUM_REV_BUTTON:       printFieldStr( 0, 2, FT_8x16, "REV LP STOP" );      break;
-        case RNUM_F1_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F1 LP STOP" );       break;
-        case RNUM_F2_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F2 LP STOP" );       break;
-        case RNUM_F3_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F3 LP STOP" );       break;
-        case RNUM_F4_BUTTON:        printFieldStr( 0, 2, FT_8x16, "F4 LP STOP" );       break;
-        case RNUM_ENCODER_BUTTON:   printFieldStr( 0, 2, FT_8x16, "ENCODER LP STOP" );  break;
+        case RNUM_HORN_BUTTON:      
+            printFieldStr( 0, 2, FT_8x16, "HORN LP STOP" );     break;
+
+        case RNUM_BELL_BUTTON:      
+            printFieldStr( 0, 2, FT_8x16, "BELL LP STOP" );     break;
+
+        case RNUM_FWD_BUTTON:       
+            printFieldStr( 0, 2, FT_8x16, "FWD LP STOP" );      break;
+
+        case RNUM_REV_BUTTON:       
+            printFieldStr( 0, 2, FT_8x16, "REV LP STOP" );      break;
+
+        case RNUM_F1_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F1 LP STOP" );       break;
+
+        case RNUM_F2_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F2 LP STOP" );       break;
+
+        case RNUM_F3_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F3 LP STOP" );       break;
+
+        case RNUM_F4_BUTTON:        
+            printFieldStr( 0, 2, FT_8x16, "F4 LP STOP" );       break;
+
+        case RNUM_ENCODER_BUTTON:   
+            printFieldStr( 0, 2, FT_8x16, "ENCODER LP STOP" );  break;
     }
 }
 

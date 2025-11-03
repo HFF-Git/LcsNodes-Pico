@@ -93,12 +93,16 @@ uint8_t setupIOPins( ) {
 // chip, when the UI element is connected via an I2C expander or a shift register,
 // it is the position on the chip.
 //
-// ??? encoders think different ? ( inverse ? )
 //----------------------------------------------------------------------------------------
 bool getData( uint8_t rNum ) {
 
     bool val;
 
+    readDio( rNum, &val );
+    return ( val );
+
+    #if 0
+    // ??? remove after debug....
     // ??? what value do we actually return ? active low ?
     // ??? take out the encoder part, after test and final implementation...
 
@@ -112,11 +116,13 @@ bool getData( uint8_t rNum ) {
         readDio( rNum, &val );
         return ( val == false );
     }
+    #endif
 }
 
 bool getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
 
     // ??? what value do we actually return ? active low ?
+    // ??? remove comment after test ...
 
     readDio( rNum, valA, valB );
     return( true );
@@ -129,59 +135,52 @@ bool getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
 //----------------------------------------------------------------------------------------
 uint8_t createUIElements( ) {
 
-  upButton      = new UIButton( RNUM_UP_BUTTON );
-  downButton    = new UIButton( RNUM_DOWN_BUTTON );
-  selectButton  = new UIButton( RNUM_SELECT_BUTTON );
-  menuButton    = new UIButton( RNUM_MENU_BUTTON );
-  f1Button      = new UIButton( RNUM_F1_BUTTON );
-  f2Button      = new UIButton( RNUM_F2_BUTTON );
-  f3Button      = new UIButton( RNUM_F3_BUTTON );
-  f4Button      = new UIButton( RNUM_F4_BUTTON );
-  bellButton    = new UIButton( RNUM_BELL_BUTTON );
-  hornButton    = new UIButton( RNUM_HORN_BUTTON );
-  fwdButton     = new UIButton( RNUM_FWD_BUTTON );
-  revButton     = new UIButton( RNUM_REV_BUTTON );
+    upButton      = new UIButton( RNUM_UP_BUTTON );
+    downButton    = new UIButton( RNUM_DOWN_BUTTON );
+    selectButton  = new UIButton( RNUM_SELECT_BUTTON );
+    menuButton    = new UIButton( RNUM_MENU_BUTTON );
+    f1Button      = new UIButton( RNUM_F1_BUTTON );
+    f2Button      = new UIButton( RNUM_F2_BUTTON );
+    f3Button      = new UIButton( RNUM_F3_BUTTON );
+    f4Button      = new UIButton( RNUM_F4_BUTTON );
+    bellButton    = new UIButton( RNUM_BELL_BUTTON );
+    hornButton    = new UIButton( RNUM_HORN_BUTTON );
+    fwdButton     = new UIButton( RNUM_FWD_BUTTON );
+    revButton     = new UIButton( RNUM_REV_BUTTON );
 
-  encoderButton = new UIButton( RNUM_ENCODER_BUTTON );
-  encoder       = new UIEncoder( RNUM_ENCODER_KNOB, -10, 10, false  );
+    encoderButton = new UIButton( RNUM_ENCODER_BUTTON );
+    encoder       = new UIEncoder( RNUM_ENCODER_KNOB, -10, 10, false  );
 
-  menuButton ->     attachGetDataFunction( getData );
-  selectButton ->   attachGetDataFunction( getData );
-  upButton ->       attachGetDataFunction( getData );
-  downButton ->     attachGetDataFunction( getData );
+    menuButton ->     attachGetDataFunction( getData );
+    selectButton ->   attachGetDataFunction( getData );
+    upButton ->       attachGetDataFunction( getData );
+    downButton ->     attachGetDataFunction( getData );
 
-  hornButton ->     attachGetDataFunction( getData );
-  bellButton ->     attachGetDataFunction( getData );
-  fwdButton ->      attachGetDataFunction( getData );
-  revButton ->      attachGetDataFunction( getData );
+    hornButton ->     attachGetDataFunction( getData );
+    bellButton ->     attachGetDataFunction( getData );
+    fwdButton ->      attachGetDataFunction( getData );
+    revButton ->      attachGetDataFunction( getData );
 
-  encoder ->        attachGetDataFunction( getDataPair );
-  encoderButton ->  attachGetDataFunction( getData );
+    encoder ->        attachGetDataFunction( getDataPair );
+    encoderButton ->  attachGetDataFunction( getData );
 
-  f1Button ->       attachGetDataFunction( getData );
-  f2Button ->       attachGetDataFunction( getData );
-  f3Button ->       attachGetDataFunction( getData );
-  f4Button ->       attachGetDataFunction( getData );
+    f1Button ->       attachGetDataFunction( getData );
+    f2Button ->       attachGetDataFunction( getData );
+    f3Button ->       attachGetDataFunction( getData );
+    f4Button ->       attachGetDataFunction( getData );
 
-  hornButton ->     setResId( DCC_F_M_HORN );
-  bellButton ->     setResId( DCC_F_M_BELL );
-  f1Button ->       setResId( DCC_F_M_F1 );
-  f2Button ->       setResId( DCC_F_M_F2 );
-  f3Button ->       setResId( DCC_F_M_F3 );
-  f4Button ->       setResId( DCC_F_M_F4 );
-  encoderButton ->  setResId( DCC_F_M_ENC_BTN );
+    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, CDC_RN_EXT_NVM, 0x3C );
 
-  oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, CDC_RN_EXT_NVM, 0x3C );
-
-  return ( NO_ERR );
+    return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
-// "LinkScreens" will link the button and encoder UI elements to the screen class static functions that will
-// pass the respective UI element event to the current screen. So, for example, a button click will be passed
-// to the static function in the screen class, which in turn forwards it to the current screen, or handle it
-// directly. When writing a screen object, all UI elements that you want to react to need to implement the
-// handlers for the incoming events.
+// "LinkScreens" will link the button and encoder UI elements to the screen class
+// static functions that will pass the respective UI element event to the current
+// screen. So, for example, a button click will be passed to the static function
+// in the screen class, which in turn forwards it to the current screen, or handle
+// it directly. When writing a screen object, all UI elements that you want to 
+// react to need to implement the handlers for the incoming events.
 //
 //----------------------------------------------------------------------------------------
 uint8_t linkScreens( ) {
