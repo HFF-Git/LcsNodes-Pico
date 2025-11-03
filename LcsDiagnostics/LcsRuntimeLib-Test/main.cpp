@@ -77,7 +77,7 @@ uint8_t lcsCmdCallback( char *cmdLine ) {
 
 uint8_t lcsTaskCallback1( ) {
 
-    //printf( "Task Callback1...\n" );
+    // printf( "Task Callback1...\n" );
     return( NO_ERR );    
 }
 uint8_t lcsTaskCallback2( ) {

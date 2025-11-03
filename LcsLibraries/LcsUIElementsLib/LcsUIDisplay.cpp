@@ -13,9 +13,9 @@
 // UIDisplayElements
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
@@ -89,10 +89,9 @@ const uint8_t* fontList[] = {
 //
 //========================================================================================
 
-
 //----------------------------------------------------------------------------------------
-// The base class constructor. A display features a row x column matrix for ASCII display. 
-// The maximum matrix size is set from the display type passed.
+// The base class constructor. A display features a row x column matrix for ASCII
+// display. The maximum matrix size is set from the display type passed.
 //
 // ???? we think in 8x8 !!!!!!
 //----------------------------------------------------------------------------------------
@@ -137,9 +136,9 @@ UIDisplay::UIDisplay( uint8_t dType ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Each UIElement has a function to process period work. So far, for displays, there is
-// nothing to do. But perhaps one day for example, we implement blinking characters on 
-// an OLed or so. Until then ...
+// Each UIElement has a function to process period work. So far, for displays, there
+// is nothing to do. But perhaps one day for example, we implement blinking characters
+// on an OLed or so. Until then ...
 //
 //----------------------------------------------------------------------------------------
 void  UIDisplay::processTick( ) { }
@@ -158,23 +157,23 @@ UIDisplayLcdI2C::UIDisplayLcdI2C(   uint8_t dType,
                                     uint8_t rNum, 
                                     uint8_t i2cAdr ) : UIDisplay( dType ) {
 
-  lcd = new LcsLcdDisplay ( rNum, i2cAdr, maxColumns, maxRows );
+    lcd = new LcsLcdDisplay ( rNum, i2cAdr, maxColumns, maxRows );
 }
 
 void UIDisplayLcdI2C::displayOn( ) {
 
-  lcd -> displayOn( );
+    lcd -> displayOn( );
 }
 
 void UIDisplayLcdI2C::displayOff( ) {
 
-  lcd -> displayOff( );
+    lcd -> displayOff( );
 }
 
 void UIDisplayLcdI2C::setCursor( uint8_t col, uint8_t row ) {
 
-  lcd -> setCursor((( col > maxColumns ) ? maxColumns : col ),
-                    (( row > maxColumns ) ? maxRows : row ));
+    lcd -> setCursor((( col > maxColumns ) ? maxColumns : col ),
+                     (( row > maxColumns ) ? maxRows : row ));
 }
 
 uint8_t UIDisplayLcdI2C::print( const char *buf ) {
@@ -185,19 +184,19 @@ uint8_t UIDisplayLcdI2C::print( const char *buf ) {
         buf ++;
     }
 
-  return ( 0 );
+    return ( 0 );
 }
 
 uint8_t UIDisplayLcdI2C::print( char ch ) {
 
-  lcd -> printChar( ch );
-  return( 0 );
+    lcd -> printChar( ch );
+    return( 0 );
 }
 
 void UIDisplayLcdI2C::clear( ) {
 
-  lcd -> setCursor( 0, 0 );
-  lcd -> clear( );
+    lcd -> setCursor( 0, 0 );
+    lcd -> clear( );
 }
 
 void UIDisplayLcdI2C::clearLine( uint8_t row ) {
@@ -212,15 +211,15 @@ void UIDisplayLcdI2C::clearLine( uint8_t row ) {
 
 //----------------------------------------------------------------------------------------
 // Oled Version using the SSD1306 controller chip. There is no nice mapping of 
-// display function via base class inheritance, as used in the LCD displays. We need 
-// to create the OLed display object and implement each generic display function if 
-// possible. The Oled Display Class implements three methods. "setCursor" sets the 
-// cursor to the desired row and columns. These values are however depending on the
-// current font. The column, measured in pixels, is computed to be the column parameter
-// times the font width of the current font. The display row and column parameter 
-// need to be multiplied with the dimensions needed for the current font measured 
-// in multiple of 8 pixels. The "print" and "clear" methods just pass through to 
-// their specific Oled Display Class counterparts.
+// display function via base class inheritance, as used in the LCD displays. We 
+// need to create the OLed display object and implement each generic display 
+// function if possible. The Oled Display Class implements three methods. 
+// "setCursor" sets the cursor to the desired row and columns. These values are 
+// however depending on the current font. The column, measured in pixels, is 
+// computed to be the column parameter times the font width of the current font. 
+// The display row and column parameter need to be multiplied with the dimensions 
+// needed for the current font measured in multiple of 8 pixels. The "print" and 
+// "clear" methods just pass through to their specific Oled Display Class counterparts.
 //
 // ??? watch out what display HW you really have ... it may otherwise not work...
 //----------------------------------------------------------------------------------------
@@ -233,9 +232,19 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
    
     switch ( dType ) {
 
-        case DT_OLED_DISPLAY_128x32: oled -> setFont( FontTab[ FT_8x8 ].font ); break;
-        case DT_OLED_DISPLAY_128x64: oled -> setFont( FontTab[ FT_8x8 ].font ); break;
-        default:                     oled -> setFont( FontTab[ FT_DEF ].font );
+        case DT_OLED_DISPLAY_128x32: {
+            
+            oled -> setFont( FontTab[ FT_8x8 ].font ); 
+        
+        } break;
+        
+        case DT_OLED_DISPLAY_128x64: {
+            
+            oled -> setFont( FontTab[ FT_8x8 ].font );
+        
+        } break;
+        
+        default: oled -> setFont( FontTab[ FT_DEF ].font );
     }
 }
 

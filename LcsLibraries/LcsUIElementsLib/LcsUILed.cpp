@@ -41,7 +41,7 @@ namespace {
 const uint16_t DEFAULT_BLINK_TICKS    = 1000;
 uint32_t       blickIntervalInMillis  = DEFAULT_BLINK_TICKS;
 
-};
+} // namespace
 
 //----------------------------------------------------------------------------------------
 //

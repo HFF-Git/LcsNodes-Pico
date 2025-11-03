@@ -44,15 +44,6 @@ using namespace CDC;
 // The repeating timer alarm will handle timer interrupts. We stored the respective 
 // timer resource in the "user_data" field, so that we can get to the interrupt 
 // handler configured.
-//
-// The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
-// can only have one interrupt routine, so we feature an array of handlers where a 
-// handler for a GPIO pin can be registered. 
-// 
-// The UART handlers will handle receive interrupts of the UART hardware blocks. 
-// There is no easy way to get to the resource structure where the input buffer is.
-// We therefore maintain two global variables in this file to store the configured 
-// resource for each UART HW block.
 // 
 //----------------------------------------------------------------------------------------
 bool repeatingTimerAlarm( repeating_timer_t *rt ) {
@@ -68,9 +59,16 @@ bool repeatingTimerAlarm( repeating_timer_t *rt ) {
     return ( true );
 }
 
+//----------------------------------------------------------------------------------------
+// We will support two basic pools of alarms. The first the default pool. The other
+// pool is a high priority pool. A high priority alarm would then interrupt a default
+// priority alarm too.
+//
+//----------------------------------------------------------------------------------------
+alarm_pool  *highPriAlarmPool   = nullptr;
+alarm_pool  *lowPriAlarmPool    = nullptr;
 
-
-}
+} // namespace
 
 //----------------------------------------------------------------------------------------
 // Global variables for the CDC lib. Declared in "LcsCdcLib.cpp".
@@ -95,18 +93,43 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t setupAlarmPools( ) {
+
+    lowPriAlarmPool = alarm_pool_get_default( );
+
+    // create a pool on hardware alarm 2 (avoid default pool alarms 0..1)
+    highPriAlarmPool = alarm_pool_create(2, 1);
+    if ( ! highPriAlarmPool ) {
+        
+        // handle error, make it a fatal CDC error ?
+    }
+
+    // find the hardware alarm used by this pool (0..3)
+    uint hw_alarm = alarm_pool_hardware_alarm_num( highPriAlarmPool );
+
+    // compute the IRQ for that alarm and set its NVIC priority (0 = highest)
+    uint irq = TIMER_IRQ_0 + hw_alarm;
+    irq_set_priority(irq, 0);
+
+    return( NO_ERR );
+}
+
+//----------------------------------------------------------------------------------------
 // Timer section. The CDC library features a repeating timer with a microsecond 
 // resolution. There are routines to start and stop the timer as well as to allow to
 // set a new limit. The PICO offers a high level function that schedules a repeating
 // timer with the property of measuring the interval also from the start of the 
 // callback invocation. 
 //
-// ??? add priority for handler ?
 //----------------------------------------------------------------------------------------
 uint8_t configureTimer( uint8_t rNum, uint8_t pri, TimerCallback functionId ) {
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-  
+    // ??? does it make sense to have such a time in the desc map ?
+    // ??? it cannot set the function Id there.
+
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_TIMER );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
@@ -121,10 +144,6 @@ uint8_t configureTimer( uint8_t rNum, uint8_t pri, TimerCallback functionId ) {
 //----------------------------------------------------------------------------------------
 // Start a timer.
 //
-// ??? where to set priority ?
-// ??? we would need a different alarm pool with a higher priority for our PRI alarms.
-// We would need two different alarm pools. ( or three ? )
-// to which we add the timers...
 //----------------------------------------------------------------------------------------
 uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
 
@@ -180,12 +199,4 @@ uint8_t setRepeatingTimerLimit( uint8_t rNum, uint32_t val ) {
     return ( NO_ERR );
 }
 
-}
-
-
-
-
-
-
-
-
+} // namespace CDC

@@ -37,8 +37,7 @@ namespace {
 
 using namespace CDC;
 
-
-}
+} // namespace
 
 //----------------------------------------------------------------------------------------
 // Global variables for the CDC lib. Declared in "LcsCdcLib.cpp".
@@ -73,8 +72,6 @@ namespace CDC {
 //----------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t rNum ) {
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-  
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_ADC );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
@@ -87,8 +84,6 @@ uint8_t configureAdc( uint8_t rNum ) {
 //----------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t rNum, uint8_t adcPin, uint8_t adcNum ) {
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-   
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_ADC );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
@@ -142,12 +137,4 @@ uint16_t getAdcDigitRange( ) {
     return ( ADC_DIGIT_RANGE );
 }
 
-}
-
-
-
-
-
-
-
-
+} // namespace CDC

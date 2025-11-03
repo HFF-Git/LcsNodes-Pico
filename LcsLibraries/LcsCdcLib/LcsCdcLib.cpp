@@ -83,12 +83,6 @@ uint16_t                options;
 CdcResourceDescMap      dMap;
 CdcResourceMap          rMap;
 
-// GpioIsrTable            dioIntHandlers;
-// CdcResource             *uartRes0           = nullptr;
-// CdcResource             *uartRes1           = nullptr;
-
-alarm_pool              *highPriAlarmPool   = nullptr;
-alarm_pool              *lowPriAlarmPool    = nullptr;
 
 //----------------------------------------------------------------------------------------
 // "validPin" is called to check that a pin is in the correct number range, defined and
@@ -102,35 +96,6 @@ bool validPin( uint8_t pin, uint32_t mask ) {
     if ( pin > MAX_PIN_NUM )        return ( false );
     return (( 1 << pin ) & mask );
 }
-
-#if 0
-//----------------------------------------------------------------------------------------
-// When no interrupt is configured for a GPIO pin, we set the table entry to a dummy
-// handler. This way we do not have to check every time for a valid procedure label 
-// when we handle an interrupt.
-//
-//----------------------------------------------------------------------------------------
-void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
-
-//----------------------------------------------------------------------------------------
-// Setup the ISR table. The PICO can have only one interrupt handler. When you want a 
-// handler per GPIO pin, the solution is to have a table when you keep the handler on
-// a per pin base.
-//
-//----------------------------------------------------------------------------------------
-void initIsrTable( ) {
-
-    dioIntHandlers.numOfHandlers = 0;
-
-    for ( uint16_t i = 0; i < MAX_CPU_CORE; i++ ) {
-
-        for ( uint16_t j = 0; j < MAX_INT_PIN; j++ ) {
-
-            dioIntHandlers.gpioIsrTable[ i ][ j ] = dummyIsrHandler;
-        }
-    }
-}
-#endif
 
 //----------------------------------------------------------------------------------------
 // Set up the CDC resource map with default values.
@@ -161,6 +126,7 @@ void initResourceMap( CdcResourceMap *rMap ) {
 //----------------------------------------------------------------------------------------
 CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
 
+    if ( ! initialized ) return( nullptr );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
     if ( rMap.map[ rNum ].type != type ) return ( nullptr );
     return ( &rMap.map[ rNum ] );
@@ -175,6 +141,7 @@ CdcResource *lookupResource( uint8_t rNum, uint8_t type ) {
 //----------------------------------------------------------------------------------------
 CdcResource *allocateResourceType( uint8_t rNum, uint8_t type ) {
 
+    if ( ! initialized ) return( nullptr );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
     
     if ( rMap.map[ rNum ].type == CDC_RT_UNDEFINED ) {
@@ -324,6 +291,7 @@ void setGpioMode( uint8_t pin, uint8_t mode ) {
 }
 #endif
 
+#if 0
 //----------------------------------------------------------------------------------------
 //
 //
@@ -349,7 +317,7 @@ uint8_t setupAlarmPools( ) {
 
     return( NO_ERR );
 }
-
+#endif
 
 }; // namespace CDC
 
@@ -399,6 +367,7 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMa
 
     // ??? how to do this best ....
     extern void initIsrTable( );
+    extern void setupAlarmPools( );
 
     dMap = *dMapPtr;
  
@@ -412,6 +381,8 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMa
         configureConsoleIO( );
 
         setupAlarmPools( );
+
+        initialized = true;
     }
 
     return ( NO_ERR );
@@ -435,6 +406,7 @@ CdcResourceMap *getResourceMap( ) {
 //----------------------------------------------------------------------------------------
 CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
 
+    if ( ! initialized ) return( nullptr );
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( nullptr );
 
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {

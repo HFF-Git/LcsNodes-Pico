@@ -38,6 +38,13 @@ namespace {
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// Global Interrupt handlers. The hardware and low level library will call these 
+// handlers, which in turn will invoke the respective callback function if configured. 
+//
+// The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
+// can only have one interrupt routine, so we feature an array of handlers where a 
+// handler for a GPIO pin can be registered. 
+// 
 // The interrupt table for the GPIO pin interrupts. The PICO has only one interrupt 
 // handler. We will allocate a table where an interrupt handler can be set for each 
 // HW pin. 
@@ -49,27 +56,11 @@ struct GpioIsrTable {
     GpioCallback    gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
 };
 
-GpioIsrTable            dioIntHandlers;
-
-
 //----------------------------------------------------------------------------------------
-// Global Interrupt handlers. The hardware and low level library will call these 
-// handlers, which in turn will invoke the respective callback function if configured. 
 //
-// The repeating timer alarm will handle timer interrupts. We stored the respective 
-// timer resource in the "user_data" field, so that we can get to the interrupt 
-// handler configured.
 //
-// The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
-// can only have one interrupt routine, so we feature an array of handlers where a 
-// handler for a GPIO pin can be registered. 
-// 
-// The UART handlers will handle receive interrupts of the UART hardware blocks. 
-// There is no easy way to get to the resource structure where the input buffer is.
-// We therefore maintain two global variables in this file to store the configured 
-// resource for each UART HW block.
-// 
 //----------------------------------------------------------------------------------------
+GpioIsrTable dioIntHandlers;
 
 //----------------------------------------------------------------------------------------
 // When no interrupt is configured for a GPIO pin, we set the table entry to a dummy
@@ -78,8 +69,6 @@ GpioIsrTable            dioIntHandlers;
 //
 //----------------------------------------------------------------------------------------
 void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
-
-
 
 //----------------------------------------------------------------------------------------
 // The PICO uses a set of constants to describe the GPIO pin interrupt type. We map 
@@ -141,15 +130,17 @@ void setGpioMode( uint8_t pin, uint8_t mode ) {
     }
 }
 
-
-
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void gpioCallback( uint gpioPin, uint32_t event ) {
 
     dioIntHandlers.gpioIsrTable[ get_core_num( )][ gpioPin ] 
                                      ( gpioPin, mapPicoGpioEvent( event ));
 }
 
-}
+} // namespace
 
 //----------------------------------------------------------------------------------------
 // Global variables for the CDC lib. Declared in "LcsCdcLib.cpp".
@@ -195,19 +186,20 @@ void initIsrTable( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DIO section. A digital pin is the bread and butter hardware resource and can be an
-// input or output pin. For inputs, an internal pull-up resistor can be set.There are
-// a couple of interfaces. First the single pin read, write and toggle. Note that no
-// cross checking is done if the pins are used by other CDC functions. The DIO routines
-// allow to pass two pins and their values. We often use DIO pins as pairs. This is
-// typically used for the H-Bridge control pins, which are set at the same time. 
+// DIO section. A digital pin is the bread and butter hardware resource and can be 
+// an input or output pin. For inputs, an internal pull-up resistor can be set.There
+// are a couple of interfaces. First the single pin read, write and toggle. Note that
+// no cross checking is done if the pins are used by other CDC functions. The DIO 
+// routines allow to pass two pins and their values. We often use DIO pins as pairs.
+// This is typically used for the H-Bridge control pins, which are set at the same 
+// time. 
 //
 // A GPIO pin can also have an attached interrupt handler. When we register a handler
-// for a pin, there are two different PICO lib routines to use. When there is no handler
-// registered so far, we register the common callback and store the particular GPIO 
-// handler in our ISR handler table. Otherwise, we just store the handler in the table
-// and enable the GPIO pin for interrupts. If the resource configured two pins, the 
-// handler is set for both pins.
+// for a pin, there are two different PICO lib routines to use. When there is no 
+// handler registered so far, we register the common callback and store the particular
+// GPIO handler in our ISR handler table. Otherwise, we just store the handler in the
+// table and enable the GPIO pin for interrupts. If the resource configured two pins,
+// the handler is set for both pins.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureDio( uint8_t rNum ) {
@@ -454,12 +446,4 @@ uint8_t toggleDio( uint8_t rNum ) {
     return ( NO_ERR );
 }
 
-}
-
-
-
-
-
-
-
-
+} // namespace CDC

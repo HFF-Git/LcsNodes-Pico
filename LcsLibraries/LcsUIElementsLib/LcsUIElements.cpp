@@ -33,9 +33,9 @@ static UIElements*  resList = NULL;
 
 //----------------------------------------------------------------------------------------
 // UI Element constructor. Every UI element we create has this class as a parent 
-// and is added to the global linked list. This is necessary for processing the ticks,
-// which is essentially just running down that list and calling the respective handler
-// in the UI element.
+// and is added to the global linked list. This is necessary for processing the 
+// ticks, which is essentially just running down that list and calling the respective
+// handler in the UI element.
 //
 //----------------------------------------------------------------------------------------
 UIElements::UIElements( bool atHead ) {

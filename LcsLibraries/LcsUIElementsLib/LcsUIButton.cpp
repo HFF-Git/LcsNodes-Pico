@@ -39,19 +39,6 @@ using namespace CDC;
 namespace {
 
     //------------------------------------------------------------------------------------
-    // UIButton state. To save memory, we encode in the button state the active 
-    // level logic, the long pressed detection flag and the state for the button 
-    // state machine.
-    //
-    //------------------------------------------------------------------------------------
-    enum buttonState : uint8_t {
-
-        BS_ACTIVE_LOW     = 0x80,
-        BS_LONG_PRESSED   = 0x40,
-        BS_STATE          = 0x0F
-    };
-
-    //------------------------------------------------------------------------------------
     // The default time intervals. The debounce value will determine when we consider
     // a button pushed. The click value defines how ling we press a button for a click
     // and the press value defines what is considered a long push. There is also the
@@ -106,20 +93,17 @@ void UIButton::setPressMillis( uint32_t ticks ) {
 //----------------------------------------------------------------------------------------
 UIButton::UIButton( uint8_t hwId, bool activeLow ) {
   
-    this -> rNum = hwId;
-
-    if ( activeLow )  buttonState |= BS_ACTIVE_LOW;
-    else              buttonState &= ~ BS_ACTIVE_LOW;
-
+    this -> rNum        = hwId;
+    this -> activeLow   = activeLow;
     reset( );
 }
 
 void UIButton::reset( ) {
 
-    buttonState   &= ~ BS_STATE;
-    buttonState   &= ~ BS_LONG_PRESSED;
-    startTime     = 0;
-    stopTime      = 0;
+    buttonState = 0;
+    longPressed = false;
+    startTime   = 0;
+    stopTime    = 0;
 }
 
 void UIButton::attachClick( UIButtonCbFunction functionId ) {
@@ -154,7 +138,7 @@ void UIButton::attachGetDataFunction( UIGetDataFunction functionId ) {
 
 bool UIButton::isLongPressed( ) {
 
-    return ( buttonState & BS_LONG_PRESSED );
+    return ( longPressed );
 }
 
 uint32_t UIButton::getDurationPressedMillis(  ) {
@@ -217,7 +201,7 @@ uint8_t UIButton::getResId( ) {
 void UIButton::processTick( ) {
 
     bool val    = (( getDataFunc != nullptr ) ? getDataFunc( rNum ) : false );
-    bool active = (( buttonState & BS_ACTIVE_LOW ) ? !val : val );
+    bool active = (( activeLow ) ? !val : val );
 
     #if 0 // use this when you suspect that the activeLow setting is messed up.
     Serial.print( "HwId: " );
@@ -230,7 +214,7 @@ void UIButton::processTick( ) {
 
     uint32_t  now         = getMillis( );
     uint32_t  elapsedTime = now - startTime;
-    uint8_t   curState    = buttonState & BS_STATE;
+    uint8_t   curState    = buttonState;
     uint8_t   nextState   = 0;
 
     if ( curState == 0 ) {
@@ -255,7 +239,7 @@ void UIButton::processTick( ) {
         }
         else if (( active ) && ( elapsedTime > pressMillis )) {
 
-            buttonState |= BS_LONG_PRESSED;
+            longPressed = true;
             nextState   = 4;
 
             if ( longPressStartFunc ) longPressStartFunc( this );
@@ -291,7 +275,7 @@ void UIButton::processTick( ) {
 
         if ( ! active ) {
 
-            buttonState &= ~ BS_LONG_PRESSED;
+            longPressed = false;
             stopTime    = now;
             nextState   = 0;
 
@@ -299,7 +283,7 @@ void UIButton::processTick( ) {
         }
         else {
 
-            buttonState |= BS_LONG_PRESSED;
+            longPressed = true;
             nextState   = 4;
 
             if ( duringLongPressFunc ) duringLongPressFunc( this );
@@ -307,5 +291,5 @@ void UIButton::processTick( ) {
     }
     else nextState = 0;
 
-    buttonState = ( buttonState & ~ BS_STATE ) + nextState;
+    buttonState = nextState;
 }

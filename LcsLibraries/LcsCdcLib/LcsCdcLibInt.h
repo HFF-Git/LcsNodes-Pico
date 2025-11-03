@@ -313,18 +313,4 @@ struct CdcResourceMap {
     CdcResource         map[ MAX_RESOURCE_ENTRIES ];
 };
 
-#if 0
-//----------------------------------------------------------------------------------------
-// The interrupt table for the GPIO pin interrupts. The PICO has only one interrupt 
-// handler. We will allocate a table where an interrupt handler can be set for each 
-// HW pin. 
-//
-//----------------------------------------------------------------------------------------
-struct GpioIsrTable {
-
-    uint16_t        numOfHandlers = 0;
-    GpioCallback    gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
-};
-#endif
-
 #endif

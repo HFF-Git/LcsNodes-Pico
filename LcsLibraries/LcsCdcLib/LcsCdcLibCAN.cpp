@@ -72,8 +72,6 @@ namespace CDC {
 //----------------------------------------------------------------------------------------
 uint8_t configureCanBus( uint8_t rNum ) {
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_CAN_BUS );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
@@ -94,8 +92,6 @@ uint8_t configureCanBus( uint8_t  rNum,
                          uint32_t baudRate, 
                          bool     twoCores ) {
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-    
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
@@ -143,7 +139,7 @@ bool canGetTwoCores( uint8_t rNum ) {
     return ( rPtr -> can.twoCores );
 }
 
-}
+} // namespace CDC
 
 
 

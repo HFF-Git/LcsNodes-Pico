@@ -3,17 +3,17 @@
 // UI Elements - include file.
 //
 //----------------------------------------------------------------------------------------
-// UI Elements. You start a small project and the first Led is blinking, a button is
-// pushed. Before you know it, buttons need to be debounced, short and long pressed, 
-// active high or active low. You would like to toggle a Led and remember its state. 
-// There are displays with different interfaces and capabilities. On some displays 
-// you want to control the brightness and contrast. Finally, in some projects you run
-// out of physical pins and want to connect an array of buttons or LEDs through 
-// something like a parallel IO extender or a simple shift registers. The list is 
-// long. In all projects you implement it somehow directly in project just to take
-// part of the functions to the next project and so on.
+// UI Elements. You start a small project and the first Led is blinking, a button 
+// is pushed. Before you know it, buttons need to be debounced, short and long 
+// pressed, active high or active low. You would like to toggle a Led and remember
+// its state. There are displays with different interfaces and capabilities. On 
+// some displays you want to control the brightness and contrast. Finally, in some
+// projects you run out of physical pins and want to connect an array of buttons or
+// LEDs through something like a parallel IO extender or a simple shift registers. 
+// The list is long. In all projects you implement it somehow directly in project
+// just to take part of the functions to the next project and so on.
 //
-// UI Elements is the library the implements the most common UI elements. This file 
+// UI Elements is the library that implements the most common UI elements. This file 
 // includes all the class definitions. UIElements is the base class and also maintains 
 // a linked list of all created objects. This list is used when the "tick" function 
 // is called to advance the state machines in the relevant objects.
@@ -42,15 +42,15 @@
 // UI Elements
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #ifndef UI_ELEMENTS_h
@@ -208,6 +208,8 @@ struct UIButton : UIElements {
     private:
 
     uint8_t             rNum                = UNDEFINED_RES_ID;
+    bool                activeLow           = false;
+    bool                longPressed         = false;
     uint8_t             buttonState         = 0;
     uint32_t            startTime           = 0;
     uint32_t            stopTime            = 0;
@@ -258,11 +260,9 @@ struct UIEncoder : UIElements {
     private:
 
     uint8_t                 rNum                = UNDEFINED_RES_ID;
-   
+    bool                    activeLow           = false;
     bool                    idAVal              = false;
     bool                    idBVal              = false;
-
-    bool                    activeLow           = false;
     bool                    oldState            = false;
     int                     position            = 0;
     int                     positionPrev        = 0;

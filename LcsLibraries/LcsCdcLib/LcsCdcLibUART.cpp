@@ -45,21 +45,12 @@ CdcResource             *uartRes1           = nullptr;
 // Global Interrupt handlers. The hardware and low level library will call these 
 // handlers, which in turn will invoke the respective callback function if configured. 
 //
-// The repeating timer alarm will handle timer interrupts. We stored the respective 
-// timer resource in the "user_data" field, so that we can get to the interrupt 
-// handler configured.
-//
-// The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
-// can only have one interrupt routine, so we feature an array of handlers where a 
-// handler for a GPIO pin can be registered. 
-// 
 // The UART handlers will handle receive interrupts of the UART hardware blocks. 
 // There is no easy way to get to the resource structure where the input buffer is.
 // We therefore maintain two global variables in this file to store the configured 
 // resource for each UART HW block.
 // 
 //----------------------------------------------------------------------------------------
-
 void uartRxCallback0( ) {
 
     while ( uart_is_readable( uart0 )) {
@@ -84,7 +75,7 @@ void uartRxCallback1( ) {
     }
 }
 
-}
+} // namespace
 
 //----------------------------------------------------------------------------------------
 // Global variables for the CDC lib. Declared in "LcsCdcLib.cpp".
@@ -125,8 +116,6 @@ namespace CDC {
 //----------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rNum ) {
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-   
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_UART );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
@@ -144,9 +133,7 @@ uint8_t configureUart( uint8_t rNum,
                        uint8_t rxPin, 
                        uint8_t txPin, 
                        uint32_t baudRate ) {
-                        
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-    
+   
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_UART );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 
@@ -247,12 +234,4 @@ uint8_t getUartBuffer( uint8_t rNum, uint8_t *buf, uint8_t bufLen ) {
     else return ( 0 );
 }
 
-}
-
-
-
-
-
-
-
-
+} // namespace CDC

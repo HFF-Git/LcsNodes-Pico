@@ -63,9 +63,10 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// I2C Section. The PICO has two HW blocks for I2C interfaces. The interface implements
-// a simple read and write access to an I2C element. There is a timeout to avoid waiting
-// forever on an operation. Finally,we have routines to get the pins and baud rate.
+// I2C Section. The PICO has two HW blocks for I2C interfaces. The CDC interface 
+// implements a simple read and write access to an I2C element. There is a timeout
+// to avoid waiting forever on an operation. Finally,we have routines to get the
+// pins and baud rate. This is primarily used by external libraries.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t rNum ) {
@@ -282,12 +283,4 @@ uint8_t i2cGetBaudrate( uint8_t rNum ) {
     return ( rPtr -> i2c.baudRate );
 }
 
-}
-
-
-
-
-
-
-
-
+} // namespace CDC

@@ -53,8 +53,7 @@ UIEncoder::UIEncoder( uint8_t rNnum,
 //----------------------------------------------------------------------------------------
 void UIEncoder::reset( ) {
 
-    // oldState        = (( getDataFunc != nullptr ) ? getDataFunc( rNum ) : false );
-    oldState        = false; // ??? simplify?
+    oldState        = false;
     position        = 0;
     positionPrev    = 0;
 }
@@ -143,7 +142,7 @@ void UIEncoder::processTick( ) {
 
         positionPrev      = position;
         positionTimePrev  = positionTime;
-        positionTime      = CDC::getMillis( );
+        positionTime      = getMillis( );
     }
 
     oldState = idAVal;

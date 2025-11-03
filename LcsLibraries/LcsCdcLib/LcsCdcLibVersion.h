@@ -24,6 +24,8 @@
 #ifndef CDC_LIB_VERSION_h
 #define CDC_LIB_VERSION_h
 
+#include <inttypes.h>
+
 //----------------------------------------------------------------------------------------
 // Each LCS project piece has a version, subversion and patch level.
 // 
