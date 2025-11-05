@@ -34,38 +34,13 @@ static UIElements*  resList = NULL;
 //----------------------------------------------------------------------------------------
 // UI Element constructor. Every UI element we create has this class as a parent 
 // and is added to the global linked list. This is necessary for processing the 
-// ticks, which is essentially just running down that list and calling the respective
-// handler in the UI element.
+// ticks.
 //
 //----------------------------------------------------------------------------------------
 UIElements::UIElements( bool atHead ) {
 
     if ( atHead ) insert( this );
     else          append( this );
-}
-
-//----------------------------------------------------------------------------------------
-// Resource ID getter/setter.
-//
-//----------------------------------------------------------------------------------------
-int UIElements::getResId( ) { 
-  
-    return( resId );
-}
-
-void UIElements::setResId( int arg ) {
-
-    resId = arg;
-}
-
-//----------------------------------------------------------------------------------------
-// "setup" is the static routine to place in the program setup routine. So far, 
-// there is nothing to do.
-//
-//----------------------------------------------------------------------------------------
-uint8_t UIElements::setup( ) {
-
-    return ( 0 );
 }
 
 //----------------------------------------------------------------------------------------
@@ -98,7 +73,8 @@ void UIElements::append( UIElements* res ) {
 
 //----------------------------------------------------------------------------------------
 // "tick" is the static routine to be called to advance the individual UI elements
-// state machine.
+// state machine. The routine is expected to return a return code, which is always
+// success in this case.
 //
 //----------------------------------------------------------------------------------------
 uint8_t UIElements::tick( ) {
@@ -111,5 +87,5 @@ uint8_t UIElements::tick( ) {
         res = res -> next;
     }
 
-    return( 0 );
+    return( NO_ERR );
 }

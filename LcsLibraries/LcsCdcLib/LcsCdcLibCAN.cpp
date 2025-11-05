@@ -104,12 +104,12 @@ uint8_t configureCanBus( uint8_t  rNum,
 }
 
 //----------------------------------------------------------------------------------------
-// Helper functions.
+// Helper functions. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t canGetRxPin( uint8_t rNum ) {
 
-    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
 
     return ( rPtr -> can.canPinRx );
@@ -117,7 +117,7 @@ uint8_t canGetRxPin( uint8_t rNum ) {
 
 uint8_t canGetTxPin( uint8_t rNum ) {
 
-    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( UNDEFINED_PIN );
 
     return ( rPtr -> can.canPinTx );
@@ -125,7 +125,7 @@ uint8_t canGetTxPin( uint8_t rNum ) {
 
 uint32_t canGetBaudrate( uint8_t rNum ) {
 
-    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( 0 );
 
     return ( rPtr -> can.baudRate );
@@ -133,18 +133,10 @@ uint32_t canGetBaudrate( uint8_t rNum ) {
 
 bool canGetTwoCores( uint8_t rNum ) {
 
-    CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_CAN_BUS );
+    CdcResource *rPtr = lookupResource( rNum, CDC_RT_CAN_BUS );
     if ( rPtr == nullptr ) return ( false );
 
     return ( rPtr -> can.twoCores );
 }
 
 } // namespace CDC
-
-
-
-
-
-
-
-

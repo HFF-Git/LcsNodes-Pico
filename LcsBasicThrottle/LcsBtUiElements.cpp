@@ -94,12 +94,9 @@ uint8_t setupIOPins( ) {
 // it is the position on the chip.
 //
 //----------------------------------------------------------------------------------------
-bool getData( uint8_t rNum ) {
+void getData( uint8_t rNum, bool *val ) {
 
-    bool val;
-
-    readDio( rNum, &val );
-    return ( val );
+    readDio( rNum, val );
 
     #if 0
     // ??? remove after debug....
@@ -119,13 +116,12 @@ bool getData( uint8_t rNum ) {
     #endif
 }
 
-bool getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
+void getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
 
     // ??? what value do we actually return ? active low ?
     // ??? remove comment after test ...
 
     readDio( rNum, valA, valB );
-    return( true );
 }
 
 //----------------------------------------------------------------------------------------
@@ -169,7 +165,7 @@ uint8_t createUIElements( ) {
     f3Button ->       attachGetDataFunction( getData );
     f4Button ->       attachGetDataFunction( getData );
 
-    oled = new UIDisplayOled( DT_OLED_DISPLAY_128x64, CDC_RN_EXT_NVM, 0x3C );
+    oled = new UIDisplayOledI2C( DT_OLED_DISPLAY_128x64, CDC_RN_EXT_NVM, 0x3C );
 
     return ( NO_ERR );
 }

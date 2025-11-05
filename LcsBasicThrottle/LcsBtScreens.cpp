@@ -384,7 +384,7 @@ uint8_t setupScreens( ) {
 //----------------------------------------------------------------------------------------
 void CabHandheldScreen::printMenuLabel( char *str ) { 
 
-        printFieldStr( 0, 0, FT_8x8, "%3s", str ); 
+        printFieldStr( 0, 0, FT_OLED_8x8, "%3s", str ); 
 }
 
 void CabHandheldScreen::printMenuLabel( uint16_t textId ) { 
@@ -394,7 +394,7 @@ void CabHandheldScreen::printMenuLabel( uint16_t textId ) {
 
 void CabHandheldScreen::printTitle( char *str ) { 
     
-    printFieldStr( 4, 0, FT_8x8, "%8s", str ); 
+    printFieldStr( 4, 0, FT_OLED_8x8, "%8s", str ); 
 }
 
 void CabHandheldScreen::printTitle( uint16_t textId  ) { 
@@ -404,7 +404,7 @@ void CabHandheldScreen::printTitle( uint16_t textId  ) {
 
 void CabHandheldScreen::printUpLabel( char *str ) { 
     
-    printFieldStr( 13, 0, FT_8x8, "%3s", str ); 
+    printFieldStr( 13, 0, FT_OLED_8x8, "%3s", str ); 
 }
 
 void CabHandheldScreen::printUpLabel( uint16_t textId ) { 
@@ -414,7 +414,7 @@ void CabHandheldScreen::printUpLabel( uint16_t textId ) {
 
 void CabHandheldScreen::printSelectLabel( char *str ) { 
     
-    printFieldStr( 0, 7, FT_8x8, "%3s", str ); 
+    printFieldStr( 0, 7, FT_OLED_8x8, "%3s", str ); 
 }
 
 void CabHandheldScreen::printSelectLabel( uint16_t textId ) { 
@@ -424,7 +424,7 @@ void CabHandheldScreen::printSelectLabel( uint16_t textId ) {
 
 void CabHandheldScreen::printDownLabel( char *str ) { 
     
-    printFieldStr( 13, 7, FT_8x8, "%3s", str ); 
+    printFieldStr( 13, 7, FT_OLED_8x8, "%3s", str ); 
 }
 
 void CabHandheldScreen::printDownLabel( uint16_t textId ) { 
@@ -454,7 +454,7 @@ void TopMenuItemScreen::enterScreen( bool init ) {
     printMenuLabel( SCR_TX_NEXT );
     printSelectLabel( SCR_TX_SEL );
 
-    printFieldStr( 3, 3, FT_8x16, "%s", lookupTextStr( item ));
+    printFieldStr( 3, 3, FT_OLED_8x16, "%s", lookupTextStr( item ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -636,23 +636,25 @@ void OperateScreen::showCabData( ) {
 
     if ( cabStack -> currentCab.getCabId( ) != NIL_CAB_ID ) {
 
-        printFieldStr( 0, 2, FT_8x16, "Cab: %04d %c",
+        printFieldStr( 0, 2, FT_OLED_8x16, "Cab: %04d %c",
                         cabStack -> currentCab.getCabId( ),
                         cabStack -> currentCab.getEngineTypeChar( ));
     }
     else {
         
-        printFieldStr( 0, 2, FT_8x16, "Cab: --- %c", 
+        printFieldStr( 0, 2, FT_OLED_8x16, "Cab: --- %c", 
                        cabStack -> currentCab.getEngineTypeChar( ));
     }
 
-    printFieldStr( 0, 4, FT_8x16, "Dir: %03d %s",
+    printFieldStr( 0, 4, FT_OLED_8x16, "Dir: %03d %s",
                     cabStack -> currentCab.getSpeed( ),
                     (( cabStack -> currentCab.getDirection( ) == 1 ) ? 
                                         ((char *) "fwd" ) : ((char *) "rev" )));
 
-    if      ( functionSet == 1 ) printFieldStr( 0, 7, FT_8x8, "F1  F2  F3  F4  " );
-    else if ( functionSet == 2 ) printFieldStr( 0, 7, FT_8x8, "F5  F6  F7  F8  " );
+    if ( functionSet == 1 ) 
+        printFieldStr( 0, 7, FT_OLED_8x8, "F1  F2  F3  F4  " );
+    else if ( functionSet == 2 ) 
+        printFieldStr( 0, 7, FT_OLED_8x8, "F5  F6  F7  F8  " );
 }
 
 //----------------------------------------------------------------------------------------
@@ -676,7 +678,7 @@ void EngineOnOffScreen::enterScreen( bool init ) {
     // ??? get engine status for display from current cab...
     // ??? get text from our table ?
 
-    printFieldStr( 3, 3, FT_8x16, "Engine ---" );
+    printFieldStr( 3, 3, FT_OLED_8x16, "Engine ---" );
 }
 
 void EngineOnOffScreen::upButtonClick( UIButton *buttonObj ) {
@@ -687,7 +689,7 @@ void EngineOnOffScreen::upButtonClick( UIButton *buttonObj ) {
     CabEntry  *currentCab   = &cabStack -> currentCab;
 
     msgBus -> sendEngineOnOff( currentCab );
-    printFieldStr( 3, 3, FT_8x16, "Engine On  " );
+    printFieldStr( 3, 3, FT_OLED_8x16, "Engine On  " );
 }
 
 void EngineOnOffScreen::downButtonClick( UIButton *buttonObj ) {
@@ -699,7 +701,7 @@ void EngineOnOffScreen::downButtonClick( UIButton *buttonObj ) {
     CabEntry  *currentCab   = &cabStack -> currentCab;
 
     msgBus -> sendEngineOnOff( currentCab );
-    printFieldStr( 3, 3, FT_8x16, "Engine Off " );
+    printFieldStr( 3, 3, FT_OLED_8x16, "Engine Off " );
 }
 
 //----------------------------------------------------------------------------------------
@@ -726,7 +728,7 @@ void EngineLightsScreen::enterScreen( bool init ) {
 
     // ??? how exactly would we present the lights data ...
 
-    printFieldStr( 3, 3, FT_8x16, lookupTextStr( SCR_TX_LIGHTS ));
+    printFieldStr( 3, 3, FT_OLED_8x16, lookupTextStr( SCR_TX_LIGHTS ));
 }
 
 void EngineLightsScreen::upButtonClick( UIButton *buttonObj ) {
@@ -793,12 +795,12 @@ void SelectCabScreen::showScreenData( int index ) {
 
     if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != NIL_CAB_ID ) {
 
-        printFieldStr( 0, 2, FT_8x16, "Cab: %04d", 
+        printFieldStr( 0, 2, FT_OLED_8x16, "Cab: %04d", 
                        cabStack -> cabSlots[ index - 1 ].getCabId( ));
     }
-    else printFieldStr( 0, 2, FT_8x16, "Cab: ---");
+    else printFieldStr( 0, 2, FT_OLED_8x16, "Cab: ---");
 
-    printFieldStr( 5, 7, FT_8x8, "%d", index );
+    printFieldStr( 5, 7, FT_OLED_8x8, "%d", index );
 }
 
 //----------------------------------------------------------------------------------------
@@ -837,12 +839,12 @@ void SaveCabScreen::showScreenData( int index ) {
 
     if ( cabStack -> cabSlots[ index - 1 ].getCabId( ) != NIL_CAB_ID ) {
 
-        printFieldStr( 0, 2, FT_8x16, "Cab: %04d", 
+        printFieldStr( 0, 2, FT_OLED_8x16, "Cab: %04d", 
                        cabStack -> cabSlots[ index - 1 ].getCabId( ));
     }
-    else printFieldStr( 0, 2, FT_8x16, "Cab: ---");
+    else printFieldStr( 0, 2, FT_OLED_8x16, "Cab: ---");
 
-    printFieldStr( 5, 7, FT_8x8, "%d", index );
+    printFieldStr( 5, 7, FT_OLED_8x8, "%d", index );
 }
 
 //----------------------------------------------------------------------------------------
@@ -878,8 +880,8 @@ void NewCabScreen::enterScreen( bool init ) {
     printUpLabel( SCR_TX_UP );
     printDownLabel( SCR_TX_DOWN );
 
-    printFieldStr( 6, 2, FT_8x16, "- 0000" );
-    printFieldStr( 6, 4, FT_8x16, "     ^" );
+    printFieldStr( 6, 2, FT_OLED_8x16, "- 0000" );
+    printFieldStr( 6, 4, FT_OLED_8x16, "     ^" );
 
     itemIndex   = 4;
     items[ 0 ]  = 0;
@@ -898,11 +900,11 @@ void NewCabScreen::menuButtonClick( UIButton * buttonObj ) {
 
     switch ( itemIndex ) {
 
-        case 0: printFieldStr( 6, 4, FT_8x16, "^     " ); break;
-        case 1: printFieldStr( 6, 4, FT_8x16, "  ^   " ); break;
-        case 2: printFieldStr( 6, 4, FT_8x16, "   ^  " ); break;
-        case 3: printFieldStr( 6, 4, FT_8x16, "    ^ " ); break;
-        case 4: printFieldStr( 6, 4, FT_8x16, "     ^" ); break;
+        case 0: printFieldStr( 6, 4, FT_OLED_8x16, "^     " ); break;
+        case 1: printFieldStr( 6, 4, FT_OLED_8x16, "  ^   " ); break;
+        case 2: printFieldStr( 6, 4, FT_OLED_8x16, "   ^  " ); break;
+        case 3: printFieldStr( 6, 4, FT_OLED_8x16, "    ^ " ); break;
+        case 4: printFieldStr( 6, 4, FT_OLED_8x16, "     ^" ); break;
     }
 
     encoder -> setLimits( 0, itemLimit( itemIndex ));
@@ -980,7 +982,7 @@ uint16_t NewCabScreen::buildCabId( ) {
 
 void NewCabScreen::showCabId( ) {
 
-    printFieldStr( 6, 2, FT_8x16, "%c %c%c%c%c",
+    printFieldStr( 6, 2, FT_OLED_8x16, "%c %c%c%c%c",
                     engTypeToChar[ items[ 0 ]],
                     digitsToChar[ items[ 1 ]],
                     digitsToChar[ items[ 2 ]],
@@ -1025,7 +1027,7 @@ void SetFunctionSelectScreen::showScreenData( int index ) {
 
     bool functionState = cabStack -> currentCab.getDccFuncState( index );
 
-    printFieldStr( 0, 2, FT_8x16, "DccF: %02d -> %s", index,
+    printFieldStr( 0, 2, FT_OLED_8x16, "DccF: %02d -> %s", index,
                     (( functionState ) ? ((char *) "ON " ) : ((char *) "OFF" )));
 }
 
@@ -1078,7 +1080,7 @@ void SetFunctionOperateScreen::showScreenData( ) {
 
     bool functionState = cabStack -> currentCab.getDccFuncState( functionId );
 
-    printFieldStr( 0, 2, FT_8x16, "DccF: %02d -> %s", functionId,
+    printFieldStr( 0, 2, FT_OLED_8x16, "DccF: %02d -> %s", functionId,
                     (( functionState ) ? ((char *) "ON " ) : ((char *) "OFF" )));
 }
 
@@ -1112,7 +1114,7 @@ void ConfigFunctionSelectScreen::menuButtonClick( UIButton *buttonObj ) { }
 void ConfigFunctionSelectScreen::showScreenData( int index ) {
 
     clearLines( 2, 2 );
-    printFieldStr( 0, 2, FT_8x16, "CabF: %s", lookupMapStr( index ));
+    printFieldStr( 0, 2, FT_OLED_8x16, "CabF: %s", lookupMapStr( index ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -1146,8 +1148,8 @@ void ConfigFunctionEditScreen::enterScreen( bool init ) {
     dccFuncOptId  = cabStack -> currentCab.getDccFuncTypeForChFuncId( cabFuncId );
 
     clearLines( 1, 4 );
-    printFieldStr( 0, 2, FT_8x16, "CabF: %s", lookupMapStr( cabFuncId ));
-    printFieldStr( 0, 4, FT_8x16, "DccF: %02d %s", 
+    printFieldStr( 0, 2, FT_OLED_8x16, "CabF: %s", lookupMapStr( cabFuncId ));
+    printFieldStr( 0, 4, FT_OLED_8x16, "DccF: %02d %s", 
                                   dccFuncId, lookupDccFuncTypeStr( dccFuncOptId ));
 }
 
@@ -1156,7 +1158,7 @@ void ConfigFunctionEditScreen::menuButtonClick( UIButton *buttonObj ) {
     dccFuncOptId ++;
     if ( dccFuncOptId >= 3 ) dccFuncOptId = 0;
 
-    printFieldStr( 0, 4, FT_8x16, "DccF: %02d %s", getIndex( ), 
+    printFieldStr( 0, 4, FT_OLED_8x16, "DccF: %02d %s", getIndex( ), 
                     lookupDccFuncTypeStr( dccFuncOptId ));
 }
 
@@ -1173,7 +1175,7 @@ void ConfigFunctionEditScreen::selectButtonClick( UIButton *buttonObj ) {
 void ConfigFunctionEditScreen::showScreenData( int index ) {
 
     dccFuncId = index;
-    printFieldStr( 0, 4, FT_8x16, "DccF: %02d %s", index, 
+    printFieldStr( 0, 4, FT_OLED_8x16, "DccF: %02d %s", index, 
                                 lookupDccFuncTypeStr( dccFuncOptId ));
 }
 
@@ -1199,25 +1201,25 @@ void TestUIScreen::enterScreen( bool init ) {
 void TestUIScreen::menuButtonClick( UIButton *buttonId ) {
 
     oled -> clearLine( 2 );
-    printFieldStr( 0, 2, FT_8x16, "MENU CLICK" );
+    printFieldStr( 0, 2, FT_OLED_8x16, "MENU CLICK" );
 }
 
 void TestUIScreen::selectButtonClick( UIButton *buttonId ) {
 
     oled -> clearLine( 2 );
-    printFieldStr( 0, 2, FT_8x16, "SELECT CLICK" );
+    printFieldStr( 0, 2, FT_OLED_8x16, "SELECT CLICK" );
 }
 
 void TestUIScreen::upButtonClick( UIButton *buttonId ) {
 
     oled -> clearLine( 2 );
-    printFieldStr( 0, 2, FT_8x16, "UP CLICK" );
+    printFieldStr( 0, 2, FT_OLED_8x16, "UP CLICK" );
 }
 
 void TestUIScreen::downButtonClick( UIButton *buttonId ) {
 
     oled -> clearLine( 2 );
-    printFieldStr( 0, 2, FT_8x16, "DOWN CLICK" );
+    printFieldStr( 0, 2, FT_OLED_8x16, "DOWN CLICK" );
 }
 
 void TestUIScreen::buttonClick( UIButton *buttonId ) {
@@ -1227,31 +1229,31 @@ void TestUIScreen::buttonClick( UIButton *buttonId ) {
     switch ( buttonId -> getResId( )) {
 
         case RNUM_HORN_BUTTON:     
-            printFieldStr( 0, 2, FT_8x16, "HORN CLICK" );     break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "HORN CLICK" );     break;
         
         case RNUM_BELL_BUTTON:      
-            printFieldStr( 0, 2, FT_8x16, "BELL CLICK" );     break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "BELL CLICK" );     break;
         
         case RNUM_FWD_BUTTON:       
-            printFieldStr( 0, 2, FT_8x16, "FWD CLICK" );      break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "FWD CLICK" );      break;
         
         case RNUM_REV_BUTTON:       
-            printFieldStr( 0, 2, FT_8x16, "REV CLICK" );      break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "REV CLICK" );      break;
         
         case RNUM_F1_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F1 CLICK" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F1 CLICK" );       break;
 
         case RNUM_F2_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F2 CLICK" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F2 CLICK" );       break;
     
         case RNUM_F3_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F3 CLICK" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F3 CLICK" );       break;
     
         case RNUM_F4_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F4 CLICK" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F4 CLICK" );       break;
 
         case RNUM_ENCODER_BUTTON:   
-            printFieldStr( 0, 2, FT_8x16, "ENCODER CLICK" );  break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "ENCODER CLICK" );  break;
     }
 }
 
@@ -1262,31 +1264,31 @@ void TestUIScreen::buttonLongPressStart( UIButton *buttonObj ) {
     switch ( buttonObj -> getResId( )) {
 
         case RNUM_HORN_BUTTON:      
-            printFieldStr( 0, 2, FT_8x16, "HORN LP START" );     break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "HORN LP START" );     break;
         
         case RNUM_BELL_BUTTON:      
-            printFieldStr( 0, 2, FT_8x16, "BELL LP START" );     break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "BELL LP START" );     break;
         
         case RNUM_FWD_BUTTON:       
-            printFieldStr( 0, 2, FT_8x16, "FWD LP START" );      break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "FWD LP START" );      break;
         
         case RNUM_REV_BUTTON:       
-            printFieldStr( 0, 2, FT_8x16, "REV LP START" );      break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "REV LP START" );      break;
 
         case RNUM_F1_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F1 LP START" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F1 LP START" );       break;
 
         case RNUM_F2_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F2 LP START" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F2 LP START" );       break;
 
         case RNUM_F3_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F3 LP START" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F3 LP START" );       break;
 
         case RNUM_F4_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F4 LP START" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F4 LP START" );       break;
 
         case RNUM_ENCODER_BUTTON:   
-            printFieldStr( 0, 2, FT_8x16, "ENCODER LP START" );  break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "ENCODER LP START" );  break;
     }
 }
 
@@ -1297,36 +1299,36 @@ void TestUIScreen::buttonLongPressStop( UIButton *buttonObj ) {
     switch ( buttonObj -> getResId( )) {
 
         case RNUM_HORN_BUTTON:      
-            printFieldStr( 0, 2, FT_8x16, "HORN LP STOP" );     break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "HORN LP STOP" );     break;
 
         case RNUM_BELL_BUTTON:      
-            printFieldStr( 0, 2, FT_8x16, "BELL LP STOP" );     break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "BELL LP STOP" );     break;
 
         case RNUM_FWD_BUTTON:       
-            printFieldStr( 0, 2, FT_8x16, "FWD LP STOP" );      break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "FWD LP STOP" );      break;
 
         case RNUM_REV_BUTTON:       
-            printFieldStr( 0, 2, FT_8x16, "REV LP STOP" );      break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "REV LP STOP" );      break;
 
         case RNUM_F1_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F1 LP STOP" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F1 LP STOP" );       break;
 
         case RNUM_F2_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F2 LP STOP" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F2 LP STOP" );       break;
 
         case RNUM_F3_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F3 LP STOP" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F3 LP STOP" );       break;
 
         case RNUM_F4_BUTTON:        
-            printFieldStr( 0, 2, FT_8x16, "F4 LP STOP" );       break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "F4 LP STOP" );       break;
 
         case RNUM_ENCODER_BUTTON:   
-            printFieldStr( 0, 2, FT_8x16, "ENCODER LP STOP" );  break;
+            printFieldStr( 0, 2, FT_OLED_8x16, "ENCODER LP STOP" );  break;
     }
 }
 
 void TestUIScreen::encoderPosChange( UIEncoder *encoderObj ) {
 
     oled -> clearLine( 2 );
-    printFieldStr( 0, 2, FT_8x16, "Pos: %04d", encoderObj -> getPosition( ));
+    printFieldStr( 0, 2, FT_OLED_8x16, "Pos: %04d", encoderObj -> getPosition( ));
 }

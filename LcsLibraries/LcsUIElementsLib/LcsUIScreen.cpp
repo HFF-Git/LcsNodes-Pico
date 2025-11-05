@@ -3,17 +3,18 @@
 // UI Screen - implementation file
 //
 //----------------------------------------------------------------------------------------
-// UI Elements of Buttons, Knobs, LEDs and displays are the atoms of a User Interface. 
-// The next level is to organize these atoms into screens. A screen is a display 
-// UI element that is manipulated with the help of architected UI button elements.
+// UI Elements such as Buttons, Knobs, LEDs and displays are the atoms of a User
+// Interface. The next level is to organize these atoms into screens. A screen is 
+// a display UI element that is manipulated with the help of architected UI button
+// elements.
 //
 // The UIScreen object is the class for implementing a screen. Screens are a display
-// of whatever you want to put on that display. There are virtual methods that will
-// be called when for example a button event such a click is encountered or any other
-// data needs to be written to the display. Two buttons are needed for navigation. 
-// They are the MENU and SELECT button. With the exception of the root screen, a 
-// screen has a parent and a potential child list. The hierarchy is formed by 
-// appending a screen to another screen child list. The MENU button is typically
+// of whatever you want to put on that display. There are virtual methods that 
+// will be called when for example a button event such a click is encountered or 
+// any other data needs to be written to the display. Two buttons are needed for 
+// navigation. They are the MENU and SELECT button. With the exception of the root
+// screen, a screen has a parent and a potential child list. The hierarchy is formed
+// by appending a screen to another screen child list. The MENU button is typically
 // used to scroll through the child list. A long press of the menu button always 
 // gets back to the root screen's first child, no matter where you are. Child lists
 // are toggled through with the menu button in a circular fashion. From the last
@@ -89,7 +90,7 @@ namespace {
 // screen methods of the current screen. When the UI Element, e.g. a button, is 
 // configured, the callback function to register for the button event is the 
 // corresponding static handler routine. For each UI element type used on a screen 
-// there is a static function that will  route the event to the current screen 
+// there is a static function that will route the event to the current screen 
 // handler methods. So far, there are the button and encoder callbacks.
 //
 //----------------------------------------------------------------------------------------
@@ -102,8 +103,7 @@ void UIScreen::menuButtonClickHandler( UIButton *buttonObj ) {
     Serial.println( buttonObj -> getHwId( ));
     #endif
 
-    if ( currentScreen != nullptr ) 
-        currentScreen -> menuButtonClick( buttonObj );
+    if ( currentScreen != nullptr ) currentScreen -> menuButtonClick( buttonObj );
 }
 
 void UIScreen::selectButtonClickHandler( UIButton *buttonObj ) {
@@ -121,26 +121,26 @@ void UIScreen::selectButtonClickHandler( UIButton *buttonObj ) {
 
 void UIScreen::upButtonClickHandler( UIButton *buttonObj ) {
 
-  #if DEBUG_SCREEN_CALLBACK == 1
-  Serial.print( "CurrentScreen: " );
-  Serial.println((uint32_t ) currentScreen );
-  Serial.print( "upButtonCLickHandler: " );
-  Serial.println( buttonObj -> getHwId( ));
-  #endif
+    #if DEBUG_SCREEN_CALLBACK == 1
+    Serial.print( "CurrentScreen: " );
+    Serial.println((uint32_t ) currentScreen );
+    Serial.print( "upButtonCLickHandler: " );
+    Serial.println( buttonObj -> getHwId( ));
+    #endif
 
-  if ( currentScreen != nullptr ) currentScreen -> upButtonClick( buttonObj );
+    if ( currentScreen != nullptr ) currentScreen -> upButtonClick( buttonObj );
 }
 
 void UIScreen::downButtonClickHandler( UIButton *buttonObj ) {
 
-  #if DEBUG_SCREEN_CALLBACK == 1
-  Serial.print( "CurrentScreen: " );
-  Serial.println((uint32_t ) currentScreen );
-  Serial.print( "downButtonCLickHandler: " );
-  Serial.println( buttonObj -> getHwId( ));
-  #endif
+    #if DEBUG_SCREEN_CALLBACK == 1
+    Serial.print( "CurrentScreen: " );
+    Serial.println((uint32_t ) currentScreen );
+    Serial.print( "downButtonCLickHandler: " );
+    Serial.println( buttonObj -> getHwId( ));
+    #endif
 
-  if ( currentScreen != nullptr ) currentScreen -> downButtonClick( buttonObj );
+    if ( currentScreen != nullptr ) currentScreen -> downButtonClick( buttonObj );
 }
 
 void UIScreen::menuButtonLongPressHandler( UIButton *buttonObj ) {
@@ -214,8 +214,8 @@ void UIScreen::encoderPosChangeHandler( UIEncoder *encoderObj ) {
 UIScreen::UIScreen( ) { }
 
 //----------------------------------------------------------------------------------------
-// "menuButtonClick" and "selectButtonCLick" are the handler method that will manage
-// the menu navigation. The menu button click  advances in a round robin fashion 
+// "menuButtonClick" and "selectButtonCLick" are the handler methods that manage
+// the menu navigation. The menu button click advances in a round robin fashion 
 // through the menu child list of the actual menu screen. The select button selects
 // the first child of the current menu screen. We do not make any changes to the 
 // actual screen display content. Instead the enter and exit methods are invoked, 
@@ -236,25 +236,25 @@ void UIScreen::menuButtonClick( UIButton *buttonObj ) {
 
         while ( tmp != currentScreen ) {
 
-        #if DEBUG_SKIP_SCREENS
-        Serial.print( "MENU: current: " );
-        Serial.print(( uint32_t ) currentScreen );
-        Serial.print( "MENU: tmp: " );
-        Serial.print(( uint32_t ) tmp );
-        Serial.print( ", enabled: " );
-        Serial.println(( uint32_t ) tmp -> enabled );
-        #endif
+            #if DEBUG_SKIP_SCREENS
+            Serial.print( "MENU: current: " );
+            Serial.print(( uint32_t ) currentScreen );
+            Serial.print( "MENU: tmp: " );
+            Serial.print(( uint32_t ) tmp );
+            Serial.print( ", enabled: " );
+            Serial.println(( uint32_t ) tmp -> enabled );
+            #endif
       
-        if ( tmp -> enabled ) {
+            if ( tmp -> enabled ) {
 
-            setCurrentScreen( tmp, true );
-            break;
+                setCurrentScreen( tmp, true );
+                break;
+            }
+            else 
+                tmp = (( tmp -> next == nullptr ) ? 
+                        currentScreen -> parent -> child : tmp -> next );
         }
-        else 
-            tmp = (( tmp -> next == nullptr ) ? 
-                    currentScreen -> parent -> child : tmp -> next );
     }
-  }
 }
 
 void UIScreen::selectButtonClick( UIButton * buttonObj ) {
@@ -297,8 +297,8 @@ void UIScreen::encoderPosChange( UIEncoder * encoderObj ) { }
 
 //----------------------------------------------------------------------------------------
 // "append" is the building block for constructing menus. For a given screen, the 
-// passed screen is appended to the end of the children list. The parent field becomes
-// the object that the new screen object will be appended to.
+// passed screen is appended to the end of the children list. The parent field 
+// becomes the object that the new screen object will be appended to.
 //
 //----------------------------------------------------------------------------------------
 void UIScreen::append( UIScreen * screen ) {
@@ -319,7 +319,7 @@ void UIScreen::append( UIScreen * screen ) {
 
 //----------------------------------------------------------------------------------------
 // The "setup" method gets the whole show going. The first child of the root screen
-// is the first screen to show if it is already there.
+// is always the first screen to show if it is already there.
 //
 //----------------------------------------------------------------------------------------
 bool UIScreen::setup( ) {

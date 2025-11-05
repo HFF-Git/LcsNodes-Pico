@@ -65,9 +65,7 @@ int main( ) {
         return( -1 );
     }
 
-    oled = new UIDisplayOled(   DT_OLED_DISPLAY_128x64, 
-                                CDC_RN_EXT_NVM,
-                                0x3C );
+    oled = new UIDisplayOledI2C( DT_OLED_DISPLAY_128x64, CDC_RN_EXT_NVM, 0x3C );
 
     while ( true ) {
 

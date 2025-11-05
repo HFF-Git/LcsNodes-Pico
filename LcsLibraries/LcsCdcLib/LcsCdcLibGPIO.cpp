@@ -3,7 +3,20 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// 
+// A digital pin is the bread and butter hardware resource and can be an input or 
+// output pin. For inputs, an internal pull-up resistor can be set.There are a 
+// couple of interfaces. First the single pin read, write and toggle. Note that 
+// no cross checking is done if the pins are used by other CDC functions. The DIO 
+// routines allow to pass two pins and their values. We often use DIO pins as pairs.
+// This is typically used for the H-Bridge control pins, which are set at the same 
+// time. 
+//
+// A GPIO pin can also have an attached interrupt handler. When we register a handler
+// for a pin, there are two different PICO lib routines to use. When there is no 
+// handler registered so far, we register the common callback and store the particular
+// GPIO handler in our ISR handler table. Otherwise, we just store the handler in the
+// table and enable the GPIO pin for interrupts. If the resource configured two pins,
+// the handler is set for both pins.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -47,7 +60,9 @@ using namespace CDC;
 // 
 // The interrupt table for the GPIO pin interrupts. The PICO has only one interrupt 
 // handler. We will allocate a table where an interrupt handler can be set for each 
-// HW pin. 
+// HW pin.  When no interrupt is configured for a GPIO pin, we set the table entry 
+// to a dummy handler. This way we do not have to check every time for a valid 
+// procedure label when we handle an interrupt.
 //
 //----------------------------------------------------------------------------------------
 struct GpioIsrTable {
@@ -56,18 +71,8 @@ struct GpioIsrTable {
     GpioCallback    gpioIsrTable[ MAX_CPU_CORE ][ MAX_INT_PIN + 1 ];
 };
 
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
 GpioIsrTable dioIntHandlers;
 
-//----------------------------------------------------------------------------------------
-// When no interrupt is configured for a GPIO pin, we set the table entry to a dummy
-// handler. This way we do not have to check every time for a valid procedure label 
-// when we handle an interrupt.
-//
-//----------------------------------------------------------------------------------------
 void dummyIsrHandler ( uint8_t pin, uint8_t event ) { }
 
 //----------------------------------------------------------------------------------------
@@ -131,7 +136,7 @@ void setGpioMode( uint8_t pin, uint8_t mode ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// The dispatch table for the interrupt handlers for a GPIO pin.
 //
 //----------------------------------------------------------------------------------------
 void gpioCallback( uint gpioPin, uint32_t event ) {
@@ -186,25 +191,10 @@ void initIsrTable( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DIO section. A digital pin is the bread and butter hardware resource and can be 
-// an input or output pin. For inputs, an internal pull-up resistor can be set.There
-// are a couple of interfaces. First the single pin read, write and toggle. Note that
-// no cross checking is done if the pins are used by other CDC functions. The DIO 
-// routines allow to pass two pins and their values. We often use DIO pins as pairs.
-// This is typically used for the H-Bridge control pins, which are set at the same 
-// time. 
-//
-// A GPIO pin can also have an attached interrupt handler. When we register a handler
-// for a pin, there are two different PICO lib routines to use. When there is no 
-// handler registered so far, we register the common callback and store the particular
-// GPIO handler in our ISR handler table. Otherwise, we just store the handler in the
-// table and enable the GPIO pin for interrupts. If the resource configured two pins,
-// the handler is set for both pins.
+// Configure a DIO resource.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureDio( uint8_t rNum ) {
-
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
 
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_GPIO );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
@@ -222,8 +212,6 @@ uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
         printf( "configureDio-detail: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", 
                 rNum, pinA, pinB, mode );
     }
-
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
 
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_GPIO );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );

@@ -57,7 +57,7 @@ bool repeatingTimerAlarm( repeating_timer_t *rt ) {
     if ( ptr -> timer.timerCallback != nullptr ) {
 
         ptr -> timer.timerCallback((uint32_t)
-                                    ( - ptr -> timer.timerData.delay_us ));       
+                        ( - ptr -> timer.timerData.delay_us ));       
     }
     
     return ( true );
@@ -97,16 +97,16 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// CDC features two alarm pools. Thee is the default alarm pool for most timers. In
-// addition, there is a high priority alarm pool, which will interrupt also a timer 
-// handler of a default alarm pool timer. The idea is that we have time critical 
-// timer, which need to run even if another timer is served. An example would be the 
-// DCC signal state machine timer. We will use the default alarm pool and create an
-// additional high priority timer. 
+// CDC features two alarm pools. There is the default alarm pool for most timers. 
+// In addition, there is a high priority alarm pool, which will interrupt also a 
+// timer handler of a default alarm pool timer. The idea is that we have time 
+// critical timer, which need to run even if another timer is served. An example
+// would be the DCC signal state machine timer. We will use the default alarm pool
+// and create an additional high priority timer. 
 //
-// Create an alarm pool on hardware alarm 2, avoid default pool alarms 0..1. 
-// Next, find the hardware alarm used by this pool (0..3).
-// Compute the IRQ for that alarm and set its NVIC priority ( 0 = highest ).
+// -> Create an alarm pool on hardware alarm 2, avoid default pool alarms 0..1. 
+// -> Next, find the hardware alarm used by this pool (0..3).
+// -> Compute the IRQ for that alarm and set its NVIC priority ( 0 = highest ).
 // 
 //----------------------------------------------------------------------------------------
 uint8_t setupAlarmPools( ) {

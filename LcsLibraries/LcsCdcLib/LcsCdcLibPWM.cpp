@@ -3,7 +3,18 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// 
+// The PICO is quite flexible when it comes to PWM signals. We support a simple PWM
+// capability. There is the frequency which set during configuration and there is 
+// the write operation which set the duty cycle. The calculations are best described
+// in the PICO C++ SDK. Note that although the PICO is quite flexible, the wrap and
+// phase parameters are set for the slice and not a single channel. The same is true
+// for the signal inverter. This is normally not an issue unless you want to have
+// separate values for PWM pins on the same slice. 
+//
+// The "writePwm" function will just manipulate the duty cycle. When we need to 
+// change the frequency we need to configure again. The "syncPwm" function will #
+// reset the wrap count, which is used to implement the sync function for H-Bridges
+// emitting a PWM signal.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -37,7 +48,6 @@ namespace {
 
 using namespace CDC;
 
-
 }
 
 //----------------------------------------------------------------------------------------
@@ -63,18 +73,7 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// PWM section. The PICO is quite flexible when it comes to PWM signals. We support
-// a simple PWM capability. There is the frequency which set during configuration 
-// and there is the write operation which set the duty cycle. The calculations are 
-// best described in the PICO C++ SDK. Note that although the PICO is quite flexible,
-// the wrap and phase parameters are set for the slice and not a single channel. The
-// same is true for the signal inverter. This is normally not an issue unless you 
-// want to have separate values for PWM pins on the same slice. 
-//
-// The "writePwm" function will just manipulate the duty cycle. When we need to change
-// the frequency we need to configure again. The "syncPwm" function will reset the
-// wrap count, which is used to implement the sync function for H-Bridges emitting a
-// PWM signal.
+// Configure a PWM resource.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t configurePwm( uint8_t rNum ) {
@@ -105,8 +104,6 @@ uint8_t configurePwm( uint8_t rNum,
                 rNum, pinA, pinB, frequency );
     }
 
-    if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
-    
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_PWM );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 

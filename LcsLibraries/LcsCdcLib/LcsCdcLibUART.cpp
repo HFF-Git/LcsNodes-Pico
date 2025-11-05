@@ -3,7 +3,17 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// 
+// The UART interface is primarily used for the RailCom Detector that sends a serial
+// signal. So far, only the receiver portion is implemented because that is all what
+// is needed for RailCom messages. There are two general categories. The first uses
+//the PICO built-in UART hardware blocks. The second implements a software UART 
+// based on the PICO PIO blocks.
+//
+// There are three routines. The "startUartRead" will enable the UART and start 
+// reading bytes into the local buffer. The "stopUartRead" will then finish the byte
+// collection and disable the UART again. Finally, the "getUartBuffer" routine will 
+// return the bytes received. Again, note that this is not a generic UART read 
+// interface.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -37,10 +47,6 @@ namespace {
 
 using namespace CDC;
 
-CdcResource             *uartRes0           = nullptr;
-CdcResource             *uartRes1           = nullptr;
-
-
 //----------------------------------------------------------------------------------------
 // Global Interrupt handlers. The hardware and low level library will call these 
 // handlers, which in turn will invoke the respective callback function if configured. 
@@ -51,6 +57,9 @@ CdcResource             *uartRes1           = nullptr;
 // resource for each UART HW block.
 // 
 //----------------------------------------------------------------------------------------
+CdcResource *uartRes0 = nullptr;
+CdcResource *uartRes1 = nullptr;
+
 void uartRxCallback0( ) {
 
     while ( uart_is_readable( uart0 )) {
@@ -102,16 +111,7 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// UART section. The UART interface is primarily used for the RailCom Detector that 
-// sends a serial signal. So far, only the receiver portion is implemented because that
-// is all what is needed for RailCom messages. There are two general categories. The 
-// first uses the PICO built-in UART hardware blocks. The second implements a software
-// UART based on the PICO PIO blocks.
-//
-// There are three routines. The "startUartRead" will enable the UART and start reading
-// bytes into the local buffer. The "stopUartRead" will then finish the byte collection
-// and disable the UART again. Finally, the "getUartBuffer" routine will return the
-// bytes received. Again, note that this is not a generic UART read interface.
+// Configure a UART resource. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rNum ) {
@@ -126,7 +126,7 @@ uint8_t configureUart( uint8_t rNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Configure the UART channel.
+// Configure the UART resource.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureUart( uint8_t rNum, 

@@ -3,11 +3,11 @@
 // UIEncoderElements -implementation file.
 //
 //----------------------------------------------------------------------------------------
-// Rotary encoders have two ports and depending on the direction turned, reading 
-// the values for the two ports tells the direction. Whenever the encoder is turned
-// the new position is passed via a callback. Some rotary encoders also have a push
-// button built into the knob. This will not be handled here, it is just a button
-// for which we have the UIButton object.
+// Rotary encoders have two sensors and depending on the direction turned, reading 
+// the values for the two sensors tell the turning direction. Whenever the encoder 
+// is turned the new position is passed via a callback. Some rotary encoders also 
+// have a push button built into the knob. This will not be handled here, it is 
+// just a button for which we use a UIButton object.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -102,7 +102,7 @@ void UIEncoder::setPosition( int newPosition, bool suppressCallback ) {
         if (( newPosition != position ) && 
             ( positionChangedFunc != nullptr ) && 
             ( ! suppressCallback ))
-        positionChangedFunc( this );
+                positionChangedFunc( this );
     }
 }
 
@@ -116,6 +116,10 @@ void UIEncoder::attachGetDataFunction( UIGetDataFunctionPair functionId ) {
     getDataFunc = functionId;
 }
 
+//----------------------------------------------------------------------------------------
+// The encoder state machine.
+//
+//----------------------------------------------------------------------------------------
 void UIEncoder::processTick( ) {
 
     if ( getDataFunc != nullptr ) {
@@ -138,7 +142,7 @@ void UIEncoder::processTick( ) {
         if ( position < lowerLimit ) position = lowerLimit;
 
         if (( positionPrev != position ) && ( positionChangedFunc != nullptr ))
-        positionChangedFunc( this );
+            positionChangedFunc( this );
 
         positionPrev      = position;
         positionTimePrev  = positionTime;

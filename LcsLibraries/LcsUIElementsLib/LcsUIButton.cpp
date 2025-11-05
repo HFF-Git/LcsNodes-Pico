@@ -3,14 +3,11 @@
 // UIButton - implementation file
 //
 //----------------------------------------------------------------------------------------
-// Buttons are one  of the most used UI Elements. Each button is essentially a 
-// state machine with a set of defined callback functions. There is also a callback
-// for obtaining the actual button value. The time for debouncing, detecting a click
-// or a long press is set for all buttons. A switch is also just a button with long 
-// press characteristic. All this comfort comes with a price though. The button object
-// has a size of roundabout 24 bytes. So, an array of 256 buttons would occupy quite
-// some memory storage. But for the typical case of 8 - 32 buttons, the array will
-// do just fine.
+// Buttons are one of the most common UI Element. Each button is essentially a 
+// state machine with a set of defined event callback functions. There is a
+// callback function for obtaining the actual button value. The time for debouncing,
+// detecting a click or a long press is set for all buttons. A switch is just a
+// button with long press characteristic. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -39,13 +36,13 @@ using namespace CDC;
 namespace {
 
     //------------------------------------------------------------------------------------
-    // The default time intervals. The debounce value will determine when we consider
-    // a button pushed. The click value defines how ling we press a button for a click
-    // and the press value defines what is considered a long push. There is also the
-    // option to detect a double click. Care needs to be tale that the click interval
-    // is not too long, which would result in a long press, and not too short, which
-    // would not ever consider a double click. The default values are the result of
-    // testing some common tactical switch buttons.
+    // The default time intervals. The debounce time value will determine when we 
+    // consider a button pushed. The click value defines how ling we press a button 
+    // for a click and the press value defines what is considered a long push. There
+    // is also the option to detect a double click. Care needs to be taken that the
+    // click interval is not too long, which would result in a long press, and not
+    // too short, which would lead to not ever consider a double click. The default
+    // values are the result of testing some common tactical switch buttons.
     //
     //------------------------------------------------------------------------------------
     const uint16_t  DEFAULT_DEBOUNCE_MILLIS   = 50;
@@ -57,7 +54,6 @@ namespace {
     uint16_t        pressMillis    = DEFAULT_PRESS_MILLIS;
 
 } // namespace
-
 
 //========================================================================================
 //
@@ -86,14 +82,12 @@ void UIButton::setPressMillis( uint32_t ticks ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The UI Button object. Each button has a resource ID. This could be directly the
-// pin number but also any other number by which the button is identified in callbacks.
-// A button can also be active low or high.
+// The UI Button object. 
 //
 //----------------------------------------------------------------------------------------
-UIButton::UIButton( uint8_t hwId, bool activeLow ) {
+UIButton::UIButton( uint8_t rNum, bool activeLow ) {
   
-    this -> rNum        = hwId;
+    this -> rNum        = rNum;
     this -> activeLow   = activeLow;
     reset( );
 }
@@ -158,15 +152,15 @@ uint8_t UIButton::getResId( ) {
 
 //----------------------------------------------------------------------------------------
 // "processTick" is the heart of managing a button. It is essentially a finite state 
-// machine running off the current state machine state and the last value read for
-// the button. A value matching the the defined active level is considered an active
-// value for the button. The state machine has the following states:
+// machine using the current state and the last value read for the button. A value
+// matching the the defined active level is considered an active value for the 
+// button. The state machine has the following states:
 //
 //    State 0     - the button becomes active. Remember the starting time and set 
 //                  the state to 1.
 //
-//    State 1     - if the button is inactive before the debouncing time window, it 
-//                  is perhaps a glitch, ignore, go back to state 0.
+//    State 1     - if the button is inactive before the debouncing time window, 
+//                  it is perhaps a glitch, ignore, go back to state 0.
 //
 //                  else if the button is inactive remember the stopping time and 
 //                  set the state to 2.
@@ -184,23 +178,26 @@ uint8_t UIButton::getResId( ) {
 //                  else if the button is active again set the state to 3 and 
 //                  remember the starting time.
 //
-//    State 3     - if the button is not active and the elapsed time is larger than
-//                  the debouncing time, it is another click. Coming from state 2 
-//                  this is considered a double click event. Invoke the double click
-//                  handler, if any, remember the stopping time and set the state 
-//                  to 0.
+//    State 3     - if the button is not active and the elapsed time is larger 
+//                  than the debouncing time, it is another click. Coming from 
+//                  state 2 this is considered a double click event. Invoke the
+//                  double click handler, if any, remember the stopping time and 
+//                  set the state to 0.
 //
 //    State 4     - the previous start was a recognized long press. If the button 
 //                  became non active, remember the stopping time, invoke the end
 //                  of long press handler and set the state to 0.
 //
-//                  else if the button is still active, invoke the during long press 
-//                  state handler, if any, and set the state to 6.
+//                  else if the button is still active, invoke the during long 
+//                  press state handler, if any, and set the state to 6.
 //
 //----------------------------------------------------------------------------------------
 void UIButton::processTick( ) {
 
-    bool val    = (( getDataFunc != nullptr ) ? getDataFunc( rNum ) : false );
+    bool val = false;
+
+    if ( getDataFunc != nullptr ) getDataFunc( rNum, &val );
+
     bool active = (( activeLow ) ? !val : val );
 
     #if 0 // use this when you suspect that the activeLow setting is messed up.

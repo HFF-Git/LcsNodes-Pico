@@ -3,20 +3,22 @@
 // UI Elements - include file.
 //
 //----------------------------------------------------------------------------------------
-// UI Elements. You start a small project and the first Led is blinking, a button 
+// UI Elements. You start a small project and the first LED is blinking, a button 
 // is pushed. Before you know it, buttons need to be debounced, short and long 
-// pressed, active high or active low. You would like to toggle a Led and remember
+// pressed, active high or active low. You would like to toggle a LED and remember
 // its state. There are displays with different interfaces and capabilities. On 
 // some displays you want to control the brightness and contrast. Finally, in some
 // projects you run out of physical pins and want to connect an array of buttons or
 // LEDs through something like a parallel IO extender or a simple shift registers. 
-// The list is long. In all projects you implement it somehow directly in project
-// just to take part of the functions to the next project and so on.
+// Welcome to the world of user interfaces. The list of requirements is long. In 
+// all projects you most likely implement it somehow directly in project just to
+// take part of the functions to the next project and so on.
 //
-// UI Elements is the library that implements the most common UI elements. This file 
-// includes all the class definitions. UIElements is the base class and also maintains 
-// a linked list of all created objects. This list is used when the "tick" function 
-// is called to advance the state machines in the relevant objects.
+// UI Elements is a library that implements the most common UI elements in a more 
+// abstract way. This file includes all the class definitions. UIElements is the
+// base class and also maintains a linked list of all created objects. This list 
+// is used when the "tick" function is called to advance the state machines in the
+// relevant UI elements objects.
 //
 // UILed
 // UIButton
@@ -73,15 +75,9 @@
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// Resources and Pins use the value of 255 to indicate an invalid number.
-//
-//----------------------------------------------------------------------------------------
-const uint8_t INVALID_ID       = 255;
-
-//----------------------------------------------------------------------------------------
 // There are quite a few displays to support. While the LCD displays just feature 
-// a fixed column and row size, the Oled displays support a column and row size that
-// depends on the font used. 
+// a fixed column and row size, the Oled displays support a column and row size 
+// that depends on the font used. 
 //
 // For simplicity, we will only support a few fonts. There is an 8x8 pixel font and
 // a 8x16 font. The configured size is encoded in column / row numbers at the end 
@@ -108,25 +104,24 @@ enum DisplayType : uint8_t {
 // OLED display. The font type is meaningless for the LCD displays, they have only
 // one character set.
 //
-// ??? rather put in OLED display ?
 //----------------------------------------------------------------------------------------
 enum FontType : uint8_t {
 
-  FT_DEF   = 0,
-  FT_5x7   = 1,
-  FT_8x8   = 2,
-  FT_8x16  = 3,
-  FT_10x16 = 4,
+  FT_OLED_DEF   = 0,
+  FT_OLED_5x7   = 1,
+  FT_OLED_8x8   = 2,
+  FT_OLED_8x16  = 3,
+  FT_OLED_10x16 = 4,
 };
 
 //----------------------------------------------------------------------------------------
-// Callback function definition. UI Elements implement two kinds of callback 
-// functions. The first group is the data setting and retrieval function, which is
-// used by buttons, LEDs and encoders to work with the hardware elements that 
-// represent these objects. UI elements that process events additionally implement
-// the second type callback function mechanism to inform the client on the event 
-// that occurred. For example, when a button is pushed and has registered a callback 
-// function, this is the function signature invoked.
+// Callback function definition. Most UI Elements implement two kinds of callback 
+// functions. The first group is the data setting and retrieval function, which 
+// is used by buttons, LEDs and rotary encoders to work with the hardware elements
+// that represent these objects. UI elements that process events additionally 
+// implement the second type callback function mechanism to inform the client on 
+// the event that occurred. For example, when a button is pushed a registered
+// callback function will be invoked.
 //
 //----------------------------------------------------------------------------------------
 #ifdef __cplusplus
@@ -136,9 +131,10 @@ extern "C" {
 typedef void ( *UITimerCallBackFunction ) ( struct UITimer *timerObj );
 typedef void ( *UIButtonCbFunction ) ( struct UIButton *buttonObj );
 typedef void ( *UIEncoderCbFunction ) ( struct UIEncoder *encoderObj );
+
 typedef void ( *UISetDataFunction ) ( uint8_t rNum, bool val );
-typedef bool ( *UIGetDataFunction ) ( uint8_t rNum );
-typedef bool ( *UIGetDataFunctionPair ) ( uint8_t rNum, bool *val1, bool *val2 );
+typedef void ( *UIGetDataFunction ) ( uint8_t rNum, bool *val );
+typedef void ( *UIGetDataFunctionPair ) ( uint8_t rNum, bool *val1, bool *val2 );
 
 #ifdef __cplusplus
 }
@@ -158,29 +154,25 @@ struct UIElements {
 
     public:
 
-    int               getResId( );
-    void              setResId( int arg );
-    
-    static uint8_t    setup( );
-    static uint8_t    tick( );
+    static uint8_t  tick( );
 
     protected:
 
-    UIElements( bool  atHead = false );
-    virtual void      processTick( )  = 0;
+    UIElements( bool atHead = false );
+    virtual void    processTick( )  = 0;
 
     private:
 
-    UIElements*       next  = nullptr;
-    int               resId = 0;
+    UIElements*     next  = nullptr;
 
-    static void       append( UIElements* res );
-    static void       insert( UIElements* res );
+    static void     append( UIElements* res );
+    static void     insert( UIElements* res );
 
 };
 
 //----------------------------------------------------------------------------------------
-// "UIButton" class definition.
+// "UIButton" class definition. In addition to the button object, there are some
+// class routines for setting the time limits for recognizing button press events.
 //
 //----------------------------------------------------------------------------------------
 struct UIButton : UIElements {
@@ -339,11 +331,7 @@ struct UIDisplay : UIElements {
 };
 
 //----------------------------------------------------------------------------------------
-// The LCD display and an I2C interface are handled by this object. Like all displays 
-// defined, this object implements a simple matrix of ASCII characters. The display 
-// has a set of function to manage backlight as well as cursor and blinking options.
-// We simply inherit these functions. They are however only an option for the LCD 
-// kind of display.
+// The LCD display object implements a simple matrix of ASCII characters. 
 //
 //----------------------------------------------------------------------------------------
 struct UIDisplayLcdI2C : public UIDisplay {
@@ -368,16 +356,17 @@ struct UIDisplayLcdI2C : public UIDisplay {
 };
 
 //----------------------------------------------------------------------------------------
-// The "UIDisplayOled" manages an OLED display as a matrix of row * columns Ascii 
-// characters. Although an OLED display is fully graphical, we just use them for now as
-// an ASCII display with a small set of fonts and a row by column matrix size.
+// The "UIDisplayOledI2C" manages an OLED display as a matrix of ( row * columns ) 
+// ASCII characters. Although an OLED display is fully graphical, we just use them
+// for now as an ASCII display with a small set of fonts and a row by column matrix 
+// size.
 //
 //----------------------------------------------------------------------------------------
-struct UIDisplayOled : public UIDisplay {
+struct UIDisplayOledI2C : public UIDisplay {
 
     public:
 
-    UIDisplayOled( uint8_t dType, 
+    UIDisplayOledI2C( uint8_t dType, 
                    uint8_t rNum,
                    uint8_t i2cAdr = 0x3C );
 
@@ -396,12 +385,15 @@ struct UIDisplayOled : public UIDisplay {
 };
 
 //----------------------------------------------------------------------------------------
-// The "UIScreen" is the central object for screens. A screen is just an array of 
-// rows and columns of ASCII characters. The object contains pointers to the parent
-// screen, the next screen at that level and a pointer to an optional child list. 
-// Screen hierarchies are built by appending a screen to another screens child list. 
+// Active UI Elements and Displays are consolidated into "screen"s. The "UIScreen"
+// is the central object for screens. A screen is just an array of rows and columns
+// of ASCII characters. The object contains pointers to the parent screen, the next
+// screen at that level and a pointer to an optional child list. Screen hierarchies
+// are built by appending a screen to another screens child list. Screens have a 
+// fixed format with reserved buttons to navigate through the screen hierarchy.
+//
 // The UIScreen class provides callbacks for for handling UIElement events, which can
-// be overridden to implement screen specific actions. The "menu" and "select" will 
+// be overridden to implement screen specific actions. The "MENU" and "SELECT" will 
 // as default handler have the menu navigation function, all other UIElements just 
 // end in a dummy function to be overridden if needed. A menu button toggles through
 // the child list, the select button selects the first child of the current menu as
@@ -409,13 +401,13 @@ struct UIDisplayOled : public UIDisplay {
 // overridden to provide entry and exit processing, such as showing the initial 
 // screen content or cleaning up data when leaving a screen.
 //
-// UIElement actions from buttons and encoders are passed to the active screen via 
-// the respective element callback. There are static class functions that are 
-// registered at the UIElements and when invoked pass the data to the current screen.
-// If UIScreen class contains dummy functions to avoid implementing dummy functions
-// in the derived screen classes. Also, when overriding the menu and select button 
-// in a derived class, the enter and exit screen invocation must be handled by the
-// overriding procedure.
+// All UIElement actions from buttons and encoders are passed to the active screen. 
+// There are static class functions that are registered at the UIElements and when
+// invoked pass the data to the current screen. 
+//
+// There are static routines which are registered as callbacks for the UI elements.
+// This way any UI Element event enters the screen system, which in turn pass the
+// event to the active screen. Pretty much like any other window system.
 //
 //----------------------------------------------------------------------------------------
 struct UIScreen {

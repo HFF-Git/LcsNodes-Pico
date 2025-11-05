@@ -3,7 +3,8 @@
 // Layout Control System - Utility routines include file
 //
 //----------------------------------------------------------------------------------------
-// 
+// This library includes some basic utility routines used by various LCS project 
+// parts. Most of the routines are inlined C++ routines defined in this include file.
 //
 //----------------------------------------------------------------------------------------
 //

@@ -3,7 +3,10 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// 
+// The PICO has two HW blocks for I2C interfaces. The CDC interface implements a 
+// simple read and write access to an I2C element. There is a timeout to avoid 
+// waiting forever on an operation. Finally,we have routines to get the pins and
+// baud rate. This is primarily used by external libraries.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -63,10 +66,7 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// I2C Section. The PICO has two HW blocks for I2C interfaces. The CDC interface 
-// implements a simple read and write access to an I2C element. There is a timeout
-// to avoid waiting forever on an operation. Finally,we have routines to get the
-// pins and baud rate. This is primarily used by external libraries.
+// Configure the I2C channel.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureI2C( uint8_t rNum ) {

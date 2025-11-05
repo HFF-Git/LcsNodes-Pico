@@ -3,7 +3,10 @@
 // Layout Control System - Utility routines
 //
 //----------------------------------------------------------------------------------------
-// 
+// The LCS Utility library includes some basic utility routines used by various LCS 
+// project parts. Most of the routines are inlined C++ routines defined in the 
+// corresponding include file. However, some routines cannot be inlined and are 
+// therefore implemented as regular C functions in this source file.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -22,6 +25,6 @@
 //
 //----------------------------------------------------------------------------------------
 
-// ??? any non-inlined C routines would come here...
+// None so far, any non-inlined C routines would come here.
 
 

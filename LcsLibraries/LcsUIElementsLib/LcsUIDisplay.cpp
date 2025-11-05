@@ -35,7 +35,8 @@
 namespace {
 
 //----------------------------------------------------------------------------------------
-// The font table for the OLED display.
+// The font table for the OLED display. Since we have a simple display model, we
+// only support a few fonts.
 //
 //----------------------------------------------------------------------------------------
 struct {
@@ -45,43 +46,15 @@ struct {
 
 } FontTab[ ] = {
 
-    { FT_DEF,   font8x8         },
-    { FT_5x7,   font5x7         },
-    { FT_8x8,   font8x8,        },
-    { FT_8x16,  ZevvPeep8x16    },
-    { FT_10x16, TimesNewRoman16   }
+    { FT_OLED_DEF,   font8x8         },
+    { FT_OLED_5x7,   font5x7         },
+    { FT_OLED_8x8,   font8x8,        },
+    { FT_OLED_8x16,  ZevvPeep8x16    },
+    { FT_OLED_10x16, TimesNewRoman16   }
 
 };
-
-// perhaps add some more....
-/*
-const uint8_t* fontList[] = {
-    Arial14,
-    Arial_bold_14,
-    Callibri11,
-    Callibri11_bold,
-    Callibri11_italic,
-    Callibri15,
-    Corsiva_12,
-    fixed_bold10x15,
-    Iain5x7,
-    lcd5x7,
-    Stang5x7,
-    System5x7,
-    TimesNewRoman16,
-    TimesNewRoman16_bold,
-    TimesNewRoman16_italic,
-    utf8font10x16,
-    Verdana12,
-    Verdana12_bold,
-    Verdana12_italic,
-    X11fixed7x14,
-    X11fixed7x14B,
-};
-*/
 
 } // namespace
-
 
 //========================================================================================
 //
@@ -136,9 +109,9 @@ UIDisplay::UIDisplay( uint8_t dType ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Each UIElement has a function to process period work. So far, for displays, there
-// is nothing to do. But perhaps one day for example, we implement blinking characters
-// on an OLed or so. Until then ...
+// Each UIElement has a function to process period work. So far, for displays, 
+// there is nothing to do. But perhaps one day for example, we implement blinking 
+// characters on an OLed or so. Until then ...
 //
 //----------------------------------------------------------------------------------------
 void  UIDisplay::processTick( ) { }
@@ -206,7 +179,9 @@ void UIDisplayLcdI2C::clearLine( uint8_t row ) {
 }
 
 //========================================================================================
-// UIDisplayOled Section.
+//
+// UIDisplayOledI2C Section.
+//
 //========================================================================================
 
 //----------------------------------------------------------------------------------------
@@ -219,13 +194,14 @@ void UIDisplayLcdI2C::clearLine( uint8_t row ) {
 // computed to be the column parameter times the font width of the current font. 
 // The display row and column parameter need to be multiplied with the dimensions 
 // needed for the current font measured in multiple of 8 pixels. The "print" and 
-// "clear" methods just pass through to their specific Oled Display Class counterparts.
+// "clear" methods just pass through to their specific Oled Display Class 
+// counterparts.
 //
 // ??? watch out what display HW you really have ... it may otherwise not work...
 //----------------------------------------------------------------------------------------
-UIDisplayOled::UIDisplayOled(   uint8_t dType, 
-                                uint8_t rNum, 
-                                uint8_t i2cAdr ) : UIDisplay( dType ) {
+UIDisplayOledI2C::UIDisplayOledI2C( uint8_t dType, 
+                                    uint8_t rNum, 
+                                    uint8_t i2cAdr ) : UIDisplay( dType ) {
 
     oled = new LcsOledDisplay( );
     oled -> begin( ODT_OLED_DISPLAY_128x64_SSD1306, rNum, i2cAdr );
@@ -234,31 +210,31 @@ UIDisplayOled::UIDisplayOled(   uint8_t dType,
 
         case DT_OLED_DISPLAY_128x32: {
             
-            oled -> setFont( FontTab[ FT_8x8 ].font ); 
+            oled -> setFont( FontTab[ FT_OLED_8x8 ].font ); 
         
         } break;
         
         case DT_OLED_DISPLAY_128x64: {
             
-            oled -> setFont( FontTab[ FT_8x8 ].font );
+            oled -> setFont( FontTab[ FT_OLED_8x8 ].font );
         
         } break;
         
-        default: oled -> setFont( FontTab[ FT_DEF ].font );
+        default: oled -> setFont( FontTab[ FT_OLED_DEF ].font );
     }
 }
 
-void UIDisplayOled::displayOn( ) {
+void UIDisplayOledI2C::displayOn( ) {
 
     oled -> displayOn( );
 }
 
-void UIDisplayOled::displayOff( ) {
+void UIDisplayOledI2C::displayOff( ) {
 
     oled -> displayOff( );
 }
 
-void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
+void UIDisplayOledI2C::setCursor( uint8_t col, uint8_t row ) {
 
     uint8_t lCol = (( col > maxColumns ) ? 
                             maxColumns : col ) * oled -> fontWidthPixels( );
@@ -271,18 +247,18 @@ void UIDisplayOled::setCursor( uint8_t col, uint8_t row ) {
     oled -> setCursor( lCol, lRow );
 }
 
-void UIDisplayOled::setFont( uint8_t fontId ) {
+void UIDisplayOledI2C::setFont( uint8_t fontId ) {
 
     switch ( fontId ) {
 
-        case FT_5x7:  oled -> setFont( FontTab[ FT_5x7 ].font );  break;
-        case FT_8x8:  oled -> setFont( FontTab[ FT_8x8 ].font );  break;
-        case FT_8x16: oled -> setFont( FontTab[ FT_8x16 ].font ); break;
-        default: oled -> setFont( FontTab[ FT_DEF ].font );
+        case FT_OLED_5x7:  oled -> setFont( FontTab[ FT_OLED_5x7 ].font );  break;
+        case FT_OLED_8x8:  oled -> setFont( FontTab[ FT_OLED_8x8 ].font );  break;
+        case FT_OLED_8x16: oled -> setFont( FontTab[ FT_OLED_8x16 ].font ); break;
+        default: oled -> setFont( FontTab[ FT_OLED_DEF ].font );
     }
 }
 
-uint8_t UIDisplayOled::print( const char *buf ) {
+uint8_t UIDisplayOledI2C::print( const char *buf ) {
 
     while ( *buf != 0 ) {
 
@@ -293,18 +269,18 @@ uint8_t UIDisplayOled::print( const char *buf ) {
   return ( 1 );
 }
 
-uint8_t UIDisplayOled::print( char ch ) {
+uint8_t UIDisplayOledI2C::print( char ch ) {
 
     return ( oled -> writeChar( ch ));
 }
 
-void UIDisplayOled::clear( ) {
+void UIDisplayOledI2C::clear( ) {
 
     oled -> setCursor( 0, 0 );
     oled -> clear( );
 }
 
-void UIDisplayOled::clearLine( uint8_t row ) {
+void UIDisplayOledI2C::clearLine( uint8_t row ) {
 
     setCursor( 0, row );
     for ( int i = 0; i < maxColumns; i++ ) oled -> writeChar( ' ' );
