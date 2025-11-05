@@ -238,21 +238,27 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
         // Read original at A
         tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
         tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
-        rStat = i2cWrite(rNum, i2cAdr, tmpBuf, 2, true);
-        if ( rStat == NO_ERR ) rStat = i2cRead(rNum, i2cAdr, &originalA, 1);
+
+        rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
+        if ( rStat != NO_ERR ) return ( 0 );
+
+        rStat = i2cRead(rNum, i2cAdr, &originalA, 1);
         if ( rStat != NO_ERR ) return ( 0 );
 
         // Read original at A2
         tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF);
         tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if ( rStat == NO_ERR ) rStat = i2cRead(rNum, i2cAdr, &originalA2, 1);
+        if ( rStat != NO_ERR ) return ( 0 );
+
+        rStat = i2cRead(rNum, i2cAdr, &originalA2, 1);
         if ( rStat != NO_ERR ) return ( 0 );
 
         // Write testValue to A
         tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF);
         tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
         tmpBuf[2] = testValue;
+
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
         if (rStat != NO_ERR) return ( 0 );
 
@@ -261,8 +267,11 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
         // Read back A
         tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
         tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
+
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if (rStat == NO_ERR) rStat = i2cRead( rNum, i2cAdr, &readA, 1) ;
+        if ( rStat != NO_ERR ) return ( 0 );
+
+        rStat = i2cRead( rNum, i2cAdr, &readA, 1) ;
         if (rStat != NO_ERR) {
 
             // attempt to restore originals before returning error
@@ -277,8 +286,11 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
         // Read back A2
         tmpBuf[0] = (uint8_t)(( mirrorAdr >> 8 ) & 0xFF);
         tmpBuf[1] = (uint8_t)( mirrorAdr & 0xFF );
+
         rStat = i2cWrite( rNum, i2cAdr, tmpBuf, 2, true );
-        if (rStat == NO_ERR) rStat = i2cRead( rNum, i2cAdr, &readA2, 1 );
+        if ( rStat != NO_ERR ) return ( 0 );
+
+        rStat = i2cRead( rNum, i2cAdr, &readA2, 1 );
         if (rStat != NO_ERR) {
 
             // restore A and A2 originals where possible, then return
@@ -331,6 +343,7 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
             tmpBuf[0] = (uint8_t)(( testAdr >> 8 ) & 0xFF );
             tmpBuf[1] = (uint8_t)( testAdr & 0xFF );
             tmpBuf[2] = originalA;
+            
             i2cWrite( rNum, i2cAdr, tmpBuf, 3, false );
             sleepMillis( NVM_WRITE_DELAY );
 
@@ -375,7 +388,7 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 // size, the buffer is different.
 // 
 //----------------------------------------------------------------------------------------
-uint32_t determineBufferBlockSize(uint32_t size) {
+uint32_t determineBufferBlockSize( uint32_t size ) {
 
     uint32_t bufSize = 0;
 

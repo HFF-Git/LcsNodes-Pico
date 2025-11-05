@@ -159,6 +159,7 @@ struct CdcResource {
             uint32_t            timerVal;
             TimerCallback       timerCallback;
             repeating_timer_t   timerData;
+            bool                timerHighPri;
 
         } timer;
 
@@ -266,27 +267,6 @@ struct CdcResource {
             bool            twoCores;
 
         } can;
-
-        //--------------------------------------------------------------------------------
-        // The Button resource. 
-        // 
-        //--------------------------------------------------------------------------------
-        struct {
-
-            uint8_t         pin;
-            uint8_t         buttonState;
-            bool            longPressed;
-            bool            activeLow;
-            uint32_t        startTime;
-            uint32_t        stopTime;
-
-            ButtonCallback  clickFunc;
-            ButtonCallback  doubleClickFunc;
-            ButtonCallback  longPressStartFunc;
-            ButtonCallback  longPressStopFunc;
-            ButtonCallback  duringLongPressFunc;
-
-        } button;
     };
 };
 

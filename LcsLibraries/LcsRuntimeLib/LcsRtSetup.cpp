@@ -364,14 +364,16 @@ uint8_t initCdcLayer( ) {
                 debugMask &= ~LCS_DBG_ENABLE;
                 return ( LCS_OK );
             
-            } else if (( ch == 'D' ) || ( ch == 'd' )) {
+            } 
+            else if (( ch == 'D' ) || ( ch == 'd' )) {
 
                 printf( "Starting - debug mode\n" );
 
                 debugMask |= LCS_DBG_ENABLE | LCS_DBG_SETUP;
                 return ( LCS_OK );
             
-            } else if (( ch == 'F' ) || ( ch == 'f' )) {
+            } 
+            else if (( ch == 'F' ) || ( ch == 'f' )) {
 
                 printf( "Starting - format mode\n" );
 
@@ -379,7 +381,8 @@ uint8_t initCdcLayer( ) {
                 startOptions |= NPO_FORMAT_RUNTIME;
                 return ( LCS_OK );
             
-            } else if ( ch == '?' ) {
+            } 
+            else if ( ch == '?' ) {
 
                 printf( "Setup options:\n" );
                 printf( "r, R -> start the node with debug initially disabled\n" );
@@ -407,6 +410,8 @@ uint8_t initNvmChannels( ) {
     uint8_t rStat = LCS_OK;
     if ( rStat == LCS_OK) rStat = configureI2C( CDC_RN_NVM );
     if ( rStat == LCS_OK) rStat = configureI2C( CDC_RN_EXT_NVM );
+
+    scanI2CBus( CDC_RN_NVM );
 
     return ( RET_STAT( rStat ));
 }
@@ -965,19 +970,19 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     rStat = initCdcLayer( );
     if ( rStat != LCS_OK ) {
 
-        fatalError(1, (char *) "Fatal: CDC Layer Setup failed", rStat );
+        fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
   
     rStat = initNvmChannels( );
     if ( rStat != LCS_OK ) {
 
-        fatalError(2, (char *) "Fatal: NVM channel configuration failed", rStat );
+        fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
     }
 
     rStat = initCanBus( );
     if ( rStat != LCS_OK ) {
 
-        fatalError(3, (char *) "Fatal: CAN bus Configuration failed", rStat );
+        fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
     }
 
     if ( rStat == LCS_OK )  rStat = configNvmChannels( );

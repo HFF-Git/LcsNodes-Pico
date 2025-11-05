@@ -3,7 +3,11 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// 
+// CDC features timers. They are used for implementing periodical tasks. There are
+// two pools for timers. The default priority pool is used almost all of the timer
+// demands. In addition, there is a high priority pool where timer handlers are 
+// kept that interrupt also the default timer handlers. They should only be used 
+// for truly timer critical tasks running in the microseconds range.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -93,26 +97,29 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
+// CDC features two alarm pools. Thee is the default alarm pool for most timers. In
+// addition, there is a high priority alarm pool, which will interrupt also a timer 
+// handler of a default alarm pool timer. The idea is that we have time critical 
+// timer, which need to run even if another timer is served. An example would be the 
+// DCC signal state machine timer. We will use the default alarm pool and create an
+// additional high priority timer. 
 //
-//
+// Create an alarm pool on hardware alarm 2, avoid default pool alarms 0..1. 
+// Next, find the hardware alarm used by this pool (0..3).
+// Compute the IRQ for that alarm and set its NVIC priority ( 0 = highest ).
+// 
 //----------------------------------------------------------------------------------------
 uint8_t setupAlarmPools( ) {
 
     lowPriAlarmPool = alarm_pool_get_default( );
 
-    // create a pool on hardware alarm 2 (avoid default pool alarms 0..1)
-    highPriAlarmPool = alarm_pool_create(2, 1);
-    if ( ! highPriAlarmPool ) {
+    highPriAlarmPool = alarm_pool_create( 2, 8 );
+    if ( ! highPriAlarmPool ) 
+        fatalError( 7, (char *) "Cannot create high pri alarm pool\n" );
         
-        // handle error, make it a fatal CDC error ?
-    }
-
-    // find the hardware alarm used by this pool (0..3)
     uint hw_alarm = alarm_pool_hardware_alarm_num( highPriAlarmPool );
-
-    // compute the IRQ for that alarm and set its NVIC priority (0 = highest)
     uint irq = TIMER_IRQ_0 + hw_alarm;
-    irq_set_priority(irq, 0);
+    irq_set_priority( irq, 0 );
 
     return( NO_ERR );
 }
@@ -125,19 +132,17 @@ uint8_t setupAlarmPools( ) {
 // callback invocation. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t configureTimer( uint8_t rNum, uint8_t pri, TimerCallback functionId ) {
-
-    // ??? does it make sense to have such a time in the desc map ?
-    // ??? it cannot set the function Id there.
+uint8_t configureTimer( uint8_t rNum, TimerCallback functionId,  bool pri  ) {
 
     CdcResourceDesc *dPtr = lookupResourceDesc( rNum, CDC_RT_TIMER );
     if ( dPtr == nullptr ) return ( RES_NUM_ERR );
    
     CdcResource *ptr = allocateResourceType( rNum, CDC_RT_TIMER );
-    if ( ptr == nullptr ) return ( TIMER_RES_ERR );
+    if ( ptr == nullptr ) return ( RES_NUM_ERR );
 
     ptr -> timer.timerVal         = dPtr -> timer.timerVal;
     ptr -> timer.timerCallback    = functionId;
+    ptr -> timer.timerHighPri     = pri;
     return ( NO_ERR );
 }
 
@@ -148,15 +153,21 @@ uint8_t configureTimer( uint8_t rNum, uint8_t pri, TimerCallback functionId ) {
 uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
 
     CdcResource *ptr = lookupResource( rNum, CDC_RT_TIMER );
-    if ( ptr == nullptr ) return ( TIMER_RES_ERR );
+    if ( ptr == nullptr ) return ( RES_NUM_ERR );
 
-    int64_t limit = val;
-    add_repeating_timer_us( - limit, 
-                            repeatingTimerAlarm, 
-                            ptr, 
-                            &ptr -> timer.timerData );
+    int64_t    limit = val;
+    alarm_pool *aPtr = nullptr;
 
-    return ( NO_ERR );
+    if ( ptr -> timer.timerHighPri ) aPtr = highPriAlarmPool;
+    else                             aPtr = lowPriAlarmPool;
+
+    return(
+        ( alarm_pool_add_repeating_timer_us( aPtr,
+                                             - limit,
+                                             repeatingTimerAlarm,  
+                                             ptr, 
+                                             &ptr -> timer.timerData )) ? 
+                                                        NO_ERR : TIMER_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -166,10 +177,10 @@ uint8_t startRepeatingTimer( uint8_t rNum, uint32_t val ) {
 uint8_t stopRepeatingTimer( uint8_t rNum ) {
 
     CdcResource *ptr = lookupResource( rNum, CDC_RT_TIMER );
-    if ( ptr == nullptr ) return ( TIMER_RES_ERR );
+    if ( ptr == nullptr ) return ( RES_NUM_ERR );
 
-    cancel_repeating_timer( &ptr -> timer.timerData );
-    return ( NO_ERR );
+    return (( cancel_repeating_timer( &ptr -> timer.timerData )) ? 
+                                                    NO_ERR : TIMER_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -179,7 +190,7 @@ uint8_t stopRepeatingTimer( uint8_t rNum ) {
 uint8_t getRepeatingTimerLimit( uint8_t rNum, uint32_t *val ) {
 
     CdcResource *ptr = lookupResource( rNum, CDC_RT_TIMER );
-    if ( ptr == nullptr ) return ( TIMER_RES_ERR );
+    if ( ptr == nullptr ) return ( RES_NUM_ERR );
 
     *val = (uint32_t) ( - ptr -> timer.timerData.delay_us );
     return ( NO_ERR );
@@ -192,7 +203,7 @@ uint8_t getRepeatingTimerLimit( uint8_t rNum, uint32_t *val ) {
 uint8_t setRepeatingTimerLimit( uint8_t rNum, uint32_t val ) {
 
     CdcResource *ptr = lookupResource( rNum, CDC_RT_TIMER );
-    if ( ptr == nullptr ) return ( TIMER_RES_ERR );
+    if ( ptr == nullptr ) return ( RES_NUM_ERR );
 
     int64_t limit = val;
     ptr -> timer.timerData.delay_us = ((int64_t) - limit );

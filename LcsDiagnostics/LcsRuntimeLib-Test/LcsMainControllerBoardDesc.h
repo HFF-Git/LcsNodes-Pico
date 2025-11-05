@@ -81,7 +81,6 @@ const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 20;
 //
 //----------------------------------------------------------------------------------------
 
-
 //----------------------------------------------------------------------------------------
 // The board descriptor for the board version "Main controller B.01.00". This is a 
 // main controller board, which we use for the CDC lib test program.

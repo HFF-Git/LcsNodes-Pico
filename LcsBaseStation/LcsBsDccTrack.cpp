@@ -548,7 +548,7 @@ void initDccTrackProcessing( ) {
     timeLeftMainTrack  = 0;
     timeLeftProgTrack  = 0;
     
-    uint8_t rStat = configureTimer( TIMER_RES_ID, CDC_INT_PRI_HIGH, timerCallback );
+    uint8_t rStat = configureTimer( TIMER_RES_ID, timerCallback );
     startRepeatingTimer( TIMER_RES_ID, TICK_IN_MICROSECONDS );
 }
 

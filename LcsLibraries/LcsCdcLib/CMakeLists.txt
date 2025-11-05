@@ -17,9 +17,6 @@ add_library( ${PROJECT_NAME} STATIC
     LcsCdcLibUART.cpp
     LcsCdcLibPWM.cpp
     LcsCdcLibCAN.cpp
-    LcsCdcLibButton.cpp
-    LcsCdcLibEncoder.cpp
-    LcsCdcLibLed.cpp
 ) 
 
 target_include_directories( ${PROJECT_NAME} PRIVATE 

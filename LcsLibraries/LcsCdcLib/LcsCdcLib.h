@@ -80,10 +80,9 @@ enum DebugOptions : uint16_t {
     CDC_DBG_PWM         = 0x0004,
     CDC_DBG_UART        = 0x0008,
     CDC_DBG_GPIO        = 0x0010,
-    CDC_DBG_RESERVED    = 0x0020,  
-    
-    // ??? we have two more options ...
-
+    CDC_DBG_RESERVED1   = 0x0020,  
+    CDC_DBG_RESERVED2   = 0x0040,
+    CDC_DBG_RESERVED3   = 0x0080,
     CDC_DBG_ALL         = 0x00FF
 };
 
@@ -100,10 +99,9 @@ enum CdcStatus : uint8_t {
     NOT_SUPPORTED_ERR   = 1,
     NOT_IMPLEMENTED_ERR = 2,
     NOT_INITIALZED_ERR  = 3,
-
     RES_NUM_ERR         = 4,
    
-    TIMER_RES_ERR       = 10,
+    TIMER_ERR           = 10,
     DIO_PIN_ERR         = 11,
     ADC_PIN_ERR         = 12,
     PWM_PIN_ERR         = 13,
@@ -204,13 +202,6 @@ enum CdcResourceType : uint8_t {
     CDC_RT_I2C          = 8,
     CDC_RT_CAN_BUS      = 9,
 
-    // ??? new types 
-
-    CDC_RT_BUTTON       = 10,
-    CDC_RT_ENCODER      = 11,
-    CDC_RT_LED          = 12,
-    CDC_RT_DISPLAY      = 14,
-
     CDC_RT_INVALID      = 255
 };
 
@@ -266,18 +257,6 @@ enum CdcIntEventTyp : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The timer interrupt routines feature a simple interrupt priority scheme.
-//
-//----------------------------------------------------------------------------------------
-enum CdcTimrIntPriority : uint8_t {
-
-    CDC_INT_PRI_DEFAULT     = 128,
-    CDC_INT_PRI_HIGH        = 0,
-    CDC_INT_PRI_MEDIUM      = 64,
-    CDC_INT_PRI_LOW         = 128
-};
-
-//----------------------------------------------------------------------------------------
 // PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle value.
 //
 //----------------------------------------------------------------------------------------
@@ -306,7 +285,7 @@ struct CdcResourceDesc {
         struct {
 
             uint32_t    timerVal;
-            uint8_t     priority;
+            bool        highPri;
 
         } timer;
 
@@ -358,28 +337,6 @@ struct CdcResourceDesc {
             bool        twoCores;
 
         } can;
-
-        struct {
-
-            uint8_t     pin;
-            bool        activeLow;
-
-        } button;
-
-        struct {
-
-            uint8_t     pinA;
-            uint8_t     pinB;
-            bool        activeLow;
-
-        } encoder;
-
-        struct {
-
-            uint8_t     pin;
-
-        } led;
-
     };
 };
 
@@ -471,7 +428,10 @@ uint8_t         watchDogCausedReboot( bool *reboot );
 // Timer management routines.
 //
 //----------------------------------------------------------------------------------------
-uint8_t         configureTimer( uint8_t rNum, uint8_t priority, TimerCallback functionId );
+uint8_t         configureTimer( uint8_t rNum, 
+                                TimerCallback functionId, 
+                                bool highPri = false );
+
 uint8_t         startRepeatingTimer( uint8_t rNum, uint32_t val );
 uint8_t         stopRepeatingTimer( uint8_t rNum );
 uint8_t         setRepeatingTimerLimit( uint8_t rNum, uint32_t val );
