@@ -17,7 +17,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Include file
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the Free Software Foundation,
@@ -36,9 +36,11 @@
 #define Cabhandheld_h
 
 #include "LcsBasicThrottleBoardDesc.h"
+#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsUIElements.h"
+#include <malloc.h>
 
 using namespace LCS;
 
@@ -60,7 +62,7 @@ const int CAN_BUS_DEFAULT_ID   = 110;
 
 //----------------------------------------------------------------------------------------
 //
-//
+// ??? we encode throttle function and type in a byte. The max of functions is 63.
 //----------------------------------------------------------------------------------------
 enum DccMapFunctionId : uint8_t {
 
@@ -132,13 +134,10 @@ struct CabEntry {
     void        setDccFuncState( uint8_t fNum, bool val );
     void        toggleDccFuncState( uint8_t fNum );
 
-    uint8_t     getDccFuncIdForChFuncId( uint8_t cNum );
-    void        setDccFuncIdForChFuncId( uint8_t cNum, uint8_t fNum );
+    uint8_t     getDccFuncIdFromMap( uint8_t cNum );
+    void        setDccFuncIdInMap( uint8_t cNum, uint8_t fNum, uint8_t typ );
 
-    uint8_t     getDccFuncTypeForChFuncId( uint8_t cNum );
-    void        setDccFuncTypeForChFuncId( uint8_t cNum, uint8_t typ );
-
-    uint8_t     mapRnumFuncSetToDccFuncMapId( uint8_t rNum, uint8_t functionSet );
+    uint8_t     mapRnumToCabFuncId( uint8_t rNum, uint8_t functionSet );
 
     uint8_t     getSpeed( );
     void        setSpeed( int speed );
@@ -179,6 +178,8 @@ struct CabEntry {
 // to the configuration of a cab entry are stored to the NVM.
 //
 //----------------------------------------------------------------------------------------
+const uint8_t MAX_CAB_LIST_ENTRIES = 8;
+
 struct CabStack {
 
     public:
@@ -246,8 +247,8 @@ struct CabHandheldScreen : UIScreen {
 
 
 //----------------------------------------------------------------------------------------
-//
-//
+// Our life line to the LCS world. The CAN bus message system implements the 
+// messages that a cab handheld will use.
 //
 //----------------------------------------------------------------------------------------
 struct CabMsgBus {
@@ -283,11 +284,11 @@ struct TopMenuItemScreen : CabHandheldScreen {
 };
 
 //----------------------------------------------------------------------------------------
-// Some screens display a list of scrollable items. This class allows for a convenient
-// constructions of such screens. The UP, DOWN buttons and also an optional encoder
-// knob allow for faster scrolling functions. The "showScreenData" method must be 
-// implemented to display the actual content. It is passed the actual value of the
-// scrolling index.
+// Some screens display a list of scrollable items. This class allows for easy
+// and convenient constructions of such screens. The UP, DOWN buttons and also an 
+// optional encoder knob allow for faster scrolling functions. The "showScreenData"
+// method must be implemented to display the actual content. It is passed the actual
+// value of the scrolling index.
 //
 //----------------------------------------------------------------------------------------
 struct ScrollableScreen : CabHandheldScreen {
@@ -312,9 +313,9 @@ struct ScrollableScreen : CabHandheldScreen {
 };
 
 //----------------------------------------------------------------------------------------
-// "OperateScreen" is our main screen. It has all the relevant control elements and
-// information items that are necessary to run the current loco. Most of the other 
-// menus will return to this screen after their work.
+// "OperateScreen" is our main screen. It has all the relevant control elements 
+// and information items that are necessary to run the current loco. Most of the
+// other menus will return to this screen after their work.
 //
 //----------------------------------------------------------------------------------------
 struct OperateScreen : CabHandheldScreen {
@@ -365,9 +366,9 @@ struct EngineLightsScreen : CabHandheldScreen {
 
 //----------------------------------------------------------------------------------------
 // Select Cab Screen. There is a stack of cabs used before. We can scroll through 
-// the list with UP/DOWN and the encoder knob. The SELECT button will make the entry
-// shown the current loco. The MENU button click is disabled, so that we do not 
-// enter this screen over and over. After selection, the selected loco will be 
+// the list with UP/DOWN and the encoder knob. The SELECT button will make the 
+// entry shown the current loco. The MENU button click is disabled, so that we do 
+// not enter this screen over and over. After selection, the selected loco will be 
 // become the current loco.
 //
 //----------------------------------------------------------------------------------------
@@ -385,10 +386,10 @@ struct SelectCabScreen : ScrollableScreen {
 
 //----------------------------------------------------------------------------------------
 // Save cab Screen. The current cab can be saved to the cab stack. We can scroll 
-// through the list with UP/DOWN and the encoder knob. The SELECT button will store 
-// the current cab to the selected slot. If there was already a slot that contained
-// this cab ID, it will be cleared. After operation, we return to the unchanged 
-// current loco.
+// through the list with UP/DOWN and the encoder knob. The SELECT button will 
+// store the current cab to the selected slot. If there was already a slot that 
+// contained this cab ID, it will be cleared. After operation, we return to the 
+// unchanged current loco.
 //
 //----------------------------------------------------------------------------------------
 struct SaveCabScreen : ScrollableScreen {
@@ -404,9 +405,9 @@ struct SaveCabScreen : ScrollableScreen {
 };
 
 //----------------------------------------------------------------------------------------
-// New Cab Screen. There needs to be a way to enter a new engine. We will display 4 
-// digits among we can toggle with the MENU button. The UP/DOWN buttons advance the
-// current digit position. The encoder knob offers a fast way to scroll a digit. 
+// New Cab Screen. There needs to be a way to enter a new engine. We will display
+// four digits among we can toggle with the MENU button. The UP/DOWN buttons advance
+// the current digit position. The encoder knob offers a fast way to scroll a digit. 
 // The high value digit allows to set an "S" instead of the number to indicate a 
 // short loco DCC address. The SELECT button completes the number entering. We make
 // the current cab this new loco. Note, that for keeping it in the stack it would

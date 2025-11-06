@@ -25,10 +25,6 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-
-// #include "LcsCdcLib.h"
-// #include "LcsRuntimeLib.h"
-// #include "LcsUIElements.h"
 #include "LcsBasicThrottle.h"
 
 using namespace LCS;
@@ -38,48 +34,30 @@ using namespace CDC;
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------
-CdcResourceDescMap      dMap;
+CdcResourceDescMap  dMap;
+CabStack            *cabStack   = nullptr;
+CabMsgBus           *msgBus     = nullptr;
 
 //----------------------------------------------------------------------------------------
 // Externals.
 //
 //----------------------------------------------------------------------------------------
-extern UIDisplay        *oled;
-extern UIEncoder        *encoder;
-extern CabStack         *cabStack;
-extern CabMsgBus        *msgBus;
-
-extern uint8_t          setupMsgBus( );
-extern uint8_t          setupUIElements( );
-extern uint8_t          setupScreens( );
-extern uint8_t          setupCabStack( );
+extern uint8_t      setupMsgBus( );
+extern uint8_t      setupUIElements( );
+extern uint8_t      setupScreens( );
+extern uint8_t      setupCabStack( );
 
 //----------------------------------------------------------------------------------------
-// "printStatus" is a little helper function for the initialization routines protocol
+// "errStat" is a little helper function for the initialization routines protocol
 // printing. If there is a serial IO, these routines will list the success of the 
 // particular setup operation.
 //
 //----------------------------------------------------------------------------------------
-uint8_t printStatus( uint8_t status ) {
+uint8_t errStat( uint8_t errId, char *msg ) {
 
-    if ( status == NO_ERR ) printf( "-> OK\n" );
-    else                    printf( "-> FAILED: %d\n", status );
-       
-    return ( status );
-}
-
-//----------------------------------------------------------------------------------------
-// Setup the resource configuration data and the CDC library.
-//
-//----------------------------------------------------------------------------------------
-void setupConfigInfo( ) {
-
-    dMap = LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00;
-   // dMap.options |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
-
-    cdcInit( &dMap );
-    configureConsoleIO( );
-    sleepMillis( 2000 );
+    if ( errId == 0 ) printf( "%s -> OK\n", msg );
+    else              printf( "%s -> %d\n", msg, errId );
+    return ( errId );
 }
 
 //----------------------------------------------------------------------------------------
@@ -90,57 +68,41 @@ uint8_t initThrottle( ) {
 
     uint8_t rStat = NO_ERR;
 
-    setupConfigInfo( );
+    dMap = LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00;
 
-    printf( "LCS Basic Throttle\n" );
+    rStat = errStat( initRuntime( &dMap, NPO_SKIP_NODE_ID_CONFIG, 0 ),
+                     (char *) "initRuntime");
 
+    sleepMillis( 2000 );    
+
+    if ( rStat == NO_ERR ) 
+        rStat = errStat( setupMsgBus( ), (char *) "setupMsgBus" );
+
+    if ( rStat == NO_ERR ) 
+        rStat = errStat( setupUIElements( ), (char *) "setupUIElements" );
+
+    if ( rStat == NO_ERR ) 
+        rStat = errStat( setupScreens( ), (char *) "setupScreens" );
+
+    if ( rStat == NO_ERR ) 
+        rStat = errStat( setupCabStack( ), (char *) "setupCabStack" );
+    
     if ( rStat == NO_ERR ) {
 
-        printf( "Init RuntimeLib " );
-        rStat = initRuntime( &dMap );
-    }
-
-    if ( rStat == NO_ERR ) {
-
-        printf( "Setup Msg Bus " );
-        rStat = printStatus( setupMsgBus( ));
-    }
-
-    if ( rStat == NO_ERR ) {
-
-        printf( "Setup UI Elements " );
-        rStat = printStatus( setupUIElements( ));
-    }
-
-    if ( rStat == NO_ERR ) {
-
-        printf( "Setup Screens " );
-        rStat = printStatus( setupScreens( ));
-    }
-
-    if ( rStat == NO_ERR ) {
-
-        printf( "Setup Cab Stack " );
-        rStat = printStatus( setupCabStack ( ));
-    }
-
-    if ( rStat == NO_ERR ) {
-
-        printf( "Start Screen\n" );
         registerTaskCallback( UIElements::tick, 10  ); // 10ms tick ?
         UIScreen::setup( );   
     }
 
-    return( printStatus( rStat ));
+    return( errStat( rStat, (char *) "initThrottle" ));
 }
 
 //----------------------------------------------------------------------------------------
-// 
+// Once all is configured, we start the runtime.
 //
 //----------------------------------------------------------------------------------------
 void startThrottle( ) {
 
-    printf( "BasicThrottle, start runtime\n" );
+    printf( "start throttle\n" );
     startRuntime( );
 }
 
@@ -150,7 +112,6 @@ void startThrottle( ) {
 //----------------------------------------------------------------------------------------
 int main( ) {
 
-    uint8_t rStat = initThrottle( );
-    if ( rStat == NO_ERR ) startThrottle( );
+    if ( initThrottle( ) == NO_ERR ) startThrottle( );
     return( 0 );
 }

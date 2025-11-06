@@ -12,7 +12,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Stack implementation file
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software
@@ -27,17 +27,15 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#include "LcsCdcLib.h"
 #include "LcsBasicThrottle.h"
-#include <malloc.h>
 
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// Global variables.
+// Externals.
 //
 //----------------------------------------------------------------------------------------
-CabStack  *cabStack = nullptr;
+extern CabStack  *cabStack;
 
 //----------------------------------------------------------------------------------------
 // File local declarations.
@@ -45,19 +43,8 @@ CabStack  *cabStack = nullptr;
 //----------------------------------------------------------------------------------------
 namespace {
 
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-const uint8_t MAX_CAB_LIST_ENTRIES = 8;
-
-bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-}
 
 }; // namespace
-
 
 //----------------------------------------------------------------------------------------
 // "setupCabStack" will create the local cab table and read in the entries from
@@ -135,42 +122,26 @@ void CabEntry::toggleDccFuncState( uint8_t fNum ) {
 // cab handheld function ID starts with one.
 //
 //----------------------------------------------------------------------------------------
-uint8_t CabEntry::getDccFuncIdForChFuncId( uint8_t cNum ) {
+uint8_t CabEntry::getDccFuncIdFromMap( uint8_t cNum ) {
 
     return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? 
-                            ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) : 0 );
+                                     cabFuncIdMap[ cNum - 1 ] : 0 );
 }
 
-void CabEntry::setDccFuncIdForChFuncId( uint8_t cNum, uint8_t fNum ) {
+void CabEntry::setDccFuncIdInMap( uint8_t cNum, uint8_t fNum, uint8_t typ ) {
 
     if ( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) {
 
-        cabFuncIdMap[ cNum - 1 ] = 
-            ( cabFuncIdMap[ cNum - 1 ] & 0xC0 ) | ( fNum & 0x3F );
+        cabFuncIdMap[ cNum - 1 ] = ( typ << 6 ) | ( fNum & 0x3F );
     }
 }
 
 //----------------------------------------------------------------------------------------
-// Getter/Setter for the cab handheld function ID assigned DCC function type. The
-// cab handheld function ID starts with one.
-//
+// "mapRnumToCabFuncId" is a help function to select the Cab Function based on the 
+// function button resource number and the current function set selected.
+// 
 //----------------------------------------------------------------------------------------
-uint8_t CabEntry::getDccFuncTypeForChFuncId( uint8_t cNum ) {
-
-    return (( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) ? 
-                            ( cabFuncIdMap[ cNum - 1 ] >> 6 ) : 0 );
-}
-
-void CabEntry::setDccFuncTypeForChFuncId( uint8_t cNum, uint8_t typ ) {
-
-    if ( isInRange( cNum, MIN_DCC_F_M, MAX_DCC_F_M )) {
-
-        cabFuncIdMap[ cNum - 1 ] = 
-            ( cabFuncIdMap[ cNum - 1 ] & 0x3F ) | ( typ << 6 );
-    }
-}
-
-uint8_t CabEntry::mapRnumFuncSetToDccFuncMapId( uint8_t rNum, uint8_t functionSet ) {
+uint8_t CabEntry::mapRnumToCabFuncId( uint8_t rNum, uint8_t functionSet ) {
 
     switch( rNum ) {
 
@@ -207,7 +178,7 @@ uint8_t CabEntry::mapRnumFuncSetToDccFuncMapId( uint8_t rNum, uint8_t functionSe
 }
 
 //----------------------------------------------------------------------------------------
-// More getter/Setter methods...
+// More getter/Setter methods.
 //
 //----------------------------------------------------------------------------------------
 uint8_t CabEntry::getCabId( ) {
@@ -282,7 +253,6 @@ void  CabEntry::setSessionState( uint8_t state ) {
     sessionState = state;
 }
 
-
 //----------------------------------------------------------------------------------------
 // A cab entry needs to be set and saved from a central structure kept at for example 
 // the base station. The methods below allow to get the data from the cab entry in 
@@ -303,10 +273,8 @@ uint8_t CabEntry::setDataByItem( uint8_t item, uint16_t arg ) {
     return ( 0 );
 }
 
-
 //----------------------------------------------------------------------------------------
-//
-//
+// A little helper function for debugging.
 //
 //----------------------------------------------------------------------------------------
 void CabEntry::printCabEntry( ) {
@@ -332,7 +300,6 @@ void CabEntry::printCabEntry( ) {
     printf( "\n\n" );
 }
 
-
 //----------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------
 //
@@ -356,52 +323,52 @@ CabStack::CabStack( ) {
 
 void CabStack::loadCurrentCabFromSlot( int index ) {
 
-  if (( index > 0 ) && ( index <= MAX_CAB_LIST_ENTRIES )) {
+    if (( index > 0 ) && ( index <= MAX_CAB_LIST_ENTRIES )) {
 
-    currentCab = cabSlots[ index - 1 ];
-  }
+        currentCab = cabSlots[ index - 1 ];
+    }
 }
 
 void CabStack::storeCurrentCabToSlot( int index ) {
 
-  if (( index > 0 ) && ( index <= MAX_CAB_LIST_ENTRIES )) {
+    if (( index > 0 ) && ( index <= MAX_CAB_LIST_ENTRIES )) {
 
-    for ( int i = 0; i < MAX_CAB_LIST_ENTRIES; i++ ) {
+        for ( int i = 0; i < MAX_CAB_LIST_ENTRIES; i++ ) {
 
-      if ( currentCab.getCabId( ) == 
-                cabSlots[ i ].getCabId( ))  cabSlots[ i ].reset( );
+            if ( currentCab.getCabId( ) == 
+                        cabSlots[ i ].getCabId( ))  cabSlots[ i ].reset( );
+            }
+
+        cabSlots[ index - 1 ] = currentCab;
     }
-
-    cabSlots[ index - 1 ] = currentCab;
-  }
 }
 
 uint8_t CabStack::loadCabSlotsFromNVM( ) {
 
-  // ??? to do ...
+    // ??? to do ...
 
-  return( LCS_OK );
+    return( LCS_OK );
 }
 
 uint8_t CabStack::updateCabSlotInNVM( int index ) {
 
-  if (( index > 0 ) && ( index <= MAX_CAB_LIST_ENTRIES )) {
+    if (( index > 0 ) && ( index <= MAX_CAB_LIST_ENTRIES )) {
 
-    // ??? to do ...
-  }
+        // ??? to do ...
+    }
 
   return( LCS_OK );
 }
 
 uint8_t CabStack::getMaxEntries( ) {
 
-  return( MAX_CAB_LIST_ENTRIES );
+    return( MAX_CAB_LIST_ENTRIES );
 }
 
 void CabStack::printCabSlots( ) {
 
-  for ( int i = 0; i < MAX_CAB_LIST_ENTRIES; i++ ) {
+    for ( int i = 0; i < MAX_CAB_LIST_ENTRIES; i++ ) {
 
-    cabSlots[ i ].printCabEntry( );
-  }
+        cabSlots[ i ].printCabEntry( );
+    }
 }

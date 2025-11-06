@@ -31,7 +31,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld Cab Screens implementation file
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -51,13 +51,13 @@
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-//
+// Externals.
 //
 //----------------------------------------------------------------------------------------
-extern  UIDisplay   *oled;
-extern  UIEncoder   *encoder;
 extern  CabStack    *cabStack;
 extern  CabMsgBus   *msgBus;
+extern  UIDisplay   *oled;
+extern  UIEncoder   *encoder;
 
 //----------------------------------------------------------------------------------------
 // File local declarations.
@@ -173,6 +173,7 @@ char *lookupTextStr( uint16_t textId ) {
     return ((char *) "" );
 }
 
+// ??? combine into the upper table ?
 //----------------------------------------------------------------------------------------
 // The logical functions names for the cab handled UI elements and lookup function.
 //
@@ -213,7 +214,7 @@ char *lookupMapStr( uint16_t mapId ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// 
 //
 //----------------------------------------------------------------------------------------
 char *lookupDccFuncTypeStr( uint8_t dccFuncOptId ) {
@@ -263,7 +264,6 @@ void clearLines( int start, int len ) {
 }
 
 }; // namespace
-
 
 //----------------------------------------------------------------------------------------
 // Global variables.
@@ -358,28 +358,12 @@ uint8_t setupScreens( ) {
 // a top line, which has room for a title and the labelling of the adjacent buttons
 // MENU and UP. Likewise, there is a bottom line with room for some status flags and
 // the label fields for SELECT and DOWN. In between are two lines in a larger font
-// which are the screen content.
-//
-//
-//                         0    2 3              12 13  15
-//                        :------:-----------------:------:
-//      Top Line    ->    : Menu :  Title          : Up   :
-//                        :------:-----------------:------:
-//      Line 1      ->    : Text                          :
-//                        :-------------------------------:
-//      Line 1      ->    : Text                          :
-//                        :------:-----------------:------:
-//      Top Line    ->    : Sel  :  Status Flags   : Down :
-//                        :------:-----------------:------:
-//
-// There are methods to set these fields easy and straightforward. The top and bottom
-// line are printed in an 8x8 font, the two main lines in a 8x16 font. Note that the
-// display object expects rows and columns based on an 8-pixel raster. So, a 128x64 
-// screen has 16 columns and 8 rows. A font that takes two rows starts at the lower
-// row of the two rows it occupies.
-//
-// For all printing functions, there is one template method, which uses the "printf"
-// family style. All that is added is the screen location and font data.
+// which are the screen content. There are methods to set these fields in an easy
+// way. For all printing functions, there is one template method, which uses the 
+// "printf" family style. All that is added is the screen location and font data.
+// 
+// All screens inherit from this class which in turn inherits from "UIScreen" of
+// the UI elements library.
 //
 //----------------------------------------------------------------------------------------
 void CabHandheldScreen::printMenuLabel( char *str ) { 
@@ -463,7 +447,7 @@ void TopMenuItemScreen::enterScreen( bool init ) {
 //  Scrollable Screen Methods.
 //
 //----------------------------------------------------------------------------------------
-// Some screens display a list of items that you can scroll through. The UP, DOWN 
+// Several screens display a list of items that you can scroll through. The UP, DOWN 
 // buttons and also the encoder knob allow for a scrolling function. This class
 // allows for a convenient constructions of such screens. The"showScreenData" method
 // can be overridden to display the actual content. Before the object can be used,
@@ -536,7 +520,8 @@ int ScrollableScreen::getIndex( ) {
 //
 //----------------------------------------------------------------------------------------
 // "OperateScreen" is our main screen. It has all the relevant control elements and
-// information items that are necessary to run the current loco.
+// information items that are necessary to run the current loco. When a cab handheld
+// starts, this is the first screen if there is a current cab available.
 //
 //----------------------------------------------------------------------------------------
 void OperateScreen::enterScreen( bool init ) {
@@ -558,16 +543,17 @@ void OperateScreen::buttonClick( UIButton *buttonObj ) {
 
     uint8_t   rNum          = buttonObj -> getResId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
-    uint8_t   fNum          = currentCab -> mapRnumFuncSetToDccFuncMapId( rNum, 
-                                                                          functionSet );
 
-    if ( currentCab -> getDccFuncTypeForChFuncId( fNum ) == DCC_F_M_T_TOG ) {
+    uint8_t   fNum          = 
+            currentCab -> mapRnumToCabFuncId( rNum, functionSet );
 
-        currentCab -> toggleDccFuncState( 
-                currentCab -> getDccFuncIdForChFuncId( fNum ));
+    uint8_t   dccFnum    = currentCab -> getDccFuncIdFromMap( fNum ) & 0x3F;
+    uint8_t   dccFnumTyp = currentCab -> getDccFuncIdFromMap( fNum ) >> 6;
 
-        msgBus -> sendDccFuncVal( currentCab, 
-                                  currentCab -> getDccFuncIdForChFuncId( fNum ));
+    if ( dccFnumTyp ==  DCC_F_M_T_TOG ) {
+
+        currentCab -> toggleDccFuncState( dccFnum );
+        msgBus -> sendDccFuncVal( currentCab, dccFnum  );
     }
 
     showCabData( );
@@ -577,20 +563,20 @@ void OperateScreen::buttonLongPressStart( UIButton *buttonObj ) {
 
     uint8_t   rNum          = buttonObj -> getResId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
-    uint8_t   fNum          = currentCab -> mapRnumFuncSetToDccFuncMapId( rNum, 
+    uint8_t   fNum          = currentCab -> mapRnumToCabFuncId( rNum, 
                                                                           functionSet );
+
+    uint8_t   dccFnum    = currentCab -> getDccFuncIdFromMap( fNum ) & 0x3F;
+    uint8_t   dccFnumTyp = currentCab -> getDccFuncIdFromMap( fNum ) >> 6;
 
     if      ( rNum == RNUM_FWD_BUTTON ) cabStack -> currentCab.setDirection( 1 );
     else if ( rNum == RNUM_REV_BUTTON ) cabStack -> currentCab.setDirection( 2 );
     else {
 
-        if ( currentCab -> getDccFuncTypeForChFuncId( fNum ) == DCC_F_M_T_MOM ) {
+        if ( dccFnumTyp == DCC_F_M_T_MOM ) {
 
-            currentCab -> setDccFuncState( 
-                    currentCab -> getDccFuncIdForChFuncId( fNum ), true );
-
-            msgBus -> sendDccFuncVal( currentCab, 
-                                      currentCab -> getDccFuncIdForChFuncId( fNum ));
+            currentCab -> setDccFuncState( dccFnum, true );
+            msgBus -> sendDccFuncVal( currentCab, dccFnum);
         }
     }
 
@@ -601,16 +587,16 @@ void OperateScreen::buttonLongPressStop( UIButton *buttonObj ) {
 
     uint8_t   rNum          = buttonObj -> getResId( );
     CabEntry  *currentCab   = &cabStack -> currentCab;
-    uint8_t   fNum          = currentCab -> mapRnumFuncSetToDccFuncMapId( rNum, 
+    uint8_t   fNum          = currentCab -> mapRnumToCabFuncId( rNum, 
                                                                           functionSet );
 
-    if ( currentCab -> getDccFuncTypeForChFuncId( fNum ) == DCC_F_M_T_MOM ) {
+    uint8_t   dccFnum    = currentCab -> getDccFuncIdFromMap( fNum ) & 0x3F;
+    uint8_t   dccFnumTyp = currentCab -> getDccFuncIdFromMap( fNum ) >> 6;
 
-        currentCab -> setDccFuncState( 
-            currentCab -> getDccFuncIdForChFuncId( fNum ), false );
+    if ( dccFnumTyp == DCC_F_M_T_MOM ) {
 
-        msgBus -> sendDccFuncVal( currentCab, 
-                                  currentCab -> getDccFuncIdForChFuncId( fNum ));
+            currentCab -> setDccFuncState( dccFnum, false );
+            msgBus -> sendDccFuncVal( currentCab, dccFnum);
     }
 
     showCabData( );
@@ -651,10 +637,14 @@ void OperateScreen::showCabData( ) {
                     (( cabStack -> currentCab.getDirection( ) == 1 ) ? 
                                         ((char *) "fwd" ) : ((char *) "rev" )));
 
-    if ( functionSet == 1 ) 
+    if ( functionSet == 1 ) {
+
         printFieldStr( 0, 7, FT_OLED_8x8, "F1  F2  F3  F4  " );
-    else if ( functionSet == 2 ) 
+    }
+    else if ( functionSet == 2 ) {
+
         printFieldStr( 0, 7, FT_OLED_8x8, "F5  F6  F7  F8  " );
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -1144,8 +1134,9 @@ void ConfigFunctionEditScreen::enterScreen( bool init ) {
     printTitle( SCR_TX_CONFIG_FUNC );
 
     cabFuncId     = (uint8_t ) (( ScrollableScreen *) getParentScreen( )) -> getIndex( );
-    dccFuncId     = cabStack -> currentCab.getDccFuncIdForChFuncId( cabFuncId );
-    dccFuncOptId  = cabStack -> currentCab.getDccFuncTypeForChFuncId( cabFuncId );
+
+    dccFuncId     = cabStack -> currentCab.getDccFuncIdFromMap( cabFuncId ) & 0x3F;
+    dccFuncOptId  = cabStack -> currentCab.getDccFuncIdFromMap( cabFuncId ) >> 6;
 
     clearLines( 1, 4 );
     printFieldStr( 0, 2, FT_OLED_8x16, "CabF: %s", lookupMapStr( cabFuncId ));
@@ -1166,9 +1157,7 @@ void ConfigFunctionEditScreen::selectButtonClick( UIButton *buttonObj ) {
 
     CabEntry *currentCab  = &cabStack -> currentCab;
 
-    currentCab -> setDccFuncIdForChFuncId( cabFuncId, dccFuncId );
-    currentCab -> setDccFuncTypeForChFuncId( cabFuncId, dccFuncOptId );
-
+    currentCab -> setDccFuncIdInMap( cabFuncId, dccFuncId, dccFuncOptId );
     UIScreen::setCurrentScreen( getParentScreen( ) -> getParentScreen( ));
 }
 

@@ -71,4 +71,9 @@ inline uint8_t highByte( uint16_t arg ) {
     return ( arg >> 8 ); 
 }
 
+inline bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
+
+    return (( val >= lower ) && ( val <= upper ));
+}
+
 #endif

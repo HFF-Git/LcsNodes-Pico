@@ -3,12 +3,16 @@
 // LCS - Cab Handheld UI elements implementation file
 //
 //----------------------------------------------------------------------------------------
-// ???
+// This file implements the linkage between UIU elements and the screen subsystem.
+// Each UI elements is created. Next, the callback function that the UI elements 
+// call are connected to the static routines in the UIScreen class. This class 
+// will dispatch a UI event to the current window. The other linkage to set up 
+// is the callback for getting and setting data from a hardware resource.
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld UI elements implementation file
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -25,12 +29,7 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBasicThrottle.h"
 
-using namespace LCS;
 using namespace CDC;
-
-extern UIEncoder        *encoder;
-extern CabStack         *cabStack;
-extern CabMsgBus        *msgBus;
 
 //----------------------------------------------------------------------------------------
 // File local declarations.
@@ -63,10 +62,11 @@ UIEncoder       *encoder                    = nullptr;
 UIButton        *encoderButton              = nullptr;
 
 //----------------------------------------------------------------------------------------
-// Configure the UI Resource Elements. 
+// Configure the UI Resource Elements. The actual data used to configure is stored
+// the CDC descriptor map.
 //
 //----------------------------------------------------------------------------------------
-uint8_t setupIOPins( ) {
+uint8_t configureUiElements( ) {
 
     configureDio( RNUM_MENU_BUTTON );
     configureDio( RNUM_SELECT_BUTTON );
@@ -87,33 +87,13 @@ uint8_t setupIOPins( ) {
 
 //----------------------------------------------------------------------------------------
 // "getData" and getDataPair are the interfaces for the UI elements to read in the 
-// state of buttons and encoders. They use the hardware resource ID stored with an
-// UI Element. The interpretation how to get the data is up to the function. For 
-// example, when we have direct pins, then it is the pin number on the controller
-// chip, when the UI element is connected via an I2C expander or a shift register,
-// it is the position on the chip.
+// state of buttons and encoders. The routines are passed the resource number of 
+// the UI element.  
 //
 //----------------------------------------------------------------------------------------
 void getData( uint8_t rNum, bool *val ) {
 
     readDio( rNum, val );
-
-    #if 0
-    // ??? remove after debug....
-    // ??? what value do we actually return ? active low ?
-    // ??? take out the encoder part, after test and final implementation...
-
-    if ( rNum == RNUM_ENCODER_KNOB ) {
-
-        readDio( rNum, &val );
-        return ( val == true );
-    }
-    else {
-
-        readDio( rNum, &val );
-        return ( val == false );
-    }
-    #endif
 }
 
 void getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
@@ -125,7 +105,7 @@ void getDataPair( uint8_t rNum, bool *valA, bool *valB ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Create the Buttons and the Encoder objects. We also attached to each UI element
+// Create the Buttons and the Encoder objects. We also attach to each UI element
 // the data retrieval function.
 //
 //----------------------------------------------------------------------------------------
@@ -145,6 +125,8 @@ uint8_t createUIElements( ) {
     revButton     = new UIButton( RNUM_REV_BUTTON );
 
     encoderButton = new UIButton( RNUM_ENCODER_BUTTON );
+
+    // ??? active low not taken from desc map ?
     encoder       = new UIEncoder( RNUM_ENCODER_KNOB, -10, 10, false  );
 
     menuButton ->     attachGetDataFunction( getData );
@@ -171,12 +153,12 @@ uint8_t createUIElements( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "LinkScreens" will link the button and encoder UI elements to the screen class
-// static functions that will pass the respective UI element event to the current
-// screen. So, for example, a button click will be passed to the static function
-// in the screen class, which in turn forwards it to the current screen, or handle
-// it directly. When writing a screen object, all UI elements that you want to 
-// react to need to implement the handlers for the incoming events.
+// "LinkScreens" will link the UI elements to the screen class static functions 
+// that will pass the respective UI element event to the current screen. So, for
+// example, a button click will be passed to the static function in the screen 
+// class, which in turn forwards it to the current screen, or handle it directly.
+// When developing screen objects, all UI elements that you want to react to need
+// to implement the handlers for the incoming events.
 //
 //----------------------------------------------------------------------------------------
 uint8_t linkScreens( ) {
@@ -221,15 +203,13 @@ uint8_t linkScreens( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Create the Buttons and the Encoder objects. We also attach to each UI element the data retrieval function.
-// This function will differ for a set of UI Elements directly connected to controller GPIO pins versus UI
-// Elements connected to an I2C Expander.
+// Set up the UI Elements.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupUIElements( ) {
 
   uint8_t rStat = createUIElements( );
-  if ( rStat == NO_ERR ) rStat = setupIOPins( );
+  if ( rStat == NO_ERR ) rStat = configureUiElements( );
   if ( rStat == NO_ERR ) rStat = linkScreens( );
 
   return ( rStat );

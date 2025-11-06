@@ -3,13 +3,12 @@
 // LCS - Cab Handheld LCS Bus interface implementation file
 //
 //----------------------------------------------------------------------------------------
-// 
-//
+// This class is the CAN bus message interface to the LCS bus.
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS - Cab Handheld LCS Bus interface implementation file
-// Copyright (C) 2019 - 2023  Helmut Fieres
+// Copyright (C) 2022 - 2025  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -48,10 +47,10 @@ void printLcsMsg( uint8_t *msg ) {
 }; // nameSpace
 
 //----------------------------------------------------------------------------------------
-//
+// Externals.
 //
 //----------------------------------------------------------------------------------------
-CabMsgBus *msgBus = nullptr;
+extern CabMsgBus *msgBus;
 
 //----------------------------------------------------------------------------------------
 //
@@ -165,9 +164,10 @@ void busMgtCallback( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DO WE EVEN HANDLE DCC MESSAGES ??????
-// Well, we would perhaps handle ACK and ERR on a request we had ...
-// Or, how about shared cab handhelds ?
+// DCC messages callback. We will not handle all LCS DCC messages though. 
+// 
+// Do: track TON, TOFF, ESTP
+// What about shared cab handhelds ?
 //
 //----------------------------------------------------------------------------------------
 void dccMsgCallback( uint8_t *msg ) {
@@ -187,19 +187,9 @@ void dccMsgCallback( uint8_t *msg ) {
         case LCS_OP_LOC_FON:
         case LCS_OP_LOC_FOF:
 
-        case LCS_OP_SET_CVM:
-        case LCS_OP_REQ_CVS:
-        case LCS_OP_REP_CVS:
-        case LCS_OP_SET_CVS:
-
         case LCS_OP_TON:
         case LCS_OP_TOF:
         case LCS_OP_ESTP:
-
-        case LCS_OP_SEND_DCC3:
-        case LCS_OP_SEND_DCC4:
-        case LCS_OP_SEND_DCC5:
-        case LCS_OP_SEND_DCC6:
 
         case LCS_OP_DCC_ACK:
         case LCS_OP_DCC_ERR:  break;
@@ -269,6 +259,3 @@ uint8_t CabMsgBus::loadCabData( CabEntry *cab ) {
 
     return ( NO_ERR );
 }
-
-// ??? is there a need for an "update CAB data ". E.g. when we change a config item ... 
-// why not update too ?

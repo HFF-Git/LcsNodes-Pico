@@ -35,12 +35,8 @@ using namespace CDC;
 // The button and switch assignments for the Cab Handheld Development Platform.
 // The current handheld is a board based on the PICO platform. All buttons, switches 
 // and encoders are directly connected to the PICO's GPIO pins. The CDC resource 
-// descriptor map contains the configuration data for the board. In addition, the
-// HW pins for I2C, analog inputs and so on are set from the current RPico Defaults. 
-// Check the schematic for the board to see all pin assignments.
+// descriptor map contains the configuration data for the board.
 //
-// One day we will have several handheld versions. Although they will perhaps differ,
-// their the CDC resource names used should not change. 
 //----------------------------------------------------------------------------------------
 const uint8_t RNUM_MENU_BUTTON      = CDC_RN_FIRST_USER_RN + 0;
 const uint8_t RNUM_SELECT_BUTTON    = CDC_RN_FIRST_USER_RN + 1;
@@ -58,15 +54,16 @@ const uint8_t RNUM_ENCODER_BUTTON   = CDC_RN_FIRST_USER_RN + 12;
 const uint8_t RNUM_ENCODER_KNOB     = CDC_RN_FIRST_USER_RN + 13;
 
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information about
-// the hardware family, controller type, controller attributes and hardware resources
-// available on the board. A resource itself described the actual hardware entity that
-// is available. It the resource primarily maps the hardware pins and their function.
-// A GPIO pin and whether it is input output pin is a typical example for such a
-// resource. A resource entry in the resource map has a type and unique Id and the
-// attributes for the particular resource type. The order in the map does not matter,
-// but when accessing the resource, the array index is used. Applications need to map
-// resource entries to their index. The CDC library provides support for this mapping.
+// Each board is described by a resource descriptor, which contains information 
+// about the hardware family, controller type, controller attributes and hardware 
+// resources available on the board. A resource itself described the actual hardware
+// entity that is available. It the resource primarily maps the hardware pins and
+// their function. A GPIO pin and whether it is input output pin is a typical example
+// for such a resource. A resource entry in the resource map has a type and unique Id
+// and the attributes for the particular resource type. The order in the map does not
+// matter, but when accessing the resource, the array index is used. Applications 
+// need to map resource entries to their index. The CDC library provides support 
+// for this mapping.
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
@@ -92,7 +89,9 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
-            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP }   
+            .gpio { .pinA = UNDEFINED_PIN, 
+                    .pinB = UNDEFINED_PIN, 
+                    .pinMode = CDC_DIO_IN_PULLUP }   
         },
 
         {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
@@ -100,11 +99,17 @@ const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c {  .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
+            .i2c {  .sclPin = 3, 
+                    .sdaPin = 2, 
+                    .baudRate = 100000, 
+                    .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
+            .i2c { .sclPin = 17, 
+                   .sdaPin = 16, 
+                   .baudRate = 100000, 
+                   .i2cTimeoutMs = 25 }
         },
 
         {   .type = CDC_RT_GPIO, .resId = RNUM_MENU_BUTTON,
