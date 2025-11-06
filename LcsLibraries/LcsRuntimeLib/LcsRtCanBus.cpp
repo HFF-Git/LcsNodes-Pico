@@ -134,10 +134,13 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
 //----------------------------------------------------------------------------------------
 // The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes 
-// the canId itself and flags such as EXT or RTR.
+// the canId itself and flags such as EXT or RTR. The canId consists of the nodeId 
+// and a priority field.
 //
 //----------------------------------------------------------------------------------------
-inline uint32_t buildCanBusMsgHeader( uint16_t canId, uint8_t msgPri, bool RTR = false ) {
+inline uint32_t buildCanBusMsgHeader( uint16_t canId, 
+                                      uint8_t msgPri, 
+                                      bool RTR = false ) {
 
     uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
 
@@ -147,8 +150,8 @@ inline uint32_t buildCanBusMsgHeader( uint16_t canId, uint8_t msgPri, bool RTR =
 }
 
 //----------------------------------------------------------------------------------------
-// The interrupt signature to register with the RP2040 for PIO interrupts. The interrupt
-// handler itself is provided by the can2040 library.
+// The interrupt signature to register with the RP2040 for PIO interrupts. The
+// interrupt handler itself is provided by the can2040 library.
 //
 //----------------------------------------------------------------------------------------
 void CanBusPIOIrqHandler( ) {
@@ -170,11 +173,11 @@ void CanBusPIOIrqHandler( ) {
 // 
 // ??? idea: we could group the LCS messages in a way that we can filter out.
 //
-// ANY - all messages are passed
-// SYS - system wide messages
-// DCC - DCC messages 
-// GET/PUT - foreign node data access are filtered.
-// REQ - foreign node request is filtered.
+//  ANY - all messages are passed
+//  SYS - system wide messages
+//  DCC - DCC messages 
+//  GET/PUT - foreign node data access are filtered.
+//  REQ - foreign node request is filtered.
 // ...
 //----------------------------------------------------------------------------------------
 void canBusEventCallback( struct can2040 *cd, 
@@ -256,7 +259,6 @@ void canBusCore( ) {
 
 }; // namespace
 
-
 //----------------------------------------------------------------------------------------
 // The LCS name space CanBus Object methods declared in this file.
 //
@@ -313,11 +315,11 @@ void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
 
 //----------------------------------------------------------------------------------------
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the 
-// message priority. The message length is encoded in the first message byte, which 
-// represents the LCS message opCode as well as the length of the message. The message 
-// has a certain initial priority. When we cannot send the message right away, the 
-// priority is raised. When we cannot send at the highest priority, the message send 
-// failed.
+// message priority. The message length is encoded in the first message byte, 
+// which represents the LCS message opCode as well as the length of the message. 
+// The message has a certain initial priority. When we cannot send the message right
+// away, the priority is raised. When we cannot send at the highest priority, the
+// message send failed.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
