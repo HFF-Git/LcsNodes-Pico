@@ -31,6 +31,7 @@ add_subdirectory( LcsBlockController )
 add_subdirectory( LcsBasicThrottle )
 add_subdirectory( LcsDieselThrottle )
 add_subdirectory( LcsDccMonitor )
+add_subdirectory( LcsRocRailGateway)
 
 add_subdirectory( LcsLibraries/LcsUtilLib )
 add_subdirectory( LcsLibraries/LcsCdcLib )

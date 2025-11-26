@@ -819,6 +819,9 @@ uint8_t     sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
 uint8_t     sendRawMsg( uint8_t *msgBuf );
 void        printLcsMs( uint8_t *msgBuf );
+int         lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen );
+
+
 
 // ??? rethink this concept. We could also offer a method to address any 16-bit word 
 // in NVM via a GET / SET call, one parm being the variable number, the other the value.

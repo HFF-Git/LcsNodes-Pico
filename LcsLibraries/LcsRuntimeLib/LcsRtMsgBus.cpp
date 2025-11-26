@@ -193,12 +193,28 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 // A simple helper to print an LCS message.
 //
+//
+// ??? how about have a generic routine that fills a string ?
 //----------------------------------------------------------------------------------------
 void printLcsMsg( uint8_t *msg ) {
 
     printf( "LCS MSG: op: %d, data: ", msg[ 0 ] & 0x1F );
     for ( int i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i ++ ) printf( "0x%x ", msg[ i ] ); 
     printf( "\n" );
+}
+
+int lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen ) {
+
+    int  len;
+    char lBuf[ 64 ];
+
+    len = snprintf( lBuf, sizeof( lBuf ), "LCS MSG: op: %d, data: ", msg[ 0 ] & 0x1F );
+    for ( int i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i ++ ) {
+        
+        len += snprintf( lBuf + len, 8, "0x%2x ", msg[ i ] ); 
+    }
+   
+    return( len );
 }
 
 //----------------------------------------------------------------------------------------
