@@ -904,7 +904,7 @@ void listCoreLibHelpCommand( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
 
-    return ( CDC::configureConsoleIO( ));
+    return ( CDC::configureUsbIO( ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -923,7 +923,7 @@ uint8_t handleSerialCommand( ) {
 
     char c;
 
-    while (( c = getConsoleChar( )) > 0 ) {
+    while (( c = usbIoGetChar( 0 )) > 0 ) {
 
         switch( c ) {
 

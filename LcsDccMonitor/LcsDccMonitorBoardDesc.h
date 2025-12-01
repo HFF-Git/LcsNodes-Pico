@@ -32,34 +32,33 @@
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// Setup the configuration of the HW board. The CDC resource descriptor map contains the configuration 
-// data for the board. In addition, the HW pins for I2C, analog inputs and so on are set from the current
-// RPico Defaults. Check the schematic for the board to see all pin assignments.
+// Setup the configuration of the HW board. The CDC resource descriptor map contains 
+// the configuration data for the board. In addition, the HW pins for I2C, analog 
+// inputs and so on are set from the current RPico Defaults. Check the schematic for
+// the board to see all pin assignments.
 //
-// One day we will have several block controller versions. Although they will perhaps differ, their the CDC
-// resource names used should not change. 
+// One day we will have several block controller versions. Although they will perhaps
+// differ, their the CDC resource names used should not change. 
 //----------------------------------------------------------------------------------------
 const uint8_t RNUM_DCC_IN = CDC_RN_FIRST_USER_RN + 0;
 
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information about the hardware family,
-// controller type, controller attributes and hardware resources available on the board. A resource itself
-// described the actual hardware entity that is available. It the resource primarily maps the hardware 
-// pins and their function. A GPIO pin and whether it is input output pin is a typical example for such a
-// resource. A resource entry in the resource map has a type and unique Id and the attributes for the 
-// particular resource type. The order in the map does not matter, but when accessing the resource, the 
-// array index is used. Applications need to map resource entries to their index. The CDC library provides
-// support for this mapping.
+// Each board is described by a resource descriptor, which contains information
+// about the hardware family, controller type, controller attributes and hardware 
+// resources available on the board. A resource itself described the actual hardware 
+// entity that is available. It the resource primarily maps the hardware pins and 
+// their function. A GPIO pin and whether it is input output pin is a typical example
+// for such a resource. A resource entry in the resource map has a type and unique 
+// Id and the attributes for the particular resource type. The order in the map does
+// not matter, but when accessing the resource, the array index is used. Applications
+// need to map resource entries to their index. The CDC library provides support 
+// for this mapping.
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
 
     //------------------------------------------------------------------------------------
     // Controller configuration and common data.
-    //
-    //  OPTION              - option flags for the board. They are set by the application.
-    //  DEBUG MASK          - debug options. They are set by the application.
-    //  HEAD                - board / controller related info.
     //
     //------------------------------------------------------------------------------------ 
     .boardInfo      = CDC_BT_MAIN_CONTROLLER, 
@@ -68,8 +67,8 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
     .boardName      = "LCS_DCC_MONITOR_BOARD_DESC_B_02_00",
            
     //------------------------------------------------------------------------------------
-    // The resource map. It is a simple array of resource entries. The values set reflect the board for which 
-    // the resources are defined.
+    // The resource map. It is a simple array of resource entries. The values set 
+    // reflect the board for which the resources are defined.
     // 
     // ??? on which board would it actually run ? just a plan RP2040 board standalone ?
     //------------------------------------------------------------------------------------

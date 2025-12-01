@@ -61,7 +61,7 @@ void setupConfigInfo( ) {
    // dMap.options |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
     
     cdcInit( &dMap );
-    configureConsoleIO( );
+    configureUsbIO( );
     sleepMillis( 2000 );
     printf( "Test LCS Controller dependent code library\n" );
 }

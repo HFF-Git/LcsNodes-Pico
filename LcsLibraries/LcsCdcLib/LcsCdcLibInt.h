@@ -29,24 +29,26 @@
 #include <inttypes.h>
 #include <cstring>
 
+#include "LcsCdcLibVersion.h"
+#include "LcsUtilLib.h"
+#include "LcsCdcLib.h"
+
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
 #include "pico/time.h"
-#include "tusb_config.h"
+
 #include "hardware/regs/usb.h"
 #include "hardware/regs/rosc.h"
 #include "hardware/regs/addressmap.h"
 #include "hardware/watchdog.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
+
+#include "hardware/i2c.h"
+#include "hardware/uart.h"
 #include "hardware/adc.h"
 #include "hardware/pwm.h"
-#include "hardware/uart.h"
-#include "hardware/i2c.h"
-#include "hardware/spi.h"
 
-#include "LcsUtilLib.h"
-#include "LcsCdcLib.h"
 
 //----------------------------------------------------------------------------------------
 //

@@ -45,7 +45,7 @@ uint8_t initCdcLib( ) {
 
     cdcInit( &dMap );
     sleepMillis( 2000 );
-    configureConsoleIO( );
+    configureUsbIO( );
 
     printResourceDescMap( &dMap );
     return( NO_ERR );

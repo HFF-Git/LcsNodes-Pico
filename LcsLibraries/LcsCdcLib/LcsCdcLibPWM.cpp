@@ -32,11 +32,6 @@
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <cstring>
-
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"
 

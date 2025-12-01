@@ -42,7 +42,7 @@ CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
 void initCdcLib( ) {
 
     cdcInit( &dMap );
-    configureConsoleIO( );
+    configureUsbIO( );
     sleepMillis( 2000 );
     printf( "Test LCS Controller dependent code library\n" );
     printResourceDescMap( &dMap );
@@ -60,20 +60,20 @@ void testConsoleIO ( ) {
     sleepMillis( 1000 );
 
     printf( "Test Console IO..\n" );
-    printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+    printf( "USB is connected: %d\n", usbIsConnected( ));
 
     printf( "->" );
 
     while ( true ) {
 
-        char c = getConsoleChar( );
+        char c = usbIoGetChar( 0 );
         if ( c != 0 ) {
 
         if ( c == 'q' ) break;
       
             printf( "%c\n", c );
       
-            printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+            printf( "USB is connected: %d\n", usbIsConnected( ));
             printf( "->" );
         }
     }
@@ -93,11 +93,11 @@ void echoConsole( ) {
     sleepMillis( 1000 );
 
     printf( "Show Console IO input\n" );
-    printf( "USB is connected: %d\n", CDC::isConsoleConnected( ));
+    printf( "USB is connected: %d\n", usbIsConnected( ));
 
     while ( true ) {
 
-        char c = getConsoleChar( );
+        char c = usbIoGetChar( 0 );
         printf( "%c\n", c );
     }
 }

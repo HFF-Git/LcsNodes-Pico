@@ -60,6 +60,7 @@
 #define DEBUG_PACKET_FORMATTER 1
 
 using namespace CDC;
+using namespace LcsDccPacketFormatter;
 
 //----------------------------------------------------------------------------------------
 // Configuration settings.
@@ -80,8 +81,8 @@ const uint16_t    DEFAULT_REFRESH_TIME_MILLIS   = 4000;
 const uint16_t    MAX_PREAMBLE_READ_ATTEMPTS    = 1024;
 
 //----------------------------------------------------------------------------------------
-// We want to record the ranges of signal wave lengths we see. A simple TsRange object is used to remember
-// the highest and lowest value seen in between resets.
+// We want to record the ranges of signal wave lengths we see. A simple TsRange object
+// is used to remember the highest and lowest value seen in between resets.
 //
 //----------------------------------------------------------------------------------------
 struct TsRange {
@@ -112,8 +113,9 @@ struct TsRange {
 CdcResourceDescMap dMap = LCS_DCC_MONITOR_BOARD_DESC_B_02_00;
 
 //----------------------------------------------------------------------------------------
-// DCC bit stream and packet declarations. The bit stream buffer is a circular buffer. The bit detecting
-// routine add at the head, the packet assembler reads from the tail.
+// DCC bit stream and packet declarations. The bit stream buffer is a circular
+// buffer. The bit detecting routine add at the head, the packet assembler reads 
+// from the tail.
 //
 //----------------------------------------------------------------------------------------
 volatile uint8_t  bitBufHead = 0;
@@ -122,11 +124,13 @@ volatile uint8_t  bitBuffer[ BIT_BUFFER_SIZE ];
 volatile bool     cutoutDetected = false;
 
 //----------------------------------------------------------------------------------------
-// DCC Packet buffer declarations. During a time period, identical packets are remembered. This way, we only
-// see new packets added. This has the not so nice effect that identical packets are not shown again. For
-// example, turning F1 ON, then OFF, and then ON again in a period will not show the second turning ON. The
-// same is true for for the loco speed up or down. Although correct, it looks a bit erratic on the screen,
-// giving you the impression that the command was not sent. Once the time period expired, the buffer is reset.
+// DCC Packet buffer declarations. During a time period, identical packets are 
+// remembered. This way, we only see new packets added. This has the not so nice 
+// effect that identical packets are not shown again. For example, turning F1 ON, 
+// then OFF, and then ON again in a period will not show the second turning ON. The
+// same is true for for the loco speed up or down. Although correct, it looks a 
+// bit erratic on the screen, giving you the impression that the command was not
+// sent. Once the time period expired, the buffer is reset.
 //
 //----------------------------------------------------------------------------------------
 uint8_t           dccPacketBufferSize       = DEFAULT_DCC_PACKETS;
@@ -171,44 +175,50 @@ char     lineBuf[ LINE_BUFFER_SIZE ];
 //----------------------------------------------------------------------------------------
 void fillPacket( );
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
     cdcInit( &dMap );
-    configureConsoleIO( );
+    configureUsbIO( );
 }
 
 // ??? factor out as a separate object to detect and receive packets ?
 //----------------------------------------------------------------------------------------
-// Getting the bits essentially means detecting the signal edge and then examine the signal some period later
-// to see what the level is. A simple interrupt on the rising edge starting a timer interrupt period of 80
-// microseconds and then reading the signal value in the timer interrupt routine should do. If low we are in
-// DCC "one" bit situation, if not, it is as DCC "zero" bit situation. On detecting an edge we record the
-// system time ( micros ( )) on a high signal value. On the next edge we we compare the delta system time
-// against our threshold of 80 microseconds.
+// Getting the bits essentially means detecting the signal edge and then examine 
+// the signal some period later to see what the level is. A simple interrupt on 
+// the rising edge starting a timer interrupt period of 80 microseconds and then 
+// reading the signal value in the timer interrupt routine should do. If low we 
+// are in DCC "one" bit situation, if not, it is as DCC "zero" bit situation. On 
+// detecting an edge we record the system time ( micros ( )) on a high signal value.
+// On the next edge we we compare the delta system time against our threshold of 80
+// microseconds.
 //
-// The bits are stored in the bit buffer. From there the bits are consumed to assemble a DCC packet. DCC
-// Packets are zeroes and ones, with a one having a 58 micro seconds and a zero having a 100 second half cycle.
-// Note that the second approach does not even need a timer anymore. For now,
+// The bits are stored in the bit buffer. From there the bits are consumed to 
+// assemble a DCC packet. DCC Packets are zeroes and ones, with a one having a 58 
+// micro seconds and a zero having a 100 second half cycle. Note that the second 
+// approach does not even need a timer anymore. For now,
 //
 //----------------------------------------------------------------------------------------
 volatile uint32_t lastRisingTs   = 0;
 volatile uint32_t lastFallingTs  = 0;
 
 //----------------------------------------------------------------------------------------
-// This routine is invoked by a changing signal on the signal pin. We read in the value from the signal pin.
-// A value of high means that we we detected a rising edge, for which we will just record the timestamp. On
-// a signal value of low we will compute the elapsed time and compare against our threshold. Smaller than the
-// threshold of 80 micro seconds is a DCC "one", else a DCC "zero".
+// This routine is invoked by a changing signal on the signal pin. We read in the 
+// value from the signal pin. A value of high means that we we detected a rising 
+// edge, for which we will just record the timestamp. On a signal value of low we
+// will compute the elapsed time and compare against our threshold. Smaller than 
+// the threshold of 80 micro seconds is a DCC "one", else a DCC "zero".
 //
-// ??? I tried to measure the signal windows on AVR... but the numbers are really not good. The Scope shows
-// them ranges precisely what they should be, the measured timing window with "micros" is really not good.
+// ??? I tried to measure the signal windows on AVR... but the numbers are really
+// not good. The Scope shows them ranges precisely what they should be, the measured 
+// timing window with "micros" is really not good. 
+//
 // ??? check again for the PICO.
 //
-// ??? if this is still not really good, we need a new approach .... to be designed then ...
+// ??? if this is still not really good, we need a new approach .... 
 //
 //----------------------------------------------------------------------------------------
 void dccEdgeChange( uint8_t pin, uint8_t event ) {
@@ -244,7 +254,8 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
       }
       else {
 
-        // ??? we cannot easily distinguish cutout from zero. Only chance is the long zero period....
+        // ??? we cannot easily distinguish cutout from zero. 
+        // Only chance is the long zero period....
 
         cutoutDetected = true;
         aboveSignal.add( delta );
@@ -254,8 +265,8 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Attach an interrupt handler to the HW pin to detect a changing edge in the signal. We read in the signal
-// from EXT_INT_PIN from the CDC configuration.
+// Attach an interrupt handler to the HW pin to detect a changing edge in the signal.
+// We read in the signal from EXT_INT_PIN from the CDC configuration.
 //
 //----------------------------------------------------------------------------------------
 void startBitDetection( ) {
@@ -281,12 +292,14 @@ void stopBitDetection( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "getBit" is the routine that works with the interrupt routine to fill the data buffer. If there are bits
-// in the bit buffer, the routine will remove from the tail of the bit buffer. If there are no bits in the
-// buffer, this routine will wait indefinitely for bits to arrive.
+// "getBit" is the routine that works with the interrupt routine to fill the data 
+// buffer. If there are bits in the bit buffer, the routine will remove from the 
+// tail of the bit buffer. If there are no bits in the buffer, this routine will 
+// wait indefinitely for bits to arrive.
 //
 // ??? this is a bit unfortunate to wait forever when there are a no signal issues....
-// ??? perhaps need a separate timer that just checks on the timer interrupt whether we made progress...
+// ??? perhaps need a separate timer that just checks on the timer interrupt 
+// whether we made progress...
 //----------------------------------------------------------------------------------------
 uint8_t getBit( ) {
 
@@ -299,8 +312,8 @@ uint8_t getBit( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "checkForPreamble" is the routine that makes sure we have seen a valid preamble. This means at least
-//  DCC_MIN_PRAMBLE_BITS bits ONE followed by a ZERO bit.
+// "checkForPreamble" is the routine that makes sure we have seen a valid preamble.
+// This means at least DCC_MIN_PRAMBLE_BITS bits ONE followed by a ZERO bit.
 //
 //----------------------------------------------------------------------------------------
 void checkForPreamble( ) {
@@ -334,13 +347,15 @@ void checkForPreamble( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "getPacket" is the routine finally assembles a DCC packet from the bit stream and verifies that the packet
-// has a valid checksum. Exclusive ORing all bytes of the DCC packet should result in a zero value. The first
-// byte of the packet contains the packet length. We also do some of the statistics for valid, error, reset
-// and idle packets. For testing the packet formatter routines, the DEBUG option fills the Dcc Packet buffer
-// with valid packets from a list of test packets.
+// "getPacket" is the routine finally assembles a DCC packet from the bit stream and 
+// verifies that the packet has a valid checksum. Exclusive ORing all bytes of the
+// DCC packet should result in a zero value. The first byte of the packet contains 
+// the packet length. We also do some of the statistics for valid, error, reset
+// and idle packets. For testing the packet formatter routines, the DEBUG option 
+// fills the Dcc Packet buffer with valid packets from a list of test packets.
 //
-// ?? what if there is garbage ? how do we stop after a preamble the reading of bits that don't make sense ?
+// ?? what if there is garbage ? how do we stop after a preamble the reading of 
+// bits that don't make sense ?
 //----------------------------------------------------------------------------------------
 bool getPacket( ) {
 
@@ -378,8 +393,8 @@ bool getPacket( ) {
 
     packetsDetected ++;
 
-    if      ( LcsDccPacketFormatter::isResetPacket( dccPacket ))  resetPacketsDetected ++;
-    else if ( LcsDccPacketFormatter::isIdlePacket( dccPacket ))   idlePacketsDetected ++;
+    if      ( isResetPacket( dccPacket ))  resetPacketsDetected ++;
+    else if ( isIdlePacket( dccPacket ))   idlePacketsDetected ++;
 
     return ( true );
   }
@@ -391,9 +406,9 @@ bool getPacket( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "isNewPacket" searches the DCC packet buffer. It uses the packet length, the first two bytes and the
-// checksum to build a packet key. If the packet is not found and there is still room in the buffer we add it
-// to the buffer and indicate a new packet.
+// "isNewPacket" searches the DCC packet buffer. It uses the packet length, the firs
+// two bytes and the checksum to build a packet key. If the packet is not found and 
+// there is still room in the buffer we add it to the buffer and indicate a new packet.
 //
 //----------------------------------------------------------------------------------------
 bool isNewPacket( uint8_t *dccPkt ) {
@@ -422,8 +437,8 @@ bool isNewPacket( uint8_t *dccPkt ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "showStatistics" will generate the statistical output to show on every elapsed recording cycle when the
-// verbose option is enabled.
+// "showStatistics" will generate the statistical output to show on every elapsed 
+// recording cycle when the verbose option is enabled.
 //
 //----------------------------------------------------------------------------------------
 void showStatistics( ) {
@@ -454,55 +469,57 @@ void showStatistics( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "showPackets" handles the DCC packets received. First we remember whether the last received packet was a
-// RESET packet. This is needed for detecting that we should switch to service mode packet interpretation.
-// If the new packet is not previously shown in the current display time interval, it will be displayed.
-// Once in service mode, the formatter will stay in service mode until the first operations packet is received.
-// For both modes, there is an option to list the packet in HEX and BINARY. The function returns the number
-// of characters to the passed buffer appended.
+// "showPackets" handles the DCC packets received. First we remember whether the 
+// last received packet was a RESET packet. This is needed for detecting that we 
+// should switch to service mode packet interpretation. If the new packet is not 
+// previously shown in the current display time interval, it will be displayed.
+// Once in service mode, the formatter will stay in service mode until the first 
+// operations packet is received. For both modes, there is an option to list the 
+// packet in HEX and BINARY. The function returns the number of characters to the
+// passed buffer appended.
 //
 //----------------------------------------------------------------------------------------
 void showPackets( ) {
 
-  bool lastPacketWasReset = LcsDccPacketFormatter::isResetPacket( dccPacket );
+  bool lastPacketWasReset = isResetPacket( dccPacket );
 
   if ( getPacket( )) {
 
-    if (( lastPacketWasReset ) && ( LcsDccPacketFormatter::isSvcModePacket( dccPacket )))
+    if (( lastPacketWasReset ) && ( isSvcModePacket( dccPacket )))
       showFlags |= SHOW_SVC_MODE;
 
     if (( showFlags & SHOW_SVC_MODE ) &&
-        ( ! (( LcsDccPacketFormatter::isResetPacket( dccPacket )) ||
-             ( LcsDccPacketFormatter::isSvcModePacket( dccPacket ))))) showFlags &= ~SHOW_SVC_MODE;
+        ( ! (( isResetPacket( dccPacket )) ||
+             ( isSvcModePacket( dccPacket ))))) showFlags &= ~SHOW_SVC_MODE;
 
     if ( isNewPacket( dccPacket )) {
 
       int numChars = 0;
 
-      if ((( showFlags & SHOW_IDLE_RESET ) && LcsDccPacketFormatter::isResetPacket( dccPacket )) ||
-          (( showFlags & SHOW_IDLE_RESET ) && LcsDccPacketFormatter::isIdlePacket( dccPacket ))) {
+      if ((( showFlags & SHOW_IDLE_RESET ) && isResetPacket( dccPacket )) ||
+          (( showFlags & SHOW_IDLE_RESET ) && isIdlePacket( dccPacket ))) {
 
-        numChars = LcsDccPacketFormatter::formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
+        numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
       }
       else if ( showFlags & SHOW_SVC_MODE ) {
 
-        numChars = LcsDccPacketFormatter::formatDccPacketSvcMode( lineBuf, sizeof( lineBuf ), dccPacket );
+        numChars = formatDccPacketSvcMode( lineBuf, sizeof( lineBuf ), dccPacket );
       }
       else {
 
-        numChars = LcsDccPacketFormatter::formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
+        numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
       }
 
       if ( showFlags & SHOW_HEX ) {
 
         numChars +=
-          LcsDccPacketFormatter::formatDccPacketHex( lineBuf + numChars, sizeof( lineBuf ) - numChars, dccPacket );
+          formatDccPacketHex( lineBuf + numChars, sizeof( lineBuf ) - numChars, dccPacket );
       }
 
       if ( showFlags & SHOW_BIN ) {
 
         numChars +=
-          LcsDccPacketFormatter::formatDccPacketBin( lineBuf + numChars, sizeof( lineBuf ) - numChars, dccPacket );
+          formatDccPacketBin( lineBuf + numChars, sizeof( lineBuf ) - numChars, dccPacket );
       }
 
       if ( numChars > 0 ) printf( lineBuf );
@@ -511,9 +528,9 @@ void showPackets( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DCC Packet buffer section. There is the idea of an interval in which packets are observed. Identical
-// packets need not be printed out again. At refresh time the array is cleared and the collection starts
-// again.
+// DCC Packet buffer section. There is the idea of an interval in which packets 
+// are observed. Identical packets need not be printed out again. At refresh time 
+// the array is cleared and the collection starts again.
 //
 //----------------------------------------------------------------------------------------
 void refreshBuffer( ) {
@@ -556,7 +573,7 @@ void printWelcome( ) {
 //----------------------------------------------------------------------------------------
 void checkUserInput( ) {
 
-  char ch = CDC::getConsoleChar( );
+  char ch = usbIoGetChar( 0 );
 
   switch (ch ) {
 
@@ -737,9 +754,10 @@ void checkUserInput( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DCC Packet test data section. It helps a lot to test the correct formatting without being connected to an
-// actual layout. The test data DCC packets are returned one after the other to also test sequences such as
-// a reset packet followed by programming mode packet.
+// DCC Packet test data section. It helps a lot to test the correct formatting 
+// without being connected to an actual layout. The test data DCC packets are 
+// returned one after the other to also test sequences such as a reset packet 
+// followed by programming mode packet.
 //
 //----------------------------------------------------------------------------------------
 #if DEBUG_PACKET_FORMATTER == 1
@@ -812,9 +830,10 @@ const uint8_t testData[  ] [ 7 ]      = {
 };
 
 //----------------------------------------------------------------------------------------
-// For the DEBUG option, this routine fills the DCC packet buffer with packet selected from the list and
-// builds the checksum. The packet data contains the length of the packet including the checksum, which we
-// compute and store as the last byte.
+// For the DEBUG option, this routine fills the DCC packet buffer with packet 
+// selected from the list and builds the checksum. The packet data contains the 
+// length of the packet including the checksum, which we compute and store as the 
+// last byte.
 //
 //----------------------------------------------------------------------------------------
 void fillPacket( ) {
@@ -831,12 +850,12 @@ void fillPacket( ) {
 
 #endif // DEBUG Formatter
 
-//----------------------------------------------------------------------------------------------------------
-// Main. We first initialize the CDC layer. Next, just start the bit detection process. If we are in packet
-// formatter debug mode, there is a DCC packet randomly selected from the the table of packets to test the 
-// formatter. 
+//----------------------------------------------------------------------------------------
+// Main. We first initialize the CDC layer. Next, just start the bit detection process.
+// If we are in packet formatter debug mode, there is a DCC packet randomly selected 
+// from the the table of packets to test the formatter. 
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int main( ) {
 
   setupConfigInfo( );

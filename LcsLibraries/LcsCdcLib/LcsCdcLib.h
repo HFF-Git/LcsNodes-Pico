@@ -405,9 +405,11 @@ uint32_t        createUid( );
 // is none.
 //
 //----------------------------------------------------------------------------------------
-uint8_t         configureConsoleIO( );
-bool            isConsoleConnected( );
-char            getConsoleChar( uint32_t timeoutVal = 0 );
+uint8_t         configureUsbIO( );
+bool            usbIsConnected( );
+char            usbIoGetChar( int chan, uint32_t timeoutVal = 0 );            
+int             usbIoPrintf( int chan, const char *fmt, ... );
+
 
 //----------------------------------------------------------------------------------------
 // General controller and board info routines.

@@ -4,8 +4,9 @@
 # ----------------------------------------------------------------------------------------
 project( LcsCdcLib C CXX ASM )
 
-add_library( ${PROJECT_NAME} STATIC 
-    
+# ----------------------------------------------------------------------------------------  
+add_library( LcsCdcLib STATIC
+
     LcsCdcLibVersion.h
     LcsCdcLib.h 
     LcsCdcLibInt.h
@@ -17,19 +18,13 @@ add_library( ${PROJECT_NAME} STATIC
     LcsCdcLibUART.cpp
     LcsCdcLibPWM.cpp
     LcsCdcLibCAN.cpp
+    LcsCdcLibUSB.cpp
 ) 
-
-target_include_directories( ${PROJECT_NAME} PRIVATE 
-
-    ${PICO_SDK_PATH}/src/rp2_common/pico_stdio_usb/include
-)
 
 target_include_directories( ${PROJECT_NAME} INTERFACE 
 
     ${CMAKE_CURRENT_SOURCE_DIR} 
 )
-
-target_sources ( ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} )
 
 target_link_libraries( ${PROJECT_NAME} 
 
@@ -40,7 +35,5 @@ target_link_libraries( ${PROJECT_NAME}
     hardware_adc
     hardware_pwm
     hardware_uart
-    hardware_spi
     LcsUtilLib
 )
-

@@ -34,28 +34,6 @@
 // If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <cstring>
-
-#include "pico/stdlib.h"
-#include "pico/stdio.h"
-#include "tusb_config.h"
-#include "hardware/regs/usb.h"
-#include "hardware/regs/rosc.h"
-#include "hardware/regs/addressmap.h"
-#include "hardware/watchdog.h"
-#include "hardware/clocks.h"
-#include "hardware/gpio.h"
-#include "hardware/adc.h"
-#include "hardware/pwm.h"
-#include "hardware/uart.h"
-#include "hardware/i2c.h"
-#include "hardware/spi.h"
-
-#include "LcsCdcLibVersion.h"
-#include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"
 
@@ -208,7 +186,7 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMa
         options   = options;
 
         initIsrTable( );
-        configureConsoleIO( );
+        configureUsbIO( );
         setupAlarmPools( );
 
         initialized = true;
@@ -269,7 +247,7 @@ void fatalError( uint8_t n, char *str, uint8_t rStat ) {
 
     if ( str != nullptr ) {
 
-        if ( isConsoleConnected( )) { 
+        if ( usbIsConnected( )) { 
             
             printf( "Fatal Error: %d: %s, rStat: %d\n", n, str, rStat );
         }
@@ -342,52 +320,6 @@ uint32_t createUid( ) {
     }
 
     return ( rVal );
-}
-
-//----------------------------------------------------------------------------------------
-// Console IO section. We set up the stdio via the USB connector. As part of the
-// cdcInit call, the console configure call should be done rather early, so that 
-// we can print out debug messages. In normal LCS node operation there is no USB 
-// device connected. Detecting a connection helps to decide whether we can report
-// an error or need to resort to a fatal error call at startup. 
-//
-// There are two basic ways to detect an USB connection. The first is to simply 
-// check if there is power on the USB port. The PICO features an internal GPIO pin
-// for this purpose. Using this method still does not mean that we have a computer 
-// connected to the USB, but just that there is a cable with power. Well, good 
-// enough for us. The second method truly detects that there is a USB host connected.
-// This check is provided via the PICO libraries which in turn use the tinyUSB 
-// library. However, there could be a timing problem where the USB stack is not 
-// ready yet and we conclude wrongly that there is no USB connection. For now, 
-// let's rather go with the crude approach to check if there is power on the VBUS
-// pin, at the risk that there is just power on the USB connector and no data.
-//
-// Finally, there is a routine to get a character for the command interfaces. Since 
-// the function just reads in a character, optionally with a timeout how long to 
-// wait for any input.
-//
-// PS: The USB check way would be implemented as "return ( stdio_usb_connected( ));" 
-// instead of the internal GPIO pin check.
-//
-//----------------------------------------------------------------------------------------
-uint8_t configureConsoleIO( ) {
-
-    stdio_init_all( );
-    return ( NO_ERR );
-}
-
-bool isConsoleConnected( ) {
-
-    gpio_init( PICO_VBUS_PIN );
-    gpio_set_dir( PICO_VBUS_PIN, GPIO_IN );
-
-    return ( gpio_get( PICO_VBUS_PIN ));
-}
-  
-char getConsoleChar( uint32_t timeoutVal ) {
-
-    int ch = getchar_timeout_us( timeoutVal );
-    return (( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
 }
 
 //----------------------------------------------------------------------------------------

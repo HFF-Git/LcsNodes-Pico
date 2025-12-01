@@ -102,7 +102,7 @@ void setupConfigInfo( ) {
     dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
 
     cdcInit( &dMap );
-    configureConsoleIO( );
+    configureUsbIO( );
     sleepMillis( 2000 );
 }
 

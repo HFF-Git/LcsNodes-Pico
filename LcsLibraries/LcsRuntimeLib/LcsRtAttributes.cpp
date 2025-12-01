@@ -451,8 +451,8 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             case ITEM_ID_DEBUG_MASK: {
 
-                if ( isConsoleConnected( )) debugMask = val1 | LCS_DBG_ENABLE;           
-                else                        debugMask = val1 & ~ LCS_DBG_ENABLE;
+                if ( usbIsConnected( )) debugMask = val1 | LCS_DBG_ENABLE;           
+                else                    debugMask = val1 & ~ LCS_DBG_ENABLE;
               
                 return ( RET_STAT( LCS_OK ));
             }

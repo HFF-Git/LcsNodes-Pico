@@ -347,7 +347,7 @@ uint8_t initCdcLayer( ) {
 
     uint8_t rStat = configureDio(CDC_RN_ACTIVITY_LED);
 
-    if ( isConsoleConnected( )) {
+    if ( usbIsConnected( )) {
 
         printf( "Type '?' for help\n" );
 
@@ -355,7 +355,7 @@ uint8_t initCdcLayer( ) {
 
             printf("=>");
 
-            char ch = getConsoleChar(CONSOLE_TIMEOUT);
+            char ch = usbIoGetChar( 0, CONSOLE_TIMEOUT);
 
             if ((ch == 'R') || (ch == 'r')) {
 
