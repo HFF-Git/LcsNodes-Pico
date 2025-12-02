@@ -1,26 +1,51 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - RocRail Gateway
 #
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2025 - 2025  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsRocRailGateway C CXX ASM )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsRuntimeLib LcsCdcLib pico_stdlib ) 
-
     add_executable( ${PROJECT_NAME} 
         
         LcsRocRailGatewayBoardDesc.h
         LcsRocRailGateway.h 
-        main.cpp   
-    )
+         LcsCanBusMsg.cpp
+        main.cpp
     
-    target_link_libraries( ${PROJECT_NAME} LcsRuntimeLib LcsCdcLib pico_stdlib )
+        LcsUsbChannel1.h
+        LcsUsbChannel1.cpp
+        LcsUsbChannelDesc1.cpp
+    )
 
+    # Make sure TinyUSB uses your config at compile time
+    target_compile_definitions(tinyusb_device INTERFACE CFG_TUD_ENABLED=1)
+
+    # Ensure TinyUSB config in this directory is used
+    target_include_directories(${PROJECT_NAME} PRIVATE
+
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_include_directories(tinyusb_device INTERFACE
+
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # Make sure TinyUSB is enabled
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        
+        pico_stdlib
+        tinyusb_device
+        LcsCdcLib
+        LcsRuntimeLib
+    )
+
+    # DO NOT enable stdio USB here
+    pico_enable_stdio_usb(${PROJECT_NAME} 0)
+    pico_enable_stdio_uart(${PROJECT_NAME} 1)
     pico_add_extra_outputs( ${PROJECT_NAME} )
-    pico_enable_stdio_usb( ${PROJECT_NAME} 1 )
-    pico_enable_stdio_uart( ${PROJECT_NAME} 0 )
 
     # Add a custom command to run a shell script. We would like to move the uf2 file to
     # a dedicated directory. The script is executed after the build proccess. The target

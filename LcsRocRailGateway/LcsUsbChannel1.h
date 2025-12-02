@@ -24,13 +24,18 @@
 //
 //----------------------------------------------------------------------------------------
 #pragma once
-#include "LcsCdcLib.h"
-#include "LcsRuntimeLib.h"
 
-using namespace CDC;
+// ??? goes into gateway include file ?
 
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
 
+#include <stdint.h>
+#include <stdbool.h>
+
+void usb_ch1_init(void);
+void usb_ch1_task(void);
+
+bool usb_ch1_available(void);
+int  usb_ch1_read(void);
+
+void usb_ch1_write(const void *data, uint32_t len);
+void usb_ch1_write_str(const char *s);

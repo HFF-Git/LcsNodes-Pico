@@ -11,7 +11,7 @@ if ( TARGET tinyusb_device )
 
     add_executable( ${PROJECT_NAME} main.cpp LcsCdcLibTestBoardDesc.h )
     
-    target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib tinyusb_device)
+    target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )
