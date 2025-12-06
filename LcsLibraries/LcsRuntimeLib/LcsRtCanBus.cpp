@@ -21,15 +21,17 @@
 // Layout Control System - Can Bus Interface Library, based on "can2040" library
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include <stdio.h>
@@ -209,8 +211,8 @@ void canBusEventCallback( struct can2040 *cd,
 // For the multi-core version it needs to be a routine that can be called from the 
 // current core or be launched on the other core. The routine communicates the 
 // successful setup with a boolean flag in the configuration descriptor. Note that 
-// the setup routine must be a void procedure with no parameters. This is expected by
-// the launch routine in the PICO C++ SDK.
+// the setup routine must be a void procedure with no parameters. This is expected 
+// by the launch routine in the PICO C++ SDK.
 //
 //----------------------------------------------------------------------------------------
 void canBusCore( ) {
@@ -266,9 +268,9 @@ void canBusCore( ) {
 namespace LCS { 
 
 //----------------------------------------------------------------------------------------
-// "init" is called to setup the CAN bus interface. We will first check the parameters 
-// and setup the CAN bus. Next set up the interrupt handler and start the CAN bus 
-// processing. 
+// "init" is called to setup the CAN bus interface. We will first check the 
+// parameters and setup the CAN bus. Next set up the interrupt handler and start 
+// the CAN bus processing. 
 // 
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::init( uint8_t  rxPin, 

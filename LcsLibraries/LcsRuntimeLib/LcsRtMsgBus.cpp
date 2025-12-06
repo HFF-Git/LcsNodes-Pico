@@ -5,27 +5,30 @@
 //
 //----------------------------------------------------------------------------------------
 //  At the message level, the LCS runtime offers a message bus to which all nodes 
-// are connected. Currently, it is a CAN bus. Pretty straightforward and robust. This
-// file contains the routines to set up the node communication as well as a set of 
-// convenience functions for sending a LCS message taking care of filling the message 
-// frame. Some LCS message are of a "request/reply" nature. When a request is sent out
-// an entry is made in the pending request map. Since the message layer sees all reply
-// message, this pending map is used to filter for the request we are waiting for.
+// are connected. Currently, it is a CAN bus. Pretty straightforward and robust. 
+// This file contains the routines to set up the node communication as well as a
+// set of convenience functions for sending a LCS message taking care of filling 
+// the message frame. Some LCS message are of a "request/reply" nature. When a 
+// request is sent out an entry is made in the pending request map. Since the 
+// message layer sees all reply message, this pending map is used to filter for 
+// the request we are waiting for.
 //
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - LCS Message routines. 
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
@@ -62,11 +65,12 @@ using namespace LCS;
 const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 
 //----------------------------------------------------------------------------------------
-// There are some LCS messages that expect a reply message. The library maintains a
-// small pending request buffer. When a request type message is sent we add the target
-// node and a timer value to the buffer. Easy and simple. Note that there can be more
-// than one entry for the same node / port combination in the buffer. If the buffer is
-// full, an error is returned. We have too many outstanding requests then.
+// There are some LCS messages that expect a reply message. The library maintains 
+// a small pending request buffer. When a request type message is sent we add the
+// target node and a timer value to the buffer. Easy and simple. Note that there 
+// can be more than one entry for the same node / port combination in the buffer. 
+// If the buffer is full, an error is returned. We have too many outstanding requests
+// then.
 // 
 // A request can also be registered with a timeout value. When the timeout expires, 
 // the caller is informed that the request timed out. A timeout value of zero means 
@@ -125,8 +129,8 @@ bool searchPendingReqMap( uint16_t npId ) {
 
 //----------------------------------------------------------------------------------------
 // "processPendingReqMapTimeouts" is part of the periodic processing of the node. 
-// It will check wether any requests waiting for a reply have timed out. In this case,
-// we should invoke the reply callback with an error code and clear the entry.
+// It will check wether any requests waiting for a reply have timed out. In this 
+// case, we should invoke the reply callback with an error code and clear the entry.
 //
 //----------------------------------------------------------------------------------------
 void processPendingReqMapTimeouts( ) {
@@ -219,11 +223,12 @@ int lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen ) {
 
 //----------------------------------------------------------------------------------------
 // The primary task of the receive function is to receive an LCS messages and pass
-// them to the respective handler method. In order to not always check whether a valid 
-// message was processed, this routine will always return a valid message opCode. The
-// "LCS_NO_MSG" pseudo message is used to indicate that something else happened and no
-// further message processing is required. We also maintain a request / reply map to 
-// keep track of outstanding requests transparently to the caller.
+// them to the respective handler method. In order to not always check whether a 
+// valid message was processed, this routine will always return a valid message 
+// opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something else
+// happened and no further message processing is required. We also maintain a 
+// request / reply map to keep track of outstanding requests transparently to the 
+// caller.
 //
 //----------------------------------------------------------------------------------------
 uint8_t receiveLcsMsg( uint8_t *msg ) {
@@ -256,9 +261,10 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// LCB message send routines. They all follow the same pattern. There is a method for
-// each message opcode, which maps the input parameters to the byte array and then send
-// it. Depending on the type of sending there are different local routines used.
+// LCB message send routines. They all follow the same pattern. There is a method
+// for each message opcode, which maps the input parameters to the byte array and 
+// then send it. Depending on the type of sending there are different local routines
+// used.
 //
 //----------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t npId ) {

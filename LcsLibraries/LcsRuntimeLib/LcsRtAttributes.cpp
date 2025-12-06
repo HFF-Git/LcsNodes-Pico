@@ -5,26 +5,28 @@
 //----------------------------------------------------------------------------------------
 // This file contains the LCS runtime routines that implement node attribute access. 
 // There are three routines that allow to manipulate node and port data as well as  
-// issue requests to a node or port. The "npId" will indicate which node and port the 
-// call refers to. The node portion is typically our own node Id, the port Id refers
-// to a ports on the node, with a port Id of zero referring to the node itself. Any 
-// node can access another node. In this case request come via a message and the 
-// message handler will call the local routines in this file. 
+// issue requests to a node or port. The "npId" will indicate which node and port 
+// the call refers to. The node portion is typically our own node Id, the port Id 
+// refers to a ports on the node, with a port Id of zero referring to the node 
+// itself. Any node can access another node. In this case request come via a message
+// and the message handler will call the local routines in this file. 
 //
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime attribute management
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"

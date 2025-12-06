@@ -3,9 +3,10 @@
 // LCS - OLED Display Driver
 //
 //----------------------------------------------------------------------------------------
-// This source file contains the methods to support a set of OLED displays. An OLED
-// display for LCS is simply a matrix of rows and columns, measured in 8x8 fields. 
-// The display will provide several ASCII fonts to display. No graphics are supported. 
+// This source file contains the methods to support a set of OLED displays. An 
+// OLED display for LCS is simply a matrix of rows and columns, measured in 8x8 
+// fields. The display will provide several ASCII fonts to display. No graphics 
+// are supported. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -18,15 +19,17 @@
 // SSD1306Ascii - Oled Library for the Arduino world.
 // Copyright (c) 2011-2023 Bill Greiman
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 
@@ -34,8 +37,9 @@
 
 //----------------------------------------------------------------------------------------
 // Local name space. This file has two sections. The first is this local name space 
-// with all internal variables and routines local to the file. The second part contains
-// the exported routines to be called by the core library and the firmware designers.
+// with all internal variables and routines local to the file. The second part 
+// contains the exported routines to be called by the core library and the firmware
+// designers.
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -119,8 +123,8 @@ enum WriteDisplayMode : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// If ENABLE_NONFONT_SPACE is nonzero, a space of width FONT_WIDTH will be enabled in
-// fonts which do not have an encoding for 0X20, space.
+// If ENABLE_NONFONT_SPACE is nonzero, a space of width FONT_WIDTH will be enabled
+// in fonts which do not have an encoding for 0X20, space.
 //
 //----------------------------------------------------------------------------------------
 #ifndef ENABLE_NONFONT_SPACE
@@ -289,8 +293,8 @@ static const uint8_t scaledNibble[ ] =
 LcsOledDisplay::LcsOledDisplay( ) {  }
 
 //----------------------------------------------------------------------------------------
-// The "begin" routine is the first method to call. It will configure the IO pins and 
-// setup the particular OLED display.
+// The "begin" routine is the first method to call. It will configure the IO pins
+// and setup the particular OLED display.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsOledDisplay::begin(  uint8_t devType, 
@@ -318,11 +322,11 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDevType" will initialize the OLED display. Currently, there are three different 
-// displays supported. The Adafruit displays with a dimension for 128x64 and 128x32 use
-// the SSD1306 controller. There is also a 1.3" OLED display which uses the SH1106 
-// controller type. The service type descriptor contains the init command sequence for
-// controller which is sent command by command.
+// "setupDevType" will initialize the OLED display. Currently, there are three 
+// different displays supported. The Adafruit displays with a dimension for 128x64
+// and 128x32 use the SSD1306 controller. There is also a 1.3" OLED display which
+// uses the SH1106 controller type. The service type descriptor contains the init
+// command sequence for controller which is sent command by command.
 //
 //----------------------------------------------------------------------------------------
 void LcsOledDisplay::setupDevType( uint8_t dType ) {

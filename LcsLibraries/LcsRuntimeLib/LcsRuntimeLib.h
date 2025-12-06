@@ -4,25 +4,27 @@
 //
 //----------------------------------------------------------------------------------------
 // At the heart of the layout control system, LCS, is the runtime library, which 
-// implements the basic functions. Please refer to the document for information on 
-// concepts and implementation notes. This is the external include file for the 
-// firmware programmer. All external definitions of key constants and types for the
-// library and DCC subsystem is included here.
+// implements the basic functions. Please refer to the document for information 
+// on concepts and implementation notes. This is the external include file for 
+// the firmware programmer. All external definitions of key constants and types 
+// for the library and DCC subsystem is included here.
 //
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library include file
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #ifndef LCS_RT_LIB_h
@@ -47,10 +49,10 @@ using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 // A node is identified through the node number. Node numbers start with one. The 
-// nodeId of zero represents the NIL node Id. The node Id is a 12-bit number, so up 
-// to 4095 nodes can be addressed. The nodeId, a unique Id for the LCS nodes in a 
-// layout, is also used as the canId used for the CAN bus. Keep in mind that a CAN 
-// bus can reasonably handle about 127 nodes at the same time.
+// nodeId of zero represents the NIL node Id. The node Id is a 12-bit number, so 
+// up to 4095 nodes can be addressed. The nodeId, a unique Id for the LCS nodes 
+// in a layout, is also used as the canId used for the CAN bus. Keep in mind that 
+// a CAN bus can reasonably handle about 127 nodes at the same time.
 //
 //----------------------------------------------------------------------------------------
 enum LcsNodeId : uint16_t {
@@ -62,10 +64,10 @@ enum LcsNodeId : uint16_t {
 
 //----------------------------------------------------------------------------------------
 // Nodes have ports. The port Id identifies the port on a given node. Port numbers 
-// start with one. The port number zero represents the NIL port number and refers to 
-// the node itself. A node can thus have up to 15 ports. Often the library functions 
-// expect a "node/portId". Which is the concatenation of the 12-bit node Id with the
-// 4-bit port Id.
+// start with one. The port number zero represents the NIL port number and refers 
+// to the node itself. A node can thus have up to 15 ports. Often the library 
+// functions expect a "node/portId". Which is the concatenation of the 12-bit 
+// node Id with the 4-bit port Id.
 //
 //----------------------------------------------------------------------------------------
 enum LcsPortId : uint8_t {
@@ -76,9 +78,9 @@ enum LcsPortId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Events are just numbers assigned to an event by a configuration tool. Event numbers
-// start with one. The event number zero represents the NIL event number. The maximum
-// event id number is 65535. 
+// Events are just numbers assigned to an event by a configuration tool. Event 
+// numbers start with one. The event number zero represents the NIL event number. 
+// The maximum event id number is 65535. 
 //
 //----------------------------------------------------------------------------------------
 enum LcsEventId : uint16_t {
@@ -101,9 +103,9 @@ enum DccLocoType : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The base station maintains the locomotive sessions. A session is assigned by the base
-// station and commands for the locomotive use this session number. Session Ids start 
-// with 1, up to 255 simultaneous sessions are supported.
+// The base station maintains the locomotive sessions. A session is assigned by
+// the base station and commands for the locomotive use this session number. 
+// Session Ids start with 1, up to 255 simultaneous sessions are supported.
 //
 //----------------------------------------------------------------------------------------
 enum DccSessionId : uint8_t {
@@ -114,12 +116,12 @@ enum DccSessionId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The cabId is the locomotive number or address. For DCC type locomotives, there is a 
-// short and long address for a decoder. The short address ranges from 1 .. 127, the 
-// long address from 1 .. to 10239. However, most base stations support just up to 9999
-// locomotives IDs and so do we. Analog engines do not really have a cabId. Still, they
-// should have a cabId assigned distinct from any DCC cabId used. Refer to the book for 
-// the details.
+// The cabId is the locomotive number or address. For DCC type locomotives, there
+// is a short and long address for a decoder. The short address ranges from 
+// 1 .. 127, the long address from 1 .. to 10239. However, most base stations 
+// support just up to 9999 locomotives IDs and so do we. Analog engines do not 
+// really have a cabId. Still, they should have a cabId assigned distinct from 
+// any DCC cabId used. Refer to the book for the details.
 //
 //----------------------------------------------------------------------------------------
 enum DccCabId : uint16_t {
@@ -143,9 +145,9 @@ enum DccCvId : uint16_t {
 
 //----------------------------------------------------------------------------------------
 // "CvModeOptions" is used by the DCC CV variables access routines to specify the 
-// access mode. Only options 0 and 1 are supported. The others are there for historic 
-// reasons, the functionality was found in older decoders and should not be supported
-// anymore.
+// access mode. Only options 0 and 1 are supported. The others are there for 
+// historic reasons, the functionality was found in older decoders and should not
+// be supported anymore.
 //
 //----------------------------------------------------------------------------------------
 enum DccCvModeOptions : uint8_t {
@@ -181,10 +183,11 @@ enum DccFuncGroupId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// DCC decoder function mapping Ids. The LCS system defines a set of functions used 
-// by the handhelds such as horn, lights and so on. These identifiers are standardized
-// for our handhelds and mapped to the DCC function. Note that decoders also feature 
-// a function map. This is not to be confused with this mapping. 
+// DCC decoder function mapping Ids. The LCS system defines a set of functions 
+// used by the handhelds such as horn, lights and so on. These identifiers are 
+// standardized for our handhelds and mapped to the DCC function. Note that 
+// decoders also feature a function map. This is not to be confused with this 
+// mapping. 
 //
 // ??? align with the cabHandheld functions buttons, etc.
 //----------------------------------------------------------------------------------------
@@ -203,9 +206,9 @@ enum LcsDccFuncIdMap : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The DCC standard defines several speed step modes. Today, the 28 speed step option
-// is the one used in all new decoders. The other speed steps are mapped to the 128 
-// value range.
+// The DCC standard defines several speed step modes. Today, the 28 speed step 
+// option is the one used in all new decoders. The other speed steps are mapped 
+// to the 128 value range.
 //
 //----------------------------------------------------------------------------------------
 enum DccSpeedSteps : uint8_t {
@@ -216,10 +219,10 @@ enum DccSpeedSteps : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The locomotive decoder speed. The range is defined for a DCC 128 speed step decoder, 
-// from 0 to 127. The speed of 1 represents the emergency speed stop. In normal 
-// operations, speed stops would thus go from 2 to 0 and back. For analog engines, we 
-// keep this scheme and map it to the respective power levels.
+// The locomotive decoder speed. The range is defined for a DCC 128 speed step 
+// decoder, from 0 to 127. The speed of 1 represents the emergency speed stop. 
+// In normal operations, speed stops would thus go from 2 to 0 and back. For
+// analog engines, we keep this scheme and map it to the respective power levels.
 //
 //----------------------------------------------------------------------------------------
 enum LocoSpeed : uint8_t {
@@ -242,10 +245,10 @@ enum LocoDirection : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// "LocSessionModes" specify the options when creating a session for the loco. Besides 
-// creating a normal session an existing session can be taken over or even shared among
-// multiple handhelds. The base station session management will keep track of the 
-// session mode.
+// "LocSessionModes" specify the options when creating a session for the loco. 
+// Besides creating a normal session an existing session can be taken over or even
+// shared among multiple handhelds. The base station session management will keep
+// track of the session mode.
 //
 //----------------------------------------------------------------------------------------
 enum LocoSessionModes : uint8_t {
@@ -256,9 +259,9 @@ enum LocoSessionModes : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The node and ports have field in the portMap for configuration options that can be
-// set. Most options apply only to port zero, which is the node itself. The constants 
-// defined here indicate the bit positions and fields defined.
+// The node and ports have field in the portMap for configuration options that can
+// be set. Most options apply only to port zero, which is the node itself. The 
+// constants defined here indicate the bit positions and fields defined.
 //
 //  NPO_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
 //
@@ -281,8 +284,9 @@ enum LcsNodePortOptions : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The portMap entry has a flag field. Again, the flags in port zero refers to the node
-// flags. The constants defined here indicate the bit positions and fields defined.
+// The portMap entry has a flag field. Again, the flags in port zero refers to the 
+// node flags. The constants defined here indicate the bit positions and fields 
+// defined.
 //
 //  NPF_PORT_ENABLED                    -   the port is initialized and active. 
 //                                          P0 is always enabled.
@@ -292,9 +296,9 @@ enum LcsNodePortOptions : uint16_t {
 //  NPF_EVENT_PENDING                   -   an event has been received for this port 
 //                                          and is pending.
 //
-//  NPF_EXT_BOARD_PRESENT               -   there is an extension board associated with
-//                                          the port. For P0 this flag indicates that 
-//                                          there are an extension board at all.
+//  NPF_EXT_BOARD_PRESENT               -   there is an extension board associated 
+//                                          with the port. For P0 this flag indicates
+//                                          that there are an extension board at all.
 //                                          
 //  NPF_EXT_BOARD_VALID                 -   there is a valid extension board associated 
 //                                          with the port. This flag only applies to
@@ -319,7 +323,8 @@ enum LcsNodePortFlags : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The port event action. When an event is received, it will be of the type shown below. 
+// The port event action. When an event is received, it will be of the type shown 
+// below. 
 //
 //  PEA_EVENT_IDLE                - the port is idle.
 //  PEA_EVENT_ON                  - an "ON" event was received.
@@ -421,13 +426,13 @@ enum LcsItems : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The debug mask. The library has a debug mask where each major part of the library
-// has a flag. There could also be flags reserved for the firmware. There is an ITEM
-// request code to read and set this mask. Wherever debugging is needed, the bit mask
-// will be used to determine whether to print debugging data or not. From a performance 
-// perspective, the test will take just a few instructions. In other words we do not 
-// take out debugging code when going into production. Never liked this approach of 
-// conditional debug code anyway.
+// The debug mask. The library has a debug mask where each major part of the 
+// library has a flag. There could also be flags reserved for the firmware. There 
+// is an ITEM request code to read and set this mask. Wherever debugging is needed,
+// the bit mask will be used to determine whether to print debugging data or not. 
+// From a performance perspective, the test will take just a few instructions. 
+// In other words we do not take out debugging code when going into production. 
+// Never liked this approach of conditional debug code anyway.
 //
 // The usage of the debug mask is generally: 
 //
@@ -526,10 +531,10 @@ enum LcsMsgOpCodes : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// LCS Core Library Error codes. The status code is used as a return value from most
-// of the library methods. The numbers are grouped in a LCS library portion and a 
-// user firmware portion. The LCS library portion ranges from 1 to 127, leaving the 
-// rest for user error codes. The value of zero is generally an "OK".
+// LCS Core Library Error codes. The status code is used as a return value from 
+// most of the library methods. The numbers are grouped in a LCS library portion
+// and a user firmware portion. The LCS library portion ranges from 1 to 127, 
+// leaving the rest for user error codes. The value of zero is generally an "OK".
 //
 //----------------------------------------------------------------------------------------
 enum LcsErrorCodes : uint8_t {
@@ -642,8 +647,8 @@ enum LcsErrorCodes : uint8_t {
 //  LcsEventCallback    -   a callback for a received event. The arguments are the
 //                          issuing npId, the event type and the optional arguments.
 //          
-// All callback functions need to return a status, which is ALL_OK if the callback was
-// successful.
+// All callback functions need to return a status, which is ALL_OK if the callback 
+// was successful.
 // 
 //----------------------------------------------------------------------------------------
 extern "C" {
@@ -672,9 +677,9 @@ extern "C" {
 }
 
 //----------------------------------------------------------------------------------------
-// Library functions. The main function are the initialization and start of the LCS 
-// runtime. Between "init" and "start", the firmware should do its own setup and 
-// register the necessary callbacks. We will not return from the "start" routine. 
+// Library functions. The main function are the initialization and start of the
+// LCS runtime. Between "init" and "start", the firmware should do its own setup 
+// and register the necessary callbacks. We will not return from the "start" routine. 
 // All calls are a plain C style library calls. 
 //
 // The "initRuntime" routine is passed the resource map. Important. All there is to

@@ -228,24 +228,20 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // Controller configuration and common data.
     //
-    //  OPTION      - option flags for the board.
-    //  DEBUG MASK  - debug options.
-   
-    //
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     .boardInfo      = CDC_BT_NIL, 
     .boardCtrlInfo  = CDC_CF_RP_PICO, 
     .boardVersion   = (( 2U << 8 ) | 0 ), 
     .boardName      = "LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00",
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values 
     // set reflect the board for which the resources are defined.
     // 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------
     .map {
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,

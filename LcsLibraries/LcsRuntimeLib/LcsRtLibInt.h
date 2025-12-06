@@ -3,24 +3,26 @@
 // Layout Control System - Runtime Library internal include file
 //
 //----------------------------------------------------------------------------------------
-// The LCS library internal definitions are all grouped in this include file. A firmware
-// writer only includes the external include file. There is nothing in here that is 
-// required outside.
+// The LCS library internal definitions are all grouped in this include file. A
+// firmware writer only includes the external include file. There is nothing in
+// here that is required outside.
 //
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library internals include file
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #ifndef LCS_RT_LIB_INT_h
@@ -177,10 +179,10 @@ enum LcsNodeState : uint16_t {
 
 //----------------------------------------------------------------------------------------
 // Node, port and extension board driver attributes and functions are accessed with 
-// three main routines, GET, SET and REQ. The specific items are defined in the external
-// include file. This part here defined the boundaries for internal checking. The first
-// 127 items are predefined and reserved for the runtime itself. Item 128 to 255 are 
-// user definable attribute variables and functions.
+// three main routines, GET, SET and REQ. The specific items are defined in the 
+// external include file. This part here defined the boundaries for internal checking.
+// The first 127 items are predefined and reserved for the runtime itself. Item 128
+// to 255 are user definable attribute variables and functions.
 //
 //----------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
@@ -240,8 +242,8 @@ struct LcsMsgBusCAN {
 
 //----------------------------------------------------------------------------------------
 // The CdcBoardDescMap structure defines what the board actually represents. It is 
-// also the first structure that can be found on the controller board NVM as well as 
-// the extension board NVM.
+// also the first structure that can be found on the controller board NVM as well 
+// as the extension board NVM.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBoardDesc {
@@ -256,9 +258,10 @@ struct LcsBoardDesc {
 
 //----------------------------------------------------------------------------------------
 // The NVM header map stores the NVM headers of the node board and the optional 
-// extension boards found. It is a MEM only structure and will be filled though reading
-// the NVM headers at startup time. There should be at least the main controller board
-// NVM header stored and optional up to four extension board NVM headers. 
+// extension boards found. It is a MEM only structure and will be filled though 
+// reading the NVM headers at startup time. There should be at least the main 
+// controller board NVM header stored and optional up to four extension board
+// NVM headers. 
 //
 //----------------------------------------------------------------------------------------
 struct LcsHeaderMap {
@@ -302,12 +305,13 @@ struct LcsNodeMap {
 };
 
 //----------------------------------------------------------------------------------------
-// Node and ports each have an area of variables that are in memory as well as in the
-// node NVM. Typical usage examples are configuration items such as a limit value. 
-// Upon power up the header structure is validated and the node data from the NVM area
-// is copied to the MEM counterpart. Although the node and port attributes are 
-// logically part of the portMap and nodeMap, they are kept in this separate structure.
-// This way, index calculation and access becomes rather straightforward.
+// Node and ports each have an area of variables that are in memory as well as in
+// the node NVM. Typical usage examples are configuration items such as a limit 
+// value. Upon power up the header structure is validated and the node data from 
+// the NVM area is copied to the MEM counterpart. Although the node and port 
+// attributes are logically part of the portMap and nodeMap, they are kept in this
+// separate structure. This way, index calculation and access becomes rather
+// straightforward.
 //
 //----------------------------------------------------------------------------------------
 struct LcsNodeData {
@@ -320,10 +324,11 @@ struct LcsNodeData {
 };
 
 //----------------------------------------------------------------------------------------
-// The event map entry contains the mapping from eventId to portId. When a node or port
-// is interested in an event, there will be an entry with event Id and the port mask, 
-// where each port has a bit. The map is sorted by event Id and  searched for an incoming
-// event to find the ports that are interested in the event. 
+// The event map entry contains the mapping from eventId to portId. When a node 
+// or port is interested in an event, there will be an entry with event Id and 
+// the port mask, where each port has a bit. The map is sorted by event Id and 
+// searched for an incoming event to find the ports that are interested in the 
+// event. 
 //
 //----------------------------------------------------------------------------------------
 struct LcsEventMapEntry {
@@ -383,10 +388,10 @@ struct LcsPortMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The core library maintains an array of periodic tasks. The entry maintains the task
-// procedure label, the time it ran the last time, and the minimum interval between
-// invocations. Note that the timing is not very accurate, but it is guaranteed that a
-// task will eventually run when the interval is reached.
+// The core library maintains an array of periodic tasks. The entry maintains the
+// task procedure label, the time it ran the last time, and the minimum interval
+// between invocations. Note that the timing is not very accurate, but it is 
+// guaranteed that a task will eventually run when the interval is reached.
 //
 //----------------------------------------------------------------------------------------
 struct LcsPTaskMapEntry {
@@ -403,11 +408,11 @@ struct LcsTaskMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The pending request map keeps track of outstanding requests to another node. We add
-// an entry when our node sends a request and clear the entry when the matching reply 
-// comes in. The idea is that we only invoke the callback when we expect a reply. 
-// Additionally, there is a timeout value, so that we can invoke the reply callback 
-// when the request times out or is lost.
+// The pending request map keeps track of outstanding requests to another node. 
+// We add an entry when our node sends a request and clear the entry when the 
+// matching reply comes in. The idea is that we only invoke the callback when we
+// expect a reply. Additionally, there is a timeout value, so that we can invoke 
+// the reply callback when the request times out or is lost.
 //
 //----------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
@@ -443,9 +448,9 @@ struct LcsDrvFuncMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The layout of the NVM storage is fixed. There are the header and the maps allocated 
-// in a given order and size. We can easily define the relevant offsets and sizes as
-// constants.
+// The layout of the NVM storage is fixed. There are the header and the maps 
+// allocated in a given order and size. We can easily define the relevant offsets
+// and sizes as constants.
 //
 //----------------------------------------------------------------------------------------
 const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsBoardDesc );

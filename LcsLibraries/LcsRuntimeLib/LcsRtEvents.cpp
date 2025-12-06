@@ -4,9 +4,10 @@
 //
 //----------------------------------------------------------------------------------------
 // The file contains the part of the LCS Runtime Library that implements the node 
-// event handling. At the heart of LCS is the concept of events. Events are broadcasted
-// by a node and any other node interested in them registers an event callback. LCS 
-// runtime functions provide the management of the event map and the search routines.
+// event handling. At the heart of LCS is the concept of events. Events are 
+// broadcasted by a node and any other node interested in them registers an event
+// callback. LCS runtime functions provide the management of the event map and the 
+// search routines.
 //
 // The event map can be found as a MEM and an NVM structure. During operations, the 
 // sorted MEM event map is the map to work with. Entries are sorted by eventId. New 
@@ -25,15 +26,17 @@
 // Layout Control System - Runtime Library Firmware Update. 
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
@@ -272,14 +275,14 @@ uint8_t syncEventMapToNvm( ) {
 //----------------------------------------------------------------------------------------
 // "syncEventMapToMem" will read back the sorted NVM event map. The event map stores
 // all events this node is interested to process. The map is a sorted map of event 
-// Id and port mask pairs. There is a high water mark, so that we only read up to the 
-// last used entry in the map. We just read up to the HWM, if the HWM is valid. If not,
-// we have to assume that there are issues with the event map. In this case we will
-// read the entire  map entry by entry, add used entries, i.e. entries with a non-NIL 
-// event ID to the memory map. After reading all entries, the newly created event map
-// is written back to the NVM. We now have a valid map again and write back to NVM so
-// that there is also a valid map. This routine is also called during the node setup
-// sequence. 
+// Id and port mask pairs. There is a high water mark, so that we only read up to 
+// the last used entry in the map. We just read up to the HWM, if the HWM is valid.
+// If not, we have to assume that there are issues with the event map. In this case
+// we will read the entire  map entry by entry, add used entries, i.e. entries with
+// a non-NIL event ID to the memory map. After reading all entries, the newly created 
+// event map is written back to the NVM. We now have a valid map again and write 
+// back to NVM so that there is also a valid map. This routine is also called during
+// the node setup sequence. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t syncEventMapToMem( ) {

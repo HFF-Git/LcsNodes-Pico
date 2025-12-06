@@ -3,28 +3,30 @@
 // LCS Runtime library - Non volatile storage I2C interface
 //
 //----------------------------------------------------------------------------------------
-// This file implements the LCS runtime library non-volatile memory. The hardware is 
-// the AA24xxx chip family, which offers an I2C protocol based chip with various 
+// This file implements the LCS runtime library non-volatile memory. The hardware 
+// is the AA24xxx chip family, which offers an I2C protocol based chip with various 
 // capacities. They all share the same pin layout and command structure.
 //
-// In addition we also support the M24C04 chip, which is used on the extension boards
-// as a configuration storage. This chip will however be replaced by 24AA32, a 4K chip
-// of the same chip family as the other chips on the controller board.
+// In addition we also support the M24C04 chip, which is used on the extension 
+// boards as a configuration storage. This chip will however be replaced by 24AA32,
+// a 4K chip of the same chip family as the other chips on the controller board.
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS Runtime library - Non volatile storage I2C interface
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 
@@ -56,18 +58,18 @@ using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 // Definitions for the M24LCxxx chips page size and total size. The chips have a 
-// pageSize which is the unit updated in case of a write. A write cannot across a page
-// boundary and must be split into several writes if necessary. Reads do not have this
-// problem. All chips have the same I2C address root which is "1010". There are three
-// address lines A2, A1 and A0, which are used to select a chips. Up to eight chips 
-// can be addressed on a single I2C bus.
+// pageSize which is the unit updated in case of a write. A write cannot across a
+// page boundary and must be split into several writes if necessary. Reads do not 
+// have this problem. All chips have the same I2C address root which is "1010". 
+// There are three address lines A2, A1 and A0, which are used to select a chips.
+// Up to eight chips can be addressed on a single I2C bus.
 //
-// The pageSizes on the chip are a multiple of 32bytes. For now, we use this size as
-// the common denominator. Block handling and chipSize page handling are nicely taken
-// care of this way. The downside is however that a write will update the chip page up
-// to four times for a pageSize of 128. However, since the chips have more than a 
-// million write cycles and we rarely write large chunks of data, this will hopefully
-// not be an issue in the near future.
+// The pageSizes on the chip are a multiple of 32bytes. For now, we use this size 
+// as the common denominator. Block handling and chipSize page handling are nicely
+// taken care of this way. The downside is however that a write will update the chip
+// page up to four times for a pageSize of 128. However, since the chips have more
+// than a million write cycles and we rarely write large chunks of data, this will
+// hopefully not be an issue in the near future.
 //
 // ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //----------------------------------------------------------------------------------------
@@ -101,19 +103,18 @@ const uint32_t      EXT_I2C_BAUDRATE            = 50 * 1000;
 const uint8_t       NVM_WRITE_DELAY             = 0x05;
 
 //----------------------------------------------------------------------------------------
-// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The maximum size for an 
-// extension board NVM 
-// chip is 4Kb. 
+// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The maximum size for
+// an extension board NVM chip is 4Kb. 
 //
 //----------------------------------------------------------------------------------------
 const uint32_t      NVM_MAX_NVM_SIZE            = 0x10000;
 const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 
 //----------------------------------------------------------------------------------------
-// Module global data. A LCS node board has two NVM channels. The "NVM" channel refers 
-// to the NVM chip on main controller board. The "EXT" channel is the I2C bus that 
-// reaches out the the extension boards. On each extension board there is again a 
-// small NVM chip with configuration data. 
+// Module global data. A LCS node board has two NVM channels. The "NVM" channel 
+// refers to the NVM chip on main controller board. The "EXT" channel is the I2C 
+// bus that reaches out the the extension boards. On each extension board there is
+// again a small NVM chip with configuration data. 
 //
 // There is no easy way to determine the size of the actual chip. By convention, the
 // extension board NVM chip has a fixed 4 Kbytes. The NVM chip on the main controller 
@@ -384,8 +385,8 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The NVJ chips have an internal page size for writing. Depending on the chip memory
-// size, the buffer is different.
+// The NVJ chips have an internal page size for writing. Depending on the chip 
+// memory size, the buffer is different.
 // 
 //----------------------------------------------------------------------------------------
 uint32_t determineBufferBlockSize( uint32_t size ) {
@@ -415,10 +416,11 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
 
 //----------------------------------------------------------------------------------------
 // "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. 
-// Although a read can cross a page boundary, we follow the same principle as we do 
-// for writes when it comes to page boundaries. The read is send ing the address with 
-// retaining the bus. The PICO library will then use the restart condition. Just like
-// we did in the write buffer counterpart, we need to send the address as one buffer.
+// Although a read can cross a page boundary, we follow the same principle as we 
+// do for writes when it comes to page boundaries. The read is send ing the address
+// with retaining the bus. The PICO library will then use the restart condition. 
+// Just like we did in the write buffer counterpart, we need to send the address 
+// as one buffer.
 //
 // ??? with the next PCB versions, we take out the M24C04
 //----------------------------------------------------------------------------------------
@@ -463,8 +465,8 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 
 //----------------------------------------------------------------------------------------
 // "nvmPutBytesInPage" transmits a set of data bytes only within the page boundary.
-// In general, a write cannot cross a chip internal page boundary. The Chip expects a
-// write to be one sequence with the address bytes first followed by the data bytes
+// In general, a write cannot cross a chip internal page boundary. The Chip expects 
+// a write to be one sequence with the address bytes first followed by the data bytes
 // with no stop or restart condition in between. This took me quite some debugging 
 // to figure  this out. We will have a local buffer where we combine the address and
 // data and then send it.
@@ -512,8 +514,8 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
 //----------------------------------------------------------------------------------------
 // "nvmGetBytes" reads a set of data bytes from the memory. Although read operations
 // do not have a page boundary issue, we stick to the concept to read within page 
-// boundaries as we may one day use more than chip to build NVMs and then we have no
-// problems with crossing chip boundaries.
+// boundaries as we may one day use more than chip to build NVMs and then we have 
+// no problems with crossing chip boundaries.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nvmGetBytes( uint8_t rNum, 
@@ -715,8 +717,8 @@ uint8_t configNvm(  uint8_t     rIdNvm,
 //----------------------------------------------------------------------------------------
 // Controller Board Runtime Map access routines. The runtime map occupies the first 
 // 8 Kbytes of the main controller NVM chip. There are routines for getting and 
-// setting a word as well as routines to read and write a buffer. All access routines
-// are prefixed with "rt".
+// setting a word as well as routines to read and write a buffer. All access 
+// routines are prefixed with "rt".
 //
 //----------------------------------------------------------------------------------------
 uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
@@ -758,12 +760,12 @@ uint32_t rtNvmGetSize( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Extension Board Map access routines. These routines access the NVM on the extension
-// board. The I2C address is formed by the chip common I2C address plus the address 
-// bits of the chip to select the chip on the particular extension board. Similar to
-// the runtime NVM access routines, there are routines for getting and setting a word 
-// as well as routines to read and  write a buffer. All access routines are prefixed 
-// with "ext".
+// Extension Board Map access routines. These routines access the NVM on the 
+// extension board. The I2C address is formed by the chip common I2C address plus
+// the address bits of the chip to select the chip on the particular extension 
+// board. Similar to the runtime NVM access routines, there are routines for 
+// getting and setting a word as well as routines to read and  write a buffer. 
+// All access routines are prefixed with "ext".
 //
 //----------------------------------------------------------------------------------------
 uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
