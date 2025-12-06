@@ -11,15 +11,15 @@
 // LCS - Block Controller - Raspberry PI Pico Implementation
 // Copyright (C) 2024 - 2024 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -39,7 +39,9 @@ using namespace CDC;
 // Block Controller global data.
 //
 //----------------------------------------------------------------------------------------
-uint16_t                        debugMask = DBG_BC_CONFIG | DBG_BC_SETUP | DBG_BC_TRACK_POWER_MGMT;
+uint16_t                        debugMask = DBG_BC_CONFIG | 
+                                            DBG_BC_SETUP | 
+                                            DBG_BC_TRACK_POWER_MGMT;
 
 CdcResourceDescMap              dMap;
 LcsBlockTrackDesc               block1Desc;
@@ -50,11 +52,11 @@ LcsBlockControl                 *blockControl   = nullptr;
 LcsBlockTrack                   *block1         = nullptr;
 LcsBlockTrack                   *block2         = nullptr;
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Setup the resource configuration data and the CDC library.
 //
 // ??? current config - dual block controller
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
     dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
@@ -67,10 +69,10 @@ void setupConfigInfo( ) {
 }
 
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t setupBlockDesc1( ) {
 
     block1Desc.options                         = 0;
@@ -127,12 +129,12 @@ uint8_t printStatus (uint8_t status ) {
   return ( status );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// The LCS runtime callback forwards. We register these routines with the runtime. All they do is to 
-// dispatch the incoming callback to the block controller node object, which in turn will dispatch to the
-// correct block object.
+//----------------------------------------------------------------------------------------
+// The LCS runtime callback forwards. We register these routines with the runtime. 
+// All they do is to dispatch the incoming callback to the block controller node 
+// object, which in turn will dispatch to the correct block object.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId ) {
 
     return ( bcNode -> handleInitCallback( npId ));
@@ -148,17 +150,27 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
     return ( bcNode -> handleLcsMsgCallback( msg ));
 }
 
-uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsReqCallback( uint16_t npId, 
+                        uint8_t item, 
+                        uint16_t *arg1,
+                         uint16_t *arg2 ) {
 
     return( bcNode -> handleLcsReqCallback( npId, item, arg1, arg2 ));
 }
 
-uint8_t lcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
+uint8_t lcsRepCallback( uint16_t npId, 
+                        uint8_t item, 
+                        uint16_t arg1, 
+                        uint16_t arg2, 
+                        uint8_t ret ) {
 
     return ( bcNode -> handleLcsRepCallback( npId, item, arg1, arg2, ret ));
 }
 
-uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
+uint8_t lcsEventCallback( uint16_t npId, 
+                          uint16_t eId, 
+                          uint8_t eAction, 
+                          uint16_t eData ) {
 
     return ( bcNode -> handleLcsEventCallback( npId, eId, eAction, eData ));
 }
@@ -181,7 +193,7 @@ uint8_t trackStateMachine( ) {
 // Init the Runtime.
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t initThrottle( ) {
+uint8_t initBaseStation( ) {
 
     printf( "LCS Block Controller\n" );
     printf( "initLcsRuntime\n" );
@@ -232,12 +244,13 @@ uint8_t registerLcsDrvFunctions( ) {
     return( ret );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Fire up the base station. First all base station modules are initialized. If this is OK, the DCC tack
-// signal generation is enabled, i.e. the interrupt driven DCC packet broadcasting starts. Finally, the 
-// track power is turned on and we give control to the LCS runtime for processing events and requests.
+//----------------------------------------------------------------------------------------
+// Fire up the base station. First all base station modules are initialized. If OK, 
+// the DCC tack signal generation is enabled, i.e. the interrupt driven DCC packet
+// broadcasting starts. Finally, the track power is turned on and we give control 
+// to the LCS runtime for processing events and requests.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t startBlockController( ) {
 
     printf( "Start Block controller\n" );
@@ -275,15 +288,16 @@ uint8_t startBlockController( ) {
     return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// The main program. Setup the runtime, register the callbacks, and get the show on the road.
+//----------------------------------------------------------------------------------------
+// The main program. Setup the runtime, register the callbacks, and get the show 
+// on the road.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int main( ) {
 
     uint8_t rStat = NO_ERR;
 
-    if ( rStat == NO_ERR ) rStat = initThrottle( );
+    if ( rStat == NO_ERR ) rStat = initBaseStation( );
     if ( rStat == NO_ERR ) rStat = registerCallbacks( );
     if ( rStat == NO_ERR ) rStat = registerLcsDrvFunctions( );
     if ( rStat == NO_ERR ) return( startBlockController( ));
@@ -373,5 +387,3 @@ const uint INPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
 
 
 #endif
-
-                            

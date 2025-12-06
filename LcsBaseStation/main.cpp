@@ -3,15 +3,16 @@
 // LCS - Base Station
 //
 //----------------------------------------------------------------------------------------
-// This is the main program for the LCS base station. Every layout would need at least a base station. Its
-// primary task is to manage the DCC loco sessions, generate the DCC signals and manage the dual DCC track
-// power outputs.
+// This is the main program for the LCS base station. Every layout would need at 
+// least a base station. Its primary task is to manage the DCC loco sessions, 
+// generate the DCC signals and manage the dual DCC track power outputs.
 //
-// Like all other LcsNodes, the base station will provide a rich set of variable that can be set and queried.
-// In addition, the base features a command line extension which implements the DCC++ style commands and
-// some more base station specific commands. The idea for the DCC++ command syntax and commands is that these
-// command can also be submitted by a third party software ( e.g. JMRI ). An example would be the JMRI CV
-// programming tool.
+// Like all other LcsNodes, the base station will provide a rich set of variable 
+// that can be set and queried. In addition, the base features a command line
+// extension which implements the DCC++/DCC-EX style commands and some more base 
+// station specific commands. The idea for the DCC++ command syntax and commands 
+// is that these command can also be submitted by a third party software 
+// ( e.g. JMRI ). An example would be the JMRI CV programming tool.
 //
 // ??? we need an idea of system time like DCC. To be broadcasted periodically.
 // ??? we also need a broadcast of the layout system capabilities....
@@ -21,15 +22,15 @@
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -54,13 +55,10 @@ LcsBaseStationDccTrack          progTrack;
 LcsBaseStationLocoSession       locoSessions;
 LcsBaseStationMsgInterface      msgInterface;
 
-
-
-
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Setup the resource configuration data and the CDC library.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void setupConfigInfo( ) {
 
     dMap = LCS_BASE_STATION_BOARD_DESC_B_02_00;
@@ -126,11 +124,11 @@ uint8_t printStatus (uint8_t status ) {
   return ( status );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The node and port initialization callback.
 //
 // ??? when we know what ports we actually need / use, disable the rest of the ports.
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
@@ -142,10 +140,10 @@ uint8_t lcsInitCallback( uint16_t npId ) {
     return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The node or port power fail callback.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsPfailCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
@@ -157,21 +155,21 @@ uint8_t lcsPfailCallback( uint16_t npId ) {
     return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// The base station has also a command line interpreter. The callback is invoked by the core library when
-// there is a command that it does not handle.
+//----------------------------------------------------------------------------------------
+// The base station has also a command line interpreter. The callback is invoked by
+// the core library when there is a command that it does not handle.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsCmdCallback( char *cmdLine ) {
 
     serialCmd.handleSerialCommand( cmdLine );
     return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Other LCS message callbacks. All we do is to list their invocation. ( for now )
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg ) {
 
     printf( "MsgCallback: ", msg  );
@@ -182,9 +180,10 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The LCS core library ends in a loop that manages its internal workings, invoking the callbacks where
-// needed. One set of callbacks are the periodic tasks. The base station needs to periodically run the DCC
-// track state machine for power consumption measurement and so on.  Another periodic task is to refresh the 
+// The LCS core library ends in a loop that manages its internal workings, invoking
+// the callbacks where needed. One set of callbacks are the periodic tasks. The 
+// base station needs to periodically run the DCC track state machine for power 
+// consumption measurement and so on.  Another periodic task is to refresh the 
 // active locomotive session entries.
 //
 //----------------------------------------------------------------------------------------
@@ -207,43 +206,60 @@ uint8_t bsRefreshActiveSessionCallback( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// When the base station node receives a request with an item defined in the user item range or the base
-// station itself issues such a request, the defined callback is invoked.
+// When the base station node receives a request with an item defined in the user
+// item range or the base station itself issues such a request, the defined callback
+// is invoked.
 //
 //----------------------------------------------------------------------------------------
 uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
-    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); else printf( ", arg1: null" );
-    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+    
+    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); 
+    else printf( ", arg1: null" );
+    
+    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
+    else printf( ", arg2: null" );
+    
     return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
-// When the base station gets a reply message for a request previously sent, this callback is invoked.
+// When the base station gets a reply message for a request previously sent, this
+// callback is invoked.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
+uint8_t lcsRepCallback( uint16_t npId, 
+                        uint8_t item,
+                        uint16_t arg1, 
+                        uint16_t arg2, 
+                        uint8_t ret ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
+    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ",
+            npId, item , arg1, arg2, ret );
     return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
-// For any event on the LCS system that the base station is interested in, this callback is invoked.
+// For any event on the LCS system that the base station is interested in, this 
+// callback is invoked.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
+uint8_t lcsEventCallback( uint16_t npId, 
+                          uint16_t eId, 
+                          uint8_t eAction, 
+                          uint16_t eData ) {
 
-    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
+    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+            npId, eId, eAction, eData );
     return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // Init the Runtime.
 //
-//----------------------------------------------------------------------------------------------------------
-uint8_t initThrottle( ) {
+//----------------------------------------------------------------------------------------
+uint8_t initBaseStation( ) {
 
     setupConfigInfo( );
   
@@ -269,7 +285,9 @@ uint8_t setupLocoSessions( ) {
   sessionDesc.maxSessions = 16;
 
   printf( "Setup Session Map -> " );
-  return ( printStatus( locoSessions.setupSessionMap( &sessionDesc, &mainTrack, &progTrack )));
+  return ( printStatus( locoSessions.setupSessionMap( &sessionDesc, 
+                                                      &mainTrack, 
+                                                      &progTrack )));
 }
 
 //----------------------------------------------------------------------------------------
@@ -339,24 +357,29 @@ uint8_t setupDccTrackProg( ) {
 uint8_t setupSerialCommand( ) {
 
   printf( "Setup Serial Command -> " );
-  return ( printStatus( serialCmd.setupSerialCommand( &locoSessions, &mainTrack, &progTrack )));
+  return ( printStatus( serialCmd.setupSerialCommand( &locoSessions, 
+                                                      &mainTrack, 
+                                                      &progTrack )));
 }
 
 //----------------------------------------------------------------------------------------
-// The LCS message interface is initialized in the LCS core library. This routine will set up the receiver
-// handler for incoming LCS message that concern the base station.
+// The LCS message interface is initialized in the LCS core library. This routine 
+// will set up the receiver handler for incoming LCS message that concern the base
+// station.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupMsgInterface( ) {
 
   printf( "Setup LCS Msg Interface -> " );
-  return ( printStatus( msgInterface.setupLcsMsgInterface( &locoSessions, &mainTrack, &progTrack )));
+  return ( printStatus( msgInterface.setupLcsMsgInterface( &locoSessions, 
+                                                           &mainTrack, 
+                                                           &progTrack )));
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // After the initial setup of the runtime library, the callback are registered.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t registerCallbacks( ) {
 
     printf( "Registering Callbacks\n" );
@@ -365,9 +388,7 @@ uint8_t registerCallbacks( ) {
     registerCmdCallback( lcsCmdCallback );
     registerInitCallback( lcsInitCallback );
     registerPfailCallback( lcsPfailCallback );
-   
-   // registerReqCallback( lcsReqCallback );
-     
+    registerReqCallback( lcsReqCallback );
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
     registerTaskCallback( bsMainTrackCallback, MAIN_TRACK_STATE_TIME_INTERVAL );
@@ -377,12 +398,13 @@ uint8_t registerCallbacks( ) {
     return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// Fire up the base station. First all base station modules are initialized. If this is OK, the DCC tack
-// signal generation is enabled, i.e. the interrupt driven DCC packet broadcasting starts. Finally, the 
-// track power is turned on and we give control to the LCS runtime for processing events and requests.
+//----------------------------------------------------------------------------------------
+// Fire up the base station. First all base station modules are initialized. If OK,
+// the DCC tac signal generation is enabled, i.e. the interrupt driven DCC packet 
+// broadcasting starts. Finally, the track power is turned on and we give control 
+// to the LCS runtime for processing events and requests.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t startBaseStation( ) {
 
     uint8_t rStat = NO_ERR; 
@@ -400,10 +422,12 @@ uint8_t startBaseStation( ) {
         mainTrack.powerStart( );
         progTrack.powerStart( );
 
-        // ??? bracket so that it is not printed when no console...
-        mainTrack.printDccTrackStatus( );
-        progTrack.printDccTrackStatus( );
-        printf( "Ready...\n" );
+        if ( usbIsConnected( )) {
+
+            mainTrack.printDccTrackStatus( );
+            progTrack.printDccTrackStatus( );
+            printf( "Ready...\n" );
+        }
     
         startRuntime( );
   }
@@ -411,15 +435,16 @@ uint8_t startBaseStation( ) {
   return( NO_ERR );
 }
 
-//----------------------------------------------------------------------------------------------------------
-// The main program. Setup the runtime, register the callbacks, and get the show on the road.
+//----------------------------------------------------------------------------------------
+// The main program. Setup the runtime, register the callbacks, and get the show 
+// on the road.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 int main( ) {
 
     uint8_t rStat = NO_ERR;
 
-    if ( rStat == NO_ERR ) rStat = initThrottle( );
+    if ( rStat == NO_ERR ) rStat = initBaseStation( );
     if ( rStat == NO_ERR ) rStat = registerCallbacks( );
     if ( rStat == NO_ERR ) return( startBaseStation( ));
 }

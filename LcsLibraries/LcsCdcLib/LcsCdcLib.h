@@ -257,7 +257,8 @@ enum CdcIntEventTyp : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle value.
+// PWM duty cycle. We LCS library specifies a range of 0 to 255 as the duty cycle 
+// value.
 //
 //----------------------------------------------------------------------------------------
 enum CdcPwmDutyCycle : uint8_t {
@@ -267,12 +268,12 @@ enum CdcPwmDutyCycle : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The CDC resource descriptor describes a CDC resource channel. A channel is a hardware
-// entity that the CDC layer offers to the LCS library and the firmware programmer. 
-// Primarily it contains the actual pin settings but also any other relevant data for
-// the particular channel. A channel entry also contains a type and the resource ID 
-// number. The resource ID specifies the index in the resource array where the resource
-// can be found.
+// The CDC resource descriptor describes a CDC resource channel. A channel is a 
+// hardware entity that the CDC layer offers to the LCS library and the firmware 
+// programmer. Primarily it contains the actual pin settings but also any other 
+// relevant data for the particular channel. A channel entry also contains a type
+// and the resource ID number. The resource ID specifies the index in the resource
+// array where the resource can be found.
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceDesc {

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS - Block Controller PIO Program File
+// LCS - Block Controller PIO Program File - Experimental
 //
 //----------------------------------------------------------------------------------------
 // The block controller uses a set of PIO programs to implement the H-Bridge control 
@@ -11,36 +11,37 @@
 // LCS - Block Controller PIO Program File
 // Copyright (C) 2025 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the 
-// terms of the GNU General Public License as published by the Free Software Foundation, 
-// either version 3 of the License, or (at your option) any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE. See the GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along with this
-// program. If not, see http://www.gnu.org/licenses
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------
-// Basic DCC Signal Handler. The block controller uses a small PIO program to control the
-// H-Bridge when DCC mode is enabled. The basic work of the PIO state machine is to relay
-// the inverted DCC input from the OptoCouplers to the output pins which drive the select
-// input of the H-Bridge chip. There are 4 pins this state machine will use:
+// Basic DCC Signal Handler. The block controller uses a small PIO program to 
+// control the H-Bridge when DCC mode is enabled. The basic work of the PIO state
+// machine is to relay the inverted DCC input from the OptoCouplers to the output
+// pins which drive the select input of the H-Bridge chip. There are 4 pins this 
+// state machine will use:
 // 
 //       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
 //       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> 
 //                                          short circuit, 01, 10 -> on, 11 - Z state.
 // 
-// When the DCC input signal drops to 0b00, we either have no signal or the start of the
-// Cutout period. We insert a 4 microsecond delay, which gives some leeway when two 
-// boosters are not entirely in sync, although driven from the same DCC signal. After 
-// this blackout DCC input is relayed to the output. In addition, the start and end of
-// the cutout period is signaled with the PIO state machine interrupt flags.
+// When the DCC input signal drops to 0b00, we either have no signal or the start 
+// of the Cutout period. We insert a 4 microsecond delay, which gives some leeway 
+// when two boosters are not entirely in sync, although driven from the same DCC 
+// signal. After this blackout DCC input is relayed to the output. In addition,
+// the start and end of the cutout period is signaled with the PIO state machine 
+// interrupt flags.
 //
 //----------------------------------------------------------------------------------------
 .program h_bridge_signal_control
@@ -72,33 +73,33 @@ wait_rising:
     jmp main_loop               ; Return to main loop
 
 //----------------------------------------------------------------------------------------
-// When in DCC mode, we need to deal with the cutout and potentially a railcom datagram. 
-// This PIO program will handle the cutout processing as well as the railcom datagram 
-// receive. There are 5 pins this machine will use:
+// When in DCC mode, we need to deal with the cutout and potentially a railcom 
+// datagram. This PIO program will handle the cutout processing as well as the 
+// railcom datagram receive. There are 5 pins this machine will use:
 // 
 //       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
 //       H-Bridge out    - 2 control lines for the H-Bridge: 
 //                                 00 -> short circuit, 01, 10 -> on, 11 - Z state.
 //       Uart in         - UART input from RailCom detector. ( configured as JumpPin )
 //
-// In normal mode, we read in the DCC signals and echo them to the H-Bridge control pins.
-// When a 0b00 is detected, we are at the start if a cutout period. First we place the
-// bridge in a short high impedance mode as described in the basic DCC signal handler. 
-// Next we poll for a start condition on the UART input, or a change in the DCC signal 
-// state. 
+// In normal mode, we read in the DCC signals and echo them to the H-Bridge control
+// pins. When a 0b00 is detected, we are at the start if a cutout period. First we
+// place the bridge in a short high impedance mode as described in the basic DCC 
+// signal handler. Next we poll for a start condition on the UART input, or a change
+// in the DCC signal state. 
 // 
-// A Railcom datagram is a sequence of 2 bytes followed by 6 bytes. We set up a loop 
-// to read and place each byte in the Input FIFO. The state machine needs to be flexible
-// to read in the characters. First, There is a gap between the first 2 bytes and the
-// remainder. The remainder itself can be up to 6 bytes, but also be shorter. We 
-// therefore combine the detection of cutout end, i.e. the H-Bridge control signals
-// change to a 0b01 or 0b10 level with the detection of a UART start bit. When there
-// is no UART input, we will through this test combination ensure that we do not miss
-// the cutout end, and we still can tolerate a gap between the individual bytes to 
-// receive. 
+// A Railcom datagram is a sequence of 2 bytes followed by 6 bytes. We set up a 
+// loop to read and place each byte in the Input FIFO. The state machine needs to 
+// be flexible to read in the characters. First, There is a gap between the first 2 
+// bytes and the remainder. The remainder itself can be up to 6 bytes, but also be
+// shorter. We therefore combine the detection of cutout end, i.e. the H-Bridge 
+// control signals change to a 0b01 or 0b10 level with the detection of a UART 
+// start bit. When there is no UART input, we will through this test combination 
+// ensure that we do not miss the cutout end, and we still can tolerate a gap 
+// between the individual bytes to receive. 
 //
 // The Railcom baud rate is 250 KHz. To accommodate, we run the state machine at 
-// about a 2Mhz clock. So, the simple copy of DCC to output is about 2 microseconds.
+// about a 2Mhz clock.
 //
 //----------------------------------------------------------------------------------------
 .program h_bridge_signal_control_and_railcom
@@ -123,7 +124,8 @@ delay_loop:
 uart_poll:
     mov x, pins                 ; get DCC input 
     jmp pin uart_poll           ; if UART pin high, try again
-    jmp !x, uart_start          ; if DCC input == 0b00, we are still in cutout, read in the UART byte
+    jmp !x, uart_start          ; if DCC input == 0b00, we are still in cutout, 
+                                ; read in the UART byte
     irq 6 rel                   ; otherwise inform that we are leaving
     jmp main_loop               ; back to main loop.
 
@@ -132,9 +134,11 @@ uart_start:
     in null, 32                 ; Clear ISR
 
 bit_loop:
-    in pins, 1 [6]              ; scan data bit, move to input shift register, delay for 6 cycles
+    in pins, 1 [6]              ; scan data bit, move to input shift register, 
+                                ; delay for 6 cycles
     jmp y--, bit_loop           ; get the next bit 
-    jmp pin push_byte           ; got 8 bits, branch on stop condition ( pin should be high )
+    jmp pin push_byte           ; got 8 bits, branch on stop condition 
+                                ; ( pin should be high )
     irq 4 rel                   ; signal a frame error
     jmp wait_rising             ; frame error, go to wait for end of cutout period
 
@@ -149,10 +153,11 @@ wait_rising:
     jmp main_loop               ; back to start.
 
 //----------------------------------------------------------------------------------------
-// Simple DCC Cutout Detect Handler. The block controller uses a small PIO program to 
-// detect the DCC cutout signal when not in DCC mode. It is just used to sync the PWM 
-// signals. We detect the start of a cutout and every Nth time interrupt the CPU. We 
-// set Y from the C -code and need to set every time we served the interrupt.
+// Simple DCC Cutout Detect Handler. The block controller uses a small PIO program 
+// to detect the DCC cutout signal when not in DCC mode. It is just used to sync 
+// the PWM signals. We detect the start of a cutout and every Nth time interrupt 
+// the CPU. We set Y from the C -code and need to set every time we served the 
+// interrupt.
 // 
 //----------------------------------------------------------------------------------------
 .program cutout_detect
@@ -191,11 +196,11 @@ wait_low:
 #include "hardware/gpio.h"
 
 //----------------------------------------------------------------------------------------
-// PIO program for H-Bridge control in DCC mode. The PIO program does just the relay of
-// the DCC signal without RailCom datagram processing. Upon detecting the start of the 
-// cutout period, the H-bridge is placed for 4 microseconds into high impedance state 
-// before entering putting the bridge in cutout node. At the end of the cutout period,
-// an interrupt is raised.
+// PIO program for H-Bridge control in DCC mode. The PIO program does just the relay
+// of the DCC signal without RailCom datagram processing. Upon detecting the start 
+// of the cutout period, the H-bridge is placed for 4 microseconds into high impedance
+// state before entering putting the bridge in cutout node. At the end of the cutout
+// period, an interrupt is raised.
 // 
 //      Input pins:     GPIO 4 and 5    (DCC signal from optocoupler)
 //      Output pins:    GPIO 18 and 19  (to H-bridge)
@@ -270,9 +275,9 @@ static inline void h_bridge_signal_control_and_railcom(
 }
 
 //----------------------------------------------------------------------------------------
-// PIO program for just detecting a cutout sequence. When we are in PWM mode, we do not 
-// copy any DCC signal not do we process railcom datagrams. We just monitor the DCC input
-// pins for a cutout period.
+// PIO program for just detecting a cutout sequence. When we are in PWM mode, we 
+// do not copy any DCC signal not do we process railcom datagrams. We just monitor
+// the DCC input pins for a cutout period.
 //
 //----------------------------------------------------------------------------------------
 static inline void cutout_detect( PIO pio, uint stateMachine, uint dccInputPin ) {
@@ -301,7 +306,8 @@ static inline void cutout_detect( PIO pio, uint stateMachine, uint dccInputPin )
 
 
 //----------------------------------------------------------------------------------------
-// Example how to read the entire datagram via an interrupt signaled by the PIO state machine.
+// Example how to read the entire datagram via an interrupt signaled by the PIO
+//  state machine.
 //
 //
 //----------------------------------------------------------------------------------------

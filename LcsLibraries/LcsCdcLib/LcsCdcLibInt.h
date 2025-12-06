@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <cstring>
+#include <stdarg.h>
 
 #include "LcsCdcLibVersion.h"
 #include "LcsUtilLib.h"

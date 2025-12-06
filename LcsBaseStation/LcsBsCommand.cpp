@@ -3,27 +3,29 @@
 // LCS Base Station - Serial Command Interface - implementation file
 //
 //----------------------------------------------------------------------------------------
-// The serial command interface is used to directly send commands to the session and DCC track objects. The
-// command syntax is patterned after the DCC++ command syntax. Available commands that have a DCC++ counter
-// part are implemented exactly after the DCC++ command specification. The main motivation is to use this 
-// interface for testing and debugging as well as third party tools that also implement the DCC++ command set
-// to send commands to this base station as well when calling the serial IO interface. For the layout control
-// system, the approach would rather be to send LCS messages for all tasks.
+// The serial command interface is used to directly send commands to the session 
+// and DCC track objects. The command syntax is patterned after the DCC++ command
+// syntax. Available commands that have a DCC++ counter part are implemented exactly
+// after the DCC-EX command specification. The main motivation is to use this 
+// interface for testing and debugging as well as third party tools that also 
+// implement the DCC++ command set to send commands to this base station as well 
+// when calling the serial IO interface. For the layout control system, the approach
+// would rather be to send LCS messages for all tasks.
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS - Base Station
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -45,8 +47,9 @@ extern uint16_t debugMask;
 LcsBaseStationCommand::LcsBaseStationCommand( ) { }
 
 //----------------------------------------------------------------------------------------
-// The object setup command. We need to remember the other objects we use in handling the commands. For the
-// serial IO itself nothing to do, it was already done in the LCS runtime setup.
+// The object setup command. We need to remember the other objects we use in handling
+// the commands. For the serial IO itself nothing to do, it was already done in the
+// LCS runtime setup.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationCommand::setupSerialCommand(
@@ -63,12 +66,13 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 }
 
 //----------------------------------------------------------------------------------------
-// "handleSerialCommand" analyzes the command line and invokes the respective command handler. The first
-// character in a command is the command letter. The command is followed by the arguments. For compatibility
-// with the DCC++ original command set, each command that is also a DCC++ command is implemented exactly as
-// the original. This allows external tools, such as the JMRI Decoder Pro configuration tool to be used. The 
-// command handler supports command sequences "<" ... ">" in one line which are processed once the carriage
-// return is hit.
+// "handleSerialCommand" analyzes the command line and invokes the respective command
+// handler. The first character in a command is the command letter. The command is
+// followed by the arguments. For compatibility with the DCC++ original command set,
+// each command that is also a DCC++ command is implemented exactly as the original. 
+// This allows external tools, such as the JMRI Decoder Pro configuration tool to be
+// used. The command handler supports command sequences "<" ... ">" in one line which
+// are processed once the carriage return is hit.
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
@@ -143,7 +147,8 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
             default: {
 
-                if ( strlen( cmdStr ) < sizeof( cmdStr) ) strncat( cmdStr, &s[ charIndex ], 1 );
+                if ( strlen( cmdStr ) < sizeof( cmdStr) ) 
+                    strncat( cmdStr, &s[ charIndex ], 1 );
                 charIndex ++;
             }
         }
@@ -151,8 +156,8 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "openSessionCmd" handles the session creation command. This command is used to allocate a loco session.
-// We are passed the cab ID and return a session Id.
+// "openSessionCmd" handles the session creation command. This command is used to
+// allocate a loco session. We are passed the cab ID and return a session Id.
 //
 //    <O cabId>
 //
@@ -174,8 +179,8 @@ void LcsBaseStationCommand::openSessionCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "closeSessionCmd" handles the session release command. The return code is the CabSession error code. A zero
-// indicates a successful execution.
+// "closeSessionCmd" handles the session release command. The return code is the
+// CabSession error code. A zero indicates a successful execution.
 //
 //    <K sId>
 //
@@ -196,20 +201,26 @@ void LcsBaseStationCommand::closeSessionCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setThrottleCmd" handles the throttle command. The original DCC++ interface uses both the register Id and
-// the cabId. In the new version the sId is sufficient. But just to be compatible with the original
-// DCC++ command, we also pass the cabId. It should be either zero or match the cabId in the allocated session.
+// "setThrottleCmd" handles the throttle command. The original DCC++ interface uses
+// both the register Id and the cabId. In the new version the sId is sufficient. But
+// just to be compatible with the original DCC++ command, we also pass the cabId. 
+// It should be either zero or match the cabId in the allocated session.
 //
 //    <t sId cabId speed direction>
 //
-//    sId         -  the allocated session number.
-//    cabId       -  the Cab Id. The number must match the can number in the session or be zero.
-//    speed       -  throttle speed from 0-126, or -1 for emergency stop (resets SPEED to 0)
-//    direction   -  the direction: 1=forward, 0=reverse. Setting direction when speed=0 only effects
-//                   direction of cab lighting for a stopped train.
+//    sId       -   the allocated session number.
+//    cabId     -   the Cab Id. The number must match the can number in the 
+//                  session or be zero.
+//    speed     -   throttle speed from 0-126, or -1 for emergency stop 
+//                  (resets SPEED to 0)
+//    direction -   the direction: 1=forward, 0=reverse. Setting direction when 
+//                  speed=0 only effects direction of cab lighting for a stopped 
+//                  train.
 //
 //    returns: <t sId speed direction >
 //
+//
+// ??? needs some changes for handling the auto-session mode.
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setThrottleCmd( char *s ) {
 
@@ -219,7 +230,8 @@ void LcsBaseStationCommand::setThrottleCmd( char *s ) {
   uint8_t   direction   = 0;
 
   if ( sscanf( s, "%hhu %hu %hhu %hhu", &sId, &cabId, &speed, &direction ) != 4 ) return;
-  if (( cabId != NIL_CAB_ID ) && ( locoSessions -> getSessionIdByCabId( cabId ) != sId )) return;
+  if (( cabId != NIL_CAB_ID ) && 
+      ( locoSessions -> getSessionIdByCabId( cabId ) != sId )) return;
 
   locoSessions -> setThrottle( sId, speed, direction );
 
@@ -227,9 +239,10 @@ void LcsBaseStationCommand::setThrottleCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setFunctionBitCmd" turns on and off the engine decoder functions F0-F68 (F0 is sometimes called FL). This
-// new command directly transmits the function setting to the engine decoder. The command interface is
-// handling one function number at a time. The base station will handle the DCC byte generation.
+// "setFunctionBitCmd" turns on and off the engine decoder functions F0-F68 (F0 is 
+// sometimes called FL). This new command directly transmits the function setting 
+// to the engine decoder. The command interface is handling one function number at
+// a time. The base station will handle the DCC byte generation.
 //
 //    <v sId funcId val >
 //
@@ -252,10 +265,11 @@ void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setFunctionGroupCmd" sets the engine decoder functions F0-F68 by group byte using the DCC byte instruction
-// format. The user needs to do the calculation as shown in the list below. This command directly transmits
-// the command to the engine decoder. This function requires some user math, and is only there for the DCC++
-// command interface compatibility.
+// "setFunctionGroupCmd" sets the engine decoder functions F0-F68 by group byte using
+// the DCC byte instruction format. The user needs to do the calculation as shown in
+// the list below. This command directly transmits the command to the engine decoder.
+// This function requires some user math, and is only there for the DCC++ command
+// interface compatibility.
 //
 //    <f cabId byte1 [ byte2 ] >
 //
@@ -305,7 +319,8 @@ void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 //
 //    Byte two with N being the starting group index is always:
 //
-//      BYTE2: (FN)*1 + (FN+1)*2 + (FN+2)*4 + (FN+3)*8 + (FN+4)*16 + (FN+5)*32 + (FN+6)*64 + (FN+7)*128
+//      BYTE2: (FN)*1 + (FN+1)*2 + (FN+2)*4 + (FN+3)*8 + (FN+4)*16 + 
+//             (FN+5)*32 + (FN+6)*64 + (FN+7)*128
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
@@ -342,9 +357,9 @@ void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "readCVCmd" reads a configuration variable from the engine decoder on the programming track. The
-// callbacknum and callbacksub parameter are ignored by the base station and just passed back to the caller
-// for identification purposes.
+// "readCVCmd" reads a configuration variable from the engine decoder on the 
+// programming track. The callbacknum and callbacksub parameter are ignored by 
+// the base station and just passed back to the caller for identification purposes.
 //
 //    <R cvId [ callbacknum callbacksub ]>
 //
@@ -354,7 +369,8 @@ void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
 //
 //    returns: <R callbacknum|callbacksub|cvId value>
 //
-//    where value is 0 - 255 of the CV variable or -1 if the value could not be verified.
+//    where value is 0 - 255 of the CV variable or -1 if the value could not
+//    be verified.
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::readCVCmd( char *s ) {
@@ -369,13 +385,14 @@ void LcsBaseStationCommand::readCVCmd( char *s ) {
 
     ret = locoSessions -> readCV( cvId, 0, &val );
 
-    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == LCS_OK ) ? val : -1 ));
+    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, 
+            (( ret == LCS_OK ) ? val : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
-// "writeCVByteCmd" writes a data byte to the engine decoder on the programming track and then verifies it.
-// The callbacknum and callbacksub parameter are ignored by the base station and just passed back to the
-// caller for identification purposes.
+// "writeCVByteCmd" writes a data byte to the engine decoder on the programming 
+// track and then verifies it. The callbacknum and callbacksub parameter are ignored
+// by the base station and just passed back to the caller for identification purposes.
 //
 //    <W cvId val [ callbacknum callbacksub ]>
 //
@@ -397,17 +414,20 @@ void LcsBaseStationCommand::writeCVByteCmd( char *s ) {
     int       callbacksub   = 0;
     int       ret           = 0;
 
-    if ( sscanf( s, "%hu %hhu %d %d", &cvId, &val, &callbacknum, &callbacksub ) < 2 ) return;
+    if ( sscanf( s, "%hu %hhu %d %d", 
+                 &cvId, &val, &callbacknum, &callbacksub ) < 2 ) return;
 
     ret = locoSessions -> writeCVByte( cvId, val );
 
-    printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, (( ret == LCS_OK ) ? val : -1 ));
+    printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, 
+           (( ret == LCS_OK ) ? val : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
-// "writeCVBitCmd" writes a bit to the engine decoder on the programming track and then verifies the
-// operation. The callbacknum and callbacksub parameter are ignored by the base station and just passed back
-// to the caller for identification purposes.
+// "writeCVBitCmd" writes a bit to the engine decoder on the programming track and
+// then verifies the operation. The callbacknum and callbacksub parameter are 
+// ignored by the base station and just passed back to the caller for identification 
+// purposes.
 //
 //    <B cvId bitPos bitVal callbacknum callbacksub>
 //
@@ -431,17 +451,19 @@ void LcsBaseStationCommand::writeCVBitCmd( char *s ) {
     int       callbacksub   = 0;
     int       ret           = 0;
 
-    if ( sscanf( s, "%hu %hhu %hhu %d %d", &cvId, &bitPos, &bitVal, &callbacknum, &callbacksub ) != 5 ) return;
+    if ( sscanf( s, "%hu %hhu %hhu %d %d", 
+                 &cvId, &bitPos, &bitVal, &callbacknum, &callbacksub ) != 5 ) return;
 
     ret = locoSessions -> writeCVBit( cvId, bitPos, bitVal );
 
-    printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, (( ret == LCS_OK ) ? bitVal : -1 ));
+    printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, 
+           (( ret == LCS_OK ) ? bitVal : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
-// "writeCVByteMainCmd" writes a data byte to the engine decoder on the main track, without any verification.
-// To be compatible with the DCC++ command set, the command is using the cabId to identify the loco we talk
-// about.
+// "writeCVByteMainCmd" writes a data byte to the engine decoder on the main track,
+// without any verification. To be compatible with the DCC++ command set, the command
+// is using the cabId to identify the loco we talk about.
 //
 //    <w cabId cvId val >
 //
@@ -460,13 +482,14 @@ void LcsBaseStationCommand::writeCVByteMainCmd( char *s ) {
 
     if ( sscanf( s, "%hu %hu %hhu", &cabId, &cvId, &val ) != 3 ) return;
 
-    locoSessions -> writeCVByteMain( locoSessions -> getSessionIdByCabId( cabId ), cvId, val );
+    locoSessions -> writeCVByteMain( 
+                        locoSessions -> getSessionIdByCabId( cabId ), cvId, val );
 }
 
 //----------------------------------------------------------------------------------------
-// "writeCVBitMainCmd" writes a data byte to the engine decoder on the main track, without any verification.
-// To be compatible with the DCC++ command set, the command is using the cabId to identify the loco we talk
-// about.
+// "writeCVBitMainCmd" writes a data byte to the engine decoder on the main track, 
+// without any verification. To be compatible with the DCC++ command set, the 
+// command is using the cabId to identify the loco we talk about.
 //
 //    <b cabId cvId bitPos bitVal >
 //
@@ -485,15 +508,17 @@ void LcsBaseStationCommand::writeCVBitMainCmd( char *s ) {
     uint8_t   bitPos = 0;
     uint8_t   bitVal = 0;
 
-    if ( sscanf(s, "%hu %hu %hhu %hhu", &cabId, &cvId, &bitPos, &bitVal ) != 4 ) return;
+    if ( sscanf(s, "%hu %hu %hhu %hhu", 
+                &cabId, &cvId, &bitPos, &bitVal ) != 4 ) return;
 
-    locoSessions -> writeCVBitMain( locoSessions -> getSessionIdByCabId( cabId ), cvId, bitPos, bitVal );
+    locoSessions -> writeCVBitMain( 
+        locoSessions -> getSessionIdByCabId( cabId ), cvId, bitPos, bitVal );
 }
 
 //----------------------------------------------------------------------------------------
-// "writeDccPacketMainCmd" writes a DCC packet to the main operations track. This is for testing and debugging
-// and you better know the DCC packet standard by heart :-). The DCC standards define packets up to 15 data
-// bytes payload.
+// "writeDccPacketMainCmd" writes a DCC packet to the main operations track. This
+// is for testing and debugging and you better know the DCC packet standard by 
+// heart :-). The DCC standards define packets up to 15 data bytes payload.
 //
 //    <M byte1 byte2 [ byte3 ... byte10 ]>
 //
@@ -506,18 +531,18 @@ void LcsBaseStationCommand::writeDccPacketMainCmd( char *s ) {
 
     uint8_t b[ 16 ] = { 0 };
     uint8_t nBytes  = sscanf( s,
-                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
-                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                                b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
-                                b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
+                        "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
+                        "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
+                        b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
+                        b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
 
     if ( nBytes >= 3 && nBytes <= 10 ) locoSessions -> writeDccPacketMain( b, nBytes, 0 );
 }
 
 //----------------------------------------------------------------------------------------
-// "writeDccPacketProgCmd" writes a DCC packet to the programming track. This is for testing and debugging and
-// you better know the DCC packet standard by heart :-). The DCC standards define packets up to 15 data
-// bytes payload.
+// "writeDccPacketProgCmd" writes a DCC packet to the programming track. This is
+// for testing and debugging and you better know the DCC packet standard by heart :-). 
+// The DCC standards define packets up to 15 data bytes payload.
 //
 ///    <P byte1 byte2 [ byte3 ... byte10 ]>
 //
@@ -530,17 +555,17 @@ void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
 
     uint8_t b[ 16 ] = { 0 };
     uint8_t nBytes  = sscanf( s,
-                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
-                                "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
-                                b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
-                                b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
+                        "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu"
+                        "%hhu %hhu %hhu %hhu %hhu %hhu %hhu %hhu",
+                        b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
+                        b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
 
     if ( nBytes >= 3 && nBytes <= 10 ) locoSessions -> writeDccPacketProg( b, nBytes, 0 );
 }
 
 //----------------------------------------------------------------------------------------
-// "emergencyStopCmd" handles the emergencyStop command. This new command causes the base station to send out
-// the emergency stop broadcast DCC command.
+// "emergencyStopCmd" handles the emergencyStop command. This new command causes 
+// the base station to send out the emergency stop broadcast DCC command.
 //
 //    <X>
 //
@@ -554,7 +579,8 @@ void LcsBaseStationCommand::emergencyStopCmd( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "turnPowerOnXXX" and "turnPowerOff" enables/disables the main and/or the programming track.
+// "turnPowerOnXXX" and "turnPowerOff" enables/disables the main and/or the 
+// programming track.
 //
 //    <0> - turn operations and programming track power off
 //    <1> - turn operations and programming track power on
@@ -589,7 +615,8 @@ void LcsBaseStationCommand::turnPowerOnProgCmd( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setTrackOptionCmd" turns on and off capabilities of the operations or service track.
+// "setTrackOptionCmd" turns on and off capabilities of the operations or service
+// track.
 //
 //    <C option>
 //
@@ -626,14 +653,15 @@ void LcsBaseStationCommand::setTrackOptionCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printStatusCmd" list information about the base station. Using just a "s" for a summary status is always
-// a good idea to do this just as a first basic test if things are running at all. The level is a positive
-// integer that specifies the information items to be listed.
+// "printStatusCmd" list information about the base station. Using just a "s" for a
+// summary status is always a good idea to do this just as a first basic test if 
+// things are running at all. The level is a positive integer that specifies the
+// information items to be listed.
 //
 //    <s [ opt ]> - the kind of status to display.
 //
-//    returns:  series of status information that can be read by an interface to determine status of the base
-//              station and important settings
+//    returns:  series of status information that can be read by an interface to 
+//              determine status of the base station and important settings
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printStatusCmd( char *s ) {
@@ -665,12 +693,13 @@ void LcsBaseStationCommand::printStatusCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printBaseStationConfigCmd" list information about the base in a DCC++ compatible way.
+// "printBaseStationConfigCmd" list information about the base in a DCC++ 
+// compatible way.
 //
 //    <S> - the basestation configuration.
 //
-//    returns:  series of status information that can be read by an interface to determine status of the base
-//              station and important settings
+//    returns:  series of status information that can be read by an interface 
+//              to determine status of the base station and important settings
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printBaseStationConfigCmd( ) {
@@ -679,8 +708,8 @@ void LcsBaseStationCommand::printBaseStationConfigCmd( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printConfiguration" lists out the key hardware and software settings. Also very useful as the first
-// trouble shooting task.
+// "printConfiguration" lists out the key hardware and software settings. Also very
+// useful as the first trouble shooting task.
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printConfiguration( ) {
@@ -728,7 +757,8 @@ void LcsBaseStationCommand::printTrackStatusProg( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printTrackCurrentCmd" reads the actual current being drawn on the main operations track.
+// "printTrackCurrentCmd" reads the actual current being drawn on the main operations
+//  track.
 //
 //    <a [ track ]>
 //
@@ -747,13 +777,15 @@ void LcsBaseStationCommand::printTrackCurrentCmd( char *s ) {
 
     switch ( opt ) {
 
-        case 0: printf( "%d", mainTrack -> getActualCurrent( )); break;
-        case 1: printf( "%d", progTrack -> getActualCurrent( )); break;
-        case 2: printf( "%d %d", mainTrack -> getActualCurrent( ), progTrack -> getActualCurrent( )); break;
+        case 0: printf( "%d", mainTrack -> getActualCurrent( ));    break;
+        case 1: printf( "%d", progTrack -> getActualCurrent( ));    break;
+        case 2: printf( "%d %d", mainTrack -> getActualCurrent( ), 
+                        progTrack -> getActualCurrent( ));          break;
 
-        case 10: printf( "%d", mainTrack -> getRMSCurrent( )); break;
-        case 11: printf( "%d", progTrack -> getRMSCurrent( )); break;
-        case 12: printf( "%d %d", mainTrack -> getRMSCurrent( ), progTrack -> getRMSCurrent( )); break;
+        case 10: printf( "%d", mainTrack -> getRMSCurrent( ));      break;
+        case 11: printf( "%d", progTrack -> getRMSCurrent( ));      break;
+        case 12: printf( "%d %d", mainTrack -> getRMSCurrent( ), 
+                         progTrack -> getRMSCurrent( ));            break;
 
         default: printf( "%d", mainTrack -> getRMSCurrent( ));
     }
@@ -762,7 +794,8 @@ void LcsBaseStationCommand::printTrackCurrentCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printDccLogCommandCommand" is the command to manage the DCC log for tracing and debugging purposes.
+// "printDccLogCommandCommand" is the command to manage the DCC log for tracing
+// and debugging purposes.
 //
 //    <Y [ opt ]> where "opt" is the command to execute from the DCC Log function.
 //
@@ -834,20 +867,33 @@ void LcsBaseStationCommand::printHelpCmd( ) {
 
     printf( "\nCommands:\n" );
 
-    printf( "<O cabId>                              - allocate a session for the cab\n" );
-    printf( "<K sId>                                - release a session\n" );
-    printf( "<t sId cabId speed dir>                - set cab speed / direction\n" );
-    printf( "<f cabId funcId val >                  - set cab function value, group DCC format\n" );
-    printf( "<v sId funcId val >                    - set cab function value, individual\n" );
-    printf( "<R cvId callbacknum callbacksub >      - read CV byte\n" );
-    printf( "<W cvId val callbacknum callbacksub>   - write CV byte on programming track\n" );
-    printf( "<B cvId bitPos bitVal callbacknum callbacksub> - write CV bit on programming track\n" );
-    printf( "<w cabId cvId val > - write CV byte on operations track\n" );
-    printf( "<b cabId cvId bitPos bitVal > - write CV bit on operations track\n" );
-    printf( "<M sId byte1 byte2 [ byte3 ... byte10 ]> - send DCC packet on operations track to Reg n\n" );
-    printf( "<P sId byte1 byte2 [ byte3 ... byte10 ]> - send DCC packet on programming track to Reg n\n" );
+    printf( "<O cabId>                              " 
+            "- allocate a session for the cab\n" );
+    printf( "<K sId>                                "
+            "- release a session\n" );
+    printf( "<t sId cabId speed dir>                "
+            "- set cab speed / direction\n" );
+    printf( "<f cabId funcId val >                  "
+            "- set cab function value, group DCC format\n" );
+    printf( "<v sId funcId val >                    "
+            "- set cab function value, individual\n" );
+    printf( "<R cvId callbacknum callbacksub >      "
+            "- read CV byte\n" );
+    printf( "<W cvId val callbacknum callbacksub>   "
+            "- write CV byte on programming track\n" );
+    printf( "<B cvId bitPos bitVal callbacknum callbacksub> "
+            "- write CV bit on programming track\n" );
+    printf( "<w cabId cvId val > "
+            "- write CV byte on operations track\n" );
+    printf( "<b cabId cvId bitPos bitVal > "
+            "- write CV bit on operations track\n" );
+    printf( "<M sId byte1 byte2 [ byte3 ... byte10 ]> "
+            "- send DCC packet on operations track to Reg n\n" );
+    printf( "<P sId byte1 byte2 [ byte3 ... byte10 ]> "
+            "- send DCC packet on programming track to Reg n\n" );
 
-    printf( "<C track [option] - set track option, track = 0 -> MAIN, track = 1 -> PROG\n" );
+    printf( "<C track [option] "
+            "- set track option, track = 0 -> MAIN, track = 1 -> PROG\n" );
     printf( "            " " - 1  - set main track cutout on\n" );
     printf( "            " " - 2  - set main track cutout off\n" );
     printf( "            " " - 3  - set main track RailCom on\n" );
@@ -862,7 +908,9 @@ void LcsBaseStationCommand::printHelpCmd( ) {
     printf( "<2> - turn operations track power on\n" );
     printf( "<3> - turn programming track power on\n" );
 
-    printf( "<a [ opt ]>  " " - list current consumption, default is RMS for MAIN\n" );
+    printf( "<a [ opt ]>  " 
+            " - list current consumption, default is RMS for MAIN\n" );
+
     printf( "             " "   - opt 0  - actual - MAIN\n" );
     printf( "             " "   - opt 1  - actual - PROG\n" );
     printf( "             " "   - opt 2  - actual - both\n" );
@@ -870,7 +918,8 @@ void LcsBaseStationCommand::printHelpCmd( ) {
     printf( "             " "   - opt 11 - RMS - PROG\n" );
     printf( "             " "   - opt 12 - RMS - both\n" );
 
-    printf( "<C <option>> - turn on/off the Railcom option on the main track( 0 - off, 1 - on)\n" );
+    printf( "<C <option>> "
+            "- turn on/off the Railcom option on the main track( 0 - off, 1 - on)\n" );
 
     printf( "<s [ level ]>" " - list status at detail level, default is summary\n" );
     printf( "             " "   - level 0 - summary\n" );

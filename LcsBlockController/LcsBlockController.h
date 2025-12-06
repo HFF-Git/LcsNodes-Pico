@@ -4,8 +4,8 @@
 //
 //----------------------------------------------------------------------------------------
 //
-// ??? this is a first cut at the block controller software. It remains to be seen what we should factor out
-// and use across base station and block controller.
+// ??? this is a first cut at the block controller software. It remains to be seen
+// what we should factor out and use across base station and block controller.
 //
 //
 //
@@ -14,15 +14,15 @@
 // LCS Block Controller
 // Copyright (C) 2024 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -92,11 +92,11 @@
 //----------------------------------------------------------------------------------------
 enum BlockControllerDebugFlags : uint16_t {
 
-    DBG_BC_CONFIG                  = 1 << 15,       // DEBUG enabled
-    DBG_BC_SETUP                   = 1 << 1,        // show the setup steps
-    DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,        // show the incoming LCS messages
-    DBG_BC_TRACK_POWER_MGMT        = 1 << 3,        // show the track power measurement data
-    DBG_BC_RAILCOM                 = 1 << 4         // show the RailCom activity
+    DBG_BC_CONFIG                  = 1 << 15,   // DEBUG enabled
+    DBG_BC_SETUP                   = 1 << 1,    // show the setup steps
+    DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,    // show the incoming LCS messages
+    DBG_BC_TRACK_POWER_MGMT        = 1 << 3,    // show the track power measurement data
+    DBG_BC_RAILCOM                 = 1 << 4     // show the RailCom activity
 };
 
 //----------------------------------------------------------------------------------------
@@ -265,7 +265,8 @@ enum BlockControllerErrors : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Setup options to set for the DCC track. They are set when the track object is created.
+// Setup options to set for the DCC track. They are set when the track object is 
+// created.
 //
 //  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
 //  DT_OPT_RAILCOM             - The track support Railcom detection.
@@ -300,24 +301,25 @@ enum TrackFlags : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The following constants are for the current consumption RMS measurement. The idea is to record the measured
-// ADC values in a circular buffer, every time a certain amount of milliseconds has passed. This work is done
-// by the DCC track state machine as part of the power on state.
+// The following constants are for the current consumption RMS measurement. The 
+// idea is to record the measured ADC values in a circular buffer, every time a 
+// certain amount of milliseconds has passed. This work is done by the DCC track 
+// state machine as part of the power on state.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
 const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The track state machine runs at a time interval.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint32_t TRACK_STATE_TIME_INTERVAL  = 10;
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A block track can be in four states.
 //
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 enum BlockTrackMode : uint16_t {
 
     BT_MODE_OFF        = 0,
@@ -327,15 +329,17 @@ enum BlockTrackMode : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The block controller can contain up to four blocks. Each block track is described by the LcsBlockDesc
-// descriptor. There are the hardware pins sel1Pin1, selPin2, sensePin and uartRxPin. In addition there are
-// the limits for current consumption values, all specified in milliAmps. The initial current sets the current
-// consumption limit after the track is turned on. The limit current consumption specifies the actual 
-// configured value that is checked for a track current overload situation. The maximum current defines what 
-// current the power module should never exceed. For the measurements to work, the power module needs to 
-// deliver a voltage that corresponds to the current drawn on the track. The value is measured in milliVolt 
-// per Ampere drawn. Finally, there are threshold times for managing the track overload and restart 
-// capability.
+// The block controller can contain up to four blocks. Each block track is described
+// by the LcsBlockDesc descriptor. There are the hardware pins sel1Pin1, selPin2, 
+// sensePin and uartRxPin. In addition there are the limits for current consumption
+// values, all specified in milliAmps. The initial current sets the current 
+// consumption limit after the track is turned on. The limit current consumption 
+// specifies the actual configured value that is checked for a track current overload
+// situation. The maximum current defines what current the power module should never
+// exceed. For the measurements to work, the power module needs to deliver a voltage
+// that corresponds to the current drawn on the track. The value is measured in 
+// milliVolt per Ampere drawn. Finally, there are threshold times for managing the
+// track overload and restart capability.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBlockTrackDesc {
@@ -362,12 +366,13 @@ struct LcsBlockTrackDesc {
 };
 
 //----------------------------------------------------------------------------------------
-// The "LcsBlockTrack" manages the track of a block. This primarily the power management and control of the 
-// H-Bridge settings. There is one object per track block. At the heart of the object is a state machine that
-// is executed very often for measuring the power consumption and overload detection logic. The tack can 
-// operate in digital or analog mode. In digital mode, the DCC signal from the LCS bus is routed though to
-// the H-Bridge, in analog mode a PWM signal is used to set the H-Bridge emitting a PWM signal with a 
-// positive or negative voltage.
+// The "LcsBlockTrack" manages the track of a block. This primarily the power 
+// management and control of the H-Bridge settings. There is one object per track
+// block. At the heart of the object is a state machine that is executed very often
+// for measuring the power consumption and overload detection logic. The tack can 
+// operate in digital or analog mode. In digital mode, the DCC signal from the LCS
+// bus is routed though to the H-Bridge, in analog mode a PWM signal is used to set
+// the H-Bridge emitting a PWM signal with a positive or negative voltage.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBlockTrack {
@@ -455,9 +460,10 @@ struct LcsBlockTrack {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsOccDetect" manages an Occupancy detector extension board. The track power output of a block controller
-// track is routed to an extension board which implements a set of current detectors. The extension board is
-// access via the extension I2C bus.
+// "LcsOccDetect" manages an Occupancy detector extension board. The track power 
+// output of a block controller track is routed to an extension board which 
+// implements a set of current detectors. The extension board is access via the
+// extension I2C bus.
 //
 //----------------------------------------------------------------------------------------
 struct LcsOccDetect {
@@ -475,8 +481,8 @@ struct LcsOccDetect {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsSignal" manages a signal. A block has a signal for each direction to indicate the state of the next
-// block in a route.
+// "LcsSignal" manages a signal. A block has a signal for each direction to 
+// indicate the state of the next block in a route.
 //
 //----------------------------------------------------------------------------------------
 struct LcsSignalControl {
@@ -524,9 +530,9 @@ struct LcsRailComDetect {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsBlockControl" manages a block. A block consists mainly of the tack itself and the optional elements
-// detectors, signal and turnouts. The block logic, i.e. what to do when the next block is occupied, is 
-// handled here.
+// "LcsBlockControl" manages a block. A block consists mainly of the tack itself 
+// and the optional elements detectors, signal and turnouts. The block logic, i.e.
+// what to do when the next block is occupied, is handled here.
 //
 //
 // ??? runs the block logic
@@ -548,8 +554,8 @@ struct LcsBlockControl {
 };
 
 //----------------------------------------------------------------------------------------
-// A LCS block controller node can host up to four blocks. This object is the main object that manages the
-// blocks on the node.
+// A LCS block controller node can host up to four blocks. This object is the main
+// object that manages the blocks on the node.
 //
 // ??? the node descriptor is an array of block descriptors. They are kept in the NVM ?
 // ??? manages the LCS messages and forwards them to the target block.
@@ -566,9 +572,22 @@ struct LcsBlockControllerNode {
     uint8_t handleResetCallback( uint16_t npId );
     uint8_t handlePfailCallback( uint16_t npId );
     uint8_t handleLcsMsgCallback( uint8_t *msg );
-    uint8_t handleLcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 );
-    uint8_t handleLcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret );
-    uint8_t handleLcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData );
+
+    uint8_t handleLcsReqCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t *arg1, 
+                                  uint16_t *arg2 );
+
+    uint8_t handleLcsRepCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t arg1, 
+                                  uint16_t arg2, 
+                                  uint8_t ret );
+
+    uint8_t handleLcsEventCallback( uint16_t npId, 
+                                    uint16_t eId, 
+                                    uint8_t eAction, 
+                                    uint16_t eData );
 
     private:
 

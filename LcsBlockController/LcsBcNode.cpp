@@ -12,15 +12,15 @@
 // LCS Block Controller
 // Copyright (C) 2014 - 2024  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -118,24 +118,29 @@ uint8_t LcsBlockControllerNode::handleLcsMsgCallback( uint8_t *msg ) {
 }
 
 
-// ??? quick hack for testing. A node should only deal with the block controller object, which in turn has
-// the track object locally.
+// ??? quick hack for testing. A node should only deal with the block controller 
+// object, which in turn has the track object locally.
 
 extern LcsBlockTrack *block1;
 extern LcsBlockTrack *block2;
 
 
 //----------------------------------------------------------------------------------------
-// When the base station node receives a request with an item defined in the user item range or the base
-// station itself issues such a request, the defined callback is invoked.
+// When the base station node receives a request with an item defined in the user
+// item range or the base station itself issues such a request, the defined callback
+// is invoked.
 //
 // ??? should dispatch to the respective objects...
 //----------------------------------------------------------------------------------------
 uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
-    if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); else printf( ", arg1: null" );
-    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); else printf( ", arg2: null" );
+    
+    if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
+    else printf( ", arg1: null" );
+    
+    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
+    else printf( ", arg2: null" );
     printf( "\n" );
 
     switch( item ) {
@@ -167,24 +172,35 @@ uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, uint8_t ite
 }
 
 //----------------------------------------------------------------------------------------
-// When the base station gets a reply message for a request previously sent, this callback is invoked.
+// When the base station gets a reply message for a request previously sent, this
+// callback is invoked.
 //
 // ??? pass to the block that requested...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsRepCallback( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2, uint8_t ret ) {
+uint8_t LcsBlockControllerNode::handleLcsRepCallback( uint16_t npId, 
+                                                      uint8_t item, 
+                                                      uint16_t arg1, 
+                                                      uint16_t arg2, 
+                                                      uint8_t ret ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", npId, item , arg1, arg2, ret );
+    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", 
+            npId, item , arg1, arg2, ret );
     return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// For any event on the LCS system that the block controller is interested in, this callback is invoked.
+// For any event on the LCS system that the block controller is interested in, this
+// callback is invoked.
 //
 // ??? what events to listen to ? where are they configured/set ?
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsEventCallback( uint16_t npId, uint16_t eId, uint8_t eAction, uint16_t eData ) {
+uint8_t LcsBlockControllerNode::handleLcsEventCallback( uint16_t npId, 
+                                                        uint16_t eId, 
+                                                        uint8_t eAction, 
+                                                        uint16_t eData ) {
 
-    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", npId, eId, eAction, eData );
+    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+            npId, eId, eAction, eData );
     return( LCS_OK );
 }
 

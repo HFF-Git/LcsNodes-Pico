@@ -56,7 +56,7 @@ uint8_t printStatus( uint8_t status ) {
 // Init the CDC and Runtime library...
 //
 //----------------------------------------------------------------------------------------------------------
-uint8_t initThrottle( ) {
+uint8_t initBaseStation( ) {
 
     uint8_t rStat = NO_ERR;
 
@@ -84,7 +84,7 @@ uint8_t startLcsRuntime( ) {
 int main( ) {
 
     uint8_t rStat = NO_ERR;
-    if ( rStat == NO_ERR ) rStat = initThrottle( );
+    if ( rStat == NO_ERR ) rStat = initBaseStation( );
     if ( rStat == NO_ERR ) rStat = startLcsRuntime( );
     return( NO_ERR );
 }

@@ -306,11 +306,11 @@ void CabEntry::printCabEntry( ) {
 // Cab Stack Methods.
 //
 //----------------------------------------------------------------------------------------
-// A cab handheld can manage a set of cab entries. One entry is the active cab, the
-// others are in a list of cab entries. The slots are numbered from one to MAX. Each
-// entry describe an engine and its specific settings. The cabEntry stack is restored
-// from the NVM at handheld start. An entry is updated when we change the config 
-// data for a cab.
+// A cab handheld can manage a set of cab entries. One entry is the active cab, 
+// the others are in a list of cab entries. The slots are numbered from one to MAX.
+// Each entry describe an engine and its specific settings. The cabEntry stack is
+// restored from the NVM at handheld start. An entry is updated when we change the
+// config data for a cab.
 //
 //----------------------------------------------------------------------------------------
 CabStack::CabStack( ) {

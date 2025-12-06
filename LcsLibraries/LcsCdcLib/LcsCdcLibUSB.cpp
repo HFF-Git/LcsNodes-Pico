@@ -57,9 +57,6 @@
 
 // #include "pico/stdio_usb.h"
 
-// #include "tusb.h"
-// #include "class/cdc/cdc_device.h"
-
 //----------------------------------------------------------------------------------------
 // Local name space. 
 //
@@ -116,7 +113,7 @@ char usbIoGetChar( int chan, uint32_t timeoutVal ) {
 
     // ??? initial test... we just read as before.
 
-    int ch = stdio_getchar_timeout_us( timeoutVal );
+    int ch = getchar_timeout_us( timeoutVal );
     return (( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
 }      
 

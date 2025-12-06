@@ -19,17 +19,17 @@
 // LCS - Cab Handheld Include file
 // Copyright (C) 2019 - 2025  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+// GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #ifndef CabHandheld_h
@@ -171,11 +171,11 @@ struct CabEntry {
 };
 
 //----------------------------------------------------------------------------------------
-// A cab handheld can manage a set of cab entries. One entry is the active cab, also
-// called the current cab. All operations are applied to the current cab. In addition
-// there is stack of inactive cab entries. The cab stack slots are numbered from one
-// to MAX. The cab entry stack is restored from the NVM at handheld start. Changes
-// to the configuration of a cab entry are stored to the NVM.
+// A cab handheld can manage a set of cab entries. One entry is the active cab, 
+// also called the current cab. All operations are applied to the current cab. In
+// addition there is stack of inactive cab entries. The cab stack slots are numbered
+// from one to MAX. The cab entry stack is restored from the NVM at handheld start.
+// Changes to the configuration of a cab entry are stored to the NVM.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t MAX_CAB_LIST_ENTRIES = 8;
@@ -218,11 +218,11 @@ struct CabStack {
 //      Top Line    ->    : Sel  :  Status Flags   : Down :
 //                        :------:-----------------:------:
 //
-// There are methods to set these fields easy and straightforward. The top and bottom
-// line are printed in an 8x8 font, the two main lines in a 8x16 font. Note that the
-// display object expects rows and columns based on an 8-pixel raster. So, a 128x64
-// screen has 16 columns and 8 rows. A font that takes two rows starts at the lower
-// row of the two rows it occupies.
+// There are methods to set these fields easy and straightforward. The top and 
+// bottom line are printed in an 8x8 font, the two main lines in a 8x16 font. Note
+// that the display object expects rows and columns based on an 8-pixel raster. So,
+// a 128x64 screen has 16 columns and 8 rows. A font that takes two rows starts at
+// the lower row of the two rows it occupies.
 //
 //----------------------------------------------------------------------------------------
 struct CabHandheldScreen : UIScreen {

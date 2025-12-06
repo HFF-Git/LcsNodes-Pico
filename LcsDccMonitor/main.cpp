@@ -3,15 +3,16 @@
 // LCS - DCC Monitor, Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// The DCC monitor is a utility that analyzes a DCC signal received and displays information about signal
-// polarity, cutout detection, and so on. Most importantly, it displays the DCC packet in human readable
-// format. The design is build upon the former DCC Sniffer program, however this monitor is a complete re-
-// design and implementation.
+// The DCC monitor is a utility that analyzes a DCC signal received and displays
+// information about signal polarity, cutout detection, and so on. Most importantly,
+// it displays the DCC packet in human readable format. The design is build upon 
+// the former DCC Sniffer program, however this monitor is a complete re-design and
+// implementation.
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS - DCC Monitor, Raspberry PI Pico Implementation
-// Copyright (C) 2019 - 2024  Helmut Fieres
+// Copyright (C) 2019 - 2025  Helmut Fieres
 //
 //  Original versions: COPYRIGHT (c) 2013-2020
 //
@@ -20,30 +21,15 @@
 //  - Refactored to Version 2.0: Jürgen Winkler, March 2016
 //  - Entirely rewritten to Version 3.0: Helmut Fieres, Oct 2020
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
-//
-//----------------------------------------------------------------------------------------
-//
-// LCS - DCC Monitor, Raspberry PI Pico Implementation
-// Copyright (C) 2020 - 2024 Helmut Fieres
-//
-/// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
-//
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -51,7 +37,6 @@
 #include "LcsDccMonitorBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsDccPktFmtLib.h"
-#include <cstring>
 
 //----------------------------------------------------------------------------------------
 //
@@ -81,8 +66,8 @@ const uint16_t    DEFAULT_REFRESH_TIME_MILLIS   = 4000;
 const uint16_t    MAX_PREAMBLE_READ_ATTEMPTS    = 1024;
 
 //----------------------------------------------------------------------------------------
-// We want to record the ranges of signal wave lengths we see. A simple TsRange object
-// is used to remember the highest and lowest value seen in between resets.
+// We want to record the ranges of signal wave lengths we see. A simple TsRange
+// object is used to remember the highest and lowest value seen in between resets.
 //
 //----------------------------------------------------------------------------------------
 struct TsRange {
@@ -223,45 +208,45 @@ volatile uint32_t lastFallingTs  = 0;
 //----------------------------------------------------------------------------------------
 void dccEdgeChange( uint8_t pin, uint8_t event ) {
 
-  uint32_t  edgeChangeTs  = CDC::getMicros( );
+    uint32_t  edgeChangeTs  = CDC::getMicros( );
 
-  if ( event == CDC::CDC_EVT_RISE ) {
+    if ( event == CDC::CDC_EVT_RISE ) {
 
-    lastRisingTs = edgeChangeTs;
-  }
-  else {
-
-    lastFallingTs = edgeChangeTs;
-    bitBufHead    = ( bitBufHead + 1 ) % BIT_BUFFER_SIZE;
-
-    if ( bitBufHead != bitBufTail ) {
-
-      uint32_t delta = lastFallingTs - lastRisingTs;
-
-      if ( delta < ELAPSED_TIME_40 ) {
-
-        belowSignal.add( delta );
-      }
-      else if ( delta < ELAPSED_TIME_80 ) {
-
-        bitBuffer[ bitBufHead ] = 1;
-        oneBitSignal.add( delta );
-      }
-      else if ( delta < ELAPSED_TIME_200 ) {
-
-        bitBuffer[ bitBufHead ] = 0;
-        zeroBitSignal.add( delta );
-      }
-      else {
-
-        // ??? we cannot easily distinguish cutout from zero. 
-        // Only chance is the long zero period....
-
-        cutoutDetected = true;
-        aboveSignal.add( delta );
-      }
+        lastRisingTs = edgeChangeTs;
     }
-  }
+    else {
+
+        lastFallingTs = edgeChangeTs;
+        bitBufHead    = ( bitBufHead + 1 ) % BIT_BUFFER_SIZE;
+
+        if ( bitBufHead != bitBufTail ) {
+
+            uint32_t delta = lastFallingTs - lastRisingTs;
+
+            if ( delta < ELAPSED_TIME_40 ) {
+
+                belowSignal.add( delta );
+            }
+            else if ( delta < ELAPSED_TIME_80 ) {
+
+                bitBuffer[ bitBufHead ] = 1;
+                oneBitSignal.add( delta );
+            }
+            else if ( delta < ELAPSED_TIME_200 ) {
+
+                bitBuffer[ bitBufHead ] = 0;
+                zeroBitSignal.add( delta );
+            }
+            else {
+
+                // ??? we cannot easily distinguish cutout from zero. 
+                // Only chance is the long zero period....
+
+                cutoutDetected = true;
+                aboveSignal.add( delta );
+            }
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -271,24 +256,24 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
 //----------------------------------------------------------------------------------------
 void startBitDetection( ) {
 
-  bitBufHead = 1;
-  bitBufTail = 0;
+    bitBufHead = 1;
+    bitBufTail = 0;
 
-  uint8_t rStat;
+    uint8_t rStat;
 
-  rStat = configureDio( RNUM_DCC_IN );
-  rStat = registerDioCallback( RNUM_DCC_IN, CDC_EVT_CHANGE, dccEdgeChange );
+    rStat = configureDio( RNUM_DCC_IN );
+    rStat = registerDioCallback( RNUM_DCC_IN, CDC_EVT_CHANGE, dccEdgeChange );
 
-  belowSignal.reset( );
-  oneBitSignal.reset( );
-  zeroBitSignal.reset( );
-  aboveSignal.reset( );
+    belowSignal.reset( );
+    oneBitSignal.reset( );
+    zeroBitSignal.reset( );
+    aboveSignal.reset( );
 }
 
 void stopBitDetection( ) {
 
-  // ??? to do ...
-  // CDC::configureExtInt( cfg.EXT_INT_PIN, nullptr );
+    // ??? to do ...
+    // CDC::configureExtInt( cfg.EXT_INT_PIN, nullptr );
 }
 
 //----------------------------------------------------------------------------------------
@@ -303,12 +288,12 @@ void stopBitDetection( ) {
 //----------------------------------------------------------------------------------------
 uint8_t getBit( ) {
 
-  while ( bitBufTail == bitBufHead );
+    while ( bitBufTail == bitBufHead );
 
-  uint8_t val = bitBuffer[ bitBufTail ];
-  bitBufTail = ( bitBufTail + 1 ) % BIT_BUFFER_SIZE;
+    uint8_t val = bitBuffer[ bitBufTail ];
+    bitBufTail = ( bitBufTail + 1 ) % BIT_BUFFER_SIZE;
 
-  return (val );
+    return (val );
 }
 
 //----------------------------------------------------------------------------------------
@@ -318,122 +303,123 @@ uint8_t getBit( ) {
 //----------------------------------------------------------------------------------------
 void checkForPreamble( ) {
 
-  bool      preambleFound         = false;
-  uint8_t   preambleOneCount      = 0;
-  uint32_t  preambleReadAttempts  = 0;
+    bool      preambleFound         = false;
+    uint8_t   preambleOneCount      = 0;
+    uint32_t  preambleReadAttempts  = 0;
 
-  while ( ! preambleFound ) {
+    while ( ! preambleFound ) {
 
-    uint8_t nextBit = getBit( );
-    if ( nextBit == 1 ) preambleOneCount++;
+        uint8_t nextBit = getBit( );
+        if ( nextBit == 1 ) preambleOneCount++;
 
-    if (( preambleOneCount < DCC_MIN_PRAMBLE_BITS )  && ( nextBit == 0 )) {
+        if (( preambleOneCount < DCC_MIN_PRAMBLE_BITS )  && ( nextBit == 0 )) {
 
-      preambleOneCount  = 0;
-      preambleReadAttempts ++;
+            preambleOneCount  = 0;
+            preambleReadAttempts ++;
 
-      if ( preambleReadAttempts > MAX_PREAMBLE_READ_ATTEMPTS ) {
+            if ( preambleReadAttempts > MAX_PREAMBLE_READ_ATTEMPTS ) {
 
-        printf( "Failed to get a valid preamble..." );
-        preambleReadAttempts  = 0;
-      }
+                printf( "Failed to get a valid preamble..." );
+                preambleReadAttempts  = 0;
+            }
+        }
+
+        if (( preambleOneCount >= DCC_MIN_PRAMBLE_BITS ) && ( nextBit == 0 )) {
+
+            preambleFound = true;
+        }
     }
-
-    if (( preambleOneCount >= DCC_MIN_PRAMBLE_BITS ) && ( nextBit == 0 )) {
-
-      preambleFound = true;
-    }
-  }
 }
 
 //----------------------------------------------------------------------------------------
-// "getPacket" is the routine finally assembles a DCC packet from the bit stream and 
-// verifies that the packet has a valid checksum. Exclusive ORing all bytes of the
-// DCC packet should result in a zero value. The first byte of the packet contains 
-// the packet length. We also do some of the statistics for valid, error, reset
-// and idle packets. For testing the packet formatter routines, the DEBUG option 
-// fills the Dcc Packet buffer with valid packets from a list of test packets.
+// "getPacket" is the routine finally assembles a DCC packet from the bit stream 
+// and verifies that the packet has a valid checksum. Exclusive ORing all bytes of
+// the DCC packet should result in a zero value. The first byte of the packet 
+// contains the packet length. We also do some of the statistics for valid, error,
+// reset and idle packets. For testing the packet formatter routines, the DEBUG 
+// option fills the Dcc Packet buffer with valid packets from a list of test packets.
 //
 // ?? what if there is garbage ? how do we stop after a preamble the reading of 
 // bits that don't make sense ?
 //----------------------------------------------------------------------------------------
 bool getPacket( ) {
 
-  uint8_t checkSum = 0;
+    uint8_t checkSum = 0;
 
-  #if DEBUG_PACKET_FORMATTER == 0
+    #if DEBUG_PACKET_FORMATTER == 0
 
-  bool packetEnd = false;
+    bool packetEnd = false;
 
-  memset( dccPacket, 0, sizeof( dccPacket ));
-  checkForPreamble( );
+    memset( dccPacket, 0, sizeof( dccPacket ));
+    checkForPreamble( );
 
-  while ( ! packetEnd ) {
+    while ( ! packetEnd ) {
 
-    uint8_t newByte = 0;
-    for ( uint8_t n = 0; n < 8; n++ ) newByte = ( newByte << 1 ) + getBit( );
+        uint8_t newByte = 0;
+        for ( uint8_t n = 0; n < 8; n++ ) newByte = ( newByte << 1 ) + getBit( );
 
-    checkSum ^= newByte;
+        checkSum ^= newByte;
 
-    dccPacket[ 0 ] += 1;
-    dccPacket[ dccPacket[ 0 ]] = newByte;
+        dccPacket[ 0 ] += 1;
+        dccPacket[ dccPacket[ 0 ]] = newByte;
 
-    if ( getBit( ) == 1 ) packetEnd = true;
-  }
+        if ( getBit( ) == 1 ) packetEnd = true;
+    }
 
-  #elif DEBUG_PACKET_FORMATTER == 1
+    #elif DEBUG_PACKET_FORMATTER == 1
 
-  fillPacket( );
+    fillPacket( );
 
-  #else
-  #error "Need to set formatter option( 0 or 1 )"
-  #endif
+    #else
+    #error "Need to set formatter option( 0 or 1 )"
+    #endif
 
-  if (( dccPacket[ 0 ] > 0 ) && ( checkSum == 0 )) {
+    if (( dccPacket[ 0 ] > 0 ) && ( checkSum == 0 )) {
 
-    packetsDetected ++;
+        packetsDetected ++;
 
-    if      ( isResetPacket( dccPacket ))  resetPacketsDetected ++;
-    else if ( isIdlePacket( dccPacket ))   idlePacketsDetected ++;
+        if      ( isResetPacket( dccPacket ))  resetPacketsDetected ++;
+        else if ( isIdlePacket( dccPacket ))   idlePacketsDetected ++;
 
-    return ( true );
-  }
-  else {
+        return ( true );
+    }
+    else {
 
-    errPacketsDetected ++;
-    return ( false );
-  }
+        errPacketsDetected ++;
+        return ( false );
+    }
 }
 
 //----------------------------------------------------------------------------------------
-// "isNewPacket" searches the DCC packet buffer. It uses the packet length, the firs
-// two bytes and the checksum to build a packet key. If the packet is not found and 
-// there is still room in the buffer we add it to the buffer and indicate a new packet.
+// "isNewPacket" searches the DCC packet buffer. It uses the packet length, the 
+// first two bytes and the checksum to build a packet key. If the packet is not 
+// found and there is still room in the buffer we add it to the buffer and indicate
+// a new packet.
 //
 //----------------------------------------------------------------------------------------
 bool isNewPacket( uint8_t *dccPkt ) {
 
-  uint32_t pp = dccPkt[ 0 ];
+    uint32_t pp = dccPkt[ 0 ];
 
-  pp = ( pp << 8 ) | dccPkt[ 1 ];
-  pp = ( pp << 8 ) | dccPkt[ 2 ];
-  pp = ( pp << 8 ) | dccPkt[ dccPkt[ 0 ]];
+    pp = ( pp << 8 ) | dccPkt[ 1 ];
+    pp = ( pp << 8 ) | dccPkt[ 2 ];
+    pp = ( pp << 8 ) | dccPkt[ dccPkt[ 0 ]];
 
-  for ( uint8_t n = 0; n < dccPacketBufferSize; n++ ) {
+    for ( uint8_t n = 0; n < dccPacketBufferSize; n++ ) {
 
-    if ( packetBuffer[ n ] == pp ) return ( false );
-  }
-
-  for ( uint8_t m = 0; m < dccPacketBufferSize; m++ ) {
-
-    if ( packetBuffer[ m ] == 0 ) {
-
-      packetBuffer[ m ] = pp;
-      return ( true );
+        if ( packetBuffer[ n ] == pp ) return ( false );
     }
-  }
 
-  return ( false );
+    for ( uint8_t m = 0; m < dccPacketBufferSize; m++ ) {
+
+        if ( packetBuffer[ m ] == 0 ) {
+
+            packetBuffer[ m ] = pp;
+            return ( true );
+        }
+    }
+
+    return ( false );
 }
 
 //----------------------------------------------------------------------------------------
@@ -443,29 +429,29 @@ bool isNewPacket( uint8_t *dccPkt ) {
 //----------------------------------------------------------------------------------------
 void showStatistics( ) {
 
-  if ( showFlags & SHOW_VERBOSE ) {
+    if ( showFlags & SHOW_VERBOSE ) {
 
-    printf( "\n" );
+        printf( "\n" );
 
-    printf( "---> (%d), Packets: %d:%d, reset: $d, idle: %d, cut: %d", 
-            intervalCount, packetsDetected, errPacketsDetected, 
-            resetPacketsDetected, idlePacketsDetected, cutoutDetected );
+        printf( "---> (%d), Packets: %d:%d, reset: $d, idle: %d, cut: %d", 
+                intervalCount, packetsDetected, errPacketsDetected, 
+                resetPacketsDetected, idlePacketsDetected, cutoutDetected );
 
-    #if 0
-    // ??? take them out for now, the numbers are just horrible... need a better method to capture time ...
-    printf( ", Signal lengths: BELOW (%d:%d, ONE (%d:%d), ZERO (%d:%d)), ABOVE (%d:%d)",  
-            belowSignal.getLow( ), 
-            belowSignal.getHigh( ),
-            oneBitSignal.getLow( ),
-            oneBitSignal.getHigh( ),
-            zeroBitSignal.getLow( ),
-            zeroBitSignal.getHigh( ),
-            aboveSignal.getLow( ),
-            aboveSignal.getHigh( ));
-    #endif
+        #if 0
+        // ??? take them out for now, the numbers are just horrible... need a better method to capture time ...
+        printf( ", Signal lengths: BELOW (%d:%d, ONE (%d:%d), ZERO (%d:%d)), ABOVE (%d:%d)",  
+                belowSignal.getLow( ), 
+                belowSignal.getHigh( ),
+                oneBitSignal.getLow( ),
+                oneBitSignal.getHigh( ),
+                zeroBitSignal.getLow( ),
+                zeroBitSignal.getHigh( ),
+                aboveSignal.getLow( ),
+                aboveSignal.getHigh( ));
+        #endif
 
-    printf( "\n" );
-  }
+        printf( "\n" );
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -481,50 +467,52 @@ void showStatistics( ) {
 //----------------------------------------------------------------------------------------
 void showPackets( ) {
 
-  bool lastPacketWasReset = isResetPacket( dccPacket );
+    bool lastPacketWasReset = isResetPacket( dccPacket );
 
-  if ( getPacket( )) {
+    if ( getPacket( )) {
 
-    if (( lastPacketWasReset ) && ( isSvcModePacket( dccPacket )))
-      showFlags |= SHOW_SVC_MODE;
+        if (( lastPacketWasReset ) && ( isSvcModePacket( dccPacket )))
+            showFlags |= SHOW_SVC_MODE;
 
-    if (( showFlags & SHOW_SVC_MODE ) &&
-        ( ! (( isResetPacket( dccPacket )) ||
-             ( isSvcModePacket( dccPacket ))))) showFlags &= ~SHOW_SVC_MODE;
+        if (( showFlags & SHOW_SVC_MODE ) &&
+            ( ! (( isResetPacket( dccPacket )) ||
+                ( isSvcModePacket( dccPacket ))))) showFlags &= ~SHOW_SVC_MODE;
 
-    if ( isNewPacket( dccPacket )) {
+        if ( isNewPacket( dccPacket )) {
 
-      int numChars = 0;
+            int numChars = 0;
 
-      if ((( showFlags & SHOW_IDLE_RESET ) && isResetPacket( dccPacket )) ||
-          (( showFlags & SHOW_IDLE_RESET ) && isIdlePacket( dccPacket ))) {
+            if ((( showFlags & SHOW_IDLE_RESET ) && isResetPacket( dccPacket )) ||
+                (( showFlags & SHOW_IDLE_RESET ) && isIdlePacket( dccPacket ))) {
 
-        numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
-      }
-      else if ( showFlags & SHOW_SVC_MODE ) {
+                numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
+            }
+            else if ( showFlags & SHOW_SVC_MODE ) {
 
-        numChars = formatDccPacketSvcMode( lineBuf, sizeof( lineBuf ), dccPacket );
-      }
-      else {
+                numChars = formatDccPacketSvcMode( lineBuf, sizeof( lineBuf ), dccPacket );
+            }
+            else {
 
-        numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
-      }
+                numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
+            }
 
-      if ( showFlags & SHOW_HEX ) {
+            if ( showFlags & SHOW_HEX ) {
 
-        numChars +=
-          formatDccPacketHex( lineBuf + numChars, sizeof( lineBuf ) - numChars, dccPacket );
-      }
+                numChars += formatDccPacketHex( lineBuf + numChars, 
+                                                sizeof( lineBuf ) - numChars, 
+                                                dccPacket );
+            }
 
-      if ( showFlags & SHOW_BIN ) {
+            if ( showFlags & SHOW_BIN ) {
 
-        numChars +=
-          formatDccPacketBin( lineBuf + numChars, sizeof( lineBuf ) - numChars, dccPacket );
-      }
+                numChars += formatDccPacketBin( lineBuf + numChars, 
+                                                sizeof( lineBuf ) - numChars, 
+                                                dccPacket );
+            }
 
-      if ( numChars > 0 ) printf( lineBuf );
+            if ( numChars > 0 ) printf( lineBuf );
+        }
     }
-  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -535,26 +523,26 @@ void showPackets( ) {
 //----------------------------------------------------------------------------------------
 void refreshBuffer( ) {
 
-  if ( CDC::getMillis( ) > timeToRefreshInMillis ) {
+    if ( getMillis( ) > timeToRefreshInMillis ) {
 
-    timeToRefreshInMillis = CDC::getMillis( ) + refreshTimeInMillis;
+        timeToRefreshInMillis = getMillis( ) + refreshTimeInMillis;
 
-    for ( uint8_t n = 0; n < MAX_DCC_PACKETS; n++ ) packetBuffer[ n ] = 0L;
+        for ( uint8_t n = 0; n < MAX_DCC_PACKETS; n++ ) packetBuffer[ n ] = 0L;
 
-    intervalCount ++;
+        intervalCount ++;
 
-    showStatistics( );
-    belowSignal.reset( );
-    oneBitSignal.reset( );
-    zeroBitSignal.reset( );
-    aboveSignal.reset( );
+        showStatistics( );
+        belowSignal.reset( );
+        oneBitSignal.reset( );
+        zeroBitSignal.reset( );
+        aboveSignal.reset( );
 
-    packetsDetected           = 0;
-    errPacketsDetected        = 0;
-    resetPacketsDetected      = 0;
-    idlePacketsDetected       = 0;
-    cutoutDetected            = false;
-  }
+        packetsDetected           = 0;
+        errPacketsDetected        = 0;
+        resetPacketsDetected      = 0;
+        idlePacketsDetected       = 0;
+        cutoutDetected            = false;
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -563,8 +551,8 @@ void refreshBuffer( ) {
 //----------------------------------------------------------------------------------------
 void printWelcome( ) {
 
-  printf( "DCC Packet Analyzer\n" );
-  printf( "Updates every %d seconds\n", refreshTimeInMillis / 1000 );
+    printf( "DCC Packet Analyzer\n" );
+    printf( "Updates every %d seconds\n", refreshTimeInMillis / 1000 );
 }
 
 //----------------------------------------------------------------------------------------
@@ -573,184 +561,204 @@ void printWelcome( ) {
 //----------------------------------------------------------------------------------------
 void checkUserInput( ) {
 
-  char ch = usbIoGetChar( 0 );
+    char ch = usbIoGetChar( 0 );
 
-  switch (ch ) {
+    switch (ch ) {
 
-    case '0': {
+        case '0': {
 
-      showFlags               = SHOW_LOC | SHOW_ACC | SHOW_BIN | SHOW_IDLE_RESET | SHOW_VERBOSE;
-      refreshTimeInMillis     = DEFAULT_REFRESH_TIME_MILLIS;
-      dccPacketBufferSize     = DEFAULT_DCC_PACKETS;
-      intervalCount           = 0;
-      packetsDetected         = 0;
-      errPacketsDetected      = 0;
-      resetPacketsDetected    = 0;
-      idlePacketsDetected     = 0;
-      
-    } break;
+            showFlags               = SHOW_LOC | SHOW_ACC | SHOW_BIN | 
+                                        SHOW_IDLE_RESET | SHOW_VERBOSE;
 
-    case '1': {
-
-      printf( "Refresh Time = 1s\n" );
-      refreshTimeInMillis = 1000;
-
-    } break;
-
-    case '2': {
-
-      printf( "Refresh Time = 2s\n" );
-      refreshTimeInMillis = 2000;
-
-    } break;
-
-    case '3': {
-
-      printf( "Refresh Time = 4s\n" );
-      refreshTimeInMillis = 4000;
-
-    } break;
-
-    case '4': {
-
-      printf( "Refresh Time = 8s\n" );
-      refreshTimeInMillis = 8000;
-
-    } break;
-
-    case '5': {
-
-      printf( "Refresh Time = 16s\n" );
-      refreshTimeInMillis = 16000;
-
-    } break;
-
-    case '6': {
-
-      printf( "Buffer Size = 16\n" );
-      dccPacketBufferSize = 16;
-      
-    } break;
-
-    case '7': {
-
-      printf( "Buffer Size = 32\n" );
-      dccPacketBufferSize = 32;
-      
-    } break;
-
-    case '8': {
-
-      printf( "Buffer Size = 64\n" );
-      dccPacketBufferSize = 64;
-      
-    } break;
-
-    case '9': {
-
-      printf( "Buffer Size = 128\n" );
-      dccPacketBufferSize = 128;
-      
-    } break;
-
-    case 's': {
-
-      printf( "Status -> " );
-      printf( "Verbose: %d, ", (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
-      printf( "Svc Mode: %d, ", (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
-      printf( "Loc: %d, ", (( showFlags & SHOW_LOC ) ? 1 : 0 ));
-      printf( "Acc: %d, ", (( showFlags & SHOW_ACC ) ? 1 : 0 ));
-      printf( "Hex: %d, ", (( showFlags & SHOW_HEX ) ? 1 : 0 ));
-      printf( "Bin: %d, ", (( showFlags & SHOW_BIN ) ? 1 : 0 ));
-      printf( "Idle-Reset: %d ", (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
-      printf( "Refresh-Time: %d, ", refreshTimeInMillis );
-      printf( "DccPktBuf Size: %d ", dccPacketBufferSize );
-      printf( "\n" );
-
-    } break;
-
-    case 'v': {
+            refreshTimeInMillis     = DEFAULT_REFRESH_TIME_MILLIS;
+            dccPacketBufferSize     = DEFAULT_DCC_PACKETS;
+            intervalCount           = 0;
+            packetsDetected         = 0;
+            errPacketsDetected      = 0;
+            resetPacketsDetected    = 0;
+            idlePacketsDetected     = 0;
         
-      if ( showFlags & SHOW_VERBOSE ) showFlags &= ~SHOW_VERBOSE; else showFlags |= SHOW_VERBOSE;
-      printf( "show verbose = %d\n", (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
-       
-    } break;
+        } break;
 
-    case 'i': {
+        case '1': {
 
-      if ( showFlags & SHOW_IDLE_RESET ) showFlags &= ~SHOW_IDLE_RESET; else showFlags |= SHOW_IDLE_RESET;
-      printf( "show idle/reset packets = %d\n", (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
-      
-    } break;
+            printf( "Refresh Time = 1s\n" );
+            refreshTimeInMillis = 1000;
 
-    case 'a': {
+        } break;
 
-      if ( showFlags & SHOW_ACC ) showFlags &= ~SHOW_ACC; else showFlags |= SHOW_ACC;
-      printf( "show acc packets = %d\n", (( showFlags & SHOW_ACC ) ? 1 : 0 ));
+        case '2': {
+
+            printf( "Refresh Time = 2s\n" );
+            refreshTimeInMillis = 2000;
+
+        } break;
+
+        case '3': {
+
+            printf( "Refresh Time = 4s\n" );
+            refreshTimeInMillis = 4000;
+
+        } break;
+
+        case '4': {
+
+            printf( "Refresh Time = 8s\n" );
+            refreshTimeInMillis = 8000;
+
+        } break;
+
+        case '5': {
+
+            printf( "Refresh Time = 16s\n" );
+            refreshTimeInMillis = 16000;
+
+        } break;
+
+        case '6': {
+
+            printf( "Buffer Size = 16\n" );
+            dccPacketBufferSize = 16;
         
-    } break;
+        } break;
 
-    case 'l': {
+        case '7': {
 
-      if ( showFlags & SHOW_LOC ) showFlags &= ~SHOW_LOC; else showFlags |= SHOW_LOC;
-      printf( "show loc packets = %d\n", (( showFlags & SHOW_LOC ) ? 1 : 0 ));
+            printf( "Buffer Size = 32\n" );
+            dccPacketBufferSize = 32;
         
-    } break;
+        } break;
 
-    case 'h': {
+        case '8': {
 
-      if ( showFlags & SHOW_HEX ) showFlags &= ~SHOW_HEX; else showFlags |= SHOW_HEX;
-      printf( "show packet data in hexadecimal = %d\n", (( showFlags & SHOW_HEX ) ? 1 : 0 ));
-      
-    } break;
-
-    case 'b': {
-
-      if ( showFlags & SHOW_BIN ) showFlags &= ~SHOW_BIN; else showFlags |= SHOW_BIN;
-      printf( "show packet data in binary = %d\n", (( showFlags & SHOW_BIN ) ? 1 : 0 ));
-      
-    } break;
-
-    case 'p': {
-
-      if ( showFlags & SHOW_SVC_MODE ) showFlags &= ~SHOW_SVC_MODE; else showFlags |= SHOW_SVC_MODE;
-      printf( "show service mode = %d\n", (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
+            printf( "Buffer Size = 64\n" );
+            dccPacketBufferSize = 64;
         
-    } break;
+        } break;
 
-    case '?': {
+        case '9': {
 
-      printf( "Available keyboard commands:" );
-      printf( "  0 = reset, defaults" );
-      printf( "  1 = 1s refresh time" );
-      printf( "  2 = 2s" );
-      printf( "  3 = 4s (default)" );
-      printf( "  4 = 8s" );
-      printf( "  5 = 16s" );
-      printf( "\n" );
-      printf( "  6 = 16 DCC packet buffer size" );
-      printf( "  7 = 32" );
-      printf( "  8 = 64 (default)" );
-      printf( "  9 = 128" );
-      printf( "\n" );
-      printf( "  a = accessory packets display on / off toggle" );
-      printf( "  l = locomotive packets display on / off toggle" );
-      printf( "  i = idle packet display on / off toggle" );
-      printf( "\n" );
-      printf( "  h = hexadecimal output of packet data on / off toggle" );
-      printf( "  b = binary output of packet data on / off toggle" );
-      printf( "\n" );
-      printf( "  s = show configuration" );
-      printf( "  v = show verbose packet format" );
-      printf( "  p = show service mode packet format" );
-      printf( "\n" );
+            printf( "Buffer Size = 128\n" );
+            dccPacketBufferSize = 128;
+        
+        } break;
 
-    } break;
+        case 's': {
 
-      case '\r':  break;
-      case '\n':  break;
-      default:    printf( "Invalid command, use '?' for help\n" );
-  }
+            printf( "Status -> " );
+            printf( "Verbose: %d, ", (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
+            printf( "Svc Mode: %d, ", (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
+            printf( "Loc: %d, ", (( showFlags & SHOW_LOC ) ? 1 : 0 ));
+            printf( "Acc: %d, ", (( showFlags & SHOW_ACC ) ? 1 : 0 ));
+            printf( "Hex: %d, ", (( showFlags & SHOW_HEX ) ? 1 : 0 ));
+            printf( "Bin: %d, ", (( showFlags & SHOW_BIN ) ? 1 : 0 ));
+            printf( "Idle-Reset: %d ", (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
+            printf( "Refresh-Time: %d, ", refreshTimeInMillis );
+            printf( "DccPktBuf Size: %d ", dccPacketBufferSize );
+            printf( "\n" );
+
+        } break;
+
+        case 'v': {
+            
+            if ( showFlags & SHOW_VERBOSE ) 
+                showFlags &= ~SHOW_VERBOSE; else showFlags |= SHOW_VERBOSE;
+            printf( "show verbose = %d\n", (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
+        
+        } break;
+
+        case 'i': {
+
+            if ( showFlags & SHOW_IDLE_RESET ) 
+               showFlags &= ~SHOW_IDLE_RESET; else showFlags |= SHOW_IDLE_RESET;
+            printf( "show idle/reset packets = %d\n", 
+                    (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
+        
+        } break;
+
+        case 'a': {
+
+        if ( showFlags & SHOW_ACC ) 
+            showFlags &= ~SHOW_ACC; else showFlags |= SHOW_ACC;
+        
+        printf( "show acc packets = %d\n", 
+                (( showFlags & SHOW_ACC ) ? 1 : 0 ));
+            
+        } break;
+
+        case 'l': {
+
+            if ( showFlags & SHOW_LOC ) 
+                showFlags &= ~SHOW_LOC; else showFlags |= SHOW_LOC;
+
+            printf( "show loc packets = %d\n", 
+                    (( showFlags & SHOW_LOC ) ? 1 : 0 ));
+            
+        } break;
+
+        case 'h': {
+
+            if ( showFlags & SHOW_HEX ) 
+                showFlags &= ~SHOW_HEX; else showFlags |= SHOW_HEX;
+
+            printf( "show packet data in hexadecimal = %d\n", 
+                    (( showFlags & SHOW_HEX ) ? 1 : 0 ));
+        
+        } break;
+
+        case 'b': {
+
+            if ( showFlags & SHOW_BIN ) 
+                showFlags &= ~SHOW_BIN; else showFlags |= SHOW_BIN;
+
+            printf( "show packet data in binary = %d\n", 
+                    (( showFlags & SHOW_BIN ) ? 1 : 0 ));
+        
+        } break;
+
+        case 'p': {
+
+            if ( showFlags & SHOW_SVC_MODE ) 
+                showFlags &= ~SHOW_SVC_MODE; else showFlags |= SHOW_SVC_MODE;
+
+            printf( "show service mode = %d\n", 
+                    (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
+            
+        } break;
+
+        case '?': {
+
+            printf( "Available keyboard commands:" );
+            printf( "  0 = reset, defaults" );
+            printf( "  1 = 1s refresh time" );
+            printf( "  2 = 2s" );
+            printf( "  3 = 4s (default)" );
+            printf( "  4 = 8s" );
+            printf( "  5 = 16s" );
+            printf( "\n" );
+            printf( "  6 = 16 DCC packet buffer size" );
+            printf( "  7 = 32" );
+            printf( "  8 = 64 (default)" );
+            printf( "  9 = 128" );
+            printf( "\n" );
+            printf( "  a = accessory packets display on / off toggle" );
+            printf( "  l = locomotive packets display on / off toggle" );
+            printf( "  i = idle packet display on / off toggle" );
+            printf( "\n" );
+            printf( "  h = hexadecimal output of packet data on / off toggle" );
+            printf( "  b = binary output of packet data on / off toggle" );
+            printf( "\n" );
+            printf( "  s = show configuration" );
+            printf( "  v = show verbose packet format" );
+            printf( "  p = show service mode packet format" );
+            printf( "\n" );
+
+        } break;
+
+        case '\r':  break;
+        case '\n':  break;
+        default:    printf( "Invalid command, use '?' for help\n" );
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -765,67 +773,67 @@ void checkUserInput( ) {
 uint8_t       debugFormatterTestIndex = 0;
 const uint8_t testData[  ] [ 7 ]      = {
 
-  // Loc 1 Forw 21
-  { 3, 0b00000001, 0b01101100, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 1 Forw 21
+    { 3, 0b00000001, 0b01101100, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Idle
-  { 3, 0b11111111, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Idle
+    { 3, 0b11111111, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Reset
-  { 3, 0b00000000, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Reset
+    { 3, 0b00000000, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 1902 Forw 21
-  { 4, 0b11000111, 0b01101110, 0b01101100, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 1902 Forw 21
+    { 4, 0b11000111, 0b01101110, 0b01101100, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 1902 Rev 14
-  { 4, 0b11000111, 0b01101110, 0b01011000, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 1902 Rev 14
+    { 4, 0b11000111, 0b01101110, 0b01011000, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 4 L F4-F1 10000
-  { 3, 0b00000100, 0b10010000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 4 L F4-F1 10000
+    { 3, 0b00000100, 0b10010000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 4 F8-F5 1010
-  { 3, 0b00000100, 0b10111010, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 4 F8-F5 1010
+    { 3, 0b00000100, 0b10111010, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 4 F12-F9 1010
-  { 3, 0b00000100, 0b10101010, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 4 F12-F9 1010
+    { 3, 0b00000100, 0b10101010, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 4 F20-F13 10101010
-  { 4, 0b00000100, 0b11011110, 0b10101010, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 4 F20-F13 10101010
+    { 4, 0b00000100, 0b11011110, 0b10101010, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 1902 F28-F21 10101010
-  { 5, 0b11000111, 0b01101110, 0b11011111, 0b10101010, 0b11111111, 0b11111111 },
+    // Loc 1902 F28-F21 10101010
+    { 5, 0b11000111, 0b01101110, 0b11011111, 0b10101010, 0b11111111, 0b11111111 },
 
-  // Loc 1902 For128 2
-  { 5, 0b11000111, 0b01101110, 0b00111111, 0b10000010, 0b11111111, 0b11111111 },
+    // Loc 1902 For128 2
+    { 5, 0b11000111, 0b01101110, 0b00111111, 0b10000010, 0b11111111, 0b11111111 },
 
-  // Loc 4 BinStateLong 15 On
-  { 5, 0b00000100, 0b11000000, 0b10001111, 0b00000000, 0b11111111, 0b11111111 },
+    // Loc 4 BinStateLong 15 On
+    { 5, 0b00000100, 0b11000000, 0b10001111, 0b00000000, 0b11111111, 0b11111111 },
 
-  // Loc 4 BinStateShort 15 On
-  { 4, 0b00000100, 0b11011101, 0b10001111, 0b11111111, 0b11111111, 0b11111111 },
+    // Loc 4 BinStateShort 15 On
+    { 4, 0b00000100, 0b11011101, 0b10001111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Acc 13:1 1 On
-  { 3, 0b10000011, 0b11111011, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Acc 13:1 1 On
+    { 3, 0b10000011, 0b11111011, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 1902 CV Verify 3 128
-  { 6, 0b11000111, 0b01101110, 0b11100100, 0b00000010, 0b10000000, 0b11111111 },
+    // Loc 1902 CV Verify 3 128
+    { 6, 0b11000111, 0b01101110, 0b11100100, 0b00000010, 0b10000000, 0b11111111 },
 
-  // Reset
-  { 3, 0b00000000, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Reset
+    { 3, 0b00000000, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Reset
-  { 3, 0b00000000, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
+    // Reset
+    { 3, 0b00000000, 0b00000000, 0b11111111, 0b11111111, 0b11111111, 0b11111111 },
 
-  // CV Verify 1 128
-  { 4, 0b01110100, 0b00000000, 0b10000000, 0b11111111, 0b11111111, 0b11111111 },
+    // CV Verify 1 128
+    { 4, 0b01110100, 0b00000000, 0b10000000, 0b11111111, 0b11111111, 0b11111111 },
 
-  // Loc 1902 For128 3
-  { 5, 0b11000111, 0b01101110, 0b00111111, 0b10000011, 0b11111111, 0b11111111 },
+    // Loc 1902 For128 3
+    { 5, 0b11000111, 0b01101110, 0b00111111, 0b10000011, 0b11111111, 0b11111111 },
 
-  // Loc 1782 CV Write 3 128
-  { 6, 0b11000110, 0b11110110, 0b11101100, 0b00000011, 0b10000000, 0b11111111 }
+    // Loc 1782 CV Write 3 128
+    { 6, 0b11000110, 0b11110110, 0b11101100, 0b00000011, 0b10000000, 0b11111111 }
 
-  // ??? add some more .... ?
+    // ??? add some more .... ?
 
 };
 
@@ -838,14 +846,15 @@ const uint8_t testData[  ] [ 7 ]      = {
 //----------------------------------------------------------------------------------------
 void fillPacket( ) {
 
-  debugFormatterTestIndex = ( debugFormatterTestIndex + 1 ) % ( sizeof( testData ) / 7 );
+    debugFormatterTestIndex = 
+            ( debugFormatterTestIndex + 1 ) % ( sizeof( testData ) / 7 );
 
-  memcpy( dccPacket, &testData[ debugFormatterTestIndex ], 7 );
+    memcpy( dccPacket, &testData[ debugFormatterTestIndex ], 7 );
 
-  uint8_t pktCnt = dccPacket[0];
-  uint8_t val    = dccPacket[1];
-  for ( int i = 2; i < pktCnt; i++ ) val ^= dccPacket[ i ];
-  dccPacket[ pktCnt ] = val;
+    uint8_t pktCnt = dccPacket[0];
+    uint8_t val    = dccPacket[1];
+    for ( int i = 2; i < pktCnt; i++ ) val ^= dccPacket[ i ];
+    dccPacket[ pktCnt ] = val;
 }
 
 #endif // DEBUG Formatter
@@ -858,28 +867,28 @@ void fillPacket( ) {
 //----------------------------------------------------------------------------------------
 int main( ) {
 
-  setupConfigInfo( );
+    setupConfigInfo( );
 
-  printWelcome( );
+    printWelcome( );
 
-  #if DEBUG_PACKET_FORMATTER == 0
+    #if DEBUG_PACKET_FORMATTER == 0
 
-    startBitDetection( );
+        startBitDetection( );
 
-  #elif DEBUG_PACKET_FORMATTER == 1
+    #elif DEBUG_PACKET_FORMATTER == 1
 
-    debugFormatterTestIndex = 0;
+        debugFormatterTestIndex = 0;
 
-  #else
-    #error "Need to set formatter option( 0 or 1 )"
-  #endif
+    #else
+        #error "Need to set formatter option( 0 or 1 )"
+    #endif
 
-  while( true ) {
+    while( true ) {
 
-    checkUserInput( );
-    refreshBuffer( );
-    showPackets( );
-  }
-  
-  return( 0 );
+        checkUserInput( );
+        refreshBuffer( );
+        showPackets( );
+    }
+    
+    return( 0 );
 }
