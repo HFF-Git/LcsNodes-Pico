@@ -56,14 +56,14 @@ const uint8_t RNUM_ENCODER_KNOB     = CDC_RN_FIRST_USER_RN + 13;
 //----------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information 
 // about the hardware family, controller type, controller attributes and hardware 
-// resources available on the board. A resource itself described the actual hardware
-// entity that is available. It the resource primarily maps the hardware pins and
-// their function. A GPIO pin and whether it is input output pin is a typical example
-// for such a resource. A resource entry in the resource map has a type and unique Id
-// and the attributes for the particular resource type. The order in the map does not
-// matter, but when accessing the resource, the array index is used. Applications 
-// need to map resource entries to their index. The CDC library provides support 
-// for this mapping.
+// resources available on the board. A resource itself described the actual 
+// hardware entity that is available. It the resource primarily maps the hardware
+// pins and their function. A GPIO pin and whether it is input output pin is a 
+// typical example for such a resource. A resource entry in the resource map has
+// a type and unique Id and the attributes for the particular resource type. The
+// order in the map does not matter, but when accessing the resource, the array 
+// index is used. Applications need to map resource entries to their index. The 
+// CDC library provides support for this mapping.
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {

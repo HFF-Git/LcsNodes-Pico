@@ -41,7 +41,9 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t         debugMask;
-    extern uint16_t         startOptions;
+    extern uint16_t         runtimeOptions;
+    extern uint16_t         firmwareOptions;
+    
     extern LcsHeaderMap     headerMap;
     extern LcsNodeMap       nodeMap;
     extern LcsNodeData      nodeData;
@@ -279,9 +281,15 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
-            case ITEM_ID_OPTIONS: {      
+            case ITEM_ID_RUNTIME_OPTIONS: {      
                 
-                *arg1 = startOptions; 
+                *arg1 = runtimeOptions; 
+                return ( RET_STAT( LCS_OK ));
+            }
+
+            case ITEM_ID_FIRMWARE_OPTIONS: {
+
+                *arg1 = firmwareOptions;
                 return ( RET_STAT( LCS_OK ));
             }
 

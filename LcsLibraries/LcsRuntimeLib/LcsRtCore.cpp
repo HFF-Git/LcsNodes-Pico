@@ -35,7 +35,7 @@ namespace LCS {
     using namespace CDC;
 
     extern uint16_t             debugMask;
-    extern uint16_t             startOptions;
+    extern uint16_t             runtimeOptions;
    
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
@@ -469,7 +469,7 @@ void handleNodeStateInit( ) {
         }
     }
 
-    if ( ! ( startOptions & NPO_SKIP_NODE_ID_CONFIG )) {
+    if ( ! ( runtimeOptions & NPO_SKIP_NODE_ID_CONFIG )) {
 
         sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
         timerVal  = getMillis( );

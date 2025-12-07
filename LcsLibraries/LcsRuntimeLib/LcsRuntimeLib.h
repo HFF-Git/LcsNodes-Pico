@@ -382,26 +382,27 @@ enum LcsPortEventAction : uint8_t {
 enum LcsItems : uint8_t {
 
     ITEM_ID_DEBUG_MASK                  = 1,    
-    ITEM_ID_OPTIONS                     = 2,
-    ITEM_ID_FLAGS                       = 3,
+    ITEM_ID_RUNTIME_OPTIONS             = 2,
+    ITEM_ID_FIRMWARE_OPTIONS            = 3,
+    ITEM_ID_FLAGS                       = 4,
 
-    ITEM_ID_BOARD_INFO                  = 4,
-    ITEM_ID_BOARD_VERSION               = 5,
-    ITEM_ID_CONTROLLER_INFO             = 6,
+    ITEM_ID_BOARD_INFO                  = 5,
+    ITEM_ID_BOARD_VERSION               = 6,
+    ITEM_ID_CONTROLLER_INFO             = 7,
 
-    ITEM_ID_RT_LIB_VERSION              = 7,
-    ITEM_ID_RT_LIB_PATCH_LEVEL          = 8,
+    ITEM_ID_RT_LIB_VERSION              = 8,
+    ITEM_ID_RT_LIB_PATCH_LEVEL          = 9,
 
-    ITEM_ID_TYPE                        = 9,
+    ITEM_ID_TYPE                        = 10,
       
-    ITEM_ID_NODE_STATE                  = 10,
-    ITEM_ID_NODE_ID                     = 11,
-    ITEM_ID_NODE_UID                    = 12,
-    ITEM_ID_RESTART_COUNT               = 13,
+    ITEM_ID_NODE_STATE                  = 11,
+    ITEM_ID_NODE_ID                     = 12,
+    ITEM_ID_NODE_UID                    = 13,
+    ITEM_ID_RESTART_COUNT               = 14,
 
-    ITEM_ID_PORT_MAP_ENTRIES            = 14,
-    ITEM_ID_EVENT_MAP_ENTRIES           = 15,
-    ITEM_ID_ATTR_MAP_ENTRIES            = 16,
+    ITEM_ID_PORT_MAP_ENTRIES            = 15,
+    ITEM_ID_EVENT_MAP_ENTRIES           = 16,
+    ITEM_ID_ATTR_MAP_ENTRIES            = 17,
 
     ITEM_ID_RESET                       = 22,
     

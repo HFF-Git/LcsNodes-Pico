@@ -24,6 +24,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"
@@ -38,7 +40,7 @@ using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 // Global Interrupt handlers. The hardware and low level library will call these 
-// handlers, which in turn will invoke the respective callback function if configured. 
+// handlers, which in turn will invoke the respective callback function. 
 //
 // The repeating timer alarm will handle timer interrupts. We stored the respective 
 // timer resource in the "user_data" field, so that we can get to the interrupt 
@@ -59,9 +61,9 @@ bool repeatingTimerAlarm( repeating_timer_t *rt ) {
 }
 
 //----------------------------------------------------------------------------------------
-// We will support two basic pools of alarms. The first the default pool. The other
-// pool is a high priority pool. A high priority alarm would then interrupt a default
-// priority alarm too.
+// We will support two basic pools of alarms. The first the default pool. The 
+// other pool is a high priority pool. A high priority alarm would then interrupt
+// a default priority alarm too.
 //
 //----------------------------------------------------------------------------------------
 alarm_pool  *highPriAlarmPool   = nullptr;
@@ -121,10 +123,10 @@ uint8_t setupAlarmPools( ) {
 
 //----------------------------------------------------------------------------------------
 // Timer section. The CDC library features a repeating timer with a microsecond 
-// resolution. There are routines to start and stop the timer as well as to allow to
-// set a new limit. The PICO offers a high level function that schedules a repeating
-// timer with the property of measuring the interval also from the start of the 
-// callback invocation. 
+// resolution. There are routines to start and stop the timer as well as to allow
+// to set a new limit. The PICO offers a high level function that schedules a 
+// repeating timer with the property of measuring the interval also from the start
+// of the callback invocation. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureTimer( uint8_t rNum, TimerCallback functionId,  bool pri  ) {

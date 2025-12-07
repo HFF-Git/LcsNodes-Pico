@@ -20,6 +20,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"
@@ -58,11 +60,12 @@ namespace CDC {
 
 //----------------------------------------------------------------------------------------
 // ADC section. The analog input channel represented by the pin is configured. At 
-// initialization, the ADC pin number is validated and the ADC subsystem is initialized.
-// The PICO does an analog read in about 2us. This is so fast, it is sufficient for our
-// purpose, so it does not make much sense to implement an asynchronous option. The 
-// PICO support up to three ADC pins at the dedicated HW pins numbers 26, 27 and 28. 
-// They also need to be mapped an ADC select number for selecting the ADC hardware.
+// initialization, the ADC pin number is validated and the ADC subsystem is 
+// initialized. The PICO does an analog read in about 2us. This is so fast, it is
+// sufficient for our purpose, so it does not make much sense to implement an 
+// asynchronous option. The PICO support up to three ADC pins at the dedicated 
+// HW pins numbers 26, 27 and 28. They also need to be mapped an ADC select number
+// for selecting the ADC hardware.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureAdc( uint8_t rNum ) {

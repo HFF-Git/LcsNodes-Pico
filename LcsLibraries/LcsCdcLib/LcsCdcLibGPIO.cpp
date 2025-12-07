@@ -11,12 +11,12 @@
 // This is typically used for the H-Bridge control pins, which are set at the same 
 // time. 
 //
-// A GPIO pin can also have an attached interrupt handler. When we register a handler
-// for a pin, there are two different PICO lib routines to use. When there is no 
-// handler registered so far, we register the common callback and store the particular
-// GPIO handler in our ISR handler table. Otherwise, we just store the handler in the
-// table and enable the GPIO pin for interrupts. If the resource configured two pins,
-// the handler is set for both pins.
+// A GPIO pin can also have an attached interrupt handler. When registering a 
+// handler for a pin, there are two different PICO lib routines to use. When there 
+// is no handler registered so far, we register the common callback and store the
+// particular GPIO handler in our ISR handler table. Otherwise, we just store the
+// handler in the table and enable the GPIO pin for interrupts. If the resource 
+// configured two pins, the handler is set for both pins.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -33,6 +33,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"
@@ -47,11 +49,11 @@ using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 // Global Interrupt handlers. The hardware and low level library will call these 
-// handlers, which in turn will invoke the respective callback function if configured. 
+// handlers, which in turn will invoke the respective callback function. 
 //
-// The GPIO interrupt handler manages the handler for all possible IO pins. The PICO 
-// can only have one interrupt routine, so we feature an array of handlers where a 
-// handler for a GPIO pin can be registered. 
+// The GPIO interrupt handler manages the handler for all possible IO pins. The 
+// PICO can only have one interrupt routine, so we feature an array of handlers
+// where a handler for a GPIO pin can be registered. 
 // 
 // The interrupt table for the GPIO pin interrupts. The PICO has only one interrupt 
 // handler. We will allocate a table where an interrupt handler can be set for each 

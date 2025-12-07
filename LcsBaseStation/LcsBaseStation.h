@@ -288,6 +288,23 @@ struct LcsBaseStationSessionMapDesc {
 };
 
 //----------------------------------------------------------------------------------------
+// We need also a way of mapping a cabId to a sessionId.
+//
+//----------------------------------------------------------------------------------------
+struct LcsCabSessionEntry {
+
+    uint16_t cabId;  
+    uint8_t  sessionId;   
+};
+
+struct LcsCabSessionMapTable {
+
+    LcsCabSessionEntry map[ MAX_CAB_SESSIONS ];
+    uint16_t           hwm;
+
+};
+
+//----------------------------------------------------------------------------------------
 // For creating the DCC track object, the track is described by the data structure 
 // below. In addition to the hardware pins enablePin, dcc1Pin1, dccPin2 and sensePin,
 // there are the limits for current consumption values, all specified in milliAmps. 

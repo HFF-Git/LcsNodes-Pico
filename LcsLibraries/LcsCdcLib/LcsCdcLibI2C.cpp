@@ -23,6 +23,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"

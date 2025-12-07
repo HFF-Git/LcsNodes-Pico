@@ -24,6 +24,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 
@@ -46,9 +48,9 @@ UIEncoder::UIEncoder( uint8_t rNnum,
 }
 
 //----------------------------------------------------------------------------------------
-// The encoder access routines. The encoder has a position, an lower and upper limit,
-// a time delta between two turns and most importantly a callback routine to invoke 
-// when the position changed.
+// The encoder access routines. The encoder has a position, an lower and upper 
+// limit, a time delta between two turns and most importantly a callback routine
+// to invoke when the position changed.
 //
 //----------------------------------------------------------------------------------------
 void UIEncoder::reset( ) {
@@ -121,6 +123,9 @@ void UIEncoder::attachGetDataFunction( UIGetDataFunctionPair functionId ) {
 //
 //----------------------------------------------------------------------------------------
 void UIEncoder::processTick( ) {
+
+    bool idAVal;
+    bool idBVal;
 
     if ( getDataFunc != nullptr ) {
 

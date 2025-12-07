@@ -37,7 +37,7 @@ namespace LCS {
 using namespace CDC;
 
 extern uint16_t debugMask;
-extern uint16_t startOptions;
+extern uint16_t runtimeOptions;
 
 }; // namespace LCS
 

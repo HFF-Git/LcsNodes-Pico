@@ -4,26 +4,28 @@
 //
 //----------------------------------------------------------------------------------------
 // This library includes some basic utility routines used by various LCS project 
-// parts. Most of the routines are inlined C++ routines defined in this include file.
+// parts. Most of the routines are inlined C++ routines defined in this include 
+// file.
 //
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Command Interpreter
 // Copyright (C) 2025 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation,
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef LCS_UTIL_LIB_h
-#define LCS_UTIL_LIB_h
+#pragma once
 
 //----------------------------------------------------------------------------------------
 //  Basic include files.
@@ -33,7 +35,7 @@
 #include <inttypes.h>
 
 //----------------------------------------------------------------------------------------
-// Little helper functions.
+// Little common helper functions.
 //
 //----------------------------------------------------------------------------------------
 inline uint16_t roundup( uint16_t elements, uint16_t alignSize ) {
@@ -75,5 +77,3 @@ inline bool isInRange( unsigned int val, unsigned int lower, unsigned int upper 
 
     return (( val >= lower ) && ( val <= upper ));
 }
-
-#endif

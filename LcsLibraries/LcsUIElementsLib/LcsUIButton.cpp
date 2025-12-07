@@ -24,6 +24,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
 
@@ -151,10 +153,10 @@ uint8_t UIButton::getResId( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "processTick" is the heart of managing a button. It is essentially a finite state 
-// machine using the current state and the last value read for the button. A value
-// matching the the defined active level is considered an active value for the 
-// button. The state machine has the following states:
+// "processTick" is the heart of managing a button. It is essentially a finite 
+// state machine using the current state and the last value read for the button. 
+// A value matching the the defined active level is considered an active value 
+// for the button. The state machine has the following states:
 //
 //    State 0     - the button becomes active. Remember the starting time and set 
 //                  the state to 1.

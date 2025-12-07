@@ -72,8 +72,10 @@
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    uint16_t            debugMask    = 0;
-    uint16_t            startOptions = NPO_NIL;
+    uint16_t            debugMask       = 0;
+    uint16_t            runtimeOptions  = NPO_NIL;
+    uint16_t            firmwareOptions = NPO_NIL;
+    
     CdcResourceDescMap  dMap;
 
     LcsMsgBusCAN        *msgBus;
@@ -343,7 +345,7 @@ uint8_t initCdcLayer( ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
-    cdcInit( &dMap, startOptions, debugMask );
+    cdcInit( &dMap, runtimeOptions, debugMask );
 
     uint8_t rStat = configureDio(CDC_RN_ACTIVITY_LED);
 
@@ -378,7 +380,7 @@ uint8_t initCdcLayer( ) {
                 printf( "Starting - format mode\n" );
 
                 debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
-                startOptions |= NPO_FORMAT_RUNTIME;
+                runtimeOptions |= NPO_FORMAT_RUNTIME;
                 return ( LCS_OK );
             
             } 
@@ -465,7 +467,7 @@ uint8_t initCanBus( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 
-    watchDogEnable( ! ( startOptions & NPO_DISABLE_WATCHDOG ));    
+    watchDogEnable( ! ( runtimeOptions & NPO_DISABLE_WATCHDOG ));    
     return ( RET_STAT( LCS_OK ));
 }
 
@@ -546,7 +548,7 @@ uint8_t setupNodeNvmHeader(CdcResourceDescMap *map)
 
     uint8_t rStat = LCS_OK;
 
-    if ( startOptions & NPO_FORMAT_RUNTIME ) {
+    if ( runtimeOptions & NPO_FORMAT_RUNTIME ) {
 
         rStat = buildNvmRuntimeStructure( );
         if ( rStat != LCS_OK) {
@@ -967,7 +969,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     uint8_t rStat = LCS_OK;
 
     dMap            = *descMap;
-    startOptions    = options;
+    runtimeOptions    = options;
     debugMask       = dbgMask;
 
     rStat = initCdcLayer( );

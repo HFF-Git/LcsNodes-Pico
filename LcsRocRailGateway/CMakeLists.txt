@@ -11,12 +11,9 @@ if ( TARGET tinyusb_device )
         
         LcsRocRailGatewayBoardDesc.h
         LcsRocRailGateway.h 
-         LcsCanBusMsg.cpp
+        LcsRocnetMsg.cpp
+        LcsCanBusMsg.cpp
         main.cpp
-    
-        LcsUsbChannel1.h
-        LcsUsbChannel1.cpp
-        LcsUsbChannelDesc1.cpp
     )
 
     # Make sure TinyUSB uses your config at compile time

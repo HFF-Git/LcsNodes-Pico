@@ -23,8 +23,7 @@
 // License along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
-#ifndef LcsDccMonitorBoardDesc_h
-#define LcsDccMonitorBoardDesc_h
+#pragma once
  
 #include "LcsCdcLib.h"
 
@@ -89,9 +88,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
 
     //--------------------------------------------------------------------------
     // Controller configuration and common data.
-    //
-    //  OPTION          - option flags for the board. 
-    //  DEBUG MASK      - debug options. They are set by the application.
     //
     //--------------------------------------------------------------------------
     .boardInfo      = CDC_BT_NIL, 
@@ -398,5 +394,3 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
         }
     }
 };
-
-#endif

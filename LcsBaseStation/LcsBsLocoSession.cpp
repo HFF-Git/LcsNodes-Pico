@@ -1159,141 +1159,112 @@ void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
   printf( "\n" );
 }
 
-#if 0 
-//==============================================================================
+
+
+//----------------------------------------------------------------------------------------
+// "cabIdToSessionId" searches the cab/session mapping table.
 //
-// We need way to quickly map from cabId to sessionId. Some systems do not
-// have sessions ( e.g. RocRail ) and just send all data via CabId. I still 
-// need however to manage the sessions for refresh logic and so on.
-//
-// A quick note:
-//==============================================================================
+//----------------------------------------------------------------------------------------
+int cabIdToSessionId(const LcsCabSessionMapTable *map, uint16_t cabId ) {
 
-#define MAX_SESSIONS 256
+    int low  = 0;
+    int high = map -> hwm - 1;
 
-// -------------------------
-// Session state table
-// -------------------------
-typedef struct {
-    uint16_t cabId;
-    // other per-session state fields here
-} SessionState;
+    while ( low <= high ) {
 
-static SessionState session_state[MAX_SESSIONS];
-static uint8_t high_water = 0;
+        int mid = (low + high) / 2;
+        uint16_t k = map-> map[ mid ].cabId;
 
-// -------------------------
-// CabId → SessionId hash map
-// -------------------------
-typedef struct {
-    uint16_t cabId;
-    uint8_t  sessionId;
-} CabMapEntry;
+        if ( k == cabId ) return ( map -> map[ mid ].sessionId ); 
 
-static CabMapEntry cab_map[MAX_SESSIONS];
-
-// simple multiplicative hash
-static inline uint8_t hash16(uint16_t x) {
-    return (x * 37u) & 0xFF;
-}
-
-// Lookup
-static int cabmap_find(uint16_t cabId) {
-    uint8_t h = hash16(cabId);
-    for (uint8_t i = 0; i < MAX_SESSIONS; i++) {
-        uint8_t idx = (h + i) & 0xFF;
-        if (cab_map[idx].cabId == 0)  // empty → stop
-            return -1;
-        if (cab_map[idx].cabId == cabId)
-            return cab_map[idx].sessionId;
+        if ( k < cabId ) low  = mid + 1;
+        else             high = mid - 1;
     }
-    return -1;
+
+    return ( -1 );
 }
 
-// Insert (assumes table not full)
-static int cabmap_insert(uint16_t cabId, uint8_t sessionId) {
-    uint8_t h = hash16(cabId);
-    for (uint8_t i = 0; i < MAX_SESSIONS; i++) {
-        uint8_t idx = (h + i) & 0xFF;
-        if (cab_map[idx].cabId == 0 || cab_map[idx].cabId == cabId) {
-            cab_map[idx].cabId = cabId;
-            cab_map[idx].sessionId = sessionId;
-            return 0;
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+int insertInCabSessionMap( LcsCabSessionMapTable *map,
+                           uint16_t cabId, 
+                           uint8_t sessionId ) {
+
+    if ( map -> hwm >= MAX_CAB_SESSIONS ) return ( -1 );
+
+    int low       = 0;
+    int high      = map -> hwm - 1;
+    int insertPos = map->hwm;
+
+    while (low <= high) {
+
+        int      mid = (low + high) / 2;
+        uint16_t k   = map-> map[mid].cabId;
+
+        if ( k == cabId ) return ( -2 ); // duplicate 
+
+        if ( k < cabId ) {
+
+            low       = mid + 1;
+            insertPos = low;
+
+        } else {
+
+            high      = mid - 1;
+            insertPos = mid;
         }
     }
-    return -1; // full
+
+    // Shift to make room
+    for ( int i = map -> hwm; i > insertPos; i-- ) {
+
+        map->map[ i ] = map->map[ i - 1 ];
+    }
+
+    // Insert new entry
+    map -> map[ insertPos].cabId     = cabId;
+    map -> map[ insertPos].sessionId = sessionId;
+    map -> hwm++;
+
+    return 0;
 }
 
-// Remove with rehash-on-delete
-static void cabmap_remove(uint16_t cabId) {
-    uint8_t h = hash16(cabId);
-    for (uint8_t i = 0; i < MAX_SESSIONS; i++) {
-        uint8_t idx = (h + i) & 0xFF;
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+int removeFromCabSessionMap( LcsCabSessionMapTable *map, uint16_t cabId ) {
 
-        if (cab_map[idx].cabId == 0)
-            return; // not found
+    // First find it
+    int low  = 0;
+    int high = map -> hwm - 1;
+    int pos  = -1;
 
-        if (cab_map[idx].cabId == cabId) {
-            // clear this slot
-            cab_map[idx].cabId = 0;
+    while ( low <= high ) {
 
-            // rehash the cluster that follows
-            uint8_t j = (idx + 1) & 0xFF;
-            while (cab_map[j].cabId != 0) {
-                uint16_t reCab = cab_map[j].cabId;
-                uint8_t  reSid = cab_map[j].sessionId;
+        int mid    = (low + high) / 2;
+        uint16_t k = map -> map[ mid ].cabId;
 
-                cab_map[j].cabId = 0; // clear
-                cabmap_insert(reCab, reSid);
+        if ( k == cabId ) {
 
-                j = (j + 1) & 0xFF;
-            }
-            return;
+            pos = mid;
+            break;
         }
+
+        if ( k < cabId ) low  = mid + 1;
+        else             high = mid - 1;
     }
-}
 
-// -------------------------
-// Session management
-// -------------------------
+    if ( pos < 0 ) return ( -1 ); // not found
 
-// Get or create session
-int get_or_create_session(uint16_t cabId) {
-    if (cabId == 0) return -1; // nil Id not allowed
+    // Shift down
+    for ( int i = pos; i < map-> hwm - 1; i++ ) {
 
-    int sid = cabmap_find(cabId);
-    if (sid >= 0) return sid;
-
-    if (high_water >= MAX_SESSIONS)
-        return -1; // no room
-
-    sid = high_water++;
-    session_state[sid].cabId = cabId;
-
-    cabmap_insert(cabId, sid);
-    return sid;
-}
-
-// Free session by sessionId
-void free_session(uint8_t dead_id) {
-    uint16_t deadCabId = session_state[dead_id].cabId;
-    cabmap_remove(deadCabId);
-
-    uint8_t last_id = --high_water;
-    if (dead_id != last_id) {
-        // move last session into the freed slot
-        session_state[dead_id] = session_state[last_id];
-
-        // update mapping for moved cabId
-        cabmap_insert(session_state[dead_id].cabId, dead_id);
+        map->map[ i ] = map->map[ i + 1 ];
     }
-}
 
-// Walk all sessions
-void walk_sessions(void (*fn)(SessionState *s)) {
-    for (uint8_t i = 0; i < high_water; i++) {
-        fn(&session_state[i]);
-    }
+    map-> hwm--;
+    return 0;
 }
-
-#endif

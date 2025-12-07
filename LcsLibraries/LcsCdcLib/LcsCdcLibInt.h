@@ -10,19 +10,20 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation, 
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef CDC_LIB_INT_h
-#define CDC_LIB_INT_h
+#pragma once
 
 #include <stdio.h>
 #include <stdint.h>
@@ -58,14 +59,15 @@
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// Valid pin mappings for the Raspberry PI Pico board. We construct a set of bitmask
-// for the pin numbers. Pin Numbers range from 0 to 28. The bitmasks specify wether a
-// pin can be assigned to the hardware type purpose. During configuration of a CDC 
-// function, the pins are checked against these bitmasks. All pins can be used as GPIO
-// pins or PWM pins. All other hardware functions are bound to dedicated pins. Note 
-// that we do not check for assigning a pin to several different hardware functions. 
-// All we check is that the pin can be used for the desired purpose. A check performed
-// by the CDC library routines is simply done through:
+// Valid pin mappings for the Raspberry PI Pico board. We construct a set of 
+// bitmask for the pin numbers. Pin Numbers range from 0 to 28. The bitmasks 
+// specify wether a pin can be assigned to the hardware type purpose. During 
+// configuration of a CDC function, the pins are checked against these bitmasks.
+// All pins can be used as GPIO pins or PWM pins. All other hardware functions 
+// are bound to dedicated pins. Note that we do not check for assigning a pin to
+// several different hardware functions. All we check is that the pin can be used 
+// for the desired purpose. A check performed by the CDC library routines is simply
+// done through:
 //
 //    if (( 1 <<  pin ) & VALID_xxx )
 //
@@ -107,7 +109,8 @@ const uint32_t VALID_UART_0_PINS = VALID_UART_0_TX_PINS | VALID_UART_0_RX_PINS;
 const uint32_t VALID_UART_1_PINS = VALID_UART_1_TX_PINS | VALID_UART_1_RX_PINS;
 
 //----------------------------------------------------------------------------------------
-// Characteristics of the Raspberry Pi Pico and some key constants for the CDC library.
+// Characteristics of the Raspberry Pi Pico and some key constants for the CDC 
+// library.
 // 
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_CPU_CORE                = 2;
@@ -136,9 +139,9 @@ const uint16_t  DEFAULT_CLICK_MILLIS      = 40;
 const uint16_t  DEFAULT_PRESS_MILLIS      = 500;
 
 //----------------------------------------------------------------------------------------
-// Controller dependent code uses a set of hardware resource structures to control the
-// controller hardware. When a particular resource, e.g. an I2C channel, is configured
-// all further access will use the resource data for its operation. 
+// Controller dependent code uses a set of hardware resource structures to control
+// the controller hardware. When a particular resource, e.g. an I2C channel, is 
+// configured all further access will use the resource data for its operation. 
 //
 //----------------------------------------------------------------------------------------
 
@@ -154,7 +157,8 @@ struct CdcResource {
     union {
 
         //--------------------------------------------------------------------------------
-        // A timer resource. We need to keep the local timer instance data for the PICO.
+        // A timer resource. We need to keep the local timer instance data for 
+        // the PICO.
         //
         //--------------------------------------------------------------------------------
         struct {
@@ -167,9 +171,9 @@ struct CdcResource {
         } timer;
 
         //--------------------------------------------------------------------------------
-        // The GPIO resource is perhaps the most fundamental resource. It manages a HW
-        // pin. Optional, we can have two pins which then act as pair and are read from
-        // or written to simultaneously.
+        // The GPIO resource is perhaps the most fundamental resource. It manages
+        // a HW pin. Optional, we can have two pins which then act as pair and are
+        // read from or written to simultaneously.
         // 
         //--------------------------------------------------------------------------------
         struct {
@@ -182,9 +186,9 @@ struct CdcResource {
         } gpio;
 
         //--------------------------------------------------------------------------------
-        // An ADC instance. The PICO supports up to three ADC inputs. When we use such
-        // an input, the corresponding instance data is kept in this structure. We also
-        // keep the PICO ADC number, so we can select the correct HW instance.
+        // An ADC instance. The PICO supports up to three ADC inputs. When we use 
+        // such an input, the corresponding instance data is kept in this structure. 
+        // We also keep the PICO ADC number, so we can select the correct HW instance.
         //
         //--------------------------------------------------------------------------------
         struct {
@@ -196,7 +200,7 @@ struct CdcResource {
 
         //--------------------------------------------------------------------------------
         // The PWM output resource manages a PWM configured output pin. We keep track 
-        // of one or two pins, which must be on the same PWM slice. The idea is  that 
+        // of one or two pins, which must be on the same PWM slice. The idea is that 
         // we use for H-Bridge control two output signals, which act as a pair. 
         //
         //--------------------------------------------------------------------------------
@@ -214,9 +218,9 @@ struct CdcResource {
         } pwm;
 
         //--------------------------------------------------------------------------------
-        // UARTS are used to read in a serial stream from the RailCom detectors. There
-        // can be two hardware based UART resources. The resource also keeps a small
-        // buffer where the data is read into.
+        // UARTS are used to read in a serial stream from the RailCom detectors. 
+        // There can be two hardware based UART resources. The resource also keeps
+        // a small buffer where the data is read into.
         //
         //--------------------------------------------------------------------------------
         struct {
@@ -237,9 +241,10 @@ struct CdcResource {
         } uart;
     
         //--------------------------------------------------------------------------------
-        // The PICO features two I2C HW channels. The resource data contains the GPIO
-        // pins assigned, the baud rate and a timeout. We also keep an I2C address root,
-        // which comes in handy for addressing chips with the same root address.
+        // The PICO features two I2C HW channels. The resource data contains the 
+        // GPIO pins assigned, the baud rate and a timeout. We also keep an I2C 
+        // address root, which comes in handy for addressing chips with the same 
+        // root address.
         //
         //--------------------------------------------------------------------------------
         struct {
@@ -255,10 +260,10 @@ struct CdcResource {
         } i2c;
 
         //--------------------------------------------------------------------------------
-        // The CAN bus resource. Although our current controller does not feature a
-        // CAN bus hardware, the resource describes the hardware elements needed. 
-        // We currently use a software version based on a PIO program to implement the
-        // CAN bus layer. 
+        // The CAN bus resource. Although our current controller does not feature
+        // a CAN bus hardware, the resource describes the hardware elements needed. 
+        // We currently use a software version based on a PIO program to implement 
+        // the CAN bus layer. 
         // 
         //--------------------------------------------------------------------------------
         struct {
@@ -274,10 +279,10 @@ struct CdcResource {
 };
 
 //----------------------------------------------------------------------------------------
-// The resource map is the central data structure to talk to the hardware. It is built
-// at runtime startup using the resource descriptor map. Essentially it contain all the
-// data from the resource descriptors and depending on the descriptor type the PICO
-// data structures necessary.
+// The resource map is the central data structure to talk to the hardware. It 
+// is built at runtime startup using the resource descriptor map. Essentially it 
+// contain all the data from the resource descriptors and depending on the 
+// descriptor type the PICO data structures necessary.
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceMap {
@@ -295,5 +300,3 @@ struct CdcResourceMap {
     char                name[ MAX_RES_NAME ];
     CdcResource         map[ MAX_RESOURCE_ENTRIES ];
 };
-
-#endif

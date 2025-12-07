@@ -20,6 +20,8 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+//
 //----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
 #include "LcsCdcLibInt.h"
@@ -58,11 +60,11 @@ namespace CDC {
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// CAN bus Section. The CAN bus is the message bus used for LCS. For the PICO there 
-// is a library "can2040" which implements the CAN protocol using the PIO state machine.
-// This saves us hardware. The resource is the structure where we just keep the HW pins,
-// the baud rate, and whether we run on one or two CPUs. In other words, we do not 
-// describe a PICO hardware block.
+// CAN bus Section. The CAN bus is the message bus used for LCS. For the PICO 
+// there is a library "can2040" which implements the CAN protocol using the PIO 
+// state machine. This saves us hardware. The resource is the structure where we
+// just keep the HW pins, the baud rate, and whether we run on one or two CPUs. 
+// In other words, we do not describe a PICO hardware block.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureCanBus( uint8_t rNum ) {

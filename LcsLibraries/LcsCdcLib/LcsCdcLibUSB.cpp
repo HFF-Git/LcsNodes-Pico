@@ -34,7 +34,8 @@
 // expects a config file only defined at the program level. NOT the library level. 
 // It sounds like we need to rely on the CDC library handling channel zero, and do
 // some rather tinyUSB low level coding in a gateway. I had hoped to avoid this
-// ugly exposure of detail. Sigh.
+// ugly exposure of detail. Additional channels are handled in the firmware that
+// use it. Sigh.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -50,6 +51,8 @@
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsCdcLib.h"
@@ -77,7 +80,7 @@ namespace CDC {
 
 //----------------------------------------------------------------------------------------
 // Configure the USB console IO. This routine sets up the stdio via the USB
-// connector. The routine needs to be called rather early during the initialization
+// connector. The routine needs to be called rather early during the setup
 // sequence so that debug messages can be printed out.
 //
 //----------------------------------------------------------------------------------------
@@ -89,8 +92,8 @@ uint8_t configureUsbIO( ) {
 
 //----------------------------------------------------------------------------------------
 // Check whether there is a USB connection. The routine checks the VBUS pin
-// to see whether there is power on the USB connector. If yes, we assume there is
-// a connection.
+// to see whether there is power on the USB connector. If yes, we assume there 
+// is a connection.
 //
 //----------------------------------------------------------------------------------------
 bool usbIsConnected( ) {
@@ -102,11 +105,11 @@ bool usbIsConnected( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Get a character from the USB console IO. The routine attempts to read a character
-// from the USB console. If there is no character available, the routine will wait
-// up to the specified timeout value in microseconds. If no character is received
-// within the timeout period, the routine returns 0. If timeoutVal is 0, the routine
-// returns immediately.
+// Get a character from the USB console IO. The routine attempts to read a 
+// character from the USB console. If there is no character available, the routine 
+// will wait up to the specified timeout value in microseconds. If no character is
+// received within the timeout period, the routine returns 0. If timeoutVal is 0, 
+// the routine returns immediately.
 //
 //----------------------------------------------------------------------------------------
 char usbIoGetChar( int chan, uint32_t timeoutVal ) {

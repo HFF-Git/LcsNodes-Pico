@@ -20,16 +20,16 @@
 // is used when the "tick" function is called to advance the state machines in the
 // relevant UI elements objects.
 //
-// UILed
-// UIButton
-// UIEncoder
+//  UILed
+//  UIButton
+//  UIEncoder
 //
-// UIDisplay
-// UIDisplayLcdI2C
-// UIDisplayLcdP
-// UIDisplayOledSSD1306
+//  UIDisplay
+//  UIDisplayLcdI2C
+//  UIDisplayLcdP
+//  UIDisplayOledSSD1306
 //
-// UIScreen
+//  UIScreen
 //
 //----------------------------------------------------------------------------------------
 // Some of the UI Element classes were inspired by the work of "Matthias Hertel", 
@@ -38,7 +38,7 @@
 // all managed by a state machine that advances with a call to the function "tick".
 //
 // ( Original state machine -> 
-//                      Copyright (c) by Matthias Hertel, https://www.mathertel.de.)
+//                    Copyright (c) by Matthias Hertel, https://www.mathertel.de.)
 //----------------------------------------------------------------------------------------
 //
 // UI Elements
@@ -51,8 +51,10 @@
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this
+// should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #ifndef UI_ELEMENTS_h
@@ -79,12 +81,12 @@ using namespace CDC;
 // a fixed column and row size, the Oled displays support a column and row size 
 // that depends on the font used. 
 //
-// For simplicity, we will only support a few fonts. There is an 8x8 pixel font and
-// a 8x16 font. The configured size is encoded in column / row numbers at the end 
-// of the type of display.
+// For simplicity, we will only support a few fonts. There is an 8x8 pixel font 
+// and a 8x16 font. The configured size is encoded in column / row numbers at the
+// end of the type of display.
 //
-// ??? perhaps rethink this one. We could always think in units of 8 pixels and do 
-// the math what to say for row and column at caller level.
+// ??? perhaps rethink this one. We could always think in units of 8 pixels and 
+// do  the math what to say for row and column at caller level.
 //
 // ??? this needs to map to what we have for OLED and LCD...
 //----------------------------------------------------------------------------------------
@@ -145,9 +147,9 @@ typedef void ( *UIGetDataFunctionPair ) ( uint8_t rNum, bool *val1, bool *val2 )
 // static functions, "setup" and "tick", which typically are called in the firmware 
 // setup and loop phase. Especially the tick function should be called very often, 
 // as it advances the state machine in each UI element via "processTick". The UI 
-// elements themselves are added to a linked list so that we can process all elements
-// created. This class can not be instantiated, only the subclasses can. Each UI
-// Element features also a resource ID to keep an use case specific ID.
+// elements themselves are added to a linked list so that we can process all 
+// elements created. This class can not be instantiated, only the subclasses can. 
+// Each UI element features also a resource ID to keep an use case specific ID.
 //
 //----------------------------------------------------------------------------------------
 struct UIElements {
@@ -253,8 +255,6 @@ struct UIEncoder : UIElements {
 
     uint8_t                 rNum                = UNDEFINED_RES_ID;
     bool                    activeLow           = false;
-    bool                    idAVal              = false;
-    bool                    idBVal              = false;
     bool                    oldState            = false;
     int                     position            = 0;
     int                     positionPrev        = 0;
@@ -268,7 +268,7 @@ struct UIEncoder : UIElements {
 };
 
 //----------------------------------------------------------------------------------------
-// "UILed" class definition.
+// "UILed" class definition. 
 //
 //----------------------------------------------------------------------------------------
 struct UILed : UIElements {

@@ -3,44 +3,47 @@
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 //
 //----------------------------------------------------------------------------------------
-// The controller dependent code layer concentrates all processor dependent code into
-// one library. The idea is twofold. First, there needs to be a way to isolate the 
-// controller specific hardware from the LCS library as well as the extension module
-// firmware. The Raspberry PI Pico offers a C++ SDK with a set of libraries to invoke
-// the desired hardware function rather than access to registers. The Pico also offers
-// a great flexibility of pin assignment for the hardware IO functions. Mapping the 
-// pins to functions is the first key goal. Second, within the hardware IO boundaries
-// of the controller family the individual hardware pin assignment used may vary from
-// board to board design. The goal is also to describe a board by type and version.
+// The controller dependent code layer concentrates all processor dependent code 
+// into one library. The idea is twofold. First, there needs to be a way to isolate
+// the controller specific hardware from the LCS library as well as the extension 
+// module firmware. The Raspberry PI Pico offers a C++ SDK with a set of libraries
+// to invoke the desired hardware function rather than access to registers. The Pico
+// also offers a great flexibility of pin assignment for the hardware IO functions.
+// Mapping the pins to functions is the first key goal. Second, within the hardware
+// IO boundaries of the controller family the individual hardware pin assignment 
+// used may vary from board to board design. The goal is also to describe a board
+// by type and version.
 //
-// The second idea is to provide the firmware designer a set of resources based on the
-// board capabilities. A CDC resource encapsulates a certain HW function. Resources are
-// described via a resource descriptor. A particular board is described through a data
-// structure which contains all the resources the board offers.
+// The second idea is to provide the firmware designer a set of resources based 
+// on the board capabilities. A CDC resource encapsulates a certain HW function. 
+// Resources are described via a resource descriptor. A particular board is
+// described through a data structure which contains all the resources the board 
+// offers.
 // 
 // This include file implements the CDC layer from a hardware function and board
-// configuration perspective.  Note that the CDC layer is not a generic HW abstraction.
-// The layer is very specific to the LCS controller board requirements described in
-// the book. 
+// configuration perspective.  Note that the CDC layer is not a generic hardware
+// abstraction. The layer is very specific to the LCS controller board requirements
+// described in the book. 
 //
 //----------------------------------------------------------------------------------------
 //
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
 // Copyright (C) 2022 - 2025 Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under the
-// terms of the GNU General Public License as published by the Free Software Foundation, 
-// either version 3 of the License, or any later version.
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
+// Foundation, either version 3 of the License, or any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You should
-// have received a copy of the GNU General Public License along with this program. 
-// If not, see <http://www.gnu.org/licenses/>.
+// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
+// should have received a copy of the GNU General Public License along with this 
+// program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef LcsCdcLib_h
-#define LcsCdcLib_h
+#pragma once
 
 #include <stdio.h>
 #include <stdint.h>
@@ -88,8 +91,8 @@ enum DebugOptions : uint16_t {
 
 //----------------------------------------------------------------------------------------
 // Error status codes. The errors are used when setting up the Hal library. During 
-// operation, all routines validate the input for correctness. If they are not correct,
-// the call is simply not performed and an error is returned.
+// operation, all routines validate the input for correctness. If they are not 
+// correct, the call is simply not performed and an error is returned.
 //
 //----------------------------------------------------------------------------------------
 enum CdcStatus : uint8_t {
@@ -123,8 +126,8 @@ enum CdcStatus : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Callback functions signatures. So far, there are the timer callbacks and the GPIO
-// pin callback.
+// Callback functions signatures. So far, there are the timer callbacks and the 
+// GPIO pin callback.
 //
 //----------------------------------------------------------------------------------------
 extern "C" {
@@ -150,9 +153,10 @@ const uint8_t   ILLEGAL_PIN             = 254;
 
 //----------------------------------------------------------------------------------------
 // The defined board types. When the runtime is initialized, the firmware will pass 
-// the type to specify what board it expects. This value is compared to what is actually 
-// stored in the NVM of the main controller board. If they don't match, it is considered
-// an error and the NVM needs to be configured to support the firmware. 
+// the type to specify what board it expects. This value is compared to what is 
+// actually stored in the NVM of the main controller board. If they don't match, 
+// it is considered an error and the NVM needs to be configured to support the 
+// firmware. 
 //
 //----------------------------------------------------------------------------------------
 enum CdcBoardInfo : uint16_t {
@@ -171,7 +175,8 @@ enum CdcBoardInfo : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The controller families. Currently, there is only the Raspberry PI Pico family models.
+// The controller families. Currently, there is only the Raspberry PI Pico family
+// models.
 //
 //----------------------------------------------------------------------------------------
 enum CdcControllerInfo : uint8_t {
@@ -184,11 +189,11 @@ enum CdcControllerInfo : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The CDC resources have a type which tells us what the particular resource is. Note
-// that the are hardware resources such as a GPIO pin, but also logical resources such
-// as a software timer. Finally, there are resources build on top of the bare bone HW
-// resources. Examples are the button and encoder resources. The value of 255 is used 
-// as the invalid resource Id.
+// The CDC resources have a type which tells us what the particular resource is. 
+// Note that the are hardware resources such as a GPIO pin, but also logical 
+// resources such as a software timer. Finally, there are resources build on top 
+// of the bare bone HW resources. Examples are the button and encoder resources. 
+// The value of 255 is used as the invalid resource Id.
 //
 //----------------------------------------------------------------------------------------
 enum CdcResourceType : uint8_t {
@@ -230,8 +235,8 @@ enum CdcResourceIdNum : uint8_t {
 
 //----------------------------------------------------------------------------------------
 // DIO pin related definitions. A digital pin can be an input pin, with or without 
-// pull-up, or an output pin. DIO pins can also be associated with an interrupt handler.
-// The handler itself is mapped to an edge or level event.
+// pull-up, or an output pin. DIO pins can also be associated with an interrupt 
+// handler. The handler itself is mapped to an edge or level event.
 //
 //----------------------------------------------------------------------------------------
 enum CdcDioMode : uint8_t {
@@ -360,8 +365,8 @@ struct CdcResourceDescMap {
 };
 
 //----------------------------------------------------------------------------------------
-// The CDC library routines that make up the hardware abstraction layer. Most routines
-// have a return code, representing the return status of the routine.
+// The CDC library routines that make up the hardware abstraction layer. Most 
+// routines have a return code, representing the return status of the routine.
 //
 //----------------------------------------------------------------------------------------
 
@@ -399,11 +404,11 @@ void            sleepMicros( uint32_t val );
 uint32_t        createUid( );
 
 //----------------------------------------------------------------------------------------
-// The console IO functions. We will provide a serial IO via the USB connector of the
-// PICO. The files need to be linked with the "tinyUSB" library and the cMake file needs
-// to set the option. Then we can use scanf and printf and so on. In addition, we need
-// function  that just attempts to read a character and returns immediately when there 
-// is none.
+// The console IO functions. We will provide a serial IO via the USB connector of
+// the PICO. The files need to be linked with the "tinyUSB" library and the cMake
+// file needs to set the option. Then we can use scanf and printf and so on. In 
+// addition, we need function  that just attempts to read a character and returns
+// immediately when there is none.
 //
 //----------------------------------------------------------------------------------------
 uint8_t         configureUsbIO( );
@@ -610,6 +615,3 @@ uint8_t         setLedOff( uint8_t rNum );
 
 void            toggleLed( uint8_t rNum );
 void            blinkLed( uint8_t rNum );
-
-
-#endif

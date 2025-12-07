@@ -39,7 +39,7 @@
 namespace LCS {
 
     extern uint16_t             debugMask;
-    extern uint16_t             startOptions;
+    extern uint16_t             runtimeOptions;
     extern LcsHeaderMap         headerMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
@@ -484,7 +484,7 @@ void printMemNodeMap( ) {
             lowByte( nodeMap.rtLibSwVersion ),
             nodeMap.rtLibSwPatchLevel );
 
-    printf( "Options: 0x%04x\n", startOptions );
+    printf( "Options: 0x%04x\n", runtimeOptions );
     printf( "Restart Count: %d\n", nodeMap.nodeRestartCnt );
     printf( "Node State: %d\n", nodeMap.nodeState );
     printf( "\n" );

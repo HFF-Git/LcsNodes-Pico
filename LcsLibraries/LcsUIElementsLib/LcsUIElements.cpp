@@ -3,8 +3,8 @@
 // UI Elements - implementation file
 //
 //----------------------------------------------------------------------------------------
-//
-//
+// ALl UI elements are kept in a linked list. The "tick" function advanced all 
+// elements on the list by calling their state machines.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -18,8 +18,10 @@
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this
+// should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
@@ -44,8 +46,8 @@ UIElements::UIElements( bool atHead ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "insert" and "append" will add the newly created UI element to the global resource
-// list. "insert" will insert at the head, "append" will append to the list.
+// "insert" and "append" will add the newly created UI element to the global 
+// resource list. "insert" will insert at the head, "append" will append to the list.
 //
 //----------------------------------------------------------------------------------------
 void UIElements::insert( UIElements* res ) {
@@ -89,3 +91,12 @@ uint8_t UIElements::tick( ) {
 
     return( NO_ERR );
 }
+
+
+// ??? should we have our own timer for the state machines ? The benefit
+// is that we would not to do it outside of the UI elements library,
+//
+// ??? the timer would need to be at lest at a resolution that we set for 
+// buttons and alike.
+//
+// ??? we would need a start option routine to start UI Element processing.

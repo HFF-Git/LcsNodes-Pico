@@ -8,10 +8,10 @@
 // a display UI element that is manipulated with the help of architected UI button
 // elements.
 //
-// The UIScreen object is the class for implementing a screen. Screens are a display
-// of whatever you want to put on that display. There are virtual methods that 
-// will be called when for example a button event such a click is encountered or 
-// any other data needs to be written to the display. Two buttons are needed for 
+// The UIScreen object is the class for implementing a screen. Screens are a 
+// display of whatever you want to put on that display. There are virtual methods
+// that will be called when for example a button event such a click is encountered
+// or any other data needs to be written to the display. Two buttons are needed for 
 // navigation. They are the MENU and SELECT button. With the exception of the root
 // screen, a screen has a parent and a potential child list. The hierarchy is formed
 // by appending a screen to another screen child list. The MENU button is typically
@@ -54,6 +54,8 @@
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsUIElements.h"
@@ -389,6 +391,6 @@ UIScreen *UIScreen::setCurrentScreen( UIScreen * screen, bool init ) {
         currentScreen -> enterScreen( init );
 
         return ( previousScreen );
-    
-    } else return ( nullptr );
+    } 
+    else return ( nullptr );
 }
