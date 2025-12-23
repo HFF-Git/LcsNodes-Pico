@@ -56,55 +56,6 @@ LcsBaseStationLocoSession       locoSessions;
 LcsBaseStationMsgInterface      msgInterface;
 
 //----------------------------------------------------------------------------------------
-// Setup the resource configuration data and the CDC library.
-//
-//----------------------------------------------------------------------------------------
-void setupConfigInfo( ) {
-
-    dMap = LCS_BASE_STATION_BOARD_DESC_B_02_00;
-
-    dMap.map[ RNUM_ENABLE_MAIN ].type           = CDC_RT_GPIO;
-    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinA      = 6;
-    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinB      = UNDEFINED_PIN;
-    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinMode   = CDC_DIO_OUT;
-
-    dMap.map[ RNUM_CONTROL_MAIN ].type          = CDC_RT_GPIO;
-    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinA     = 21;
-    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinB     = 20;
-    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinMode  = CDC_DIO_OUT;
-    
-    dMap.map[ RNUM_ADC_MAIN ].adc.adcPin        = 26;
-    dMap.map[ RNUM_ADC_MAIN ].adc.adcNum        = 0;
-
-    dMap.map[ RNUM_ENABLE_PROG ].type           = CDC_RT_GPIO;
-    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinA      = 7;
-    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinB      = UNDEFINED_PIN;
-    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinMode   = CDC_DIO_OUT;
-
-    dMap.map[ RNUM_CONTROL_PROG ].type          = CDC_RT_GPIO;
-    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinA     = 19;
-    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinB     = 18;
-    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinMode  = CDC_DIO_OUT;
-
-    dMap.map[ RNUM_ADC_PROG ].adc.adcPin        = 27;
-    dMap.map[ RNUM_ADC_PROG ].adc.adcNum        = 1;
-
-    dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.rxPin    = 8;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
-
-    dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.rxPin    = 12;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
-
-    cdcInit( &dMap );
-    configureUsbIO( );
-    sleepMillis( 2000 );
-}
-
-//----------------------------------------------------------------------------------------
 // Some little helper functions.
 //
 //----------------------------------------------------------------------------------------
@@ -261,7 +212,7 @@ uint8_t lcsEventCallback( uint16_t npId,
 //----------------------------------------------------------------------------------------
 uint8_t initBaseStation( ) {
 
-    setupConfigInfo( );
+    dMap = LCS_BASE_STATION_BOARD_DESC_B_01_00;
   
     uint8_t rStat = initRuntime( &dMap );
     printf( "LCS Base Station\n" );
