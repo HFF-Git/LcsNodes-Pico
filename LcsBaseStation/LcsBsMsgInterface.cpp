@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS Base Station - LCS Msg Interface - implementation file.
-// Copyright (C) 2019 - 2025  Helmut Fieres
+// Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under
 // the terms of the GNU General Public License as published by the Free Software 
@@ -20,8 +20,6 @@
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"

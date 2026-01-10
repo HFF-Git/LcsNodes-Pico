@@ -1,6 +1,6 @@
 // Software CANbus implementation for rp2040
 //
-// Copyright (C) 2022-2025  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2020 - 2026  Kevin O'Connor <kevin@koconnor.net>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 

@@ -1,4 +1,4 @@
-// STARTFONT 2.1
+// START FONT 2.1
 // FONT -zevv-peep-Medium-R-Normal--16-140-75-75-C-80-ISO8859-1
 #ifndef ZevvPeep8x16_h
 #define ZevvPeep8x16_h

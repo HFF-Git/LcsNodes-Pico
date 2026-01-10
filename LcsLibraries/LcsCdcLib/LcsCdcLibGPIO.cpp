@@ -21,7 +21,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - Controller dependent code Layer - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2025 Helmut Fieres
+// Copyright (C) 2020 - 2026 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 

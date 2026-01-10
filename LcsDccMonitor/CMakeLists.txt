@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - DCC Monitor cmake file at the LcsDccMonitor directory level
 #
-#  Copyright (C) 2024 - 2024  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsDccMonitor C CXX ASM )
 

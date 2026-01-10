@@ -8,12 +8,10 @@
 // object. Typically, the handheld will "open" a session. The session identifier is
 // then the handle to the locomotive. 
 //
-//
-// ??? mention AUTO mode... for RocRail.
 //----------------------------------------------------------------------------------------
 //
 // LCS - Base Station
-// Copyright (C) 2019 - 2025  Helmut Fieres
+// Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -170,8 +168,8 @@ LcsBaseStationLocoSession::LcsBaseStationLocoSession( ) { }
 
 //----------------------------------------------------------------------------------------
 // Loco Session Map configuration. The session map contains an array of loco 
-// sessions entries. We are passed the sessionMap descriptor and object handles to
-// the core library and the two tracks. Loco sessions are numbered from 1 to 
+// sessions entries. We are passed the sessionMap descriptor and object handles 
+// to the core library and the two tracks. Loco sessions are numbered from 1 to 
 // MAX_SESSION_ID. 
 //
 //----------------------------------------------------------------------------------------
@@ -193,8 +191,11 @@ uint8_t LcsBaseStationLocoSession::setupSessionMap(
 
     options               = sessionMapDesc -> options;
     flags                 = SM_F_DEFAULT_SETTING;
-    sessionMap            = (SessionMapEntry *) calloc( sessionMapDesc -> maxSessions, 
-                                                        sizeof( SessionMapEntry ));
+
+    sessionMap            = (SessionMapEntry *) calloc( 
+                                sessionMapDesc -> maxSessions, 
+                                sizeof( SessionMapEntry ));
+
     lastAliveCheckTime    = getMillis( );
 
     sessionMapHwm         = sessionMap;
@@ -234,7 +235,7 @@ uint8_t LcsBaseStationLocoSession::requestSession(  uint16_t cabId,
             SessionMapEntry *smePtr = allocateSessionEntry( cabId );
             if ( smePtr == nullptr ) return ( ERR_LOCO_SESSION_ALLOCATE );
 
-            smePtr -> flags |= SME_SPDIR_ONLY_REFRESH;
+            smePtr -> flags |= SME_SPDIR_REFRESH;
 
             *sId = smePtr - sessionMap + 1;
             return ( LCS_OK );
@@ -244,6 +245,7 @@ uint8_t LcsBaseStationLocoSession::requestSession(  uint16_t cabId,
 
             // ??? need to inform the current handheld and put the new handheld in 
             // its place.
+
             return ( ERR_NOT_IMPLEMENTED );
 
         } break;
@@ -252,6 +254,7 @@ uint8_t LcsBaseStationLocoSession::requestSession(  uint16_t cabId,
 
             // ??? essentially, add another handheld to the session. We perhaps 
             // need a counter on how many handhelds share the session ...
+
             return ( ERR_NOT_IMPLEMENTED );
 
         } break;
@@ -326,17 +329,19 @@ void LcsBaseStationLocoSession::refreshActiveSessions( ) {
         refreshSessionEntry( sessionMapNextRefresh );
 
         sessionMapNextRefresh ++;
-        if ( sessionMapNextRefresh >= sessionMapHwm ) sessionMapNextRefresh = sessionMap;
+
+        if ( sessionMapNextRefresh >= sessionMapHwm ) 
+            sessionMapNextRefresh = sessionMap;
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "refreshSessionEntry" checks first that the session is still alive and then issues
-// the next DCC packet for refreshing the loco session. To avoid DCC bandwidth issues,
-// a loco session refresh is done in several small steps. There is one state for 
-// speed and direction and steps to refresh the function groups 1 to 5. If the 
-// function refresh option is set, we use the DCC command that sets speed, direction
-// and the function flags in one DCC command.
+// "refreshSessionEntry" checks first that the session is still alive and then 
+// issues the next DCC packet for refreshing the loco session. To avoid DCC 
+// bandwidth issues, a loco session refresh is done in several small steps. There
+// is one state for speed and direction and steps to refresh the function groups 
+// 1 to 5. If the function refresh option is set, we use the DCC command that sets
+// speed, direction and the function flags in one DCC command.
 //
 //    Step 0  -> refresh speed and direction 
 //              ( if FUNC_REFRESH is set also functions F0 .. F28 )
@@ -389,7 +394,7 @@ void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 
                 smePtr -> nextRefreshStep = 
                     ((( smePtr -> flags & SME_COMBINED_REFRESH ) ||
-                      ( smePtr -> flags & SME_SPDIR_ONLY_REFRESH )) ? 0 : 1 );
+                      ( smePtr -> flags & SME_SPDIR_REFRESH )) ? 0 : 1 );
             }
             else if ( smePtr -> nextRefreshStep <= 5 ) {
 
@@ -620,9 +625,9 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr,
 // "writeCVMain" writes a CV value to the decoder on the main track. CV numbers 
 // range from 1 to 1024, but are encoded from 0 to 1023. The DCC standard defines 
 // various modes for retrieving CV values. This function implements CV write mode 
-// mode 0 and 1, by calling the respective method. The other modes are not supported.
-// For bit mode access, the bit position and bit value are encoded in the "val"
-// parameter with bit 3 containing the data and bit 0 ..2 the bit offset.
+// mode 0 and 1, by calling the respective method. The other modes are not 
+// supported. For bit mode access, the bit position and bit value are encoded in 
+// the "val" parameter with bit 3 containing the data and bit 0 ..2 the bit offset.
 //
 //    0 Direct Byte
 //    1 Direct Bit
@@ -631,10 +636,11 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr,
 //    4 Address Only Mode
 //
 //
-// Note on the MAIN track, there is no way for the decoder to answer via a raise in
-// power consumption. The command shown here is just sent. If however RailCom is 
-// available, the decoder can answer with the CV value in a following cutout. This
-// is currently not implemented.
+// Note on the MAIN track, there is no way for the decoder to answer via a raise 
+// in power consumption. The command shown here is just sent. If however RailCom 
+// is available, the decoder can answer with the CV value in a following cutout. 
+// This is currently not implemented.
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVMain( uint8_t sId, 
                                                 uint16_t cvId, 
@@ -682,11 +688,11 @@ uint8_t LcsBaseStationLocoSession::writeCVByteMain( uint8_t sId,
 
 //----------------------------------------------------------------------------------------
 // "writeCVBitMain" writes a bit to the CV while the loco is on the main track. 
-// The CV numbers range from 1 to 1024, but are encoded from 0 to 1023. his function 
-// implements CV write mode mode 1, which is write a bit at a time. On input the 
-// "val" parameter encodes the bit position in bits 0 - 2 and the bit value in bit 3.
-// There is no way to validate our operation, only CV writes are possible. The packet
-// is sent four times.
+// The CV numbers range from 1 to 1024, but are encoded from 0 to 1023. This 
+// function implements CV write mode mode 1, which is write a bit at a time. On 
+// input the "val" parameter encodes the bit position in bits 0 - 2 and the bit 
+// value in bit 3. There is no way to validate our operation, only CV writes are 
+// possible. The packet is sent four times.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVBitMain( uint8_t sId, 
@@ -743,15 +749,16 @@ uint8_t LcsBaseStationLocoSession::readCV( uint16_t cvId, uint8_t mode, uint8_t 
 // "readCVByte" will retrieve a complete byte from the decoder. CV numbers range 
 // from 1 to 1024, but are encoded from 0 to 1023. This command is only available 
 // in service mode, i.e. on a programming track. Reading a CV value where the 
-// decoder can only respond with a "yes" or "no" is a tedious matter. We are actually
-// reading the CV value bit by bit and then ask if the assembled byte read is the 
-// one just read. The general packet sequence is a according to DCC standard standard
-// 3 or more RESET packets, 5 or more identical READ packets and then RESET packages
-// until acknowledge or timeout. The RESET packet preamble and postamble series are
-// sent during the decoder ack setup and detect call to the DCC track object. During
-// the preamble we figure out the base current consumption of the decoder, during 
-// the postamble packets we measure to get the decoder acknowledge, which is a short
-// raise in power consumption to indicate an ACK.
+// decoder can only respond with a "yes" or "no" is a tedious matter. We are 
+// actually reading the CV value bit by bit and then ask if the assembled byte 
+// read is the one just read. The general packet sequence is a according to DCC 
+// standard standard 3 or more RESET packets, 5 or more identical READ packets 
+// and then RESET packages until acknowledge or timeout. The RESET packet preamble
+// and postamble series are sent during the decoder ack setup and detect call to 
+// the DCC track object. During the preamble we figure out the base current 
+// consumption of the decoder, during the postamble packets we measure to get the
+// decoder acknowledge, which is a short raise in power consumption to indicate 
+//an ACK.
 //
 //
 // ??? This command may take a long time, a lot of packets are sent. While this not 
@@ -810,6 +817,7 @@ uint8_t LcsBaseStationLocoSession::readCVByte( uint16_t cvId, uint8_t *val ) {
 // be an issue with any other work of the base station. This code needs to be 
 // redesigned to use a kind of state machine that sends a packet at a time so other
 // work can interleave.
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::readCVBit( uint16_t cvId, 
                                               uint8_t bitPos, 
@@ -907,7 +915,8 @@ uint8_t LcsBaseStationLocoSession::writeCVByte( uint16_t cvId, uint8_t val ) {
     pBuf[0] = 0x74 + ( highByte( cvId ) & 0x03 );
     progTrack -> loadPacket( pBuf, 3, 5 );
 
-    return (( progTrack -> decoderAckDetect( base, 9 )) ? LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
+    return (( progTrack -> decoderAckDetect( base, 9 )) ?
+                         LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1053,6 +1062,7 @@ void LcsBaseStationLocoSession::deallocateSessionEntry( SessionMapEntry *smePtr 
 // If none is found, a nullptr is returned. Note that a NIL_CAB_ID as argument is
 // also a valid input and will return the first free entry.
 //
+// ??? changes for auto allocate ?
 //----------------------------------------------------------------------------------------
 SessionMapEntry *LcsBaseStationLocoSession::lookupSessionEntry( uint16_t cabId ) {
 
@@ -1117,11 +1127,7 @@ void LcsBaseStationLocoSession::printSessionMapConfig( ) {
 void LcsBaseStationLocoSession::printSessionMapInfo( ) {
 
     printf( "Session Map Info\n" );
-
     printf( " Flags: 0x%x\n", flags );
-
-    // ??? decode the flags ?  e.g. "[ f f f f ]"
-
     printf( " Session Map Hwm: %d\n", ( sessionMapHwm - sessionMap ));
 
     for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr ++ ) {
@@ -1152,17 +1158,15 @@ void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
     }
 
     printf( " Flags: 0x%x", ( smePtr -> flags ));
-
-    // ??? decode the flags ? e.g. "[ f f f f ]"
   }
 
   printf( "\n" );
 }
 
-
-
 //----------------------------------------------------------------------------------------
-// "cabIdToSessionId" searches the cab/session mapping table.
+// "cabIdToSessionId" searches the cab/session mapping table. The table is sorted
+// by cabId, so we can use a binary search algorithm. If found, the sessionId is
+// returned, otherwise -1.
 //
 //----------------------------------------------------------------------------------------
 int cabIdToSessionId(const LcsCabSessionMapTable *map, uint16_t cabId ) {
@@ -1185,7 +1189,10 @@ int cabIdToSessionId(const LcsCabSessionMapTable *map, uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "insertInCabSessionMap" inserts a new cab/session mapping entry into the table.
+// The table is kept sorted by cabId, so we need to find the right location 
+// first. If the cabId is already present, we return -2 as error code. If the
+// table is full, we return -1 as error code. On success we return 0.
 //
 //----------------------------------------------------------------------------------------
 int insertInCabSessionMap( LcsCabSessionMapTable *map,
@@ -1232,7 +1239,9 @@ int insertInCabSessionMap( LcsCabSessionMapTable *map,
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "removeFromCabSessionMap" removes a cab/session mapping entry from the table.
+// The table is kept sorted by cabId, so we first need to find the entry. If not
+// found, we return -1 as error code. On success we return 0.
 //
 //----------------------------------------------------------------------------------------
 int removeFromCabSessionMap( LcsCabSessionMapTable *map, uint16_t cabId ) {

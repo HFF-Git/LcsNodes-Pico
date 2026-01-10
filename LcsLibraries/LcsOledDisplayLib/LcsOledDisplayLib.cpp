@@ -11,13 +11,13 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - OLED Display Driver - Raspberry Pi PIOCO implementation
-// Copyright (C) 2024 - 2025  Helmut Fieres
+// Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // Bill Greiman wrote a version for the Arduino world. I took his files, and adapted 
 // them for my needs and the PICO environment. Here is the original copyright info.
 //
 // SSD1306Ascii - Oled Library for the Arduino world.
-// Copyright (c) 2011-2023 Bill Greiman
+// Copyright (c) 2020 - 2026 Bill Greiman
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 

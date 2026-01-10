@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 #  CMAKE File
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ------------------------------------------------------------------------------
 # This is the CMAKE file at the LcsNodes directory level. It sets up the cmake 
 # version, the languages used, defines the project and finally initializes the 

@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - Base Station Board Descriptor File
-// Copyright (C) 2025 - 2025  Helmut Fieres
+// Copyright (C) 2020 - 2026  Helmut Fieres
 //
 /// This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -20,8 +20,6 @@
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
 // should have received a copy of the GNU General Public License along with this
 // program. If not, see <http://www.gnu.org/licenses/>.
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #pragma once 
@@ -60,7 +58,7 @@ const uint8_t RNUM_UART_RX_PROG = CDC_RN_FIRST_USER_RN + 9;
 // CDC library provides support for this mapping.
 //
 //----------------------------------------------------------------------------------------
-const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
+const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
 
     //------------------------------------------------------------------------------------
     // Controller configuration and common data.
@@ -69,7 +67,7 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
     .boardInfo      = CDC_BT_BASE_STATION, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 0 ),  
-    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_02_00",
+    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_01_00",
 
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 
@@ -83,7 +81,7 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
         },
 
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
-            .gpio { .pinA = UNDEFINED_PIN, .pinB = UNDEFINED_PIN, 
+            .gpio { .pinA = 5, .pinB = UNDEFINED_PIN, 
                     .pinMode = CDC_DIO_IN_PULLUP }   
         },
 
@@ -119,24 +117,24 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
             .adc { .adcPin = 26, .adcNum = 0 }
         },
 
-        {   .type = CDC_RT_ADC, .resId = RNUM_ADC_PROG,
-            .adc { .adcPin = 27, .adcNum = 1 }
-        },
-
         {   .type = CDC_RT_GPIO, .resId = RNUM_ENABLE_PROG,
-            .gpio { .pinA = 6, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
+            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
         },
 
         {   .type = CDC_RT_GPIO, .resId = RNUM_CONTROL_PROG,
             .gpio { .pinA = 19, .pinB = 18, .pinMode = CDC_DIO_OUT } 
         },
 
+        {   .type = CDC_RT_ADC, .resId = RNUM_ADC_PROG,
+            .adc { .adcPin = 27, .adcNum = 1 }
+        },
+
         {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_MAIN,
-            .uart { .rxPin = 8, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+            .uart { .rxPin = 13, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
         },
 
         {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_PROG,
-            .uart { .rxPin = 12, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+            .uart { .rxPin = 9, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
         }
     }
 };

@@ -3,12 +3,15 @@
 // LCS - Block Controller PIO Program File - Experimental
 //
 //----------------------------------------------------------------------------------------
-// 
+// The PICO offers a Programmable IO (PIO) subsystem which can be used to offload
+// certain timing critical tasks from the CPU. One such task would be the generation
+// of DCC signals. This file contains a first sketch of a PIO program to generate
+// DCC signals. It is not yet fully functional and needs further work.
 // 
 //----------------------------------------------------------------------------------------
 //
 // LCS - Block Controller PIO Program File
-// Copyright (C) 2025 - 2025  Helmut Fieres
+// Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -21,18 +24,6 @@
 // You should have received a copy of the GNU General Public License along with 
 // this program. If not, see http://www.gnu.org/licenses
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
-//----------------------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------------------
-// DCC Signal Generator.
-//
-// ??? it would be a great idea to let the DCC signals being produced with a PIO 
-// state machine. Right now, there is a timer which interrupts the CPU every signal
-// edge change. Letting a PIO state machine process a DCC byte would be a great 
-// relief.
-// 
 //----------------------------------------------------------------------------------------
 .program dcc_signal_gen
 

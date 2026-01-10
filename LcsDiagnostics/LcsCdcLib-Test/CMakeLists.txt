@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file at the LcsCdcLib-Test directory level
 #
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsCdcLib-Test C CXX ASM )
 

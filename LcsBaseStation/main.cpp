@@ -20,7 +20,7 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
-// Copyright (C) 2022 - 2025 Helmut Fieres
+// Copyright (C) 2020 - 2026 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software
@@ -31,8 +31,6 @@
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStationBoardDesc.h"
@@ -54,55 +52,6 @@ LcsBaseStationDccTrack          mainTrack;
 LcsBaseStationDccTrack          progTrack;
 LcsBaseStationLocoSession       locoSessions;
 LcsBaseStationMsgInterface      msgInterface;
-
-//----------------------------------------------------------------------------------------
-// Setup the resource configuration data and the CDC library.
-//
-//----------------------------------------------------------------------------------------
-void setupConfigInfo( ) {
-
-    dMap = LCS_BASE_STATION_BOARD_DESC_B_02_00;
-
-    dMap.map[ RNUM_ENABLE_MAIN ].type           = CDC_RT_GPIO;
-    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinA      = 6;
-    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinB      = UNDEFINED_PIN;
-    dMap.map[ RNUM_ENABLE_MAIN ].gpio.pinMode   = CDC_DIO_OUT;
-
-    dMap.map[ RNUM_CONTROL_MAIN ].type          = CDC_RT_GPIO;
-    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinA     = 21;
-    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinB     = 20;
-    dMap.map[ RNUM_CONTROL_MAIN ].gpio.pinMode  = CDC_DIO_OUT;
-    
-    dMap.map[ RNUM_ADC_MAIN ].adc.adcPin        = 26;
-    dMap.map[ RNUM_ADC_MAIN ].adc.adcNum        = 0;
-
-    dMap.map[ RNUM_ENABLE_PROG ].type           = CDC_RT_GPIO;
-    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinA      = 7;
-    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinB      = UNDEFINED_PIN;
-    dMap.map[ RNUM_ENABLE_PROG ].gpio.pinMode   = CDC_DIO_OUT;
-
-    dMap.map[ RNUM_CONTROL_PROG ].type          = CDC_RT_GPIO;
-    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinA     = 19;
-    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinB     = 18;
-    dMap.map[ RNUM_CONTROL_PROG ].gpio.pinMode  = CDC_DIO_OUT;
-
-    dMap.map[ RNUM_ADC_PROG ].adc.adcPin        = 27;
-    dMap.map[ RNUM_ADC_PROG ].adc.adcNum        = 1;
-
-    dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.rxPin    = 8;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
-
-    dMap.map[ RNUM_UART_RX_MAIN ].type          = CDC_RT_UART;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.rxPin    = 12;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.txPin    = UNDEFINED_PIN;
-    dMap.map[ RNUM_UART_RX_MAIN ].uart.baudRate = 250000;
-
-    cdcInit( &dMap );
-    configureUsbIO( );
-    sleepMillis( 2000 );
-}
 
 //----------------------------------------------------------------------------------------
 // Some little helper functions.
@@ -261,7 +210,10 @@ uint8_t lcsEventCallback( uint16_t npId,
 //----------------------------------------------------------------------------------------
 uint8_t initBaseStation( ) {
 
-    setupConfigInfo( );
+    dMap = LCS_BASE_STATION_BOARD_DESC_B_01_00;
+
+    cdcInit( &dMap );
+    sleepMillis( 2000 );
   
     uint8_t rStat = initRuntime( &dMap );
     printf( "LCS Base Station\n" );

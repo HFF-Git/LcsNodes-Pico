@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - LcsNodes cmake file at the LcsDrvOccDetectLib directory level
 #
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsDrvOccDetectLib C CXX ASM )
 

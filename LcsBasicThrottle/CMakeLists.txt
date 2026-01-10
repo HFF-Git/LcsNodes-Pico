@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - Basic Throttle cmake file at the LcsBasicThrottle directory level
 #
-#  Copyright (C) 2024 - 2024  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsBasicThrottle C CXX ASM )
 

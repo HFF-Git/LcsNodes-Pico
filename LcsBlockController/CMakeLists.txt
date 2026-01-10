@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - Block Controller cmake file at the LcsBlockController-Test directory level
 #
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsBlockController C CXX ASM )
 

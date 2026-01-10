@@ -12,7 +12,7 @@
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library include file
-// Copyright (C) 2022 - 2025 Helmut Fieres
+// Copyright (C) 2020 - 2026 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
 // the terms of the GNU General Public License as published by the Free Software 
@@ -424,6 +424,11 @@ enum LcsItems : uint8_t {
     ITEM_ID_ACTIVE_LED                  = 41,
     
     // ??? add stop and enable periodic processing ?
+
+    ITEM_ID_USER_START                 = 128,
+    ITEM_ID_USER_END                   = 255
+
+    
 };
 
 //----------------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 #  LCS - UI Elements cmake file at the LcsUIElementsLib directory level
 #
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ------------------------------------------------------------------------------
 #
 # 

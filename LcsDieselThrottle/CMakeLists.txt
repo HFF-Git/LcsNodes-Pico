@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------------------
 #  LCS - Diesel Throttle cmake file at the LcsDieselThrottle directory level
 #
-#  Copyright (C) 2024 - 2025  Helmut Fieres
+#  Copyright (C) 2020 - 2026  Helmut Fieres
 # ----------------------------------------------------------------------------------------
 project( LcsDieselThrottle C CXX ASM )
 

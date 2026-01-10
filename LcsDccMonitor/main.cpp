@@ -12,9 +12,9 @@
 //----------------------------------------------------------------------------------------
 //
 // LCS - DCC Monitor, Raspberry PI Pico Implementation
-// Copyright (C) 2019 - 2025  Helmut Fieres
+// Copyright (C) 2020 - 2026  Helmut Fieres
 //
-//  Original versions: COPYRIGHT (c) 2013-2020
+//  Original versions: COPYRIGHT (c) 2020 - 2026
 //
 //  - DCC packet capture: Robin McKay, March 2014
 //  - DCC packet analyze: Ruud Boer, October 2015
@@ -298,7 +298,7 @@ uint8_t getBit( ) {
 
 //----------------------------------------------------------------------------------------
 // "checkForPreamble" is the routine that makes sure we have seen a valid preamble.
-// This means at least DCC_MIN_PRAMBLE_BITS bits ONE followed by a ZERO bit.
+// This means at least DCC_MIN_PREAMBLE_BITS bits ONE followed by a ZERO bit.
 //
 //----------------------------------------------------------------------------------------
 void checkForPreamble( ) {
