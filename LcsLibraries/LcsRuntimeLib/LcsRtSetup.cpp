@@ -351,6 +351,8 @@ uint8_t initCdcLayer( ) {
 
     if ( usbIsConnected( )) {
 
+        // ??? print out what board desc we actually use ?
+
         printf( "Type '?' for help\n" );
 
         while ( true ) {

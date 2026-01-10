@@ -27,10 +27,24 @@
 
 using namespace CDC;
 
-///----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+// Each board is described by a resource descriptor, which contains information 
+// about the hardware family, controller type, controller attributes and hardware 
+// resources available on the board. A resource itself described the actual 
+// hardware entity that is available. It the resource primarily maps the hardware
+// pins and their function. A GPIO pin and whether it is input output pin is a 
+// typical example for such a resource. A resource entry in the resource map has
+// a type and unique Id and the attributes for the particular resource type. The
+// order in the map does not matter, but when accessing the resource, the array 
+// index is used. Applications need to map resource entries to their index. The 
+// CDC library provides support for this mapping.
+//
+//----------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------
 // Defined Resource Numbers for the base station specific hardware resources.
 //
-///----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t RNUM_TIMER_0      = CDC_RN_FIRST_USER_RN + 0;
 const uint8_t RNUM_TIMER_1      = CDC_RN_FIRST_USER_RN + 1;
 
@@ -45,17 +59,12 @@ const uint8_t RNUM_ADC_PROG     = CDC_RN_FIRST_USER_RN + 7;
 const uint8_t RNUM_UART_RX_MAIN = CDC_RN_FIRST_USER_RN + 8;
 const uint8_t RNUM_UART_RX_PROG = CDC_RN_FIRST_USER_RN + 9;
 
+const uint8_t RNUM_DIO_0        = CDC_RN_FIRST_USER_RN + 10;
+const uint8_t RNUM_DIO_1        = CDC_RN_FIRST_USER_RN + 11;
+
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information 
-// about the hardware family, controller type, controller attributes and hardware 
-// resources available on the board. A resource itself described the actual 
-// hardware entity that is available. It the resource primarily maps the hardware
-// pins and their function. A GPIO pin and whether it is input output pin is a 
-// typical example for such a resource. A resource entry in the resource map has
-// a type and unique Id and the attributes for the particular resource type. The
-// order in the map does not matter, but when accessing the resource, the array 
-// index is used. Applications need to map resource entries to their index. The 
-// CDC library provides support for this mapping.
+// Board descriptor for Board Version: B.02.00
+//
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
@@ -75,7 +84,7 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
     // 
     //------------------------------------------------------------------------------------
     .map {
-        
+
         {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
             .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
         },
@@ -135,6 +144,101 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
 
         {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_PROG,
             .uart { .rxPin = 9, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+        }
+    }
+};
+
+//----------------------------------------------------------------------------------------
+// Board descriptor for Board Version: B.01.00
+//
+//
+//----------------------------------------------------------------------------------------
+const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
+
+    //------------------------------------------------------------------------------------
+    // Controller configuration and common data.
+    //
+    //------------------------------------------------------------------------------------
+    .boardInfo      = CDC_BT_BASE_STATION, 
+    .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardVersion   = (( 1U << 8 ) | 0 ),  
+    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_01_00",
+
+    //------------------------------------------------------------------------------------
+    // The resource map. It is a simple array of resource entries. The values set 
+    // reflect the board for which the resources are defined.
+    // 
+    //------------------------------------------------------------------------------------
+    .map {
+        
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_ACTIVITY_LED,
+            .gpio { .pinA = 15, .pinB = UNDEFINED_PIN,  .pinMode = CDC_DIO_OUT }   
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = CDC_RN_PFAIL,
+            .gpio { .pinA = 5, .pinB = UNDEFINED_PIN, 
+                    .pinMode = CDC_DIO_IN_PULLUP }   
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_0,
+            .timer { .timerVal = 0 }
+        },
+
+        {   .type = CDC_RT_TIMER, .resId = RNUM_TIMER_1,   
+            .timer { .timerVal = 0 }           
+        },
+
+        {   .type = CDC_RT_CAN_BUS, .resId = CDC_RN_CAN_BUS,
+            .can {  .rxPin = 0, .txPin = 1, .baudRate = 125000, .twoCores = true }
+        },
+
+        {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
+            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
+        },
+
+        {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
+            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_ENABLE_MAIN,
+            .gpio { .pinA = 6, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_CONTROL_MAIN,
+            .gpio { .pinA = 21, .pinB = 20, .pinMode = CDC_DIO_OUT } 
+        },
+
+        {   .type = CDC_RT_ADC, .resId = RNUM_ADC_MAIN,
+            .adc { .adcPin = 26, .adcNum = 0 }
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_ENABLE_PROG,
+            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
+            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_CONTROL_PROG,
+            .gpio { .pinA = 19, .pinB = 18, .pinMode = CDC_DIO_OUT } 
+        },
+
+        {   .type = CDC_RT_ADC, .resId = RNUM_ADC_PROG,
+            .adc { .adcPin = 27, .adcNum = 1 }
+        },
+
+        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_MAIN,
+            .uart { .rxPin = 13, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+        },
+
+        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_PROG,
+            .uart { .rxPin = 9, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_DIO_0,
+            .gpio { .pinA = 8, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
+        },
+
+        {   .type = CDC_RT_GPIO, .resId = RNUM_DIO_0,
+            .gpio { .pinA = 12, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN_PULLUP } 
         }
     }
 };
