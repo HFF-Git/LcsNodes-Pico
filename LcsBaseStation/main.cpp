@@ -212,13 +212,10 @@ uint8_t initBaseStation( ) {
 
     dMap = LCS_BASE_STATION_BOARD_DESC_B_01_00;
 
-    cdcInit( &dMap );
-    sleepMillis( 2000 );
-  
     uint8_t rStat = initRuntime( &dMap );
     printf( "LCS Base Station\n" );
     
-    printResourceDescMap( &dMap );
+   printResourceDescMap( &dMap );
     printResourceMap( );
 
     printStatus( rStat );
@@ -335,7 +332,6 @@ uint8_t setupMsgInterface( ) {
 uint8_t registerCallbacks( ) {
 
     printf( "Registering Callbacks\n" );
-
     registerLcsMsgCallback( lcsMsgCallback );
     registerCmdCallback( lcsCmdCallback );
     registerInitCallback( lcsInitCallback );

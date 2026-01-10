@@ -63,8 +63,7 @@ const uint8_t RNUM_DIO_0        = CDC_RN_FIRST_USER_RN + 10;
 const uint8_t RNUM_DIO_1        = CDC_RN_FIRST_USER_RN + 11;
 
 //----------------------------------------------------------------------------------------
-// Board descriptor for Board Version: B.02.00
-//
+// Board descriptor for Board Version: B.01.00
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
@@ -126,6 +125,10 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
             .adc { .adcPin = 26, .adcNum = 0 }
         },
 
+        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_MAIN,
+            .uart { .rxPin = 13, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+        },
+
         {   .type = CDC_RT_GPIO, .resId = RNUM_ENABLE_PROG,
             .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
         },
@@ -138,10 +141,6 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
             .adc { .adcPin = 27, .adcNum = 1 }
         },
 
-        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_MAIN,
-            .uart { .rxPin = 13, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
-        },
-
         {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_PROG,
             .uart { .rxPin = 9, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
         }
@@ -149,11 +148,12 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
 };
 
 //----------------------------------------------------------------------------------------
-// Board descriptor for Board Version: B.01.00
+// Board descriptor for Board Version: B.02.00
 //
 //
+// ???? to be reviewed !!!!
 //----------------------------------------------------------------------------------------
-const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
+const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
 
     //------------------------------------------------------------------------------------
     // Controller configuration and common data.
@@ -162,7 +162,7 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
     .boardInfo      = CDC_BT_BASE_STATION, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 1U << 8 ) | 0 ),  
-    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_01_00",
+    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_02_00",
 
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 
@@ -212,8 +212,11 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
             .adc { .adcPin = 26, .adcNum = 0 }
         },
 
+        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_MAIN,
+            .uart { .rxPin = 13, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
+        },
+
         {   .type = CDC_RT_GPIO, .resId = RNUM_ENABLE_PROG,
-            .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
             .gpio { .pinA = 7, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_OUT } 
         },
 
@@ -223,10 +226,6 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
 
         {   .type = CDC_RT_ADC, .resId = RNUM_ADC_PROG,
             .adc { .adcPin = 27, .adcNum = 1 }
-        },
-
-        {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_MAIN,
-            .uart { .rxPin = 13, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
         },
 
         {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_PROG,
