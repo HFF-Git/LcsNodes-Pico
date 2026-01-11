@@ -47,6 +47,7 @@ extern uint8_t      setupUIElements( );
 extern uint8_t      setupScreens( );
 extern uint8_t      setupCabStack( );
 
+// ??? adopt the errStat scheme from runtime lib.
 //----------------------------------------------------------------------------------------
 // "errStat" is a little helper function for the initialization routines protocol
 // printing. If there is a serial IO, these routines will list the success of the 
@@ -70,7 +71,9 @@ uint8_t initThrottle( ) {
 
     dMap = LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00;
 
-    rStat = errStat( initRuntime( &dMap, NPO_SKIP_NODE_ID_CONFIG, 0 ),
+    rStat = errStat( initRuntime( &dMap, 
+                                  NPO_SKIP_NODE_ID_CONFIG, 
+                                  0 ),
                      (char *) "initRuntime");
 
     sleepMillis( 2000 );    

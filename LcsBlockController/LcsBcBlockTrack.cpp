@@ -29,8 +29,6 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 #include <math.h>
@@ -42,8 +40,7 @@
 extern uint16_t debugMask;
 
 //----------------------------------------------------------------------------------------
-// The Block Track Object local definitions. The hardware lower layers can be found
-// in controller dependent code (CDC) layer.
+// The Block Track Object local definitions. 
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -152,23 +149,8 @@ LcsBlockTrack::LcsBlockTrack( ) { }
 
 //----------------------------------------------------------------------------------------
 // "setupDccTrack" performs the setup tasks for the DCC track.  We will configure
-// the hardware, the DCC packet options such as preamble and postamble length, the
-// initial state machine state current consumption limit and load the initial packet
-// into the active buffer. There is quite a list of parameters and options that can
-// be set. This routine does the following checking:
-//
-//    - the pins used in the CDC layer must be a pair ( for atmega controllers ).
-//    - the sensePin must be an analog input pin.
-//    - if the track is a service track, cutout and RailCom are not supported.
-//    - if RailCom is set, Cutout must be set too.
-//    - the initial current limit consumption setting must be less than the 
-//      current limit setting.
-//    - the current limit setting must be less than the maximum current limit setting.
-//
-// Once the DCC track object is initialized, the last thing to do is to remember 
-// the object instance in the file static variables. This is necessary for the 
-// interrupt handlers to work. If any of the checks fails, the flag field will have
-// the error bit set.
+// the hardware, the initial state machine state. There is quite a list of 
+// parameters and options that can be set. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
@@ -245,21 +227,21 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setBlockTrackState" sets the control output pins for the block controller 
-// H-Bridge. The H-Bridge has two half bridge control in puts and an enable input. 
-// The setting of these three inputs are encoded into a pair of select pins with 
-// the following settings:
+// "setTrackMode" sets the control output pins for the block controller H-Bridge.
+// The H-Bridge has two half bridge control in puts and an enable input. The 
+// setting of these three inputs are encoded into a pair of select pins with the
+// following settings:
 // 
-//      BT_MODE_OFF         -   both select pins are set to zero. This leads putting
-//                              the H-Bridge into a high impedance state.
+//      BT_MODE_OFF         -   both select pins are set to zero. This leads to 
+//                              putting the H-Bridge into a high impedance state.
 //
-//      BT_MODE_PWM_FWD     -   select pin 1 is set to the PWM signal, select pin 2
-//                              is set to zero. The speed parameter specifies the
-//                              duty cycle on a range from 0 to 255.
+//      BT_MODE_PWM_FWD     -   select pin 1 is set to the PWM signal, select 
+//                              pin 2 is set to zero. The speed parameter specifies
+//                              the duty cycle on a range from 0 to 255.
 //  
-//      BT_MODE_PWM_RE      -   select pin 1 is set to zero, select pin 2 is set to
-//                              the PWM signal. The speed parameter specifies the
-//                              duty cycle on a range from 0 to 255.
+//      BT_MODE_PWM_REV     -   select pin 1 is set to zero, select pin 2 is set
+//                              to the PWM signal. The speed parameter specifies 
+//                              the duty cycle on a range from 0 to 255.
 //
 //      BT_MODE_DCC         -   both select pins are set to one.
 //
@@ -296,7 +278,7 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
             } break;
 
-            case BT_MODE_OFF: {
+        case BT_MODE_OFF: {
 
             rStat = writePwm( rNumControl, 0, 0 );
             return( rStat );
@@ -353,37 +335,39 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
 //                          set the power module current consumption to the initial
 //                          limit configured. The next state is TRACK_POWER_START2.
 //
-//  TRACK_POWER_START2    - we stay in this state until the threshold time has passed.
-//                          Once the threshold is reached, the current consumption 
-//                          limit is set to the configured limit. Then we move on 
-//                          to TRACK_POWER_ON.
+//  TRACK_POWER_START2    - we stay in this state until the threshold time has 
+//                          passed. Once the threshold is reached, the current 
+//                          consumption limit is set to the configured limit. 
+//                          Then we move on to TRACK_POWER_ON.
 //
-//  TRACK_POWER_ON        - this is the state when power is on and things are running
-//                          normal. An overload situation is set by the current 
-//                          measurement routines through setting the overload status 
-//                          flag. We make sure that we have seen a couple of overloads
-//                          in a row before taking action which is to turn power off 
-//                          and set the TRACK_POWER_OVERLOAD state. Otherwise we stay
-//                          in this state.
+//  TRACK_POWER_ON        - this is the state when power is on and things are 
+//                          running  normal. An overload situation is set by the
+//                          current  measurement routines through setting the 
+//                          overload measurement routines through setting the 
+//                          overload status flag. We make sure that we have seen 
+//                          a couple of overloads in a row before taking action 
+//                          which is to turn power off and set the state to 
+//                          TRACK_POWER_OVERLOAD. Otherwise we stay in this state.
 //
-//  TRACK_POWER_OVERLOAD  - with power turned off, we stay in this state until the 
-//                          threshold time has passed. If passed, the overload restart
-//                          count is incremented and checked for its threshold. If 
-//                          reached, we have tried to restart several times and failed.
-//                          The track state becomes TRACK_POWER_STOP1, something is 
-//                          wrong on the track. If not, we move on to TRACK_POWER_START1.
+//  TRACK_POWER_OVERLOAD  - with power turned off, we stay in this state until 
+//                          the threshold time has passed. If passed, the overload
+//                          restart count is incremented and checked for its 
+//                          threshold. If reached, we have tried to restart several
+//                          times and failed. The track state becomes state 
+//                          TRACK_POWER_STOP1, something is wrong on the track. 
+//                          If not, we move on to TRACK_POWER_START1.
 //
-//  TRACK_POWER_STOP1     - this state initiates a shutdown sequence. We disable the
-//                          power module, set status flags and advance to the 
+//  TRACK_POWER_STOP1     - this state initiates a shutdown sequence. We disable 
+//                          the power module, set status flags and advance to the 
 //                          TRACK_POWER_STOP2 state.
 //
-//  TRACK_POWER_STOP2     - we stay in this state until the configured threshold has
-//                          passed. Then we move on to TRACK_POWER_OFF. The key reason
-//                          for this time delay is to implement the requirement that
-//                          track turned off and perhaps switched to another mode,
-//                          should be powerless for one second. Switch track modes 
-//                          becomes simply a matter of stopping and then starting
-//                          again.
+//  TRACK_POWER_STOP2     - we stay in this state until the configured threshold 
+//                          has passed. Then we move on to TRACK_POWER_OFF. The 
+//                          key reason for this time delay is to implement the 
+//                          requirement that track turned off and perhaps switched
+//                          to another mode, should be powerless for one second. 
+//                          Switch track modes becomes simply a matter of stopping
+//                          and then starting again.
 //
 //  TRACK_POWER_OFF       - the track is disabled. We just stay in this state until
 //                          the state is set to a different state from outside.

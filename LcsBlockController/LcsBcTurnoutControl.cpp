@@ -22,4 +22,4 @@
 //----------------------------------------------------------------------------------------
 
 
-// ??? contains the routines that manage the signal settings
+// ??? contains the routines that manage the turnout settings

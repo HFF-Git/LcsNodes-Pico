@@ -21,8 +21,6 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
 //----------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------
@@ -32,9 +30,9 @@
 // pins which drive the select input of the H-Bridge chip. There are 4 pins this 
 // state machine will use:
 // 
-//       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
-//       H-Bridge out    - 2 control lines for the H-Bridge: 00 -> 
-//                                          short circuit, 01, 10 -> on, 11 - Z state.
+//  DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
+//  H-Bridge out    - 2 control lines for the H-Bridge: 00 -> 
+//                                    short circuit, 01, 10 -> on, 11 - Z state.
 // 
 // When the DCC input signal drops to 0b00, we either have no signal or the start 
 // of the Cutout period. We insert a 4 microsecond delay, which gives some leeway 
@@ -77,10 +75,10 @@ wait_rising:
 // datagram. This PIO program will handle the cutout processing as well as the 
 // railcom datagram receive. There are 5 pins this machine will use:
 // 
-//       DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
-//       H-Bridge out    - 2 control lines for the H-Bridge: 
+//  DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
+//  H-Bridge out    - 2 control lines for the H-Bridge: 
 //                                 00 -> short circuit, 01, 10 -> on, 11 - Z state.
-//       Uart in         - UART input from RailCom detector. ( configured as JumpPin )
+//  Uart in         - UART input from RailCom detector. ( configured as JumpPin )
 //
 // In normal mode, we read in the DCC signals and echo them to the H-Bridge control
 // pins. When a 0b00 is detected, we are at the start if a cutout period. First we

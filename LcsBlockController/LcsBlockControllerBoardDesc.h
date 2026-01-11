@@ -115,20 +115,20 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
             .pwm { .pinA = 21, .pinB = 20, .frequency = PWM_FREQUENCY } 
         },
 
+        {   .type = CDC_RT_PWM, .resId = RNUM_CONTROL_BLK_1,
+            .pwm {  .pinA = 19, .pinB = 18, .frequency = PWM_FREQUENCY } 
+        },
+
         {   .type = CDC_RT_ADC, .resId = RNUM_ADC_BLK_0,
             .adc { .adcPin = 26, .adcNum = 0 }
         },
 
-        {   .type = CDC_RT_ADC, .resId = RNUM_ADC_BLK_0,
+        {   .type = CDC_RT_ADC, .resId = RNUM_ADC_BLK_1,
             .adc { .adcPin = 27, .adcNum = 1 }
         },
 
         {   .type = RNUM_UART_RX_0, .resId = RNUM_UART_RX_0,
             .uart {  .rxPin = 12, .txPin = UNDEFINED_PIN, .baudRate = 250000 }
-        },
-
-        {   .type = CDC_RT_PWM, .resId = RNUM_CONTROL_BLK_1,
-            .pwm {  .pinA = 19, .pinB = 18, .frequency = PWM_FREQUENCY } 
         },
 
         {   .type = CDC_RT_UART, .resId = RNUM_UART_RX_1,
@@ -141,5 +141,9 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
         }
     }
 };
+
+// ??? we need a descriptor also for the quad controller. 
+// ??? how do we keep the SW informed about what board it runs on ?
+// ??? would we need to create two different programs after all ? 
 
 #endif

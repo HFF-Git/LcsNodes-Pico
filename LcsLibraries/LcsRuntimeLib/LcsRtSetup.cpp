@@ -48,13 +48,21 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 #include "LcsDrvOccDetectLib.h"
 #include "LcsDrvServoLib.h"
+
+
+
+
+// ??? idea: we could add a printf-like function, so that a firmware does not have
+// to deal with whether we have a console or not...
+
+
+
+
 
 //----------------------------------------------------------------------------------------
 // Runtime globals. This file contains all the global data structure declarations.

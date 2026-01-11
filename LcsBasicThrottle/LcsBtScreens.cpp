@@ -230,8 +230,8 @@ char *lookupDccFuncTypeStr( uint8_t dccFuncOptId ) {
 
 //----------------------------------------------------------------------------------------
 // Data to the screen are printed using this central routine. We expect the row, 
-// column and font information. The rest is just like you are used from the "printf"
-// family.
+// column and font information. The rest is just like you are used to from the 
+// "printf" family.
 //
 //----------------------------------------------------------------------------------------
 template<typename... Args>

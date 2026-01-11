@@ -24,60 +24,62 @@
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
 //
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
-//
 //----------------------------------------------------------------------------------------
-#ifndef LcsBlockController_h
-#define LcsBlockController_h
+#pragma once
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsDrvOccDetectLib.h"
 
+using namespace LCS;
+
+
 //----------------------------------------------------------------------------------------
-// We need a simple set of function to control a block via RocRail. They are simple
-// LcsNodes function items.
 //
-// Set Block Mode ( DCC / analog ) 
-// Set Speed/Direction
-// Get Section Mask
-// Set Turnout ( N / T )
-// Get Turnout Position ( N / T )
-// Set Signal ( state )
-// Set Track Power ( ON / off )
+// A block is an abstract object with n WEST docking points and m EAST docking 
+// points. The block is manage by a block controller, it is a power domain.
+// Inside a block there are sections, turnouts and signals. The most simple form
+// is a block with one WEST and one EAST dock and no turnouts.
+//
+//                        <--- direction
+//                  :---------------------------:
+//                  :         Block Id          :
+//              WEST_1                      EAST_1  
+//                  :                           :
+//   Neighbors      :                           :    Neighbors 
+//                  :                           :
+//              WEST_n                      EAST_m 
+//                  :                           :
+//                  :---------------------------:
+//
+// The block controller manages all associated resources, turnout and signals. It
+// is the intent that a layout can be managed by high level commands that the 
+// block interprets. Fore example, a route reservation results in the block setting
+// turnouts and signals accordingly. On automated routes, the block controls the 
+// engine speed in its domain. 
 // 
-
-// The setting of turnouts, signals, mode, speed/direction etc. are attributes that 
-// can be queried read only ? ( otherwise we need more function items )
-
-// We also need static / configured values:
-//
-// Block length
-// Number of sections
-// Section lengths
-// Next / previous blocs
-// and so on ...
-
-
-//----------------------------------------------------------------------------------------
-//
-//
-// There are predefined events that the controller node will send.
+// All  blocks send events about their state. All blocks monitor their neighbors 
+// via listening to events. 
 // 
-//  - block state change
-//  - section occupied
-//  - section entered
-//  - section left
-//  - 
-//  
+// A block can be operated in automatic and manual mode. Automatic mode is a 
+// straightforward block control scheme. A route is reserved and trains can be 
+// sent via this route. In manual mode a set of blocks, i.e. a route or a set of 
+// blocks are reserved for manual operation.
+// 
+// A block does not cross check that the currently assigned CabId matches the
+// engine on the track. While this could be done in digital mode via Railcom 
+// support, an analog engine is not identifiable. All the block cares about is 
+// that there is an engine, initially assigned to a cabId, and manages that 
+// engine until it leaves the block. A receiving block queries its predecessor
+// block for the cabId received. This simple scheme works for DCC and analog too.
 //
 //----------------------------------------------------------------------------------------
 
 
 //----------------------------------------------------------------------------------------
-// The block controller maintains a set of debug flags. The overall concept is very
-// similar to the LCS runtime library debug mask. Then following debug flags are 
-// defined:
+// The block controller maintains a set of debug flags. The overall concept is 
+// very similar to the LCS runtime library debug mask. Then following debug flags
+// are defined:
 //
 //      DBG_BC_CONFIG                   -   DEBUG base station enabled
 //      DBG_BC_SETUP                    -   show the setup steps
@@ -93,158 +95,343 @@
 enum BlockControllerDebugFlags : uint16_t {
 
     DBG_BC_CONFIG                  = 1 << 15,   // DEBUG enabled
-    DBG_BC_SETUP                   = 1 << 1,    // show the setup steps
-    DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,    // show the incoming LCS messages
-    DBG_BC_TRACK_POWER_MGMT        = 1 << 3,    // show the track power measurement data
+    DBG_BC_SETUP                   = 1 << 1,    // show setup steps
+    DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,    // show incoming LCS messages
+    DBG_BC_TRACK_POWER_MGMT        = 1 << 3,    // show track power data
     DBG_BC_RAILCOM                 = 1 << 4     // show the RailCom activity
 };
 
 //----------------------------------------------------------------------------------------
-// The way to interact with nodes and ports is via ITEM numbers used in GET/PUT/REQ 
-// calls. There are defined items at the node level which apply to all ports. Ports 
-// represent a block. The majority of items refer to a block. 
+// Nodes and blocks is accessed with the LCS routines GET,SET and REQ. These 
+// routines expect an item number as one of their parameters. This enumeration
+// will define all item numbers. See the comments what they are and how an item
+// is used.
 //
-// There is a static item portion, which configures the block. This is data is entered
-// when the block is configured and stored in the NVM.
-//
-// The dynamic item part will contain values that initially are fed from the NVM but
-// change during operations.
-//
-// The request item part maps to user defined items that control the block operation.
-//
+// ??? assign item numbers...
 //----------------------------------------------------------------------------------------
-enum BlockControllerItems : uint8_t {
+enum BlockControllItems2 : uint8_t {
 
     //------------------------------------------------------------------------------------
-    // Configuration items. Static. Store in NVM.
+    // Node items: These items apply to all blocks on the node.
     //
-    // Option, flags, name come from the port portion...
+    // ??? we could map some of the LCS common items with a meaningful name 
+    // here, just to be clearer... .e.g Node Name or so...
     //------------------------------------------------------------------------------------
-    BC_ITEM_BLOCK_NAME                  = 0,   // maps to port item.
-    BC_ITEM_BLOCK_OPTIONS               = 0,   // maps to port item.
-    BC_ITEM_BLOCK_FLAGS                 = 0,   // maps to port item.
-
-    BC_ITEM_BLOCK_ID                    = 0,        
-    BC_ITEM_BLOCK_ID_EAST_1             = 0,
-    BC_ITEM_BLOCK_ID_EAST_2             = 0,
-    BC_ITEM_BLOCK_ID_WEST_1             = 0,
-    BC_ITEM_BLOCK_ID_WEST_2             = 0,
-
-    BC_ITEM_BLOCK_LENGTH                = 0,
-    BC_ITEM_SECTIONS                    = 0,
-    BC_ITEM_SECTION_LENGTH_1            = 0,  // more than one necessary ? how to encode more ?
-    BC_ITEM_SECTION_LENGTH_2            = 0, 
-    BC_ITEM_SECTION_LENGTH_3            = 0, 
-    BC_ITEM_SECTION_LENGTH_4            = 0, 
-    BC_ITEM_SECTION_LENGTH_5            = 0,
-    BC_ITEM_SECTION_LENGTH_6            = 0, 
-    BC_ITEM_SECTION_LENGTH_7            = 0, 
-    BC_ITEM_SECTION_LENGTH_8            = 0,  
-
-    BC_ITEM_OCC_DETECT_PATH_1           = 0,  // up to two OCC detect boards ? max 8 sections per block ?
-    BC_ITEM_OCC_DETECT_PATH_2           = 0,
-
-    BC_ITEM_SIGNAL_PATH_EAST_1          = 0,   // a path: boardId:resourceId
-    BC_ITEM_SIGNAL_PATH_EAST_2          = 0,
-    BC_ITEM_SIGNAL_PATH_WEST_1          = 0,
-    BC_ITEM_SIGNAL_PATH_WEST_2          = 0,
-
-    BC_ITEM_TURNOUT_PATH_EAST_1         = 0,
-    BC_ITEM_TURNOUT_PATH_EAST_2         = 0,
-    BC_ITEM_TURNOUT_PATH_WEST_1         = 0,
-    BC_ITEM_TURNOUT_PATH_WEST_2         = 0,
-
-    BC_ITEM_INITIAL_BLOCK_STATE         = 0,
-    BC_ITEM_INITIAL_ROUTE_STATE         = 0,
-
-    BC_ITEM_SPEED_SLOW                  = 0,
-    BC_ITEM_SPEED_MIDDLE                = 0,
-    BC_ITEM_SPEED_HIGH                  = 0,
-
-    BC_UPDATE_DATA_INTERVAL             = 0,
-
-    BC_ITEM_EVENT_ID_STATE_CHANGE       = 0,
-    BC_ITEM_EVENT_ID_OCC_CHANGE         = 0,
-    BC_ITEM_EVENT_ID_OCC_ENTER          = 0,
-    BC_ITEM_EVENT_ID_OCC_EXIT           = 0,
-    BC_ITEM_EVENT_ID_BLOCK_ENTER        = 0,
-    BC_ITEM_EVENT_ID_BLOCK_EXIT         = 0,
-    BC_ITEM_EVENT_ID_BLOCK_OVL          = 0,
+    BCI_NUM_OF_BLOCKS                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_UPDATE_DATA_INTERVAL            = ITEM_ID_USER_START + 0,   // GET / SET
 
     //------------------------------------------------------------------------------------
+    // Block Items. There is a ton of items. The two key items are the block state
+    // which is an encoded attribute that give an overview for other nodes with one
+    // GET call. The block command item is used for a REQ call to issues a command 
+    // to the block. The command codes themselves are also items defined for a block.
     //
-    // ??? on a per node basis...
     //------------------------------------------------------------------------------------
-    BC_ITEM_INIT_CURRENT_MA             = 0,
-    BC_ITEM_LIMIT_CURRENT_MA            = 0,
-    BC_ITEM_MAX_CURRENT_MA              = 0,
-    BC_ITEM_MILLI_VOLT_PER_AMP          = 0,
+    BCI_BLOCK_STATE                     = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_COMMAND                   = ITEM_ID_USER_START + 0,   // REQ
 
-    BC_ITEM_START_TIME_THRESHOLD        = 0,
-    BC_ITEM_STOP_TIME_THRESHOLD         = 0,
-    BC_ITEM_OVL_TIME_THRESHOLD          = 0,
-    BC_ITEM_OVL_EVENT_THRESHOLD         = 0,
-    BC_ITEM_OVL_RESTART_THRESHOLD       = 0,
+    BCI_INITIAL_BLOCK_STATE             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_INITIAL_ROUTE_STATE             = ITEM_ID_USER_START + 0,   // GET / SET 
 
+    BCI_BLOCK_MAX_SPEED                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_ITEM_SPEED_SLOW                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_ITEM_SPEED_MIDDLE               = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_ITEM_SPEED_HIGH                 = ITEM_ID_USER_START + 0,   // GET / SET
+    
     //------------------------------------------------------------------------------------
-    // Dynamic GET items.
+    // Block Id and our neighbors. A block ID is the LCS node and the port Id. The
+    // port numbers used are the ports 5 to 8. Port 0 is the node itself, and there
+    // can be up to 4 extension boards to address. Hence Port 5 to 8 is where the
+    // blocks are assigned to.
+    // 
+    // The neighbors are organized in a west and an east group. For a simple block
+    // with no turnouts, WEST_1 and EAST_1 are used. Add a turnout to the west side
+    // WEST_1 and WEST_2 are on the west side, EAST_1 on the east side.
     //
-    // ??? most of the items will be the result of a REQ item and reflect the state
-    // of the block.
+    // All turnouts are part of the block power domain. The neighbor blocks imply
+    // that there is at least one entry. The most common setting is perhaps one
+    // entry and one exit.
     //
-    // ??? we should not use PUT but rather use REQ with callbacks...
+    // Configuration data.
     //------------------------------------------------------------------------------------
-    BC_ITEM_BLOCK_STATE                 = 64,  // gets state  / REQ to control
-    BC_ITEM_BLOCK_ROUTE                 = 0,   // gets state  / REQ to control
+    BCI_BLOCK_ID                        = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_1                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_2                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_3                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_4                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_5                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_6                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_7                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_WEST_8                 = ITEM_ID_USER_START + 0,   // GET / SET
 
-    BC_ITEM_ENTER_BLOCK_TIMESTAMP       = 0,   // get
-    BC_ITEM_EXIT_BLOCK_TIMESTAMP        = 0,   // get 
-    BC_ITEM_BLOCK_OCC_MASK              = 0,   // get 
-
-    BC_ITEM_CURRENT_BLOCK_EAST          = 0,   // get
-    BC_ITEM_CURRENT_BLOCK_WEST          = 0,   // get 
-
-    BC_ITEM_SIGNAL_EAST_1               = 0,   // get 
-    BC_ITEM_SIGNAL_EAST_2               = 0,   // get
-    BC_ITEM_SIGNAL_WEST_1               = 0,   // get
-    BC_ITEM_SIGNAL_WEST_2               = 0,   // get
-
-    BC_ITEM_TURNOUT_EAST_1              = 0,   // get
-    BC_ITEM_TURNOUT_EAST_2              = 0,   // get
-    BC_ITEM_TURNOUT_WEST_1              = 0,   // get
-    BC_ITEM_TURNOUT_WEST_2              = 0,   // get
-
-    BC_ITEM_ACTUAL_CURRENT_VAL          = 143, // get 
-
-
-    // thresholds
-    // dynamic values
-    //  - timeout values of all kinds ?
+    BCI_BLOCK_ID_EAST_1                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_2                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_3                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_4                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_5                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_6                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_7                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_8                 = ITEM_ID_USER_START + 0,   // GET / SET
 
     //------------------------------------------------------------------------------------
-    // Request items.
+    // Block length and section length measure in Centimeters. We can handle up 
+    // to 8 sections for a block.
     //
-    // ??? rather make the slots for GET/PUT ?
+    // Configuration data.
     //------------------------------------------------------------------------------------
+    BCI_BLOCK_LEN                       = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_1                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_2                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_3                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_4                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_5                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_6                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_7                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_LEN_8                   = ITEM_ID_USER_START + 0,   // GET / SET
+
+    //------------------------------------------------------------------------------------
+    // Other static block attributes.
+    //
+    // Configuration data.
+    //-----------------------------------------------------------------------------------
+    BCI_BLOCK_SLOPE                     = ITEM_ID_USER_START + 0,   // GET / SET
+
+    //------------------------------------------------------------------------------------
+    // The time stamps when we detect a section being entered or left. The 
+    // direction does not matter, except when forward ( west ) block entry is 
+    // east and exit is west, else vice versa. The timestamp is a 10ms resolution
+    // 16-bit value. Overflows in about 10 minutes.
+    //
+    // Dynamic data.
+    //------------------------------------------------------------------------------------
+    BCI_BLOCK_ENTRY_TS                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_1              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_2              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_3              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_4              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_5              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_6              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_7              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SECTION_ENTRY_TS_8              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_EXIT_TS                   = ITEM_ID_USER_START + 0,   // GET / SET
+
+    //------------------------------------------------------------------------------------
+    // Signal Channels. Each signal is defined with its type, initial state and 
+    // where to find it in the hardware. There is an extension board and a channel
+    // number which uniquely defines the turnout.
+    // 
+    // A block can have NO signal, 1, 2 or up to eight. No matter how many 
+    // signals are defined, they all belong to the same block power module. The
+    // signal configuration does not specify where they are used in the track
+    // plan.
+    //
+    // Configuration attribute ( type, initial state, address )
+    //
+    //  - type:             servo, nil          ( 4bits )
+    //  - initial state:    normal / thrown     ( 4bits )
+    //  - address:          ext-board, channel  (  2 + 6 bits )
+    //
+    // we need to fit this in a 16-bit word.
+    //
+    // Configuration data.
+    //------------------------------------------------------------------------------------
+    BCI_SIGNAL_CHAN_1                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_2                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_3                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_4                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_5                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_6                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_7                   = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_SIGNAL_CHAN_8                   = ITEM_ID_USER_START + 0,   // GET / SET
+
+    BCI_SIGNAL_CHAN_WEST                = BCI_SIGNAL_CHAN_1,        // GET / SET
+    BCI_SIGNAL_CHAN_EAST                = BCI_SIGNAL_CHAN_2,        // GET / SET
+
+    //------------------------------------------------------------------------------------
+    // Turnout Channels. Each turnout is defined with its type, initial state 
+    // and where to find it in the hardware. There is an extension board and a 
+    // channel number which uniquely defines the turnout.
+    // 
+    // A block can have NO turnout, 1, 2 or up to eight. No matter how many 
+    // turnouts are defined, they all belong to the same block power module. The
+    // turnout configuration does not specify where they are used in the track
+    // plan and their relation to each other.
+    //
+    // Configuration attribute ( type, initial state, address )
+    //
+    //  - type:             servo, nil          ( 4bits )
+    //  - initial state:    normal / thrown     ( 4bits )
+    //  - address:          ext-board, channel  (  2 + 6 bits )
+    //
+    // we need to fit this in a 16-bit word.
+    //
+    // Configuration data.
+    //------------------------------------------------------------------------------------
+    BCI_TURNOUT_CHAN_1                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_2                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_3                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_4                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_5                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_6                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_7                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_CHAN_8                  = ITEM_ID_USER_START + 0,   // GET / SET
+
+    BCI_TURNOUT_CHAN_WEST               = BCI_TURNOUT_CHAN_1,       // GET / SET
+    BCI_TURNOUT_CHAN_EAST               = BCI_TURNOUT_CHAN_2,       // GET / SET
+
+    //------------------------------------------------------------------------------------
+    // Turnout Route Mask. A turnout route is the setting of the turnouts for a 
+    // route from input block to exit block. A route is defined 
+    // 
+    //  input:      the entry block ( 4 bit )
+    //. output:     the exit block  ( 4 bit )
+    //  mask:       the turnout settings. ( 1 bit per turnout: N/T )
+    //
+    // Note: there are more possible routes than we can realistically configure.
+    // An 8 by 8 hyper block would need 64 slots to record all combinations. 
+    // Let's define up to 16 internal routes and see if this is enough. After
+    // all a large hyper block can be divided into several hyper blocks at the 
+    // expense of being a separate block.
+    //
+    // Dynamic data.
+    //------------------------------------------------------------------------------------
+    BCI_BLOCK_ROUTE_MASK_1              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_2              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_3              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_4              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_5              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_6              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_7              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_8              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_9              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_10             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_11             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_12             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_13             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_14             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_15             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ROUTE_MASK_16             = ITEM_ID_USER_START + 0,   // GET / SET
+
+    //------------------------------------------------------------------------------------
+    // Current state items.
+    //
+    // Dynamic data.
+    //------------------------------------------------------------------------------------
+    BCI_CURRENT_BLOCK_MODE              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_TARGET_SPEED            = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_ROUTE_ID                = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_ROUTE_SET               = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_CAB_ID                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_CAB_SPEED               = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_OCCUPANCY_MASK          = ITEM_ID_USER_START + 0,   // GET
+    BCI_CURRENT_TURNOUT_STATE_MASK      = ITEM_ID_USER_START + 0,   // GET
+    BCI_CURRENT_POWER_CONSUMPTION       = ITEM_ID_USER_START + 0,   // GET
+
+    //------------------------------------------------------------------------------------
+    // Event Ids to configure. These event Ids are used when the block controller
+    // sends an event to the system.
+    //
+    // Configuration data.
+    //------------------------------------------------------------------------------------
+    BCI_BLOCK_SECTION_ENTRY_1           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_2           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_3           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_4           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_5           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_6           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_7           = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SECTION_ENTRY_8           = ITEM_ID_USER_START + 0,   // GET / SET
+
+    BCI_BLOCK_EVENT_ENTRY               = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_EVENT_EXIT                = ITEM_ID_USER_START + 0,   // GET / SET
+
+    BLI_BLOCK_EVENT_POWER               = ITEM_ID_USER_START + 0,   // GET / SET
    
-   
-   // ??? I am not even clear whether we need the signals ?
+    //------------------------------------------------------------------------------------
+    // Block Power Module. The power module manages the hardware track.
+    //
+    // Configuration data.
+    //------------------------------------------------------------------------------------
+    BCI_INIT_CURRENT_MA                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_LIMIT_CURRENT_MA                = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_MAX_CURRENT_MA                  = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_MILLI_VOLT_PER_AMP              = ITEM_ID_USER_START + 0,   // GET / SET
 
-    BC_ITEM_SET_SIGNAL_EAST_1           = 0,
-    BC_ITEM_SET_SIGNAL_EAST_2           = 0,
-    BC_ITEM_SET_SIGNAL_WEST_1           = 0,
-    BC_ITEM_SET_SIGNAL_WEST_2           = 0,
+    BCI_START_TIME_THRESHOLD            = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_STOP_TIME_THRESHOLD             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_OVL_TIME_THRESHOLD              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_OVL_EVENT_THRESHOLD             = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_OVL_RESTART_THRESHOLD           = ITEM_ID_USER_START + 0,   // GET / SET
 
-    // necessary for configuring a route.
+    //------------------------------------------------------------------------------------
+    // Turnout setting parameters. A turnout of type servo is controlled by two
+    // positions, a delay when to apply and so on. These attributes are part of
+    // of the extension board attributes where the turnouts are configured. 
+    // Nevertheless, their item value is defined here. There is one set of 
+    // attributes per turnout.
+    //
+    // Configuration data.
+    //------------------------------------------------------------------------------------
+    BCI_TURNOUT_TYPE                    = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_SERVO_LEFT_POS          = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_SERVO_RIGHT_POS         = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_SERVO_DELAY             = ITEM_ID_USER_START + 0,   // GET / SET
 
-    BC_ITEM_SET_TURNOUT_EAST_1          = 0,
-    BC_ITEM_SET_TURNOUT_EAST_2          = 0,
-    BC_ITEM_SET_TURNOUT_WEST_1          = 0,
-    BC_ITEM_SET_TURNOUT_WEST_2          = 0,
+    //------------------------------------------------------------------------------------
+    // Signal settings parameters. A signal is managed through a set of digital 
+    // outputs. These attributes are part of the extension board attributes where 
+    // the signals are configured. There is one set of attributes per turnout.
+    // 
+    // Configuration data.
+    //------------------------------------------------------------------------------------
+    BCI_SIGNAL_TYPE                     = ITEM_ID_USER_START + 0,   // GET / SET
+    
+    // ??? tbd... what do we need for a signal ?
 
+    //------------------------------------------------------------------------------------
+    // Block command codes. The block is managed by a control system via high 
+    // level command or explicitly via low level commands that manage the 
+    // individual components of a block. The latter command set is used for example 
+    // by train control systems such as RocRail, that assume a central command 
+    // station, sending their commands to that station. For support such systems,
+    // a LCS gateway node is part of the system which accepts these commands and 
+    // translates them into LCS node messages for the respective block controller. 
+    // 
+    // An alternative is the management of the layout via higher level commands. 
+    // In this scenario, the block is a high level entity and manages turnouts,
+    // signals and the current engine in alignment with its neighboring blocks. 
+    // The train master just issues commands such as "reserve route", "send train"
+    // and so on.
+    //
+    // It is a bit of a headache to manage hybrid systems, i.e analog and digital
+    // engine on the layout, when the control system explicitly manages the layout.
+    // Since the block controllers normally do not have the configuration data
+    // of the control system, commands such as "engine n speed m" cannot decoded
+    // for analog engines. Working with in high level block is much easier, 
+    // since the configuration data puts block controllers in a position to 
+    // manager any kind of train their sections.
+    //
+    // 
+    // ??? is there a general command structure:
+    //
+    // REQ <item> <sub-item> <value> ?
+    // example: REQ BCI_BLOCK_SET_INNER_ROUTE <2,5>
+    // example: REQ BCI_TURNOUT_SERVO_LEFT_POS <1,100>
+    //
+    // ??? explain the commands more detailed...
+    //
+    // Command Items.
+    //------------------------------------------------------------------------------------
+    BCI_BLOCK_RESERVE_ROUTE             = ITEM_ID_USER_START + 0,   // REQ - high level 
+    BCI_BLOCK_RELEASE_ROUTE             = ITEM_ID_USER_START + 0,   // REQ - high level    
+    BCI_BLOCK_SET_TRACK_MODE            = ITEM_ID_USER_START + 0,   // REQ - high level   
+    BCI_BLOCK_SET_INNER_ROUTE           = ITEM_ID_USER_START + 0,   // REQ - high level 
+    BCI_BLOCK_SET_POWER                 = ITEM_ID_USER_START + 0,   // REQ - any level 
+    BCI_BLOCK_SET_SPEED                 = ITEM_ID_USER_START + 0,   // REQ - any level 
+    BCI_BLOCK_SET_TURNOUT               = ITEM_ID_USER_START + 0,   // REQ - any level 
+    BCI_BLOCK_SET_SIGNAL                = ITEM_ID_USER_START + 0,   // REQ - any level 
+    
 };
-
-
 
 //----------------------------------------------------------------------------------------
 // Base station errors. Note that they need to be in the assigned to the user number
@@ -274,7 +461,7 @@ enum BlockControllerErrors : uint8_t {
 //----------------------------------------------------------------------------------------
 enum BlockControllerTrackOptions : uint16_t {
 
-    BT_OPT_DEFAULT_SETTING      = 0,
+    BT_OPT_DEFAULT_SETTING      = 1 << 0,
     BT_OPT_RAILCOM              = 1 << 1
 };
 
@@ -538,7 +725,19 @@ struct LcsRailComDetect {
 // ??? runs the block logic
 // ??? how to assign occ detect an signals to the block ?
 // ??? should message handling be a separate part ?
-// ??? can we build the control logic in such a way that it is configurable via ITEMs ?
+// 
+//
+// Most likely a state machine with sensors, events and current state as inputs.
+// Sets the next state, turnouts, signals, block power and so on.
+//
+// It will be a set of rules to evaluate many times / per second.
+//
+// Example: "if ( actual speed > target speed ) decelerate;"
+//          "if ( actual speed == target speed  ) do nothing;"
+//          "if ( target speed > MAX ) target speed = MAX;"
+//          "if ( target < 0 ) emergency stop"
+//
+// and so on....
 //----------------------------------------------------------------------------------------
 struct LcsBlockControl {
 
@@ -597,5 +796,3 @@ struct LcsBlockControllerNode {
 
     LcsBlockControl map[ 4 ];
 };
-
-#endif
