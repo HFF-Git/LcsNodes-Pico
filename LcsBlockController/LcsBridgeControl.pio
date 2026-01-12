@@ -23,6 +23,9 @@
 //
 //----------------------------------------------------------------------------------------
 
+// ??? watch our for inverted logic levels .... on optocoupler input ....
+// PICO: gpio_set_inover(DCC_PIN0, GPIO_OVERRIDE_INVERT);
+
 //----------------------------------------------------------------------------------------
 // Basic DCC Signal Handler. The block controller uses a small PIO program to 
 // control the H-Bridge when DCC mode is enabled. The basic work of the PIO state
@@ -31,8 +34,11 @@
 // state machine will use:
 // 
 //  DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
-//  H-Bridge out    - 2 control lines for the H-Bridge: 00 -> 
-//                                    short circuit, 01, 10 -> on, 11 - Z state.
+//  H-Bridge out    - 2 control lines for the H-Bridge: 
+//
+//                          00 -> short circuit, 
+//                          01, 10 -> on, 
+//                          11 - Z state. 
 // 
 // When the DCC input signal drops to 0b00, we either have no signal or the start 
 // of the Cutout period. We insert a 4 microsecond delay, which gives some leeway 
@@ -41,6 +47,7 @@
 // the start and end of the cutout period is signaled with the PIO state machine 
 // interrupt flags.
 //
+// ??? run at 8Mhz ?
 //----------------------------------------------------------------------------------------
 .program h_bridge_signal_control
 
@@ -71,13 +78,18 @@ wait_rising:
     jmp main_loop               ; Return to main loop
 
 //----------------------------------------------------------------------------------------
-// When in DCC mode, we need to deal with the cutout and potentially a railcom 
-// datagram. This PIO program will handle the cutout processing as well as the 
-// railcom datagram receive. There are 5 pins this machine will use:
+// Advanved DCC mode handler. When in DCC mode, we need to deal with the cutout 
+// and potentially a railcom datagram. This PIO program will handle the cutout 
+// processing as well as the railcom datagram receive. There are 5 pins this 
+// PIO state machine will use:
 // 
 //  DCC in          - 2 signal lines directly from the LCS bus DCC signal input. 
 //  H-Bridge out    - 2 control lines for the H-Bridge: 
-//                                 00 -> short circuit, 01, 10 -> on, 11 - Z state.
+//
+//                          00 -> short circuit, 
+//                          01, 10 -> on, 
+//                          11 - Z state. 
+//
 //  Uart in         - UART input from RailCom detector. ( configured as JumpPin )
 //
 // In normal mode, we read in the DCC signals and echo them to the H-Bridge control
@@ -97,8 +109,12 @@ wait_rising:
 // between the individual bytes to receive. 
 //
 // The Railcom baud rate is 250 KHz. To accommodate, we run the state machine at 
-// about a 2Mhz clock.
+// a 16Mhz clock cycle. This gives us 8 clock cycles per bit. The UART input is 
+// sampled in the middle of the bit period, i.e. after 4 cycles. The state machine
+// is therefore running at 16 MHz, which is the maximum for the PIO state machines
+// on the Pico.
 //
+// ??? run at 16Mhz ? what about the 4us timeout then ?
 //----------------------------------------------------------------------------------------
 .program h_bridge_signal_control_and_railcom
 
@@ -157,6 +173,7 @@ wait_rising:
 // the CPU. We set Y from the C -code and need to set every time we served the 
 // interrupt.
 // 
+// ??? run at 8Mhz ?
 //----------------------------------------------------------------------------------------
 .program cutout_detect
 
