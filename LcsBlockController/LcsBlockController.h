@@ -272,7 +272,7 @@ enum BlockControllItems2 : uint8_t {
     // Configuration attribute ( type, initial state, address )
     //
     //  - type:             servo, nil          ( 4bits )
-    //  - initial state:    normal / thrown     ( 4bits )
+    //  - initial state:    tbd                 ( 4bits )
     //  - address:          ext-board, channel  (  2 + 6 bits )
     //
     // we need to fit this in a 16-bit word.
