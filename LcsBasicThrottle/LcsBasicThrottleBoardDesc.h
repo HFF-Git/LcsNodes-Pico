@@ -52,17 +52,18 @@ const uint8_t RNUM_ENCODER_BUTTON   = CDC_RN_FIRST_USER_RN + 12;
 const uint8_t RNUM_ENCODER_KNOB     = CDC_RN_FIRST_USER_RN + 13;
 
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information 
-// about the hardware family, controller type, controller attributes and hardware 
-// resources available on the board. A resource itself described the actual 
-// hardware entity that is available. It the resource primarily maps the hardware
-// pins and their function. A GPIO pin and whether it is input output pin is a 
-// typical example for such a resource. A resource entry in the resource map has
-// a type and unique Id and the attributes for the particular resource type. The
-// order in the map does not matter, but when accessing the resource, the array 
-// index is used. Applications need to map resource entries to their index. The 
-// CDC library provides support for this mapping.
+// Each board is described by a resource descriptor, which contains information
+// about the hardware family, controller type, controller attributes, and the
+// hardware resources available on the board. A resource descriptor represents
+// an actual hardware entity and primarily maps hardware pins to their assigned
+// functions. The order of the resources in the map does not matter.
 //
+// A typical example of a resource is a GPIO pin, including whether it is
+// configured as an input or output. Each resource entry in the resource map
+// has a type, a unique ID, and a set of attributes specific to that resource
+// type.
+//
+// Board Descriptor for Basic Throttle Controller Board.
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {
 

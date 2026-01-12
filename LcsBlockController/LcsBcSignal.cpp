@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Occupancy Detect
+// LCS Block Controller - Signal Control
 //
 //----------------------------------------------------------------------------------------
 //
@@ -41,14 +41,14 @@ namespace {
     // is a nice helper that adds the function name to the message.
     // 
     //------------------------------------------------------------------------------------
-    inline bool occDetectDebugEnabled(  ) {
+    inline bool signalDebugEnabled(  ) {
 
-        return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_OCCUPANCY )); 
+        return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_SIGNALS )); 
     }
 
     inline uint8_t retStat( char *name, uint8_t errId ) {
 
-        if ( occDetectDebugEnabled( )) {
+        if ( signalDebugEnabled( )) {
 
             if ( errId == LCS_OK )  printf( "%s: OK\n", name );
             else                    printf( "%s: %d\n", name, errId );
@@ -65,5 +65,3 @@ namespace {
     //------------------------------------------------------------------------------------
 
 } // namespace
-
-// ??? contains the routines that manage the track section occupancy detection

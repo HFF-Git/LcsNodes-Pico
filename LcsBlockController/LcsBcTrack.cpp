@@ -248,7 +248,7 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
 //----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 
-    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK )) {
 
         printf( "setTrackMode: mode: %d, speed: %d\n", mode, speed );
     }
@@ -288,7 +288,7 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
         default: {
 
             if (( debugMask & DBG_BC_CONFIG ) && 
-                ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+                ( debugMask & DBG_BC_TRACK )) {
 
                 printf( "setTrackMode: mode: %d invalid\n", mode );
                 // ??? for now ...
@@ -306,7 +306,7 @@ uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
 //----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
 
-    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+    if (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_TRACK )) {
 
         printf( "setPwmFrequency: frequency(Hz): %d\n", frequency );
     }
@@ -445,7 +445,7 @@ void LcsBlockTrack::runTrackStateMachine( ) {
                 if ( overloadEventCount > overloadEventThreshold ) {
 
                     if (( debugMask & DBG_BC_CONFIG ) && 
-                        ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+                        ( debugMask &   DBG_BC_TRACK )) {
 
                         printf( "Overload detected: " );
 
@@ -480,7 +480,7 @@ void LcsBlockTrack::runTrackStateMachine( ) {
                 if ( overloadRestartCount > overloadRestartThreshold ) {
 
                     if (( debugMask & DBG_BC_CONFIG ) && 
-                        ( debugMask & DBG_BC_TRACK_POWER_MGMT )) {
+                        ( debugMask & DBG_BC_TRACK )) {
 
                         printf( "Overload restart failed, Cnt:%d\n", 
                                 overloadRestartCount );

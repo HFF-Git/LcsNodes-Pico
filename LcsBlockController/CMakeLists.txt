@@ -14,11 +14,12 @@ if ( TARGET tinyusb_device )
         LcsBlockController.h 
         main.cpp
         LcsBcNode.cpp
-        LcsBcControl.cpp 
-        LcsBcBlockTrack.cpp 
+        LcsBcBlock.cpp 
+        LcsBcTrack.cpp 
+        LcsBcSignal.cpp
+        LcsBcTurnout.cpp
         LcsBcOccDetect.cpp
-        LcsBcSignalControl.cpp
-        LcsBcTurnoutControl.cpp
+        LcsBcRailCom.cpp
         LcsBlockControllerBoardDesc.h
         LcsBridgeControl.pio
     )

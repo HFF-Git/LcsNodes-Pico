@@ -30,6 +30,20 @@
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// Each board is described by a resource descriptor, which contains information
+// about the hardware family, controller type, controller attributes, and the
+// hardware resources available on the board. A resource descriptor represents
+// an actual hardware entity and primarily maps hardware pins to their assigned
+// functions. The order of the resources in the map does not matter.
+//
+// A typical example of a resource is a GPIO pin, including whether it is
+// configured as an input or output. Each resource entry in the resource map
+// has a type, a unique ID, and a set of attributes specific to that resource
+// type.
+//
+//----------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------
 // Setup the configuration of the HW board. The CDC resource descriptor map 
 // contains the configuration data for the board. In addition, the HW pins for 
 // I2C, analog inputs and so on are set from the current RPico Defaults. Check
@@ -66,16 +80,7 @@ const uint8_t RNUM_DIO_P_3  = CDC_RN_FIRST_USER_RN + 21;
 const uint8_t RNUM_PWM_P_0  = CDC_RN_FIRST_USER_RN + 22;
 
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information 
-// about the hardware family, controller type, controller attributes and 
-// hardware resources available on the board. A resource itself described the 
-// actual hardware entity that is available. It the resource primarily maps the
-// hardware pins and their function. A GPIO pin and whether it is input output 
-// pin is a typical example for such a resource. A resource entry in the 
-// resource map has a type and unique Id and the attributes for the particular
-// resource type. The order in the map does not matter, but when accessing the 
-// resource, the array index is used. Applications need to map resource entries
-// to their index. The CDC library provides support for this mapping.
+// Board Descriptor for Main Controller Board Version: B.01.00
 //
 //----------------------------------------------------------------------------------------
 
@@ -218,8 +223,7 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
 };
 
 //----------------------------------------------------------------------------------------
-// The board descriptor for the board version "Main controller B.02.00". This is
-// a main controller board, which we use for the CDC lib test program.
+// Board Descriptor for Main Controller Board Version: B.02.00
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {

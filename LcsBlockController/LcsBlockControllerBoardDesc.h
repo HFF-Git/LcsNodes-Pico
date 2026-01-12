@@ -24,8 +24,7 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef LcsBlockControllerBoardDesc_h
-#define LcsBlockControllerBoardDesc_h
+#pragma once
  
 #include "LcsCdcLib.h"
 
@@ -60,16 +59,21 @@ const uint8_t   RNUM_CUT_SIGNAL       = CDC_RN_FIRST_USER_RN + 12;
 const uint16_t  PWM_FREQUENCY        = 20000;
 
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information 
-// about the hardware family, controller type, controller attributes and 
-// hardware resources available on the board. A resource itself described the 
-// actual hardware entity that is available. It the resource primarily maps the
-// hardware pins and their function. A GPIO pin and whether it is input output 
-// pin is a typical example for such a resource. A resource entry in the 
-// resource map has a type and unique Id and the attributes for the particular
-// resource type. The order in the map does not matter, but when accessing the 
-// resource, the array index is used. Applications need to map resource entries
-// to their index. The CDC library provides support for this mapping.
+// Each board is described by a resource descriptor, which contains information
+// about the hardware family, controller type, controller attributes, and the
+// hardware resources available on the board. A resource descriptor represents
+// an actual hardware entity and primarily maps hardware pins to their assigned
+// functions. The order of the resources in the map does not matter.
+//
+// A typical example of a resource is a GPIO pin, including whether it is
+// configured as an input or output. Each resource entry in the resource map
+// has a type, a unique ID, and a set of attributes specific to that resource
+// type.
+//
+//----------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------
+// Dual Block Controller Board Descriptor Version: B.02.00
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
@@ -145,5 +149,3 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
 // ??? we need a descriptor also for the quad controller. 
 // ??? how do we keep the SW informed about what board it runs on ?
 // ??? would we need to create two different programs after all ? 
-
-#endif

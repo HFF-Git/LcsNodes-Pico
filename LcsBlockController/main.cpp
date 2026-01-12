@@ -41,7 +41,7 @@ using namespace CDC;
 //----------------------------------------------------------------------------------------
 uint16_t                        debugMask = DBG_BC_CONFIG | 
                                             DBG_BC_SETUP | 
-                                            DBG_BC_TRACK_POWER_MGMT;
+                                            DBG_BC_TRACK;
 
 CdcResourceDescMap              dMap;
 LcsBlockTrackDesc               block1Desc;

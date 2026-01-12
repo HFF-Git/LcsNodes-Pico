@@ -31,6 +31,20 @@
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// Each board is described by a resource descriptor, which contains information
+// about the hardware family, controller type, controller attributes, and the
+// hardware resources available on the board. A resource descriptor represents
+// an actual hardware entity and primarily maps hardware pins to their assigned
+// functions. The order of the resources in the map does not matter.
+//
+// A typical example of a resource is a GPIO pin, including whether it is
+// configured as an input or output. Each resource entry in the resource map
+// has a type, a unique ID, and a set of attributes specific to that resource
+// type.
+//
+//----------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------
 // The button and switch assignments for the Cab Handheld Development Platform. 
 // The current handheld is a board based on the PICO platform. All buttons, switches 
 // and encoders are directly connected to the PICO GPIO pins. The CDC resource 
@@ -40,7 +54,7 @@ using namespace CDC;
 //
 // One day we will have several handheld versions. Although they will perhaps differ,
 // their the CDC resource names used should not change. 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 const uint8_t RNUM_MENU_BUTTON      = CDC_RN_FIRST_USER_RN + 0;
 const uint8_t RNUM_SELECT_BUTTON    = CDC_RN_FIRST_USER_RN + 1;
 const uint8_t RNUM_UP_BUTTON        = CDC_RN_FIRST_USER_RN + 2;
@@ -58,16 +72,7 @@ const uint8_t RNUM_ENCODER_A        = CDC_RN_FIRST_USER_RN + 13;
 const uint8_t RNUM_ENCODER_B        = CDC_RN_FIRST_USER_RN + 14;
 
 //----------------------------------------------------------------------------------------
-// Each board is described by a resource descriptor, which contains information 
-// about the hardware family, controller type, controller attributes and 
-// hardware resources available on the board. A resource itself described the 
-// actual hardware entity that is available. It the resource primarily maps the
-// hardware pins and their function. A GPIO pin and whether it is input output 
-// pin is a typical example for such a resource. A resource entry in the 
-// resource map has a type and unique Id and the attributes for the particular
-// resource type. The order in the map does not matter, but when accessing the 
-// resource, the array index is used. Applications need to map resource entries
-// to their index. The CDC library provides support for this mapping.
+// Board Descriptor for Basic Throttle Controller Board Version: B.02.00.
 //
 //----------------------------------------------------------------------------------------
 const CdcResourceDescMap LCS_BASIC_THROTTLE_BOARD_DESC_B_02_00 = {

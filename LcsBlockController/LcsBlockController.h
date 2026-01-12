@@ -32,49 +32,51 @@
 #include "LcsDrvOccDetectLib.h"
 
 using namespace LCS;
-
+using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 //
-// A block is an abstract object with n WEST docking points and m EAST docking 
-// points. The block is manage by a block controller, it is a power domain.
-// Inside a block there are sections, turnouts and signals. The most simple form
-// is a block with one WEST and one EAST dock and no turnouts.
+// A block is an abstract object with n WEST docking points and m EAST docking
+// points. The block is managed by a block controller and represents a single
+// power domain. Within a block there may be sections, turnouts, and signals.
+// The simplest form is a block with one WEST and one EAST docking point and
+// no turnouts.
 //
 //                        <--- direction
 //                  :---------------------------:
-//                  :         Block Id          :
-//              WEST_1                      EAST_1  
+//                  :         Block ID          :
+//              WEST_1                      EAST_1
 //                  :                           :
-//   Neighbors      :                           :    Neighbors 
+//   Neighbors      :                           :    Neighbors
 //                  :                           :
-//              WEST_n                      EAST_m 
+//              WEST_n                      EAST_m
 //                  :                           :
 //                  :---------------------------:
 //
-// The block controller manages all associated resources, turnout and signals. It
-// is the intent that a layout can be managed by high level commands that the 
-// block interprets. Fore example, a route reservation results in the block setting
-// turnouts and signals accordingly. On automated routes, the block controls the 
-// engine speed in its domain. 
-// 
-// All  blocks send events about their state. All blocks monitor their neighbors 
-// via listening to events. 
-// 
-// A block can be operated in automatic and manual mode. Automatic mode is a 
-// straightforward block control scheme. A route is reserved and trains can be 
-// sent via this route. In manual mode a set of blocks, i.e. a route or a set of 
-// blocks are reserved for manual operation.
-// 
-// A block does not cross check that the currently assigned CabId matches the
-// engine on the track. While this could be done in digital mode via Railcom 
-// support, an analog engine is not identifiable. All the block cares about is 
-// that there is an engine, initially assigned to a cabId, and manages that 
-// engine until it leaves the block. A receiving block queries its predecessor
-// block for the cabId received. This simple scheme works for DCC and analog too.
+// The block controller manages all associated resources, including sections,
+// turnouts, and signals. The intent is that a layout can be controlled using
+// high-level commands that the block interprets locally. For example, a route
+// reservation causes the block to set its turnouts and signals accordingly.
+// On automated routes, the block also controls engine speed within its domain.
+//
+// All blocks publish events describing their current state. Blocks also
+// monitor neighboring blocks by subscribing to and processing their events.
+//
+// A block can operate in either automatic or manual mode. Automatic mode
+// provides a straightforward block control scheme: routes are reserved and
+// trains are dispatched along those routes. In manual mode, a set of blocks
+// (for example, an entire route or a subset of blocks) is reserved for direct
+// manual operation.
+//
+// A block does not cross-check whether the currently assigned CabId matches
+// the actual engine on the track. While such verification is possible in
+// digital mode using RailCom, analog engines cannot be uniquely identified.
+// The block only assumes that an engine is present, initially associated
+// with a CabId, and manages that engine until it leaves the block. When an
+// engine enters the next block, the receiving block queries its predecessor
+// for the CabId. This simple scheme works for both DCC and analog operation.
 //
 //----------------------------------------------------------------------------------------
-
 
 //----------------------------------------------------------------------------------------
 // The block controller maintains a set of debug flags. The overall concept is 
@@ -83,9 +85,14 @@ using namespace LCS;
 //
 //      DBG_BC_CONFIG                   -   DEBUG base station enabled
 //      DBG_BC_SETUP                    -   show the setup steps
-//      DBG_BC_LCS_MSG_INTERFACE        -   show the incoming LCS messages
-//      DBG_BC_TRACK_POWER_MGMT         -   show the track power measurement data
+//      DBG_BC_NODE                     -   show the node related activity
+//      DBG_BC_BLOCK                    -   show the block state changes
+//      DBG_BC_TRACK                    -   show the track power measurement data
+//      DBG_BC_OCCUPANCY                -   show the occupancy detection activity
+//      DBG_BC_TURNOUTS                 -   show the turnout activity
+//      DBG_BC_SIGNALS                  -   show the signal activity
 //      DBG_BC_RAILCOM                  -   show the RailCom activity
+//      DBG_BC_ALL                      -   all debug enabled
 //
 // The way to use these flags is for example:
 //
@@ -94,11 +101,48 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 enum BlockControllerDebugFlags : uint16_t {
 
-    DBG_BC_CONFIG                  = 1 << 15,   // DEBUG enabled
-    DBG_BC_SETUP                   = 1 << 1,    // show setup steps
-    DBG_BC_LCS_MSG_INTERFACE       = 1 << 2,    // show incoming LCS messages
-    DBG_BC_TRACK_POWER_MGMT        = 1 << 3,    // show track power data
-    DBG_BC_RAILCOM                 = 1 << 4     // show the RailCom activity
+    DBG_BC_CONFIG           = 1 << 15,   
+    DBG_BC_SETUP            = 1 << 1,    
+    DBG_BC_NODE             = 1 << 2,    
+    DBG_BC_BLOCK            = 1 << 3,    
+    DBG_BC_TRACK            = 1 << 4,    
+    DBG_BC_OCCUPANCY        = 1 << 5,    
+    DBG_BC_TURNOUTS         = 1 << 6,    
+    DBG_BC_SIGNALS          = 1 << 7,    
+    DBG_BC_RAILCOM          = 1 << 8,
+    DBG_BC_ALL              = 0xFFFF
+};
+
+//----------------------------------------------------------------------------------------
+// Base station errors. Note that they need to be in the assigned to the user number
+// range of errors defined in the LCS runtime library. 
+//
+//----------------------------------------------------------------------------------------
+enum BlockControllerErrors : uint8_t {
+
+    BLOCK_CONTROLLER_ERR_BASE       = 128,
+
+    ERR_MSG_INTERFACE_SETUP         = BLOCK_CONTROLLER_ERR_BASE + 10,
+    ERR_DCC_TRACK_CONFIG            = BLOCK_CONTROLLER_ERR_BASE + 11,
+    ERR_PIN_CONFIG                  = BLOCK_CONTROLLER_ERR_BASE + 12,
+    ERR_TRACK_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 13,
+
+    ERR_NVM_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 15,
+    ERR_PIO_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 16
+};
+
+//----------------------------------------------------------------------------------------
+// Setup options to set for the DCC track. They are set when the track object is 
+// created.
+//
+//  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
+//  DT_OPT_RAILCOM             - The track support Railcom detection.
+//
+//----------------------------------------------------------------------------------------
+enum BlockControllerTrackOptions : uint16_t {
+
+    BT_OPT_DEFAULT_SETTING      = 1 << 0,
+    BT_OPT_RAILCOM              = 1 << 1
 };
 
 //----------------------------------------------------------------------------------------
@@ -389,28 +433,31 @@ enum BlockControllItems2 : uint8_t {
     // ??? tbd... what do we need for a signal ?
 
     //------------------------------------------------------------------------------------
-    // Block command codes. The block is managed by a control system via high 
-    // level command or explicitly via low level commands that manage the 
-    // individual components of a block. The latter command set is used for example 
-    // by train control systems such as RocRail, that assume a central command 
-    // station, sending their commands to that station. For support such systems,
-    // a LCS gateway node is part of the system which accepts these commands and 
-    // translates them into LCS node messages for the respective block controller. 
-    // 
-    // An alternative is the management of the layout via higher level commands. 
-    // In this scenario, the block is a high level entity and manages turnouts,
-    // signals and the current engine in alignment with its neighboring blocks. 
-    // The train master just issues commands such as "reserve route", "send train"
-    // and so on.
+    // Block command codes. A block can be managed by a control system either via
+    // high-level commands or explicitly via low-level commands that operate the
+    // individual components of the block. The latter command set is used, for
+    // example, by train control systems such as RocRail, which assume a central
+    // command station and send their commands to that station.
     //
-    // It is a bit of a headache to manage hybrid systems, i.e analog and digital
-    // engine on the layout, when the control system explicitly manages the layout.
-    // Since the block controllers normally do not have the configuration data
-    // of the control system, commands such as "engine n speed m" cannot decoded
-    // for analog engines. Working with in high level block is much easier, 
-    // since the configuration data puts block controllers in a position to 
-    // manager any kind of train their sections.
+    // To support such systems, an LCS gateway node is part of the architecture.
+    // It accepts these commands and translates them into LCS node messages for
+    // the corresponding block controller.
     //
+    // An alternative approach is layout management using higher-level commands.
+    // In this scenario, the block is treated as a high-level entity that manages
+    // turnouts, signals, and the currently assigned engine in coordination with
+    // its neighboring blocks. The train master then issues abstract commands such
+    // as "reserve route" or "send train".
+    //
+    // Managing hybrid systems (i.e., analog and digital engines on the same
+    // layout) becomes considerably more complex when the control system explicitly
+    // manages the layout. Since block controllers typically do not have access to
+    // the control system’s configuration data, commands such as "engine n speed m"
+    // cannot be decoded for analog engines.
+    //
+    // Operating at the high-level block abstraction is therefore much simpler.
+    // With the necessary configuration data available, block controllers are able
+    // to manage any type of train within their sections.
     // 
     // ??? is there a general command structure:
     //
@@ -434,48 +481,12 @@ enum BlockControllItems2 : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Base station errors. Note that they need to be in the assigned to the user number
-// range of errors defined in the LCS runtime library. 
-//
-//----------------------------------------------------------------------------------------
-enum BlockControllerErrors : uint8_t {
-
-    BLOCK_CONTROLLER_ERR_BASE       = 128,
-
-    ERR_MSG_INTERFACE_SETUP         = BLOCK_CONTROLLER_ERR_BASE + 10,
-    ERR_DCC_TRACK_CONFIG            = BLOCK_CONTROLLER_ERR_BASE + 11,
-    ERR_PIN_CONFIG                  = BLOCK_CONTROLLER_ERR_BASE + 12,
-    ERR_TRACK_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 13,
-
-    ERR_NVM_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 15,
-    ERR_PIO_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 16
-};
-
-//----------------------------------------------------------------------------------------
-// Setup options to set for the DCC track. They are set when the track object is 
-// created.
-//
-//  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
-//  DT_OPT_RAILCOM             - The track support Railcom detection.
-//
-//----------------------------------------------------------------------------------------
-enum BlockControllerTrackOptions : uint16_t {
-
-    BT_OPT_DEFAULT_SETTING      = 1 << 0,
-    BT_OPT_RAILCOM              = 1 << 1
-};
-
-//----------------------------------------------------------------------------------------
 // The block track object has a set of flags to indicate its current status.
 //
 //  DT_F_POWER_ON             - The track is under power.
 //  DT_F_POWER_OVERLOAD       - An overload situation was detected.
 //  DT_F_MEASUREMENT_ON       - The power measurement is enabled.
-//  DT_F_SERVICE_MODE_ON      - The track is currently in service mode, i.e. is a PROG track.
-//  DT_F_CUTOUT_MODE_ON       - The track has the cutout generation enabled.
-//  DT_F_RAILCOM_MODE_ON      - The track has the railcom detect enabled.
-//  DT_F_RAILCOM_MSG_PENDING  - If railcom is enabled, a received datagram is indicated.
-//  DT_F_CONFIG_ERROR         - The passed configuration descriptor has invalid options configured.
+//  DT_F_CONFIG_ERROR         - The configuration descriptor is invalid.
 //
 //----------------------------------------------------------------------------------------
 enum TrackFlags : uint16_t {
@@ -516,22 +527,27 @@ enum BlockTrackMode : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The block controller can contain up to four blocks. Each block track is described
-// by the LcsBlockDesc descriptor. There are the hardware pins sel1Pin1, selPin2, 
-// sensePin and uartRxPin. In addition there are the limits for current consumption
-// values, all specified in milliAmps. The initial current sets the current 
-// consumption limit after the track is turned on. The limit current consumption 
-// specifies the actual configured value that is checked for a track current overload
-// situation. The maximum current defines what current the power module should never
-// exceed. For the measurements to work, the power module needs to deliver a voltage
-// that corresponds to the current drawn on the track. The value is measured in 
-// milliVolt per Ampere drawn. Finally, there are threshold times for managing the
-// track overload and restart capability.
+// The block controller manages up to four blocks. Each block track is described
+// by an LcsBlockTrackDesc descriptor, which specifies the associated hardware
+// resource IDs. In addition, current consumption limits are defined, all
+// expressed in milliamps.
+//
+// The initial current defines the current limit applied immediately after a
+// track is powered on. The limit current specifies the normal operating value
+// used to detect a track current overload condition. The maximum current
+// defines an absolute limit that the power module must never exceed.
+//
+// For current measurement to work correctly, the power module must provide a
+// voltage proportional to the current drawn by the track. This proportionality
+// factor is specified in millivolts per ampere.
+//
+// Finally, threshold times are defined to control overload handling and track
+// restart behavior.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBlockTrackDesc {
 
-    uint16_t    options;
+    uint16_t    options                         = BT_OPT_DEFAULT_SETTING;
 
     uint8_t     rNumControl                     = 0;
     uint8_t     rNumSense                       = 0;
@@ -561,6 +577,8 @@ struct LcsBlockTrackDesc {
 // bus is routed though to the H-Bridge, in analog mode a PWM signal is used to set
 // the H-Bridge emitting a PWM signal with a positive or negative voltage.
 //
+// ??? can we generalize the TRack Manager so it can be used for Basestation and
+// block controller ?
 //----------------------------------------------------------------------------------------
 struct LcsBlockTrack {
 
@@ -568,81 +586,79 @@ struct LcsBlockTrack {
 
     LcsBlockTrack( );
 
-    uint8_t                     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
-    uint8_t                     setTrackState( uint16_t state );
-    uint8_t                     setTrackMode( uint16_t mode, uint8_t speed = 0 );
-    uint8_t                     setPwmFrequency( uint32_t frequency );
+    uint8_t             setupBlockTrack( LcsBlockTrackDesc* trackDesc );
+    uint8_t             setTrackState( uint16_t state );
+    uint8_t             setTrackMode( uint16_t mode, uint8_t speed = 0 );
+    uint8_t             setPwmFrequency( uint32_t frequency );
 
-    uint16_t                    getFlags( );
-    uint16_t                    getOptions( );
+    uint16_t            getFlags( );
+    uint16_t            getOptions( );
 
-    void                        runTrackStateMachine( );
+    void                powerStart( );
+    void                powerStop( );
+    bool                isPowerOn( );
+    bool                isPowerOverload( );
+    void                checkOverload( );
+    void                powerMeasurement( );
+     
 
-    void                        powerStart( );
-    void                        powerStop( );
-    bool                        isPowerOn( );
-    bool                        isPowerOverload( );
-  
-    void                        setLimitCurrent( uint16_t val );
-    uint16_t                    getLimitCurrent( );
-    uint16_t                    getActualCurrent( );
-    uint16_t                    getInitCurrent( );
-    uint16_t                    getMaxCurrent( );
-    uint16_t                    getRMSCurrent( );
+    void                setLimitCurrent( uint16_t val );
+    uint16_t            getLimitCurrent( );
+    uint16_t            getActualCurrent( );
+    uint16_t            getInitCurrent( );
+    uint16_t            getMaxCurrent( );
+    uint16_t            getRMSCurrent( );
+    uint32_t            getPwrSamplesTaken( );
+    uint16_t            getPwrSamplesPerSec( );
 
-    void                        checkOverload( );
-    void                        powerMeasurement( );
+    void                runTrackStateMachine( );
+    void                printTrackConfig( );
+    void                printTrackStatus( );
 
-    uint32_t                    getPwrSamplesTaken( );
-    uint16_t                    getPwrSamplesPerSec( );
-
-    void                        printTrackConfig( );
-    void                        printTrackStatus( );
-
+   
     private:
 
-    uint16_t                    options                         = BT_OPT_DEFAULT_SETTING;
-    volatile uint16_t           flags                           = BT_F_DEFAULT_SETTING;
+    uint16_t            options                         = BT_OPT_DEFAULT_SETTING;
+    volatile uint16_t   flags                           = BT_F_DEFAULT_SETTING;
 
-    volatile uint16_t           trackState                      = 0;
-    volatile uint16_t           trackMode                       = 0;
-    volatile uint16_t           trackSpeed                      = 0;      
-    volatile uint32_t           trackTimeStamp                  = 0;
-    volatile uint8_t            overloadEventCount              = 0;
-    volatile uint8_t            overloadRestartCount            = 0;
+    volatile uint16_t   trackState                      = 0;
+    volatile uint16_t   trackMode                       = 0;
+    volatile uint16_t   trackSpeed                      = 0;      
+    volatile uint32_t   trackTimeStamp                  = 0;
+    volatile uint8_t    overloadEventCount              = 0;
+    volatile uint8_t    overloadRestartCount            = 0;
 
-    uint8_t                     rNumEnable                      = 0;
-    uint8_t                     rNumControl                     = 0;
-    uint8_t                     rNumSense                       = 0;
+    uint8_t             rNumEnable                      = 0;
+    uint8_t             rNumControl                     = 0;
+    uint8_t             rNumSense                       = 0;
 
-    uint16_t                    pwmFrequency                    = 0;
-    uint16_t                    initialTrackMode                = 0;
-    uint16_t                    initialTrackSpeed               = 0;
-    uint16_t                    initCurrentMilliAmp             = 0;
-    uint16_t                    limitCurrentMilliAmp            = 0;
-    uint16_t                    maxCurrentMilliAmp              = 0;
+    uint16_t            pwmFrequency                    = 0;
+    uint16_t            initialTrackMode                = 0;
+    uint16_t            initialTrackSpeed               = 0;
+    uint16_t            initCurrentMilliAmp             = 0;
+    uint16_t            limitCurrentMilliAmp            = 0;
+    uint16_t            maxCurrentMilliAmp              = 0;
 
-    uint16_t                    startTimeThreshold              = 0;
-    uint16_t                    stopTimeThreshold               = 0;
-    uint16_t                    overloadTimeThreshold           = 0;
-    uint16_t                    overloadEventThreshold          = 0;
-    uint16_t                    overloadRestartThreshold        = 0;
+    uint16_t            startTimeThreshold              = 0;
+    uint16_t            stopTimeThreshold               = 0;
+    uint16_t            overloadTimeThreshold           = 0;
+    uint16_t            overloadEventThreshold          = 0;
+    uint16_t            overloadRestartThreshold        = 0;
+    uint16_t            milliVoltPerAmp                 = 0;
+    uint16_t            digitsPerAmp                    = 0;
+    volatile uint16_t   actualCurrentDigitValue         = 0;
+    volatile uint16_t   highWaterMarkDigitValue         = 0;
+    volatile uint16_t   limitCurrentDigitValue          = 0;
 
-    uint16_t                    milliVoltPerAmp                 = 0;
-    uint16_t                    digitsPerAmp                    = 0;
-    volatile uint16_t           actualCurrentDigitValue         = 0;
-    volatile uint16_t           highWaterMarkDigitValue         = 0;
-    volatile uint16_t           limitCurrentDigitValue          = 0;
+    volatile uint32_t   totalPwrSamplesTaken            = 0;
+    uint32_t            lastPwrSampleTimeStamp          = 0;
 
-    volatile uint32_t           totalPwrSamplesTaken            = 0;
-    uint32_t                    lastPwrSampleTimeStamp          = 0;
+    uint32_t            lastPwrSamplePerSecTaken        = 0;
+    uint32_t            lastPwrSamplePerSecTimeStamp    = 0;
+    uint32_t            pwrSamplesPerSec                = 0;
 
-    uint32_t                    lastPwrSamplePerSecTaken        = 0;
-    uint32_t                    lastPwrSamplePerSecTimeStamp    = 0;
-    uint32_t                    pwrSamplesPerSec                = 0;
-
-    uint8_t                     pwrSampleBufIndex                       = 0;
-    uint16_t                    pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]     = { 0 };
+    uint8_t             pwrSampleBufIndex               = 0;
+    uint16_t            pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]     = { 0 };
 
 };
 
@@ -659,11 +675,13 @@ struct LcsOccDetect {
 
     LcsOccDetect( );
 
+    uint8_t setupOccDetect( uint16_t extBoardId );
+
     uint8_t getOccDetectMask( uint16_t *mask );
-
-    private:    
-
-    // ??? need to remember the extension board ID.
+        
+    private:
+    
+    uint16_t extBoardId;
 
 };
 
@@ -678,10 +696,11 @@ struct LcsSignalControl {
 
     LcsSignalControl( );
 
+    uint8_t setupSignalControl( uint16_t extBoardId );
 
     private:
 
-    // ??? need to remember the extension board ID.
+    uint16_t extBoardId;
 
 };
 
@@ -696,9 +715,11 @@ struct LcsTurnoutControl {
 
     LcsTurnoutControl( );
 
+    uint8_t setupTurnoutControl( uint16_t extBoardId );
+
     private:
 
-    // ??? need to remember the extension board ID.
+    uint16_t extBoardId;
 };
 
 //----------------------------------------------------------------------------------------
@@ -711,9 +732,10 @@ struct LcsRailComDetect {
 
     LcsRailComDetect( );
 
+    uint8_t setupRailComDetect( uint16_t extBoardId );
+
     private:
 
-    // ??? need to remember the extension board ID.
 };
 
 //----------------------------------------------------------------------------------------
@@ -743,9 +765,8 @@ struct LcsBlockControl {
 
     LcsBlockControl(  );
 
-    uint8_t handleLcsRequest( uint8_t *msg );
+    uint8_t setupBlockControl(  );    
 
-   
     private:
 
     // ??? handles to detect, signal and turnout object.
@@ -753,11 +774,16 @@ struct LcsBlockControl {
 };
 
 //----------------------------------------------------------------------------------------
-// A LCS block controller node can host up to four blocks. This object is the main
-// object that manages the blocks on the node.
+// A LCS block controller node can host up to four blocks. This object manages 
+// the configured blocks on the node. The block controllers themselves manage 
+// are stored in the block controller map array. Up to four blocks can be
+// configured on a block controller node.
 //
-// ??? the node descriptor is an array of block descriptors. They are kept in the NVM ?
-// ??? manages the LCS messages and forwards them to the target block.
+// The lcs block controller node implements the LCS node callbacks to handle any
+// LCS message that is sent to the block controller node. LCS requests, replies
+// and events are handled here and forwarded to the respective block controller
+// object.
+//
 //----------------------------------------------------------------------------------------
 struct LcsBlockControllerNode {
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Occupancy Detect
+// LCS Block Controller - Control Logic
 //
 //----------------------------------------------------------------------------------------
 //
@@ -16,6 +16,8 @@
 // PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
 // should have received a copy of the GNU General Public License along with this 
 // program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
@@ -41,14 +43,14 @@ namespace {
     // is a nice helper that adds the function name to the message.
     // 
     //------------------------------------------------------------------------------------
-    inline bool occDetectDebugEnabled(  ) {
+    inline bool blockControlDebugEnabled(  ) {
 
-        return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_OCCUPANCY )); 
+        return (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_BLOCK )); 
     }
 
     inline uint8_t retStat( char *name, uint8_t errId ) {
 
-        if ( occDetectDebugEnabled( )) {
+        if ( blockControlDebugEnabled( )) {
 
             if ( errId == LCS_OK )  printf( "%s: OK\n", name );
             else                    printf( "%s: %d\n", name, errId );
@@ -66,4 +68,23 @@ namespace {
 
 } // namespace
 
-// ??? contains the routines that manage the track section occupancy detection
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+LcsBlockControl::LcsBlockControl(  ) {
+
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockControl::setupBlockControl( ) {
+
+    // ??? setup the block control logic, e.g. get handles to turnout, signal and 
+    // ??? detection objects.
+
+    return ( RET_STAT( LCS_OK ));
+}
+
