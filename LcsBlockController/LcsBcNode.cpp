@@ -9,7 +9,7 @@
 // ??? contains the main code, the setup, the message handler, etc.
 //----------------------------------------------------------------------------------------
 // 
-// LCS Block Controller
+// LCS Block Controller - Control Logic
 // Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
@@ -92,13 +92,13 @@ LcsBlockControllerNode::LcsBlockControllerNode(  ) {
 
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The node and port initialization callback.
 //
 // ??? when we know what ports we actually need / use, disable the rest of the ports.
 // ??? the number of ports / blocks should be note in the block descriptor.
 // ??? invoke the configured block reset method in the block controller logic object...
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockControllerNode::handleInitCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
@@ -110,11 +110,11 @@ uint8_t LcsBlockControllerNode::handleInitCallback( uint16_t npId ) {
     return( LCS_OK );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The node or port reset callback.
 //
 // ??? invoke the configured block reset method in the block controller logic object...
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockControllerNode::handleResetCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
@@ -126,11 +126,11 @@ uint8_t LcsBlockControllerNode::handleResetCallback( uint16_t npId ) {
     return( LCS_OK );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The node or port power fail callback.
 //
 // ??? invoke the configured block pfail method in the block controller logic object...
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockControllerNode::handlePfailCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
@@ -142,11 +142,11 @@ uint8_t LcsBlockControllerNode::handlePfailCallback( uint16_t npId ) {
     return( LCS_OK );
 }
 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // LCS message callbacks. All we do is to list their invocation. ( for now )
 //
 // 
-//----------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 uint8_t LcsBlockControllerNode::handleLcsMsgCallback( uint8_t *msg ) {
 
     printf( "MsgCallback: ", msg  );
@@ -169,7 +169,10 @@ extern LcsBlockTrack *block2;
 //
 // ??? should dispatch to the respective objects...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, 
+                                                      uint8_t item, 
+                                                      uint16_t *arg1, 
+                                                      uint16_t *arg2 ) {
 
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
     

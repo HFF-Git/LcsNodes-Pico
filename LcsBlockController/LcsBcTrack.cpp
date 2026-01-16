@@ -169,12 +169,12 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* trackDesc ) {
         return ( ERR_PIN_CONFIG );
     }
 
-    if (( trackDesc -> initCurrentMilliAmp  > trackDesc -> limitCurrentMilliAmp )                   ||
-        ( trackDesc -> limitCurrentMilliAmp > trackDesc -> maxCurrentMilliAmp )                     ||
-        ( trackDesc -> startTimeThresholdMillis > MAX_START_TIME_THRESHOLD_MILLIS )                 ||
-        ( trackDesc -> stopTimeThresholdMillis > MAX_STOP_TIME_THRESHOLD_MILLIS )                   ||
-        ( trackDesc -> overloadTimeThresholdMillis > MAX_OVERLOAD_TIME_THRESHOLD_MILLIS )           ||
-        ( trackDesc -> overloadEventThreshold > MAX_OVERLOAD_EVENT_COUNT )                          ||
+    if (( trackDesc -> initCurrentMilliAmp  > trackDesc -> limitCurrentMilliAmp )         ||
+        ( trackDesc -> limitCurrentMilliAmp > trackDesc -> maxCurrentMilliAmp )           ||
+        ( trackDesc -> startTimeThresholdMillis > MAX_START_TIME_THRESHOLD_MILLIS )       ||
+        ( trackDesc -> stopTimeThresholdMillis > MAX_STOP_TIME_THRESHOLD_MILLIS )         ||
+        ( trackDesc -> overloadTimeThresholdMillis > MAX_OVERLOAD_TIME_THRESHOLD_MILLIS ) ||
+        ( trackDesc -> overloadEventThreshold > MAX_OVERLOAD_EVENT_COUNT )                ||
         ( trackDesc -> overloadRestartThreshold > MAX_OVERLOAD_RESTART_COUNT )
         ) {
 

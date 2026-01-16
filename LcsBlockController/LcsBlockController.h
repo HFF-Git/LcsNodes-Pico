@@ -362,9 +362,11 @@ enum BlockControllItems2 : uint8_t {
     // Dynamic data.
     //------------------------------------------------------------------------------------
     BCI_CURRENT_BLOCK_MODE              = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_BLOCK_EAST              = ITEM_ID_USER_START + 0,   // GET
+    BCI_CURRENT_BLOCK_WEST              = ITEM_ID_USER_START + 0,   // GET
     BCI_CURRENT_TARGET_SPEED            = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_CURRENT_ROUTE_ID                = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_CURRENT_ROUTE_SET               = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_CURRENT_ROUTE_MASK              = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_CURRENT_CAB_ID                  = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_CURRENT_CAB_SPEED               = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_CURRENT_OCCUPANCY_MASK          = ITEM_ID_USER_START + 0,   // GET
