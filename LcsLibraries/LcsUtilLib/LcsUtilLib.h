@@ -77,3 +77,44 @@ inline bool isInRange( unsigned int val, unsigned int lower, unsigned int upper 
 
     return (( val >= lower ) && ( val <= upper ));
 }
+
+static inline bool isInRangeU8( uint8_t val, uint8_t lower, uint8_t upper ) {
+
+    return (( val >= lower ) && ( val <= upper ));
+}
+
+static inline bool isInRangeU16( uint16_t val, uint16_t lower, uint16_t upper ) {
+
+    return (( val >= lower ) && ( val <= upper ));
+}
+
+static inline bool isInRangeU32( uint32_t val, uint32_t lower, uint32_t upper ) {
+
+    return (( val >= lower ) && ( val <= upper ));
+}
+
+static inline unsigned int clamp( unsigned int val, unsigned int low, unsigned int high ) {
+    
+    if ( val < low ) return low;
+    if ( val > high ) return high;
+    return val;
+}
+
+static inline uint8_t  clampU8( uint8_t val, uint8_t low, uint8_t high ) {
+    if ( val < low ) return low;
+    if ( val > high ) return high;
+    return val;
+}
+
+static inline uint16_t clampU16( uint16_t val, uint16_t low, uint16_t high ) {
+    if ( val < low ) return low;
+    if ( val > high ) return high;
+    return val;
+}
+
+static inline uint32_t clampU32( uint32_t val, uint32_t low, uint32_t high ) {
+    if ( val < low ) return low;
+    if ( val > high ) return high;
+    return val;
+}
+

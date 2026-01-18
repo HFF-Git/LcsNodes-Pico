@@ -124,7 +124,7 @@ enum BlockControllerErrors : uint8_t {
 
     ERR_MSG_INTERFACE_SETUP         = BLOCK_CONTROLLER_ERR_BASE + 10,
     ERR_DCC_TRACK_CONFIG            = BLOCK_CONTROLLER_ERR_BASE + 11,
-    ERR_PIN_CONFIG                  = BLOCK_CONTROLLER_ERR_BASE + 12,
+    ERR_RNUM_CONFIG                 = BLOCK_CONTROLLER_ERR_BASE + 12,
     ERR_TRACK_CONFIG                = BLOCK_CONTROLLER_ERR_BASE + 13,
 
     ERR_NVM_HW_SETUP                = BLOCK_CONTROLLER_ERR_BASE + 15,
@@ -579,8 +579,6 @@ struct LcsBlockTrackDesc {
 // bus is routed though to the H-Bridge, in analog mode a PWM signal is used to set
 // the H-Bridge emitting a PWM signal with a positive or negative voltage.
 //
-// ??? can we generalize the TRack Manager so it can be used for Basestation and
-// block controller ?
 //----------------------------------------------------------------------------------------
 struct LcsBlockTrack {
 
@@ -588,35 +586,45 @@ struct LcsBlockTrack {
 
     LcsBlockTrack( );
 
-    uint8_t             setupBlockTrack( LcsBlockTrackDesc* trackDesc );
-    uint8_t             setTrackState( uint16_t state );
-    uint8_t             setTrackMode( uint16_t mode, uint8_t speed = 0 );
-    uint8_t             setPwmFrequency( uint32_t frequency );
+    void        getDefaultTrackDesc( LcsBlockTrackDesc *tDesc );
+    void        setStartTimeThresholdMillis( LcsBlockTrackDesc *tDesc, uint16_t val );
+    void        setStopTimeThresholdMillis( LcsBlockTrackDesc *tDesc, uint16_t val );
+    void        setOverloadTimeThresholdMillis( LcsBlockTrackDesc *tDesc, uint16_t val );
+    void        setOverloadEventThreshold( LcsBlockTrackDesc *tDesc, uint16_t val ); 
+    void        setOverloadRestartThreshold(LcsBlockTrackDesc *tDesc, uint16_t val );    
+    void        setInitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );                        
+    void        setLimitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
+    void        setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
+    void        setMilliVoltPerAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
+    uint8_t     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
 
-    uint16_t            getFlags( );
-    uint16_t            getOptions( );
+    uint16_t    getFlags( );
+    uint16_t    getOptions( );
+    uint16_t    getLimitCurrentMilliAmp( );
+    uint16_t    getActualCurrentMilliAmp( );
+    uint16_t    getInitCurrentMilliAmp( );
+    uint16_t    getMaxCurrentMilliAmp( );
+    uint16_t    getRMSCurrentMilliAmp( );
+    uint32_t    getPowerSamplesTaken( );
+    uint16_t    getPowerSamplesPerSec( );
 
-    void                powerStart( );
-    void                powerStop( );
-    bool                isPowerOn( );
-    bool                isPowerOverload( );
-    void                checkOverload( );
-    void                powerMeasurement( );
-     
+    uint8_t     setTrackState( uint16_t state );
+    uint8_t     setTrackMode( uint16_t mode, uint8_t speed = 0 );
+    uint8_t     setPwmFrequency( uint32_t frequency );
 
-    void                setLimitCurrent( uint16_t val );
-    uint16_t            getLimitCurrent( );
-    uint16_t            getActualCurrent( );
-    uint16_t            getInitCurrent( );
-    uint16_t            getMaxCurrent( );
-    uint16_t            getRMSCurrent( );
-    uint32_t            getPwrSamplesTaken( );
-    uint16_t            getPwrSamplesPerSec( );
+    void        powerStart( );
+    void        powerStop( );
+    bool        isPowerOn( );
+    bool        isPowerOverload( );
 
+    void        checkOverload( );
+    void        powerMeasurement( );
+    void        syncPwm( );
+    void        samplePowerMeasurement( );
+    
     void                runTrackStateMachine( );
     void                printTrackConfig( );
     void                printTrackStatus( );
-
    
     private:
 
@@ -648,19 +656,20 @@ struct LcsBlockTrack {
     uint16_t            overloadRestartThreshold        = 0;
     uint16_t            milliVoltPerAmp                 = 0;
     uint16_t            digitsPerAmp                    = 0;
+
     volatile uint16_t   actualCurrentDigitValue         = 0;
     volatile uint16_t   highWaterMarkDigitValue         = 0;
     volatile uint16_t   limitCurrentDigitValue          = 0;
 
-    volatile uint32_t   totalPwrSamplesTaken            = 0;
-    uint32_t            lastPwrSampleTimeStamp          = 0;
+    volatile uint32_t   totalPowerSamplesTaken                  = 0;
+    uint32_t            lastPowerSampleTimeStamp                = 0;
 
-    uint32_t            lastPwrSamplePerSecTaken        = 0;
-    uint32_t            lastPwrSamplePerSecTimeStamp    = 0;
-    uint32_t            pwrSamplesPerSec                = 0;
+    uint32_t            lastPowerSamplePerSecTaken              = 0;
+    uint32_t            lastPowerSamplePerSecTimeStamp          = 0;
+    uint32_t            powerSamplesPerSec                      = 0;
 
-    uint8_t             pwrSampleBufIndex               = 0;
-    uint16_t            pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]     = { 0 };
+    uint8_t             powerSampleBufIndex                     = 0;
+    uint16_t            powerSampleBuf[ PWR_SAMPLE_BUF_SIZE ]   = { 0 };
 
 };
 
