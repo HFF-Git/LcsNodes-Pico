@@ -24,7 +24,6 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#include "LcsBlockControllerBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsBlockController.h"
@@ -32,6 +31,36 @@
 using namespace LCS;
 using namespace CDC;
 
+
+
+
+// ??? think about to reduce this object mess....
+
+// ??? there is the block itself. This is an object.
+// ??? a block has a track object... there is a one to one relation.
+// ??? there is an array of up to four blocks.
+
+// ??? there is one OCC detect object for all sections which informs the blocks
+// about he event, an extension.
+
+// ??? there is one turnout object for all turnouts, an extension.
+
+// ??? there is one signal object for all signals, an extension.
+
+// ??? "main" should actually have the LCS callbacks and just pass on to the
+// correct port....
+
+// ??? but there are still a lot of coding here... perhaps have the node file
+// as plain non-object file with all the routines so we have a small an clean 
+// main file...
+
+// ??? we would NOT need a node object .....
+
+// ??? "block" contains the state machine for the block algorithms.
+
+// ??? how do we get all the config data to all the blocks ?
+// ??? there is the track object data which is HW related.
+// ??? then there is the data that is kept in attributes.
 
 
 
@@ -44,6 +73,8 @@ uint16_t                        debugMask = DBG_BC_CONFIG |
                                             DBG_BC_TRACK;
 
 CdcResourceDescMap              dMap;
+
+
 LcsBlockTrackDesc               block1Desc;
 LcsBlockTrackDesc               block2Desc;
 
@@ -60,7 +91,6 @@ LcsBlockTrack                   *block2         = nullptr;
 void setupConfigInfo( ) {
 
     dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
-   // dMap.options |= NPO_SKIP_NODE_ID_CONFIG | NPO_DEBUG_DURING_SETUP;
     
     cdcInit( &dMap );
     configureUsbIO( );
@@ -79,7 +109,7 @@ uint8_t setupBlockDesc1( ) {
     block1Desc.rNumControl                     = RNUM_CONTROL_BLK_0;
     block1Desc.rNumSense                       = RNUM_ADC_BLK_0;
 
-    block1Desc.pwmFrequency                    = PWM_FREQUENCY;
+    block1Desc.pwmFrequency                    = DEF_PWM_FREQUENCY;
 
     block1Desc.initCurrentMilliAmp             = 500;
     block1Desc.limitCurrentMilliAmp            = 1500;
@@ -101,7 +131,7 @@ uint8_t setupBlockDesc2( ) {
     block2Desc.rNumControl                     = RNUM_CONTROL_BLK_1;
     block2Desc.rNumSense                       = RNUM_ADC_BLK_1;
 
-    block2Desc.pwmFrequency                    = PWM_FREQUENCY;
+    block2Desc.pwmFrequency                    = DEF_PWM_FREQUENCY;
 
     block2Desc.initCurrentMilliAmp             = 500;
     block2Desc.limitCurrentMilliAmp            = 1500;
@@ -174,6 +204,7 @@ uint8_t lcsEventCallback( uint16_t npId,
 
     return ( bcNode -> handleLcsEventCallback( npId, eId, eAction, eData ));
 }
+
 
 //----------------------------------------------------------------------------------------
 // We need to run the track state machines on a periodic basis.

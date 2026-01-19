@@ -83,12 +83,25 @@ namespace {
 
 } // namespace
 
+
+// ??? perhaps use only as procedure file called from main .... NO object.
+
+
+//========================================================================================
+//========================================================================================
+//
+// Object part.
+//
+//========================================================================================
+//========================================================================================
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
 LcsBlockControllerNode::LcsBlockControllerNode(  ) {
-
 
 }
 
@@ -189,8 +202,8 @@ uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId,
 
             uint16_t port = npId & 0xF;
 
-            if      ( port == 1 ) block1 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
-            else if ( port == 2 ) block2 -> setTrackMode( *arg1 & 0xFF, *arg2 & 0xFF );
+            if      ( port == 1 ) block1 -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
+            else if ( port == 2 ) block2 -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
 
         } break;
 

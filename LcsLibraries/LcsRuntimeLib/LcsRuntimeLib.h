@@ -378,6 +378,7 @@ enum LcsPortEventAction : uint8_t {
 //
 // ??? to be sorted when more stable... what is a good sorting ?
 // ??? how about an item that allows to set / clear a bit in a mask ?
+// ??? we perhaps need to have more space for the user part. A split 64/192 ?
 //----------------------------------------------------------------------------------------
 enum LcsItems : uint8_t {
 
@@ -428,7 +429,6 @@ enum LcsItems : uint8_t {
     ITEM_ID_USER_START                 = 128,
     ITEM_ID_USER_END                   = 255
 
-    
 };
 
 //----------------------------------------------------------------------------------------

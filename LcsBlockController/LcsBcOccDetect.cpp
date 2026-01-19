@@ -28,44 +28,71 @@
 //----------------------------------------------------------------------------------------
 namespace {
 
-    using namespace LCS;
+using namespace LCS;
 
-    //------------------------------------------------------------------------------------
-    // External declaration to global structures and routines in other files.
-    //
-    //------------------------------------------------------------------------------------
-    extern uint16_t debugMask;
+//----------------------------------------------------------------------------------------
+// External declaration to global structures and routines in other files.
+//
+//----------------------------------------------------------------------------------------
+extern uint16_t debugMask;
 
-    //------------------------------------------------------------------------------------
-    // "debugEnabled" and "retStat" are the debug support routines. We can easily 
-    // check whether debug is enabled at all. The return status routine will print 
-    // out a return status message when debugging is enabled. The macro "RET_STAT" 
-    // is a nice helper that adds the function name to the message.
-    // 
-    //------------------------------------------------------------------------------------
-    inline bool occDetectDebugEnabled(  ) {
+//----------------------------------------------------------------------------------------
+// "debugEnabled" and "retStat" are the debug support routines. We can easily 
+// check whether debug is enabled at all. The return status routine will print 
+// out a return status message when debugging is enabled. The macro "RET_STAT" 
+// is a nice helper that adds the function name to the message.
+// 
+//----------------------------------------------------------------------------------------
+inline bool occDetectDebugEnabled(  ) {
 
-        return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_OCCUPANCY )); 
+    return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_OCCUPANCY )); 
+}
+
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( occDetectDebugEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
+        else                    printf( "%s: %d\n", name, errId );
     }
 
-    inline uint8_t retStat( char *name, uint8_t errId ) {
+    return ( errId );
+}
 
-        if ( occDetectDebugEnabled( )) {
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
 
-            if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-            else                    printf( "%s: %d\n", name, errId );
-        }
-
-        return ( errId );
-    }
-
-    #define RET_STAT(x) retStat((char *) __func__, ( x ))
-
-    //------------------------------------------------------------------------------------
-    //
-    //
-    //------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 
 } // namespace
 
+//========================================================================================
+//========================================================================================
+//
+// Object part.
+//
+//========================================================================================
+//========================================================================================
+using namespace LCS;
+using namespace CDC;
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 // ??? contains the routines that manage the track section occupancy detection
+
+// we need a handler to be called periodically to access the extension board and 
+// get the occ mask.
+
+// ??? reading is simple LCS attribute get from the OCC port. 
+
+// ??? we would however also have a mechanism that makes sure that debounce the
+// data, to avoid false alarms... 
+
+// ??? should that be part of the driver or here ?
+
+// ??? of all we do is to get the OCC data, we might as well do it in the 
+// BLOCK object...

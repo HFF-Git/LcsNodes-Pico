@@ -136,6 +136,19 @@ inline uint16_t digitValueToMilliAmp(uint16_t digitValue, uint16_t digitsPerAmp)
 }; // namespace
 
 
+// ??? need an interrupt handler for the PIO machines.... we have up to four machines 
+// running and actually only one needs to do the job for all ... 
+
+// ??? how can we identify which track is in the correct mode to receive this
+// interrupt ?
+
+// ??? we need to manage an array of tracks... and not trickle down from node to
+// block to track
+
+// ??? we need to set the relevant config data in the attributes. The ones from 
+// the track HW descriptor...
+
+
 //========================================================================================
 //========================================================================================
 //
@@ -171,8 +184,6 @@ void LcsBlockTrack::getDefaultTrackDesc( LcsBlockTrackDesc *tDesc ) {
     tDesc -> rNumSense                       = 0;
     
     tDesc -> pwmFrequency                    = 70;
-    tDesc -> initialTrackMode                = BT_MODE_OFF;
-    tDesc -> initialTrackSpeed               = 0;
 
     tDesc -> initCurrentMilliAmp             = 0;
     tDesc -> limitCurrentMilliAmp            = 0;
@@ -243,6 +254,7 @@ void LcsBlockTrack::setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t va
 // of parameters and options. The settings passed in "tDesc" will be cross checked
 // before we start the show.
 //
+// ??? what to store in the attributes .... !!!!!
 //----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
 
@@ -280,8 +292,6 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
     rNumSense                       = tDesc -> rNumSense;
     pwmFrequency                    = tDesc -> pwmFrequency;
 
-    initialTrackMode                = tDesc -> initialTrackMode;
-    initialTrackSpeed               = tDesc -> initialTrackSpeed;
     initCurrentMilliAmp             = tDesc -> initCurrentMilliAmp;
     limitCurrentMilliAmp            = tDesc -> limitCurrentMilliAmp;
     maxCurrentMilliAmp              = tDesc -> maxCurrentMilliAmp;
@@ -305,30 +315,55 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
     lastPowerSamplePerSecTaken      = 0;
     powerSamplesPerSec              = 0;
 
-    uint8_t rStat = configurePwm( rNumControl );
+    errId = configurePwm( rNumControl );
 
-    if ( rStat != LCS_OK ) {
-
-        flags = BT_F_CONFIG_ERROR;
-        return ( ERR_RNUM_CONFIG );
-    }
-
-    rStat = configureAdc( rNumSense );
-    if ( rStat != LCS_OK ) {
+    if ( errId != LCS_OK ) {
 
         flags = BT_F_CONFIG_ERROR;
         return ( ERR_RNUM_CONFIG );
     }
 
-    rStat = setTrackMode( initialTrackMode, initialTrackSpeed );
-    if ( rStat != LCS_OK ) {
+    if ( options & BT_OPT_ADC_MUX ) {
+
+        // ??? configure Mux GPIO pins...
+        // ??? for now ...
+        flags = BT_F_CONFIG_ERROR;
+        return ( ERR_RNUM_CONFIG );
+    }
+
+    errId = configureAdc( rNumSense );
+    if ( errId != LCS_OK ) {
+
+        flags = BT_F_CONFIG_ERROR;
+        return ( ERR_RNUM_CONFIG );
+    }
+
+    errId = setTrackModeSpeed( BT_MODE_OFF, 0 );
+    if ( errId != LCS_OK ) {
 
         flags = BT_F_CONFIG_ERROR;
         return ( ERR_RNUM_CONFIG );
     }
 
     if ( trackDebugEnabled( )) printTrackConfig( );
-    return( RET_STAT( rStat ));
+    return( RET_STAT( errId ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+// ??? a routine to update the attributes from the track data as part of setup ???
+uint8_t LcsBlockTrack::updateLcsAttributes( ) {
+
+
+    if ( trackDebugEnabled( )) printf( "updateLcsAttributes\n" );
+
+
+
+
+    return( RET_STAT( errId ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -338,6 +373,11 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
 uint16_t LcsBlockTrack::getFlags( ) {
 
     return ( flags );
+}
+
+uint8_t LcsBlockTrack::getErrId( ) {
+
+    return ( errId );
 }
 
 uint16_t LcsBlockTrack::getOptions( ) {
@@ -385,69 +425,47 @@ bool LcsBlockTrack::isPowerOverload( ) {
     return ( flags & BT_F_POWER_OVERLOAD );
 }
 
-// ??? add get track mode, etc. ?
+uint8_t LcsBlockTrack::getTrackMode( ) {
+
+    return( trackMode );
+}
+
+uint8_t LcsBlockTrack::getTrackSpeed( ) {
+
+    return( trackSpeed );
+}
 
 //----------------------------------------------------------------------------------------
 // This function is called whenever we want to measure the power consumption. We
-// the actual value and update a high water mark of the value is larger than what
+// the actual value and update a high water mark if the value is larger than what
 // we have seen before. When the actual value is exceeding the current limit set,
 // the OVERLOAD flag is set.
 //
+// There are two different HW options. The first of for the dual controller, where
+// we have enough ADC pins. On the quad controller hardware, we use a 4 channel
+// multiplexer and always the ADC0 pin. 
 //
-// ??? if we have four track modules, how will this work ? The ADC is handled via
-// a multiplexer which round robin among the tracks.
 //----------------------------------------------------------------------------------------
 void LcsBlockTrack::powerMeasurement( ) {
 
     if ( flags & BT_F_MEASUREMENT_ON ) {
 
+        if ( options & BT_OPT_ADC_MUX ) {
+
+           // ??? select adc input first, need our block index...
+        }
+        
         uint16_t  tmp;
         readAdc( rNumSense, &tmp );
         actualCurrentDigitValue = tmp;
 
         totalPowerSamplesTaken ++;
-
-        if ( actualCurrentDigitValue > highWaterMarkDigitValue ) 
-            highWaterMarkDigitValue = actualCurrentDigitValue;
-
         if ( actualCurrentDigitValue > limitCurrentDigitValue ) 
             flags |= BT_F_POWER_OVERLOAD;
+
+        if ( actualCurrentDigitValue > highWaterMarkDigitValue ) 
+            highWaterMarkDigitValue = actualCurrentDigitValue; 
     }
-}
-
-//----------------------------------------------------------------------------------------
-// "syncPwm" is called by the interrupt routine to synchronize the PWM signal with
-// the CUTOUT interrupt handler. We use the CUTPUT signal as the sync point to 
-// align the PWM signals.  
-//
-//----------------------------------------------------------------------------------------
-void LcsBlockTrack::syncPwm( ) {
-
-    // ??? what exactly do we do ?
-
-}
-
-//----------------------------------------------------------------------------------------
-// The "getRMSCurrentMilliAmp" function returns the power consumption based on the 
-// samples taken and stored in the sample buffer. The function computes the square 
-// root of the sum of the squares of the array elements. The result is returned in
-// milliAmps.
-// 
-// Note that our measurement is based on unsigned 16-bit quantities that come from
-// the controller ADC hardware. We compute the RMS based on 16-bit unsigned integers,
-// which compared to floating point computation is not really precise. However, for
-// our purpose to just show a rough power consumption, the error should be not a big
-// issue. We will not use RMS values for power overload detection.
-//
-//----------------------------------------------------------------------------------------
-uint16_t LcsBlockTrack::getRMSCurrentMilliAmp( ) {
-
-    uint32_t res = 0;
-
-    for ( uint8_t i = 0; i < PWR_SAMPLE_BUF_SIZE; i++ ) 
-        res += powerSampleBuf[ i ] * powerSampleBuf[ i ];
-
-    return ( digitValueToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE ), digitsPerAmp ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -472,6 +490,40 @@ void LcsBlockTrack::samplePowerMeasurement( ) {
         lastPowerSamplePerSecTaken  = totalPowerSamplesTaken;
         lastPowerSamplePerSecTimeStamp = getMillis( );
     }
+}
+
+//----------------------------------------------------------------------------------------
+// The "getRMSCurrentMilliAmp" function returns the power consumption based on the 
+// samples taken and stored in the sample buffer. The function computes the square 
+// root of the sum of the squares of the array elements. The result is returned in
+// milliAmps.
+// 
+// Note that our measurement is based on unsigned 16-bit quantities that come from
+// the controller ADC hardware. We compute the RMS based on 16-bit unsigned integers,
+// which compared to floating point computation is not really precise. However, for
+// our purpose to just show a rough power consumption, the error should be not a big
+// issue. We will not use RMS values for power overload detection.
+//
+//----------------------------------------------------------------------------------------
+uint16_t LcsBlockTrack::getRMSCurrentMilliAmp( ) {
+
+    uint32_t res = 0;
+
+    for ( int i = 0; i < PWR_SAMPLE_BUF_SIZE; i++ ) 
+        res += powerSampleBuf[ i ] * powerSampleBuf[ i ];
+
+    return ( digitValueToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE ), digitsPerAmp ));
+}
+
+//----------------------------------------------------------------------------------------
+// "syncPwm" is called by the interrupt routine to synchronize the PWM signal of
+// our blocks with the CUTOUT signal, which we use as the sync point to align all
+// PWM signals. The CDC layer will handle the sync operation.
+//
+//----------------------------------------------------------------------------------------
+void LcsBlockTrack::syncPwmSignals( ) {
+
+    syncPwm( rNumControl );
 }
 
 //----------------------------------------------------------------------------------------
@@ -552,12 +604,13 @@ void LcsBlockTrack::runTrackStateMachine( ) {
             flags                   |= BT_F_POWER_ON;
             flags                   &= ~BT_F_POWER_OVERLOAD;
             flags                   &= ~BT_F_MEASUREMENT_ON;
-            limitCurrentDigitValue  = milliAmpToDigitValue( initCurrentMilliAmp, 
-                                                            digitsPerAmp );
+            limitCurrentDigitValue  = 
+                milliAmpToDigitValue( initCurrentMilliAmp, digitsPerAmp );
 
-            setTrackMode( initialTrackMode, 0 );
-            // ??? need to enable power measurement ?
+            setTrackModeSpeed( trackMode, 0 );
             trackState = TRACK_POWER_START2;
+
+            // ??? need to enable power measurement ?
 
         }  break;
 
@@ -578,6 +631,25 @@ void LcsBlockTrack::runTrackStateMachine( ) {
 
         } break;
 
+         case TRACK_POWER_STOP1: {
+
+            trackTimeStamp  = getMillis( );
+            flags           &= ~BT_F_POWER_ON;
+            flags           &= ~BT_F_POWER_OVERLOAD;
+            flags           &= ~BT_F_MEASUREMENT_ON;
+
+            setTrackModeSpeed( BT_MODE_OFF );
+            trackState = TRACK_POWER_STOP2;
+
+        }  break;
+
+        case TRACK_POWER_STOP2: {
+
+            if ( getMillis( ) - trackTimeStamp > stopTimeThreshold ) 
+                trackState = TRACK_POWER_OFF;
+
+        } break;
+
         case TRACK_POWER_ON: {
 
             samplePowerMeasurement( );
@@ -588,33 +660,37 @@ void LcsBlockTrack::runTrackStateMachine( ) {
 
                 if ( overloadEventCount > overloadEventThreshold ) {
 
-                    if ( trackDebugEnabled( )) {
-
-                        printf( "Overload detected: " );
-
-                        #if 0
-                        printf( "(hwm(mA): %d : limit(mA): %d )\n", 
-                                digitValueToMilliAmp( highWaterMarkDigitValue, digitsPerAmp ),
-                                digitValueToMilliAmp( limitCurrentDigitValue, digitsPerAmp ));
-                        #else
-                        printf( "(hwm(dVal): %d  : limit(dVal): %d )\n", 
-                                highWaterMarkDigitValue, limitCurrentDigitValue );
-                        #endif
-                    }
-
-                    trackTimeStamp  = CDC::getMillis( );
+                    trackTimeStamp  = getMillis( );
                     flags           |= BT_F_POWER_OVERLOAD;
                     flags           &= ~BT_F_POWER_ON;
                     flags           &= ~BT_F_MEASUREMENT_ON;
 
-                    setTrackMode( BT_MODE_OFF );
+                    setTrackModeSpeed( BT_MODE_OFF );
                     trackState = TRACK_POWER_OVERLOAD;
                 }
             }
 
         }  break;
 
+        case TRACK_POWER_OFF: {
+
+        } break;
+
         case TRACK_POWER_OVERLOAD: {
+
+            if ( trackDebugEnabled( )) {
+
+                printf( "Overload detected: " );
+
+                #if 0
+                printf( "(hwm(mA): %d : limit(mA): %d )\n", 
+                        digitValueToMilliAmp( highWaterMarkDigitValue, digitsPerAmp ),
+                        digitValueToMilliAmp( limitCurrentDigitValue, digitsPerAmp ));
+                #else
+                printf( "(hwm(dVal): %d  : limit(dVal): %d )\n", 
+                        highWaterMarkDigitValue, limitCurrentDigitValue );
+                #endif
+            }
 
             if ( getMillis( ) - trackTimeStamp > overloadTimeThreshold ) {
 
@@ -634,29 +710,6 @@ void LcsBlockTrack::runTrackStateMachine( ) {
             }
 
         }  break;
-
-        case TRACK_POWER_STOP1: {
-
-            trackTimeStamp  = getMillis( );
-            flags           &= ~BT_F_POWER_ON;
-            flags           &= ~BT_F_POWER_OVERLOAD;
-            flags           &= ~BT_F_MEASUREMENT_ON;
-
-            setTrackMode( BT_MODE_OFF );
-            trackState = TRACK_POWER_STOP2;
-
-        }  break;
-
-        case TRACK_POWER_STOP2: {
-
-            if ( getMillis( ) - trackTimeStamp > stopTimeThreshold ) 
-                trackState = TRACK_POWER_OFF;
-
-        } break;
-
-        case TRACK_POWER_OFF: {
-
-        } break;
     }
 }
 
@@ -683,7 +736,7 @@ void LcsBlockTrack::runTrackStateMachine( ) {
 // ??? will change when we have PIO...
 // ??? should we sync in any case when we switch to PWM ?
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setTrackMode( uint16_t mode, uint8_t speed ) {
+uint8_t LcsBlockTrack::setTrackModeSpeed( uint16_t mode, uint8_t speed ) {
 
     if ( trackDebugEnabled( )) {
 
@@ -776,20 +829,24 @@ void LcsBlockTrack::printTrackConfig( ) {
 
     printf( "Track Config: \n" );
 
-    printf( "Config options: ( 0x%x ) -> ", flags );
+    printf( "Options: ( 0x%x ) -> ", flags );
+    if ( options & BT_OPT_ADC_MUX ) printf( "AdcMux " );
     if ( options & BT_OPT_RAILCOM ) printf( "Railcom " );
     printf( "\n" );
 
-    printf( "rNumControl: %d, rNumSensor: %d\n", rNumControl, rNumSense );
+    printf( "rNumControl: %d, rNumAdcMux: %d, rNumSensor: %d\n", 
+            rNumControl, rNumAdcMux, rNumSense );
 
-    printf( "Initial Block State: %d, speed: %d\n", 
-            initialTrackMode, initialTrackSpeed );
-
-    printf( "Current Initial(mA): %d Current Limit(mA): %d Current Max(mA): %d\n",
+    printf( "Current: Initial(mA): %d, Limit(mA): %d, Max(mA): %d\n",
             getInitCurrentMilliAmp( ), 
             getLimitCurrentMilliAmp( ), 
             getMaxCurrentMilliAmp( ));
 
+    printf( "Threshold: Start: %d, Stop: %d, ovlTime: %d, ovlEvent: %d, restart: %d\n", 
+            startTimeThreshold, stopTimeThreshold,       
+            overloadTimeThreshold, overloadEventThreshold, overloadRestartThreshold  );
+
+    printf( "PWM frequency: %d\n", pwmFrequency );
     printf( "milliVoltPerAmp: %d\n", milliVoltPerAmp ); 
     printf( "digitsPerAmp: %d\n", digitsPerAmp );
     printf( "Limit Digit Value: %d\n", limitCurrentDigitValue );
@@ -809,6 +866,8 @@ void LcsBlockTrack::printTrackStatus( ) {
     if ( flags & BT_F_CONFIG_ERROR     ) printf( "ConfigError " );
     printf( "\n" );
 
+    printf( "Track Mode: %d\n", trackMode );
+    printf( "Track Speed: %d\n", trackSpeed );
     printf( "Total Power Samples: %d\n", totalPowerSamplesTaken );
     printf( "Power Samples per Sec: %d\n", powerSamplesPerSec );
     printf( "Power consumption (RMS): %d\n", getRMSCurrentMilliAmp( ));

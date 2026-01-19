@@ -32,44 +32,64 @@
 //----------------------------------------------------------------------------------------
 namespace {
 
-    using namespace LCS;
+using namespace LCS;
 
-    //------------------------------------------------------------------------------------
-    // External declaration to global structures and routines in other files.
-    //
-    //------------------------------------------------------------------------------------
-    extern uint16_t debugMask;
+//----------------------------------------------------------------------------------------
+// External declaration to global structures and routines in other files.
+//
+//----------------------------------------------------------------------------------------
+extern uint16_t debugMask;
 
-    //------------------------------------------------------------------------------------
-    // "debugEnabled" and "retStat" are the debug support routines. We can easily 
-    // check whether debug is enabled at all. The return status routine will print 
-    // out a return status message when debugging is enabled. The macro "RET_STAT" 
-    // is a nice helper that adds the function name to the message.
-    // 
-    //------------------------------------------------------------------------------------
-    inline bool turnoutsDebugEnabled(  ) {
+//----------------------------------------------------------------------------------------
+// "debugEnabled" and "retStat" are the debug support routines. We can easily 
+// check whether debug is enabled at all. The return status routine will print 
+// out a return status message when debugging is enabled. The macro "RET_STAT" 
+// is a nice helper that adds the function name to the message.
+// 
+//----------------------------------------------------------------------------------------
+inline bool turnoutsDebugEnabled(  ) {
 
-        return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_TURNOUTS )); 
+    return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_TURNOUTS )); 
+}
+
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( turnoutsDebugEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
+        else                    printf( "%s: %d\n", name, errId );
     }
 
-    inline uint8_t retStat( char *name, uint8_t errId ) {
+    return ( errId );
+}
 
-        if ( turnoutsDebugEnabled( )) {
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
 
-            if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-            else                    printf( "%s: %d\n", name, errId );
-        }
-
-        return ( errId );
-    }
-
-    #define RET_STAT(x) retStat((char *) __func__, ( x ))
-
-    //------------------------------------------------------------------------------------
-    //
-    //
-    //------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 
 } // namespace
 
+//========================================================================================
+//========================================================================================
+//
+// Object part.
+//
+//========================================================================================
+//========================================================================================
+using namespace LCS;
+using namespace CDC;
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+
 // ??? contains the routines that manage the turnout settings
+
+// ??? this is a call to the servo extension board. 
+// ??? do we need a different board when we have the turnout sockets board ?
+
+// ??? the functions would be to just set the turnout, and perhaps get a status back.

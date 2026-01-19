@@ -30,6 +30,7 @@
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsDrvOccDetectLib.h"
+#include "LcsBlockControllerBoardDesc.h"
 
 using namespace LCS;
 using namespace CDC;
@@ -135,14 +136,16 @@ enum BlockControllerErrors : uint8_t {
 // Setup options to set for the DCC track. They are set when the track object is 
 // created.
 //
-//  DT_OPT_SERVICE_MODE_TRACK  - The track is a PROG track.
-//  DT_OPT_RAILCOM             - The track support Railcom detection.
+//  BT_OPT_SERVICE_MODE_TRACK   - The track is a PROG track.
+//  BT_OPT_ADC_MUX              - ADC is connected via a MUX.
+//  BT_OPT_RAILCOM              - The track support Railcom detection.
 //
 //----------------------------------------------------------------------------------------
 enum BlockControllerTrackOptions : uint16_t {
 
-    BT_OPT_DEFAULT_SETTING      = 1 << 0,
-    BT_OPT_RAILCOM              = 1 << 1
+    BT_OPT_DEFAULT_SETTING      = 1U << 0,
+    BT_OPT_ADC_MUX              = 1U << 1,
+    BT_OPT_RAILCOM              = 1U << 2
 };
 
 //----------------------------------------------------------------------------------------
@@ -151,9 +154,10 @@ enum BlockControllerTrackOptions : uint16_t {
 // will define all item numbers. See the comments what they are and how an item
 // is used.
 //
-// ??? assign item numbers...
+// ??? assign item numbers... we need round about 120, which gets us close to the
+// limit. Perhaps rearrange RtLib numbering so we have more .... ( e.g. 192 or 240 )
 //----------------------------------------------------------------------------------------
-enum BlockControllItems2 : uint8_t {
+enum BlockControlItems : uint8_t {
 
     //------------------------------------------------------------------------------------
     // Node items: These items apply to all blocks on the node.
@@ -161,8 +165,8 @@ enum BlockControllItems2 : uint8_t {
     // ??? we could map some of the LCS common items with a meaningful name 
     // here, just to be clearer... .e.g Node Name or so...
     //------------------------------------------------------------------------------------
-    BCI_NUM_OF_BLOCKS                   = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_UPDATE_DATA_INTERVAL            = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_NUM_OF_BLOCKS                   = ITEM_ID_USER_START +  1,   // GET / SET
+    BCI_UPDATE_DATA_INTERVAL            = ITEM_ID_USER_START +  2,   // GET / SET
 
     //------------------------------------------------------------------------------------
     // Block Items. There is a ton of items. The two key items are the block state
@@ -171,16 +175,17 @@ enum BlockControllItems2 : uint8_t {
     // to the block. The command codes themselves are also items defined for a block.
     //
     //------------------------------------------------------------------------------------
-    BCI_BLOCK_STATE                     = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_COMMAND                   = ITEM_ID_USER_START + 0,   // REQ
+    BCI_BLOCK_OPTIONS                   = ITEM_ID_USER_START +  1,   // GET / SET
+    BCI_BLOCK_STATE                     = ITEM_ID_USER_START +  2,   // GET / SET
+    BCI_BLOCK_COMMAND                   = ITEM_ID_USER_START +  3,   // REQ
 
-    BCI_INITIAL_BLOCK_STATE             = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_INITIAL_ROUTE_STATE             = ITEM_ID_USER_START + 0,   // GET / SET 
+    BCI_INITIAL_BLOCK_STATE             = ITEM_ID_USER_START +  4,   // GET / SET
+    BCI_INITIAL_ROUTE_STATE             = ITEM_ID_USER_START +  5,   // GET / SET 
 
-    BCI_BLOCK_MAX_SPEED                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_ITEM_SPEED_SLOW                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_ITEM_SPEED_MIDDLE               = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_ITEM_SPEED_HIGH                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_MAX_SPEED                 = ITEM_ID_USER_START +  6,   // GET / SET
+    BCI_ITEM_SPEED_SLOW                 = ITEM_ID_USER_START +  7,   // GET / SET
+    BCI_ITEM_SPEED_MIDDLE               = ITEM_ID_USER_START +  8,   // GET / SET
+    BCI_ITEM_SPEED_HIGH                 = ITEM_ID_USER_START +  9,   // GET / SET
     
     //------------------------------------------------------------------------------------
     // Block Id and our neighbors. A block ID is the LCS node and the port Id. The
@@ -198,32 +203,35 @@ enum BlockControllItems2 : uint8_t {
     //
     // Configuration data.
     //------------------------------------------------------------------------------------
-    BCI_BLOCK_ID                        = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_1                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_2                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_3                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_4                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_5                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_6                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_7                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_WEST_8                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID                        = ITEM_ID_USER_START + 10,   // GET / SET
+    BCI_BLOCK_ID_WEST_1                 = ITEM_ID_USER_START + 11,   // GET / SET
+    BCI_BLOCK_ID_WEST_2                 = ITEM_ID_USER_START + 12,   // GET / SET
+    BCI_BLOCK_ID_WEST_3                 = ITEM_ID_USER_START + 13,   // GET / SET
+    BCI_BLOCK_ID_WEST_4                 = ITEM_ID_USER_START + 14,   // GET / SET
+    BCI_BLOCK_ID_WEST_5                 = ITEM_ID_USER_START + 15,   // GET / SET
+    BCI_BLOCK_ID_WEST_6                 = ITEM_ID_USER_START + 16,   // GET / SET
+    BCI_BLOCK_ID_WEST_7                 = ITEM_ID_USER_START + 17,   // GET / SET
+    BCI_BLOCK_ID_WEST_8                 = ITEM_ID_USER_START + 18,   // GET / SET
 
-    BCI_BLOCK_ID_EAST_1                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_2                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_3                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_4                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_5                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_6                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_7                 = ITEM_ID_USER_START + 0,   // GET / SET
-    BCI_BLOCK_ID_EAST_8                 = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_ID_EAST_1                 = ITEM_ID_USER_START + 19,   // GET / SET
+    BCI_BLOCK_ID_EAST_2                 = ITEM_ID_USER_START + 20,   // GET / SET
+    BCI_BLOCK_ID_EAST_3                 = ITEM_ID_USER_START + 21,   // GET / SET
+    BCI_BLOCK_ID_EAST_4                 = ITEM_ID_USER_START + 22,   // GET / SET
+    BCI_BLOCK_ID_EAST_5                 = ITEM_ID_USER_START + 23,   // GET / SET
+    BCI_BLOCK_ID_EAST_6                 = ITEM_ID_USER_START + 24,   // GET / SET
+    BCI_BLOCK_ID_EAST_7                 = ITEM_ID_USER_START + 25,   // GET / SET
+    BCI_BLOCK_ID_EAST_8                 = ITEM_ID_USER_START + 26,   // GET / SET
 
     //------------------------------------------------------------------------------------
     // Block length and section length measure in Centimeters. We can handle up 
-    // to 8 sections for a block.
+    // to 8 sections for a block. We also record the slope. This is a two 8bit
+    // field value with two digits measured in centimeters. The difference is
+    // the slope.
     //
     // Configuration data.
     //------------------------------------------------------------------------------------
     BCI_BLOCK_LEN                       = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_BLOCK_SLOPE                     = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_SECTION_LEN_1                   = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_SECTION_LEN_2                   = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_SECTION_LEN_3                   = ITEM_ID_USER_START + 0,   // GET / SET
@@ -232,14 +240,7 @@ enum BlockControllItems2 : uint8_t {
     BCI_SECTION_LEN_6                   = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_SECTION_LEN_7                   = ITEM_ID_USER_START + 0,   // GET / SET
     BCI_SECTION_LEN_8                   = ITEM_ID_USER_START + 0,   // GET / SET
-
-    //------------------------------------------------------------------------------------
-    // Other static block attributes.
-    //
-    // Configuration data.
-    //-----------------------------------------------------------------------------------
-    BCI_BLOCK_SLOPE                     = ITEM_ID_USER_START + 0,   // GET / SET
-
+    
     //------------------------------------------------------------------------------------
     // The time stamps when we detect a section being entered or left. The 
     // direction does not matter, except when forward ( west ) block entry is 
@@ -264,10 +265,9 @@ enum BlockControllItems2 : uint8_t {
     // where to find it in the hardware. There is an extension board and a channel
     // number which uniquely defines the turnout.
     // 
-    // A block can have NO signal, 1, 2 or up to eight. No matter how many 
-    // signals are defined, they all belong to the same block power module. The
-    // signal configuration does not specify where they are used in the track
-    // plan.
+    // A block can have NO signal or up to eight. No matter how many signals are 
+    // defined, they all belong to the same block power module. The signal 
+    // configuration does not specify where they are used in the track plan.
     //
     // Configuration attribute ( type, initial state, address )
     //
@@ -275,7 +275,9 @@ enum BlockControllItems2 : uint8_t {
     //  - initial state:    tbd                 ( 4bits )
     //  - address:          ext-board, channel  (  2 + 6 bits )
     //
-    // we need to fit this in a 16-bit word.
+    // we need to fit this in a 16-bit word.    
+    //
+    // ??? do we need to add the node/port Id in any case ?
     //
     // Configuration data.
     //------------------------------------------------------------------------------------
@@ -296,10 +298,10 @@ enum BlockControllItems2 : uint8_t {
     // and where to find it in the hardware. There is an extension board and a 
     // channel number which uniquely defines the turnout.
     // 
-    // A block can have NO turnout, 1, 2 or up to eight. No matter how many 
-    // turnouts are defined, they all belong to the same block power module. The
-    // turnout configuration does not specify where they are used in the track
-    // plan and their relation to each other.
+    // A block can have NO turnout or up to eight. No matter how many turnouts are 
+    // defined, they all belong to the same block power module. The turnout 
+    // configuration does not specify where they are used in the track plan and
+    // their relation to each other.
     //
     // Configuration attribute ( type, initial state, address )
     //
@@ -308,6 +310,8 @@ enum BlockControllItems2 : uint8_t {
     //  - address:          ext-board, channel  (  2 + 6 bits )
     //
     // we need to fit this in a 16-bit word.
+    // 
+    // ??? do we need to add the node/port Id in any case ?
     //
     // Configuration data.
     //------------------------------------------------------------------------------------
@@ -471,14 +475,14 @@ enum BlockControllItems2 : uint8_t {
     //
     // Command Items.
     //------------------------------------------------------------------------------------
-    BCI_BLOCK_RESERVE_ROUTE             = ITEM_ID_USER_START + 0,   // REQ - high level 
-    BCI_BLOCK_RELEASE_ROUTE             = ITEM_ID_USER_START + 0,   // REQ - high level    
-    BCI_BLOCK_SET_TRACK_MODE            = ITEM_ID_USER_START + 0,   // REQ - high level   
-    BCI_BLOCK_SET_INNER_ROUTE           = ITEM_ID_USER_START + 0,   // REQ - high level 
-    BCI_BLOCK_SET_POWER                 = ITEM_ID_USER_START + 0,   // REQ - any level 
-    BCI_BLOCK_SET_SPEED                 = ITEM_ID_USER_START + 0,   // REQ - any level 
-    BCI_BLOCK_SET_TURNOUT               = ITEM_ID_USER_START + 0,   // REQ - any level 
-    BCI_BLOCK_SET_SIGNAL                = ITEM_ID_USER_START + 0,   // REQ - any level 
+    BCI_BLOCK_RESERVE_ROUTE             = ITEM_ID_USER_START +  1,   // REQ - high level 
+    BCI_BLOCK_RELEASE_ROUTE             = ITEM_ID_USER_START +  2,   // REQ - high level    
+    BCI_BLOCK_SET_TRACK_MODE            = ITEM_ID_USER_START +  3,   // REQ - high level   
+    BCI_BLOCK_SET_INNER_ROUTE           = ITEM_ID_USER_START +  4,   // REQ - high level 
+    BCI_BLOCK_SET_POWER                 = ITEM_ID_USER_START +  5,   // REQ - any level 
+    BCI_BLOCK_SET_SPEED                 = ITEM_ID_USER_START +  6,   // REQ - any level 
+    BCI_BLOCK_SET_TURNOUT               = ITEM_ID_USER_START +  7,   // REQ - any level 
+    BCI_BLOCK_SET_SIGNAL                = ITEM_ID_USER_START +  8,   // REQ - any level 
     
 };
 
@@ -551,13 +555,12 @@ struct LcsBlockTrackDesc {
 
     uint16_t    options                         = BT_OPT_DEFAULT_SETTING;
 
-    uint8_t     rNumControl                     = 0;
-    uint8_t     rNumSense                       = 0;
+    uint8_t     rNumControl                     = CDC_RN_UNDEFINED;
+    uint8_t     rNumAdcMux                      = CDC_RN_UNDEFINED;
+    uint8_t     rNumSense                       = CDC_RN_UNDEFINED;
     
-    uint16_t    pwmFrequency                    = 70;
-    uint16_t    initialTrackMode                = BT_MODE_OFF;
-    uint16_t    initialTrackSpeed               = 0;
-
+    uint16_t    pwmFrequency                    = DEF_PWM_FREQUENCY;
+   
     uint16_t    initCurrentMilliAmp             = 0;
     uint16_t    limitCurrentMilliAmp            = 0;
     uint16_t    maxCurrentMilliAmp              = 0;
@@ -574,7 +577,7 @@ struct LcsBlockTrackDesc {
 // The "LcsBlockTrack" manages the track of a block. This primarily the power 
 // management and control of the H-Bridge settings. There is one object per track
 // block. At the heart of the object is a state machine that is executed very often
-// for measuring the power consumption and overload detection logic. The tack can 
+// for measuring the power consumption and overload detection logic. The track can 
 // operate in digital or analog mode. In digital mode, the DCC signal from the LCS
 // bus is routed though to the H-Bridge, in analog mode a PWM signal is used to set
 // the H-Bridge emitting a PWM signal with a positive or negative voltage.
@@ -597,9 +600,13 @@ struct LcsBlockTrack {
     void        setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
     void        setMilliVoltPerAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
     uint8_t     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
+    uint8_t     updateLcsAttributes( );
 
-    uint16_t    getFlags( );
     uint16_t    getOptions( );
+    uint16_t    getFlags( );
+    uint8_t     getErrId( );
+    uint8_t     getTrackMode( );
+    uint8_t     getTrackSpeed( );
     uint16_t    getLimitCurrentMilliAmp( );
     uint16_t    getActualCurrentMilliAmp( );
     uint16_t    getInitCurrentMilliAmp( );
@@ -609,7 +616,7 @@ struct LcsBlockTrack {
     uint16_t    getPowerSamplesPerSec( );
 
     uint8_t     setTrackState( uint16_t state );
-    uint8_t     setTrackMode( uint16_t mode, uint8_t speed = 0 );
+    uint8_t     setTrackModeSpeed( uint16_t mode, uint8_t speed = 0 );
     uint8_t     setPwmFrequency( uint32_t frequency );
 
     void        powerStart( );
@@ -617,59 +624,57 @@ struct LcsBlockTrack {
     bool        isPowerOn( );
     bool        isPowerOverload( );
 
-    void        checkOverload( );
     void        powerMeasurement( );
-    void        syncPwm( );
     void        samplePowerMeasurement( );
+    void        syncPwmSignals( );
     
-    void                runTrackStateMachine( );
-    void                printTrackConfig( );
-    void                printTrackStatus( );
+    void        runTrackStateMachine( );
+    void        printTrackConfig( );
+    void        printTrackStatus( );
    
     private:
 
-    uint16_t            options                         = BT_OPT_DEFAULT_SETTING;
-    volatile uint16_t   flags                           = BT_F_DEFAULT_SETTING;
+    uint16_t    options                                 = BT_OPT_DEFAULT_SETTING;
+    uint16_t    flags                                   = BT_F_DEFAULT_SETTING;
+    uint8_t     errId                                   = LCS_OK;
 
-    volatile uint16_t   trackState                      = 0;
-    volatile uint16_t   trackMode                       = 0;
-    volatile uint16_t   trackSpeed                      = 0;      
-    volatile uint32_t   trackTimeStamp                  = 0;
-    volatile uint8_t    overloadEventCount              = 0;
-    volatile uint8_t    overloadRestartCount            = 0;
+    uint8_t     rNumControl                             = 0;
+    uint8_t     rNumAdcMux                              = 0;
+    uint8_t     rNumSense                               = 0;
 
-    uint8_t             rNumEnable                      = 0;
-    uint8_t             rNumControl                     = 0;
-    uint8_t             rNumSense                       = 0;
+    uint16_t   trackState                               = 0;
+    uint16_t   trackMode                                = 0;
+    uint16_t   trackSpeed                               = 0;      
+    uint32_t   trackTimeStamp                           = 0;
+    uint8_t    overloadEventCount                       = 0;
+    uint8_t    overloadRestartCount                     = 0;
 
-    uint16_t            pwmFrequency                    = 0;
-    uint16_t            initialTrackMode                = 0;
-    uint16_t            initialTrackSpeed               = 0;
-    uint16_t            initCurrentMilliAmp             = 0;
-    uint16_t            limitCurrentMilliAmp            = 0;
-    uint16_t            maxCurrentMilliAmp              = 0;
+    uint16_t   pwmFrequency                             = 0;
+    uint16_t   initCurrentMilliAmp                      = 0;
+    uint16_t   limitCurrentMilliAmp                     = 0;
+    uint16_t   maxCurrentMilliAmp                       = 0;
 
-    uint16_t            startTimeThreshold              = 0;
-    uint16_t            stopTimeThreshold               = 0;
-    uint16_t            overloadTimeThreshold           = 0;
-    uint16_t            overloadEventThreshold          = 0;
-    uint16_t            overloadRestartThreshold        = 0;
-    uint16_t            milliVoltPerAmp                 = 0;
-    uint16_t            digitsPerAmp                    = 0;
+    uint16_t   startTimeThreshold                       = 0;
+    uint16_t   stopTimeThreshold                        = 0;
+    uint16_t   overloadTimeThreshold                    = 0;
+    uint16_t   overloadEventThreshold                   = 0;
+    uint16_t   overloadRestartThreshold                 = 0;
+    uint16_t   milliVoltPerAmp                          = 0;
+    uint16_t   digitsPerAmp                             = 0;
 
-    volatile uint16_t   actualCurrentDigitValue         = 0;
-    volatile uint16_t   highWaterMarkDigitValue         = 0;
-    volatile uint16_t   limitCurrentDigitValue          = 0;
+    uint16_t   actualCurrentDigitValue                  = 0;
+    uint16_t   highWaterMarkDigitValue                  = 0;
+    uint16_t   limitCurrentDigitValue                   = 0;
 
-    volatile uint32_t   totalPowerSamplesTaken                  = 0;
-    uint32_t            lastPowerSampleTimeStamp                = 0;
+    uint32_t   totalPowerSamplesTaken                   = 0;
+    uint32_t   lastPowerSampleTimeStamp                 = 0;
 
-    uint32_t            lastPowerSamplePerSecTaken              = 0;
-    uint32_t            lastPowerSamplePerSecTimeStamp          = 0;
-    uint32_t            powerSamplesPerSec                      = 0;
+    uint32_t   lastPowerSamplePerSecTaken               = 0;
+    uint32_t   lastPowerSamplePerSecTimeStamp           = 0;
+    uint32_t   powerSamplesPerSec                       = 0;
 
-    uint8_t             powerSampleBufIndex                     = 0;
-    uint16_t            powerSampleBuf[ PWR_SAMPLE_BUF_SIZE ]   = { 0 };
+    uint8_t    powerSampleBufIndex                      = 0;
+    uint16_t   powerSampleBuf[ PWR_SAMPLE_BUF_SIZE ]    = { 0 };
 
 };
 
@@ -778,7 +783,11 @@ struct LcsBlockControl {
 
     uint8_t setupBlockControl(  );    
 
+    void syncPwmSignals( );
+
     private:
+
+    LcsBlockTrack *track;
 
     // ??? handles to detect, signal and turnout object.
 
@@ -825,11 +834,13 @@ struct LcsBlockControllerNode {
                                     uint8_t eAction, 
                                     uint16_t eData );
 
+    void    syncPwmSignals( );
+
     private:
 
     uint16_t    options     = 0;
     uint16_t    flags       = 0;
-    uint16_t    hwm         = 0;
+    int         hwm         = 0;
 
     LcsBlockControl map[ 4 ];
 };
