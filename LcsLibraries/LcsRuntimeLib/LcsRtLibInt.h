@@ -190,9 +190,9 @@ enum ItemRanges : uint8_t {
     IR_NIL                      = 0,
 
     IR_LIB_MAP_RANGE_START      = 1,
-    IR_LIB_MAP_RANGE_END        = 127,
+    IR_LIB_MAP_RANGE_END        = 63,
 
-    IR_USER_RANGE_START         = 128,
+    IR_USER_RANGE_START         = 64,
     IR_USER_RANGE_END           = 255,
  
     IR_MAX_ITEMS                = 255,
@@ -486,7 +486,6 @@ const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +
                                                 NVM_EVENT_MAP_SIZE;
-
 
 } // namespace LCS
 

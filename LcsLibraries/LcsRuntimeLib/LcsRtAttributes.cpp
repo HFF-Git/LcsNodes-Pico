@@ -197,6 +197,10 @@ namespace {
         else return ( ERR_INVALID_ITEM_ID );
     }
 
+
+    // ??? need routines to handle extended attributes...
+
+
     //------------------------------------------------------------------------------------
     // User callback function invocation routine. Items 128 to 255 are user defined
     // items. We will simply invoke a previously registered callback passing the 
@@ -415,6 +419,16 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_1: 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_2: 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_3: 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_4: {
+
+                // ??? routine to fetch data from extended NVM space...
+
+                return ( RET_STAT( LCS_OK ));
+            }
+
             default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
@@ -501,6 +515,16 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_1: 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_2: 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_3: 
+            case ITEM_ID_EXTENDED_ATTR_RANGE_4: {
+
+                // ??? routine to write data to extended NVM space...
+
+                return ( RET_STAT( LCS_OK ));
+            }
+
             default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
@@ -578,6 +602,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 return ( RET_STAT( syncEventMapToMem( )));
             }
+
+            // ??? cases to sync extended attribute space ?
 
             case ITEM_ID_SYNC_EVENT_MAP_NVM: {
 

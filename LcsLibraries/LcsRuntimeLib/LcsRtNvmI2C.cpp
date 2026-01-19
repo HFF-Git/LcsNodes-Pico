@@ -810,9 +810,7 @@ uint32_t extNvmGetSize( ) {
 // setting a word as well as routines to read and  write a buffer. All access routines
 // are  prefixed with "usr".
 //
-// ??? adapt he get/put word routines to work based on index ...
-// ??? how about modeling an array of user attributes, accessible via an ITEM ?
-// ??? then we could get rid of these routines...
+// ??? this would go away with extended attributes....
 //----------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
 
