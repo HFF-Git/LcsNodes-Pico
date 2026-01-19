@@ -4,6 +4,11 @@
 //
 //----------------------------------------------------------------------------------------
 //
+// ??? contains the routines that manage the track section occupancy detection
+//
+// we need a handler to be called periodically to access the extension board and 
+// get the occ mask.
+//
 //----------------------------------------------------------------------------------------
 //
 // LCS Block Controller - Occupancy Detect
@@ -66,6 +71,16 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //
 //----------------------------------------------------------------------------------------
 
+const int DEBOUNCE_MS = 30;
+const int NUM_BITS    = sizeof( uint16_t );
+
+
+
+uint16_t debouncedMask     = 0;
+uint16_t lastMask      = 0;
+uint32_t stableSince[NUM_BITS];
+
+
 } // namespace
 
 //========================================================================================
@@ -82,17 +97,79 @@ using namespace CDC;
 //
 //
 //----------------------------------------------------------------------------------------
-// ??? contains the routines that manage the track section occupancy detection
+LcsOccDetect::LcsOccDetect( ) { 
 
-// we need a handler to be called periodically to access the extension board and 
-// get the occ mask.
+}
 
-// ??? reading is simple LCS attribute get from the OCC port. 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+ uint8_t LcsOccDetect::setupOccDetect( uint16_t extBoardId ) {
 
-// ??? we would however also have a mechanism that makes sure that debounce the
-// data, to avoid false alarms... 
 
-// ??? should that be part of the driver or here ?
+    return( RET_STAT( LCS_OK ));
+}
 
-// ??? of all we do is to get the OCC data, we might as well do it in the 
-// BLOCK object...
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsOccDetect::getOccDetectMask( uint16_t *mask ) {
+
+    // ?? what if we have two boards ?
+
+    // ??? update the LCS attributes ?
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+void LcsOccDetect::runOccDetectStateMachine( ) {
+
+
+}
+
+// ??? read the mask every n ticks ?
+
+
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+void debounce_update(uint16_t raw_mask)
+{
+    uint32_t now = getMillis();
+
+    for (int bit = 0; bit < NUM_BITS; bit++) {
+        uint16_t bit_mask = (1u << bit);
+
+        bool raw_bit  = (raw_mask & bit_mask) != 0;
+        bool prev_bit = (lastMask & bit_mask) != 0;
+        bool deb_bit  = (debouncedMask & bit_mask) != 0;
+
+        /* If raw bit changed, reset timer */
+        if (raw_bit != prev_bit) {
+            stableSince[bit] = now;
+        }
+        else {
+            /* Raw bit is stable – check debounce time */
+            if ((now - stableSince[bit]) >= DEBOUNCE_MS) {
+                if (raw_bit != deb_bit) {
+                    if (raw_bit)
+                        debouncedMask |= bit_mask;
+                    else
+                        debouncedMask &= ~bit_mask;
+                }
+            }
+        }
+    }
+
+    lastMask = raw_mask;
+
+    // ??? update attribute with debouncedMask...
+}
+

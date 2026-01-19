@@ -692,9 +692,9 @@ struct LcsOccDetect {
     LcsOccDetect( );
 
     uint8_t setupOccDetect( uint16_t extBoardId );
-
     uint8_t getOccDetectMask( uint16_t *mask );
-        
+    void    runOccDetectStateMachine( );    
+    
     private:
     
     uint16_t extBoardId;

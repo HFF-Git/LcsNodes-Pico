@@ -112,13 +112,11 @@ uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
 } // namespace
 
 //----------------------------------------------------------------------------------------
-//
-//
+// 
+// Namespace LCS.
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
-
-// ??? implement a logic to debounce the data ?
 
 //----------------------------------------------------------------------------------------
 // Each driver is just a function to handle the request.
