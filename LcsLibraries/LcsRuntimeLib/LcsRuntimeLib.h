@@ -383,21 +383,22 @@ enum LcsItems : uint8_t {
 
     ITEM_ID_BOARD_INFO                  = 5,    // GET / SET
     ITEM_ID_BOARD_VERSION               = 6,    // GET / SET
-    ITEM_ID_CONTROLLER_INFO             = 7,    // GET / SET
+    ITEM_ID_BOARD_TYPE                  = 7,    // GET / SET
+    ITEM_ID_CONTROLLER_INFO             = 8,    // GET / SET
 
-    ITEM_ID_RT_LIB_VERSION              = 8,    // GET / SET
-    ITEM_ID_RT_LIB_PATCH_LEVEL          = 9,    // GET / SET
+    ITEM_ID_RT_LIB_VERSION              = 9,    // GET / SET
+    ITEM_ID_RT_LIB_PATCH_LEVEL          = 10,   // GET / SET
 
-    ITEM_ID_TYPE                        = 10,   // GET / SET
+    ITEM_ID_TYPE                        = 11,   // GET / SET
       
-    ITEM_ID_NODE_STATE                  = 11,   // GET / SET
-    ITEM_ID_NODE_ID                     = 12,   // GET / SET
-    ITEM_ID_NODE_UID                    = 13,   // GET / SET
-    ITEM_ID_RESTART_COUNT               = 14,   // GET / SET
-
-    ITEM_ID_PORT_MAP_ENTRIES            = 15,   // GET / SET
-    ITEM_ID_EVENT_MAP_ENTRIES           = 16,   // GET / SET
-    ITEM_ID_ATTR_MAP_ENTRIES            = 17,   // GET / SET
+    ITEM_ID_NODE_STATE                  = 12,   // GET / SET
+    ITEM_ID_NODE_ID                     = 13,   // GET / SET
+    ITEM_ID_NODE_UID                    = 14,   // GET / SET
+    ITEM_ID_RESTART_COUNT               = 15,   // GET / SET
+    
+    ITEM_ID_PORT_MAP_ENTRIES            = 16,   // GET / SET
+    ITEM_ID_EVENT_MAP_ENTRIES           = 17,   // GET / SET
+    ITEM_ID_ATTR_MAP_ENTRIES            = 18,   // GET / SET
 
     ITEM_ID_RESET                       = 22,   // REQ
     
@@ -447,7 +448,7 @@ enum LcsItems : uint8_t {
 // half is used by CDC.
 //
 //----------------------------------------------------------------------------------------
-enum DebugOtions : uint16_t {
+enum DebugOptions : uint16_t {
 
     LCS_DBG_ENABLE          = 0x8000,
     LCS_DBG_SETUP           = 0x0100,
@@ -705,7 +706,7 @@ uint8_t     nodeGet( uint16_t npId,
                      uint16_t *arg1,
                      uint16_t *arg2 = nullptr );
 
-uint8_t     nodePut( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
+uint8_t     nodeSet( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
 
 uint8_t     nodeReq( uint16_t npId, 
                      uint8_t item, 

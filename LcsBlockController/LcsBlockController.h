@@ -600,7 +600,6 @@ struct LcsBlockTrack {
     void        setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
     void        setMilliVoltPerAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
     uint8_t     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
-    uint8_t     updateLcsAttributes( );
 
     uint16_t    getOptions( );
     uint16_t    getFlags( );
@@ -755,9 +754,8 @@ struct LcsRailComDetect {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsBlockControl" manages a block. A block consists mainly of the tack itself 
-// and the optional elements detectors, signal and turnouts. The block logic, i.e.
-// what to do when the next block is occupied, is handled here.
+// "LcsBlock" manages a block. A block consists mainly of the tack itself and 
+// the optional elements detectors, signal and turnouts. 
 //
 //
 // ??? runs the block logic
@@ -777,13 +775,16 @@ struct LcsRailComDetect {
 //
 // and so on....
 //----------------------------------------------------------------------------------------
-struct LcsBlockControl {
+struct LcsBlock {
 
-    LcsBlockControl(  );
+    LcsBlock(  );
 
-    uint8_t setupBlockControl(  );    
+    uint8_t setupBlock(  );    
 
+    void runBlockStateMachine( );
     void syncPwmSignals( );
+
+    // ??? methods for GET/SET/REQ callbacks ?
 
     private:
 
@@ -799,17 +800,17 @@ struct LcsBlockControl {
 // are stored in the block controller map array. Up to four blocks can be
 // configured on a block controller node.
 //
-// The lcs block controller node implements the LCS node callbacks to handle any
+// The LCS block controller node implements the LCS node callbacks to handle any
 // LCS message that is sent to the block controller node. LCS requests, replies
 // and events are handled here and forwarded to the respective block controller
 // object.
 //
 //----------------------------------------------------------------------------------------
-struct LcsBlockControllerNode {
+struct LcsBlockNode {
 
     public: 
 
-    LcsBlockControllerNode( );
+    LcsBlockNode( );
 
     uint8_t setupBockController( );
 
@@ -842,5 +843,5 @@ struct LcsBlockControllerNode {
     uint16_t    flags       = 0;
     int         hwm         = 0;
 
-    LcsBlockControl map[ 4 ];
+    LcsBlock map[ 4 ];
 };

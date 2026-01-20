@@ -323,6 +323,7 @@ void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
 // away, the priority is raised. When we cannot send at the highest priority, the
 // message send failed.
 //
+// ??? what should happen when we send to a port on the same node ?
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
@@ -343,7 +344,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
-        CDC::sleepMillis( TX_RETRY_TIMEOUT );
+        sleepMillis( TX_RETRY_TIMEOUT );
 
         if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
         else                              return ( ERR_CAN_MSG_SEND );
@@ -367,6 +368,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 // in a status return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was 
 // actually received. This is also the case when the message queue is empty.
 //
+// ??? when we send to ourselves, what should happen ? it is not a collision per se.
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 

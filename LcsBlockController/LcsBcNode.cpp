@@ -1,15 +1,15 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Control Logic
+// LCS Block Controller - Node Management
 //
 //----------------------------------------------------------------------------------------
 //
 //
 //
-// ??? contains the main code, the setup, the message handler, etc.
+// ??? is this the handler for node related stuff ?
 //----------------------------------------------------------------------------------------
 // 
-// LCS Block Controller - Control Logic
+// LCS Block Controller - Node Management
 // Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
@@ -24,6 +24,9 @@
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
+
+using namespace LCS;
+using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 // File local declarations.
@@ -84,9 +87,6 @@ namespace {
 } // namespace
 
 
-// ??? perhaps use only as procedure file called from main .... NO object.
-
-
 //========================================================================================
 //========================================================================================
 //
@@ -94,14 +94,10 @@ namespace {
 //
 //========================================================================================
 //========================================================================================
-using namespace LCS;
-using namespace CDC;
-
-//----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
-LcsBlockControllerNode::LcsBlockControllerNode(  ) {
+LcsBlockNode::LcsBlockNode(  ) {
 
 }
 
@@ -112,7 +108,7 @@ LcsBlockControllerNode::LcsBlockControllerNode(  ) {
 // ??? the number of ports / blocks should be note in the block descriptor.
 // ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleInitCallback( uint16_t npId ) {
+uint8_t LcsBlockNode::handleInitCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
 
@@ -128,7 +124,7 @@ uint8_t LcsBlockControllerNode::handleInitCallback( uint16_t npId ) {
 //
 // ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleResetCallback( uint16_t npId ) {
+uint8_t LcsBlockNode::handleResetCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
 
@@ -144,7 +140,7 @@ uint8_t LcsBlockControllerNode::handleResetCallback( uint16_t npId ) {
 //
 // ??? invoke the configured block pfail method in the block controller logic object...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handlePfailCallback( uint16_t npId ) {
+uint8_t LcsBlockNode::handlePfailCallback( uint16_t npId ) {
 
     switch ( npId & 0xF ) {
 
@@ -160,7 +156,7 @@ uint8_t LcsBlockControllerNode::handlePfailCallback( uint16_t npId ) {
 //
 // 
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsMsgCallback( uint8_t *msg ) {
+uint8_t LcsBlockNode::handleLcsMsgCallback( uint8_t *msg ) {
 
     printf( "MsgCallback: ", msg  );
     printLcsMsg( msg );
@@ -182,7 +178,7 @@ extern LcsBlockTrack *block2;
 //
 // ??? should dispatch to the respective objects...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId, 
+uint8_t LcsBlockNode::handleLcsReqCallback( uint16_t npId, 
                                                       uint8_t item, 
                                                       uint16_t *arg1, 
                                                       uint16_t *arg2 ) {
@@ -230,7 +226,7 @@ uint8_t LcsBlockControllerNode::handleLcsReqCallback( uint16_t npId,
 //
 // ??? pass to the block that requested...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsRepCallback( uint16_t npId, 
+uint8_t LcsBlockNode::handleLcsRepCallback( uint16_t npId, 
                                                       uint8_t item, 
                                                       uint16_t arg1, 
                                                       uint16_t arg2, 
@@ -247,7 +243,7 @@ uint8_t LcsBlockControllerNode::handleLcsRepCallback( uint16_t npId,
 //
 // ??? what events to listen to ? where are they configured/set ?
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControllerNode::handleLcsEventCallback( uint16_t npId, 
+uint8_t LcsBlockNode::handleLcsEventCallback( uint16_t npId, 
                                                         uint16_t eId, 
                                                         uint8_t eAction, 
                                                         uint16_t eData ) {

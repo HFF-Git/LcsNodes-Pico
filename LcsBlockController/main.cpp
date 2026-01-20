@@ -32,71 +32,80 @@ using namespace LCS;
 using namespace CDC;
 
 
+// ??? we define and register the callback functions.
+// ??? we define and register the driver functions.
 
+// ??? we initialize the runtime and create the block objects.
+// ??? the init callback handler will do the block setup.
+// ??? we register the tasks for state machine updates.
+// ??? what we do here is to call each object handler from within the callback.
 
-// ??? think about to reduce this object mess....
+// ??? the callback functions will pass the the callback data to the respective
+// block or to all, for node commands...
 
-// ??? there is the block itself. This is an object.
-// ??? a block has a track object... there is a one to one relation.
-// ??? there is an array of up to four blocks.
+// ??? the data is mostly stored in the attributes, except for the hardware
+// related items. How do we get them to the track object ?
 
-// ??? there is one OCC detect object for all sections which informs the blocks
-// about he event, an extension.
+// ??? there is one OCCDetect Object
 
-// ??? there is one turnout object for all turnouts, an extension.
+// ??? there is one Turnout Object
 
-// ??? there is one signal object for all signals, an extension.
-
-// ??? "main" should actually have the LCS callbacks and just pass on to the
-// correct port....
-
-// ??? but there are still a lot of coding here... perhaps have the node file
-// as plain non-object file with all the routines so we have a small an clean 
-// main file...
-
-// ??? we would NOT need a node object .....
-
-// ??? "block" contains the state machine for the block algorithms.
-
-// ??? how do we get all the config data to all the blocks ?
-// ??? there is the track object data which is HW related.
-// ??? then there is the data that is kept in attributes.
-
+// ??? there is one Signal Object
 
 
 //----------------------------------------------------------------------------------------
 // Block Controller global data.
 //
 //----------------------------------------------------------------------------------------
-uint16_t                        debugMask = DBG_BC_CONFIG | 
-                                            DBG_BC_SETUP | 
-                                            DBG_BC_TRACK;
+uint16_t                debugMask = DBG_BC_CONFIG | 
+                                    DBG_BC_SETUP  | 
+                                    DBG_BC_TRACK;
 
-CdcResourceDescMap              dMap;
+CdcResourceDescMap      dMap;
+
+LcsBlockNode            *bcNode     = nullptr;
+LcsOccDetect            *occDetect  = nullptr;
+LcsTurnoutControl       *turnout    = nullptr;
+LcsSignalControl        *signal     = nullptr;
+
+// ??? can we deduce from the desc data how many blocks we have ?
+int                     bcMapHwm = 0;
+LcsBlock                *bcMap[ 4 ];
 
 
-LcsBlockTrackDesc               block1Desc;
-LcsBlockTrackDesc               block2Desc;
+// ??? goes away ...
+LcsBlockTrackDesc       block1Desc;
+LcsBlockTrackDesc       block2Desc;
+LcsBlock                *blockControl   = nullptr;
+LcsBlockTrack           *block1         = nullptr;
+LcsBlockTrack           *block2         = nullptr;
 
-LcsBlockControllerNode          *bcNode         = nullptr;
-LcsBlockControl                 *blockControl   = nullptr;
-LcsBlockTrack                   *block1         = nullptr;
-LcsBlockTrack                   *block2         = nullptr;
 
 //----------------------------------------------------------------------------------------
-// Setup the resource configuration data and the CDC library.
-//
-// ??? current config - dual block controller
+// "debugEnabled" and "retStat" are the debug support routines. We can easily 
+// check whether debug is enabled at all. The return status routine will print 
+// out a return status message when debugging is enabled. The macro "RET_STAT" 
+// is a nice helper that adds the function name to the message.
+// 
 //----------------------------------------------------------------------------------------
-void setupConfigInfo( ) {
+inline bool debugSetupEnabled(  ) {
 
-    dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
-    
-    cdcInit( &dMap );
-    configureUsbIO( );
-    sleepMillis( 2000 );
-    printf( "Test LCS Controller dependent code library\n" );
+    return (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_SETUP )); 
 }
+
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( debugSetupEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
+        else                    printf( "%s: %d\n", name, errId );
+    }
+
+    return ( errId );
+}
+
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
+
 
 
 //----------------------------------------------------------------------------------------
@@ -148,20 +157,8 @@ uint8_t setupBlockDesc2( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Some little helper functions.
-//
-//----------------------------------------------------------------------------------------
-uint8_t printStatus (uint8_t status ) {
-
-  printf( "Status: " );
-  if ( status == LCS::LCS_OK ) printf( "OK\n" );
-  else printf ( "FAILED: %d\n", status );
-  return ( status );
-}
-
-//----------------------------------------------------------------------------------------
-// The LCS runtime callback forwards. We register these routines with the runtime. 
-// All they do is to dispatch the incoming callback to the block controller node 
+// The LCS runtime callback. We register these routines with the runtime. All 
+// they do is to dispatch the incoming callback to the block controller node 
 // object, which in turn will dispatch to the correct block object.
 //
 //----------------------------------------------------------------------------------------
@@ -224,22 +221,21 @@ uint8_t trackStateMachine( ) {
 // Init the Runtime.
 //
 //----------------------------------------------------------------------------------------
-uint8_t initBaseStation( ) {
+uint8_t initBlockNode( ) {
 
     printf( "LCS Block Controller\n" );
-    printf( "initLcsRuntime\n" );
 
-    setupConfigInfo( );
+    dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
 
     uint8_t rStat = initRuntime( &dMap );
 
     printResourceDescMap( &dMap );
     printResourceMap( );
-    return( printStatus( rStat ));
+    return( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// After the initial setup of the runtime library, the callback are registered.
+// After the initial setup of the runtime library, the callbacks are registered.
 //
 //----------------------------------------------------------------------------------------
 uint8_t registerCallbacks( ) {
@@ -249,16 +245,12 @@ uint8_t registerCallbacks( ) {
     registerLcsMsgCallback( lcsMsgCallback );
     registerInitCallback( lcsInitCallback );
     registerPfailCallback( lcsPfailCallback );
-    
-    
-    //registerReqCallback( lcsReqCallback );
-    
-    
+    registerReqCallback( lcsReqCallback );
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
     registerTaskCallback( trackStateMachine, TRACK_STATE_TIME_INTERVAL );
 
-    return( printStatus( NO_ERR ));
+    return( RET_STAT( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -282,27 +274,27 @@ uint8_t registerLcsDrvFunctions( ) {
 // to the LCS runtime for processing events and requests.
 //
 //----------------------------------------------------------------------------------------
-uint8_t startBlockController( ) {
+uint8_t startBlockNode( ) {
 
-    printf( "Start Block controller\n" );
+    printf( "Start Block Node\n" );
 
     uint8_t rStat = NO_ERR; 
 
     setupBlockDesc1( );
     setupBlockDesc2( );
     
-    bcNode          = new LcsBlockControllerNode( );
-    blockControl    = new LcsBlockControl( );
+    bcNode          = new LcsBlockNode( );
+    blockControl    = new LcsBlock( );
     block1          = new LcsBlockTrack( );
     block2          = new LcsBlockTrack( );
 
     printf( "Configure Block 1\n" );
     rStat = block1 -> setupBlockTrack( &block1Desc );
-    if ( rStat != NO_ERR ) printStatus( rStat );
+    if ( rStat != NO_ERR ) RET_STAT( rStat );
 
     printf( "Configure Block 2\n" );
     rStat = block2 -> setupBlockTrack( &block2Desc );
-    if ( rStat != NO_ERR ) printStatus( rStat );
+    if ( rStat != NO_ERR ) RET_STAT( rStat );
 
     printf( "Block 1 Config:\n" );
     if ( block1 != nullptr ) block1 -> printTrackConfig( );
@@ -328,10 +320,10 @@ int main( ) {
 
     uint8_t rStat = NO_ERR;
 
-    if ( rStat == NO_ERR ) rStat = initBaseStation( );
+    if ( rStat == NO_ERR ) rStat = initBlockNode( );
     if ( rStat == NO_ERR ) rStat = registerCallbacks( );
     if ( rStat == NO_ERR ) rStat = registerLcsDrvFunctions( );
-    if ( rStat == NO_ERR ) return( startBlockController( ));
+    if ( rStat == NO_ERR ) return( startBlockNode( ));
 }
 
 

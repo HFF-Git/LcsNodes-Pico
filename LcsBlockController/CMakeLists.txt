@@ -16,9 +16,9 @@ if ( TARGET tinyusb_device )
         LcsBcNode.cpp
         LcsBcBlock.cpp 
         LcsBcTrack.cpp 
-        LcsBcSignal.cpp
-        LcsBcTurnout.cpp
         LcsBcOccDetect.cpp
+        LcsBcTurnout.cpp
+        LcsBcSignal.cpp
         LcsBcRailCom.cpp
         LcsBlockControllerBoardDesc.h
         LcsBridgeControl.pio

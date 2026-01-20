@@ -393,7 +393,7 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
 
     uint32_t bufSize = 0;
 
-    switch (size) {
+    switch ( size ) {
 
         case 4 * 1024:   
         case 8 * 1024:   bufSize = 32; break;
@@ -411,7 +411,7 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
         printf( "determineBufferBlockSize: Size computed: %d\n", bufSize );
     }
 
-    return( bufSize );
+    return ( bufSize );
 }
 
 //----------------------------------------------------------------------------------------
@@ -471,7 +471,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 // to figure  this out. We will have a local buffer where we combine the address and
 // data and then send it.
 //
-// ??? with the next PCB versions, we take out the M24C04
+// ??? with the next Extension PCB versions, we take out the M24C04
 //----------------------------------------------------------------------------------------
 uint8_t nvmPutBytesInPage( uint8_t  rNum, 
                            uint8_t  i2cAdr, 
@@ -622,7 +622,7 @@ uint8_t nvmPutBytes( uint8_t rNum,
                                   ofs + len - bytesLeft, 
                                   buf + len - bytesLeft,
                                   bytesLeft );
-       CDC::sleepMillis( NVM_WRITE_DELAY );
+       sleepMillis( NVM_WRITE_DELAY );
     }
 
     return ( RET_STAT( rStat ));
@@ -810,12 +810,11 @@ uint32_t extNvmGetSize( ) {
 // setting a word as well as routines to read and  write a buffer. All access routines
 // are  prefixed with "usr".
 //
-// ??? this would go away with extended attributes....
+// ??? how do we best offers the user space ? just a set of attributes ?
+// ??? or do we model his just like the runtime area and let the "item" code
+// figure out what to access ?
 //----------------------------------------------------------------------------------------
 uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
-
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
 
     ofs = ofs + NVM_USER_MAP_OFS;
     return ( nvmPutBytes( rNumNvm, 
@@ -827,9 +826,6 @@ uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
 
 uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
-
     ofs = ofs + NVM_USER_MAP_OFS;
     return ( nvmGetBytes( rNumNvm, 
                           NVM_I2C_ADR_ROOT + 0, 
@@ -840,26 +836,18 @@ uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
 
 uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
-
     ofs = ofs + NVM_USER_MAP_OFS;
     return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
-
     ofs = ofs + NVM_USER_MAP_OFS;
     return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
 uint32_t usrNvmGetSize( ) {
-
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )) return ( ERR_LIB_NOT_READY );
+       
     return ( nodeNvmSize - NVM_RUNTIME_MAPS_SIZE );
 }
 

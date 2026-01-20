@@ -4,7 +4,7 @@
 // Layout Control System - LCS Message routines. 
 //
 //----------------------------------------------------------------------------------------
-//  At the message level, the LCS runtime offers a message bus to which all nodes 
+// At the message level, the LCS runtime offers a message bus to which all nodes 
 // are connected. Currently, it is a CAN bus. Pretty straightforward and robust. 
 // This file contains the routines to set up the node communication as well as a
 // set of convenience functions for sending a LCS message taking care of filling 
@@ -67,14 +67,13 @@ const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 //----------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains 
 // a small pending request buffer. When a request type message is sent we add the
-// target node and a timer value to the buffer. Easy and simple. Note that there 
-// can be more than one entry for the same node / port combination in the buffer. 
-// If the buffer is full, an error is returned. We have too many outstanding requests
-// then.
-// 
-// A request can also be registered with a timeout value. When the timeout expires, 
-// the caller is informed that the request timed out. A timeout value of zero means 
-// that we wait indefinitely.
+// target node and a timer value to the buffer.  When the timeout expires, the 
+// caller is informed that the request timed out. A timeout value of zero means 
+// that we wait indefinitely. Easy and simple. 
+//
+// Note that there can be more than one entry for the same node / port combination
+// in the buffer. If the buffer is full, an error is returned. We have too many 
+// outstanding requests then.
 //
 //----------------------------------------------------------------------------------------
 uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
@@ -165,6 +164,7 @@ uint8_t sendLcsMsg( uint8_t *msg, uint8_t msgPri ) {
 
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) 
         return ( ERR_LIB_NOT_READY );
+
     return ( msgBus -> sendLcsMsg( msg, msgPri ));
 }
 
@@ -179,10 +179,11 @@ uint8_t sendTimedReq( uint16_t npId,
                       uint8_t msgPri, 
                       uint32_t timeout = 0 ) {
 
-    if ( addToPendingReqMap( npId , timeout ) == NO_ERR )   
+    if ( addToPendingReqMap( npId , timeout ) == NO_ERR ) {
+
         return ( sendLcsMsg( msg, msgPri ));
-    else                                                    
-        return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
+    } 
+    else return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
 }
 
 }; // namespace
@@ -197,8 +198,6 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 // A simple helper to print an LCS message.
 //
-//
-// ??? how about have a generic routine that fills a string ?
 //----------------------------------------------------------------------------------------
 void printLcsMsg( uint8_t *msg ) {
 

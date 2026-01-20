@@ -691,7 +691,7 @@ void putNodeCommand( char *s ) {
 
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodePut( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        ret = nodeSet( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
         if ( ret != LCS_OK ) errStat((char *) "Node PUT error", ret );
         else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
                     tmpNpId, tmpItem, tmpVal1, tmpVal2 );
@@ -714,6 +714,8 @@ void putNodeCommand( char *s ) {
 //    val1      - the item value 1
 //    val2      - the item value 2 ( optional )
 //
+// ??? need to rethink. if a REQ local to the node, we still want it to behave 
+// like a REQ/REP pair... ?
 //----------------------------------------------------------------------------------------
 void reqNodeCommand( char *s ) {
 
@@ -920,6 +922,9 @@ uint8_t setupSerialCommand( ) {
 // basis, we also add a bit of luxury and echo back what was typed and also process 
 // the backspace character.
 //
+//
+// ??? enhance to accept multiple commands in one swoop.
+// ??? we could have a separator like "/" to indicate a command 
 //----------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( ) {
 
@@ -928,6 +933,8 @@ uint8_t handleSerialCommand( ) {
     while (( c = usbIoGetChar( 0 )) > 0 ) {
 
         switch( c ) {
+
+            // ??? if an "/" handle a command but continue. 
 
             case '\r': {
 

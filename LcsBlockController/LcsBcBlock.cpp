@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Control Logic
+// LCS Block Controller - Block Control
 //
 //----------------------------------------------------------------------------------------
 //
@@ -9,7 +9,7 @@
 //
 //----------------------------------------------------------------------------------------
 //
-// LCS Block Controller - Control Logic
+// LCS Block Controller - Block Control
 // Copyright (C) 2020 - 2026  Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
@@ -27,6 +27,9 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // File local declarations.
 //
@@ -42,20 +45,20 @@ using namespace LCS;
 extern uint16_t debugMask;
 
 //----------------------------------------------------------------------------------------
-// "debugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all. 
+// The return status routines will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the
+// function name to the message.
 // 
 //----------------------------------------------------------------------------------------
-inline bool blockControlDebugEnabled(  ) {
+inline bool blockDebugEnabled(  ) {
 
     return (( debugMask & DBG_BC_CONFIG ) && ( debugMask & DBG_BC_BLOCK )); 
 }
 
-inline uint8_t retStat( char *name, uint8_t errId ) {
+inline uint8_t retStatBlock( char *name, uint8_t errId ) {
 
-    if ( blockControlDebugEnabled( )) {
+    if ( blockDebugEnabled( )) {
 
         if ( errId == LCS_OK )  printf( "%s: OK\n", name );
         else                    printf( "%s: %d\n", name, errId );
@@ -64,30 +67,71 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
     return ( errId );
 }
 
-#define RET_STAT(x) retStat((char *) __func__, ( x ))
+#define RET_STAT(x) retStatBlock((char *) __func__, ( x ))
+
 
 //----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
+
+
+
+
 
 } // namespace
 
-//========================================================================================
-//========================================================================================
-//
-// Object part.
-//
-//========================================================================================
-//========================================================================================
-using namespace LCS;
-using namespace CDC;
 
-//----------------------------------------------------------------------------------------
+
+// ??? there is one block control object per block.
+
+// ??? need to find out how we best handle the debug mask facility when there
+// are different types that can be debugged....
+
+
+// ??? we need to be aware that a block can be on the same node or on another
+// node. This needs to be handled transparently. 
+//
+// ??? easy said, harder done. A remote request is typically  REQ message and 
+// later a REP message received. 
+//
+// ??? in order to avoid code duplication, we need to mimic this scheme while
+// at the same time avoid using the LCS bus.
+//
+// ??? exception are events, which also need to be broadcasted to the LCS bus.
+//
+// ??? furthermore, the extension boards are available to all blocks on this node.
+// ??? we may not need a separate object and rather use the driver calls ( REQ )
+// directly. 
+//
+// ??? external requests are available to control an element such a turnout, which 
+// must be translated to a driver request. 
+//
+// ??? in short, we model turnouts and signals, but just use the driver calls 
+// to talk to the hardware. 
+
+// ??? need some code to debounce the OCC detect data. The driver returns raw
+// data sampled.
+
+// ??? node some code to talk to a turnout. The idea is that this object has the
+// methods to make these calls and invoke the driver library code.
+
+// ??? not clear yet, where the RailCom code fits in. It is driven by the CUTPUT
+// interrupt event. 
+
+
+
+//========================================================================================
+//========================================================================================
+//
+// Block Section.
+//
+//========================================================================================
+//========================================================================================
 //
 //
 //----------------------------------------------------------------------------------------
-LcsBlockControl::LcsBlockControl(  ) {
+LcsBlock::LcsBlock(  ) {
 
 }
 
@@ -95,7 +139,10 @@ LcsBlockControl::LcsBlockControl(  ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControl::setupBlockControl( ) {
+uint8_t LcsBlock::setupBlock( ) {
+
+    // ??? we need to get the HW resources so we can pass them to the track
+    // object ...
 
     // ??? setup the block control logic, e.g. get handles to turnout, signal and 
     // ??? detection objects.
@@ -103,6 +150,52 @@ uint8_t LcsBlockControl::setupBlockControl( ) {
     return ( RET_STAT( LCS_OK ));
 }
 
+//----------------------------------------------------------------------------------------
+// Each block is managed by the block state machine.
+//
+// 
+//----------------------------------------------------------------------------------------
+void LcsBlock::runBlockStateMachine( ) { 
 
-// ??? there is one block control object per block.
 
+}
+
+
+
+//========================================================================================
+//========================================================================================
+//
+// Track Section.
+//
+//========================================================================================
+//========================================================================================
+
+
+
+//========================================================================================
+//========================================================================================
+//
+// Occupancy Section.
+//
+//========================================================================================
+//========================================================================================
+
+
+
+//========================================================================================
+//========================================================================================
+//
+// Turnout Section.
+//
+//========================================================================================
+//========================================================================================
+
+
+
+//========================================================================================
+//========================================================================================
+//
+// Signal Section.
+//
+//========================================================================================
+//========================================================================================

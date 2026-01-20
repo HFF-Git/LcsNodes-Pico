@@ -71,7 +71,6 @@ uint32_t        timerVal                        = 0L;
 //----------------------------------------------------------------------------------------
 // Reset.
 //
-//
 //----------------------------------------------------------------------------------------
 void reset( uint16_t npId ) {
 
@@ -291,7 +290,7 @@ void handleMsgPutNode( uint8_t *msg ) {
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = nodePut( npId, item, arg1, arg2 );
+        uint8_t   ret   = nodeSet( npId, item, arg1, arg2 );
 
         if ( ret == NO_ERR )  sendAck( npId );
         else                  sendErr( npId, ret, arg1, arg2 );
@@ -408,8 +407,8 @@ void handleMsgDccMgt( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State FAIL. This is the state after the node startup failed. We simply stay in
-// this state.
+// Node State FAIL. This is the state after the node startup failed. We simply stay
+// in this state.
 //
 //----------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {

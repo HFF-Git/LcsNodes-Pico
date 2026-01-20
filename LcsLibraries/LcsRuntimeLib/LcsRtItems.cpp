@@ -1,19 +1,19 @@
 //----------------------------------------------------------------------------------------
 //
-// Layout Control System - Runtime attribute management
+// Layout Control System - Runtime items
 //
 //----------------------------------------------------------------------------------------
-// This file contains the LCS runtime routines that implement node attribute access. 
-// There are three routines that allow to manipulate node and port data as well as  
-// issue requests to a node or port. The "npId" will indicate which node and port 
-// the call refers to. The node portion is typically our own node Id, the port Id 
-// refers to a ports on the node, with a port Id of zero referring to the node 
-// itself. Any node can access another node. In this case request come via a message
-// and the message handler will call the local routines in this file. 
+// This file contains the LCS runtime routines that implement node attribute and
+// function access. There are three routines that allow to manipulate node and port
+// data as well as issue requests to a node or port. The "npId" will indicate which
+// node and port the call refers to. The node portion is typically our own node Id, 
+// the port Id refers to a ports on the node, with a port Id of zero referring to
+// the node itself. Any node can access another node. In this case request come 
+// via a message and the message handler will call the local routines in this file. 
 //
 //----------------------------------------------------------------------------------------
 //
-// Layout Control System - Runtime attribute management
+// Layout Control System - Runtime items
 // Copyright (C) 2020 - 2026 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under 
@@ -172,7 +172,7 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
 
-        if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+        if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
             uint16_t arg = 0;
             return ( readAttrNvm( block, item, &arg ));
@@ -187,7 +187,7 @@ namespace {
     //------------------------------------------------------------------------------------
     uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
 
-        if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+        if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
             uint16_t    arg     = 0;
             uint8_t     rStat   = readAttrMem( block, item, &arg );
@@ -197,10 +197,47 @@ namespace {
         else return ( ERR_INVALID_ITEM_ID );
     }
 
-
+    //------------------------------------------------------------------------------------
+    //
+    //
+    //
     // ??? need routines to handle extended attributes...
+    // ??? there is one extended attribute area, regardless of port.
+    //------------------------------------------------------------------------------------
+    uint8_t readAttrMemExt( uint16_t itemExt, uint16_t *arg ) {
 
 
+        return( ERR_NOT_IMPLEMENTED );
+    }
+
+    uint8_t writeAttrMemExt( uint16_t itemExt, uint16_t arg ) {
+
+
+        return( ERR_NOT_IMPLEMENTED );
+    }
+
+    uint8_t readAttrNvmExt( uint16_t itemExt, uint16_t *arg ) {
+
+
+        return( ERR_NOT_IMPLEMENTED );
+    }
+
+    uint8_t writeAttrNvmExt( uint16_t itemExt, uint16_t arg ) {
+
+
+        return( ERR_NOT_IMPLEMENTED );
+    }
+
+    uint8_t syncAttrToMemExt( uint16_t item ) {
+
+        return( ERR_NOT_IMPLEMENTED );
+    }
+
+    uint8_t syncAttrToNvmExt( uint16_t item ) {
+
+        return( ERR_NOT_IMPLEMENTED );
+    }
+    
     //------------------------------------------------------------------------------------
     // User callback function invocation routine. Items 128 to 255 are user defined
     // items. We will simply invoke a previously registered callback passing the 
@@ -224,6 +261,7 @@ namespace {
     
 } // namespace
 
+
 //----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
@@ -231,13 +269,13 @@ namespace {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "nodeGet" will lookup a value from the node, port or the attribute data map. The 
-// "npId" argument contains the node and port Id. However, we will only use the portId
-// portion, which represents the block index. For data attribute items the node state
-// determines whether we just access the MEM attribute or the NVM version of the data
-// synced with the memory counterpart. A node state of CONFIG will access NVM, since 
-// you are configuring a node. For the other node or port reserved attributes the MEM
-// version is used.
+// "nodeGet" will lookup a value from the header map, node map, port map or the 
+// attribute data map. The "npId" argument contains the node and port Id. However, 
+// we will only use the portId portion, which represents the block index. For data
+// attribute items the node state determines whether we just access the MEM 
+// attribute or the NVM version of the data synced with the memory counterpart. 
+// A node state of CONFIG will access NVM, since you are configuring a node. For 
+// the other node or port reserved attributes the MEM version is used.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -272,8 +310,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             return ( RET_STAT( readAttrNvm( portId( npId ), item, arg1 )));
         }
-        else                                        
-            return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
         
     } else {
 
@@ -341,12 +378,22 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_BOARD_VERSION: {
 
-                if ( isInRangeU( *arg1, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
+                if ( isInRangeU16( *arg1, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
 
                     *arg1 = headerMap.map[ *arg1 ].boardVersion ;
                     return ( RET_STAT( LCS_OK ));
                 }
                 else return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
+            }
+
+            case ITEM_ID_BOARD_TYPE: {
+
+                if ( isInRangeU16( *arg1, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
+
+                    *arg1 = headerMap.map[ *arg1 ].boardInfo;
+                    return ( RET_STAT( LCS_OK ));
+                }
+                else return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
             }
 
             case ITEM_ID_PORT_MAP_ENTRIES: {
@@ -419,10 +466,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_1: 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_2: 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_3: 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_4: {
+            case ITEM_ID_EXTENDED_ATTR_RANGE: {
 
                 // ??? routine to fetch data from extended NVM space...
 
@@ -435,18 +479,18 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodePut" will write a value to the node, port or the attribute data map. The 
-// "npId" argument contains the node and port Id. However, we will only use the 
-// portId portion, which represents the block index. For data attribute items the 
-// node state determines whether we just update the MEM attribute or both MEM and
-// NVM version. Node state CONFIG will update NVM too. 
+// "nodeSet" will write a value to the node map, port map or the attribute data 
+// map. The "npId" argument contains the node and port Id. However, we will only
+// use the portId portion, which represents the block index. For data attribute 
+// items the node state determines whether we just update the MEM attribute or 
+// both MEM and NVM version. Node state CONFIG will update NVM too. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
+uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
     if ( attrDebugEnabled( )) {
 
-        printf( "nodePut: npId: 0x%x, item: %d, val1:%d, val2: %d\n",
+        printf( "nodeSet: npId: 0x%x, item: %d, val1:%d, val2: %d\n",
                 npId, item, val1, val2  );
     }
 
@@ -465,8 +509,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 
             return ( RET_STAT( writeAttrNvm( portId( npId ), item, val1 )));
         }
-        else                                       
-             return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+        else  return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
         
     } 
     else {
@@ -515,10 +558,7 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_1: 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_2: 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_3: 
-            case ITEM_ID_EXTENDED_ATTR_RANGE_4: {
+            case ITEM_ID_EXTENDED_ATTR_RANGE: {
 
                 // ??? routine to write data to extended NVM space...
 
@@ -531,10 +571,11 @@ uint8_t nodePut( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeReq" will carry out a node or port function. A function, represented by an
-// item identifier, can be a node or port defined item, an extension board driver 
-// defined item or a user defined item. For LCS node or port related functions, the
-// library handles the request, for a user defined item, a user callback is invoked.
+// "nodeReq" will carry out a node, port or driver function. For LCS node or 
+// port related functions, the runtime library handles the request. A function 
+// item defined in the user range, is either handled by the firmware registered 
+// callback function or the driver function if the port is associated with a 
+// driver. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
@@ -562,10 +603,9 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
             case ITEM_ID_RESET: {
 
-                // ??? we have a routine to do resets via messages... 
-                // ??? should we even have a way to invoke via REQ calls ?
+                // ??? to do ...
                 
-                return ( RET_STAT( LCS_OK ));
+                return ( RET_STAT( ERR_NOT_IMPLEMENTED ));
             }
 
             case ITEM_ID_FORMAT_EXT: {
@@ -575,7 +615,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 // val1 = type ?
                 // val2 = boardId
                
-                return ( RET_STAT( 255 ));
+                return ( RET_STAT( ERR_NOT_IMPLEMENTED ));
             }
 
             case ITEM_ID_SYNC_TO_MEM: {
@@ -602,8 +642,6 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                 return ( RET_STAT( syncEventMapToMem( )));
             }
-
-            // ??? cases to sync extended attribute space ?
 
             case ITEM_ID_SYNC_EVENT_MAP_NVM: {
 
@@ -636,8 +674,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
                     return ( RET_STAT( toggleDio( CDC_RN_ACTIVITY_LED )));
                 }
-                else                    
-                    return ( RET_STAT( writeDio( CDC_RN_ACTIVITY_LED, false )));
+                else return ( RET_STAT( writeDio( CDC_RN_ACTIVITY_LED, false )));
             }
 
             default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));

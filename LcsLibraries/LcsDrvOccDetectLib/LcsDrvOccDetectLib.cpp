@@ -7,6 +7,8 @@
 // simple driver that just reads in the track section state for the track detector 
 // circuit. The data is returned for the user defined DRV_OCC_READ_MASK. 
 //
+//
+// ??? how would we handle different GPIO chips ? PCA9555, MCP23017 ?
 ///---------------------------------------------------------------------------------------
 //
 // LCS - Driver Library Code for Occupancy Detect extension boards
@@ -25,7 +27,6 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-
 #include "LcsDrvOccDetectLib.h"
 
 using namespace CDC;
@@ -93,11 +94,12 @@ uint8_t readReg( uint8_t i2cAdr, uint8_t reg ) {
     uint8_t buf[ 2 ];
 
     rStat = i2cWrite( rNumI2C, i2cAdr, &reg, 1, true );
-    if ( rStat == CDC::NO_ERR ) {
+    if ( rStat == NO_ERR ) {
+
         rStat = i2cRead( rNumI2C, i2cAdr, buf, 1 );
         return ( buf[ 0 ] );
-    } else
-        return ( NO_ERR );
+    
+    } else return ( NO_ERR );
 }
 
 uint8_t writeReg( uint8_t i2cAdr, uint8_t reg, uint8_t val ) {
@@ -169,6 +171,8 @@ uint8_t lcsDrvOccDetect( uint16_t boardId,
             return ( LCS_OK );
 
         } break;
+
+        // ??? more functions to read a group or an individual section  ?
 
         default: return ( ERR_INVALID_DRV_ITEM );
     }

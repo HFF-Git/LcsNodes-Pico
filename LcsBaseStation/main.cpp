@@ -208,7 +208,7 @@ uint8_t lcsEventCallback( uint16_t npId,
 // Init the Runtime.
 //
 //----------------------------------------------------------------------------------------
-uint8_t initBaseStation( ) {
+uint8_t initBlockNode( ) {
 
     dMap = LCS_BASE_STATION_BOARD_DESC_B_01_00;
 
@@ -392,7 +392,7 @@ int main( ) {
 
     uint8_t rStat = NO_ERR;
 
-    if ( rStat == NO_ERR ) rStat = initBaseStation( );
+    if ( rStat == NO_ERR ) rStat = initBlockNode( );
     if ( rStat == NO_ERR ) rStat = registerCallbacks( );
     if ( rStat == NO_ERR ) return( startBaseStation( ));
 }

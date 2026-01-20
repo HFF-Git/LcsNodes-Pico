@@ -162,9 +162,9 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultHeaderMap" initializes the NVM header map. We fill in the data for
-// the main board from the board descriptor map. The extension entries are just
-// cleared. The new NVM Node Map header is stored to NVM.
+// "setupDefaultHeaderMap" initializes the NVM header map. We fill in the data 
+// for the main board from the board descriptor map. The extension entries are 
+// just cleared. The new NVM Node Map header is stored to NVM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultHeaderMap( ) {
@@ -328,24 +328,25 @@ namespace LCS {
 
 //----------------------------------------------------------------------------------------
 // When the node is powered on, the very first thing to do is to setup the CDC
-// library and configure the hardware resources. Note that this may have been done
-// before, when for example the firmware programmer wants to use the resources
-// before calling any library setup code.
+// library and configure the hardware resources. Note that this may have been 
+// done before, when for example the firmware programmer wants to use the CDC 
+// resources before calling any library setup code.
 //
 // There are two basic modes. The first is when we have a console connected. We
 // will prompt and wait for a start command. There are several options for starting
-// a node. The easiest is "R" which just starts the node. The "D" command will start
-// with debugging enabled. We will set the setup debug flags to check any issues
-// during the startup phase. Finally, there is there "F" command, which will format
-// the NVM runtime area. However, all that is happening in this routine is to set
-// these options to be executed at the right place in the setup sequence.
+// a node. The easiest is "R" which just starts the node. The "D" command will 
+// start with debugging enabled. We will set the setup debug flags to check any 
+// issues during the startup phase. Finally, there is there "F" command, which 
+// will format the NVM runtime area. However, all that is happening in this 
+// routine is to set these options to be executed at the right place in the setup
+// sequence.
 //
 // The second mode is when there no console connected. In this case, Debug is 
 // disabled and we just setup the node. This mode should be the normal case for 
 // all the nodes in a layout.
 //
-// Perhaps one day, this routine could be enhanced to allow commands to pile up the
-// start options followed by the final start command to get the show going. 
+// Perhaps one day, this routine could be enhanced to allow commands to pile up 
+// the start options followed by the final start command to get the show going. 
 // Especially the debug mask would be a candidate.
 //
 //----------------------------------------------------------------------------------------
@@ -413,8 +414,9 @@ uint8_t initCdcLayer( ) {
 
 //----------------------------------------------------------------------------------------
 // The NVM library functions will work after this routine. We assume that the CDC
-// layer was initialized and configured. In particular, we depend on the I2C channels.
-// If all is OK, we can talk to all NVMs chips on the boards making up the node.
+// layer was initialized and configured. In particular, we depend on the I2C
+// channels. If all is OK, we can talk to all NVMs chips on the boards making up
+// the node.
 //
 //----------------------------------------------------------------------------------------
 uint8_t initNvmChannels( ) {
@@ -439,9 +441,9 @@ uint8_t configNvmChannels( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Next is the CAN bus setup. The message bus is the central communication mechanism.
-// If we can also get it up early we could use it not only for configurations and
-// operations but perhaps for remote troubleshooting.
+// Next is the CAN bus setup. The message bus is the central communication 
+// mechanism. If we can also get it up early we could use it not only for 
+// configurations and operations but perhaps for remote troubleshooting.
 //
 //----------------------------------------------------------------------------------------
 uint8_t initCanBus( ) {
@@ -487,24 +489,23 @@ uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 // cause an interrupt and the power fail handler executes.
 //
 //----------------------------------------------------------------------------------------
-uint8_t setupPfail( CdcResourceDescMap *map )
-{
+uint8_t setupPfail( CdcResourceDescMap *map ) {
 
     uint8_t rStat = configureDio(CDC_RN_PFAIL);
     return ( RET_STAT( rStat));
 }
 
 //----------------------------------------------------------------------------------------
-// "checkMagicWords" is the routine that checks of the individual areas in the NVM
-// memory area are valid areas. Each individual map starts with a magic word, and 
-// we expect them at the fixed location. If there is a mismatch, the NVM is 
-// corrupted or the software has changed. In both cases we attempt to reformat the 
-// NVM area.
+// "checkMagicWords" is the routine that checks of the individual areas in the 
+// NVM memory area are valid areas. Each individual map starts with a magic word, 
+// and we expect them at the fixed location. If there is a mismatch, the NVM is 
+// corrupted or the software has changed. In both cases we attempt to reformat 
+// the NVM area.
 //
 //----------------------------------------------------------------------------------------
 uint8_t checkMagicWords( ) {
 
-    uint8_t rStat = LCS_OK;
+    uint8_t  rStat = LCS_OK;
     uint32_t mWord = 0;
 
     if ( rStat == LCS_OK ) {
@@ -623,7 +624,7 @@ uint8_t setupExtNvmHeaders( ) {
 
     for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
 
-        LcsBoardDesc *hPtr = &headerMap.map[i];
+        LcsBoardDesc *hPtr = &headerMap.map[ i ];
 
         rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( LcsBoardDesc ));
         if ( rStat == LCS_OK ) {

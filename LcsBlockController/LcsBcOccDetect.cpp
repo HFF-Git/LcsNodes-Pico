@@ -120,6 +120,8 @@ uint8_t LcsOccDetect::getOccDetectMask( uint16_t *mask ) {
     // ?? what if we have two boards ?
 
     // ??? update the LCS attributes ?
+
+    return( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -133,10 +135,9 @@ void LcsOccDetect::runOccDetectStateMachine( ) {
 
 // ??? read the mask every n ticks ?
 
-
-
 //----------------------------------------------------------------------------------------
-//
+// The occupancy detector delivers the state of all sections in all blocks. 
+// We need to make sure that glitches are not leading to an overreaction. 
 //
 //
 //----------------------------------------------------------------------------------------

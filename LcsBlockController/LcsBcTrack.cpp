@@ -139,12 +139,6 @@ inline uint16_t digitValueToMilliAmp(uint16_t digitValue, uint16_t digitsPerAmp)
 // ??? need an interrupt handler for the PIO machines.... we have up to four machines 
 // running and actually only one needs to do the job for all ... 
 
-// ??? how can we identify which track is in the correct mode to receive this
-// interrupt ?
-
-// ??? we need to manage an array of tracks... and not trickle down from node to
-// block to track
-
 // ??? we need to set the relevant config data in the attributes. The ones from 
 // the track HW descriptor...
 
@@ -255,6 +249,10 @@ void LcsBlockTrack::setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t va
 // before we start the show.
 //
 // ??? what to store in the attributes .... !!!!!
+//
+// ??? the setup needs to factor in the attributes stored. The descriptor is 
+// the default setting for certain values.
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
 
@@ -346,23 +344,6 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
     }
 
     if ( trackDebugEnabled( )) printTrackConfig( );
-    return( RET_STAT( errId ));
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-// ??? a routine to update the attributes from the track data as part of setup ???
-uint8_t LcsBlockTrack::updateLcsAttributes( ) {
-
-
-    if ( trackDebugEnabled( )) printf( "updateLcsAttributes\n" );
-
-
-
-
     return( RET_STAT( errId ));
 }
 

@@ -25,8 +25,7 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef LCS_RT_LIB_INT_h
-#define LCS_RT_LIB_INT_h
+#pragma once
 
 //----------------------------------------------------------------------------------------
 // Include files. Besides the standard C libraries, there is the external LCS runtime
@@ -44,7 +43,7 @@
 #include "LcsRuntimeLib.h"
 
 //----------------------------------------------------------------------------------------
-//
+// Namespace LCS declarations
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
@@ -353,12 +352,14 @@ struct LcsEventMap {
 // the node itself. When node data such as the node type is accessed it is actually 
 // taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition, 
 // P1 to P4 are optionally associated with an extension board if one is detected 
-// during startup. Each port has an area of attributes, which are stored in the data
-// block area. They map to ITEM numbers 128 to 255. In addition, each port supports
-// a set of request functions, which are mapped also from 128 to 255. Attributes
-// are accessed via GET/SET, functions via REQ calls.
+// during startup. 
 //
-// The portMap entry also contains the fields that deal with the actual event 
+// Each port has an area of attributes, which are stored in the data block area. 
+// They map to ITEM numbers 64 to 255 and are accessed via GET/SET calls. In 
+// addition, each port supports a set of request functions, which are mapped also
+// from 64 to 255 and accessed via REQ calls.
+//
+// The portMap entry furthermore contains the fields that deal with the actual event 
 // received that the port is interested in. There are fields for the sending node, 
 // the event itself and its action. An event can also be invoked with a delay time.
 //
@@ -474,13 +475,11 @@ const uint32_t  NVM_NODE_DATA_OFS           =   NVM_MAP_STORAGE_START +
                                                 NVM_BOARD_DESC_SIZE   +  
                                                 NVM_NODE_MAP_SIZE;
     
-
 const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
-
 const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   + 
                                                 NVM_NODE_MAP_SIZE     +
@@ -488,5 +487,3 @@ const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START +
                                                 NVM_EVENT_MAP_SIZE;
 
 } // namespace LCS
-
-#endif

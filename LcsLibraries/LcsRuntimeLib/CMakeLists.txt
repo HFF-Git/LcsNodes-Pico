@@ -10,7 +10,7 @@ add_library( ${PROJECT_NAME} STATIC
     LcsRtLibVersion.h
     LcsRuntimeLib.h 
     LcsRtLibInt.h 
-    LcsRtAttributes.cpp 
+    LcsRtItems.cpp 
     LcsRtCanBus.cpp
     LcsRtCommands.cpp 
     LcsRtCore.cpp 
