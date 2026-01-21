@@ -504,11 +504,13 @@ const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
 const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
 //----------------------------------------------------------------------------------------
-// The track state machine runs at a time interval. The interval is measured in 
+// The various state machine runs at a time interval. The interval is measured in 
 // milliseconds.
 //
 //----------------------------------------------------------------------------------------
-const uint32_t TRACK_STATE_TIME_INTERVAL_MS  = 10;
+const uint32_t  BLOCK_STATE_TIME_INTERVAL_MS    = 50;
+const uint32_t  TRACK_STATE_TIME_INTERVAL_MS    = 10;
+const uint32_t  OCC_STATE_TIME_INTERVAL_MS      = 10;
 
 //----------------------------------------------------------------------------------------
 // A block track can be in four states.
@@ -573,11 +575,11 @@ struct LcsBlockTrackDesc {
 // the H-Bridge emitting a PWM signal with a positive or negative voltage.
 //
 //----------------------------------------------------------------------------------------
-struct LcsBlockTrack {
+struct LcsTrackControl {
 
     public:
 
-    LcsBlockTrack( );
+    LcsTrackControl( );
 
     void        getDefaultTrackDesc( LcsBlockTrackDesc *tDesc );
     void        setStartTimeThresholdMillis( LcsBlockTrackDesc *tDesc, uint16_t val );
@@ -589,7 +591,7 @@ struct LcsBlockTrack {
     void        setLimitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
     void        setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
     void        setMilliVoltPerAmp( LcsBlockTrackDesc *tDesc, uint16_t val );
-    uint8_t     setupBlockTrack( LcsBlockTrackDesc* trackDesc );
+    uint8_t     setupTrackControl( LcsBlockTrackDesc* trackDesc );
 
     uint16_t    getOptions( );
     uint16_t    getFlags( );
@@ -671,8 +673,10 @@ struct LcsBlockTrack {
 // "LcsOccDetect" manages an Occupancy detector extension board. The track power 
 // output of a block controller track is routed to an extension board which 
 // implements a set of current detectors. The extension board is access via the
-// extension I2C bus.
+// extension I2C bus. There is an option to handle two occupancy detect extension
+// boards. 
 //
+// ??? how do we handle two of these...
 //----------------------------------------------------------------------------------------
 struct LcsOccDetect {
 
@@ -681,8 +685,9 @@ struct LcsOccDetect {
     LcsOccDetect( );
 
     uint8_t setupOccDetect( uint16_t extBoardId );
+    void    runOccDetectStateMachine( );   
+    
     uint8_t getOccDetectMask( uint16_t *mask );
-    void    runOccDetectStateMachine( );    
     
     private:
     
@@ -692,7 +697,8 @@ struct LcsOccDetect {
 
 //----------------------------------------------------------------------------------------
 // "LcsSignal" manages a signal. A block has a signal for each direction to 
-// indicate the state of the next block in a route.
+// indicate the state of the next block in a route. There is at most one 
+// signal extension board.
 //
 //----------------------------------------------------------------------------------------
 struct LcsSignalControl {
@@ -710,9 +716,13 @@ struct LcsSignalControl {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsTurnout" manages the optional turnouts at the end of a block.
+// "LcsTurnout" manages the optional turnouts at the end of a block. A block 
+// is quite flexible when it comes to turnouts. There can be none or one for a
+// simple block. A block with more then two is considered to be a hyper block. 
+// Up to eight blocks can be defined for one block.  
 //
-//
+// ??? how would the hardware handle up to 32 turnouts ? 
+// ??? and consequently more signals ?
 //----------------------------------------------------------------------------------------
 struct LcsTurnoutControl {
 
@@ -728,7 +738,9 @@ struct LcsTurnoutControl {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsRailComDetect" manages the optional RailCom interface for the block.
+// "LcsRailComDetect" manages the optional RailCom interface for the block. Each
+// block features a local RailCom detector. They are an integral part of the 
+// block controller board hardware.
 //
 //----------------------------------------------------------------------------------------
 struct LcsRailComDetect {
@@ -737,18 +749,18 @@ struct LcsRailComDetect {
 
     LcsRailComDetect( );
 
-    uint8_t setupRailComDetect( uint16_t extBoardId );
+    uint8_t setupRailComDetect( );
 
     private:
 
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsBlock" manages a block. A block consists mainly of the tack itself and 
-// the optional elements detectors, signal and turnouts. 
+// "LcsBlock" manages a block. A block consists mainly of the track itself and 
+// the optional elements for detectors, signal and turnouts. The basic block 
+// logic is managed by this object.
 //
 //
-// ??? runs the block logic
 // ??? how to assign occ detect an signals to the block ?
 // ??? should message handling be a separate part ?
 // 
@@ -765,11 +777,11 @@ struct LcsRailComDetect {
 //
 // and so on....
 //----------------------------------------------------------------------------------------
-struct LcsBlock {
+struct LcsBlockControl {
 
-    LcsBlock(  );
+    LcsBlockControl(  );
 
-    uint8_t setupBlock(  );    
+    uint8_t setupBlockControl(  );    
 
     void runBlockStateMachine( );
     void syncPwmSignals( );
@@ -778,7 +790,10 @@ struct LcsBlock {
 
     private:
 
-    LcsBlockTrack *track;
+    LcsTrackControl     *track;
+    LcsOccDetect        *occDetect;
+    LcsTurnoutControl   *turnouts;
+    LcsSignalControl    *signals;
 
     // ??? handles to detect, signal and turnout object.
 
@@ -833,5 +848,5 @@ struct LcsBlockNode {
     uint16_t    flags       = 0;
     int         hwm         = 0;
 
-    LcsBlock map[ 4 ];
+    LcsBlockControl map[ 4 ];
 };

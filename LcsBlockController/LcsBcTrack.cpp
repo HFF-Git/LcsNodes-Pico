@@ -31,6 +31,9 @@
 #include "LcsBlockController.h"
 #include <math.h>
 
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // External global variables.
 //
@@ -75,15 +78,15 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 // Block controller global limits. Perhaps to move to a configurable place...
 //
 //----------------------------------------------------------------------------------------
-const uint16_t MILLI_VOLT_PER_DIGIT                 = 5; // ??? correct value ... 
-                                                         // rather a float ?
-const uint16_t MILLI_VOLT_PER_AMP                   = 1500;
+const uint16_t MILLI_VOLT_PER_DIGIT     = 5; // ??? correct value ... 
+                                             // rather a float ?
+const uint16_t MILLI_VOLT_PER_AMP       = 1500;
 
 //----------------------------------------------------------------------------------------
-// Block track power management is a state machine managing the setting of the power
-// track. Maximum values for the track power start and stop sequence as well as
-// limits for power overload events are defined. We also define reasonable default
-// values.
+// Block track power management is a state machine managing the setting of the 
+// power track. Maximum values for the track power start and stop sequence as 
+// well as limits for power overload events are defined. We also define reasonable
+// default values.
 //
 //----------------------------------------------------------------------------------------
 const uint16_t MAX_START_TIME_THRESHOLD_MILLIS      = 2000;
@@ -132,15 +135,15 @@ inline uint16_t digitValueToMilliAmp(uint16_t digitValue, uint16_t digitsPerAmp)
     return (uint16_t)((((uint32_t)digitValue * 1000) + (digitsPerAmp / 2)) / digitsPerAmp);
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+// ??? need an interrupt handler for the PIO machine associated with this track. 
+
 
 }; // namespace
-
-
-// ??? need an interrupt handler for the PIO machines.... we have up to four machines 
-// running and actually only one needs to do the job for all ... 
-
-// ??? we need to set the relevant config data in the attributes. The ones from 
-// the track HW descriptor...
 
 
 //========================================================================================
@@ -150,14 +153,10 @@ inline uint16_t digitValueToMilliAmp(uint16_t digitValue, uint16_t digitsPerAmp)
 //
 //========================================================================================
 //========================================================================================
-using namespace LCS;
-using namespace CDC;
-
-//----------------------------------------------------------------------------------------
 // Object constructor.
 //
 //----------------------------------------------------------------------------------------
-LcsBlockTrack::LcsBlockTrack( ) { 
+LcsTrackControl::LcsTrackControl( ) { 
 
     trackState  = TRACK_POWER_OFF;
     flags       = BT_F_DEFAULT_SETTING;
@@ -170,7 +169,7 @@ LcsBlockTrack::LcsBlockTrack( ) {
 // descriptor. The "setXXX" routines can modify individual fields as needed.
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::getDefaultTrackDesc( LcsBlockTrackDesc *tDesc ) {
+void LcsTrackControl::getDefaultTrackDesc( LcsBlockTrackDesc *tDesc ) {
 
     tDesc -> options                         = BT_OPT_DEFAULT_SETTING;
 
@@ -194,50 +193,53 @@ void LcsBlockTrack::getDefaultTrackDesc( LcsBlockTrackDesc *tDesc ) {
 //----------------------------------------------------------------------------------------
 // Configuration setting routines.
 //
+// ??? it was a nice idea. But the data should come from the attributes...
+// A program can still set these attributes before this setup routine...
+// 
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::setStartTimeThresholdMillis( LcsBlockTrackDesc *tDesc, 
-                                                    uint16_t val ) {
+void LcsTrackControl::setStartTimeThresholdMillis( LcsBlockTrackDesc *tDesc, 
+                                                 uint16_t val ) {
 
     tDesc -> startTimeThresholdMillis = 
         clampU16( val, 0, MAX_START_TIME_THRESHOLD_MILLIS );
 }
 
-void LcsBlockTrack::setStopTimeThresholdMillis( LcsBlockTrackDesc *tDesc, uint16_t val ) {
+void LcsTrackControl::setStopTimeThresholdMillis( LcsBlockTrackDesc *tDesc, uint16_t val ) {
 
     tDesc -> stopTimeThresholdMillis = 
         clampU16( val, 0, MAX_STOP_TIME_THRESHOLD_MILLIS );
 }
 
-void LcsBlockTrack::setOverloadTimeThresholdMillis( LcsBlockTrackDesc *tDesc, 
+void LcsTrackControl::setOverloadTimeThresholdMillis( LcsBlockTrackDesc *tDesc, 
                                                                 uint16_t val ) {
 
     tDesc -> overloadTimeThresholdMillis = 
         clampU16( val, 0, MAX_OVERLOAD_TIME_THRESHOLD_MILLIS  );
 }
 
-void LcsBlockTrack::setOverloadEventThreshold( LcsBlockTrackDesc *tDesc, uint16_t val ) {
+void LcsTrackControl::setOverloadEventThreshold( LcsBlockTrackDesc *tDesc, uint16_t val ) {
 
     tDesc -> overloadEventThreshold  = 
         clampU16( val, 0, MAX_OVERLOAD_EVENT_COUNT );
 }
 
-void LcsBlockTrack::setOverloadRestartThreshold( LcsBlockTrackDesc *tDesc, uint16_t val ) {
+void LcsTrackControl::setOverloadRestartThreshold( LcsBlockTrackDesc *tDesc, uint16_t val ) {
 
     tDesc -> overloadRestartThreshold = 
         clampU16( val, 0, MAX_OVERLOAD_RESTART_COUNT );
 }
 
-void LcsBlockTrack::setInitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val ) {
+void LcsTrackControl::setInitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val ) {
 
     initCurrentMilliAmp = clampU16( val, 0, 100 ); // ??? fix ...
 }
 
-void LcsBlockTrack::setLimitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val ) {
+void LcsTrackControl::setLimitCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val ) {
 
     limitCurrentMilliAmp = clampU16( val, 0, 100 ); // ??? fix ...
 }
     
-void LcsBlockTrack::setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val ) {
+void LcsTrackControl::setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t val ) {
 
     maxCurrentMilliAmp = clampU16( val, 0, 100 ); // ??? fix ...
 }
@@ -248,13 +250,16 @@ void LcsBlockTrack::setMaxCurrentMilliAmp( LcsBlockTrackDesc *tDesc, uint16_t va
 // of parameters and options. The settings passed in "tDesc" will be cross checked
 // before we start the show.
 //
-// ??? what to store in the attributes .... !!!!!
-//
-// ??? the setup needs to factor in the attributes stored. The descriptor is 
-// the default setting for certain values.
-//
+// 
+// ??? we should have the default values embedded in this file. 
+// ??? the actual data for thresholds and limits is taken from the attribute map
+// and compared to maximum values also defined in this file. If outside, then defaults
+// will be used and set in the attributes...
+// 
+// ??? internally we still sue the local fields. So, on each change of an attribute
+// the corresponding field needs to be updated.
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
+uint8_t LcsTrackControl::setupTrackControl( LcsBlockTrackDesc* tDesc ) {
 
     if ( trackDebugEnabled( )) printf( "setupBlockTrack\n" );
 
@@ -323,10 +328,13 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
 
     if ( options & BT_OPT_ADC_MUX ) {
 
-        // ??? configure Mux GPIO pins...
-        // ??? for now ...
-        flags = BT_F_CONFIG_ERROR;
-        return ( ERR_RNUM_CONFIG );
+        errId = configureDio( rNumAdcMux );
+
+        if ( errId != LCS_OK ) {
+
+            flags = BT_F_CONFIG_ERROR;
+            return ( ERR_RNUM_CONFIG );
+        }
     }
 
     errId = configureAdc( rNumSense );
@@ -351,67 +359,67 @@ uint8_t LcsBlockTrack::setupBlockTrack( LcsBlockTrackDesc* tDesc ) {
 // Getter functions. Straightforward.
 //
 //----------------------------------------------------------------------------------------
-uint16_t LcsBlockTrack::getFlags( ) {
+uint16_t LcsTrackControl::getFlags( ) {
 
     return ( flags );
 }
 
-uint8_t LcsBlockTrack::getErrId( ) {
+uint8_t LcsTrackControl::getErrId( ) {
 
     return ( errId );
 }
 
-uint16_t LcsBlockTrack::getOptions( ) {
+uint16_t LcsTrackControl::getOptions( ) {
 
     return ( options );
 }
 
-uint16_t LcsBlockTrack::getLimitCurrentMilliAmp( ) {
+uint16_t LcsTrackControl::getLimitCurrentMilliAmp( ) {
 
     return ( limitCurrentMilliAmp );
 }
 
-uint16_t LcsBlockTrack::getActualCurrentMilliAmp( ) {
+uint16_t LcsTrackControl::getActualCurrentMilliAmp( ) {
 
     return ( digitValueToMilliAmp( actualCurrentDigitValue, digitsPerAmp ));
 }
 
-uint16_t LcsBlockTrack::getInitCurrentMilliAmp( ) {
+uint16_t LcsTrackControl::getInitCurrentMilliAmp( ) {
 
     return ( initCurrentMilliAmp );
 }
 
-uint16_t LcsBlockTrack::getMaxCurrentMilliAmp( ) {
+uint16_t LcsTrackControl::getMaxCurrentMilliAmp( ) {
 
     return ( maxCurrentMilliAmp );
 }
 
-uint32_t LcsBlockTrack::getPowerSamplesTaken( ) {
+uint32_t LcsTrackControl::getPowerSamplesTaken( ) {
 
     return ( totalPowerSamplesTaken );
 }
 
-uint16_t LcsBlockTrack::getPowerSamplesPerSec( ) {
+uint16_t LcsTrackControl::getPowerSamplesPerSec( ) {
 
     return ( powerSamplesPerSec );
 }
 
-bool LcsBlockTrack::isPowerOn( ) {
+bool LcsTrackControl::isPowerOn( ) {
 
     return ( flags & BT_F_POWER_ON );
 }
 
-bool LcsBlockTrack::isPowerOverload( ) {
+bool LcsTrackControl::isPowerOverload( ) {
 
     return ( flags & BT_F_POWER_OVERLOAD );
 }
 
-uint8_t LcsBlockTrack::getTrackMode( ) {
+uint8_t LcsTrackControl::getTrackMode( ) {
 
     return( trackMode );
 }
 
-uint8_t LcsBlockTrack::getTrackSpeed( ) {
+uint8_t LcsTrackControl::getTrackSpeed( ) {
 
     return( trackSpeed );
 }
@@ -427,7 +435,7 @@ uint8_t LcsBlockTrack::getTrackSpeed( ) {
 // multiplexer and always the ADC0 pin. 
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::powerMeasurement( ) {
+void LcsTrackControl::powerMeasurement( ) {
 
     if ( flags & BT_F_MEASUREMENT_ON ) {
 
@@ -454,7 +462,7 @@ void LcsBlockTrack::powerMeasurement( ) {
 // circular sample buffer and to update the samples per second value.
 // 
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::samplePowerMeasurement( ) {
+void LcsTrackControl::samplePowerMeasurement( ) {
 
     if (( getMillis( ) - lastPowerSampleTimeStamp ) > 
                     PWR_SAMPLE_TIME_INTERVAL_MILLIS ) {
@@ -486,7 +494,7 @@ void LcsBlockTrack::samplePowerMeasurement( ) {
 // issue. We will not use RMS values for power overload detection.
 //
 //----------------------------------------------------------------------------------------
-uint16_t LcsBlockTrack::getRMSCurrentMilliAmp( ) {
+uint16_t LcsTrackControl::getRMSCurrentMilliAmp( ) {
 
     uint32_t res = 0;
 
@@ -502,7 +510,7 @@ uint16_t LcsBlockTrack::getRMSCurrentMilliAmp( ) {
 // PWM signals. The CDC layer will handle the sync operation.
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::syncPwmSignals( ) {
+void LcsTrackControl::syncPwmSignals( ) {
 
     syncPwm( rNumControl );
 }
@@ -575,7 +583,7 @@ void LcsBlockTrack::syncPwmSignals( ) {
 // is done in digit values the result is presented in then in milliAmps.
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::runTrackStateMachine( ) {
+void LcsTrackControl::runTrackStateMachine( ) {
 
     switch ( trackState ) {
 
@@ -717,7 +725,7 @@ void LcsBlockTrack::runTrackStateMachine( ) {
 // ??? will change when we have PIO...
 // ??? should we sync in any case when we switch to PWM ?
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setTrackModeSpeed( uint16_t mode, uint8_t speed ) {
+uint8_t LcsTrackControl::setTrackModeSpeed( uint16_t mode, uint8_t speed ) {
 
     if ( trackDebugEnabled( )) {
 
@@ -770,7 +778,7 @@ uint8_t LcsBlockTrack::setTrackModeSpeed( uint16_t mode, uint8_t speed ) {
 // it for different engines.
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
+uint8_t LcsTrackControl::setPwmFrequency( uint32_t frequency ) {
 
     if ( trackDebugEnabled( )) {
 
@@ -792,12 +800,12 @@ uint8_t LcsBlockTrack::setPwmFrequency( uint32_t frequency ) {
 // STOP state.
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::powerStart( ) {
+void LcsTrackControl::powerStart( ) {
 
     trackState = TRACK_POWER_START1;
 }
 
-void LcsBlockTrack::powerStop( ) {
+void LcsTrackControl::powerStop( ) {
     
     trackState = TRACK_POWER_STOP1;
 }
@@ -806,7 +814,7 @@ void LcsBlockTrack::powerStop( ) {
 // Print out the DCC Track configuration data. For debugging purposes.
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::printTrackConfig( ) {
+void LcsTrackControl::printTrackConfig( ) {
 
     printf( "Track Config: \n" );
 
@@ -837,7 +845,7 @@ void LcsBlockTrack::printTrackConfig( ) {
 // Print out the DCC Track status.
 //
 //----------------------------------------------------------------------------------------
-void LcsBlockTrack::printTrackStatus( ) {
+void LcsTrackControl::printTrackStatus( ) {
 
     printf( ", Track Status: ( 0x%x ) -> ", flags );
     

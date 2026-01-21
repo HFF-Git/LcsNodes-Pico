@@ -24,6 +24,9 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // File local declarations.
 //
@@ -77,13 +80,24 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //
 //========================================================================================
 //========================================================================================
-using namespace LCS;
-using namespace CDC;
+// Object constructor.
+//
+//----------------------------------------------------------------------------------------
+LcsSignalControl::LcsSignalControl( ) {
+
+}
 
 //----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
+uint8_t LcsSignalControl::setupSignalControl( uint16_t extBoardId ) {
+
+    if ( signalDebugEnabled( )) printf( "setupTurnoutControl\n" );
+
+    
+    return( RET_STAT( NO_ERR ));
+}
 
 // ??? not clear what extension type this actually is, perhaps a GPIO board.
 // ??? we just set...

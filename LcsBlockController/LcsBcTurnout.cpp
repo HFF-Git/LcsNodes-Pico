@@ -26,13 +26,14 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // File local declarations.
 //
 //----------------------------------------------------------------------------------------
 namespace {
-
-using namespace LCS;
 
 //----------------------------------------------------------------------------------------
 // External declaration to global structures and routines in other files.
@@ -79,13 +80,24 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //
 //========================================================================================
 //========================================================================================
-using namespace LCS;
-using namespace CDC;
+// Object constructor.
+//
+//----------------------------------------------------------------------------------------
+LcsTurnoutControl::LcsTurnoutControl( ) {
+
+}
 
 //----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
+uint8_t LcsTurnoutControl::setupTurnoutControl( uint16_t extBoardId ) {
+
+    if ( turnoutsDebugEnabled( )) printf( "setupTurnoutControl\n" );
+
+    
+    return( RET_STAT( NO_ERR ));
+}
 
 // ??? contains the routines that manage the turnout settings
 

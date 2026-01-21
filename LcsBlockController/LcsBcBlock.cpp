@@ -131,7 +131,7 @@ inline uint8_t retStatBlock( char *name, uint8_t errId ) {
 //
 //
 //----------------------------------------------------------------------------------------
-LcsBlock::LcsBlock(  ) {
+LcsBlockControl::LcsBlockControl(  ) {
 
 }
 
@@ -139,7 +139,7 @@ LcsBlock::LcsBlock(  ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlock::setupBlock( ) {
+uint8_t LcsBlockControl::setupBlockControl( ) {
 
     // ??? we need to get the HW resources so we can pass them to the track
     // object ...
@@ -155,7 +155,7 @@ uint8_t LcsBlock::setupBlock( ) {
 //
 // 
 //----------------------------------------------------------------------------------------
-void LcsBlock::runBlockStateMachine( ) { 
+void LcsBlockControl::runBlockStateMachine( ) { 
 
 
 }

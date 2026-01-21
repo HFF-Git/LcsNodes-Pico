@@ -167,8 +167,8 @@ uint8_t LcsBlockNode::handleLcsMsgCallback( uint8_t *msg ) {
 // ??? quick hack for testing. A node should only deal with the block controller 
 // object, which in turn has the track object locally.
 
-extern LcsBlockTrack *block1;
-extern LcsBlockTrack *block2;
+extern LcsTrackControl *block1;
+extern LcsTrackControl *block2;
 
 
 //----------------------------------------------------------------------------------------

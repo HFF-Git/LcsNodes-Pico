@@ -25,13 +25,14 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // File local declarations.
 //
 //----------------------------------------------------------------------------------------
 namespace {
-
-using namespace LCS;
 
 //----------------------------------------------------------------------------------------
 // External declaration to global structures and routines in other files.
@@ -78,13 +79,25 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //
 //========================================================================================
 //========================================================================================
-using namespace LCS;
-using namespace CDC;
+// Object constructor.
+//
+//----------------------------------------------------------------------------------------
+LcsRailComDetect::LcsRailComDetect( ) {
+
+}
 
 //----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
+uint8_t LcsRailComDetect::setupRailComDetect( ) {
+
+    if ( railComDebugEnabled( )) printf( "Setup RailCom detect\n" );
+
+
+    return( RET_STAT( LCS_OK ));
+}
+
 
 // ??? to work on ...
 
@@ -92,7 +105,6 @@ using namespace CDC;
 
 // ??? perhaps it makes more sense to create a RailCom library, as we also need 
 // some of all this for the base station....
-
 
 //----------------------------------------------------------------------------------------
 // Utility function to map a DCC address to a railcom decoder type.
@@ -117,7 +129,7 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 //
 //----------------------------------------------------------------------------------------
 enum RailComDataBytes : uint8_t {
-
+    
     INV   = 0xff,
     BUSY  = 0xfe,
     ACK   = 0xfd,
@@ -184,7 +196,7 @@ const uint8_t railComDecode[256] = {
 //----------------------------------------------------------------------------------------
 enum railComDatagramType : uint8_t {
 
-    RX_DG_TYPE_UNDEFINED  = 0,
+    RC_DG_TYPE_UNDEFINED  = 0,
     RC_DG_TYPE_MOB        = 1,
     RC_DG_TYPE_STAT       = 2
 };
@@ -274,17 +286,12 @@ enum railComDatagramStatId : uint8_t {
 //----------------------------------------------------------------------------------------
 const uint8_t   RAILCOM_BUF_SIZE = 8;
 
-
-
 struct RailCom {
 
-
-
-    void                        startRailComIO( );
-    void                        stopRailComIO( );
-    uint8_t                     handleRailComMsg( );
-    uint8_t                     getRailComMsg( uint8_t *buf, uint8_t bufLen );
-
+    void        startRailComIO( );
+    void        stopRailComIO( );
+    uint8_t     handleRailComMsg( );
+    uint8_t     getRailComMsg( uint8_t *buf, uint8_t bufLen );
 };
 
 

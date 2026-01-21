@@ -54,8 +54,12 @@ using namespace CDC;
 
 
 //----------------------------------------------------------------------------------------
-// Block Controller global data.
+// Block Controller global data. We feature quite a few objects. There is one 
+// object each for occupancy detect, turnout and signal handling. Next, there
+// are four track objects and four block objects. Depending on the configuration 
+// not all objects are created and used.
 //
+// ??? will there be a "node" object ?
 //----------------------------------------------------------------------------------------
 uint16_t                debugMask = DBG_BC_CONFIG | 
                                     DBG_BC_SETUP  | 
@@ -68,17 +72,20 @@ LcsOccDetect            *occDetect  = nullptr;
 LcsTurnoutControl       *turnout    = nullptr;
 LcsSignalControl        *signal     = nullptr;
 
-// ??? can we deduce from the desc data how many blocks we have ?
-int                     bcMapHwm = 0;
-LcsBlock                *bcMap[ 4 ];
+LcsTrackControl         *track1     = nullptr;
+LcsTrackControl         *track2     = nullptr;
+LcsTrackControl         *track3     = nullptr;
+LcsTrackControl         *track4     = nullptr;
+
+LcsBlockControl         *block1     = nullptr;
+LcsBlockControl         *block2     = nullptr;
+LcsBlockControl         *block3     = nullptr;
+LcsBlockControl         *block4     = nullptr;
 
 
 // ??? goes away ...
 LcsBlockTrackDesc       block1Desc;
 LcsBlockTrackDesc       block2Desc;
-LcsBlock                *blockControl   = nullptr;
-LcsBlockTrack           *block1         = nullptr;
-LcsBlockTrack           *block2         = nullptr;
 
 
 //----------------------------------------------------------------------------------------
@@ -161,6 +168,7 @@ uint8_t setupBlockDesc2( ) {
 // they do is to dispatch the incoming callback to the block controller node 
 // object, which in turn will dispatch to the correct block object.
 //
+// ??? if we do not have such an object, do the work right here ?
 //----------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId, void *udata ) {
 
@@ -206,69 +214,11 @@ uint8_t lcsEventCallback( uint16_t npId,
 }
 
 
-//----------------------------------------------------------------------------------------
-// We need to run the track state machines on a periodic basis.
-//
-//
-// ??? we actually need an array of track machines ?
-// ??? or should we register each one individually ?
-//----------------------------------------------------------------------------------------
-uint8_t trackStateMachine( void *uData ) {
 
-    if ( block1 != nullptr ) block1 -> runTrackStateMachine( );
-    if ( block2 != nullptr ) block2 -> runTrackStateMachine( );
-    return( NO_ERR );
-}
 
-//----------------------------------------------------------------------------------------
-// Init the Runtime.
-//
-//----------------------------------------------------------------------------------------
-uint8_t initBlockNode( ) {
 
-    printf( "LCS Block Controller\n" );
 
-    dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
 
-    uint8_t rStat = initRuntime( &dMap );
-
-    printResourceDescMap( &dMap );
-    printResourceMap( );
-    return( RET_STAT( rStat ));
-}
-
-//----------------------------------------------------------------------------------------
-// After the initial setup of the runtime library, the callbacks are registered.
-//
-//----------------------------------------------------------------------------------------
-uint8_t registerCallbacks( ) {
-
-    printf( "Registering Callbacks\n" );
-
-    registerLcsMsgCallback( lcsMsgCallback );
-    registerInitCallback( lcsInitCallback );
-    registerPfailCallback( lcsPfailCallback );
-    registerReqCallback( lcsReqCallback );
-    registerRepCallback( lcsRepCallback );
-    registerEventCallback( lcsEventCallback );
-    registerTaskCallback( trackStateMachine, TRACK_STATE_TIME_INTERVAL_MS );
-
-    return( RET_STAT( NO_ERR ));
-}
-
-//----------------------------------------------------------------------------------------
-// Setup the drivers for extension boards.
-//
-//----------------------------------------------------------------------------------------
-uint8_t registerLcsDrvFunctions( ) {
-
-    printf( "Register Extension Board Drivers\n" );
-
-    uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
-    if ( ret != NO_ERR )  printf( "Registration failed: %d\n, ret ");
-
-    return( ret );
-}
 
 //----------------------------------------------------------------------------------------
 // Fire up the base station. First all base station modules are initialized. If OK, 
@@ -287,23 +237,22 @@ uint8_t startBlockNode( ) {
     setupBlockDesc2( );
     
     bcNode          = new LcsBlockNode( );
-    blockControl    = new LcsBlock( );
-    block1          = new LcsBlockTrack( );
-    block2          = new LcsBlockTrack( );
+    track1          = new LcsTrackControl( );
+    track2          = new LcsTrackControl( );
 
     printf( "Configure Block 1\n" );
-    rStat = block1 -> setupBlockTrack( &block1Desc );
+    rStat = track1 -> setupTrackControl( &block1Desc );
     if ( rStat != NO_ERR ) RET_STAT( rStat );
 
     printf( "Configure Block 2\n" );
-    rStat = block2 -> setupBlockTrack( &block2Desc );
+    rStat = track2 -> setupTrackControl( &block2Desc );
     if ( rStat != NO_ERR ) RET_STAT( rStat );
 
     printf( "Block 1 Config:\n" );
-    if ( block1 != nullptr ) block1 -> printTrackConfig( );
+    if ( track1 != nullptr ) track1 -> printTrackConfig( );
 
     printf( "Block 2 Config:\n" );
-    if ( block2 != nullptr ) block2 -> printTrackConfig( );
+    if ( track2 != nullptr ) track2 -> printTrackConfig( );
 
     if ( rStat == NO_ERR ) {
 
@@ -313,6 +262,178 @@ uint8_t startBlockNode( ) {
 
     return( NO_ERR );
 }
+
+
+//----------------------------------------------------------------------------------------
+// We need to run the track state machines on a periodic basis. 
+//
+//----------------------------------------------------------------------------------------
+uint8_t periodicTrackTasks( void *uData ) {
+
+    if ( track1 != nullptr ) track1 -> runTrackStateMachine( );
+    if ( track2 != nullptr ) track2 -> runTrackStateMachine( );
+    if ( track3 != nullptr ) track3 -> runTrackStateMachine( );
+    if ( track4 != nullptr ) track4 -> runTrackStateMachine( );
+
+    return( NO_ERR );
+}
+
+//----------------------------------------------------------------------------------------
+// We need to run the block state machines on a periodic basis. 
+//
+//----------------------------------------------------------------------------------------
+uint8_t periodicBlockTasks( void *uData ) {
+
+    if ( occDetect != nullptr ) occDetect -> runOccDetectStateMachine( );
+
+    if ( block1 != nullptr ) block1 -> runBlockStateMachine( );
+    if ( block2 != nullptr ) block2 -> runBlockStateMachine( );
+    if ( block3 != nullptr ) block3 -> runBlockStateMachine( );
+    if ( block4 != nullptr ) block4 -> runBlockStateMachine( );
+
+    return( NO_ERR );
+}
+
+//----------------------------------------------------------------------------------------
+// Init the Runtime.
+//
+//----------------------------------------------------------------------------------------
+uint8_t initBlockNode( ) {
+
+    if ( debugSetupEnabled( )) printf( "initBlockNode\n" );
+
+    dMap = LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00;
+
+    uint8_t rStat = initRuntime( &dMap );
+
+    if ( debugSetupEnabled( )) printResourceDescMap( &dMap );
+    if ( debugSetupEnabled( )) printResourceMap( );
+
+    occDetect   = new LcsOccDetect( );
+    turnout     = new LcsTurnoutControl( );
+    signal      = new LcsSignalControl( );
+
+
+    return( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+// After the initial setup of the runtime library, the callbacks are registered.
+//
+//----------------------------------------------------------------------------------------
+uint8_t registerCallbacks( ) {
+
+    if ( debugSetupEnabled( )) printf( "Registering Callbacks\n" );
+
+    registerLcsMsgCallback( lcsMsgCallback );
+    registerInitCallback( lcsInitCallback );
+    registerPfailCallback( lcsPfailCallback );
+    registerReqCallback( lcsReqCallback );
+    registerRepCallback( lcsRepCallback );
+    registerEventCallback( lcsEventCallback );
+    registerTaskCallback( periodicTrackTasks, TRACK_STATE_TIME_INTERVAL_MS );
+    registerTaskCallback( periodicBlockTasks, BLOCK_STATE_TIME_INTERVAL_MS );
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+// Setup the drivers for extension boards.
+//
+//----------------------------------------------------------------------------------------
+uint8_t registerDrvFunctions( ) {
+
+    if ( debugSetupEnabled( ))  printf( "registerDrvFunctions\n" );
+
+    uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
+    
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+// 
+//----------------------------------------------------------------------------------------
+uint8_t setupTrackControl( ) {
+
+    if ( debugSetupEnabled( )) printf( "setupTrackControl\n" );
+
+    uint8_t rStat = NO_ERR;
+
+
+
+    return( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+// 
+//----------------------------------------------------------------------------------------
+uint8_t setupOccDetect( ) {
+
+    if ( debugSetupEnabled( )) printf( "setupOccDetect\n" );
+
+    uint8_t rStat = NO_ERR;
+
+
+
+    return( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+// 
+//----------------------------------------------------------------------------------------
+uint8_t setupTurnoutControl( ) {
+
+    if ( debugSetupEnabled( )) printf( "setupTurnoutControl\n" );
+
+    uint8_t rStat = NO_ERR;
+
+
+
+    return( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+// 
+//----------------------------------------------------------------------------------------
+uint8_t setupSignalControl( ) {
+
+    if ( debugSetupEnabled( )) printf( "setupSignalControl\n" );
+
+    uint8_t rStat = NO_ERR;
+
+
+
+    return( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+// 
+//----------------------------------------------------------------------------------------
+uint8_t setupBlockControl( ) {
+
+    if ( debugSetupEnabled( )) printf( "setupBlockControl\n" );
+
+    uint8_t rStat = NO_ERR;
+
+
+
+    return( RET_STAT( rStat ));
+}
+
+
+
+
+
 
 //----------------------------------------------------------------------------------------
 // The main program. Setup the runtime, register the callbacks, and get the show 
@@ -325,7 +446,15 @@ int main( ) {
 
     if ( rStat == NO_ERR ) rStat = initBlockNode( );
     if ( rStat == NO_ERR ) rStat = registerCallbacks( );
-    if ( rStat == NO_ERR ) rStat = registerLcsDrvFunctions( );
+    if ( rStat == NO_ERR ) rStat = registerDrvFunctions( );
+    if ( rStat == NO_ERR ) rStat = setupTrackControl( );
+    if ( rStat == NO_ERR ) rStat = setupOccDetect( );
+    if ( rStat == NO_ERR ) rStat = setupTurnoutControl( );
+    if ( rStat == NO_ERR ) rStat = setupSignalControl( );
+    if ( rStat == NO_ERR ) rStat = setupBlockControl( );
+    
+   
+
     if ( rStat == NO_ERR ) return( startBlockNode( ));
 }
 

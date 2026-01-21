@@ -27,13 +27,14 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBlockController.h"
 
+using namespace LCS;
+using namespace CDC;
+
 //----------------------------------------------------------------------------------------
 // File local declarations.
 //
 //----------------------------------------------------------------------------------------
 namespace {
-
-using namespace LCS;
 
 //----------------------------------------------------------------------------------------
 // External declaration to global structures and routines in other files.
@@ -67,21 +68,56 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-//
+// Local declarations.
 //
 //----------------------------------------------------------------------------------------
+const int DEBOUNCE_MS                   = 30;
+const int OCC_MASK_BITS                 = sizeof( uint16_t );
 
-const int DEBOUNCE_MS = 30;
-const int NUM_BITS    = sizeof( uint16_t );
+uint16_t debouncedMask                  = 0;
+uint16_t lastMask                       = 0;
+uint32_t stableTs[ OCC_MASK_BITS ]      = { 0 };
 
+//----------------------------------------------------------------------------------------
+// The occupancy detector delivers the state of all sections the extension
+// board handles. We need to make sure that glitches are not leading to an 
+// overreaction. There is for each big in the bit mask a timestamp that records
+// since when we have a stable signal. Only of the signal is stable for a certain 
+// period of time, will we update the result bit mask that is used for block
+// section occupancy status.
+//
+//----------------------------------------------------------------------------------------
+void debounceUpdate( uint16_t raw_mask ) {
 
+    uint32_t now = getMillis();
 
-uint16_t debouncedMask     = 0;
-uint16_t lastMask      = 0;
-uint32_t stableSince[NUM_BITS];
+    for ( int bit = 0; bit < OCC_MASK_BITS; bit++ ) {
 
+        uint16_t bit_mask = (1u << bit);
+
+        bool raw_bit  = (( raw_mask & bit_mask ) != 0 );
+        bool prev_bit = (( lastMask & bit_mask ) != 0 );
+        bool deb_bit  = (( debouncedMask & bit_mask ) != 0 );
+
+        if (raw_bit == prev_bit) {
+            
+            if (( now - stableTs[bit] ) >= DEBOUNCE_MS ) {
+
+                if ( raw_bit != deb_bit ) {
+
+                    if ( raw_bit )  debouncedMask |= bit_mask;
+                    else            debouncedMask &= ~bit_mask;
+                }
+            }
+        }
+        else stableTs[bit] = now;
+    }
+
+    lastMask = raw_mask;
+}
 
 } // namespace
+
 
 //========================================================================================
 //========================================================================================
@@ -90,11 +126,7 @@ uint32_t stableSince[NUM_BITS];
 //
 //========================================================================================
 //========================================================================================
-using namespace LCS;
-using namespace CDC;
-
-//----------------------------------------------------------------------------------------
-//
+// Object constructor.
 //
 //----------------------------------------------------------------------------------------
 LcsOccDetect::LcsOccDetect( ) { 
@@ -103,74 +135,44 @@ LcsOccDetect::LcsOccDetect( ) {
 
 //----------------------------------------------------------------------------------------
 //
-//
+// ??? initialize the attributes
+// ??? how can we figure out what is connected ?
+// ??? need to remember where the boards are exactly connected.
 //----------------------------------------------------------------------------------------
  uint8_t LcsOccDetect::setupOccDetect( uint16_t extBoardId ) {
+
+    if ( occDetectDebugEnabled( )) printf( "Setup OCC detect\n" );
 
 
     return( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
+// The state machine will periodically read the actual section occupancy bits
+// from the extension board, run the debounce unit, and update the node attributes. 
 //
+//----------------------------------------------------------------------------------------
+void LcsOccDetect::runOccDetectStateMachine( ) {
+
+    // ??? get the values 
+
+    uint16_t rawMask = 0;
+
+    debounceUpdate( rawMask );
+
+    // ??? update the attribute values...
+
+}
+
+//----------------------------------------------------------------------------------------
 //
+// ??? not sure this is necessary. We might as well directly update the 
+// attributes...
 //----------------------------------------------------------------------------------------
 uint8_t LcsOccDetect::getOccDetectMask( uint16_t *mask ) {
 
     // ?? what if we have two boards ?
 
-    // ??? update the LCS attributes ?
-
+    *mask = debouncedMask;
     return( RET_STAT( LCS_OK ));
 }
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-void LcsOccDetect::runOccDetectStateMachine( ) {
-
-
-}
-
-// ??? read the mask every n ticks ?
-
-//----------------------------------------------------------------------------------------
-// The occupancy detector delivers the state of all sections in all blocks. 
-// We need to make sure that glitches are not leading to an overreaction. 
-//
-//
-//----------------------------------------------------------------------------------------
-void debounce_update(uint16_t raw_mask)
-{
-    uint32_t now = getMillis();
-
-    for (int bit = 0; bit < NUM_BITS; bit++) {
-        uint16_t bit_mask = (1u << bit);
-
-        bool raw_bit  = (raw_mask & bit_mask) != 0;
-        bool prev_bit = (lastMask & bit_mask) != 0;
-        bool deb_bit  = (debouncedMask & bit_mask) != 0;
-
-        /* If raw bit changed, reset timer */
-        if (raw_bit != prev_bit) {
-            stableSince[bit] = now;
-        }
-        else {
-            /* Raw bit is stable – check debounce time */
-            if ((now - stableSince[bit]) >= DEBOUNCE_MS) {
-                if (raw_bit != deb_bit) {
-                    if (raw_bit)
-                        debouncedMask |= bit_mask;
-                    else
-                        debouncedMask &= ~bit_mask;
-                }
-            }
-        }
-    }
-
-    lastMask = raw_mask;
-
-    // ??? update attribute with debouncedMask...
-}
-
