@@ -55,18 +55,18 @@ using namespace CDC;
 // a CAN bus can reasonably handle about 127 nodes at the same time.
 //
 //----------------------------------------------------------------------------------------
-enum LcsNodeId : uint16_t {
+enum LcsNodeId : uint8_t {
 
     NIL_NODE_ID   = 0,
     MIN_NODE_ID   = 1,
-    MAX_NODE_ID   = 4095
+    MAX_NODE_ID   = 255
 };
 
 //----------------------------------------------------------------------------------------
 // Nodes have ports. The port Id identifies the port on a given node. Port numbers 
 // start with one. The port number zero represents the NIL port number and refers 
 // to the node itself. A node can thus have up to 15 ports. Often the library 
-// functions expect a "node/portId". Which is the concatenation of the 12-bit 
+// functions expect a "node/portId". Which is the concatenation of the 8-bit 
 // node Id with the 4-bit port Id.
 //
 //----------------------------------------------------------------------------------------
@@ -75,6 +75,19 @@ enum LcsPortId : uint8_t {
     NIL_PORT_ID   = 0,
     MIN_PORT_ID   = 0,
     MAX_PORT_ID   = 15
+};
+
+//----------------------------------------------------------------------------------------
+// Ports have channels. The channel is a further qualification within a port. There
+// are up to 16 channels for a given port. A fully qualified address in the LCS 
+// system is therefore: "node:port:chan".
+//
+//----------------------------------------------------------------------------------------
+enum LcsChannelId : uint8_t {
+
+    NIL_CHAN_ID   = 0,
+    MIN_CHAN_ID   = 0,
+    MAX_CHAN_ID   = 15
 };
 
 //----------------------------------------------------------------------------------------

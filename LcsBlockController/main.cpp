@@ -251,7 +251,7 @@ uint8_t registerCallbacks( ) {
     registerReqCallback( lcsReqCallback );
     registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
-    registerTaskCallback( trackStateMachine, TRACK_STATE_TIME_INTERVAL );
+    registerTaskCallback( trackStateMachine, TRACK_STATE_TIME_INTERVAL_MS );
 
     return( RET_STAT( NO_ERR ));
 }

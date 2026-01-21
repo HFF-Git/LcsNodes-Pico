@@ -208,19 +208,11 @@ enum BlockControlItems : uint8_t {
     BCI_BLOCK_ID_WEST_2                 = ITEM_ID_USER_START + 12,   // GET / SET
     BCI_BLOCK_ID_WEST_3                 = ITEM_ID_USER_START + 13,   // GET / SET
     BCI_BLOCK_ID_WEST_4                 = ITEM_ID_USER_START + 14,   // GET / SET
-    BCI_BLOCK_ID_WEST_5                 = ITEM_ID_USER_START + 15,   // GET / SET
-    BCI_BLOCK_ID_WEST_6                 = ITEM_ID_USER_START + 16,   // GET / SET
-    BCI_BLOCK_ID_WEST_7                 = ITEM_ID_USER_START + 17,   // GET / SET
-    BCI_BLOCK_ID_WEST_8                 = ITEM_ID_USER_START + 18,   // GET / SET
-
+    
     BCI_BLOCK_ID_EAST_1                 = ITEM_ID_USER_START + 19,   // GET / SET
     BCI_BLOCK_ID_EAST_2                 = ITEM_ID_USER_START + 20,   // GET / SET
     BCI_BLOCK_ID_EAST_3                 = ITEM_ID_USER_START + 21,   // GET / SET
     BCI_BLOCK_ID_EAST_4                 = ITEM_ID_USER_START + 22,   // GET / SET
-    BCI_BLOCK_ID_EAST_5                 = ITEM_ID_USER_START + 23,   // GET / SET
-    BCI_BLOCK_ID_EAST_6                 = ITEM_ID_USER_START + 24,   // GET / SET
-    BCI_BLOCK_ID_EAST_7                 = ITEM_ID_USER_START + 25,   // GET / SET
-    BCI_BLOCK_ID_EAST_8                 = ITEM_ID_USER_START + 26,   // GET / SET
 
     //------------------------------------------------------------------------------------
     // Block length and section length measure in Centimeters. We can handle up 
@@ -335,12 +327,6 @@ enum BlockControlItems : uint8_t {
     //. output:     the exit block  ( 4 bit )
     //  mask:       the turnout settings. ( 1 bit per turnout: N/T )
     //
-    // Note: there are more possible routes than we can realistically configure.
-    // An 8 by 8 hyper block would need 64 slots to record all combinations. 
-    // Let's define up to 16 internal routes and see if this is enough. After
-    // all a large hyper block can be divided into several hyper blocks at the 
-    // expense of being a separate block.
-    //
     // Dynamic data.
     //------------------------------------------------------------------------------------
     BCI_BLOCK_ROUTE_MASK_1              = ITEM_ID_USER_START + 0,   // GET / SET
@@ -435,6 +421,7 @@ enum BlockControlItems : uint8_t {
     // Configuration data.
     //------------------------------------------------------------------------------------
     BCI_SIGNAL_TYPE                     = ITEM_ID_USER_START + 0,   // GET / SET
+    BCI_TURNOUT_SIGNAL_DELAY            = ITEM_ID_USER_START + 0,   // GET / SET
     
     // ??? tbd... what do we need for a signal ?
 
@@ -489,18 +476,20 @@ enum BlockControlItems : uint8_t {
 //----------------------------------------------------------------------------------------
 // The block track object has a set of flags to indicate its current status.
 //
-//  DT_F_POWER_ON             - The track is under power.
-//  DT_F_POWER_OVERLOAD       - An overload situation was detected.
-//  DT_F_MEASUREMENT_ON       - The power measurement is enabled.
-//  DT_F_CONFIG_ERROR         - The configuration descriptor is invalid.
+//  BT_F_POWER_ON             - The track is under power.
+//  BT_F_POWER_OVERLOAD       - An overload situation was detected.
+//  BT_F_MEASUREMENT_ON       - The power measurement is enabled.
+//  BT_F_TRACK_REVERSED       - The track runs in reverse mode.
+//  BT_F_CONFIG_ERROR         - The configuration descriptor is invalid.
 //
 //----------------------------------------------------------------------------------------
 enum TrackFlags : uint16_t {
 
     BT_F_DEFAULT_SETTING      = 0,
-    BT_F_POWER_ON             = 1 << 0,
-    BT_F_POWER_OVERLOAD       = 1 << 1,
-    BT_F_MEASUREMENT_ON       = 1 << 2,
+    BT_F_POWER_ON             = 1U << 0,
+    BT_F_POWER_OVERLOAD       = 1U << 1,
+    BT_F_MEASUREMENT_ON       = 1U << 2,
+    BT_F_TRACK_REVERSED       = 1U << 3, 
     BT_F_CONFIG_ERROR         = 1 << 15
 };
 
@@ -515,10 +504,11 @@ const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
 const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
 
 //----------------------------------------------------------------------------------------
-// The track state machine runs at a time interval.
+// The track state machine runs at a time interval. The interval is measured in 
+// milliseconds.
 //
 //----------------------------------------------------------------------------------------
-const uint32_t TRACK_STATE_TIME_INTERVAL  = 10;
+const uint32_t TRACK_STATE_TIME_INTERVAL_MS  = 10;
 
 //----------------------------------------------------------------------------------------
 // A block track can be in four states.
