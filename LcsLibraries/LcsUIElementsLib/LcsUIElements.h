@@ -156,7 +156,7 @@ struct UIElements {
 
     public:
 
-    static uint8_t  tick( );
+    static uint8_t  tick( void *uData );
 
     protected:
 

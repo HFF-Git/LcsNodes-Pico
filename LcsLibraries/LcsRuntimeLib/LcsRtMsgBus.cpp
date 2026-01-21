@@ -147,7 +147,11 @@ void processPendingReqMapTimeouts( ) {
             if ( pPtr -> repCallback != nullptr ) {
 
                 pPtr -> repCallback( pendingReqMap.map[ i ].npId, 
-                                     0, 0, 0, ERR_REQ_TIMEOUT );                
+                                     0, 
+                                     0, 
+                                     0, 
+                                     ERR_REQ_TIMEOUT,
+                                     pPtr -> repCallBackUdata );                
             }
 
             tPtr -> reqTimeoutTs    = 0;

@@ -180,8 +180,9 @@ enum LcsNodeState : uint16_t {
 // Node, port and extension board driver attributes and functions are accessed with 
 // three main routines, GET, SET and REQ. The specific items are defined in the 
 // external include file. This part here defined the boundaries for internal checking.
-// The first 127 items are predefined and reserved for the runtime itself. Item 128
-// to 255 are user definable attribute variables and functions.
+// The first 64 items are predefined attributes and reserved for the runtime itself. 
+// Item 64 to 127 are reserved for library and firmware functions. Item 128
+// to 255 are user definable attributes.
 //
 //----------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
@@ -191,7 +192,10 @@ enum ItemRanges : uint8_t {
     IR_LIB_MAP_RANGE_START      = 1,
     IR_LIB_MAP_RANGE_END        = 63,
 
-    IR_USER_RANGE_START         = 64,
+    IR_LIB_FUNCTION_START       = 64,
+    IR_LIB_FUNCTION_END         = 127,
+
+    IR_USER_RANGE_START         = 128,
     IR_USER_RANGE_END           = 255,
  
     IR_MAX_ITEMS                = 255,
@@ -297,10 +301,19 @@ struct LcsNodeMap {
     uint32_t            nodeSystemTime                  = 0;
    
     LcsInitCallback     initCallback                    = nullptr;
+    void                *initCallBackUdata              = nullptr;
+
     LcsPfailCallback    pfailCallback                   = nullptr;
+    void                *pfailCallBackUdata             = nullptr;
+
     LcsMsgCallback      lcsMsgCallback                  = nullptr;
+    void                *lcsMsgCallBackUdata            = nullptr;
+
     LcsMsgCallback      dccMsgCallback                  = nullptr;
+    void                *dccMsgCallBackUdata            = nullptr;
+
     LcsCmdCallback      cmdLineCallback                 = nullptr;
+    void                *cmdLineCallBackUdata           = nullptr;
 };
 
 //----------------------------------------------------------------------------------------
@@ -355,31 +368,37 @@ struct LcsEventMap {
 // during startup. 
 //
 // Each port has an area of attributes, which are stored in the data block area. 
-// They map to ITEM numbers 64 to 255 and are accessed via GET/SET calls. In 
+// They map to ITEM numbers 128 to 255 and are accessed via GET/SET calls. In 
 // addition, each port supports a set of request functions, which are mapped also
-// from 64 to 255 and accessed via REQ calls.
+// from 128 to 255 and accessed via REQ calls.
 //
 // The portMap entry furthermore contains the fields that deal with the actual event 
 // received that the port is interested in. There are fields for the sending node, 
 // the event itself and its action. An event can also be invoked with a delay time.
 //
+// ??? the port association to hardware needs to change... !!!!!
 //----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-    uint16_t            flags                               = 0;
-    uint16_t            type                                = 0;
-    uint16_t            lastErr                             = 0;
+    uint16_t            flags                       = 0;
+    uint16_t            type                        = 0;
+    uint16_t            lastErr                     = 0;
    
-    LcsReqCallback      reqCallback                         = nullptr;
-    LcsRepCallback      repCallback                         = nullptr;
-    LcsEventCallback    eventCallback                       = nullptr;
+    LcsReqCallback      reqCallback                 = nullptr;
+    void                *reqCallBackUdata           = nullptr;
 
-    uint16_t            eventNpId                           = 0;
-    uint16_t            eventId                             = NIL_EVENT_ID;
-    uint16_t            eventValue                          = 0;
-    uint16_t            eventAction                         = PEA_EVENT_IDLE;
-    uint16_t            eventDelayTime                      = 0;
-    uint32_t            eventTimeStamp                      = 0L;
+    LcsRepCallback      repCallback                 = nullptr;
+    void                *repCallBackUdata           = nullptr;
+
+    LcsEventCallback    eventCallback               = nullptr;
+    void                *eventCallBackUdata         = nullptr;
+
+    uint16_t            eventNpId                   = 0;
+    uint16_t            eventId                     = NIL_EVENT_ID;
+    uint16_t            eventValue                  = 0;
+    uint16_t            eventAction                 = PEA_EVENT_IDLE;
+    uint16_t            eventDelayTime              = 0;
+    uint32_t            eventTimeStamp              = 0L;
 };
 
 struct LcsPortMap {
@@ -398,6 +417,7 @@ struct LcsPortMap {
 struct LcsPTaskMapEntry {
 
     LcsTaskCallback     task        = nullptr;
+    void                *uData      = nullptr; 
     uint32_t            timeStamp   = 0;
     uint32_t            interval    = 0;
 };

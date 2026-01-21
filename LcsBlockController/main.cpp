@@ -162,17 +162,17 @@ uint8_t setupBlockDesc2( ) {
 // object, which in turn will dispatch to the correct block object.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsInitCallback( uint16_t npId ) {
+uint8_t lcsInitCallback( uint16_t npId, void *udata ) {
 
     return ( bcNode -> handleInitCallback( npId ));
 }
 
-uint8_t lcsPfailCallback( uint16_t npId ) {
+uint8_t lcsPfailCallback( uint16_t npId, void *udata ) {
 
     return ( bcNode -> handlePfailCallback( npId ));
 }
 
-uint8_t lcsMsgCallback( uint8_t *msg ) {
+uint8_t lcsMsgCallback( uint8_t *msg, void *udata ) {
 
     return ( bcNode -> handleLcsMsgCallback( msg ));
 }
@@ -180,7 +180,8 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 uint8_t lcsReqCallback( uint16_t npId, 
                         uint8_t item, 
                         uint16_t *arg1,
-                         uint16_t *arg2 ) {
+                        uint16_t *arg2, 
+                        void *udata ) {
 
     return( bcNode -> handleLcsReqCallback( npId, item, arg1, arg2 ));
 }
@@ -189,7 +190,8 @@ uint8_t lcsRepCallback( uint16_t npId,
                         uint8_t item, 
                         uint16_t arg1, 
                         uint16_t arg2, 
-                        uint8_t ret ) {
+                        uint8_t ret,
+                        void *uData ) {
 
     return ( bcNode -> handleLcsRepCallback( npId, item, arg1, arg2, ret ));
 }
@@ -197,7 +199,8 @@ uint8_t lcsRepCallback( uint16_t npId,
 uint8_t lcsEventCallback( uint16_t npId, 
                           uint16_t eId, 
                           uint8_t eAction, 
-                          uint16_t eData ) {
+                          uint16_t eData,
+                          void *uData ) {
 
     return ( bcNode -> handleLcsEventCallback( npId, eId, eAction, eData ));
 }
@@ -210,7 +213,7 @@ uint8_t lcsEventCallback( uint16_t npId,
 // ??? we actually need an array of track machines ?
 // ??? or should we register each one individually ?
 //----------------------------------------------------------------------------------------
-uint8_t trackStateMachine( ) {
+uint8_t trackStateMachine( void *uData ) {
 
     if ( block1 != nullptr ) block1 -> runTrackStateMachine( );
     if ( block2 != nullptr ) block2 -> runTrackStateMachine( );
@@ -261,7 +264,7 @@ uint8_t registerLcsDrvFunctions( ) {
 
     printf( "Register Extension Board Drivers\n" );
 
-    uint8_t ret = registerDrvFunc( CDC_BT_EXT_OCC_DETECT, lcsDrvOccDetect );
+    uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
     if ( ret != NO_ERR )  printf( "Registration failed: %d\n, ret ");
 
     return( ret );

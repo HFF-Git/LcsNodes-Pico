@@ -961,8 +961,9 @@ uint8_t handleSerialCommand( ) {
                             
                             if ( nodeMap.cmdLineCallback != nullptr ) {
 
-                                    nodeMap.cmdLineCallback( commandBuf );
-                                }
+                                nodeMap.cmdLineCallback( commandBuf, 
+                                                         nodeMap.cmdLineCallBackUdata );
+                            }
                             else printf( "<Unknown command, use '?' for help>" );
                         }
                     }

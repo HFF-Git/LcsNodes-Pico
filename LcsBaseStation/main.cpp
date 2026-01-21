@@ -78,7 +78,7 @@ uint8_t printStatus (uint8_t status ) {
 //
 // ??? when we know what ports we actually need / use, disable the rest of the ports.
 //----------------------------------------------------------------------------------------
-uint8_t lcsInitCallback( uint16_t npId ) {
+uint8_t lcsInitCallback( uint16_t npId, void *uData ) {
 
     switch ( npId & 0xF ) {
 
@@ -93,7 +93,7 @@ uint8_t lcsInitCallback( uint16_t npId ) {
 // The node or port power fail callback.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsPfailCallback( uint16_t npId ) {
+uint8_t lcsPfailCallback( uint16_t npId, void *uData ) {
 
     switch ( npId & 0xF ) {
 
@@ -109,7 +109,7 @@ uint8_t lcsPfailCallback( uint16_t npId ) {
 // the core library when there is a command that it does not handle.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsCmdCallback( char *cmdLine ) {
+uint8_t lcsCmdCallback( char *cmdLine, void *uData ) {
 
     serialCmd.handleSerialCommand( cmdLine );
     return( NO_ERR );
@@ -119,7 +119,7 @@ uint8_t lcsCmdCallback( char *cmdLine ) {
 // Other LCS message callbacks. All we do is to list their invocation. ( for now )
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsMsgCallback( uint8_t *msg ) {
+uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
 
     printf( "MsgCallback: ", msg  );
 
@@ -136,19 +136,19 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
 // active locomotive session entries.
 //
 //----------------------------------------------------------------------------------------
-uint8_t bsMainTrackCallback( ) {
+uint8_t bsMainTrackCallback( void *uData ) {
 
     mainTrack.runDccTrackStateMachine( );
     return( NO_ERR );
 }
 
-uint8_t bsProgTrackCallback( ) {
+uint8_t bsProgTrackCallback( void *uData ) {
 
     progTrack.runDccTrackStateMachine( );
     return( NO_ERR );
 }
 
-uint8_t bsRefreshActiveSessionCallback( ) {
+uint8_t bsRefreshActiveSessionCallback( void *uData ) {
 
     locoSessions.refreshActiveSessions( );
     return( NO_ERR );
@@ -160,7 +160,11 @@ uint8_t bsRefreshActiveSessionCallback( ) {
 // is invoked.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsReqCallback( uint16_t npId, 
+                        uint8_t item, 
+                        uint16_t *arg1, 
+                        uint16_t *arg2, 
+                        void *uData ) {
 
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
     
@@ -182,7 +186,8 @@ uint8_t lcsRepCallback( uint16_t npId,
                         uint8_t item,
                         uint16_t arg1, 
                         uint16_t arg2, 
-                        uint8_t ret ) {
+                        uint8_t ret,
+                        void *uData ) {
 
     printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ",
             npId, item , arg1, arg2, ret );
@@ -197,7 +202,8 @@ uint8_t lcsRepCallback( uint16_t npId,
 uint8_t lcsEventCallback( uint16_t npId, 
                           uint16_t eId, 
                           uint8_t eAction, 
-                          uint16_t eData ) {
+                          uint16_t eData,
+                          void *uData ) {
 
     printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
             npId, eId, eAction, eData );

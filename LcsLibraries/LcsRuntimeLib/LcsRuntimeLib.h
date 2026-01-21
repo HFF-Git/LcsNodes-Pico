@@ -340,6 +340,7 @@ enum LcsPortEventAction : uint8_t {
     PEA_EVENT_EVT     = 3
 };
 
+// ??? dedicated function items ?
 //----------------------------------------------------------------------------------------
 // Node, port and extension board driver attributes and functions are accessed with 
 // three main routines, GET, SET and REQ.  
@@ -361,8 +362,9 @@ enum LcsPortEventAction : uint8_t {
 // defined as follows: 
 //
 //   0          -   NIL item, not used
-//   1  ..  63  -   Node / port / driver library reserved items.
-//  64  .. 255  -   Node / port / driver firmware defined items.
+//   1  .. 63   -   Node / port / driver library reserved items.
+//  64  .. 127  -   Node / port / driver function items.
+// 128  .. 255  -   Node / port / driver firmware defined items.
 //
 // The following declarations just list the item numbers defined. The valid ranges
 // are defined in the internal include file. The ranges as well as the reserved items 
@@ -372,7 +374,6 @@ enum LcsPortEventAction : uint8_t {
 // ??? to be sorted when more stable... what is a good sorting ?
 // ??? how about an item that allows to set / clear a bit in a mask ?
 //
-// ??? GET/SET is different form REQ, they could have the same item number ...
 //----------------------------------------------------------------------------------------
 enum LcsItems : uint8_t {
 
@@ -400,6 +401,8 @@ enum LcsItems : uint8_t {
     ITEM_ID_EVENT_MAP_ENTRIES           = 17,   // GET / SET
     ITEM_ID_ATTR_MAP_ENTRIES            = 18,   // GET / SET
 
+    // ??? sort the function requests ? start with numbers 64 ... 
+
     ITEM_ID_RESET                       = 22,   // REQ
     
     ITEM_ID_SYNC_EVENT_MAP_MEM          = 23,   // REQ
@@ -409,22 +412,24 @@ enum LcsItems : uint8_t {
 
     ITEM_ID_FORMAT_EXT                  = 27,   // REQ
     
-    ITEM_ID_SET_EVENT_MASK              = 28,  
-    ITEM_ID_REMOVE_EVENT_MASK           = 29,
-    ITEM_ID_LOOKUP_EVENT_ENTRY          = 30,
+    ITEM_ID_ADD_EVENT_MASK              = 28,   // REQ
+    ITEM_ID_REMOVE_EVENT_MASK           = 29,   // REQ
+    ITEM_ID_LOOKUP_EVENT_ENTRY          = 30,   // REQ
 
-    ITEM_ID_GET_EVENT_MAP_ENTRY         = 31,   
+    ITEM_ID_GET_EVENT_MAP_ENTRY         = 31,   // REQ
     ITEM_ID_EVENT_DELAY_TICKS           = 32,   
     ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,   // REQ
 
-    ITEM_ID_ACTIVE_LED                  = 41,   // GET / SET
+    ITEM_ID_SET_ACTIVE_LED              = 41,   // REQ
 
     ITEM_ID_SYNC_TO_EXTENDED_MEM        = 61,   // REQ
     ITEM_ID_SYNC_TO_EXTENDED_NVM        = 62,   // REQ
-    ITEM_ID_EXTENDED_ATTR_RANGE         = 63,   // GET / SET
 
-    ITEM_ID_USER_START                  = 64,   // GET / SET / REQ
-    ITEM_ID_USER_END                    = 255   // GET / SET / REQ
+    ITEM_ID_FUNCTION_START              = 64,   // REQ
+    ITEM_ID_FUNCTION_END                = 127,  // REQ
+
+    ITEM_ID_USER_START                  = 128,  // GET / SET
+    ITEM_ID_USER_END                    = 255   // GET / SET
 };
 
 //----------------------------------------------------------------------------------------
@@ -447,6 +452,7 @@ enum LcsItems : uint8_t {
 // The LCS debug flags occupy the upper half of the 16 bit debug mask, the lower
 // half is used by CDC.
 //
+// ??? perhaps we have a separate firmware debug attribute ...
 //----------------------------------------------------------------------------------------
 enum DebugOptions : uint16_t {
 
@@ -651,31 +657,37 @@ enum LcsErrorCodes : uint8_t {
 //          
 // All callback functions need to return a status, which is ALL_OK if the callback 
 // was successful.
+//
+// The "uData" pointer can be used for passing a pointer to a data area or an 
+// object reference.
 // 
 //----------------------------------------------------------------------------------------
 extern "C" {
 
-    typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId );
-    typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId );
-    typedef uint8_t ( *LcsMsgCallback ) ( uint8_t *msg );
-    typedef uint8_t ( *LcsCmdCallback ) ( char *cmdLine );
-    typedef uint8_t ( *LcsTaskCallback ) ( void );
+    typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId, void *uData );
+    typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId, void *uData );
+    typedef uint8_t ( *LcsMsgCallback ) ( uint8_t *msg, void *uData );
+    typedef uint8_t ( *LcsCmdCallback ) ( char *cmdLine, void *uData );
+    typedef uint8_t ( *LcsTaskCallback ) ( void *uData );
 
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, 
                                             uint16_t eId, 
                                             uint8_t eAction,
-                                             uint16_t eData );
+                                             uint16_t eData, 
+                                             void *uData );
     
     typedef uint8_t ( *LcsReqCallback ) ( uint16_t npId,
                                           uint8_t item, 
                                           uint16_t *arg1, 
-                                          uint16_t *arg2 );
+                                          uint16_t *arg2,
+                                          void *uData );
 
     typedef uint8_t ( *LcsRepCallback ) ( uint16_t npId, 
                                           uint8_t item, 
                                           uint16_t arg1, 
                                           uint16_t arg2, 
-                                          uint8_t ret );
+                                          uint8_t ret, 
+                                          void *uData );
 }
 
 //----------------------------------------------------------------------------------------
@@ -717,16 +729,40 @@ uint8_t     nodeReq( uint16_t npId,
 // Function registration routines for callbacks, tasks, driver types, etc.
 //
 //----------------------------------------------------------------------------------------
-uint8_t     registerInitCallback( LcsInitCallback handler );
-uint8_t     registerPfailCallback( LcsPfailCallback handler );
-uint8_t     registerLcsMsgCallback( LcsMsgCallback handler );
-uint8_t     registerDccMsgCallback( LcsMsgCallback handler );
-uint8_t     registerCmdCallback( LcsCmdCallback handler );
-uint8_t     registerTaskCallback( LcsTaskCallback task, uint32_t interval = 0 );
-uint8_t     registerEventCallback( LcsEventCallback handler, uint16_t portMask = 0xFFFF );
-uint8_t     registerReqCallback( LcsReqCallback handler, uint16_t portMask = 0xFFFF );
-uint8_t     registerRepCallback( LcsRepCallback handler, uint16_t portMask = 0xFFFF );
-uint8_t     registerDrvFunc( uint16_t drvType, LcsReqCallback handler );
+uint8_t     registerInitCallback( LcsInitCallback handler, 
+                                  void *uData = nullptr );
+
+uint8_t     registerPfailCallback( LcsPfailCallback handler,
+                                   void *uData = nullptr );
+
+uint8_t     registerLcsMsgCallback( LcsMsgCallback handler, 
+                                    void *uData = nullptr );
+
+uint8_t     registerDccMsgCallback( LcsMsgCallback handler, 
+                                    void *uData = nullptr );
+
+uint8_t     registerCmdCallback( LcsCmdCallback handler,
+                                 void *uData = nullptr );
+
+uint8_t     registerTaskCallback( LcsTaskCallback handler, 
+                                  uint32_t interval = 0, 
+                                  void *uData = nullptr );
+
+uint8_t     registerEventCallback( LcsEventCallback handler, 
+                                   uint16_t portMask = 0xFFFF,
+                                   void *uData = nullptr );
+
+uint8_t     registerReqCallback( LcsReqCallback handler, 
+                                 uint16_t portMask = 0xFFFF,
+                                 void *uData = nullptr );
+
+uint8_t     registerRepCallback( LcsRepCallback handler, 
+                                 uint16_t portMask = 0xFFFF,
+                                 void *uData = nullptr );
+
+uint8_t     registerDrvFunc( LcsReqCallback handler, 
+                             uint16_t drvType, 
+                             void *uData = nullptr );
 
 //----------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.

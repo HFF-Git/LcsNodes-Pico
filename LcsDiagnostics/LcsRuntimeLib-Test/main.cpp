@@ -60,7 +60,7 @@ uint8_t setupPinsForExtBoardTests( ) {
 // Callbacks. All we do is to list their invocation.
 //
 //----------------------------------------------------------------------------------------
-uint8_t lcsMsgCallback( uint8_t *msg ) {
+uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
 
     printf( "MsgCallback: " );
     for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
@@ -68,36 +68,40 @@ uint8_t lcsMsgCallback( uint8_t *msg ) {
     return( NO_ERR );
 }
 
-uint8_t lcsCmdCallback( char *cmdLine ) {
+uint8_t lcsCmdCallback( char *cmdLine, void *uData  ) {
 
     printf( "Command Line Callback: %s\n", cmdLine );
     return( NO_ERR );
 }
 
-uint8_t lcsTaskCallback1( ) {
+uint8_t lcsTaskCallback1( void *uData ) {
 
     // printf( "Task Callback1...\n" );
     return( NO_ERR );    
 }
-uint8_t lcsTaskCallback2( ) {
+uint8_t lcsTaskCallback2( void *uData ) {
 
     //printf( "Task Callback2...\n" );
     return( NO_ERR );    
 }
 
-uint8_t lcsInitCallback( uint16_t npId ) {
+uint8_t lcsInitCallback( uint16_t npId, void *uData  ) {
 
     printf( "Init Callback: 0x%x\n", npId );
     return( NO_ERR );
 }
 
-uint8_t lcsPfailCallback( uint16_t npId ) {
+uint8_t lcsPfailCallback( uint16_t npId, void *uData  ) {
 
     printf( "Pfail Callback: 0x%x\n", npId );
     return( NO_ERR );
 }
 
-uint8_t lcsReqCallback( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t lcsReqCallback( uint16_t npId, 
+                        uint8_t item, 
+                        uint16_t *arg1, 
+                        uint16_t *arg2, 
+                        void *uData  ) {
 
     printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
     if ( arg1 != nullptr )  printf( ", arg1: 0x%x, ", *arg1 ); 
@@ -112,7 +116,8 @@ uint8_t lcsRepCallback( uint16_t npId,
                         uint8_t item, 
                         uint16_t arg1, 
                         uint16_t arg2, 
-                        uint8_t ret ) {
+                        uint8_t ret,
+                        void *uData ) {
 
     printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d",
              npId, item, arg1, arg2, ret );
@@ -122,14 +127,15 @@ uint8_t lcsRepCallback( uint16_t npId,
 uint8_t lcsEventCallback( uint16_t npId, 
                           uint16_t eId, 
                           uint8_t eAction, 
-                          uint16_t eData ) {
+                          uint16_t eData,
+                          void *uData ) {
 
     printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
             npId, eId, eAction, eData );
     return( NO_ERR );
 }
 
-uint8_t lcsDccMsgCallback( uint8_t *msg ) {
+uint8_t lcsDccMsgCallback( uint8_t *msg, void *uData ) {
 
     printf( "DCC MsgCallback: " );
     for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
@@ -165,7 +171,7 @@ uint8_t registerLcsCallbacks( ) {
 uint8_t registerLcsDrvFunctions( ) {
 
     printf( "Register Extension Board Drivers\n" );
-    uint8_t ret = registerDrvFunc( CDC_BT_EXT_OCC_DETECT, lcsDrvOccDetect );
+    uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
     if ( ret != NO_ERR )  printf( "Registration failed: %d\n, ret ");
 
     return( ret );

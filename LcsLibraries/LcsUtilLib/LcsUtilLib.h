@@ -38,29 +38,34 @@
 // Little common helper functions.
 //
 //----------------------------------------------------------------------------------------
-inline uint16_t roundup( uint16_t elements, uint16_t alignSize ) {
+inline uint16_t rounddownPow2( uint16_t value, uint16_t align ) {
 
-    return ((( elements + alignSize - 1 ) / alignSize ) * alignSize );
+    return ( value & ~( align - 1 ));
 }
 
-inline bool isInRangeU( uint16_t val, uint16_t lower, uint16_t upper ) {
+inline uint16_t roundupPow2( uint16_t value, uint16_t align ) {
 
-    return (( val >= lower ) && ( val <= upper ));
-}
-
-inline uint16_t buildNpId( uint16_t nodeId, uint16_t portId ) {
-
-    return (( nodeId << 4 ) | ( portId & 0xF ));
+    return (( value + align - 1 ) & ~( align - 1 ));
 }
 
 inline uint16_t nodeId( uint16_t npId ) {
 
-    return ( npId >> 4 );
+    return ( npId >> 8 );
 }
 
 inline uint16_t portId( uint16_t npId ) {
 
+    return (( npId >> 4 ) & 0xF );
+}
+
+inline uint16_t chanId( uint16_t npId ) {
+
     return ( npId & 0xF );
+}
+
+inline uint16_t buildNpId( uint16_t nodeId, uint16_t portId, uint16_t chanId ) {
+
+    return((( nodeId & 0xFF ) << 8 ) | (( portId &0xF ) << 4 ) | ( chanId & 0xF ));
 }
 
 inline uint8_t lowByte( uint16_t arg ) { 
@@ -73,7 +78,27 @@ inline uint8_t highByte( uint16_t arg ) {
     return ( arg >> 8 ); 
 }
 
-inline bool isInRange( unsigned int val, unsigned int lower, unsigned int upper ) {
+inline uint8_t bitGet( uint16_t value, uint8_t bit) {
+
+    return (( value >> bit ) & 1U );
+}
+
+inline void bitSet( uint16_t *value, uint8_t bit ) {
+    
+    *value |= ( 1U << bit );
+}
+
+inline void bitClear( uint16_t *value, uint8_t bit) {
+    
+    *value &= ~ ( 1U << bit );
+}
+
+inline bool isInRange( int val, int lower, int upper ) {
+
+    return (( val >= lower ) && ( val <= upper ));
+}
+
+inline bool isInRangeU( unsigned int val, unsigned int lower, unsigned int upper ) {
 
     return (( val >= lower ) && ( val <= upper ));
 }

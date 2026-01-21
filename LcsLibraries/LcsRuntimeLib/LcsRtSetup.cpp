@@ -844,7 +844,7 @@ uint8_t registerInternalTasks( ) {
 // we just overwrite the function signature. Otherwise we use a free entry.
 //
 //----------------------------------------------------------------------------------------
-uint8_t registerDrvFunc( uint16_t drvType, LcsReqCallback drvReqFunction ) {
+uint8_t registerDrvFunc( LcsReqCallback drvReqFunction, uint16_t drvType, void *uData ) {
 
     if ( setupDebugEnabled( )) {
 
@@ -947,7 +947,8 @@ uint8_t powerFailHandler( ) {
     rStat = rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeState ),
                           NS_PFAIL);
 
-    if ( nodeMap.pfailCallback != nullptr ) nodeMap.pfailCallback(nodeMap.nodeId);
+    if ( nodeMap.pfailCallback != nullptr ) 
+        nodeMap.pfailCallback( nodeMap.nodeId, nodeMap.pfailCallBackUdata );
 
     return ( RET_STAT( rStat ));
 }

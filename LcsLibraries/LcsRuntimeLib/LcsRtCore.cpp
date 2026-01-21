@@ -113,7 +113,8 @@ void handleNodePortEvents( ) {
                 pPtr -> eventCallback(  pPtr -> eventNpId,
                                         pPtr -> eventId,
                                         pPtr -> eventAction,
-                                        pPtr -> eventValue );
+                                        pPtr -> eventValue,
+                                        pPtr -> eventCallBackUdata );
             }
 
             pPtr -> flags &= ~ NPF_EVENT_PENDING;
@@ -140,7 +141,7 @@ void handlePeriodicTasks( ) {
 
         if ( ts > thisEntry -> timeStamp  ) {
 
-            if ( thisEntry -> task != nullptr ) thisEntry -> task( );
+            if ( thisEntry -> task != nullptr ) thisEntry -> task( nullptr );
             thisEntry -> timeStamp = ts + thisEntry -> interval;
         }
     }
@@ -183,14 +184,16 @@ void handleMsgLcsMgt( uint8_t *msg ) {
         case LCS_OP_OPS: {
 
             nodeMap.nodeState = NS_OPERATE;
-            if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
+            if ( nodeMap.lcsMsgCallback != nullptr ) 
+                nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
 
         case LCS_OP_CFG: {
 
             nodeMap.nodeState = NS_CONFIG;
-            if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
+            if ( nodeMap.lcsMsgCallback != nullptr ) 
+                nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
 
@@ -199,7 +202,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
             writeDio( CDC_RN_ACTIVITY_LED, true );
 
             nodeMap.nodeState = NS_OPERATE;
-            if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
+            if ( nodeMap.lcsMsgCallback != nullptr ) 
+                nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
 
@@ -208,7 +212,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
             writeDio( CDC_RN_ACTIVITY_LED, false );
 
             nodeMap.nodeState = NS_HALTED;
-            if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
+            if ( nodeMap.lcsMsgCallback != nullptr ) 
+                nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
 
@@ -217,7 +222,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
             writeDio( CDC_RN_ACTIVITY_LED, false );
 
             nodeMap.nodeState = NS_COLLISION;
-            if ( nodeMap.lcsMsgCallback != nullptr ) nodeMap.lcsMsgCallback( msg );
+            if ( nodeMap.lcsMsgCallback != nullptr ) 
+                nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
 
@@ -316,7 +322,7 @@ void handleMsgRepNode( uint8_t *msg ) {
     LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
 
     if ( pPtr -> repCallback != nullptr ) 
-        pPtr -> repCallback( npId, item, arg1, arg2, LCS_OK );
+        pPtr -> repCallback( npId, item, arg1, arg2, LCS_OK, pPtr ->repCallBackUdata );
 }
 
 //----------------------------------------------------------------------------------------
@@ -403,7 +409,8 @@ void handleMsgEvent( uint8_t *msg ) {
 //----------------------------------------------------------------------------------------
 void handleMsgDccMgt( uint8_t *msg ) {
 
-    if ( nodeMap.dccMsgCallback != NULL ) nodeMap.dccMsgCallback( msg );
+    if ( nodeMap.dccMsgCallback != NULL ) 
+        nodeMap.dccMsgCallback( msg, nodeMap.dccMsgCallBackUdata );
 }
 
 //----------------------------------------------------------------------------------------
@@ -426,7 +433,7 @@ void handleNodeStatePfail( ) {
 
     if ( nodeMap.pfailCallback != nullptr ) {
 
-        nodeMap.pfailCallback( nodeMap.nodeId << 4 );
+        nodeMap.pfailCallback( nodeMap.nodeId, nodeMap.pfailCallBackUdata );
     }
 
     nodeMap.nodeState = NS_PFAIL;
@@ -456,7 +463,11 @@ void handleNodeStateInit( ) {
 
         if ( nodeMap.initCallback != nullptr ) {
                 
-            rStat = nodeMap.initCallback(( nodeMap.nodeId << 4 ) | i );
+            // ??? issue we need to invoke with the correct uData for ports...
+
+            rStat = nodeMap.initCallback( buildNpId( nodeMap.nodeId, i, 0 ),
+                                          nodeMap.initCallBackUdata );
+                
             if ( rStat == NO_ERR ) {
                 
                 portMap.map[ i ].flags |= NPF_PORT_PRESENT;
@@ -703,7 +714,7 @@ namespace LCS {
 //      TASK    -       Callback for a period task.
 //
 //----------------------------------------------------------------------------------------
-uint8_t registerInitCallback( LcsInitCallback functionId ) {
+uint8_t registerInitCallback( LcsInitCallback functionId, void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -711,7 +722,7 @@ uint8_t registerInitCallback( LcsInitCallback functionId ) {
     return ( LCS_OK );
 }
 
-uint8_t registerPfailCallback( LcsInitCallback functionId ) {
+uint8_t registerPfailCallback( LcsInitCallback functionId, void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -719,7 +730,7 @@ uint8_t registerPfailCallback( LcsInitCallback functionId ) {
     return ( LCS_OK );
 }
 
-uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
+uint8_t registerLcsMsgCallback( LcsMsgCallback functionId, void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -727,7 +738,7 @@ uint8_t registerLcsMsgCallback( LcsMsgCallback functionId ) {
     return ( LCS_OK );
 }
 
-uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
+uint8_t registerDccMsgCallback( LcsMsgCallback functionId, void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -735,7 +746,7 @@ uint8_t registerDccMsgCallback( LcsMsgCallback functionId ) {
     return ( LCS_OK );
 }
 
-uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
+uint8_t registerCmdCallback( LcsCmdCallback functionId, void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -743,7 +754,9 @@ uint8_t registerCmdCallback( LcsCmdCallback functionId ) {
     return ( LCS_OK );
 }
 
-uint8_t registerEventCallback( LcsEventCallback functionId, uint16_t portMask ) {
+uint8_t registerEventCallback( LcsEventCallback functionId, 
+                               uint16_t portMask, 
+                               void *uData ) {
 
    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -755,7 +768,9 @@ uint8_t registerEventCallback( LcsEventCallback functionId, uint16_t portMask ) 
     return ( LCS_OK );
 }
 
-uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
+uint8_t registerReqCallback( LcsReqCallback functionId, 
+                             uint16_t portMask, 
+                             void *uData ) {
 
    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -767,7 +782,9 @@ uint8_t registerReqCallback( LcsReqCallback functionId, uint16_t portMask ) {
     return ( LCS_OK );
 }
 
-uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
+uint8_t registerRepCallback( LcsRepCallback functionId, 
+                             uint16_t portMask, 
+                             void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
@@ -779,15 +796,20 @@ uint8_t registerRepCallback( LcsRepCallback functionId, uint16_t portMask ) {
     return ( LCS_OK );
 }
 
-uint8_t registerTaskCallback( LcsTaskCallback task, uint32_t interval ) {
+uint8_t registerTaskCallback( LcsTaskCallback task, 
+                              uint32_t interval, 
+                              void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
 
     if ( taskMap.mapHwm < MAX_TASK_MAP_ENTRIES ) {
 
-        taskMap.map[ taskMap.mapHwm ].task       = task;
-        taskMap.map[ taskMap.mapHwm ].interval   = interval;
-        taskMap.map[ taskMap.mapHwm ].timeStamp  = getMillis( );
+        LcsPTaskMapEntry *tPtr = & taskMap.map[ taskMap.mapHwm ];
+
+        tPtr -> task       = task;
+        tPtr -> uData      = nullptr;
+        tPtr -> interval   = interval;
+        tPtr -> timeStamp  = getMillis( );
         taskMap.mapHwm ++;
         return ( LCS_OK );
 

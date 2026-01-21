@@ -79,7 +79,7 @@ void UIElements::append( UIElements* res ) {
 // success in this case.
 //
 //----------------------------------------------------------------------------------------
-uint8_t UIElements::tick( ) {
+uint8_t UIElements::tick( void *uData ) {
 
     UIElements* res = resList;
 

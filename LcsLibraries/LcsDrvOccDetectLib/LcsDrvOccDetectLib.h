@@ -24,16 +24,14 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef LcsDvrOccDetectLib_h
-#define LcsDvrOccDetectLib_h
+#pragma once
 
 #include "LcsUtilLib.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-namespace LCS
-{
+namespace LCS {
 
 ///---------------------------------------------------------------------------------------
 // Driver items. They are allocated in the user defined item range. Their meaning 
@@ -51,10 +49,9 @@ enum LcsDrvOccDetectItems : uint8_t {
 //
 ///---------------------------------------------------------------------------------------
 uint8_t lcsDrvOccDetect( uint16_t boardId, 
-                         uint8_t item, 
+                         uint8_t  item, 
                          uint16_t *arg1, 
-                         uint16_t *arg2 );
+                         uint16_t *arg2,
+                         void     *uData );
 
 } // namespace LCS
-
-#endif

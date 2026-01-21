@@ -251,10 +251,13 @@ namespace {
 
         if ( portMap.map[ portId( npId ) ].reqCallback != nullptr ) {
 
-            return ( portMap.map[ portId( npId ) ].reqCallback( portId( npId ), 
-                                                                item, 
-                                                                arg1, 
-                                                                arg2 ));
+            LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
+
+            return ( pPtr -> reqCallback( portId( npId ), 
+                                          item, 
+                                          arg1, 
+                                          arg2, 
+                                          pPtr ->reqCallBackUdata ));
         }
         else return ( ERR_INVALID_ITEM_ID );
     }
@@ -300,7 +303,7 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
     }
     
-    if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
@@ -466,13 +469,6 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
-            case ITEM_ID_EXTENDED_ATTR_RANGE: {
-
-                // ??? routine to fetch data from extended NVM space...
-
-                return ( RET_STAT( LCS_OK ));
-            }
-
             default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
@@ -558,13 +554,6 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
-            case ITEM_ID_EXTENDED_ATTR_RANGE: {
-
-                // ??? routine to write data to extended NVM space...
-
-                return ( RET_STAT( LCS_OK ));
-            }
-
             default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
         }
     }
@@ -628,7 +617,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return( RET_STAT( syncAttrToNvm( portId( npId ), *arg1 )));
             }
 
-            case ITEM_ID_SET_EVENT_MASK: {
+            case ITEM_ID_ADD_EVENT_MASK: {
 
                 return ( RET_STAT( setEventMask( *arg1, *arg2 )));
             }
@@ -664,7 +653,7 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
                 return ( RET_STAT( LCS_OK ));
             }
 
-            case ITEM_ID_ACTIVE_LED: {
+            case ITEM_ID_SET_ACTIVE_LED: {
 
                 if ( *arg1 == 1 ) {
 
