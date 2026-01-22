@@ -29,22 +29,22 @@ using namespace LCS;
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// External global variables.
+//
+//----------------------------------------------------------------------------------------
+extern uint16_t debugMask;
+
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
 //----------------------------------------------------------------------------------------
 namespace {
 
 //----------------------------------------------------------------------------------------
-// External declaration to global structures and routines in other files.
-//
-//----------------------------------------------------------------------------------------
-extern uint16_t debugMask;
-
-//----------------------------------------------------------------------------------------
-// "debugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all. 
+// The return status routines will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the
+// function name to the message.
 // 
 //----------------------------------------------------------------------------------------
 inline bool railComDebugEnabled(  ) {

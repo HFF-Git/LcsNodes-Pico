@@ -29,60 +29,58 @@ using namespace LCS;
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// External global variables.
+//
+//----------------------------------------------------------------------------------------
+extern uint16_t debugMask;
+
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
 //----------------------------------------------------------------------------------------
 namespace {
 
-    using namespace LCS;
+//----------------------------------------------------------------------------------------
+// Debug support routines. We can easily check whether debug is enabled at all. 
+// The return status routines will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the
+// function name to the message.
+// 
+//----------------------------------------------------------------------------------------
+inline bool nodeDebugEnabled(  ) {
 
-    //------------------------------------------------------------------------------------
-    // External declaration to global structures and routines in other files.
-    //
-    //------------------------------------------------------------------------------------
-    extern uint16_t debugMask;
+    return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_NODE )); 
+}
 
-    //------------------------------------------------------------------------------------
-    // "debugEnabled" and "retStat" are the debug support routines. We can easily 
-    // check whether debug is enabled at all. The return status routine will print 
-    // out a return status message when debugging is enabled. The macro "RET_STAT" 
-    // is a nice helper that adds the function name to the message.
-    // 
-    //------------------------------------------------------------------------------------
-    inline bool blockNodeDebugEnabled(  ) {
+inline uint8_t retStat( char *name, uint8_t errId ) {
 
-        return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_NODE )); 
+    if ( nodeDebugEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
+        else                    printf( "%s: %d\n", name, errId );
     }
 
-    inline uint8_t retStat( char *name, uint8_t errId ) {
+    return ( errId );
+}
 
-        if ( blockNodeDebugEnabled( )) {
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
 
-            if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-            else                    printf( "%s: %d\n", name, errId );
-        }
+//----------------------------------------------------------------------------------------
+// Some little helper functions.
+//
+//----------------------------------------------------------------------------------------
+void printLcsMsg( uint8_t *msg ) {
 
-        return ( errId );
-    }
+    int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
 
-    #define RET_STAT(x) retStat((char *) __func__, ( x ))
+    for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[i] );
+    printf( "\n" );
+}
 
-    //------------------------------------------------------------------------------------
-    // Some little helper functions.
-    //
-    //------------------------------------------------------------------------------------
-    void printLcsMsg( uint8_t *msg ) {
-
-        int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
-
-        for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[i] );
-        printf( "\n" );
-    }
-
-    //------------------------------------------------------------------------------------
-    //
-    //
-    //------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 
 } // namespace
 
@@ -102,154 +100,125 @@ LcsBlockNode::LcsBlockNode(  ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The node and port initialization callback.
+// The initialization callback.
 //
-// ??? when we know what ports we actually need / use, disable the rest of the ports.
-// ??? the number of ports / blocks should be note in the block descriptor.
-// ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handleInitCallback( uint16_t npId ) {
+uint8_t LcsBlockNode::handleInitCallback( uint16_t npId, void *uData ) {
 
-    switch ( npId & 0xF ) {
+     if ( nodeDebugEnabled( )) {
 
-        case 0:     printf( "Node Init Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Init Callback: 0x%x\n", npId &  0xF   );
-    } 
+        printf( "Init Callback, npId: 0x%4x\n", npId );
+    }
 
-    return( LCS_OK );
+    return( RET_STAT( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
 // The node or port reset callback.
 //
-// ??? invoke the configured block reset method in the block controller logic object...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handleResetCallback( uint16_t npId ) {
+uint8_t LcsBlockNode::handleResetCallback( uint16_t npId, void *uData ) {
 
-    switch ( npId & 0xF ) {
+    if ( nodeDebugEnabled( )) {
 
-        case 0:     printf( "Node Reset Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Reset Callback: 0x%x\n", npId &  0xF   );
-    } 
-
-    return( LCS_OK );
-}
-
-//----------------------------------------------------------------------------------------
-// The node or port power fail callback.
-//
-// ??? invoke the configured block pfail method in the block controller logic object...
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handlePfailCallback( uint16_t npId ) {
-
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Power Fail Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Power Fail Callback: 0x%x\n", npId &  0xF   );
-    } 
-
-    return( LCS_OK );
-}
-
-//----------------------------------------------------------------------------------------
-// LCS message callbacks. All we do is to list their invocation. ( for now )
-//
-// 
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handleLcsMsgCallback( uint8_t *msg ) {
-
-    printf( "MsgCallback: ", msg  );
-    printLcsMsg( msg );
-    return( LCS_OK );
-}
-
-
-// ??? quick hack for testing. A node should only deal with the block controller 
-// object, which in turn has the track object locally.
-
-extern LcsTrackControl *block1;
-extern LcsTrackControl *block2;
-
-
-//----------------------------------------------------------------------------------------
-// When the base station node receives a request with an item defined in the user
-// item range or the base station itself issues such a request, the defined callback
-// is invoked.
-//
-// ??? should dispatch to the respective objects...
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handleLcsReqCallback( uint16_t npId, 
-                                                      uint8_t item, 
-                                                      uint16_t *arg1, 
-                                                      uint16_t *arg2 ) {
-
-    printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
-    
-    if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
-    else printf( ", arg1: null" );
-    
-    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
-    else printf( ", arg2: null" );
-    printf( "\n" );
-
-    switch( item ) {
-
-        case 64: {
-
-            uint16_t port = npId & 0xF;
-
-            if      ( port == 1 ) block1 -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
-            else if ( port == 2 ) block2 -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
-
-        } break;
-
-        case 65: {
-
-            uint16_t port = npId & 0xF;
-
-            if      ( port == 1 ) block1 -> setPwmFrequency( *arg1 );
-            else if ( port == 2 ) block2 -> setPwmFrequency( *arg1 );
-        
-        } break;
-
-        default: {
-
-        }
+        printf( "Reset Callback, npId: 0x%4x\n", npId );
     }
 
-    return( LCS_OK );
+    return( RET_STAT( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
-// When the base station gets a reply message for a request previously sent, this
-// callback is invoked.
+// The power fail callback.
 //
-// ??? pass to the block that requested...
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handleLcsRepCallback( uint16_t npId, 
-                                                      uint8_t item, 
-                                                      uint16_t arg1, 
-                                                      uint16_t arg2, 
-                                                      uint8_t ret ) {
+uint8_t LcsBlockNode::handlePfailCallback( uint16_t npId, void *uData ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ", 
-            npId, item , arg1, arg2, ret );
-    return( LCS_OK );
+    if ( nodeDebugEnabled( )) {
+
+        printf( "Power Fail Callback, npId: 0x%4x\n", npId );
+    }
+
+    return( RET_STAT( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
-// For any event on the LCS system that the block controller is interested in, this
-// callback is invoked.
+// LCS message callback.
+// 
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::handleMsgCallback( uint8_t *msg, void *uData ) {
+
+    if ( nodeDebugEnabled( )) {
+
+        printf( "MsgCallback, msg:\n" );
+        printLcsMsg( msg );
+    }
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+// Node request callback.
+// 
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::handleReqCallback( uint16_t npId, 
+                                         uint8_t item, 
+                                         uint16_t *arg1, 
+                                         uint16_t *arg2,
+                                         void *uData ) {
+
+    if ( nodeDebugEnabled( )) {
+
+        printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
+
+        if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
+        else printf( ", arg1: null" );
+
+        if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
+        else printf( ", arg2: null" );
+        printf( "\n" );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//---------------------------------------------------------------------------------------
+// Node reply callback.
 //
-// ??? what events to listen to ? where are they configured/set ?
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::handleLcsEventCallback( uint16_t npId, 
-                                                        uint16_t eId, 
-                                                        uint8_t eAction, 
-                                                        uint16_t eData ) {
+uint8_t LcsBlockNode::handleRepCallback( uint16_t npId, 
+                                         uint8_t item, 
+                                         uint16_t arg1, 
+                                         uint16_t arg2, 
+                                         uint8_t ret,
+                                         void *uData ) {
 
-    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
-            npId, eId, eAction, eData );
-    return( LCS_OK );
+    if ( nodeDebugEnabled( )) {
+
+        printf( "REP callback: npId: 0x%x, item: %d, ", npId, item );
+        printf( "arg1: %d, arg2: %d, ret: %d\n", arg1, arg2, ret );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
 }
 
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::handleEventCallback( uint16_t npId, 
+                                           uint16_t eId, 
+                                           uint8_t eAction, 
+                                           uint16_t eData,
+                                           void *uData ) {
+
+    if ( nodeDebugEnabled( )) {
+
+        printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+                npId, eId, eAction, eData );
+    }
+
+    
+    return( RET_STAT( NO_ERR ));
+}

@@ -32,9 +32,6 @@ using namespace LCS;
 using namespace CDC;
 
 
-// ??? we define and register the callback functions.
-// ??? we define and register the driver functions.
-
 // ??? we initialize the runtime and create the block objects.
 // ??? the init callback handler will do the block setup.
 // ??? we register the tasks for state machine updates.
@@ -46,11 +43,6 @@ using namespace CDC;
 // ??? the data is mostly stored in the attributes, except for the hardware
 // related items. How do we get them to the track object ?
 
-// ??? there is one OCCDetect Object
-
-// ??? there is one Turnout Object
-
-// ??? there is one Signal Object
 
 
 //----------------------------------------------------------------------------------------
@@ -59,7 +51,8 @@ using namespace CDC;
 // are four track objects and four block objects. Depending on the configuration 
 // not all objects are created and used.
 //
-// ??? will there be a "node" object ?
+// ??? should "track" be local to "block" ?
+// ??? should "occDetect", "turnout" and "signal" be part of "node" ?
 //----------------------------------------------------------------------------------------
 uint16_t                debugMask = DBG_BC_CONFIG | 
                                     DBG_BC_SETUP  | 
@@ -89,10 +82,10 @@ LcsBlockTrackDesc       block2Desc;
 
 
 //----------------------------------------------------------------------------------------
-// "debugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all. 
+// The return status routines will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the
+// function name to the message.
 // 
 //----------------------------------------------------------------------------------------
 inline bool debugSetupEnabled(  ) {
@@ -117,7 +110,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
 //----------------------------------------------------------------------------------------
 //
-//
+// ??? this concept will be reworked...
 //----------------------------------------------------------------------------------------
 uint8_t setupBlockDesc1( ) {
 
@@ -164,36 +157,106 @@ uint8_t setupBlockDesc2( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The LCS runtime callback. We register these routines with the runtime. All 
-// they do is to dispatch the incoming callback to the block controller node 
-// object, which in turn will dispatch to the correct block object.
-//
-// ??? if we do not have such an object, do the work right here ?
+// Node global callbacks. 
+// 
+// ??? also a handler for each port ?
 //----------------------------------------------------------------------------------------
-uint8_t lcsInitCallback( uint16_t npId, void *udata ) {
+uint8_t lcsInitCallback( uint16_t npId, void *uData ) {
 
-    return ( bcNode -> handleInitCallback( npId ));
+    return ( bcNode -> handleInitCallback( npId, uData ));
 }
 
-uint8_t lcsPfailCallback( uint16_t npId, void *udata ) {
+uint8_t lcsPfailCallback( uint16_t npId, void *uData ) {
 
-    return ( bcNode -> handlePfailCallback( npId ));
+    return ( bcNode -> handlePfailCallback( npId, uData ));
 }
 
-uint8_t lcsMsgCallback( uint8_t *msg, void *udata ) {
+uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
 
-    return ( bcNode -> handleLcsMsgCallback( msg ));
+    return ( bcNode -> handleMsgCallback( msg, uData ));
 }
 
+//----------------------------------------------------------------------------------------
+// Request message callback. We pass to the object that manages the port.
+//
+//----------------------------------------------------------------------------------------
 uint8_t lcsReqCallback( uint16_t npId, 
                         uint8_t item, 
                         uint16_t *arg1,
                         uint16_t *arg2, 
-                        void *udata ) {
+                        void *uData ) {
 
-    return( bcNode -> handleLcsReqCallback( npId, item, arg1, arg2 ));
+    switch ( portId( npId )) {
+
+        case BC_NODE_PORT_ID: {
+
+            return ( bcNode -> handleReqCallback( npId, 
+                                                  item, 
+                                                  arg1, 
+                                                  arg2, 
+                                                  uData )); 
+        }
+
+        case BC_BLOCK_PORT_ID_1: { 
+            
+            if ( block1 != nullptr ) {
+
+                return ( block1 -> handleReqCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      uData )); 
+            }
+            else return( NO_ERR );
+        } 
+
+        case BC_BLOCK_PORT_ID_2: { 
+            
+            if ( block2 != nullptr ) {
+
+                return ( block2 -> handleReqCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      uData )); 
+            }
+            else return( NO_ERR );
+        }
+
+        case BC_BLOCK_PORT_ID_3: { 
+            
+            if ( block3 != nullptr ) {
+
+                return ( block3 -> handleReqCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      uData )); 
+            }
+            else return( NO_ERR ); 
+        } 
+
+        case BC_BLOCK_PORT_ID_4: { 
+            
+            if ( block4 != nullptr ) {
+
+                return ( block4 -> handleReqCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      uData )); 
+            }
+            else return( NO_ERR ); 
+        }
+
+        default: return ( NO_ERR );
+    }
 }
 
+//----------------------------------------------------------------------------------------
+// Reply message callback. We pass to the object that manages the port.
+//
+//----------------------------------------------------------------------------------------
 uint8_t lcsRepCallback( uint16_t npId, 
                         uint8_t item, 
                         uint16_t arg1, 
@@ -201,16 +264,89 @@ uint8_t lcsRepCallback( uint16_t npId,
                         uint8_t ret,
                         void *uData ) {
 
-    return ( bcNode -> handleLcsRepCallback( npId, item, arg1, arg2, ret ));
+    switch ( portId( npId )) {
+
+         case BC_NODE_PORT_ID: {
+
+            return ( bcNode -> handleRepCallback( npId, 
+                                                  item, 
+                                                  arg1, 
+                                                  arg2, 
+                                                  ret, 
+                                                  uData )); 
+        }
+
+        case BC_BLOCK_PORT_ID_1: { 
+            
+            if ( block1 != nullptr ) {
+
+                return ( block1 -> handleRepCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      ret,
+                                                      uData )); 
+            }
+            else return ( NO_ERR );
+        } 
+
+        case BC_BLOCK_PORT_ID_2: { 
+            
+            if ( block2 != nullptr ) {
+
+                return ( block2 -> handleRepCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      ret,
+                                                      uData )); 
+            }
+            else return ( NO_ERR );
+        }
+
+        case BC_BLOCK_PORT_ID_3: { 
+            
+            if ( block3 != nullptr ) {
+
+                return ( block3 -> handleRepCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      ret,
+                                                      uData )); 
+            }
+            else return ( NO_ERR ); 
+        } 
+
+        case BC_BLOCK_PORT_ID_4: { 
+            
+            if ( block4 != nullptr ) {
+
+                return ( block4 -> handleRepCallback( npId, 
+                                                      item, 
+                                                      arg1, 
+                                                      arg2, 
+                                                      ret,
+                                                      uData )); 
+            }
+            else return ( NO_ERR );
+        }
+
+        default: return ( NO_ERR );
+    }
 }
 
+//----------------------------------------------------------------------------------------
+// ??? same basic logic as REQ/REP ?
+// ??? check if we invoke 
+//----------------------------------------------------------------------------------------
 uint8_t lcsEventCallback( uint16_t npId, 
                           uint16_t eId, 
                           uint8_t eAction, 
                           uint16_t eData,
                           void *uData ) {
 
-    return ( bcNode -> handleLcsEventCallback( npId, eId, eAction, eData ));
+    return ( bcNode -> handleEventCallback( npId, eId, eAction, eData, uData ));
 }
 
 
@@ -309,10 +445,10 @@ uint8_t initBlockNode( ) {
     if ( debugSetupEnabled( )) printResourceDescMap( &dMap );
     if ( debugSetupEnabled( )) printResourceMap( );
 
+    bcNode      = new LcsBlockNode( );
     occDetect   = new LcsOccDetect( );
     turnout     = new LcsTurnoutControl( );
     signal      = new LcsSignalControl( );
-
 
     return( RET_STAT( rStat ));
 }
@@ -347,7 +483,7 @@ uint8_t registerDrvFunctions( ) {
 
     uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
     
-    return( RET_STAT( NO_ERR ));
+    return( RET_STAT( ret ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -430,11 +566,6 @@ uint8_t setupBlockControl( ) {
     return( RET_STAT( rStat ));
 }
 
-
-
-
-
-
 //----------------------------------------------------------------------------------------
 // The main program. Setup the runtime, register the callbacks, and get the show 
 // on the road.
@@ -452,93 +583,5 @@ int main( ) {
     if ( rStat == NO_ERR ) rStat = setupTurnoutControl( );
     if ( rStat == NO_ERR ) rStat = setupSignalControl( );
     if ( rStat == NO_ERR ) rStat = setupBlockControl( );
-    
-   
-
     if ( rStat == NO_ERR ) return( startBlockNode( ));
 }
-
-
-
-
-#if 0
-//----------------------------------------------------------------------------------------
-// Configure a Bridge PIO instance.
-// 
-// ??? not used yet, under development....
-// ??? we need to get the right PIO program mix...
-//----------------------------------------------------------------------------------------
-void setupPioProgramInstance ( int index ) {
-
-    printf( "setupPioProgramInstance: index: %d\n", index );
-
-    uint offset = pio_add_program( pio, & dcc_h_bridge_control_program );
-    sm[ index ] = pio_claim_unused_sm( pio, true );
-
-   
-    start_dcc_booster_program( pio, uint sm, uint pin_in, uint pin_out)
-
-    dcc_h_bridge_control_program_init(  pio, 
-                                        sm[ index ], 
-                                        offset, 
-                                        OUTPUT_PINS[ index ][ 0 ], 
-                                        OUTPUT_PINS[ index ][ 1], 
-                                        INPUT_PINS[ index ][ 0 ], 
-                                        INPUT_PINS[ index ][ 1] 
-                                    );
-
-}
-
-//----------------------------------------------------------------------------------------
-// Switching routines when going from PIO control to PWM control of a pin and back.
-//
-//----------------------------------------------------------------------------------------
-void switchToPwm( uint gpio ) {
-
-    printf( "switchToPwm: %d/n", gpio );
-    gpio_set_function( gpio, GPIO_FUNC_PWM );
-}
-
-void switchToPio( uint gpio ) {
-
-    printf( "switchToPio: %d/n", gpio );
-    gpio_set_function( gpio, GPIO_FUNC_PIO0 );
-}
-
-//----------------------------------------------------------------------------------------
-// Control the Bridge. We have to claim the PWM if needed and release it later on.
-//
-//----------------------------------------------------------------------------------------
-void setPioSelect( int index, int sel ) {
-
-    printf( "setPioSelect: index: %d, sel: %d\n", index, sel );
-
-    if      ( sel == 1 ) switchToPwm( OUTPUT_PINS[ index % 2 ] [ 0 ] );
-    else if ( sel == 2 ) switchToPwm( OUTPUT_PINS[ index % 2 ] [ 1 ] );
-       
-    pio_sm_put( pio, sm[ index % 2 ], sel % 2 ); 
-
-    if      ( sel == 1 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 0 ] );
-    else if ( sel == 2 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 1 ] );
-}
-
-//----------------------------------------------------------------------------------------
-// Globals. Example.
-//
-//----------------------------------------------------------------------------------------
-const int   MAX_BRIDGE_INSTANCES        = 4;
-PIO         pio                         = pio0;
-uint        sm[ MAX_BRIDGE_INSTANCES ]  = { 0 };
-
-const uint OUTPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
-
-    {6, 7}, {8, 9}, {18,19}, {20, 21}
-};
-
-const uint INPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
-    
-    {4, 5}, {4, 5}, {4, 5}, {4, 5}  
-};
-
-
-#endif

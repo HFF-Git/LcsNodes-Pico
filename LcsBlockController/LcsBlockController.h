@@ -474,6 +474,20 @@ enum BlockControlItems : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
+// Each Block is represented by LCS port. The numbers assigned are 5 to 8.
+//
+//
+//----------------------------------------------------------------------------------------
+enum BlockPortIds : uint16_t {
+
+    BC_NODE_PORT_ID    = 0,
+    BC_BLOCK_PORT_ID_1 = 5,
+    BC_BLOCK_PORT_ID_2 = 6,
+    BC_BLOCK_PORT_ID_3 = 7,
+    BC_BLOCK_PORT_ID_4 = 8
+};
+
+//----------------------------------------------------------------------------------------
 // The block track object has a set of flags to indicate its current status.
 //
 //  BT_F_POWER_ON             - The track is under power.
@@ -633,39 +647,39 @@ struct LcsTrackControl {
     uint8_t     rNumAdcMux                              = 0;
     uint8_t     rNumSense                               = 0;
 
-    uint16_t   trackState                               = 0;
-    uint16_t   trackMode                                = 0;
-    uint16_t   trackSpeed                               = 0;      
-    uint32_t   trackTimeStamp                           = 0;
-    uint8_t    overloadEventCount                       = 0;
-    uint8_t    overloadRestartCount                     = 0;
+    uint16_t    trackState                              = 0;
+    uint16_t    trackMode                               = 0;
+    uint16_t    trackSpeed                              = 0;      
+    uint32_t    trackTimeStamp                          = 0;
+    uint8_t     overloadEventCount                      = 0;
+    uint8_t     overloadRestartCount                    = 0;
 
-    uint16_t   pwmFrequency                             = 0;
-    uint16_t   initCurrentMilliAmp                      = 0;
-    uint16_t   limitCurrentMilliAmp                     = 0;
-    uint16_t   maxCurrentMilliAmp                       = 0;
+    uint16_t    pwmFrequency                            = 0;
+    uint16_t    initCurrentMilliAmp                     = 0;
+    uint16_t    limitCurrentMilliAmp                    = 0;
+    uint16_t    maxCurrentMilliAmp                      = 0;
 
-    uint16_t   startTimeThreshold                       = 0;
-    uint16_t   stopTimeThreshold                        = 0;
-    uint16_t   overloadTimeThreshold                    = 0;
-    uint16_t   overloadEventThreshold                   = 0;
-    uint16_t   overloadRestartThreshold                 = 0;
-    uint16_t   milliVoltPerAmp                          = 0;
-    uint16_t   digitsPerAmp                             = 0;
+    uint16_t    startTimeThreshold                      = 0;
+    uint16_t    stopTimeThreshold                       = 0;
+    uint16_t    overloadTimeThreshold                   = 0;
+    uint16_t    overloadEventThreshold                  = 0;
+    uint16_t    overloadRestartThreshold                = 0;
+    uint16_t    milliVoltPerAmp                         = 0;
+    uint16_t    digitsPerAmp                            = 0;
 
-    uint16_t   actualCurrentDigitValue                  = 0;
-    uint16_t   highWaterMarkDigitValue                  = 0;
-    uint16_t   limitCurrentDigitValue                   = 0;
+    uint16_t    actualCurrentDigitValue                 = 0;
+    uint16_t    highWaterMarkDigitValue                 = 0;
+    uint16_t    limitCurrentDigitValue                  = 0;
 
-    uint32_t   totalPowerSamplesTaken                   = 0;
-    uint32_t   lastPowerSampleTimeStamp                 = 0;
+    uint32_t    totalPowerSamplesTaken                  = 0;
+    uint32_t    lastPowerSampleTimeStamp                = 0;
 
-    uint32_t   lastPowerSamplePerSecTaken               = 0;
-    uint32_t   lastPowerSamplePerSecTimeStamp           = 0;
-    uint32_t   powerSamplesPerSec                       = 0;
+    uint32_t    lastPowerSamplePerSecTaken              = 0;
+    uint32_t    lastPowerSamplePerSecTimeStamp          = 0;
+    uint32_t    powerSamplesPerSec                      = 0;
 
-    uint8_t    powerSampleBufIndex                      = 0;
-    uint16_t   powerSampleBuf[ PWR_SAMPLE_BUF_SIZE ]    = { 0 };
+    uint8_t     powerSampleBufIndex                     = 0;
+    uint16_t    powerSampleBuf[ PWR_SAMPLE_BUF_SIZE ]   = { 0 };
 
 };
 
@@ -756,8 +770,8 @@ struct LcsRailComDetect {
 };
 
 //----------------------------------------------------------------------------------------
-// "LcsBlock" manages a block. A block consists mainly of the track itself and 
-// the optional elements for detectors, signal and turnouts. The basic block 
+// "LcsBlockControl" manages a block. A block consists mainly of the track itself 
+// and the optional elements for detectors, signal and turnouts. The basic block 
 // logic is managed by this object.
 //
 //
@@ -782,11 +796,20 @@ struct LcsBlockControl {
     LcsBlockControl(  );
 
     uint8_t setupBlockControl(  );    
+    void    runBlockStateMachine( );
 
-    void runBlockStateMachine( );
-    void syncPwmSignals( );
+    uint8_t handleReqCallback( uint16_t npId, 
+                               uint8_t item, 
+                               uint16_t *arg1,
+                               uint16_t *arg2, 
+                               void *udata );
 
-    // ??? methods for GET/SET/REQ callbacks ?
+    uint8_t handleRepCallback( uint16_t npId, 
+                               uint8_t item, 
+                               uint16_t arg1,
+                               uint16_t arg2, 
+                               uint8_t ret,
+                               void *udata );
 
     private:
 
@@ -795,20 +818,11 @@ struct LcsBlockControl {
     LcsTurnoutControl   *turnouts;
     LcsSignalControl    *signals;
 
-    // ??? handles to detect, signal and turnout object.
-
 };
 
 //----------------------------------------------------------------------------------------
-// A LCS block controller node can host up to four blocks. This object manages 
-// the configured blocks on the node. The block controllers themselves manage 
-// are stored in the block controller map array. Up to four blocks can be
-// configured on a block controller node.
-//
-// The LCS block controller node implements the LCS node callbacks to handle any
-// LCS message that is sent to the block controller node. LCS requests, replies
-// and events are handled here and forwarded to the respective block controller
-// object.
+// The LCS block controller node handles the tasks and events that concern the
+// node.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBlockNode {
@@ -817,36 +831,35 @@ struct LcsBlockNode {
 
     LcsBlockNode( );
 
-    uint8_t setupBockController( );
+    uint8_t setupNodeControl( );
 
-    uint8_t handleInitCallback( uint16_t npId );
-    uint8_t handleResetCallback( uint16_t npId );
-    uint8_t handlePfailCallback( uint16_t npId );
-    uint8_t handleLcsMsgCallback( uint8_t *msg );
+    uint8_t handleInitCallback( uint16_t npId, void *uData );
+    uint8_t handleResetCallback( uint16_t npId, void *uData );
+    uint8_t handlePfailCallback( uint16_t npId, void *uData );
+    uint8_t handleMsgCallback( uint8_t *msg, void *uData );
 
-    uint8_t handleLcsReqCallback( uint16_t npId, 
-                                  uint8_t item, 
-                                  uint16_t *arg1, 
-                                  uint16_t *arg2 );
+    uint8_t handleReqCallback( uint16_t npId, 
+                               uint8_t item, 
+                               uint16_t *arg1, 
+                               uint16_t *arg2, 
+                               void *udata );
 
-    uint8_t handleLcsRepCallback( uint16_t npId, 
-                                  uint8_t item, 
-                                  uint16_t arg1, 
-                                  uint16_t arg2, 
-                                  uint8_t ret );
+    uint8_t handleRepCallback( uint16_t npId, 
+                               uint8_t item, 
+                               uint16_t arg1, 
+                               uint16_t arg2, 
+                               uint8_t ret,
+                               void *uData );
 
-    uint8_t handleLcsEventCallback( uint16_t npId, 
-                                    uint16_t eId, 
-                                    uint8_t eAction, 
-                                    uint16_t eData );
-
-    void    syncPwmSignals( );
+    uint8_t handleEventCallback( uint16_t npId, 
+                                 uint16_t eId, 
+                                 uint8_t eAction, 
+                                 uint16_t eData,
+                                 void *uData );
 
     private:
 
     uint16_t    options     = 0;
     uint16_t    flags       = 0;
-    int         hwm         = 0;
-
-    LcsBlockControl map[ 4 ];
+   
 };

@@ -825,6 +825,7 @@ uint8_t registerTaskCallback( LcsTaskCallback task,
 // registered for would lead to a loop. In other words, you cannot send an event
 // to which you are registered for.
 //
+// ??? should this be covered in the general issue of a node sending to itself ?
 //----------------------------------------------------------------------------------------
 uint8_t localMsgEvent( uint8_t *msg ) {
 

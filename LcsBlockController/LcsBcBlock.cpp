@@ -31,18 +31,16 @@ using namespace LCS;
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// External global variables.
+//
+//----------------------------------------------------------------------------------------
+extern uint16_t debugMask;
+
+//----------------------------------------------------------------------------------------
 // File local declarations.
 //
 //----------------------------------------------------------------------------------------
 namespace {
-
-using namespace LCS;
-
-//----------------------------------------------------------------------------------------
-// External declaration to global structures and routines in other files.
-//
-//----------------------------------------------------------------------------------------
-extern uint16_t debugMask;
 
 //----------------------------------------------------------------------------------------
 // Debug support routines. We can easily check whether debug is enabled at all. 
@@ -160,6 +158,73 @@ void LcsBlockControl::runBlockStateMachine( ) {
 
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+// ??? temp items to start testing ...
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockControl::handleReqCallback( uint16_t npId, 
+                                            uint8_t item, 
+                                            uint16_t *arg1,
+                                            uint16_t *arg2, 
+                                            void *uData ) {
+
+    if ( blockDebugEnabled( )) {
+
+        printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
+    
+        if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
+        else printf( ", arg1: null" );
+    
+        if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
+        else printf( ", arg2: null" );
+        printf( "\n" );
+    }
+
+    switch( item ) {
+
+        case 64: {
+
+            track -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
+
+        } break;
+
+        case 65: {
+
+            track -> setPwmFrequency( *arg1 );
+            
+        } break;
+
+        default: {
+
+        }
+    }
+
+    return ( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockControl::handleRepCallback( uint16_t npId, 
+                                            uint8_t item, 
+                                            uint16_t arg1,
+                                            uint16_t arg2, 
+                                            uint8_t ret,
+                                            void *uData ) {
+
+    if ( blockDebugEnabled( )) {
+
+        printf( "REP callback: npId: 0x%x, item: %d, ", npId, item );
+        printf( "arg1: %d, arg2: %d, ret: %d ", arg1, arg2, ret );
+    }
+
+
+    return ( RET_STAT( NO_ERR ));
+}
+
 
 
 //========================================================================================
@@ -199,3 +264,4 @@ void LcsBlockControl::runBlockStateMachine( ) {
 //
 //========================================================================================
 //========================================================================================
+

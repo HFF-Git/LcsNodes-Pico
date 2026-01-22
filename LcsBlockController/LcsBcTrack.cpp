@@ -46,14 +46,11 @@ extern uint16_t debugMask;
 //----------------------------------------------------------------------------------------
 namespace {
 
-using namespace LCS;
-using namespace CDC;
-
 //----------------------------------------------------------------------------------------
-// "debugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all. 
+// The return status routines will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the
+// function name to the message.
 // 
 //------------------------------------------------------------------------------------
 inline bool trackDebugEnabled(  ) {
@@ -151,7 +148,6 @@ inline uint16_t digitValueToMilliAmp(uint16_t digitValue, uint16_t digitsPerAmp)
 //
 // Object part.
 //
-//========================================================================================
 //========================================================================================
 // Object constructor.
 //
@@ -862,3 +858,91 @@ void LcsTrackControl::printTrackStatus( ) {
     printf( "Power consumption (RMS): %d\n", getRMSCurrentMilliAmp( ));
     printf( "\n" );
 }
+
+
+
+
+
+
+#if 0
+//----------------------------------------------------------------------------------------
+// Configure a Bridge PIO instance.
+// 
+// ??? not used yet, under development....
+// ??? we need to get the right PIO program mix...
+//----------------------------------------------------------------------------------------
+void setupPioProgramInstance ( int index ) {
+
+    printf( "setupPioProgramInstance: index: %d\n", index );
+
+    uint offset = pio_add_program( pio, & dcc_h_bridge_control_program );
+    sm[ index ] = pio_claim_unused_sm( pio, true );
+
+   
+    start_dcc_booster_program( pio, uint sm, uint pin_in, uint pin_out)
+
+    dcc_h_bridge_control_program_init(  pio, 
+                                        sm[ index ], 
+                                        offset, 
+                                        OUTPUT_PINS[ index ][ 0 ], 
+                                        OUTPUT_PINS[ index ][ 1], 
+                                        INPUT_PINS[ index ][ 0 ], 
+                                        INPUT_PINS[ index ][ 1] 
+                                    );
+
+}
+
+//----------------------------------------------------------------------------------------
+// Switching routines when going from PIO control to PWM control of a pin and back.
+//
+//----------------------------------------------------------------------------------------
+void switchToPwm( uint gpio ) {
+
+    printf( "switchToPwm: %d/n", gpio );
+    gpio_set_function( gpio, GPIO_FUNC_PWM );
+}
+
+void switchToPio( uint gpio ) {
+
+    printf( "switchToPio: %d/n", gpio );
+    gpio_set_function( gpio, GPIO_FUNC_PIO0 );
+}
+
+//----------------------------------------------------------------------------------------
+// Control the Bridge. We have to claim the PWM if needed and release it later on.
+//
+//----------------------------------------------------------------------------------------
+void setPioSelect( int index, int sel ) {
+
+    printf( "setPioSelect: index: %d, sel: %d\n", index, sel );
+
+    if      ( sel == 1 ) switchToPwm( OUTPUT_PINS[ index % 2 ] [ 0 ] );
+    else if ( sel == 2 ) switchToPwm( OUTPUT_PINS[ index % 2 ] [ 1 ] );
+       
+    pio_sm_put( pio, sm[ index % 2 ], sel % 2 ); 
+
+    if      ( sel == 1 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 0 ] );
+    else if ( sel == 2 ) switchToPio( OUTPUT_PINS[ index % 2 ] [ 1 ] );
+}
+
+//----------------------------------------------------------------------------------------
+// Globals. Example.
+//
+//----------------------------------------------------------------------------------------
+const int   MAX_BRIDGE_INSTANCES        = 4;
+PIO         pio                         = pio0;
+uint        sm[ MAX_BRIDGE_INSTANCES ]  = { 0 };
+
+const uint OUTPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
+
+    {6, 7}, {8, 9}, {18,19}, {20, 21}
+};
+
+const uint INPUT_PINS[ MAX_BRIDGE_INSTANCES ][ 2 ] = {
+    
+    {4, 5}, {4, 5}, {4, 5}, {4, 5}  
+};
+
+
+#endif
+

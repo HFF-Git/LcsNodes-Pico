@@ -54,8 +54,8 @@ namespace LCS {
 
     extern uint8_t      rtNvmPutWord( uint32_t ofs, uint16_t word );
     extern uint8_t      rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-    extern uint8_t rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
-    extern uint8_t rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
+    extern uint8_t      rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
+    extern uint8_t      rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
 };
 
 //----------------------------------------------------------------------------------------
