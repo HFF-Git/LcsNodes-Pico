@@ -154,7 +154,7 @@ uint8_t LcsBlockControl::setupBlockControl( ) {
 // 
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControl:: nodeReqCallback( uint16_t npId, 
+uint8_t LcsBlockControl::blockReqCallback( uint16_t npId, 
                                            uint8_t item, 
                                            uint16_t *arg1, 
                                            uint16_t *arg2, 
@@ -202,7 +202,7 @@ uint8_t LcsBlockControl:: nodeReqCallback( uint16_t npId,
 // 
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControl::nodeRepCallback( uint16_t npId, 
+uint8_t LcsBlockControl::blockRepCallback( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t arg1, 
                                   uint16_t arg2, 
@@ -223,7 +223,7 @@ uint8_t LcsBlockControl::nodeRepCallback( uint16_t npId,
 // 
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockControl:: nodeEventCallback( uint16_t npId, 
+uint8_t LcsBlockControl:: blockEventCallback( uint16_t npId, 
                                     uint16_t eId, 
                                     uint8_t eAction, 
                                     uint16_t eData, 
@@ -251,79 +251,6 @@ void LcsBlockControl::runBlockStateMachine( ) {
 
 
 }
-
-//----------------------------------------------------------------------------------------
-//
-//
-// ??? temp items to start testing ...
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockControl::handleReqCallback( uint16_t npId, 
-                                            uint8_t item, 
-                                            uint16_t *arg1,
-                                            uint16_t *arg2, 
-                                            void *uData ) {
-
-    if ( blockDebugEnabled( )) {
-
-        printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
-    
-        if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
-        else printf( ", arg1: null" );
-    
-        if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
-        else printf( ", arg2: null" );
-        printf( "\n" );
-    }
-
-    switch( item ) {
-
-        case 64: {
-
-            track -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
-
-        } break;
-
-        case 65: {
-
-            track -> setPwmFrequency( *arg1 );
-            
-        } break;
-
-        default: {
-
-        }
-    }
-
-    return ( RET_STAT( NO_ERR ));
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockControl::handleRepCallback( uint16_t npId, 
-                                            uint8_t item, 
-                                            uint16_t arg1,
-                                            uint16_t arg2, 
-                                            uint8_t ret,
-                                            void *uData ) {
-
-    if ( blockDebugEnabled( )) {
-
-        printf( "REP callback: npId: 0x%x, item: %d, ", npId, item );
-        printf( "arg1: %d, arg2: %d, ret: %d ", arg1, arg2, ret );
-    }
-
-
-    return ( RET_STAT( NO_ERR ));
-}
-
-
-
-
-
-
 
 
 

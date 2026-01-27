@@ -798,39 +798,24 @@ struct LcsBlockControl {
     uint8_t setupBlockControl(  );    
     void    runBlockStateMachine( );
 
-    uint8_t handleReqCallback( uint16_t npId, 
-                               uint8_t item, 
-                               uint16_t *arg1,
-                               uint16_t *arg2, 
-                               void *udata );
-
-<<<<<<< Updated upstream
-    uint8_t handleRepCallback( uint16_t npId, 
-                               uint8_t item, 
-                               uint16_t arg1,
-                               uint16_t arg2, 
-                               uint8_t ret,
-                               void *udata );
-=======
-    uint8_t nodeReqCallback( uint16_t npId, 
+    uint8_t blockReqCallback( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t *arg1, 
                                   uint16_t *arg2, 
                                   void *uData );
 
-    uint8_t nodeRepCallback( uint16_t npId, 
+    uint8_t blockRepCallback( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t arg1, 
                                   uint16_t arg2, 
                                   uint8_t ret, 
                                   void *uData );
 
-    uint8_t nodeEventCallback( uint16_t npId, 
+    uint8_t blockEventCallback( uint16_t npId, 
                                     uint16_t eId, 
                                     uint8_t eAction, 
                                     uint16_t eData, 
                                     void *uData );
->>>>>>> Stashed changes
 
     private:
 
@@ -852,33 +837,6 @@ struct LcsBlockNode {
 
     LcsBlockNode( );
 
-<<<<<<< Updated upstream
-    uint8_t setupNodeControl( );
-
-    uint8_t handleInitCallback( uint16_t npId, void *uData );
-    uint8_t handleResetCallback( uint16_t npId, void *uData );
-    uint8_t handlePfailCallback( uint16_t npId, void *uData );
-    uint8_t handleMsgCallback( uint8_t *msg, void *uData );
-
-    uint8_t handleReqCallback( uint16_t npId, 
-                               uint8_t item, 
-                               uint16_t *arg1, 
-                               uint16_t *arg2, 
-                               void *udata );
-
-    uint8_t handleRepCallback( uint16_t npId, 
-                               uint8_t item, 
-                               uint16_t arg1, 
-                               uint16_t arg2, 
-                               uint8_t ret,
-                               void *uData );
-
-    uint8_t handleEventCallback( uint16_t npId, 
-                                 uint16_t eId, 
-                                 uint8_t eAction, 
-                                 uint16_t eData,
-                                 void *uData );
-=======
     uint8_t setupBlockNode( );
 
     uint8_t nodeInitCallback( uint16_t npId, void *uData );
@@ -906,7 +864,6 @@ struct LcsBlockNode {
                                     void *uData );
 
     void    syncPwmSignals( );
->>>>>>> Stashed changes
 
     private:
 
