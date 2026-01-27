@@ -67,6 +67,15 @@ const uint32_t  DEF_UART_BAUDRATE       = 250000;
 const uint16_t  DEF_I2C_TIMEOUT         = 25;
 const uint16_t  DEF_PWM_FREQUENCY       = 20000;
 
+
+//----------------------------------------------------------------------------------------
+// The block controller board contains two H-Bridges.
+//
+//----------------------------------------------------------------------------------------
+
+
+
+
 //----------------------------------------------------------------------------------------
 // Each board is described by a resource descriptor, which contains information
 // about the hardware family, controller type, controller attributes, and the

@@ -40,6 +40,7 @@ extern uint16_t debugMask;
 //----------------------------------------------------------------------------------------
 namespace {
 
+<<<<<<< Updated upstream
 //----------------------------------------------------------------------------------------
 // Debug support routines. We can easily check whether debug is enabled at all. 
 // The return status routines will print out a return status message when 
@@ -51,6 +52,13 @@ inline bool nodeDebugEnabled(  ) {
 
     return (( debugMask & DBG_BC_CONFIG) && ( debugMask & DBG_BC_NODE )); 
 }
+=======
+    //------------------------------------------------------------------------------------
+    // External declaration to global structures and routines in other files.
+    //
+    //------------------------------------------------------------------------------------
+    extern uint16_t debugMask;
+>>>>>>> Stashed changes
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
@@ -100,6 +108,7 @@ LcsBlockNode::LcsBlockNode(  ) {
 }
 
 //----------------------------------------------------------------------------------------
+<<<<<<< Updated upstream
 // The initialization callback.
 //
 //----------------------------------------------------------------------------------------
@@ -124,10 +133,26 @@ uint8_t LcsBlockNode::handleResetCallback( uint16_t npId, void *uData ) {
         printf( "Reset Callback, npId: 0x%4x\n", npId );
     }
 
+=======
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::setupBlockNode( ) {
+
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "Setup Block Node\n" );
+    }
+
+    // ??? register callbacks, etc.
+
+>>>>>>> Stashed changes
     return( RET_STAT( NO_ERR ));
 }
 
 //----------------------------------------------------------------------------------------
+<<<<<<< Updated upstream
 // The power fail callback.
 //
 //----------------------------------------------------------------------------------------
@@ -197,6 +222,17 @@ uint8_t LcsBlockNode::handleRepCallback( uint16_t npId,
 
         printf( "REP callback: npId: 0x%x, item: %d, ", npId, item );
         printf( "arg1: %d, arg2: %d, ret: %d\n", arg1, arg2, ret );
+=======
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::nodeInitCallback( uint16_t npId, void *uData ) {
+
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "Node Init CallBack, npId: 0x%4x\n", npId );
+>>>>>>> Stashed changes
     }
 
 
@@ -204,6 +240,7 @@ uint8_t LcsBlockNode::handleRepCallback( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
+<<<<<<< Updated upstream
 // 
 //
 //----------------------------------------------------------------------------------------
@@ -220,5 +257,125 @@ uint8_t LcsBlockNode::handleEventCallback( uint16_t npId,
     }
 
     
+=======
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::nodeResetCallback( uint16_t npId, void *uData )  {
+
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "Node Reset CallBack, npId: 0x%4x\n", npId );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::nodePfailCallback( uint16_t npId, void *uData )  {
+
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "Node Pfail CallBack, npId: 0x%4x\n", npId );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::nodeLcsMsgCallback( uint8_t *msg, void *uData )  {
+
+    if ( blockNodeDebugEnabled( )) {
+
+        uint8_t buf[ 8 ];
+
+        printf( "Node LCS Msg CallBack, msg: %s", 
+                lcsMsgStr( msg, buf, sizeof( buf )));
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode:: nodeReqCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t *arg1, 
+                                  uint16_t *arg2, 
+                                  void *uData ) {
+                                    
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "Node REQ callback: npId: 0x%x, item: %d", npId, item );
+    
+        if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
+        else printf( ", arg1: null" );
+    
+        if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
+        else printf( ", arg2: null" );
+        printf( "\n" );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::nodeRepCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t arg1, 
+                                  uint16_t arg2, 
+                                  uint8_t ret, 
+                                  void *uData ) {
+                                    
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d\n", 
+                npId, item , arg1, arg2, ret );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode:: nodeEventCallback( uint16_t npId, 
+                                    uint16_t eId, 
+                                    uint8_t eAction, 
+                                    uint16_t eData, 
+                                    void *uData ) {
+
+
+    if ( blockNodeDebugEnabled( )) {
+
+        printf( "EVT callback: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+                npId, eId, eAction, eData );
+    }
+
+
+>>>>>>> Stashed changes
     return( RET_STAT( NO_ERR ));
 }

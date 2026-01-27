@@ -156,6 +156,7 @@ uint8_t setupBlockDesc2( ) {
     return( NO_ERR );
 }
 
+<<<<<<< Updated upstream
 //----------------------------------------------------------------------------------------
 // Node global callbacks. 
 // 
@@ -352,6 +353,8 @@ uint8_t lcsEventCallback( uint16_t npId,
 
 
 
+=======
+>>>>>>> Stashed changes
 
 
 
@@ -453,6 +456,7 @@ uint8_t initBlockNode( ) {
     return( RET_STAT( rStat ));
 }
 
+#if 0
 //----------------------------------------------------------------------------------------
 // After the initial setup of the runtime library, the callbacks are registered.
 //
@@ -472,6 +476,7 @@ uint8_t registerCallbacks( ) {
 
     return( RET_STAT( NO_ERR ));
 }
+#endif
 
 //----------------------------------------------------------------------------------------
 // Setup the drivers for extension boards.
@@ -576,7 +581,6 @@ int main( ) {
     uint8_t rStat = NO_ERR;
 
     if ( rStat == NO_ERR ) rStat = initBlockNode( );
-    if ( rStat == NO_ERR ) rStat = registerCallbacks( );
     if ( rStat == NO_ERR ) rStat = registerDrvFunctions( );
     if ( rStat == NO_ERR ) rStat = setupTrackControl( );
     if ( rStat == NO_ERR ) rStat = setupOccDetect( );

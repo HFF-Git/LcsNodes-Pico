@@ -142,11 +142,105 @@ uint8_t LcsBlockControl::setupBlockControl( ) {
     // ??? we need to get the HW resources so we can pass them to the track
     // object ...
 
+    // ??? register the callbacks. Each object will do this on its own...
+
     // ??? setup the block control logic, e.g. get handles to turnout, signal and 
     // ??? detection objects.
 
     return ( RET_STAT( LCS_OK ));
 }
+
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockControl:: nodeReqCallback( uint16_t npId, 
+                                           uint8_t item, 
+                                           uint16_t *arg1, 
+                                           uint16_t *arg2, 
+                                           void *uData ) {
+                                    
+    if ( blockDebugEnabled( )) {
+
+        printf( "Node REQ callback: npId: 0x%x, item: %d", npId, item );
+    
+        if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
+        else printf( ", arg1: null" );
+    
+        if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
+        else printf( ", arg2: null" );
+        printf( "\n" );
+    }
+
+
+    // ??? quick hack .... refine...
+
+    switch( item ) {
+
+        case 64: {
+
+            track -> setTrackModeSpeed( *arg1 & 0xFF, *arg2 & 0xFF );
+           
+        } break;
+
+        case 65: {
+
+            track -> setPwmFrequency( *arg1 );
+        
+        } break;
+
+        default: {
+
+        }
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockControl::nodeRepCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t arg1, 
+                                  uint16_t arg2, 
+                                  uint8_t ret, 
+                                  void *uData ) {
+                                    
+    if ( blockDebugEnabled( )) {
+
+        printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d\n", 
+                npId, item , arg1, arg2, ret );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockControl:: nodeEventCallback( uint16_t npId, 
+                                    uint16_t eId, 
+                                    uint8_t eAction, 
+                                    uint16_t eData, 
+                                    void *uData ) {
+
+
+    if ( blockDebugEnabled( )) {
+
+        printf( "EVT callback: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+                npId, eId, eAction, eData );
+    }
+
+
+    return( RET_STAT( NO_ERR ));
+}
+
+
 
 //----------------------------------------------------------------------------------------
 // Each block is managed by the block state machine.
@@ -224,6 +318,12 @@ uint8_t LcsBlockControl::handleRepCallback( uint16_t npId,
 
     return ( RET_STAT( NO_ERR ));
 }
+
+
+
+
+
+
 
 
 

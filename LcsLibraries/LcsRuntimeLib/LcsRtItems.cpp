@@ -293,7 +293,8 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
     }
 
     if (( nodeMap.nodeState != NS_OPERATE) && 
-        ( nodeMap.nodeState != NS_CONFIG )) {
+        ( nodeMap.nodeState != NS_CONFIG ) && 
+        ( nodeMap.nodeState != NS_INIT )) {
 
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
@@ -490,7 +491,9 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val1, uint16_t val2 ) {
                 npId, item, val1, val2  );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )  && 
+        ( nodeMap.nodeState != NS_INIT   )) {
         
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
