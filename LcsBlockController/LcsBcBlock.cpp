@@ -81,8 +81,6 @@ inline uint8_t retStatBlock( char *name, uint8_t errId ) {
 
 
 
-// ??? there is one block control object per block.
-
 // ??? need to find out how we best handle the debug mask facility when there
 // are different types that can be debugged....
 

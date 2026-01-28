@@ -90,27 +90,57 @@ void printLcsMsg( uint8_t *msg ) {
 // Object part.
 //
 //========================================================================================
-//========================================================================================
 //
 //
 //----------------------------------------------------------------------------------------
-LcsBlockNode::LcsBlockNode(  ) {
+LcsBlockNode::LcsBlockNode( ) {
 
 }
 
+LcsBlockNode:: ~ LcsBlockNode( ) {
+
+    delete occDetect;
+    delete turnouts;
+    delete signals;
+
+    for ( int i = 0; i < blockHwm; i++ ) {
+
+        if ( blocks[ i ] != nullptr ) delete blocks[ i ];
+    }
+}
+
+
+
 //----------------------------------------------------------------------------------------
 //
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::setupBlockNode( ) {
+uint8_t LcsBlockNode::setupBlockNode( CdcResourceDescMap *dMap ) {
 
     if ( nodeDebugEnabled( )) {
 
         printf( "Setup Block Node\n" );
     }
 
+    this -> dMap = dMap;
+
+    uint8_t rStat = LCS_OK;
+
+    occDetect   = new LcsOccDetect( );
+    turnouts    = new LcsTurnoutControl( );
+    signals     = new LcsSignalControl( );
+
+    // ??? create block objects 
+
     // ??? register callbacks, etc.
+
+    // ??? the damn issue with callback types... we cannot pass an object method ...
+
+    // ??? setup occDetect, turnout and signal object
+
+    // ??? setup block objects
+
 
     return( RET_STAT( NO_ERR ));
 }

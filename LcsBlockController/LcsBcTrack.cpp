@@ -154,6 +154,8 @@ uint8_t setupAttribute( uint16_t npId,
     }
 
     uint16_t val;
+    uint16_t lItem = item;
+
     uint8_t rStat = nodeGet( npId, item, &val );
     if ( rStat == NO_ERR ) {
 
@@ -162,7 +164,7 @@ uint8_t setupAttribute( uint16_t npId,
             rStat = nodeSet( npId, item, def );
             if ( rStat == NO_ERR ) {
 
-                rStat = nodeReq( npId, ITEM_ID_SYNC_TO_NVM, (uint16_t *) &item );
+                rStat = nodeReq( npId, ITEM_ID_SYNC_TO_NVM, (uint16_t *) &lItem );
             }
         }
     }
@@ -302,6 +304,9 @@ uint8_t LcsTrackControl::setupTrackControl( LcsBlockTrackDesc* tDesc ) {
         flags = BT_F_CONFIG_ERROR;
         return ( ERR_RNUM_CONFIG );
     }
+
+   
+
 
     if (( tDesc -> initCurrentMilliAmp  > tDesc -> limitCurrentMilliAmp ) ||
         ( tDesc -> limitCurrentMilliAmp > tDesc -> maxCurrentMilliAmp )) {

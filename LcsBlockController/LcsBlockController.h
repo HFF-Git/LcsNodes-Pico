@@ -819,10 +819,11 @@ struct LcsBlockControl {
 
     private:
 
-    LcsTrackControl     *track;
-    LcsOccDetect        *occDetect;
-    LcsTurnoutControl   *turnouts;
-    LcsSignalControl    *signals;
+    CdcResourceDescMap  *dMap       = nullptr;
+    LcsTrackControl     *track      = nullptr;
+    LcsOccDetect        *occDetect  = nullptr;
+    LcsTurnoutControl   *turnouts   = nullptr;
+    LcsSignalControl    *signals    = nullptr;
 
 };
 
@@ -836,8 +837,9 @@ struct LcsBlockNode {
     public: 
 
     LcsBlockNode( );
+    ~ LcsBlockNode( );
 
-    uint8_t setupBlockNode( );
+    uint8_t setupBlockNode( CdcResourceDescMap *dMap );
 
     uint8_t nodeInitCallback( uint16_t npId, void *uData );
     uint8_t nodeResetCallback( uint16_t npId, void *uData );
@@ -867,7 +869,15 @@ struct LcsBlockNode {
 
     private:
 
-    uint16_t    options     = 0;
-    uint16_t    flags       = 0;
+    uint16_t            options         = 0;
+    uint16_t            flags           = 0;
+    CdcResourceDescMap  *dMap           = nullptr;
+
+    int                 blockHwm        = 0;
+    LcsBlockControl     *blocks[ 4 ]    = { nullptr }; 
+
+    LcsOccDetect        *occDetect      = nullptr;
+    LcsTurnoutControl   *turnouts       = nullptr;
+    LcsSignalControl    *signals        = nullptr;
    
 };
