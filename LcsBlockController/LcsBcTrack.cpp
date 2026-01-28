@@ -133,6 +133,44 @@ inline uint16_t digitValueToMilliAmp(uint16_t digitValue, uint16_t digitsPerAmp)
 }
 
 //----------------------------------------------------------------------------------------
+// "setupAttribute" is a helper function. We need to check and perhaps set an 
+// attribute value. We read the current value in the attribute map of the port 
+// identified by the npId. If the value is in the desired range "min/max", all
+// is fine. Else, we set the attribute to the passed "def" value and synchronize
+// it to NVM. Either way, the attribute has a valid value ands our NVM spot has
+// a reasonable value too.
+//
+//----------------------------------------------------------------------------------------
+uint8_t setupAttribute( uint16_t npId,
+                        uint8_t  item, 
+                        uint16_t min, 
+                        uint16_t max, 
+                        uint16_t def ) {
+
+    if ( trackDebugEnabled( )) {
+
+        printf( "Set Attribute: npId: 0x%4x, item %d, min: %d, max: %d, def: %d \n",
+                npId, item, min, max, def );
+    }
+
+    uint16_t val;
+    uint8_t rStat = nodeGet( npId, item, &val );
+    if ( rStat == NO_ERR ) {
+
+        if ( ! isInRangeU16( val, min, max )) {
+
+            rStat = nodeSet( npId, item, def );
+            if ( rStat == NO_ERR ) {
+
+                rStat = nodeReq( npId, ITEM_ID_SYNC_TO_NVM, (uint16_t *) &item );
+            }
+        }
+    }
+
+    return ( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
 //
 //
 //

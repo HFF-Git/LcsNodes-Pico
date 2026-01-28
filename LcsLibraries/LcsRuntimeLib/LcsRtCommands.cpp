@@ -552,6 +552,16 @@ void listDevicesI2C( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+char *skipSpaces( char *s ) {
+
+    while (( *s == ' ' ) || ( *s == '\t' )) s++;
+    return s;
+}
+
 }; // namespace
 
 
@@ -912,83 +922,137 @@ uint8_t setupSerialCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleSerialCommand" reads characters from the console. The command interpreter
-// is a simple character based input. Note that this routine is called as part of the
-// runtime loop. Consequently, it cannot not block for IO. The interface is designed
-// in a way that it assembles the character input when there are characters until a
-// carriage return is received. The first character is the command. If it is not a 
-// command we know and there is a command line callback, the callback gets his chance
-// to handle the input string. Since we are pretty basic on a character by character 
-// basis, we also add a bit of luxury and echo back what was typed and also process 
-// the backspace character.
+// "executeCommand" is the single command handler. We decode the first character 
+// pass the rest of the command string to the actual handler routine. An unknown
+// command tries to pass the command to the optional callback routine.
 //
-//
-// ??? enhance to accept multiple commands in one swoop.
-// ??? we could have a separator like "/" to indicate a command 
 //----------------------------------------------------------------------------------------
-uint8_t handleSerialCommand( ) {
+static void executeCommand( char *commandBuf ) {
+
+    char *cmd = skipSpaces( commandBuf );
+
+    if ( *cmd == '\0' ) return;
+
+    switch ( cmd[0] ) {
+
+        case 'C': switchToConfigCommand(cmd + 1);     break;
+        case 'O': switchToOperationsCommand(cmd + 1); break;
+
+        case 'g': getNodeCommand(cmd + 1);            break;
+        case 'p': putNodeCommand(cmd + 1);            break;
+        case 'r': reqNodeCommand(cmd + 1);            break;
+        case 'e': sendEventCommand(cmd + 1);          break;
+
+        case 'B': broadcastLcsMsgCommand(cmd + 1);    break;
+
+        case 's': listStatusCommand(cmd + 1);         break;
+        case '?': listCoreLibHelpCommand();           break;
+
+        default: {
+    
+            if (nodeMap.cmdLineCallback != nullptr) {
+
+                nodeMap.cmdLineCallback( cmd, nodeMap.cmdLineCallBackUdata );
+            } 
+            else printf("<Unknown command, use '?' for help>");
+            
+        } break;
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// "handleSerialCommand" reads commands from the console. It is a simple command
+// executor with simple syntax, originally used on the DCC++ world. Note that this
+// routine is called as part of the runtime loop. Consequently, it cannot not block
+// for IO. The interface is designed in a way that it assembles the character input
+// when there are characters until a carriage return is received. A command line 
+// can optionally consist of multiple commands separated by a "/" character.
+//
+// Since we are pretty basic on a character by character basis, we also add a bit
+// of luxury and echo back what was typed and also process the backspace character.
+//
+//----------------------------------------------------------------------------------------
+uint8_t handleSerialCommand( void ) {
 
     char c;
+    bool escaped = false;
+    bool append  = false;
 
     while (( c = usbIoGetChar( 0 )) > 0 ) {
 
-        switch( c ) {
+        append = false;
 
-            // ??? if an "/" handle a command but continue. 
+        switch ( c ) {
 
-            case '\r': {
+            case '\\': {
 
-                printf( "\n" );
+                if ( escaped ) { 
 
-                if ( strlen( commandBuf) > 0 ) {
-
-                    switch ( commandBuf[ 0 ] ) {
-
-                        case 'C': switchToConfigCommand( commandBuf + 1 );      break;
-                        case 'O': switchToOperationsCommand( commandBuf + 1 );  break;
-                        
-                        case 'g': getNodeCommand( commandBuf + 1 );             break;
-                        case 'p': putNodeCommand( commandBuf + 1 );             break;
-                        case 'r': reqNodeCommand( commandBuf + 1 );             break;
-                        case 'e': sendEventCommand( commandBuf + 1 );           break;
-
-                        case 'B': broadcastLcsMsgCommand( commandBuf + 1 );     break;
-
-                        case 's': listStatusCommand( commandBuf + 1 );          break;
-                        case '?': listCoreLibHelpCommand( );                    break;
-
-                        default: {
-                            
-                            if ( nodeMap.cmdLineCallback != nullptr ) {
-
-                                nodeMap.cmdLineCallback( commandBuf, 
-                                                         nodeMap.cmdLineCallBackUdata );
-                            }
-                            else printf( "<Unknown command, use '?' for help>" );
-                        }
-                    }
-                }
-               
-                commandBuf[ 0 ] = '\0';
-                if      ( nodeMap.nodeState == NS_CONFIG )  printf( "(c)->" );
-                else if ( nodeMap.nodeState == NS_OPERATE ) printf( "(o)->" );
-                else                                        printf( "->" );
+                    append  = true;   // literal '\'
+                    escaped = false;
+                } 
+                else escaped = true;
 
             } break;
 
             case '\b': {
 
-                printf( "\b \b" );
-                if ( strlen( commandBuf ) > 0 ) 
-                    commandBuf[ strlen( commandBuf ) - 1 ] = '\0';
+                escaped = false;
+                printf("\b \b");
+                size_t len = strlen(commandBuf);
+                if ( len > 0 ) commandBuf[len - 1] = '\0';
+            
+            } break;
+
+            case '\r': {
+
+                escaped = false;
+                printf( "\n" );
+
+                char *p = commandBuf;
+                char *start = p;
+
+                while ( *p ) {
+
+                    if (( *p == '/' ) && (( p == commandBuf ) || ( p[-1] != '\\' ))) {
+
+                        *p = '\0';
+                        char *cmd = skipSpaces( start );
+                        if ( *cmd ) executeCommand(cmd);
+                        start = p + 1;
+                    }
+
+                    p++;
+                }
+
+                char *cmd = skipSpaces(start);
+                if ( *cmd ) executeCommand(cmd);
+
+                commandBuf[0] = '\0';
+
+                if      (nodeMap.nodeState == NS_CONFIG)  printf( "(C)->");
+                else if (nodeMap.nodeState == NS_OPERATE) printf( "(O)->");
+                else                                      printf( "->" );
 
             } break;
 
             default: {
+                
+                append  = true;
+                escaped = false;
+            
+            } break;
+        }
 
-                printf( "%c", c );
-                if ( strlen( commandBuf ) < MAX_COMMAND_LINE_SIZE ) 
-                    strncat( commandBuf, &c, 1 );
+        if ( append ) {
+
+            printf( "%c", c );
+            size_t len = strlen( commandBuf );
+
+            if ( len < MAX_COMMAND_LINE_SIZE - 1 ) {
+     
+                commandBuf[len]     = c;
+                commandBuf[len + 1] = '\0';
             }
         }
     }
