@@ -86,6 +86,12 @@ const uint16_t MILLI_VOLT_PER_AMP       = 1500;
 // default values.
 //
 //----------------------------------------------------------------------------------------
+const uint16_t MIN_START_TIME_THRESHOLD_MILLIS      = 500;
+const uint16_t MIN_STOP_TIME_THRESHOLD_MILLIS       = 500;
+const uint16_t MIN_OVERLOAD_TIME_THRESHOLD_MILLIS   = 200;
+const uint16_t MIN_OVERLOAD_EVENT_COUNT             = 5;
+const uint16_t MIN_OVERLOAD_RESTART_COUNT           = 5;
+
 const uint16_t MAX_START_TIME_THRESHOLD_MILLIS      = 2000;
 const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS       = 1000;
 const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS   = 500;
@@ -305,7 +311,43 @@ uint8_t LcsTrackControl::setupTrackControl( LcsBlockTrackDesc* tDesc ) {
         return ( ERR_RNUM_CONFIG );
     }
 
+    // ??? set up all the attributes ...
+
+    uint16_t npId = 0; // fix...
+
+    errId = setupAttribute( npId,
+                            BCI_START_TIME_THRESHOLD,
+                            MIN_START_TIME_THRESHOLD_MILLIS,
+                            MAX_START_TIME_THRESHOLD_MILLIS,
+                            DEF_START_TIME_THRESHOLD_MILLIS );
    
+    errId = setupAttribute( npId,
+                            BCI_STOP_TIME_THRESHOLD,
+                            MIN_STOP_TIME_THRESHOLD_MILLIS,
+                            MAX_STOP_TIME_THRESHOLD_MILLIS,
+                            DEF_STOP_TIME_THRESHOLD_MILLIS );
+
+    errId = setupAttribute( npId,
+                            BCI_OVL_TIME_THRESHOLD,
+                            MIN_OVERLOAD_TIME_THRESHOLD_MILLIS,
+                            MAX_OVERLOAD_TIME_THRESHOLD_MILLIS,
+                            DEF_OVERLOAD_TIME_THRESHOLD_MILLIS );
+
+    errId = setupAttribute( npId,
+                            BCI_OVL_EVENT_THRESHOLD,
+                            MIN_OVERLOAD_EVENT_COUNT,
+                            MAX_OVERLOAD_EVENT_COUNT,
+                            DEF_OVERLOAD_EVENT_COUNT );
+
+    errId = setupAttribute( npId,
+                            BCI_OVL_RESTART_THRESHOLD,
+                            MIN_OVERLOAD_RESTART_COUNT,
+                            MAX_OVERLOAD_RESTART_COUNT,
+                            DEF_OVERLOAD_RESTART_COUNT );
+
+    // ??? set the object private vars ???
+
+
 
 
     if (( tDesc -> initCurrentMilliAmp  > tDesc -> limitCurrentMilliAmp ) ||
