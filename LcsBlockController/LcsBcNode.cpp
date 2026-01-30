@@ -87,10 +87,106 @@ void printLcsMsg( uint8_t *msg ) {
 //========================================================================================
 //========================================================================================
 //
+// Class part.
+//
+//========================================================================================
+// As you cannot easily register a callback to an object method, we need these
+// static wrapper functions that get the object pointer from the uData pointer.
+// The register functions will register these static functions as callbacks and
+// pass the object pointer as uData. The following static functions will get the
+// object pointer from the uData pointer and call the actual object method.
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::nodeInitCallback( uint16_t npId, void *uData ) {
+
+    if ( uData  != nullptr ) {
+
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> initCallbackHandler( npId, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+uint8_t LcsBlockNode::nodePfailCallback( uint16_t npId, void *uData )  {
+
+    if ( uData  != nullptr ) {
+        
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> pfailCallbackHandler( npId, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+uint8_t LcsBlockNode::nodeLcsMsgCallback( uint8_t *msg, void *uData )  {
+
+    if ( uData  != nullptr ) {
+        
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> lcsMsgCallbackHandler( msg, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+uint8_t LcsBlockNode::nodeDccMsgCallback( uint8_t *msg, void *uData )  {
+
+    if ( uData  != nullptr ) {
+        
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> dccMsgCallbackHandler( msg, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+uint8_t LcsBlockNode:: nodeReqCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t *arg1, 
+                                  uint16_t *arg2, 
+                                  void *uData ) {
+                                    
+    if ( uData  != nullptr ) {
+        
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> reqCallbackHandler( npId, item, arg1, arg2, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+uint8_t LcsBlockNode::nodeRepCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t arg1, 
+                                  uint16_t arg2, 
+                                  uint8_t ret, 
+                                  void *uData ) {
+                                    
+    if ( uData  != nullptr ) {
+        
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> repCallbackHandler( npId, item, arg1, arg2, ret, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+uint8_t LcsBlockNode:: nodeEventCallback( uint16_t npId, 
+                                    uint16_t eId, 
+                                    uint8_t eAction, 
+                                    uint16_t eData, 
+                                    void *uData ) {
+
+    if ( uData  != nullptr ) {
+        
+        LcsBlockNode *node = reinterpret_cast< LcsBlockNode * >( uData );
+        return( node -> eventCallbackHandler( npId, eId, eAction, eData, uData ));
+    }
+    else return( ERR_CALLBACK_NOT_REGISTERED );
+}
+
+//========================================================================================
+//========================================================================================
+//
 // Object part.
 //
 //========================================================================================
-//
+// Object constructor and destructor.
 //
 //----------------------------------------------------------------------------------------
 LcsBlockNode::LcsBlockNode( ) {
@@ -109,9 +205,10 @@ LcsBlockNode:: ~ LcsBlockNode( ) {
     }
 }
 
-
-
 //----------------------------------------------------------------------------------------
+// Setup the block node with the resource map. The node is the central object that
+// manages the block controller functionality. It creates the necessary block
+// objects according to the resource map and registers the necessary callbacks.
 //
 //
 //
@@ -131,28 +228,43 @@ uint8_t LcsBlockNode::setupBlockNode( CdcResourceDescMap *dMap ) {
     turnouts    = new LcsTurnoutControl( );
     signals     = new LcsSignalControl( );
 
-    // ??? create block objects 
+    registerInitCallback( LcsBlockNode::nodeInitCallback, this );
+    registerPfailCallback( LcsBlockNode::nodePfailCallback, this );
+    registerLcsMsgCallback( LcsBlockNode::nodeLcsMsgCallback, this );
+    registerDccMsgCallback( LcsBlockNode::nodeDccMsgCallback, this );
 
-    // ??? register callbacks, etc.
+    // ??? what do we do if we don't have any of the extensions  ?
+    
+    // ??? let the node in general handle the requests/events and
+    // pass them to the extensions if they exist ?
 
-    // ??? the damn issue with callback types... we cannot pass an object method ...
+    occDetect  -> setupOccDetect( 0 );      // fix: boardId
+    turnouts   -> setupTurnoutControl( 0 ); // fix: boardId
+    signals    -> setupSignalControl( 0 );  // fix: boardId
 
-    // ??? setup occDetect, turnout and signal object
+    // registering the OCC, T and S need port number.
 
-    // ??? setup block objects
+    // Setup block objects according to resource map.
 
+    for ( int i = 0; i < blockHwm; i++ ) {
+        
+        blocks[ i ] ->setupBlockControl( ); // fix: what needs to be passed ?
 
+        // ??? register callbacks or let the node decode and invoke ??
+    }
+
+   
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::nodeInitCallback( uint16_t npId, void *uData ) {
 
-    if ( nodeDebugEnabled( )) {
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsBlockNode::initCallbackHandler( uint16_t npId, void *uData ) {
+
+     if ( nodeDebugEnabled( )) {
 
         printf( "Node Init CallBack, npId: 0x%4x\n", npId );
     }
@@ -161,112 +273,70 @@ uint8_t LcsBlockNode::nodeInitCallback( uint16_t npId, void *uData ) {
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::nodeResetCallback( uint16_t npId, void *uData )  {
+uint8_t  LcsBlockNode::pfailCallbackHandler( uint16_t npId, void *uData ) {
 
     if ( nodeDebugEnabled( )) {
 
-        printf( "Node Reset CallBack, npId: 0x%4x\n", npId );
-    }
-
+        printf( "Node PFail CallBack, npId: 0x%4x\n", npId );
+    }   
 
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::nodePfailCallback( uint16_t npId, void *uData )  {
+    
+uint8_t  LcsBlockNode::lcsMsgCallbackHandler( uint8_t *msg, void *uData ) {
 
     if ( nodeDebugEnabled( )) {
 
-        printf( "Node Pfail CallBack, npId: 0x%4x\n", npId );
+        printf( "Node Msg CallBack: " );
+        printLcsMsg( msg );
     }
-
 
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::nodeLcsMsgCallback( uint8_t *msg, void *uData )  {
+uint8_t  LcsBlockNode::dccMsgCallbackHandler( uint8_t *msg, void *uData ) {
 
     if ( nodeDebugEnabled( )) {
 
-        uint8_t buf[ 8 ];
-
-        printf( "Node LCS Msg CallBack, msg: %s", 
-                lcsMsgStr( msg, buf, sizeof( buf )));
+        printf( "Node Msg CallBack: " );
+        printLcsMsg( msg );
     }
-
 
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode:: nodeReqCallback( uint16_t npId, 
+uint8_t LcsBlockNode::reqCallbackHandler( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t *arg1, 
                                   uint16_t *arg2, 
                                   void *uData ) {
-                                    
+
     if ( nodeDebugEnabled( )) {
 
-        printf( "Node REQ callback: npId: 0x%x, item: %d", npId, item );
-    
-        if ( arg1 != nullptr ) printf( ", arg1: %d ", *arg1 ); 
-        else printf( ", arg1: null" );
-    
-        if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
-        else printf( ", arg2: null" );
-        printf( "\n" );
+        printf( "Node Req CallBack, npId: 0x%4x, item: %d, arg1: %d, arg2: %d\n", 
+                npId, item, *arg1, *arg2 );
     }
-
 
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode::nodeRepCallback( uint16_t npId, 
+uint8_t LcsBlockNode::repCallbackHandler( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t arg1, 
                                   uint16_t arg2, 
                                   uint8_t ret, 
                                   void *uData ) {
-                                    
+
     if ( nodeDebugEnabled( )) {
-
-        printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d\n", 
-                npId, item , arg1, arg2, ret );
+        printf( "Node Rep CallBack, npId: 0x%4x, item: %d, arg1: %d, arg2: %d, ret: %d\n", 
+                npId, item, arg1, arg2, ret );
     }
-
 
     return( RET_STAT( NO_ERR ));
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBlockNode:: nodeEventCallback( uint16_t npId, 
+uint8_t  LcsBlockNode::eventCallbackHandler( uint16_t npId, 
                                     uint16_t eId, 
                                     uint8_t eAction, 
                                     uint16_t eData, 
@@ -274,11 +344,10 @@ uint8_t LcsBlockNode:: nodeEventCallback( uint16_t npId,
 
 
     if ( nodeDebugEnabled( )) {
-
-        printf( "EVT callback: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+        printf( "Node Event CallBack, npId: 0x%4x, eId: %d, eAction: %d, eData: %d\n", 
                 npId, eId, eAction, eData );
     }
 
-
     return( RET_STAT( NO_ERR ));
 }
+

@@ -173,7 +173,6 @@ uint8_t setupDefaultHeaderMap( ) {
     headerMap.map[0].boardInfo      = dMap.boardInfo;
     headerMap.map[0].boardVersion   = dMap.boardVersion;
     headerMap.map[0].boardCtrlInfo  = dMap.boardCtrlInfo;
-    strncpy( headerMap.map[0].boardName, dMap.boardName, MAX_RES_NAME_SIZE - 1 );
 
     for ( int i = 1; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
 
@@ -290,7 +289,6 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
     head.boardInfo      = 0;    // type/subtype
     head.boardVersion   = 0;    // major / sub version
     head.boardCtrlInfo  = 0;    // family / cType
-    snprintf( head.boardName, 8, "EXT-%d", boardId );
 
     return ( RET_STAT( extNvmPutBytes( boardId,
                                        0,
@@ -595,10 +593,6 @@ uint8_t setupNodeNvmHeader(CdcResourceDescMap *map)
 
     if ( hPtr->boardVersion != dMap.boardVersion ) {
 
-    }
-
-    if ( strncmp( hPtr -> boardName, dMap.boardName, MAX_RES_NAME_SIZE - 1 ) != 0 ) {
-    
     }
 
     if ( setupDebugEnabled( )) {

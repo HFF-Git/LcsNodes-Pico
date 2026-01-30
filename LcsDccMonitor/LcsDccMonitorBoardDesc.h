@@ -69,7 +69,6 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
     .boardInfo      = CDC_BT_MAIN_CONTROLLER, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 0 ),  
-    .boardName      = "LCS_DCC_MONITOR_BOARD_DESC_B_02_00",
            
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 

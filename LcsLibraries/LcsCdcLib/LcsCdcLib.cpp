@@ -436,9 +436,8 @@ uint8_t scanI2CBus( uint8_t rNum ) {
 //----------------------------------------------------------------------------------------
 void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
-    printf( "CDC Resource Descriptor Map for: " );
-    printf( "%s\n", dMap -> boardName );
-
+    printf( "CDC Resource Descriptor Map:" );
+ 
     printf( "Board Type: %d\n", dMap -> boardInfo );
     printf( "Board Controller: %d\n", dMap -> boardCtrlInfo );
     printf( "Board Version: %d.%d\n", ( dMap -> boardVersion >> 8 ) & 0xff,

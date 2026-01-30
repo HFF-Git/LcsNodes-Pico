@@ -75,8 +75,7 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
     //------------------------------------------------------------------------------------
     .boardInfo      = CDC_BT_BASE_STATION, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
-    .boardVersion   = (( 2U << 8 ) | 0 ),  
-    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_01_00",
+    .boardVersion   = (( 2U << 8 ) | 0 ), 
 
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 
@@ -163,7 +162,6 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
     .boardInfo      = CDC_BT_BASE_STATION, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 1U << 8 ) | 0 ),  
-    .boardName      = "LCS_BASE_STATION_BOARD_DESC_B_02_00",
 
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 

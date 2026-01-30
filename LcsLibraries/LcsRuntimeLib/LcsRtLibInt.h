@@ -246,7 +246,9 @@ struct LcsMsgBusCAN {
 //----------------------------------------------------------------------------------------
 // The CdcBoardDescMap structure defines what the board actually represents. It is 
 // also the first structure that can be found on the controller board NVM as well 
-// as the extension board NVM.
+// as the extension board NVM. For the smart extension boards that have a controller
+// on board themselves, the controller firmware is expected to return this data
+// just as if we read it from the NVM. The header structure is 32 bytes long.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBoardDesc {
@@ -256,7 +258,6 @@ struct LcsBoardDesc {
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
     uint16_t            reserved[ 11 ];
-    char                boardName[ MAX_RES_NAME_SIZE ];
 };
 
 //----------------------------------------------------------------------------------------

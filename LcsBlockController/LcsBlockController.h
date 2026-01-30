@@ -841,29 +841,32 @@ struct LcsBlockNode {
 
     uint8_t setupBlockNode( CdcResourceDescMap *dMap );
 
-    uint8_t nodeInitCallback( uint16_t npId, void *uData );
-    uint8_t nodeResetCallback( uint16_t npId, void *uData );
-    uint8_t nodePfailCallback( uint16_t npId, void *uData );
-    uint8_t nodeLcsMsgCallback( uint8_t *msg, void *uData );
+    uint8_t initCallbackHandler( uint16_t npId, void *uData );
+    uint8_t resetCallbackHandler( uint16_t npId, void *uData );
+    uint8_t pfailCallbackHandler( uint16_t npId, void *uData );
+    uint8_t lcsMsgCallbackHandler( uint8_t *msg, void *uData );
+    uint8_t dccMsgCallbackHandler( uint8_t *msg, void *uData );
 
-    uint8_t nodeReqCallback( uint16_t npId, 
+    uint8_t reqCallbackHandler( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t *arg1, 
                                   uint16_t *arg2, 
                                   void *uData );
 
-    uint8_t nodeRepCallback( uint16_t npId, 
+    uint8_t repCallbackHandler( uint16_t npId, 
                                   uint8_t item, 
                                   uint16_t arg1, 
                                   uint16_t arg2, 
                                   uint8_t ret, 
                                   void *uData );
 
-    uint8_t nodeEventCallback( uint16_t npId, 
+    uint8_t eventCallbackHandler( uint16_t npId, 
                                     uint16_t eId, 
                                     uint8_t eAction, 
                                     uint16_t eData, 
                                     void *uData );
+
+    
 
     void    syncPwmSignals( );
 
@@ -879,5 +882,31 @@ struct LcsBlockNode {
     LcsOccDetect        *occDetect      = nullptr;
     LcsTurnoutControl   *turnouts       = nullptr;
     LcsSignalControl    *signals        = nullptr;
-   
+
+    public:
+
+    static uint8_t nodeInitCallback( uint16_t npId, void *uData );
+    static uint8_t nodeResetCallback( uint16_t npId, void *uData );
+    static uint8_t nodePfailCallback( uint16_t npId, void *uData );
+    static uint8_t nodeLcsMsgCallback( uint8_t *msg, void *uData );
+    static uint8_t nodeDccMsgCallback( uint8_t *msg, void *uData );
+
+    static uint8_t nodeReqCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t *arg1, 
+                                  uint16_t *arg2, 
+                                  void *uData );
+
+    static uint8_t nodeRepCallback( uint16_t npId, 
+                                  uint8_t item, 
+                                  uint16_t arg1, 
+                                  uint16_t arg2, 
+                                  uint8_t ret, 
+                                  void *uData );
+
+    static uint8_t nodeEventCallback( uint16_t npId, 
+                                    uint16_t eId, 
+                                    uint8_t eAction, 
+                                    uint16_t eData, 
+                                    void *uData );
 };

@@ -433,15 +433,7 @@ void dumpNvmUserArea( ) {
 //----------------------------------------------------------------------------------------
 void printSummary( ) {
 
-    printf( "LCS Node: \"" );
-
-    for ( uint8_t i = 0; i < MAX_RES_NAME_SIZE; i++ ) {
- 
-        if ( headerMap.map[ 0 ].boardName[ i ] != 0 ) 
-            printf( "%c", headerMap.map[ 0 ].boardName[ i ] );
-    }
-
-    printf( "\"\n" );
+    printf( "LCS Node: \n" );
      
     printf( "Library Version: %d.%d, Patch Level: %d\n", 
             highByte( nodeMap.rtLibSwVersion ),
@@ -460,7 +452,6 @@ void printHeaderMap( ) {
         if ( headerMap.map[ i ].boardMword != 0 ) {
 
             printf( "%d: ", i );
-            printf( "Board: %s\n", headerMap.map[ i ].boardName );
             printf( "   " "Type: 0x%04x, Ctrl: 0x%04x, Version: 0x%04x\n",
                     headerMap.map[ i ].boardInfo,
                     headerMap.map[ i ].boardCtrlInfo,

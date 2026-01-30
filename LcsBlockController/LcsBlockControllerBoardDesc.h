@@ -103,8 +103,7 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
     .boardInfo      = CDC_BT_BLOCK_CONTROLLER, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 0U ),  
-    .boardName      = "LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00",
-            
+   
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 
     // reflect the board for which the resources are defined.
@@ -183,8 +182,7 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_QUAD_BOARD_DESC_B_02_00 = {
     .boardInfo      = CDC_BT_BLOCK_CONTROLLER, 
     .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 10U ),  
-    .boardName      = "LCS_BLOCK_CONTROLLER_QUAD_BOARD_DESC_B_02_00",
-            
+   
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 
     // reflect the board for which the resources are defined.

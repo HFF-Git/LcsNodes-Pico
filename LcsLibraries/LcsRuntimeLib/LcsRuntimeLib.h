@@ -27,8 +27,7 @@
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#ifndef LCS_RT_LIB_h
-#define LCS_RT_LIB_h
+#pragma once
 
 //----------------------------------------------------------------------------------------
 // Include files.
@@ -570,6 +569,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_NVM_SETUP                       = 6,
     ERR_MEM_SETUP                       = 7,
     ERR_CAN_SETUP                       = 8,
+    ERR_CALLBACK_NOT_REGISTERED         = 9,
 
     ERR_MWORD_NODE_HEADER               = 10,
     ERR_MWORD_NODE_MAP                  = 11,
@@ -897,5 +897,3 @@ uint8_t     usrNvmInitArea( uint32_t ofs, uint32_t len, uint8_t val);
 uint32_t    usrNvmGetSize( );
 
 }; // LCS NameSpace
-
-#endif

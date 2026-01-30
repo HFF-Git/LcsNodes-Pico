@@ -351,8 +351,8 @@ struct CdcResourceDesc {
 // initialization routine. The data is used in the configuration process of the 
 // particular hardware board. We will over time have several boards and consequently 
 // a map for each board version. The descriptor map will contain the board type,
-// version and controller family. There is the array of defined resource channels
-// for the board.
+// version, controller family and an array of defined resource channels for the
+// board.
 //
 //----------------------------------------------------------------------------------------
 struct CdcResourceDescMap {
@@ -360,7 +360,6 @@ struct CdcResourceDescMap {
     CdcBoardInfo        boardInfo;                      // board type/subtype
     CdcControllerInfo   boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
-    char                boardName[ MAX_RES_NAME_SIZE ];  
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };
 
