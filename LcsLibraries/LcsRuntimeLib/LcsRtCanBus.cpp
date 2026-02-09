@@ -5,16 +5,16 @@
 //----------------------------------------------------------------------------------------
 // The "LcsMsgBusCAN" object implements the LCS message bus as a CAN bus. The CAN 
 // bus is a widely established bus, which is quite robust. We use the standard CAN 
-// bus with a maximum CAN Id of 29 bits. In our case the 16 bit node / port ID along
-// with a 2 bit priority field is used as the CAN address.
+// bus with a maximum CAN Id of 29 bits. In our case the 16 bit node / port ID 
+// along with a 2 bit priority field is used as the CAN address.
 //
 // On the PICO, there is a library, "can2040", available that implements the CAN 
 // bus protocol in software, using the PICO PIO state machines. This saves us an 
-// external controller chip. In addition, we allow for the option to run the CAN bus
-// state machine on a separate core. This is highly recommend as the LCS Runtime has 
-// a lot of other things to do. Using a queue from the PICO C++ SDK, the core running 
-// the CAN state machine will just queue the received message to be picked up by the
-// other core when ready.
+// external controller chip. In addition, we allow for the option to run the CAN 
+// bus state machine on a separate core. This is highly recommend as the LCS Runtime
+// has a lot of other things to do. Using a queue from the PICO C++ SDK, the core
+// running the CAN state machine will just queue the received message to be picked
+// up by the other core when ready.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -319,11 +319,20 @@ void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the 
 // message priority. The message length is encoded in the first message byte, 
 // which represents the LCS message opCode as well as the length of the message. 
-// The message has a certain initial priority. When we cannot send the message right
-// away, the priority is raised. When we cannot send at the highest priority, the
-// message send failed.
+// The message has a certain initial priority. When we cannot send the message 
+// right away, the priority is raised. When we cannot send at the highest priority,
+// the message send failed.
+//
+// ??? should we add the req/rep table here ? 
 //
 // ??? what should happen when we send to a port on the same node ?
+// ??? we would perhaps bypass the req/rep tab business and simply queue the
+// message onto the receive queue, where it will be picked up by a receive call.
+// 
+// ??? BUT: the message queue is the can2040 message. We need to fill correctly
+// and also deal with the issues of node collision... we are the sender and 
+// receiver at the same time.
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
@@ -334,7 +343,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
-    if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_CAN_BUS )) {
+    if ( canBusDebugEnabled( )) {
 
         printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", 
                 getMillis( ), nodeId, msgPri );
@@ -353,22 +362,25 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "receiveLcsMsg" will check for a CAN Bus message and if one is available fill the
-// passed message buffer. With the "can2040" library CAN bus messages are received 
-// via a callback function, which will store the each received message in the local 
-// receiver queue. 
+// "receiveLcsMsg" will check for a CAN Bus message and if one is available fill 
+// the passed message buffer. With the "can2040" library CAN bus messages are 
+// received via a callback function, which will store the each received message 
+// in the local receiver queue. 
 //
-// Besides receiving a message, there is the handling of CAN Id collisions. When we 
-// detect a non-zero length message with a Can Id that is our own, we have a collision
-// and report an error. This could happen for example when a node hardware is connected
-// to another layout. Both nodes will then stop and wait for manual resolution.
+// Besides receiving a message, there is the handling of CAN Id collisions. When 
+// we detect a non-zero length message with a Can Id that is our own, we have a 
+// collision and report an error. This could happen for example when a node hardware
+// is connected to another layout. Both nodes will then stop and wait for manual
+// resolution.
 //
-// In addition to message processing, we also need to react to RTR messages by sending
-// a zero length message response. Replying to such a message from other nodes results
-// in a status return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS message was 
-// actually received. This is also the case when the message queue is empty.
+// In addition to message processing, we also need to react to RTR messages by 
+// sending a zero length message response. Replying to such a message from other 
+// nodes results in a status return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS
+// message was actually received. This is also the case when the message queue is
+// empty.
 //
-// ??? when we send to ourselves, what should happen ? it is not a collision per se.
+// ??? when we send to ourselves, what should happen ? it is not a collision.
+//  
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
