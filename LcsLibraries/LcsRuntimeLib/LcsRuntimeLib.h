@@ -780,6 +780,9 @@ uint8_t     registerDrvFunc( LcsReqCallback handler,
 //----------------------------------------------------------------------------------------
 // A set of convenience functions to send an LCS message.
 //
+// ??? we need to pass the sending node Id and port ID ?  
+// ??? the sender does not change the nodeId, but the port changes...
+// 
 //----------------------------------------------------------------------------------------
 uint8_t     sendCfg( uint16_t npId );
 uint8_t     sendOps( uint16_t npId );

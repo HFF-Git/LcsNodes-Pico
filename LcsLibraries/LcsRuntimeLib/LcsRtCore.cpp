@@ -181,6 +181,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
     switch ( msg[ 0 ] ) {
 
+        // ??? could also become REQ calls ....
+
         case LCS_OP_OPS: {
 
             nodeMap.nodeState = NS_OPERATE;
@@ -188,6 +190,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                 nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
+
+        // ??? could also become REQ calls ....
 
         case LCS_OP_CFG: {
 

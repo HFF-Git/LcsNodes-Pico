@@ -236,11 +236,12 @@ struct LcsMsgBusCAN {
 
     uint8_t     sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
     uint8_t     receiveLcsMsg( uint8_t *msg );
-    void        setNodeId( uint16_t nodeId );
+    void        setNodeId( uint8_t nodeId );
 
     private: 
 
-    uint16_t nodeId = NIL_NODE_ID;
+    uint8_t nodeId = NIL_NODE_ID;
+    uint8_t portId = NIL_PORT_ID;
 };
 
 //----------------------------------------------------------------------------------------

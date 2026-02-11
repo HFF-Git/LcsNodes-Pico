@@ -5,8 +5,8 @@
 //----------------------------------------------------------------------------------------
 // The "LcsMsgBusCAN" object implements the LCS message bus as a CAN bus. The CAN 
 // bus is a widely established bus, which is quite robust. We use the standard CAN 
-// bus with a maximum CAN Id of 29 bits. In our case the 16 bit node / port ID 
-// along with a 2 bit priority field is used as the CAN address.
+// bus with a maximum CAN Id of 29 bits. In our case the node and port data 
+// along with a 2 bit priority field represents the CAN address used on the bus.
 //
 // On the PICO, there is a library, "can2040", available that implements the CAN 
 // bus protocol in software, using the PICO PIO state machines. This saves us an 
@@ -60,7 +60,6 @@ extern "C" {
 namespace LCS {
 
     extern uint16_t debugMask;
-    
 };
 
 //----------------------------------------------------------------------------------------
@@ -79,13 +78,14 @@ using namespace LCS;
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   MAX_CAN_MSG_SIZE  = 8;
-const uint8_t   RX_QUEUE_SIZE     = 4;
+const uint8_t   RX_QUEUE_SIZE     = 8;
 const uint8_t   TX_RETRY_TIMEOUT  = 5;
 
 //----------------------------------------------------------------------------------------
-// The setup and start of the CAN Bus can run on ether core 0 or core 1, depending
-// whether a multi-core implementation is desired. The "Can2040ConfigDesc" structure 
-// holds all the necessary configuration data for the initialization routine to use.
+// The setup and start of the CAN Bus can run on either core zero or core one, 
+// depending whether a multi-core implementation is desired. The "Can2040ConfigDesc"
+// structure holds all the necessary configuration data for the initialization 
+// routine to use.
 //
 //----------------------------------------------------------------------------------------
 struct Can2040ConfigDesc {
@@ -110,10 +110,10 @@ struct can2040          cBus;
 queue_t                 rxQueue;
 
 //----------------------------------------------------------------------------------------
-// "canBusDebugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// "canBusDebugEnabled" and "retStat" are the debug support routines. We can 
+// easily check whether debug is enabled at all. The return status routine will 
+// print out a return status message when debugging is enabled. The macro 
+// "RET_STAT" is a nice helper that adds the function name to the message.
 // 
 //----------------------------------------------------------------------------------------
 inline bool canBusDebugEnabled(  ) {
@@ -135,16 +135,21 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// The "buildCanBusMsgHeader" constructs the canId header for the message. It encodes 
-// the canId itself and flags such as EXT or RTR. The canId consists of the nodeId 
-// and a priority field.
+// The "buildCanBusMsgHeader" constructs the canId header for the message. It 
+// encodes the canId itself and flags such as EXT or RTR. The canId consists of
+// the nodeId and a priority field.
 //
+// ??? change to have a nodeId and portId parameter ?
 //----------------------------------------------------------------------------------------
-inline uint32_t buildCanBusMsgHeader( uint16_t canId, 
+inline uint32_t buildCanBusMsgHeader( uint8_t nodeId,
+                                      uint8_t portId,
                                       uint8_t msgPri, 
                                       bool RTR = false ) {
 
-    uint32_t header = canId | ((uint32_t)( msgPri & 0x3 ) << 16 ) | 0x80000000;
+    uint32_t header = ((uint32_t)( msgPri & 0x3 ) << 16 ) |
+                      ((uint32_t)( nodeId << 8 ))         | 
+                      ((uint32_t)( portId ))              | 
+                      ((uint32_t)( 0x80000000 ));
 
     if ( RTR ) header |=  0x40000000;
 
@@ -307,10 +312,12 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
 }
 
 //----------------------------------------------------------------------------------------
-// The CAN bus used the nodeId as canBus Id.
+// The CAN bus used the nodeId as canBus Id. We use this data to check wether
+// the message to send is a local message, which we can directly queue onto the
+// receive queue. The nodeId should be set before sending any messages.
 //
 //----------------------------------------------------------------------------------------
-void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
+void LcsMsgBusCAN::setNodeId( uint8_t nodeId ) {
 
     this -> nodeId = nodeId; 
 }
@@ -333,12 +340,16 @@ void LcsMsgBusCAN::setNodeId( uint16_t nodeId ) {
 // and also deal with the issues of node collision... we are the sender and 
 // receiver at the same time.
 //
+// ??? the sendLcsMsg needs to be passed the nodeId / portId data. While the
+// nodeId is known, the portId is not. We could store it in the LcsMsgBusCAN
+// object when we configure the node. Or we pass it here.
 //----------------------------------------------------------------------------------------
+// uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t senderNpId, uint8_t targetNpId, uint8_t *msgBuf, uint8_t msgPri ) 
 uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 
     can2040_msg msg;
 
-    msg.id  = buildCanBusMsgHeader( nodeId, msgPri );
+    msg.id  = buildCanBusMsgHeader( nodeId, portId, msgPri );
     msg.dlc = ( msgBuf[ 0 ] >> 5 ) + 1;
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
@@ -350,6 +361,12 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
         printf( ")\n" );
     }
+
+    // ??? if we are the receiver node too, we could just queue the message
+    // ??? onto the receive queue here. A "local" send will directly 
+    // queue the message, with a NIL_NODE_ID sender Id. This way the receiver
+    // processing will recognize that it is a local message.
+
 
     if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
@@ -380,7 +397,10 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
 // empty.
 //
 // ??? when we send to ourselves, what should happen ? it is not a collision.
-//  
+// ??? when we encounter a zero nodeId, we know it was send locally, and 
+// we will patch up the sender nodeId, which is our node Id. 
+//
+// ??? why is the extended Id only 14 bits ? 
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
 
