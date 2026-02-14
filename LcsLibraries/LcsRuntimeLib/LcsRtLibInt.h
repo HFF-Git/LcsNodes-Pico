@@ -100,7 +100,8 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 16;
-const uint16_t  MAX_EVENT_MAP_ENTRIES           = 1024;
+const uint16_t  MAX_CHANNEL_MAP_ENTRIES         = 16;
+const uint16_t  MAX_EVENT_MAP_ENTRIES           = 768;
 const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES     = 8;
 const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
@@ -365,20 +366,31 @@ struct LcsEventMap {
 // The port map contains an array of ports, each described by a port map entry. 
 // There are 16 entries in the port map. Port zero refers to the entire node, i.e. 
 // the node itself. When node data such as the node type is accessed it is actually 
-// taken from the P0 port map entry. Port 1 to 15 are regular ports. In addition, 
-// P1 to P4 are optionally associated with an extension board if one is detected 
-// during startup. 
+// taken from the P0 port map entry. Port 1 to 15 are regular ports. 
 //
 // Each port has an area of attributes, which are stored in the data block area. 
 // They map to ITEM numbers 128 to 255 and are accessed via GET/SET calls. In 
-// addition, each port supports a set of request functions, which are mapped also
-// from 128 to 255 and accessed via REQ calls.
+// addition, each port supports a set of request functions, which are mapped to 
+// item 64 to 127. The item numbers 0 to 63 are reserved for node specific
+// purposes.
+//
+// P1 to P14 can be associated with a hardware device, such as an extension board
+// or a satellite board. They all connect via the I2C bus. The port entry has a
+// channel map, where the channel type and the I2C address are kept.
 //
 // The portMap entry furthermore contains the fields that deal with the actual event 
 // received that the port is interested in. There are fields for the sending node, 
 // the event itself and its action. An event can also be invoked with a delay time.
 //
-// ??? the port association to hardware needs to change... !!!!!
+// ??? we could have a fixed mapping from port/channel to I2C Adr.
+// ??? how would it work with hardware that has fixed I2C addresses ?
+// ??? we could have map which when used will have another I2C address with the channel.
+//
+// ??? anything we need to remember about a pending request?
+//
+// ??? cold we register a channel callback here ? It would replace the "driver"
+// map concept.
+//
 //----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
@@ -401,6 +413,8 @@ struct LcsPortMapEntry {
     uint16_t            eventAction                 = PEA_EVENT_IDLE;
     uint16_t            eventDelayTime              = 0;
     uint32_t            eventTimeStamp              = 0L;
+
+    uint16_t            channelMap[ MAX_CHANNEL_MAP_ENTRIES ];
 };
 
 struct LcsPortMap {
@@ -437,6 +451,7 @@ struct LcsTaskMap {
 // expect a reply. Additionally, there is a timeout value, so that we can invoke 
 // the reply callback when the request times out or is lost.
 //
+// ??? this could go to the CanBus layer ?
 //----------------------------------------------------------------------------------------
 struct LcsPendingReqEntry {
 
@@ -457,6 +472,9 @@ struct LcsPendingReqMap {
 // required to register a callback, i.e. driver, for each driver type used. The type
 // and function label for extension boards are kept in the driver function map. 
 //
+// ??? perhaps this changes too. We could have a function per channel registered.
+// ??? the benefit would be great flexibility how a channel works.
+// ??? alternative: one callback per port, all channels are the same...
 //----------------------------------------------------------------------------------------
 struct LcsDrvFuncEntry {
 
