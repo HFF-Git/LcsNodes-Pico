@@ -221,9 +221,7 @@ enum MsgPriority : uint8_t {
 
 //----------------------------------------------------------------------------------------
 // "LcsMsgBusCAN" is the CAN bus interface. The two key routines are the send and 
-// receive routines. For debugging purposes a debug level can be set so that diagnostic
-// messages are displayed to the console. A CAN bus message will use the nodeId as the
-// canBus Id.
+// receive routines. A CAN bus message will use the nodeId as the canBus Id.
 //
 //----------------------------------------------------------------------------------------
 struct LcsMsgBusCAN {
@@ -235,14 +233,18 @@ struct LcsMsgBusCAN {
                         uint32_t baudRate   = 125000, 
                         bool     twoCores   = false );
 
-    uint8_t     sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri = MSG_PRI_NORMAL );
-    uint8_t     receiveLcsMsg( uint8_t *msg );
-    void        setNodeId( uint8_t nodeId );
+    uint8_t     sendLcsMsg ( uint16_t sendingNpId, 
+                             uint8_t *msgBuf, 
+                             uint8_t msgPri = MSG_PRI_NORMAL );
+
+    uint8_t     receiveLcsMsg( uint16_t *senderNpId, 
+                               uint8_t *msg );
+
+    void        setNodeId( uint8_t npId );
 
     private: 
 
-    uint8_t nodeId = NIL_NODE_ID;
-    uint8_t portId = NIL_PORT_ID;
+    uint8_t nodeId = 0;
 };
 
 //----------------------------------------------------------------------------------------

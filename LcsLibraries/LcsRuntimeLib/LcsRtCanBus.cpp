@@ -137,18 +137,16 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //----------------------------------------------------------------------------------------
 // The "buildCanBusMsgHeader" constructs the canId header for the message. It 
 // encodes the canId itself and flags such as EXT or RTR. The canId consists of
-// the nodeId and a priority field.
+// the npId and a priority field.
 //
-// ??? change to have a nodeId and portId parameter ?
 //----------------------------------------------------------------------------------------
-inline uint32_t buildCanBusMsgHeader( uint8_t nodeId,
-                                      uint8_t portId,
+inline uint32_t buildCanBusMsgHeader( uint8_t npId,
+                        
                                       uint8_t msgPri, 
                                       bool RTR = false ) {
 
     uint32_t header = ((uint32_t)( msgPri & 0x3 ) << 16 ) |
-                      ((uint32_t)( nodeId << 8 ))         | 
-                      ((uint32_t)( portId ))              | 
+                      ((uint32_t)( npId ))                | 
                       ((uint32_t)( 0x80000000 ));
 
     if ( RTR ) header |=  0x40000000;
@@ -317,92 +315,122 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
 // receive queue. The nodeId should be set before sending any messages.
 //
 //----------------------------------------------------------------------------------------
-void LcsMsgBusCAN::setNodeId( uint8_t nodeId ) {
+void LcsMsgBusCAN::setNodeId( uint8_t npId ) {
 
-    this -> nodeId = nodeId; 
+    this -> nodeId = npId; 
 }
 
 //----------------------------------------------------------------------------------------
 // "sendLcsMsg" will send a data packet. We are passed the message buffer and the 
 // message priority. The message length is encoded in the first message byte, 
 // which represents the LCS message opCode as well as the length of the message. 
-// The message has a certain initial priority. When we cannot send the message 
-// right away, the priority is raised. When we cannot send at the highest priority,
-// the message send failed.
 //
-// ??? should we add the req/rep table here ? 
+// There are two main cases. When the message is targeted for the local node, we 
+// potentially queue the message onto the receive queue, if the message type is
+// supporting this local send.  In all other cases the message should be sent. 
+// However, when the message is targeted at the local node but is not of the 
+// aforementioned type, we return an error. Otherwise we send it on the CAN bus. 
+// When the send fails, we will retry a few times by raising the message priority. 
+// When the message cannot be sent at the highest priority, we report a send error.
 //
-// ??? what should happen when we send to a port on the same node ?
-// ??? we would perhaps bypass the req/rep tab business and simply queue the
-// message onto the receive queue, where it will be picked up by a receive call.
-// 
-// ??? BUT: the message queue is the can2040 message. We need to fill correctly
-// and also deal with the issues of node collision... we are the sender and 
-// receiver at the same time.
+// Note that a message that is broadcasted to all nodes, is not considered a local 
+// message and cannot be linked to a callback. The only exception is an EVENT
+// style message, which us handled at the event processing loop.
 //
-// ??? the sendLcsMsg needs to be passed the nodeId / portId data. While the
-// nodeId is known, the portId is not. We could store it in the LcsMsgBusCAN
-// object when we configure the node. Or we pass it here.
 //----------------------------------------------------------------------------------------
-// uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t senderNpId, uint8_t targetNpId, uint8_t *msgBuf, uint8_t msgPri ) 
-uint8_t LcsMsgBusCAN::sendLcsMsg ( uint8_t *msgBuf, uint8_t msgPri ) {
+uint8_t LcsMsgBusCAN::sendLcsMsg (  uint16_t sendingNpId, 
+                                    uint8_t *msgBuf,
+                                    uint8_t msgPri ) {
 
     can2040_msg msg;
 
-    msg.id  = buildCanBusMsgHeader( nodeId, portId, msgPri );
+    msg.id  = buildCanBusMsgHeader( sendingNpId, msgPri );
     msg.dlc = ( msgBuf[ 0 ] >> 5 ) + 1;
 
     for ( uint32_t i = 0; i < msg.dlc; i++ ) msg.data[ i ] = msgBuf[ i ];
 
     if ( canBusDebugEnabled( )) {
 
-        printf( "CAN Send (TS: 0x%x)(Id: 0x%x, Pri: %d)(Data: ", 
-                getMillis( ), nodeId, msgPri );
+        printf( "CAN Send (TS: 0x%x)(S-Id: 0x%x, Pri: %d)(Data: ", 
+                getMillis( ), sendingNpId, msgPri );
         for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
         printf( ")\n" );
     }
 
-    // ??? if we are the receiver node too, we could just queue the message
-    // ??? onto the receive queue here. A "local" send will directly 
-    // queue the message, with a NIL_NODE_ID sender Id. This way the receiver
-    // processing will recognize that it is a local message.
+    uint8_t msgOp = msgBuf[ 0 ];
 
+    if (( msgOp == LCS_OP_NODE_GET ) ||
+        ( msgOp == LCS_OP_NODE_SET ) ||
+        ( msgOp == LCS_OP_NODE_REQ ) ||
+        ( msgOp == LCS_OP_NODE_REP )) { 
 
-    if ( can2040_transmit( &cBus, &msg ) != 0 ) {
+        uint16_t targetNpId = msg.data[ 1 ] << 8 | msg.data[ 2 ]; 
 
-        sleepMillis( TX_RETRY_TIMEOUT );
+        if ( equalNodeId( sendingNpId, targetNpId )) {
 
-        if ( msgPri > MSG_PRI_VERY_HIGH ) return ( sendLcsMsg( msgBuf, msgPri - 1 ));
-        else                              return ( ERR_CAN_MSG_SEND );
+            msg.id = buildCanBusMsgHeader( buildNpId( NIL_NODE_ID,
+                                           portId( sendingNpId ), 
+                                           chanId( sendingNpId )), msgPri );
 
-    } else return ( RET_STAT( LCS_OK ));
+            if ( ! queue_try_add( &rxQueue, &msg )) {
+
+                return ( RET_STAT( ERR_CAN_MSG_SEND ));
+            }
+        }
+    }
+    else {
+
+        if (( msgOp == LCS_OP_RESET )) {
+
+            // ??? gather all routines that should not send to ourselves.
+            // ??? e.g. RESET...
+
+            return ( RET_STAT( ERR_CAN_MSG_SEND ));
+        }
+
+        if ( can2040_transmit( &cBus, &msg ) != 0 ) {
+
+            sleepMillis( TX_RETRY_TIMEOUT );
+
+            if ( msgPri > MSG_PRI_VERY_HIGH ) {
+                
+                return ( sendLcsMsg( sendingNpId, 
+                                     msgBuf, 
+                                     msgPri - 1 ));
+            }
+            else return ( ERR_CAN_MSG_SEND );
+        } 
+    }
+
+    return ( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
-// "receiveLcsMsg" will check for a CAN Bus message and if one is available fill 
-// the passed message buffer. With the "can2040" library CAN bus messages are 
-// received via a callback function, which will store the each received message 
-// in the local receiver queue. 
+// "receiveLcsMsg" will check for a message on the receiver queue. The CAN Bus 
+// library will place a message received onto this queue. In addition, local 
+// massages, i.e. messages send to the our own node, will also be placed in the
+// receiver queue. 
 //
-// Besides receiving a message, there is the handling of CAN Id collisions. When 
-// we detect a non-zero length message with a Can Id that is our own, we have a 
+// Besides receiving a message, there is the handling of Node Id collisions. When 
+// we detect a non-zero length message with a Node Id that is our own, we have a 
 // collision and report an error. This could happen for example when a node hardware
 // is connected to another layout. Both nodes will then stop and wait for manual
-// resolution.
+// resolution. 
 //
-// In addition to message processing, we also need to react to RTR messages by 
-// sending a zero length message response. Replying to such a message from other 
+// In the local case, however, the check for a collision should not be done, as 
+// the message is send by ourselves. The sending routine will send with the NIL 
+// node Id to indicate that our node is the sender. In this case we can just patch
+// up the sender node Id to be our own node Id. This is a bit of a hack, but it 
+//saves us from having to do a check for local messages at the higher level.
+//
+// In addition to message processing, we also need to react to CAN Bus RTR messages
+// by sending a zero length message response. Replying to such a message from other 
 // nodes results in a status return of "ERR_CAN_MSG_NO_MSG" on this call as no LCS
 // message was actually received. This is also the case when the message queue is
 // empty.
 //
-// ??? when we send to ourselves, what should happen ? it is not a collision.
-// ??? when we encounter a zero nodeId, we know it was send locally, and 
-// we will patch up the sender nodeId, which is our node Id. 
-//
-// ??? why is the extended Id only 14 bits ? 
 //----------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
+uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
 
     can2040_msg msg;
 
@@ -416,17 +444,29 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
             printf( ")\n" );
         }
 
-        bool      rtrFlag       = ( msg.id & 0x40000000 );
-        bool      extFlag       = ( msg.id & 0x80000000 );
-        uint16_t  remoteNodeId  = (( extFlag ) ? ( msg.id & 0x3FFF ) : ( msg.id & 0x7F ));
+        bool      rtrFlag     = ( msg.id & 0x40000000 );
+        bool      extFlag     = ( msg.id & 0x80000000 );
+        uint16_t  remoteNpId  = (( extFlag ) ? ( msg.id & 0xFFFF ) : ( msg.id & 0x7F ));
 
-        if (( remoteNodeId == nodeId ) && ( msg.dlc > 0 )) {
+        if ( equalNodeId( remoteNpId, NIL_NODE_ID )) {
+
+            *senderNpId = buildNpId( nodeId, 
+                                     portId( remoteNpId ), 
+                                     chanId( remoteNpId ));
+
+            memcpy( msgBuf, msg.data, msg.dlc );
+            return ( RET_STAT( LCS_OK ));
+        }
+
+        if ( equalNodeId( remoteNpId, nodeId ) && ( msg.dlc > 0 )) {
 
             return ( RET_STAT( ERR_CAN_ID_COLLISION ));
         }
         else if ( rtrFlag ) {
 
-            msg.id          = nodeId;
+            msg.id          = buildNpId( nodeId, 
+                                         portId( 0 ), 
+                                         chanId( 0 ));
             msg.dlc         = 0;
             msg.data32[ 0 ] = 0;
             msg.data32[ 1 ] = 0;
@@ -436,6 +476,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint8_t *msgBuf ) {
         }
         else {
 
+            *senderNpId = remoteNpId;
             memcpy( msgBuf, msg.data, msg.dlc );
             return ( RET_STAT( LCS_OK ));
         }

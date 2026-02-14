@@ -406,17 +406,20 @@ enum LcsItems : uint8_t {
       
     ITEM_ID_NODE_STATE                  = 12,   // GET / SET
     ITEM_ID_NODE_ID                     = 13,   // GET / SET
-    ITEM_ID_NODE_UID                    = 14,   // GET / SET
+   
     ITEM_ID_RESTART_COUNT               = 15,   // GET / SET
     
-    ITEM_ID_PORT_MAP_ENTRIES            = 16,   // GET / SET
-    ITEM_ID_EVENT_MAP_ENTRIES           = 17,   // GET / SET
-    ITEM_ID_ATTR_MAP_ENTRIES            = 18,   // GET / SET
+    ITEM_ID_PORT_MAP_ENTRIES            = 16,   // GET
+    ITEM_ID_PORT_MAP_HWM                = 17,   // GET
+    ITEM_ID_EVENT_MAP_ENTRIES           = 18,   // GET
+    ITEM_ID_EVENT_MAP_HWM               = 19,   // GET
+    ITEM_ID_ATTR_MAP_ENTRIES            = 20,   // GET
 
     // ??? sort the function requests ? start with numbers 64 ... 
 
-    ITEM_ID_RESET                       = 22,   // REQ
+    ITEM_ID_RESET                       = 21,   // REQ
     
+    ITEM_ID_GET_NODE_UID                = 14,   // REQ
     ITEM_ID_SYNC_EVENT_MAP_MEM          = 23,   // REQ
     ITEM_ID_SYNC_EVENT_MAP_NVM          = 24,   // REQ
     ITEM_ID_SYNC_TO_NVM                 = 25,   // REQ
@@ -497,13 +500,12 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_OPS              = OPC( 0, 2 ),
     LCS_OP_BON              = OPC( 0, 3 ),
     LCS_OP_BOF              = OPC( 0, 4 ),
+    LCS_OP_ESTP             = OPC( 0, 5 ),
    
     LCS_OP_REL_LOC          = OPC( 1, 1 ),
     LCS_OP_QRY_LOC          = OPC( 1, 2 ),
     LCS_OP_KEEP_LOC         = OPC( 1, 3 ),
-    LCS_OP_ESTP             = OPC( 1, 4 ),
-
-    LCS_OP_PING             = OPC( 2, 1 ),
+    
     LCS_OP_ACK              = OPC( 2, 2 ),
     LCS_OP_DCC_ACK          = OPC( 2, 3 ),
     LCS_OP_SET_LSPD         = OPC( 2, 4 ),
@@ -537,17 +539,23 @@ enum LcsMsgOpCodes : uint8_t {
 
     LCS_OP_EVT              = OPC( 6, 1 ),
     LCS_OP_SEND_DCC6        = OPC( 6, 2 ),
-    LCS_OP_NCOL             = OPC( 6, 6 ),
+    LCS_OP_NCOL             = OPC( 6, 8 ),
+
+    LCS_OP_NODE_GET         = OPC( 6, 4 ),
+    LCS_OP_NODE_SET         = OPC( 6, 5 ),
+    LCS_OP_NODE_REQ         = OPC( 6, 6 ),
+    LCS_OP_NODE_REP         = OPC( 6, 7 ),
 
     LCS_OP_REQ_NID          = OPC( 7, 1 ),
     LCS_OP_REP_NID          = OPC( 7, 2 ),
     LCS_OP_SET_NID          = OPC( 7, 3 ),
-    LCS_OP_NODE_GET         = OPC( 7, 4 ),
-    LCS_OP_NODE_PUT         = OPC( 7, 5 ),
-    LCS_OP_NODE_REQ         = OPC( 7, 6 ),
-    LCS_OP_NODE_REP         = OPC( 7, 7 ),
+    LCS_OP_NODE_GET2        = OPC( 7, 4 ),
+    LCS_OP_NODE_SET2        = OPC( 7, 5 ),
+    LCS_OP_NODE_REQ2        = OPC( 7, 6 ),
+    LCS_OP_NODE_REP2        = OPC( 7, 7 ),
     LCS_OP_REP_LOC          = OPC( 7, 8 ),
-    LCS_INFO                = OPC( 7, 9 )
+    LCS_TIME                = OPC( 7, 9 ),
+    LCS_INFO                = OPC( 7, 10 )
 };
 
 //----------------------------------------------------------------------------------------
@@ -726,12 +734,8 @@ uint8_t     startRuntime( );
 // broadcasted.
 //
 //----------------------------------------------------------------------------------------
-uint8_t     nodeGet( uint16_t npId, 
-                     uint8_t  item, 
-                     uint16_t *arg1,
-                     uint16_t *arg2 = nullptr );
-
-uint8_t     nodeSet( uint16_t npId, uint8_t item, uint16_t arg1, uint16_t arg2 = 0 );
+uint8_t     nodeGet( uint16_t npId, uint8_t  item, uint16_t *arg );
+uint8_t     nodeSet( uint16_t npId, uint8_t item, uint16_t arg );
 
 uint8_t     nodeReq( uint16_t npId, 
                      uint8_t item, 
@@ -778,59 +782,79 @@ uint8_t     registerDrvFunc( LcsReqCallback handler,
                              void *uData = nullptr );
 
 //----------------------------------------------------------------------------------------
-// A set of convenience functions to send an LCS message.
-//
-// ??? we need to pass the sending node Id and port ID ?  
-// ??? the sender does not change the nodeId, but the port changes...
+// A set of convenience functions to send an LCS message. The routines take care 
+// of the message formatting and sending. 
 // 
+//
+// ??? rethink this. For consistency, should we always pass the sender ?
 //----------------------------------------------------------------------------------------
-uint8_t     sendCfg( uint16_t npId );
-uint8_t     sendOps( uint16_t npId );
-uint8_t     sendReset( uint16_t npId );
+uint8_t     sendCfg( uint16_t targetNpId );
+uint8_t     sendOps( uint16_t targetNpId );
+uint8_t     sendReset( uint16_t targetNpId );
 uint8_t     sendBusOn( );
 uint8_t     sendBusOff( );
-uint8_t     sendPing( uint16_t npId );
-uint8_t     sendAck( uint16_t npId );
 
-uint8_t     sendErr( uint16_t npId, 
+uint8_t     sendReqNodeId( uint16_t sendingNpId,
+                           uint32_t nodeUID, 
+                           uint8_t flags );
+
+uint8_t     sendRepNodeId( uint16_t sendingNpId,
+                           uint32_t nodeUID );
+
+uint8_t     sendSetNodeId( uint16_t sendingNpId,
+                           uint32_t nodeUID );
+
+uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
+                                 uint32_t nodeUID );
+
+uint8_t     sendAck( uint16_t sendingNpId,
+                     uint16_t targetNpId );
+
+uint8_t     sendErr( uint16_t sendingNpId, 
+                     uint16_t targetNpId,
                      uint8_t errCode, 
                      uint8_t arg1 = 0, 
                      uint8_t arg2 = 0 );
 
-uint8_t     sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags );
-uint8_t     sendRepNodeId( uint16_t npId, uint32_t nodeUID );
-uint8_t     sendSetNodeId( uint16_t npId, uint32_t nodeUID );
-uint8_t     sendNodeIdCollision( uint16_t npId, uint32_t nodeUID );
-
-uint8_t     sendGetNode( uint16_t npId, 
+uint8_t     sendGetNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
                          uint8_t item, 
-                         uint16_t arg1 = 0, 
-                         uint16_t arg2 = 0 );
+                         uint16_t arg );
 
-uint8_t     sendSetNode( uint16_t npId, 
+uint8_t     sendSetNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,    
                          uint8_t item, 
-                         uint16_t arg1 = 0, 
-                         uint16_t arg2 = 0 );
+                         uint16_t arg );
 
-uint8_t     sendRepNode( uint16_t npId, 
+uint8_t     sendReqNode( uint16_t sendingNpId,  
+                         uint16_t targetNpId,
+                         uint8_t item,    
+                         uint16_t val1, 
+                         uint16_t val2  );
+
+uint8_t     sendRepNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,
                          uint8_t item, 
                          uint16_t val1, 
                          uint16_t val2  );
 
-uint8_t     sendReqNode( uint16_t npId, 
-                         uint8_t item, 
-                         uint16_t val1, 
-                         uint16_t val2  );
+uint8_t     sendEventOn( uint16_t sendingNpId, 
+                         uint16_t eventId );
 
-uint8_t     sendEventOn( uint16_t npId, uint16_t eventId );
-uint8_t     sendEventOff( uint16_t npId, uint16_t eventId );
-uint8_t     sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg );
+uint8_t     sendEventOff( uint16_t sendingNpId, 
+                          uint16_t eventId );
+
+uint8_t     sendEvent( uint16_t sendingNpId,
+                       uint16_t eventId, 
+                       uint16_t arg );
 
 uint8_t     sendTrackOn( );
 uint8_t     sendTrackOff( );
 uint8_t     sendEstop( );
 
-uint8_t     sendReqLoc( uint16_t locAdr, uint8_t flags  );
+uint8_t     sendReqLoc( uint16_t locAdr, 
+                        uint8_t flags  );
+
 uint8_t     sendRelLoc( uint8_t sId  );
 
 uint8_t     sendRepLoc( uint8_t sId, 
@@ -840,27 +864,62 @@ uint8_t     sendRepLoc( uint8_t sId,
                         uint8_t fn2 = 0, 
                         uint8_t fn3 = 0 );
 
-uint8_t     sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags );
+uint8_t     sendLocConsist( uint8_t sId, 
+                            uint8_t consId, 
+                            uint8_t flags );
+
 uint8_t     sendQueryLoc( uint8_t sId  );
+
 uint8_t     sendKeepLoc( uint8_t sId  );
-uint8_t     sendSetLocSpDir( uint8_t sId, uint8_t spDir );
-uint8_t     sendSetLocMode( uint8_t sId, uint8_t mode );
-uint8_t     sendSetLocFuncOn( uint8_t sId, uint8_t fNum );
-uint8_t     sendSetLocFuncOff( uint8_t sId, uint8_t fNum );
-uint8_t     sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data );
 
-uint8_t     sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val );
-uint8_t     sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val );
-uint8_t     sendReqLocCvProg( uint16_t cvId, uint8_t mode );
-uint8_t     sendRepLocCvProg( uint16_t cvId, uint8_t val );
+uint8_t     sendSetLocSpDir( uint8_t sId, 
+                             uint8_t spDir );
 
-uint8_t     sendSetBacc( uint16_t accAdr, uint8_t flags  );
-uint8_t     sendSetEacc( uint16_t accAdr, uint8_t val  );
+uint8_t     sendSetLocMode( uint8_t 
+                            sId, 
+                            uint8_t mode );
 
-uint8_t     sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 );
-uint8_t     sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 );
+uint8_t     sendSetLocFuncOn( uint8_t sId, 
+                              uint8_t fNum );
+
+uint8_t     sendSetLocFuncOff( uint8_t sId, 
+                               uint8_t fNum );
+
+uint8_t     sendSetLocFgroup( uint8_t sId, 
+                              uint8_t fGroup, 
+                              uint8_t data );
+
+uint8_t     sendSetLocCvMain( uint8_t sId, 
+                              uint16_t cvId, 
+                              uint8_t mode, 
+                              uint8_t val );
+
+uint8_t     sendSetLocCvProg( uint16_t cvId, 
+                              uint8_t mode, 
+                              uint8_t val );
+
+uint8_t     sendReqLocCvProg( uint16_t cvId, 
+                              uint8_t mode );
+
+uint8_t     sendRepLocCvProg( uint16_t cvId, 
+                              uint8_t val );
+
+uint8_t     sendSetBacc( uint16_t accAdr, 
+                         uint8_t flags  );
+
+uint8_t     sendSetEacc( uint16_t accAdr, 
+                         uint8_t val  );
 
 uint8_t     sendDccPacket( uint8_t arg1, 
+                           uint8_t arg2, 
+                           uint8_t arg3 );
+
+uint8_t     sendDccPacket( uint8_t arg1, 
+                           uint8_t arg2, 
+                           uint8_t arg3, 
+                           uint8_t arg4 );
+
+uint8_t     sendDccPacket( uint8_t arg1,
                            uint8_t arg2, 
                            uint8_t arg3, 
                            uint8_t arg4, 
@@ -874,10 +933,15 @@ uint8_t     sendDccPacket( uint8_t arg1,
                            uint8_t arg6 );
 
 uint8_t     sendDccAck( );
-uint8_t     sendDccErr( uint8_t errCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
+
+uint8_t     sendDccErr( int8_t errCode, 
+                        uint8_t arg1 = 0, 
+                        uint8_t arg2 = 0 );
 
 uint8_t     sendRawMsg( uint8_t *msgBuf );
+
 void        printLcsMs( uint8_t *msgBuf );
+
 int         lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen );
 
 

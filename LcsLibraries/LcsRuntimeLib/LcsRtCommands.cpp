@@ -622,40 +622,37 @@ void switchToOperationsCommand( char *s ) {
 // "g" handles the node/port attribute query command. If the node is our node, we 
 // call the local access routines. Otherwise we send a message.
 //
-//    <!g npId item [ val1 [ val2 ]]>
+//    <!g npId item [ val ]>
 //
 //    npId      - the node/port Id.
 //    item      - the node item to query, the result will be listed in HEX format.
-//    val1      - the argument 1 on input.
-//    val2      - the argument 2 on input.
+//    val       - the argument 1 on input.
 //
 //----------------------------------------------------------------------------------------
 void getNodeCommand( char *s ) {
 
     int     npId    = 0;
     int     item    = 0;
-    int     arg1    = 0;
-    int     arg2    = 0;
+    int     arg     = 0;
     uint8_t ret     = LCS_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg1, &arg2 ) < 2 ) 
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &arg ) < 2 ) 
         return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
-    uint16_t tmpArg1    = (uint16_t) arg1;
-    uint16_t tmpArg2    = (uint16_t) arg2;
+    uint16_t tmpArg     = (uint16_t) arg;
 
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
-        ret = nodeGet ( tmpNpId, tmpItem, &tmpArg1, &tmpArg2 );
+        ret = nodeGet ( tmpNpId, tmpItem, &tmpArg );
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
-        else printf( "Node: 0x%x, item: %d, arg1: 0x%x, arg2: 0x%x\n", 
-                     tmpNpId, tmpItem, tmpArg1, tmpArg2 );
+        else printf( "Node: 0x%x, item: %d, arg1: 0x%x\n", 
+                     tmpNpId, tmpItem, tmpArg );
     }
     else {
 
-        ret = sendGetNode( tmpNpId, tmpItem, tmpArg1, tmpArg2 );
+        ret = sendGetNode( 0, tmpNpId, tmpItem, tmpArg ); // ??? fix...
          if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
     }
 }
@@ -664,49 +661,46 @@ void getNodeCommand( char *s ) {
 // "p" handles the node or port attribute value set command. If the node is out node, 
 // we call the local access routines. Otherwise we send a message.
 //
-//    <!p npId item [ val1 [ val2 ]]>
+//    <!p npId item [ val ]>
 //
 //    npId      - the node/port Id.
 //    item      - the port item to control
-//    val1      - the item value 1
-//    val2      - the item value 2 ( optional )
+//    val      - the item value 1
 //
 //----------------------------------------------------------------------------------------
 void putNodeCommand( char *s ) {
 
     int     npId    = 0;
     int     item    = 0;
-    int     val1    = 0;
-    int     val2    = 0;
+    int     val     = 0;
     uint8_t ret     = LCS_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val1, &val2 ) < 2 ) 
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val ) < 2 ) 
         return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint8_t  tmpItem    = (uint8_t)  item;
-    uint16_t tmpVal1    = (uint16_t) val1;
-    uint16_t tmpVal2    = (uint16_t) val2;
+    uint16_t tmpVal     = (uint16_t) val;
 
-    printf ( "val1: %d\n", val1 );
+    printf ( "val: %d\n", val );
 
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodeSet( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        if ( ret != LCS_OK ) errStat((char *) "Node PUT error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
-                    tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        ret = nodeSet( tmpNpId, tmpItem, tmpVal );
+        if ( ret != LCS_OK ) errStat((char *) "Node SET error", ret );
+        else printf( "Node: 0x%x, item: %d, val: 0x%x\n", 
+                    tmpNpId, tmpItem, tmpVal );
     }
     else {
 
-        ret = sendSetNode( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        if ( ret != LCS_OK ) errStat((char *) "Remote Node PUT error", ret );
+        ret = sendSetNode( 0, tmpNpId, tmpItem, tmpVal ); // ??? fix ...
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node SET error", ret );
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "r" handles the node / port request command. If the node is out node, we call the 
-// local access routines. Otherwise we send a message.
+// "r" handles the node / port request command. If the node is out node, we call
+// the local access routines. Otherwise we send a message.
 //
 //    r npId item [ val1 [ val2 ]]
 //
@@ -743,7 +737,7 @@ void reqNodeCommand( char *s ) {
     }
     else {
 
-        ret = sendReqNode( tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        ret = sendReqNode( nodeMap.nodeId, tmpNpId, tmpItem, tmpVal1, tmpVal2 );
         if ( ret != LCS_OK ) errStat((char *) "Remote Node REQ error", ret );
     }
 }
@@ -808,7 +802,7 @@ void broadcastLcsMsgCommand( char *s ) {
 
         for ( int i = 0; i < 8; i++ ) b[ i ] == (uint8_t) inBuf[ i ];
 
-        uint8_t ret = msgBus -> sendLcsMsg( b ); 
+        uint8_t ret = msgBus -> sendLcsMsg( nodeMap.nodeId, b ); 
         if ( ret != LCS_OK ) errStat((char *) "Can Bus send error", ret );
     }
     else errArgList( );

@@ -76,7 +76,7 @@ void reset( uint16_t npId ) {
 
     if ( portId( npId ) == 0 ) {
 
-        sendAck( npId );
+        sendAck( nodeMap.nodeId, npId );
         sleepMillis( 10000 );
     }
     else {
@@ -84,7 +84,7 @@ void reset( uint16_t npId ) {
         // ??? have a reset callback ?
         // ??? for EXT devices invoke the RESET function on the handler
 
-        sendAck( npId );
+        sendAck( nodeMap.nodeId, npId );
     }
 }
 
@@ -181,8 +181,6 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
     switch ( msg[ 0 ] ) {
 
-        // ??? could also become REQ calls ....
-
         case LCS_OP_OPS: {
 
             nodeMap.nodeState = NS_OPERATE;
@@ -190,8 +188,6 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                 nodeMap.lcsMsgCallback( msg, nodeMap.lcsMsgCallBackUdata );
 
         } break;
-
-        // ??? could also become REQ calls ....
 
         case LCS_OP_CFG: {
 
@@ -256,7 +252,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                         rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
                                       nodeId );
 
-                    sendAck( nodeId );
+                    sendAck( nodeMap.nodeId, nodeId );
                 }
                 else sendErr( nodeId, ERR_NODE_NOT_CONFIG_STATE, 0, 0 );
             }
@@ -278,11 +274,10 @@ void handleMsgGetNode( uint8_t *msg ) {
 
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-        uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = nodeGet( npId, item, &arg1, &arg2 );
+        uint8_t   ret   = nodeGet( npId, item, &arg1 );
 
-        if ( ret == NO_ERR )  sendRepNode( npId, item, arg1, arg2 );
-        else                  sendErr( npId, ret, 0, 0 );
+        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg1, 0 );
+        else                  sendErr( nodeMap.nodeId, npId, ret, 0, 0 );
     }
 }
 
@@ -299,11 +294,10 @@ void handleMsgPutNode( uint8_t *msg ) {
 
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-        uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = nodeSet( npId, item, arg1, arg2 );
+        uint8_t   ret   = nodeSet( npId, item, arg1 );
 
-        if ( ret == NO_ERR )  sendAck( npId );
-        else                  sendErr( npId, ret, arg1, arg2 );
+        if ( ret == NO_ERR )  sendAck( nodeMap.nodeId, npId );
+        else                  sendErr( nodeMap.nodeId, npId, ret, arg1, 0 );
     }
 }
 
@@ -334,6 +328,7 @@ void handleMsgRepNode( uint8_t *msg ) {
 // message request will result in invoking the register firmware callback. We send a
 // a reply or error message.
 //
+// ??? we need to get the sender Id...
 //----------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
@@ -344,10 +339,10 @@ void handleMsgReqNode( uint8_t *msg ) {
         uint8_t   item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = nodeReq( npId, item, &arg1, &arg2 );
+        uint8_t   ret   = nodeReq( npId, item, &arg1 );
 
-        if ( ret == NO_ERR )  sendRepNode( npId, item, arg1, arg2 );
-        else                  sendErr( npId, ret, 0, 0 );
+        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg1, arg2 );
+        else                  sendErr( nodeMap.nodeId, npId, ret );
     }
 }
 
@@ -485,7 +480,7 @@ void handleNodeStateInit( ) {
 
     if ( ! ( runtimeOptions & NPO_SKIP_NODE_ID_CONFIG )) {
 
-        sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
+        sendReqNodeId( 0, nodeMap.nodeUID, 0 ); // ??? fix ...
         timerVal  = getMillis( );
 
         nodeMap.nodeState = NS_REGISTER;
@@ -504,9 +499,10 @@ void handleNodeStateInit( ) {
 //----------------------------------------------------------------------------------------
 void handleNodeStateRegister( ) {
 
+    uint16_t senderNpId;
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_REP_NID: handleMsgRepNid( msg );  break;
         case LCS_OP_RESET:   handleMsgLcsMgt( msg );  break;
@@ -515,7 +511,7 @@ void handleNodeStateRegister( ) {
 
             if (( getMillis( ) - timerVal ) > NODE_SETUP_RETRY_TIMER_VAL_MS ) {
 
-                sendReqNodeId( nodeMap.nodeId, nodeMap.nodeUID, 0 );
+                sendReqNodeId( 0, nodeMap.nodeUID, 0 );
                 timerVal = getMillis( );
              }
         }
@@ -530,9 +526,10 @@ void handleNodeStateRegister( ) {
 //----------------------------------------------------------------------------------------
 void handleNodeStateCollision( ) {
 
+    uint16_t senderNpId;
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_RESET:
         case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
@@ -547,9 +544,10 @@ void handleNodeStateCollision( ) {
 //----------------------------------------------------------------------------------------
 void handleNodeStateHalted( ) {
 
-    uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint16_t senderNpId;              
+    uint8_t  msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( &senderNpId,  msg )) {
 
         case LCS_OP_BON:
         case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
@@ -565,9 +563,10 @@ void handleNodeStateHalted( ) {
 //----------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
 
+    uint16_t senderNpId;
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_OPS:
         case LCS_OP_RESET:
@@ -578,9 +577,17 @@ void handleNodeStateConfig( ) {
         case LCS_OP_SET_NID:
         case LCS_OP_NCOL:           handleMsgLcsMgt( msg );     break;
 
-        case LCS_OP_NODE_GET:       handleMsgGetNode( msg );    break;
-        case LCS_OP_NODE_REP:       handleMsgRepNode( msg );    break;
-        case LCS_OP_NODE_REQ:       handleMsgReqNode( msg );    break;
+        case LCS_OP_NODE_GET:       
+        case LCS_OP_NODE_GET2:      handleMsgGetNode( msg );    break;
+
+        case LCS_OP_NODE_SET:       
+        case LCS_OP_NODE_SET2:      handleMsgPutNode( msg );    break;
+
+        case LCS_OP_NODE_REQ:
+        case LCS_OP_NODE_REQ2:      handleMsgReqNode( msg );    break;
+
+        case LCS_OP_NODE_REP:       
+        case LCS_OP_NODE_REP2:      handleMsgRepNode( msg );    break;
     }
 
     handlePeriodicTasks( );
@@ -596,9 +603,10 @@ void handleNodeStateConfig( ) {
 //----------------------------------------------------------------------------------------
 void handleNodeStateOperations( ) {
 
+    uint16_t senderNpId;
     uint8_t msg [ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( msg )) {
+    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_CFG:
         case LCS_OP_RESET:
@@ -610,9 +618,11 @@ void handleNodeStateOperations( ) {
         case LCS_OP_NCOL:           handleMsgLcsMgt( msg );     break;
 
         case LCS_OP_NODE_GET:       handleMsgGetNode( msg );    break;
-        case LCS_OP_NODE_PUT:       handleMsgPutNode( msg );    break;
+        case LCS_OP_NODE_SET:       handleMsgPutNode( msg );    break;
         case LCS_OP_NODE_REQ:       handleMsgReqNode( msg );    break;
-        case LCS_OP_NODE_REP:       handleMsgRepNode( msg );    break;
+
+        case LCS_OP_NODE_REP:       
+        case LCS_OP_NODE_REP2:      handleMsgRepNode( msg );    break;
         
         case LCS_OP_EVT_ON:
         case LCS_OP_EVT_OFF:

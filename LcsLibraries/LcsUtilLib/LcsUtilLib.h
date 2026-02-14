@@ -68,6 +68,11 @@ inline uint16_t buildNpId( uint16_t nodeId, uint16_t portId, uint16_t chanId ) {
     return((( nodeId & 0xFF ) << 8 ) | (( portId &0xF ) << 4 ) | ( chanId & 0xF ));
 }
 
+inline bool equalNodeId( uint16_t npId1, uint16_t npId2 ) {
+
+    return ( nodeId( npId1 ) == nodeId( npId2 ));
+}
+
 inline uint8_t lowByte( uint16_t arg ) { 
     
     return ( arg & 0xFF ); 
@@ -119,25 +124,28 @@ static inline bool isInRangeU32( uint32_t val, uint32_t lower, uint32_t upper ) 
 }
 
 static inline unsigned int clamp( unsigned int val, unsigned int low, unsigned int high ) {
-    
+
     if ( val < low ) return low;
     if ( val > high ) return high;
     return val;
 }
 
 static inline uint8_t  clampU8( uint8_t val, uint8_t low, uint8_t high ) {
+
     if ( val < low ) return low;
     if ( val > high ) return high;
     return val;
 }
 
 static inline uint16_t clampU16( uint16_t val, uint16_t low, uint16_t high ) {
+
     if ( val < low ) return low;
     if ( val > high ) return high;
     return val;
 }
 
 static inline uint32_t clampU32( uint32_t val, uint32_t low, uint32_t high ) {
+    
     if ( val < low ) return low;
     if ( val > high ) return high;
     return val;
