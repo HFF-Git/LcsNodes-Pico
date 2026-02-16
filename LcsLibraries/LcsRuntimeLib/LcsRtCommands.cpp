@@ -212,8 +212,8 @@ void dumpNvmData( uint32_t  start,
 }
 
 //----------------------------------------------------------------------------------------
-// List extension board NVM storage data. We are passed the absolute offset into the
-// NVM area and the length in bytes.
+// List extension board NVM storage data. We are passed the absolute offset into 
+// the NVM area and the length in bytes.
 //
 //----------------------------------------------------------------------------------------
 void dumpExtNvmData( uint8_t  boardId, 
@@ -564,10 +564,10 @@ namespace LCS {
 
 //----------------------------------------------------------------------------------------
 // "c" switches a node to CFG mode. For a local node command, we construct the 
-// LCS_OP_CFG message payload data and invoke the msg handler for switching the node
-// mode. For any other node, we will just send a LCS message.
+// LCS_OP_CFG message payload data and invoke the msg handler for switching the 
+// node mode. For any other node, we will just send a LCS message.
 //
-//    c [ npId ]
+//    C [ npId ]
 //
 //    returns: none
 //
@@ -596,7 +596,7 @@ void switchToConfigCommand( char *s ) {
 // LCS_OP_OPS message payload data and invoke the msg handler for switching the node 
 // mode. For any other node, we will just send a LCS message.
 //
-//    o [ npId ]
+//    O [ npId ]
 //
 //----------------------------------------------------------------------------------------
 void switchToOperationsCommand( char *s ) {
@@ -871,10 +871,10 @@ void listCoreLibHelpCommand( ) {
     printf( "c [ npId ] - enter config mode\n" );
     printf( "o [ npId ] - enter operations mode\n" );
 
-    printf( "g npId item [ val1 [ val2 ]] - gets a node attribute\n" );
-    printf( "p npId item val1 [ val2 ]    - puts a node attribute\n" );
+    printf( "g npId item [ val1 ]         - gets a node attribute\n" );
+    printf( "p npId item val1             - puts a node attribute\n" );
     printf( "r npId item [ val1 [ val2 ]] - request a node function\n" );
-    printf( "e npId eventId mode [ arg ] - simulate sending an event"
+    printf( "e npId eventId mode [ arg ]  - simulate sending an event"
             " ( mode: 0 - ON, 1 - OFF, 2 - EVT )\n" );
 
     printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );

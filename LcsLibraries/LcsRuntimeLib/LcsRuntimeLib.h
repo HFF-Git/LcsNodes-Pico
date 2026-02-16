@@ -709,6 +709,9 @@ extern "C" {
                                           uint16_t arg2, 
                                           uint8_t ret, 
                                           void *uData );
+
+    // ??? have a separate signature for driver calls ? They are still REQ 
+    // type callbacks. But just to have no confusion...
 }
 
 //----------------------------------------------------------------------------------------

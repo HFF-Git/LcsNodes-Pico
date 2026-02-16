@@ -102,9 +102,9 @@ namespace {
     #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
     //------------------------------------------------------------------------------------
-    // "readAttrMem" gets a value from the node or port attribute map in MEM. As an 
-    // internal function, we expect a valid block and item argument. The "block"
-    // argument will refer to the node and port data attributes. 
+    // "readAttrMem" gets a value from the node or port attribute map in MEM. As 
+    // an internal function, we expect a valid block and item argument. The 
+    // "block" argument will refer to the node and port data attributes. 
     //
     //------------------------------------------------------------------------------------
     uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
@@ -114,9 +114,9 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an 
-    // internal function, we expect a valid block and item argument. The "block" 
-    // argument will refer to the node and port data attributes. 
+    // "writeAttrMem" stores a value to a node or port attribute map in MEM. As 
+    // an internal function, we expect a valid block and item argument. The 
+    // "block" argument will refer to the node and port data attributes. 
     //
     //------------------------------------------------------------------------------------
     uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
@@ -126,11 +126,12 @@ namespace {
     }
 
     //------------------------------------------------------------------------------------
-    // "readAttrNvm" gets an attribute from the NVM storage. We read the value from
-    // the NVM area. If successful, we also store it in the MEM counterpart and then 
-    // return it. This ensures that NVM and MEM are always in sync when accessing NVM.
-    // For NVM access, the byte offset into the storage needs to be computed. As an 
-    // internal function, we expect a valid block and item argument.
+    // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
+    // from the NVM area. If successful, we also store it in the MEM counterpart 
+    // and then return it. This ensures that NVM and MEM are always in sync when 
+    //accessing NVM. For NVM access, the byte offset into the storage needs to 
+    // be computed. As an internal function, we expect a valid block and item 
+    // argument.
     //
     //------------------------------------------------------------------------------------
     uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
@@ -147,10 +148,10 @@ namespace {
 
     //------------------------------------------------------------------------------------
     // "writeAttrNvm" stores an attribute to the NVM storage. If the update is 
-    // successful, we also update the corresponding MEM attribute. This ensures that 
-    // NVM and MEM are always in sync when accessing the NVM. For the NVM access, the
-    // byte offset into the storage needs to be computed. As an  internal function, 
-    // we expect a valid block and item argument.
+    // successful, we also update the corresponding MEM attribute. This ensures 
+    // that NVM and MEM are always in sync when accessing the NVM. For the NVM 
+    // access, the byte offset into the storage needs to be computed. As an 
+    // internal function, we expect a valid block and item argument.
     //
     //------------------------------------------------------------------------------------
     uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
@@ -557,6 +558,8 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
     } else {
 
         switch ( item ) {
+
+            // ??? add OPS and CFG requests...
 
             case ITEM_ID_GET_NODE_UID: {
 

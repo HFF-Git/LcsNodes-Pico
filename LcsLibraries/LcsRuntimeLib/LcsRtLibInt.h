@@ -191,7 +191,7 @@ enum ItemRanges : uint8_t {
     IR_NIL                      = 0,
 
     IR_LIB_MAP_RANGE_START      = 1,
-    IR_LIB_MAP_RANGE_END        = 63,
+    IR_LIB_MAP_RANGE_END        = 127,
 
     IR_LIB_FUNCTION_START       = 64,
     IR_LIB_FUNCTION_END         = 127,
@@ -240,11 +240,11 @@ struct LcsMsgBusCAN {
     uint8_t     receiveLcsMsg( uint16_t *senderNpId, 
                                uint8_t *msg );
 
-    void        setNodeId( uint8_t npId );
+    void        setNodeId( uint8_t nodeId );
 
     private: 
 
-    uint8_t nodeId = 0;
+    uint8_t localNodeId = 0;
 };
 
 //----------------------------------------------------------------------------------------
@@ -252,7 +252,10 @@ struct LcsMsgBusCAN {
 // also the first structure that can be found on the controller board NVM as well 
 // as the extension board NVM. For the smart extension boards that have a controller
 // on board themselves, the controller firmware is expected to return this data
-// just as if we read it from the NVM. The header structure is 32 bytes long.
+// just as if we read it from the NVM. An Atmega Attiny controller board also has
+// the nice property of a serial number. We use it for I2C bus collision detection.
+//
+// The header structure is 32 bytes long.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBoardDesc {
@@ -261,7 +264,11 @@ struct LcsBoardDesc {
     uint16_t            boardInfo;                      // type/subtype
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
-    uint16_t            reserved[ 11 ];
+    uint16_t            reserved[ 7 ];
+    uint16_t            serialNum1;                     // serial number part 1
+    uint16_t            serialNum2;                     // serial number part 2
+    uint16_t            serialNum3;                     // serial number part 3
+    uint16_t            serialNum4;                     // serial number part 4 
 };
 
 //----------------------------------------------------------------------------------------
@@ -373,25 +380,25 @@ struct LcsEventMap {
 // Each port has an area of attributes, which are stored in the data block area. 
 // They map to ITEM numbers 128 to 255 and are accessed via GET/SET calls. In 
 // addition, each port supports a set of request functions, which are mapped to 
-// item 64 to 127. The item numbers 0 to 63 are reserved for node specific
-// purposes.
+// item 1 to 127. The item numbers 1 to 63 are reserved for node specific
+// purposes, the item numbers 64 to 127 are reserved for driver library functions.
 //
 // P1 to P14 can be associated with a hardware device, such as an extension board
 // or a satellite board. They all connect via the I2C bus. The port entry has a
-// channel map, where the channel type and the I2C address are kept.
+// channel map, where the channel type and the I2C address are kept. If a port is 
+// associated with hardware, the channel map is used to keep the channel type and
+// the I2C address of the hardware board channels. All channels on a port must 
+// have the same channel type.
 //
 // The portMap entry furthermore contains the fields that deal with the actual event 
 // received that the port is interested in. There are fields for the sending node, 
 // the event itself and its action. An event can also be invoked with a delay time.
 //
-// ??? we could have a fixed mapping from port/channel to I2C Adr.
-// ??? how would it work with hardware that has fixed I2C addresses ?
-// ??? we could have map which when used will have another I2C address with the channel.
-//
-// ??? anything we need to remember about a pending request?
-//
-// ??? cold we register a channel callback here ? It would replace the "driver"
-// map concept.
+// When a request os send, the target npId and a request time limit timestamp
+// are stored in the port map entry. This way, when a reply comes in, we can check
+// if it is expected and invoke the reply callback. On a port, one request can
+// be pending at a time. If another request is sent before the reply, it is an
+// error.
 //
 //----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
@@ -406,6 +413,9 @@ struct LcsPortMapEntry {
     LcsRepCallback      repCallback                 = nullptr;
     void                *repCallBackUdata           = nullptr;
 
+    LcsRepCallback      drvReqCallback              = nullptr;
+    void                *drvReqCallBackUdata        = nullptr;
+
     LcsEventCallback    eventCallback               = nullptr;
     void                *eventCallBackUdata         = nullptr;
 
@@ -415,6 +425,9 @@ struct LcsPortMapEntry {
     uint16_t            eventAction                 = PEA_EVENT_IDLE;
     uint16_t            eventDelayTime              = 0;
     uint32_t            eventTimeStamp              = 0L;
+
+    uint16_t            targetNpId                  = NIL_NODE_ID;
+    uint32_t            targetReqTs                = 0; 
 
     uint16_t            channelMap[ MAX_CHANNEL_MAP_ENTRIES ];
 };
@@ -446,6 +459,7 @@ struct LcsTaskMap {
     LcsPTaskMapEntry    map[ MAX_TASK_MAP_ENTRIES ];
 };
 
+// ??? this will go away...
 //----------------------------------------------------------------------------------------
 // The pending request map keeps track of outstanding requests to another node. 
 // We add an entry when our node sends a request and clear the entry when the 
@@ -467,6 +481,7 @@ struct LcsPendingReqMap {
     LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
+// ??? this will go away as well. We register the driver with the port.
 //----------------------------------------------------------------------------------------
 // An extension board is associated with a port and thus has attributes and request 
 // items. Attributes are naturally accessed via the GET/PUT calls. The extension 

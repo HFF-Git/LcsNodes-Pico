@@ -315,9 +315,9 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
 // receive queue. The nodeId should be set before sending any messages.
 //
 //----------------------------------------------------------------------------------------
-void LcsMsgBusCAN::setNodeId( uint8_t npId ) {
+void LcsMsgBusCAN::setNodeId( uint8_t nodeId ) {
 
-    this -> nodeId = npId; 
+    localNodeId = nodeId; 
 }
 
 //----------------------------------------------------------------------------------------
@@ -380,14 +380,6 @@ uint8_t LcsMsgBusCAN::sendLcsMsg (  uint16_t sendingNpId,
     }
     else {
 
-        if (( msgOp == LCS_OP_RESET )) {
-
-            // ??? gather all routines that should not send to ourselves.
-            // ??? e.g. RESET...
-
-            return ( RET_STAT( ERR_CAN_MSG_SEND ));
-        }
-
         if ( can2040_transmit( &cBus, &msg ) != 0 ) {
 
             sleepMillis( TX_RETRY_TIMEOUT );
@@ -448,23 +440,22 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
         bool      extFlag     = ( msg.id & 0x80000000 );
         uint16_t  remoteNpId  = (( extFlag ) ? ( msg.id & 0xFFFF ) : ( msg.id & 0x7F ));
 
-        if ( equalNodeId( remoteNpId, NIL_NODE_ID )) {
+        if ( equalNodeId( nodeId( remoteNpId ), NIL_NODE_ID )) {
 
-            *senderNpId = buildNpId( nodeId, 
+            *senderNpId = buildNpId( localNodeId, 
                                      portId( remoteNpId ), 
                                      chanId( remoteNpId ));
 
             memcpy( msgBuf, msg.data, msg.dlc );
             return ( RET_STAT( LCS_OK ));
         }
-
-        if ( equalNodeId( remoteNpId, nodeId ) && ( msg.dlc > 0 )) {
+        else if ( equalNodeId( remoteNpId, localNodeId ) && ( msg.dlc > 0 )) {
 
             return ( RET_STAT( ERR_CAN_ID_COLLISION ));
         }
         else if ( rtrFlag ) {
 
-            msg.id          = buildNpId( nodeId, 
+            msg.id          = buildNpId( localNodeId, 
                                          portId( 0 ), 
                                          chanId( 0 ));
             msg.dlc         = 0;

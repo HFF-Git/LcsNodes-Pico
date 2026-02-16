@@ -619,6 +619,9 @@ uint8_t setupNodeNvmHeader(CdcResourceDescMap *map) {
     return ( RET_STAT( rStat ));
 }
 
+// ??? will change, as we move to I2C extension board access boards. We will
+// scan all I2C addresses on the extension I2C and see what is out there.
+// No need to keep the headers around, when you can read them anytime.
 //----------------------------------------------------------------------------------------
 // With the NVM channels in place and the main controller NVM header valid, we 
 // check whether there are extension boards and read in their headers too. The 
@@ -673,26 +676,6 @@ uint8_t setupExtNvmHeaders( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// What do we need to do for smart extensions connected via the external 
-// I2C channels ?
-//
-// - they get a port assigned ?
-// - they get a driver assigned ?
-// - they get their board header read in ?
-// 
-// - we do however never create a header for them. They either have it or not.
-// - if there is no header, we cannot use the board.
-//----------------------------------------------------------------------------------------
-uint8_t setupSmartExtBoards( ) {
-
-    ENTER_FUNC( );
-
-    // ??? to do ...
-
-    return( RET_STAT( LCS_OK ));
-}
-
-//----------------------------------------------------------------------------------------
 // "setupNodeMap" sets up the nodeMap. It is the routine that is called after we
 // read in the NVM headers. If the main controller NVM header was invalid or
 // formatting was requested, a default structure was created. Either way we can
@@ -742,36 +725,6 @@ uint8_t setupPortMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupExtensionBoards" will scan the header map for an extension board detected
-// and mark the corresponding port as a driver type port.
-//
-//----------------------------------------------------------------------------------------
-uint8_t setupExtensionBoards( ) {
-
-    ENTER_FUNC( );
-    
-    for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
-
-        LcsBoardDesc *hPtr = &headerMap.map[i];
-
-        if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
-
-            if ( setupDebugEnabled( )) {
-
-                printf( "Valid Extension Board detected: %d\n", i );
-            }
-
-            portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
-            portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
-            portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
-            portMap.map[i].reqCallback  = nullptr;
-        }
-    }
-
-    return ( RET_STAT( LCS_OK ));
-}
-
-//----------------------------------------------------------------------------------------
 // "setupNodeDataMap" will read the node data blocks.
 //
 //----------------------------------------------------------------------------------------
@@ -809,6 +762,8 @@ uint8_t setupEventMap( ) {
 // area allocated for the system. Since we have no idea what the user is doing, we
 // do nothing for now. It is just a placeholder.
 //
+// ??? it is a function of the remaining space in the NVM. Perhaps the NVM setup
+// can just set the boundaries and that is all there is. 
 //----------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
 
@@ -836,6 +791,7 @@ uint8_t setupTaskMap( ) {
     return ( RET_STAT( LCS_OK ));
 }
 
+// ??? this will go away...
 //----------------------------------------------------------------------------------------
 // "setupPendingReqMap" initializes the pending request map.
 //
@@ -849,6 +805,83 @@ uint8_t setupPendingReqMap( ) {
 
         LcsPendingReqEntry tmp;
         pendingReqMap.map[i] = tmp;
+    }
+
+    return ( RET_STAT( LCS_OK ));
+}
+
+//----------------------------------------------------------------------------------------
+// A port offers a set of up to 16 channels. A channel can be a logical entity
+// or associated with a physical resource, such as a DIO pin, an ADC channel, a PWM
+// channel, a servo channel, etc. The port map entry for the port will record the
+// driver type and version, which will allow us to map to the driver procedure. The
+// driver procedure will know how to talk to the particular extension board. A failure
+// in this part of the sequence does not necessarily mean that the node cannot be used. 
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t discoverChannels( ) {
+
+    ENTER_FUNC( );
+
+    // ??? for each port we form the I2C addresses and try to read the header. 
+    // If we get a valid header, we have a board there. We can then setup the 
+    // port map entry for this port and mark it as an extension board port. 
+    // We can also read in the driver type and version from the header. 
+    // Driver types must be equal for all devices on the board.
+     
+    // ??? how do we map from driver type to driver procedure ? We could have a
+    // fixed scheme and all possible drivers are part of the runtime library.
+    // we could also have a driver table and register a driver for each driver type. 
+    // The driver table would be part of the runtime library, but the drivers could
+    // be in separate files. This would allow us to keep the runtime library small
+    // and only include the drivers we actually need. We could also have a mechanism
+    // to load drivers dynamically, but that would be more complex and perhaps not
+    // needed for our use case.
+
+   
+    for ( int i = 1; i <= MAX_PORT_ID - 1; i++ ) {
+
+        // ??? form I2C address for port i and try to read header. If valid, we have
+        // a board there. We can then setup the port map entry for this port and mark
+        // it as an extension board port. We can also read in the driver type and 
+        // version from the header. Driver types must be equal for all devices on the
+        // board.
+
+        // ??? each device found is recorded in the channel map.
+
+         // ??? to do ...
+    }
+
+    return( RET_STAT( LCS_OK ));
+}
+
+// phase out ...
+//----------------------------------------------------------------------------------------
+// "setupExtensionBoards" will scan the header map for an extension board detected
+// and mark the corresponding port as a driver type port.
+//
+//----------------------------------------------------------------------------------------
+uint8_t setupExtensionBoards( ) {
+
+    ENTER_FUNC( );
+    
+    for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
+
+        LcsBoardDesc *hPtr = &headerMap.map[i];
+
+        if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
+
+            if ( setupDebugEnabled( )) {
+
+                printf( "Valid Extension Board detected: %d\n", i );
+            }
+
+            portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
+            portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
+            portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
+            portMap.map[i].reqCallback  = nullptr;
+        }
     }
 
     return ( RET_STAT( LCS_OK ));
@@ -912,8 +945,8 @@ uint8_t registerDrvFunc( LcsReqCallback drvReqFunction, uint16_t drvType, void *
                 printf( "registerDrvFunc, overwrite: %d\n", i );
             }
 
-            drvFuncMap.map[i].drvFunc = drvReqFunction;
-            found                     = true;
+            drvFuncMap.map[ i ].drvFunc = drvReqFunction;
+            found                       = true;
             break;
         }
     }
@@ -927,8 +960,8 @@ uint8_t registerDrvFunc( LcsReqCallback drvReqFunction, uint16_t drvType, void *
                 printf( "registerDrvFunc, allocate: %d\n", drvFuncMap.mapHwm );
             }
 
-            drvFuncMap.map[drvFuncMap.mapHwm].drvType = drvType;
-            drvFuncMap.map[drvFuncMap.mapHwm].drvFunc = drvReqFunction;
+            drvFuncMap.map[ drvFuncMap.mapHwm ].drvType = drvType;
+            drvFuncMap.map[ drvFuncMap.mapHwm ].drvFunc = drvReqFunction;
             drvFuncMap.mapHwm++;
         }
         else {
@@ -949,6 +982,7 @@ uint8_t registerDrvFunc( LcsReqCallback drvReqFunction, uint16_t drvType, void *
 // labels for a driver type have been registered. When the runtimeStart routine is
 // called, we update the driver function labels in the associated ports.
 //
+// ??? use driver callback fields =?
 //----------------------------------------------------------------------------------------
 uint8_t setupDriverFunctions( ) {
 
@@ -1055,6 +1089,8 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
     }
 
+    // ??? order where to do the driver business ?
+
     if ( rStat == LCS_OK )  rStat = configNvmChannels( );
     if ( rStat == LCS_OK )  rStat = setupWatchdog( &dMap );
     if ( rStat == LCS_OK )  rStat = setupPfail( &dMap );
@@ -1063,7 +1099,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     if ( rStat == LCS_OK )  rStat = setupNodeMap( );
     if ( rStat == LCS_OK )  rStat = setupPortMap( );
     if ( rStat == LCS_OK )  rStat = setupExtensionBoards( );
-    if ( rStat == LCS_OK )  rStat = setupSmartExtBoards( );
+    if ( rStat == LCS_OK )  rStat = discoverChannels( );
     if ( rStat == LCS_OK )  rStat = setupNodeDataMap( );
     if ( rStat == LCS_OK )  rStat = setupEventMap( );
     if ( rStat == LCS_OK )  rStat = setupUserMap( );

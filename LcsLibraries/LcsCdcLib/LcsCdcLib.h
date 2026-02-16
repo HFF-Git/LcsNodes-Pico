@@ -129,6 +129,7 @@ enum CdcStatus : uint8_t {
 // Callback functions signatures. So far, there are the timer callbacks and the 
 // GPIO pin callback.
 //
+// ??? should we also adopt the UserData scheme for C++ objects ?
 //----------------------------------------------------------------------------------------
 extern "C" {
 
@@ -152,9 +153,9 @@ const uint8_t   UNDEFINED_PIN           = 255;
 const uint8_t   ILLEGAL_PIN             = 254;
 
 //----------------------------------------------------------------------------------------
-// The defined board types. When the runtime is initialized, the firmware will pass 
-// the type to specify what board it expects. This value is compared to what is 
-// actually stored in the NVM of the main controller board. If they don't match, 
+// The defined board types. When the runtime is initialized, the firmware will 
+// pass the type to specify what board it expects. This value is compared to what
+// is actually stored in the NVM of the main controller board. If they don't match, 
 // it is considered an error and the NVM needs to be configured to support the 
 // firmware. 
 //
@@ -175,17 +176,25 @@ enum CdcBoardInfo : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The controller families. Currently, there is only the Raspberry PI Pico family
-// models.
+// The controller families. Currently, we have two major controller families, the
+// Raspberry Pi RPxxxx and the Atmega Attiny Series 1. The family is used to 
+// determine the particular hardware functions available as well as the pin mapping.
+// The family is stored in the NVM of the controller board and is checked against
+// the firmware expectation at startup time. If they don't match, it is considered
+// an error and the NVM needs to be configured to support the firmware.
 //
 //----------------------------------------------------------------------------------------
 enum CdcControllerInfo : uint8_t {
 
     CDC_CF_UNDEFINED            = 0,
     CDC_CF_RP_PICO              = 1,
+    CDC_CF_ATTINY               = 2,
 
     CDC_CF_C_RP_2040            = 10,
-    CDC_CF_C_RP_2350            = 11
+    CDC_CF_C_RP_2350            = 11,
+
+    CDC_CF_C_ATTINY_414         = 20,
+    CDC_CF_C_ATTINY_416         = 21
 };
 
 //----------------------------------------------------------------------------------------
