@@ -443,8 +443,8 @@ enum LcsItems : uint8_t {
     ITEM_ID_FUNCTION_START              = 64,   // REQ
     ITEM_ID_FUNCTION_END                = 127,  // REQ
 
-    ITEM_ID_USER_START                  = 128,  // GET / SET
-    ITEM_ID_USER_END                    = 255   // GET / SET
+    ITEM_ID_USER_START                  = 128,  // GET / SET / REQ
+    ITEM_ID_USER_END                    = 255   // GET / SET / REQ
 };
 
 //----------------------------------------------------------------------------------------
@@ -779,6 +779,9 @@ uint8_t     registerReqCallback( LcsReqCallback handler,
 uint8_t     registerRepCallback( LcsRepCallback handler, 
                                  uint16_t portMask = 0xFFFF,
                                  void *uData = nullptr );
+
+// ??? we wold need a routine for registering drivers to a port ...
+// ??? should use port mask scheme ...
 
 uint8_t     registerDrvFunc( LcsReqCallback handler, 
                              uint16_t drvType, 

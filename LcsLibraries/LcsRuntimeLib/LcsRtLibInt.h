@@ -278,6 +278,7 @@ struct LcsBoardDesc {
 // controller board NVM header stored and optional up to four extension board
 // NVM headers. 
 //
+// ??? why would we need it, if we can get to the boards anytime ?
 //----------------------------------------------------------------------------------------
 struct LcsHeaderMap {
 

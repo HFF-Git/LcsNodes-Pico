@@ -466,7 +466,7 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
     
-    if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
@@ -551,11 +551,18 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
     
-    if ( isInRangeU( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         return ( RET_STAT( invokeUserItemCallback( npId, item, arg1, arg2 )));
     
-    } else {
+    } 
+    else if ( isInRangeU8( item, IR_LIB_FUNCTION_START, IR_LIB_FUNCTION_END )) {
+
+        // ??? invoke a driver ?
+
+        return( 0 ); // ??? for now...
+    } 
+    else {
 
         switch ( item ) {
 
