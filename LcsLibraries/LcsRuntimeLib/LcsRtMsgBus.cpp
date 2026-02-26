@@ -339,6 +339,10 @@ uint8_t sendSync( uint16_t targetNpId, uint8_t item ) {
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_LOW, 0 ));
 }
 
+//----------------------------------------------------------------------------------------
+// Node Id management.
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
     
     uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NID };
@@ -387,6 +391,129 @@ uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
     msgBuf[ 6 ] = ( nodeUID & 0x000000FF );
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_HIGH ));
 }
+
+//----------------------------------------------------------------------------------------
+// Attribute access Management.
+//
+//----------------------------------------------------------------------------------------
+uint8_t sendGetAttr( uint16_t sendingNpId, 
+                     uint16_t targetNpId,           
+                     uint8_t item, 
+                     LcsRepCallback rep,
+                     void *uData ) {
+
+    LcsPortMapEntry *portPtr = &portMap.map[ portId( targetNpId ) ];
+
+    // ??? check if port is not busy
+    // ??? store sending npId, callback, uData and the timeout.
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET }; // ??? fix...
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
+}
+
+uint8_t sendRepAttr( uint16_t sendingNpId, 
+                     uint16_t targetNpId,           
+                     uint8_t item, 
+                     uint16_t arg )  {
+
+    // ??? why do we have targetNpId ?
+    // it is stored in the port...
+    // ??? rather check if there is an active request...
+
+    return ( 0 );
+}
+
+uint8_t sendPutAttr( uint16_t sendingNpId, 
+                     uint16_t targetNpId,           
+                     uint8_t item, 
+                     uint16_t arg,
+                     LcsRepCallback rep,
+                     void *uData )  {
+
+    // ??? same as GET
+
+    return ( 0 );
+}
+
+//----------------------------------------------------------------------------------------
+// Extended attributes access management.
+//
+//----------------------------------------------------------------------------------------
+uint8_t sendGetExtAttr( uint16_t sendingNpId, 
+                        uint16_t targetNpId,           
+                        uint8_t item, 
+                        uint16_t arg,
+                        LcsRepCallback rep,
+                        void *uData )  {
+    
+    // ??? check if port is not busy
+    // ??? store sending npId, callback, uData and the timeout.
+
+    return ( 0 );
+}
+
+uint8_t sendRepExtAttr( uint16_t sendingNpId, 
+                        uint16_t targetNpId,           
+                        uint8_t item, 
+                        uint16_t arg )  {
+
+    // ??? why do we have targetNpId ?
+    // it is stored in the port...
+    // ??? rather check if there is an active request...
+
+    return ( 0 );
+}
+
+uint8_t sendPutExtAttr( uint16_t sendingNpId, 
+                        uint16_t targetNpId,           
+                        uint8_t item, 
+                        uint16_t arg,
+                        LcsRepCallback rep,
+                        void *uData )  {
+
+    // ??? same as GET
+
+    return ( 0 );
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t sendReqFunc( uint16_t sendingNpId, 
+                     uint16_t targetNpId,           
+                     uint8_t item, 
+                     uint16_t arg1,
+                     uint16_t arg2,
+                     LcsRepCallback rep,
+                     void *uData ) {
+
+    // ??? check if port is not busy
+    // ??? store sending npId, callback, uData and the timeout.
+
+    return ( 0 );
+}
+
+uint8_t sendRepFunc( uint16_t sendingNpId, 
+                     uint16_t targetNpId,           
+                     uint8_t item, 
+                     uint16_t arg1,
+                     uint16_t arg2 )  {
+
+    // ??? why do we have targetNpId ?
+    // it is stored in the port...
+    // ??? rather check if there is an active request...
+
+    return ( 0 );
+}
+
+
+
+
+
 
 uint8_t sendGetNode( uint16_t sendingNpId, 
                      uint16_t targetNpId, 
@@ -449,6 +576,11 @@ uint8_t sendRepNode( uint16_t sendingNpId,
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_LOW ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendEventOn( uint16_t npId, uint16_t eventId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT_ON };

@@ -327,11 +327,14 @@ enum LcsNodePortFlags : uint16_t {
     NPF_PORT_PRESENT                    = ( 1U << 1 ),            
     NPF_PORT_ENABLED                    = ( 1U << 2 ),
     NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1U << 3 ),
-    NPF_EVENT_PENDING                   = ( 1U << 4  ),
+    NPF_EVENT_PENDING                   = ( 1U << 4 ),
 
-    NPF_EXT_BOARD_PRESENT               = ( 1U << 8  ),
-    NPF_EXT_BOARD_VALID                 = ( 1U << 9  ),
-    NPF_EXT_BOARD_READY                 = ( 1U << 10 )
+    NPF_REQ_PENDING                     = ( 1U << 5 ),
+
+    // ??? rethink...
+    NPF_EXT_BOARD_PRESENT               = ( 1U << 6  ),
+    NPF_EXT_BOARD_VALID                 = ( 1U << 7  ),
+    NPF_EXT_BOARD_READY                 = ( 1U << 8  )
 };
 
 //----------------------------------------------------------------------------------------
@@ -482,6 +485,7 @@ enum DebugOptions : uint16_t {
     LCS_DBG_ALL             = 0xFF00
 };
 
+// ??? should we place this rather in the internal include file ?
 //----------------------------------------------------------------------------------------
 // The message operation code identifies the LCS bus message. It is always the first
 // data byte of the message. We encode the number of payload data bytes in the first
@@ -652,7 +656,7 @@ enum LcsErrorCodes : uint8_t {
 //                          npId is passed so that the callback can detect wether a 
 //                          port or node is the target.
 // 
-//  LcsMsgCallback      -   is called with a LCS management message received.
+//  LcsMsgCallback      -   is called when a LCS management message is received.
 //
 //  LcsCmdCallback      -   when the command interpreter detects a non LCS command, 
 //                          the command line is passed on to the callback. 
@@ -667,7 +671,7 @@ enum LcsErrorCodes : uint8_t {
 //                          callback or in case of a port associated with a port 
 //                          a driver request function.
 //      
-// LcsRepCallback      -    a callback to return the reply message for a previous
+//  LcsRepCallback      -   a callback to return the reply message for a previous
 //                          LCS message sent. The reply can be a data reply, an ACK
 //                          or NACK or a timeout error. The arguments are the item
 //                          that was requested, the arguments and the return status
@@ -709,9 +713,6 @@ extern "C" {
                                           uint16_t arg2, 
                                           uint8_t ret, 
                                           void *uData );
-
-    // ??? have a separate signature for driver calls ? They are still REQ 
-    // type callbacks. But just to have no confusion...
 }
 
 //----------------------------------------------------------------------------------------
@@ -731,11 +732,9 @@ uint8_t     initRuntime( CdcResourceDescMap *dMap,
 uint8_t     startRuntime( );
 
 //----------------------------------------------------------------------------------------
-// Routines to access the node/port GET/SET/REQ items. The first argument is the 
-// node/port Id. A node Id of zero refers to the local node and the calls are direct
-// procedure calls. A non-zero node will refer to another node, and a message is 
-// broadcasted.
+// Local routines to access the node/port GET/SET/REQ items. 
 //
+// ??? a firmware should rather use the sendXXX calls.
 //----------------------------------------------------------------------------------------
 uint8_t     nodeGet( uint16_t npId, uint8_t  item, uint16_t *arg );
 uint8_t     nodeSet( uint16_t npId, uint8_t item, uint16_t arg );
@@ -776,6 +775,7 @@ uint8_t     registerReqCallback( LcsReqCallback handler,
                                  uint16_t portMask = 0xFFFF,
                                  void *uData = nullptr );
 
+// ??? this one is actually done for each individual message ?
 uint8_t     registerRepCallback( LcsRepCallback handler, 
                                  uint16_t portMask = 0xFFFF,
                                  void *uData = nullptr );
@@ -788,11 +788,22 @@ uint8_t     registerDrvFunc( LcsReqCallback handler,
                              void *uData = nullptr );
 
 //----------------------------------------------------------------------------------------
-// A set of convenience functions to send an LCS message. The routines take care 
-// of the message formatting and sending. 
-// 
+// A set of functions to send an LCS message. They are grouped into several 
+// categories. The LCS bus messages deal with global data and configuration
+// items. The DCC messages handle the DCC related messages for engines. The 
+// attribute related messages provide access to the attributes of a node and
+// port. The request function and reply group implements a function style call.
+// The event group manages events.
 //
-// ??? rethink this. For consistency, should we always pass the sender ?
+// The sendingNpId argument specifies the sender. Although we have a global 
+// nodeId, the portId can be different. It is possible to send a message from 
+// a port to another port on the same node. When the sendingNpId parameter
+// is omitted, the global nodeId with a portId of zero is used. The channelId
+// is always ignored and passed as is.
+//
+// The request / reply style messages allow on the sending side to pass an 
+// individual callback for the reply.
+// 
 //----------------------------------------------------------------------------------------
 uint8_t     sendCfg( uint16_t targetNpId );
 uint8_t     sendOps( uint16_t targetNpId );
@@ -816,33 +827,64 @@ uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
 uint8_t     sendAck( uint16_t sendingNpId,
                      uint16_t targetNpId );
 
+// ??? needed ? We could do this via encoding a item ID of zero and the
+// argument 1 as error code.
 uint8_t     sendErr( uint16_t sendingNpId, 
                      uint16_t targetNpId,
                      uint8_t errCode, 
                      uint8_t arg1 = 0, 
                      uint8_t arg2 = 0 );
 
-uint8_t     sendGetNode( uint16_t sendingNpId, 
+uint8_t     sendGetAttr( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
+                         uint8_t item, 
+                         LcsRepCallback rep,
+                         void *uData = nullptr );
+
+uint8_t     sendRepAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
                          uint8_t item, 
                          uint16_t arg );
 
-uint8_t     sendSetNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,    
+uint8_t     sendPutAttr( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
                          uint8_t item, 
-                         uint16_t arg );
+                         uint16_t arg,
+                         LcsRepCallback rep,
+                         void *uData = nullptr );
 
-uint8_t     sendReqNode( uint16_t sendingNpId,  
-                         uint16_t targetNpId,
-                         uint8_t item,    
-                         uint16_t val1, 
-                         uint16_t val2  );
+uint8_t     sendGetExtAttr( uint16_t sendingNpId, 
+                            uint16_t targetNpId,           
+                            uint8_t item, 
+                            uint16_t arg,
+                            LcsRepCallback rep,
+                            void *uData = nullptr );
 
-uint8_t     sendRepNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,
+uint8_t     sendRepExtAttr( uint16_t sendingNpId, 
+                            uint16_t targetNpId,           
+                            uint8_t item, 
+                            uint16_t arg );
+
+uint8_t     sendPutExtAttr( uint16_t sendingNpId, 
+                            uint16_t targetNpId,           
+                            uint8_t item, 
+                            uint16_t arg,
+                            LcsRepCallback rep,
+                            void *uData = nullptr );
+
+uint8_t     sendReqFunc( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
                          uint8_t item, 
-                         uint16_t val1, 
-                         uint16_t val2  );
+                         uint16_t arg1,
+                         uint16_t arg2,
+                         LcsRepCallback rep,
+                         void *uData = nullptr );
+
+uint8_t     sendRepFunc( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
+                         uint8_t item, 
+                         uint16_t arg1,
+                         uint16_t arg2 );
 
 uint8_t     sendEventOn( uint16_t sendingNpId, 
                          uint16_t eventId );
@@ -949,6 +991,30 @@ uint8_t     sendRawMsg( uint8_t *msgBuf );
 void        printLcsMs( uint8_t *msgBuf );
 
 int         lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen );
+
+
+// ??? phase out...
+uint8_t     sendGetNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
+                         uint8_t item, 
+                         uint16_t arg );
+
+uint8_t     sendSetNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,    
+                         uint8_t item, 
+                         uint16_t arg );
+
+uint8_t     sendReqNode( uint16_t sendingNpId,  
+                         uint16_t targetNpId,
+                         uint8_t item,    
+                         uint16_t val1, 
+                         uint16_t val2  );
+
+uint8_t     sendRepNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,
+                         uint8_t item, 
+                         uint16_t val1, 
+                         uint16_t val2  );
 
 
 
