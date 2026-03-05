@@ -175,7 +175,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultHeaderMap( ) {
 
-    if ( setupDebugEnabled( )) printf( "--> setupDefaultHeaderMap\n" );
+    ENTER_FUNC();
 
     headerMap.map[0].boardMword     = NVM_MWORD_NODE_HEADER;
     headerMap.map[0].boardInfo      = dMap.boardInfo;
@@ -201,25 +201,34 @@ uint8_t setupDefaultHeaderMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeMap( ) {
 
-    if ( setupDebugEnabled( )) printf( "--> setupDefaultNodeMap\n" );
+    ENTER_FUNC( );
 
-    nodeMap.magicWord = NVM_MWORD_NODE_MAP;
-    nodeMap.nvmOfs = NVM_NODE_MAP_OFS;
-    nodeMap.nvmSize = sizeof(LcsNodeMap);
-    nodeMap.rtLibSwVersion = LCS_RT_LIB_VERSION;
-    nodeMap.rtLibSwPatchLevel = LCS_RT_LIB_PATCH_LEVEL;
+    nodeMap.magicWord               = NVM_MWORD_NODE_MAP;
+    nodeMap.nvmOfs                  = NVM_NODE_MAP_OFS;
+    nodeMap.nvmSize                 = sizeof(LcsNodeMap);
+    nodeMap.rtLibSwVersion          = LCS_RT_LIB_VERSION;
+    nodeMap.rtLibSwPatchLevel       = LCS_RT_LIB_PATCH_LEVEL;
 
-    nodeMap.nodeState = NS_NIL;
-    nodeMap.nodeId = NIL_NODE_ID;
-    nodeMap.nodeUID = createUid( );
-    nodeMap.nodeRestartCnt = 0;
-    nodeMap.nodeSystemTime = 0;
+    nodeMap.nodeState               = NS_NIL;
+    nodeMap.nodeId                  = NIL_NODE_ID;
+    nodeMap.nodeUID                 = createUid( );
+    nodeMap.nodeRestartCnt          = 0;
+    nodeMap.nodeSystemTime          = 0;
 
-    nodeMap.initCallback = nullptr;
-    nodeMap.pfailCallback = nullptr;
-    nodeMap.lcsMsgCallback = nullptr;
-    nodeMap.dccMsgCallback = nullptr;
-    nodeMap.cmdLineCallback = nullptr;
+    nodeMap.initCallback            = nullptr;
+    nodeMap.initCallBackUdata       = nullptr;
+
+    nodeMap.pfailCallback           = nullptr;
+    nodeMap.pfailCallBackUdata      = nullptr;
+
+    nodeMap.lcsMsgCallback          = nullptr;
+    nodeMap.lcsMsgCallBackUdata     = nullptr;
+
+    nodeMap.dccMsgCallback          = nullptr;
+    nodeMap.dccMsgCallBackUdata     = nullptr;
+
+    nodeMap.cmdLineCallback         = nullptr;
+    nodeMap.cmdLineCallBackUdata    = nullptr;
 
     return ( RET_STAT( rtNvmPutBytes( NVM_NODE_MAP_OFS,
                                       (uint8_t *)&nodeMap,
@@ -233,7 +242,7 @@ uint8_t setupDefaultNodeMap( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeData( ) {
 
-    ENTER_FUNC();
+    ENTER_FUNC( );
 
     nodeData.magicWord = NVM_MWORD_NODE_DATA_MAP;
     nodeData.nvmOfs    = NVM_NODE_DATA_OFS;
@@ -297,6 +306,7 @@ uint8_t buildNvmRuntimeStructure( ) {
 // At this point we do not know much about the extension board other than it is 
 // such a board.
 //
+// ??? this changes with I2C bus concept...
 //----------------------------------------------------------------------------------------
 uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
 
@@ -371,21 +381,19 @@ uint8_t initCdcLayer( ) {
 
     const uint32_t CONSOLE_TIMEOUT = 1024 * 1024 * 4;
 
-    cdcInit( &dMap, runtimeOptions, debugMask );
+    uint8_t rStat = cdcInit( &dMap, runtimeOptions, debugMask );
 
-    uint8_t rStat = configureDio(CDC_RN_ACTIVITY_LED);
+    rStat = configureDio( CDC_RN_ACTIVITY_LED );
 
     if ( usbIsConnected( )) {
-
-        // ??? print out what board desc we actually use ?
 
         printf( "Type '?' for help\n" );
 
         while ( true ) {
 
-            printf("=>");
+            printf( "=>" );
 
-            char ch = usbIoGetChar( 0, CONSOLE_TIMEOUT);
+            char ch = usbIoGetChar( 0, CONSOLE_TIMEOUT );
 
             if ((ch == 'R') || (ch == 'r')) {
 
@@ -393,7 +401,6 @@ uint8_t initCdcLayer( ) {
 
                 debugMask &= ~LCS_DBG_ENABLE;
                 return ( RET_STAT( LCS_OK ));
-            
             } 
             else if (( ch == 'D' ) || ( ch == 'd' )) {
 
@@ -401,7 +408,6 @@ uint8_t initCdcLayer( ) {
 
                 debugMask |= LCS_DBG_ENABLE | LCS_DBG_SETUP;
                 return ( RET_STAT( LCS_OK ));
-            
             } 
             else if (( ch == 'F' ) || ( ch == 'f' )) {
 
@@ -410,7 +416,6 @@ uint8_t initCdcLayer( ) {
                 debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 runtimeOptions |= NPO_FORMAT_RUNTIME;
                 return ( RET_STAT( LCS_OK ));
-            
             } 
             else if ( ch == '?' ) {
 
@@ -430,25 +435,27 @@ uint8_t initCdcLayer( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The NVM library functions will work after this routine. We assume that the CDC
-// layer was initialized and configured. In particular, we depend on the I2C
-// channels. If all is OK, we can talk to all NVMs chips on the boards making up
-// the node.
+// The first thing is to setup our I2C channels. The NVM channel allows us access
+// to the runtime NVM, the other one to external boards.
 //
 //----------------------------------------------------------------------------------------
-uint8_t initNvmChannels( ) {
+uint8_t initI2cChannels( ) {
 
     ENTER_FUNC( );
 
     uint8_t rStat = LCS_OK;
     if ( rStat == LCS_OK) rStat = configureI2C( CDC_RN_NVM );
     if ( rStat == LCS_OK) rStat = configureI2C( CDC_RN_EXT_NVM );
-
-    scanI2CBus( CDC_RN_NVM );
+    if ( rStat == LCS_OK) rStat = scanI2CBus( CDC_RN_NVM ); // ??? why do we do this ?
 
     return ( RET_STAT( rStat ));
 }
 
+//----------------------------------------------------------------------------------------
+// When the I2C channel is in place, we can set up the runtime lib NVM.
+//
+// ??? just do the runtime NVM ?
+//----------------------------------------------------------------------------------------
 uint8_t configNvmChannels( ) {
 
     ENTER_FUNC( );
@@ -503,8 +510,7 @@ uint8_t initCanBus( ) {
 uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 
     ENTER_FUNC( );
-    watchDogEnable( ! ( runtimeOptions & NPO_DISABLE_WATCHDOG ));    
-    return ( RET_STAT( LCS_OK ));
+    return ( RET_STAT( watchDogEnable( ! ( runtimeOptions & NPO_DISABLE_WATCHDOG ))));
 }
 
 //----------------------------------------------------------------------------------------
@@ -695,19 +701,27 @@ uint8_t setupNodeMap( ) {
 
     if ( rStat == LCS_OK ) {
 
-        nodeMap.initCallback    = nullptr;
-        nodeMap.pfailCallback   = nullptr;
-        nodeMap.lcsMsgCallback  = nullptr;
-        nodeMap.dccMsgCallback  = nullptr;
-        nodeMap.cmdLineCallback = nullptr;
+        nodeMap.initCallback            = nullptr;
+        nodeMap.cmdLineCallBackUdata    = nullptr;
+
+        nodeMap.pfailCallback           = nullptr;
+        nodeMap.pfailCallBackUdata      = nullptr;
+
+        nodeMap.lcsMsgCallback          = nullptr;
+        nodeMap.lcsMsgCallBackUdata     = nullptr;
+
+        nodeMap.dccMsgCallback          = nullptr;
+        nodeMap.dccMsgCallBackUdata     = nullptr;
+
+        nodeMap.cmdLineCallback         = nullptr;
+        nodeMap.cmdLineCallBackUdata    = nullptr;
     }
 
     return ( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// "setupPortMap" will read the port data the NVM port map data area into the memory
-// counterpart. A node can have up to 15 ports. Port 0 is the node itself.
+// "setupPortMap" will initialize the portMap. A node can have up to 16 ports.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
@@ -731,12 +745,9 @@ uint8_t setupPortMap( ) {
 uint8_t setupNodeDataMap( ) {
 
     ENTER_FUNC( );
-
-    uint8_t rStat = rtNvmGetBytes( NVM_NODE_DATA_OFS,
+    return ( RET_STAT( rtNvmGetBytes( NVM_NODE_DATA_OFS,
                                    (uint8_t *)&nodeData,
-                                   sizeof( nodeData ));
-
-    return ( RET_STAT( rStat ));
+                                   sizeof( nodeData ))));
 }
 
 //----------------------------------------------------------------------------------------
@@ -759,15 +770,16 @@ uint8_t setupEventMap( ) {
 
 //----------------------------------------------------------------------------------------
 // The user map is the additional NVM storage that the chip set offers beyond the
-// area allocated for the system. Since we have no idea what the user is doing, we
-// do nothing for now. It is just a placeholder.
+// area allocated for the runtime data. The size is depending on the actual NVM
+// chip used and the configured user map size.
 //
-// ??? it is a function of the remaining space in the NVM. Perhaps the NVM setup
-// can just set the boundaries and that is all there is. 
 //----------------------------------------------------------------------------------------
 uint8_t setupUserMap( ) {
 
     ENTER_FUNC( );
+
+    // ??? figure out how much memory there is, load it.
+    // ??? we also need to allocate memory for this map first.
 
     return ( RET_STAT( LCS_OK ));
 }
@@ -815,42 +827,58 @@ uint8_t setupPendingReqMap( ) {
 // or associated with a physical resource, such as a DIO pin, an ADC channel, a PWM
 // channel, a servo channel, etc. The port map entry for the port will record the
 // driver type and version, which will allow us to map to the driver procedure. The
-// driver procedure will know how to talk to the particular extension board. A failure
-// in this part of the sequence does not necessarily mean that the node cannot be used. 
+// driver procedure will know how to talk to the particular I/O element. A failure
+// in this part of the sequence does not necessarily mean that the node cannot be 
+// used. 
 //
+// For each port we form the I2C addresses and try to read from that address. If
+// there is a response, try to read a header to find out what is connected at 
+// that address. The I2C address is computed from portId * 16 + chanId. The ports
+// 0 and 15 are not supported for the I2C bus, because I2C addresses in that 
+// range are partially reserved by the I2C standard. 
+//
+// If we got a valid header, the port entry records the I/O element type, which 
+// in turn defines the driver function to use. All channels on a given port must
+// have the same type.
 //
 //----------------------------------------------------------------------------------------
 uint8_t discoverChannels( ) {
 
     ENTER_FUNC( );
-
-    // ??? for each port we form the I2C addresses and try to read the header. 
-    // If we get a valid header, we have a board there. We can then setup the 
-    // port map entry for this port and mark it as an extension board port. 
-    // We can also read in the driver type and version from the header. 
-    // Driver types must be equal for all devices on the board.
-     
-    // ??? how do we map from driver type to driver procedure ? We could have a
-    // fixed scheme and all possible drivers are part of the runtime library.
-    // we could also have a driver table and register a driver for each driver type. 
-    // The driver table would be part of the runtime library, but the drivers could
-    // be in separate files. This would allow us to keep the runtime library small
-    // and only include the drivers we actually need. We could also have a mechanism
-    // to load drivers dynamically, but that would be more complex and perhaps not
-    // needed for our use case.
-
    
-    for ( int i = 1; i <= MAX_PORT_ID - 1; i++ ) {
+    for ( int i = 1; i < MAX_PORT_ID - 1; i++ ) {
 
-        // ??? form I2C address for port i and try to read header. If valid, we have
-        // a board there. We can then setup the port map entry for this port and mark
-        // it as an extension board port. We can also read in the driver type and 
-        // version from the header. Driver types must be equal for all devices on the
-        // board.
+        for ( int j = 0; j < MAX_CHAN_ID; j++ ) {
 
-        // ??? each device found is recorded in the channel map.
+            int i2cAdr = i * 16 + j;
 
-         // ??? to do ...
+            if ( setupDebugEnabled( )) {
+
+                printf( "Testing I2C adr: %d\n", i2cAdr );
+            }
+
+            // ??? try to read ... just read first four bytes - magic word
+
+            // ??? if OK, read the entire header.
+
+            // ??? check if the type matches the port type of there is already 
+            // a type set for the port. If no match it is an error, and the port
+            // is disabled in error.
+
+            // ??? if match, remember the channelId in a bit mask. Not all 
+            // channel Ids need to be in use...
+
+            // ??? to do ...
+
+        }
+
+        // ??? update the portMap entry flags.
+
+        // portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
+        // portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
+        // portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
+        // portMap.map[i].reqCallback  = nullptr;
+
     }
 
     return( RET_STAT( LCS_OK ));
@@ -889,7 +917,7 @@ uint8_t setupExtensionBoards( ) {
 
 //----------------------------------------------------------------------------------------
 // "setupDrvFuncMap" initializes the driver function label map. This table is used
-// when we need to find the driver label for an extension board type.
+// when we need to find the driver label for an channel type.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDrvFuncMap( ) {
@@ -914,27 +942,22 @@ uint8_t setupDrvFuncMap( ) {
 uint8_t registerInternalTasks( ) {
 
     ENTER_FUNC( );
-
-    //??? nothing to do yet ...
-
     return ( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
-// Driver function registration. There is a simple table which maintains extension
-// boards types and the driver REQ function for them. For already registered types,
-// we just overwrite the function signature. Otherwise we use a free entry.
+// Driver function registration. There is a simple table which maintains board
+// types and the driver REQ function for them. For already registered types, we 
+// just overwrite the function signature. Drivers are never deallocated from the
+// table, the next free entry is the HWM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t registerDrvFunc( LcsReqCallback drvReqFunction, uint16_t drvType, void *uData ) {
 
     if ( setupDebugEnabled( )) {
 
-        printf( "--> registerDrvFunc, type: %d, func: %p\n", drvType, drvReqFunction );
+        printf( "--> registerDrvFunc, type: %d\n", drvType );
     }
-
-    uint8_t rStat = LCS_OK;
-    bool    found = false;
 
     for ( int i = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
 
@@ -946,43 +969,35 @@ uint8_t registerDrvFunc( LcsReqCallback drvReqFunction, uint16_t drvType, void *
             }
 
             drvFuncMap.map[ i ].drvFunc = drvReqFunction;
-            found                       = true;
-            break;
+            drvFuncMap.map[ i ].uData   = uData;
+            return ( RET_STAT( LCS_OK ));
         }
     }
 
-    if ( !found ) {
+    if ( drvFuncMap.mapHwm < MAX_DRV_TYPE_MAP_ENTRIES ) {
 
-        if ( drvFuncMap.mapHwm < MAX_DRV_TYPE_MAP_ENTRIES ) {
+        if ( setupDebugEnabled( )) {
 
-            if ( setupDebugEnabled( )) {
-
-                printf( "registerDrvFunc, allocate: %d\n", drvFuncMap.mapHwm );
-            }
-
-            drvFuncMap.map[ drvFuncMap.mapHwm ].drvType = drvType;
-            drvFuncMap.map[ drvFuncMap.mapHwm ].drvFunc = drvReqFunction;
-            drvFuncMap.mapHwm++;
+            printf( "registerDrvFunc, allocate: %d\n", drvFuncMap.mapHwm );
         }
-        else {
 
-            if ( setupDebugEnabled( )) {
-
-                printf( "registerDrvFunc, table full\n" );
-                rStat = ERR_DRV_FUNC_MAP_FULL;
-            }
-        }
+        drvFuncMap.map[ drvFuncMap.mapHwm ].drvType = drvType;
+        drvFuncMap.map[ drvFuncMap.mapHwm ].drvFunc = drvReqFunction;
+        drvFuncMap.mapHwm++;
+        return ( RET_STAT( LCS_OK ));
     }
 
-    return ( RET_STAT( rStat ));
+    return ( RET_STAT( ERR_DRV_FUNC_MAP_FULL ));
 }
 
 //----------------------------------------------------------------------------------------
 // During the initialization sequence INIT -> register -> START, the driver function
-// labels for a driver type have been registered. When the runtimeStart routine is
-// called, we update the driver function labels in the associated ports.
+// labels for a driver type have been registered. The INIT portion detected any
+// I2C address used and recorded the required driver type in the portMap entry. 
+// Before START, required driver types have been registered. On START all we do 
+// is to store the driver signature on the portMap entry and mark the port configured.
 //
-// ??? use driver callback fields =?
+// ??? to do ...
 //----------------------------------------------------------------------------------------
 uint8_t setupDriverFunctions( ) {
 
@@ -1045,11 +1060,11 @@ uint8_t powerFailHandler( ) {
 // whole show. It is the very first thing to call in a node firmware program. There
 // is a lot to do. This routine will invoke the various initializers, one at a time.
 //
-// The first three calls are the basic setup of the CDC layer, the NVM and CanBus
-// channel. The CDC layer setup also checks for a console presence and if so, allows
-// for different start modes. However, if any of them fails, we have a fatal error
-// and stop. If we have a basic hardware setup, let's check whether we are starting
-// from a watchdog timer or power fail event.
+// The first three calls are the basic setup of the CDC layer, the I2C, NVM and 
+// CanBus channel. The CDC layer setup also checks for a console presence and if 
+// so, allows for different start modes. However, if any of them fails, we have a
+// fatal error and stop. If we have a basic hardware setup, let's check whether we
+// are starting from a watchdog timer or power fail event.
 //
 // The remainder of the calls will setup the individual portions of the LCS runtime.
 // The overall logic of the startup code below is that if there is a fault, the 
@@ -1077,7 +1092,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
   
-    rStat = initNvmChannels( );
+    rStat = initI2cChannels( );
     if ( rStat != LCS_OK ) {
 
         fatalError( 2, (char *) "Fatal: NVM channel configuration failed", rStat );
@@ -1089,8 +1104,6 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
     }
 
-    // ??? order where to do the driver business ?
-
     if ( rStat == LCS_OK )  rStat = configNvmChannels( );
     if ( rStat == LCS_OK )  rStat = setupWatchdog( &dMap );
     if ( rStat == LCS_OK )  rStat = setupPfail( &dMap );
@@ -1098,7 +1111,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     if ( rStat == LCS_OK )  rStat = setupExtNvmHeaders( );
     if ( rStat == LCS_OK )  rStat = setupNodeMap( );
     if ( rStat == LCS_OK )  rStat = setupPortMap( );
-    if ( rStat == LCS_OK )  rStat = setupExtensionBoards( );
+    if ( rStat == LCS_OK )  rStat = setupExtensionBoards( ); // ??? goes away ...
     if ( rStat == LCS_OK )  rStat = discoverChannels( );
     if ( rStat == LCS_OK )  rStat = setupNodeDataMap( );
     if ( rStat == LCS_OK )  rStat = setupEventMap( );

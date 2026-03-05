@@ -61,6 +61,7 @@ enum LcsNodeId : uint8_t {
     MAX_NODE_ID   = 255
 };
 
+// ??? do we support 8 ports and 16 channels ?
 //----------------------------------------------------------------------------------------
 // Nodes have ports. The port Id identifies the port on a given node. Port numbers 
 // start with one. The port number zero represents the NIL port number and refers 
@@ -76,6 +77,7 @@ enum LcsPortId : uint8_t {
     MAX_PORT_ID   = 15
 };
 
+// ??? do we support 16 ports and 8 channels ?
 //----------------------------------------------------------------------------------------
 // Ports have channels. The channel is a further qualification within a port. There
 // are up to 16 channels for a given port. A fully qualified address in the LCS 
@@ -100,6 +102,19 @@ enum LcsEventId : uint16_t {
     NIL_EVENT_ID  = 0,
     MIN_EVENT_ID  = 1,
     MAX_EVENT_ID  = 65535
+};
+
+//----------------------------------------------------------------------------------------
+// Driver types are a numeric value assigned to a particular type. A hardware 
+// board will be associated with a type, which in turn is used to select the 
+// driver function to use when accessing it.
+//
+//----------------------------------------------------------------------------------------
+enum LcsDrvTypeId: uint16_t {
+
+    NIL_DRV_T_ID = 0,
+    MIN_DRV_T_ID = 1,
+    MAX_DRV_T_ID = 255
 };
 
 //----------------------------------------------------------------------------------------
@@ -479,9 +494,9 @@ enum DebugOptions : uint16_t {
     LCS_DBG_NVM_ACCESS      = 0x0200,
     LCS_DBG_CAN_BUS         = 0x0400,
     LCS_DBG_MSG_BUS         = 0x0800,
-    LCS_DBG_ATTRIBUTES      = 0x1000,
+    LCS_DBG_ITEMS           = 0x1000,
     LCS_DBG_EVENTS          = 0x2000,
-    LCD_DBG_RESERVED        = 0x4000,
+    LCD_DBG_RESERVED        = 0x4000, // ??? driver use ?
     LCS_DBG_ALL             = 0xFF00
 };
 

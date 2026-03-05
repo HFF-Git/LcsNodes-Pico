@@ -30,6 +30,16 @@
 //
 //----------------------------------------------------------------------------------------
 
+
+// ??? this file will only support the runtime NVM, all else is handled by I2C channel
+// stuff.... take out extension board stuff.
+//
+// ??? take out the LC04 chip type...
+
+// ??? compute the available user map size during configuration...
+
+
+
 //----------------------------------------------------------------------------------------
 // Include files.
 //

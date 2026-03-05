@@ -185,16 +185,17 @@ enum LcsNodeState : uint16_t {
 // Item 64 to 127 are reserved for library and firmware functions. Item 128
 // to 255 are user definable attributes.
 //
+// ??? we should use a 16-bit quantity and add extended attributes range.
 //----------------------------------------------------------------------------------------
 enum ItemRanges : uint8_t {
 
     IR_NIL                      = 0,
 
     IR_LIB_MAP_RANGE_START      = 1,
-    IR_LIB_MAP_RANGE_END        = 127,
+    IR_LIB_MAP_RANGE_END        = 63,
 
-    IR_LIB_FUNCTION_START       = 64,
-    IR_LIB_FUNCTION_END         = 127,
+    IR_DRV_FUNCTION_START       = 64,
+    IR_DRV_FUNCTION_END         = 127,
 
     IR_USER_RANGE_START         = 128,
     IR_USER_RANGE_END           = 255,
@@ -264,7 +265,7 @@ struct LcsBoardDesc {
     uint16_t            boardInfo;                      // type/subtype
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
-    uint16_t            reserved[ 7 ];
+    uint16_t            reserved[ 7 ];                  // future use
     uint16_t            serialNum1;                     // serial number part 1
     uint16_t            serialNum2;                     // serial number part 2
     uint16_t            serialNum3;                     // serial number part 3
@@ -428,7 +429,12 @@ struct LcsPortMapEntry {
     uint32_t            eventTimeStamp              = 0L;
 
     uint16_t            targetNpId                  = NIL_NODE_ID;
-    uint32_t            targetReqTs                = 0; 
+    uint32_t            targetReqTs                 = 0; 
+
+    uint16_t            channelMask                 = 0;
+    
+
+
 
     uint16_t            channelMap[ MAX_CHANNEL_MAP_ENTRIES ];
 };
@@ -482,7 +488,6 @@ struct LcsPendingReqMap {
     LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
-// ??? this will go away as well. We register the driver with the port.
 //----------------------------------------------------------------------------------------
 // An extension board is associated with a port and thus has attributes and request 
 // items. Attributes are naturally accessed via the GET/PUT calls. The extension 
@@ -490,14 +495,12 @@ struct LcsPendingReqMap {
 // required to register a callback, i.e. driver, for each driver type used. The type
 // and function label for extension boards are kept in the driver function map. 
 //
-// ??? perhaps this changes too. We could have a function per channel registered.
-// ??? the benefit would be great flexibility how a channel works.
-// ??? alternative: one callback per port, all channels are the same...
 //----------------------------------------------------------------------------------------
 struct LcsDrvFuncEntry {
 
     uint16_t        drvType = CDC_BT_NIL;
     LcsReqCallback  drvFunc = nullptr;
+    void            *uData  = nullptr;
 };
 
 struct LcsDrvFuncMap {
