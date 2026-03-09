@@ -55,7 +55,6 @@ namespace LCS {
     extern uint16_t         runtimeOptions;
     extern uint16_t         firmwareOptions;
     
-    extern LcsHeaderMap     headerMap;
     extern LcsNodeMap       nodeMap;
     extern LcsNodeData      nodeData;
     extern LcsPortMap       portMap;
@@ -335,26 +334,6 @@ uint8_t rtLibGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
             
             *arg = nodeMap.nodeRestartCnt; 
             return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_BOARD_VERSION: {
-
-            if ( isInRangeU16( *arg, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
-
-                *arg = headerMap.map[ *arg ].boardVersion ;
-                return ( RET_STAT( LCS_OK ));
-            }
-            else return ( RET_STAT( ERR_INVALID_ATTR_ARG ));
-        }
-
-        case ITEM_ID_BOARD_TYPE: {
-
-            if ( isInRangeU16( *arg, 0, MAX_EXT_BOARD_MAP_ENTRIES )) {
-
-                *arg = headerMap.map[ *arg ].boardInfo;
-                return ( RET_STAT( LCS_OK ));
-            }
-            else return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
         }
 
         case ITEM_ID_PORT_MAP_ENTRIES: {

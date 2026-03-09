@@ -87,10 +87,10 @@ namespace LCS {
     CdcResourceDescMap  dMap;
 
     LcsMsgBusCAN        *msgBus;
-    LcsHeaderMap        headerMap;
-    LcsNodeData         nodeData;
+    LcsBoardDesc        boardDesc;
     LcsNodeMap          nodeMap;
     LcsPortMap          portMap;
+    LcsNodeData         nodeData;
     LcsEventMap         eventMap;
     LcsTaskMap          taskMap;
     LcsDrvFuncMap       drvFuncMap;
@@ -171,24 +171,21 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 // for the main board from the board descriptor map. The extension entries are 
 // just cleared. The new NVM Node Map header is stored to NVM.
 //
+// ??? better name ...
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultHeaderMap( ) {
 
     ENTER_FUNC();
 
-    headerMap.map[0].boardMword     = NVM_MWORD_NODE_HEADER;
-    headerMap.map[0].boardInfo      = dMap.boardInfo;
-    headerMap.map[0].boardVersion   = dMap.boardVersion;
-    headerMap.map[0].boardCtrlInfo  = dMap.boardCtrlInfo;
+    LcsBoardDesc tmp;
 
-    for ( int i = 1; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
-
-        LcsBoardDesc e;
-        headerMap.map[i] = e;
-    }
+    tmp.boardMword     = NVM_MWORD_NODE_HEADER;
+    tmp.boardInfo      = dMap.boardInfo;
+    tmp.boardVersion   = dMap.boardVersion;
+    tmp.boardCtrlInfo  = dMap.boardCtrlInfo;
 
     return ( RET_STAT( rtNvmPutBytes( NVM_MAP_STORAGE_START,
-                                      (uint8_t *)&headerMap.map[ 0 ],
+                                      (uint8_t *)&tmp,
                                       sizeof( LcsBoardDesc ))));
 }
 
@@ -325,10 +322,11 @@ uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// A little helper to print a NVM header structure in HEX for debugging purposes.
+// A little helper to print a board descriptor structure in HEX for debugging 
+// purposes.
 //
 //----------------------------------------------------------------------------------------
-void printNvmHeader( LcsBoardDesc *head ) {
+void printBoardDesc( LcsBoardDesc *head ) {
 
     uint16_t *ptr  = (uint16_t *) head;
     size_t   words = sizeof(LcsBoardDesc) / 2;
@@ -604,80 +602,22 @@ uint8_t setupNodeNvmHeader(CdcResourceDescMap *map) {
         if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
     }
 
-    LcsBoardDesc *hPtr = &headerMap.map[ 0 ];
-
     rStat = rtNvmGetBytes( NVM_HEADER_MAP_OFS,
-                           (uint8_t *) hPtr,
+                           (uint8_t *) &boardDesc,
                            sizeof( LcsBoardDesc ));
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
-    if (( hPtr -> boardInfo != dMap.boardInfo ) &&
-        ( hPtr -> boardCtrlInfo != dMap.boardCtrlInfo )) {
+    if (( boardDesc.boardInfo != dMap.boardInfo ) &&
+        ( boardDesc.boardCtrlInfo != dMap.boardCtrlInfo )) {
     
         }
 
-    if ( hPtr->boardVersion != dMap.boardVersion ) {
+    if ( boardDesc.boardVersion != dMap.boardVersion ) {
 
     }
 
-    if ( setupDebugEnabled( )) printNvmHeader( hPtr );
+    if ( setupDebugEnabled( )) printBoardDesc( &boardDesc );
     return ( RET_STAT( rStat ));
-}
-
-// ??? will change, as we move to I2C extension board access boards. We will
-// scan all I2C addresses on the extension I2C and see what is out there.
-// No need to keep the headers around, when you can read them anytime.
-//----------------------------------------------------------------------------------------
-// With the NVM channels in place and the main controller NVM header valid, we 
-// check whether there are extension boards and read in their headers too. The 
-// optional extension board NVM headers are stored in entry 1 to 4. If the read 
-// operation fails, there is no board at that location and we set the magic word
-// to zero to record this fact. Note that this routine always returns a success, 
-// even if there were internal errors.
-//
-//----------------------------------------------------------------------------------------
-uint8_t setupExtNvmHeaders( ) {
-
-    ENTER_FUNC( );
-
-    uint8_t rStat = LCS_OK;
-
-    for ( int i = 1; i <= MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
-
-        LcsBoardDesc *hPtr = &headerMap.map[ i ];
-
-        rStat = extNvmGetBytes( i, 0, (uint8_t *) hPtr, sizeof( LcsBoardDesc ));
-        if ( rStat == LCS_OK ) {
-
-            if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
-
-                if ( setupDebugEnabled( )) {
-
-                    printNvmHeader( hPtr );
-                    printf( "setupExtNvmHeaders: boardId: %d -> valid\n", i );
-                }
-            }
-            else {
-
-                hPtr -> boardMword = 0;
-
-                if ( setupDebugEnabled( )) {
-
-                    printNvmHeader( hPtr );
-                    printf( "setupExtNvmHeaders: boardId: %d -> invalid\n", i );
-                }
-            }
-        }
-        else {
-
-            if ( setupDebugEnabled( )) {
-
-                printf( "setupExtNvmHeaders: boardId: %d -> not present\n", i );
-            }
-        }
-    }
-
-    return ( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -857,37 +797,6 @@ uint8_t discoverChannels( ) {
     return( RET_STAT( LCS_OK ));
 }
 
-// phase out ...
-//----------------------------------------------------------------------------------------
-// "setupExtensionBoards" will scan the header map for an extension board detected
-// and mark the corresponding port as a driver type port.
-//
-//----------------------------------------------------------------------------------------
-uint8_t setupExtensionBoards( ) {
-
-    ENTER_FUNC( );
-    
-    for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ ) {
-
-        LcsBoardDesc *hPtr = &headerMap.map[i];
-
-        if ( hPtr -> boardMword == NVM_MWORD_EXT_HEADER ) {
-
-            if ( setupDebugEnabled( )) {
-
-                printf( "Valid Extension Board detected: %d\n", i );
-            }
-
-            portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
-            portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
-            portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
-            portMap.map[i].reqCallback  = nullptr;
-        }
-    }
-
-    return ( RET_STAT( LCS_OK ));
-}
-
 //----------------------------------------------------------------------------------------
 // "setupDrvFuncMap" initializes the driver function label map. This table is used
 // when we need to find the driver label for an channel type.
@@ -976,7 +885,7 @@ uint8_t setupDriverFunctions( ) {
 
     ENTER_FUNC( );
 
-    for ( int i = 1; i < MAX_EXT_BOARD_MAP_ENTRIES; i++ )  {
+    for ( int i = 1; i < MAX_PORT_MAP_ENTRIES; i++ )  {
 
         LcsPortMapEntry *pPtr = &portMap.map[i];
 
@@ -985,7 +894,7 @@ uint8_t setupDriverFunctions( ) {
 
             for ( int j = 0; j < MAX_DRV_TYPE_MAP_ENTRIES; j++ ) {
 
-                if ( headerMap.map[i].boardInfo == drvFuncMap.map[j].drvType ) {
+                if ( boardDesc.boardInfo == drvFuncMap.map[j].drvType ) {
 
                     if ( setupDebugEnabled( )) {
 
@@ -1081,10 +990,8 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     if ( rStat == LCS_OK )  rStat = setupWatchdog( &dMap );
     if ( rStat == LCS_OK )  rStat = setupPfail( &dMap );
     if ( rStat == LCS_OK )  rStat = setupNodeNvmHeader( &dMap );
-    if ( rStat == LCS_OK )  rStat = setupExtNvmHeaders( );
     if ( rStat == LCS_OK )  rStat = setupNodeMap( );
     if ( rStat == LCS_OK )  rStat = setupPortMap( );
-    if ( rStat == LCS_OK )  rStat = setupExtensionBoards( ); // ??? goes away ...
     if ( rStat == LCS_OK )  rStat = discoverChannels( );
     if ( rStat == LCS_OK )  rStat = setupNodeDataMap( );
     if ( rStat == LCS_OK )  rStat = setupEventMap( );

@@ -27,7 +27,7 @@
 #include "LcsRtLibInt.h"
 
 //----------------------------------------------------------------------------------------
-// External declaration to global structures and functions.
+// External declaration to global structures and functions in other modules.
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
@@ -42,13 +42,13 @@ namespace LCS {
     extern LcsEventMap          eventMap;
     extern LcsTaskMap           taskMap;
     extern LcsDrvFuncMap        drvFuncMap;
-    extern LcsMsgBusCAN         *msgBus;
 
     extern uint8_t              handleSerialCommand( );
     extern uint8_t              setupDriverFunctions( );
     extern uint8_t              setupPortMap( );
     extern int                  searchEvent( uint16_t eventId );
     extern uint8_t              rtNvmPutWord( uint32_t ofs, uint16_t word );
+    extern uint8_t              receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg );
 };
 
 //----------------------------------------------------------------------------------------
@@ -501,7 +501,7 @@ void handleNodeStateRegister( ) {
     uint16_t senderNpId;
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
+    switch ( receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_REP_NID: handleMsgRepNid( msg );  break;
         case LCS_OP_RESET:   handleMsgLcsMgt( msg );  break;
@@ -518,9 +518,9 @@ void handleNodeStateRegister( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State COLLISION. This is the state after the node receiver routine detected 
-// a nodeId collision. We will stay in this state and only react to RESET and SET_NID
-// messages.
+// Node State COLLISION. This is the state after the node receiver routine 
+// detected a nodeId collision. We will stay in this state and only react to 
+// RESET and SET_NID messages.
 //
 //----------------------------------------------------------------------------------------
 void handleNodeStateCollision( ) {
@@ -528,7 +528,7 @@ void handleNodeStateCollision( ) {
     uint16_t senderNpId;
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
+    switch ( receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_RESET:
         case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
@@ -546,7 +546,7 @@ void handleNodeStateHalted( ) {
     uint16_t senderNpId;              
     uint8_t  msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( &senderNpId,  msg )) {
+    switch ( receiveLcsMsg( &senderNpId,  msg )) {
 
         case LCS_OP_BON:
         case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
@@ -565,7 +565,7 @@ void handleNodeStateConfig( ) {
     uint16_t senderNpId;
     uint8_t msg[ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
+    switch ( receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_OPS:
         case LCS_OP_RESET:
@@ -605,7 +605,7 @@ void handleNodeStateOperations( ) {
     uint16_t senderNpId;
     uint8_t msg [ MAX_LCS_MSG_SIZE ];
 
-    switch ( msgBus -> receiveLcsMsg( &senderNpId, msg )) {
+    switch ( receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_CFG:
         case LCS_OP_RESET:

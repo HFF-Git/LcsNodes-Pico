@@ -40,7 +40,6 @@ namespace LCS {
 
     extern uint16_t             debugMask;
     extern uint16_t             runtimeOptions;
-    extern LcsHeaderMap         headerMap;
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
@@ -268,20 +267,6 @@ void dumpExtNvmData( uint8_t  boardId,
 // hex data. It would be nice to show formatted data. Perhaps one day...
 //
 //----------------------------------------------------------------------------------------
-void dumpMemHeaderMap( ) {
-
-    printf( "MEM Header Map: \n\n" );
-
-    for ( int i = 0; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
-
-        printf( "Header: %d\n", i );
-        dumpMemData((uint16_t *) &headerMap.map[ i ], sizeof( LcsBoardDesc ), 8, true );
-        printf( "\n" );
-    }
-
-    printf( "\n" );
-}
-
 void dumpMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
@@ -430,25 +415,6 @@ void printSummary( ) {
             LCS_RT_LIB_PATCH_LEVEL );  
 
     printf( "Git Branch: %s\n", LCS_RT_LIB_GIT_BRANCH );
-}
-
-void printHeaderMap( ) {
-
-    printf( "Header Map: \n\n" );
-
-    for ( int i = 0; i < MAX_NVM_HEADER_MAP_ENTRIES; i++ ) {
-
-        if ( headerMap.map[ i ].boardMword != 0 ) {
-
-            printf( "%d: ", i );
-            printf( "   " "Type: 0x%04x, Ctrl: 0x%04x, Version: 0x%04x\n",
-                    headerMap.map[ i ].boardInfo,
-                    headerMap.map[ i ].boardCtrlInfo,
-                    headerMap.map[ i ].boardVersion );
-        }   
-    }
-
-    printf( "\n" );
 }
 
 void printMemNodeMap( ) {
@@ -815,8 +781,6 @@ void listStatusCommand( char *s ) {
         switch ( level ) {
 
             case 0:     printSummary( );                break;
-
-            case 1:     dumpMemHeaderMap( );            break;
             case 2:     dumpMemNodeMap( );              break;
             case 3:     dumpMemNodeData( );             break;
             case 4:     dumpMemEventMap( );             break;
@@ -831,7 +795,6 @@ void listStatusCommand( char *s ) {
             case 24:    dumpNvmEventMap( );             break;
             case 29:    dumpNvmRuntimeArea( );          break;
 
-            case 41:    printHeaderMap( );              break;
             case 42:    printMemNodeMap( );             break;
             case 44:    printMemEventMap( );            break;
             case 45:    printMemPortMap( );             break;

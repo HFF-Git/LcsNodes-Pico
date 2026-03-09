@@ -94,40 +94,10 @@ uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
     return ( ERR_PENDING_REQ_MAP_FULL );
 }
 
-//----------------------------------------------------------------------------------------
-// "removeFromPendingReqMap" removes an entry from the pending reply buffer. If the
-// entry is not found, we received a reply for a request that we do not know. Right 
-// now, we just ignore this error.
-//
-//----------------------------------------------------------------------------------------
-uint8_t removeFromPendingReqMap( uint16_t npId ) {
 
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
-
-        if ( pendingReqMap.map[ i ].npId == npId ) 
-            pendingReqMap.map[ i ].npId = NIL_NODE_ID;
-    }
-
-    return ( NO_ERR );
-}
-
-//----------------------------------------------------------------------------------------
-// "searchPendingReqMap" searches the pending request buffer for a matching node. 
-// We just return a boolean answer whether the entry is there or not.
-//
-//----------------------------------------------------------------------------------------
-bool searchPendingReqMap( uint16_t npId ) {
-
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
-
-        if ( pendingReqMap.map[ i ].npId == npId ) return ( true );
-    }
-
-    return ( false );
-}
 #endif
 
-// ??? rename to say that it scans the port map....
+// ??? rename to say that it scans the port map.... should go into core ?
 //----------------------------------------------------------------------------------------
 // "processPendingReqMapTimeouts" is part of the periodic processing of the node. 
 // It will check wether any requests waiting for a reply have timed out. In this 
@@ -181,6 +151,8 @@ uint8_t sendTimedReq( uint16_t targetNpId,
 
     // check that the port/channel  is not already active ...
 
+    // ??? add timeout data to port...
+
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msg, msgPri ));
 }
 
@@ -194,45 +166,16 @@ uint8_t sendTimedReq( uint16_t targetNpId,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// A simple helper to print an LCS message.
-//
-// ??? could go to "util" ?
-//----------------------------------------------------------------------------------------
-void printLcsMsg( uint8_t *msg ) {
-
-    printf( "LCS MSG: op: %d, data: ", msg[ 0 ] & 0x1F );
-    for ( int i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i ++ ) printf( "0x%x ", msg[ i ] ); 
-    printf( "\n" );
-}
-
-int lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen ) {
-
-    int  len;
-    char lBuf[ 64 ];
-
-    len = snprintf( lBuf, sizeof( lBuf ), "LCS MSG: op: %d, data: ", msg[ 0 ] & 0x1F );
-    for ( int i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i ++ ) {
-        
-        len += snprintf( lBuf + len, 8, "0x%2x ", msg[ i ] ); 
-    }
-   
-    return( len );
-}
-
-//----------------------------------------------------------------------------------------
 // The primary task of the receive function is to receive an LCS messages and pass
 // them to the respective handler method. In order to not always check whether a 
 // valid message was processed, this routine will always return a valid message 
 // opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something else
-// happened and no further message processing is required. We also maintain a 
-// request / reply map to keep track of outstanding requests transparently to the 
-// caller.
+// happened and no further message processing is required. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t receiveLcsMsg( uint8_t *msg ) {
+uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
 
-    uint16_t senderNpId;
-    int rStat = msgBus -> receiveLcsMsg( &senderNpId, msg );
+    int rStat = msgBus -> receiveLcsMsg( senderNpId, msg );
 
     if ( rStat == LCS_OK )  {
 
@@ -245,7 +188,7 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
             ( msg[ 0 ] == LCS_OP_ACK ) || 
             ( msg[ 0 ] == LCS_OP_ERR )) {
 
-            uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
+            uint16_t npId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
             // ??? check the port / channel for a pending request...
             // fix ....
@@ -256,6 +199,11 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
 
     } else return ( LCS_OP_NO_MSG );
 }
+
+
+// ??? they should be named more consistently after their mnemonic in the OP Code
+// table...
+
 
 //----------------------------------------------------------------------------------------
 // LCB message send routines. They all follow the same pattern. There is a method
@@ -419,7 +367,6 @@ uint8_t sendRepAttr( uint16_t sendingNpId,
                      uint8_t item, 
                      uint16_t arg )  {
 
-    // ??? why do we have targetNpId ?
     // it is stored in the port...
     // ??? rather check if there is an active request...
 
@@ -513,7 +460,10 @@ uint8_t sendRepFunc( uint16_t sendingNpId,
 
 
 
-
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 
 uint8_t sendGetNode( uint16_t sendingNpId, 
                      uint16_t targetNpId, 
@@ -619,6 +569,11 @@ uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
     return ( msgBus -> sendLcsMsg( npId, msgBuf, MSG_PRI_LOW ));  
 }
 
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendTrackOn( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_TON };

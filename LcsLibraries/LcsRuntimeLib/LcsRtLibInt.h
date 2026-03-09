@@ -41,6 +41,7 @@
 #include "LcsRtLibVersion.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
+#include "LcsUtilLib.h"
 
 //----------------------------------------------------------------------------------------
 // Namespace LCS declarations
@@ -66,7 +67,7 @@ namespace LCS {
 //
 //          :-------------------------------------------:       NVM_NODE_MAP_START 
 //          :                                           :
-//          :       NVM Header Map                      :
+//          :       Board Desc Map                      :
 //          :                                           :
 //          :-------------------------------------------:       + sizeof( LcsBoardDesc ) 
 //          :                                           :
@@ -126,10 +127,11 @@ const int       NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
 const int       NVM_EXT_BOARD_DEF_SIZE          = 4 * 1024;
 
 //----------------------------------------------------------------------------------------
-// The maps have as their first word a magic word, which is just a special constant. We 
-// simply read in that word and check it for being a valid word for the particular map. 
-// If valid, the area was configured before and we can do further checking. It would be 
-// quite unlikely that a random NVM content has this word at the right spot. 
+// The maps have as their first word a magic word, which is just a special 
+// constant. We simply read in that word and check it for being a valid word for
+// the particular map. If valid, the area was configured before and we can do 
+// further checking. It would be  quite unlikely that a random NVM content has 
+// this word at the right spot. 
 //
 //----------------------------------------------------------------------------------------
 const uint32_t NVM_MWORD_MAIN           = (uint32_t) ( 'L' << 24 ) | 
@@ -140,12 +142,19 @@ const uint32_t NVM_MWORD_EXTENSION      = (uint32_t) ( 'L' << 24 ) |
                                                      ( 'C' << 16 ) | 
                                                      ( 'E' << 8 );
 
+const uint32_t NVM_MWORD_DEVICE         = (uint32_t) ( 'L' << 24 ) | 
+                                                     ( 'C' << 16 ) | 
+                                                     ( 'D' << 8 );
+
 const uint32_t NVM_MWORD_NODE_HEADER    = NVM_MWORD_MAIN | 0x01;
 const uint32_t NVM_MWORD_NODE_MAP       = NVM_MWORD_MAIN | 0x02;
 const uint32_t NVM_MWORD_NODE_DATA_MAP  = NVM_MWORD_MAIN | 0x03;
 const uint32_t NVM_MWORD_EVENT_MAP      = NVM_MWORD_MAIN | 0x04;
 
 const uint32_t NVM_MWORD_EXT_HEADER     = NVM_MWORD_EXTENSION | 0x01;
+
+const uint32_t NVM_MWORD_DEVICE_HEADER  = NVM_MWORD_DEVICE | 0x01;
+
 
 //----------------------------------------------------------------------------------------
 // The node states. Essentially, the node runtime is a big state machine. The node 
@@ -248,29 +257,36 @@ struct LcsMsgBusCAN {
 };
 
 //----------------------------------------------------------------------------------------
-// The CdcBoardDescMap structure defines what the board actually represents. It is 
+// The LcsBoardDesc structure defines what the board actually represents. It is 
 // also the first structure that can be found on the controller board NVM as well 
-// as the extension board NVM. For the smart extension boards that have a controller
-// on board themselves, the controller firmware is expected to return this data
-// just as if we read it from the NVM. An Atmega Attiny controller board also has
-// the nice property of a serial number. We use it for I2C bus collision detection.
+// as the extension board controller, which acts like a NVM for that purpose. An 
+// Atmega Attiny controller board also has the nice property of a serial number. 
+// We use it for I2C bus collision detection. On the PICO, we "invent" a serial 
+// number.
 //
 // The header structure is 32 bytes long.
 //
 //----------------------------------------------------------------------------------------
 struct LcsBoardDesc {
 
-    uint32_t            boardMword;
+    uint32_t            boardMword;                     // magic word
     uint16_t            boardInfo;                      // type/subtype
     uint16_t            boardCtrlInfo;                  // family / cType
     uint16_t            boardVersion;                   // major / sub version
-    uint16_t            reserved[ 7 ];                  // future use
     uint16_t            serialNum1;                     // serial number part 1
     uint16_t            serialNum2;                     // serial number part 2
     uint16_t            serialNum3;                     // serial number part 3
-    uint16_t            serialNum4;                     // serial number part 4 
+    uint16_t            serialNum4;                     // serial number part 4         
+    uint16_t            boardStatus;                    // board status bits
+    uint16_t            boardOptions;                   // board config options
+    uint16_t            boardI2cAdr;                    // board I2C address
+    uint16_t            boardCommand;                   // board command 
+    uint16_t            boardNumOfRegs;                 // board registers          
+    uint16_t            reserved1;                      
+    uint16_t            reserved2;  
 };
 
+#if 0
 //----------------------------------------------------------------------------------------
 // The NVM header map stores the NVM headers of the node board and the optional 
 // extension boards found. It is a MEM only structure and will be filled though 
@@ -284,6 +300,7 @@ struct LcsHeaderMap {
 
     LcsBoardDesc map[ MAX_NVM_HEADER_MAP_ENTRIES ] = { 0 };
 };
+#endif
 
 //----------------------------------------------------------------------------------------
 // The nodeMap is the heart of all data on the node. When bringing up a node, we 

@@ -762,7 +762,9 @@ uint8_t     initRuntime( CdcResourceDescMap *dMap,
 uint8_t     startRuntime( );
 
 //----------------------------------------------------------------------------------------
-// Local routines to access the node/port GET/SET/REQ items. 
+// Local routines to access the node/port GET/SET/REQ items. These routines
+// return immediately to the caller with the requested data. All GET/SET/REQ
+// type messages use these calls below. 
 //
 // ??? a firmware should rather use the sendXXX calls.
 //----------------------------------------------------------------------------------------
@@ -1018,9 +1020,6 @@ uint8_t     sendDccErr( int8_t errCode,
 
 uint8_t     sendRawMsg( uint8_t *msgBuf );
 
-void        printLcsMs( uint8_t *msgBuf );
-
-int         lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen );
 
 
 // ??? phase out...
