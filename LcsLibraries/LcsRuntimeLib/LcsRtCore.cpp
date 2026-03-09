@@ -122,6 +122,44 @@ void handleNodePortEvents( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "handlePendingReqTimeouts" is part of the periodic processing of the node. 
+// It will check wether any requests waiting for a reply have timed out. In this 
+// case, we should invoke the reply callback with an error code and clear the entry.
+//
+// ??? is this called ?
+//----------------------------------------------------------------------------------------
+void handlePendingReqTimeouts( ) {
+
+    uint32_t ts = getMillis( );
+
+    #if 0
+    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
+
+        LcsPendingReqEntry *tPtr = &pendingReqMap.map[ i ];
+
+        if (( tPtr -> reqTimeoutTs != 0 ) && ( tPtr -> reqTimeoutTs > ts )) {
+
+            LcsPortMapEntry *pPtr = &portMap.map[ portId( tPtr -> npId ) ];
+
+            if ( pPtr -> repCallback != nullptr ) {
+
+                pPtr -> repCallback( pendingReqMap.map[ i ].npId, 
+                                     0, 
+                                     0, 
+                                     0, 
+                                     ERR_REQ_TIMEOUT,
+                                     pPtr -> repCallBackUdata );                
+            }
+
+            tPtr -> reqTimeoutTs    = 0;
+            tPtr -> npId            = 0;
+        } 
+    }
+    #endif
+}
+
+
+//----------------------------------------------------------------------------------------
 // "handlePeriodicTasks" is called from the core library main processing loop. The 
 // idea is that there is a lot of periodic processing that needs to be one by any 
 // firmware implementation. Instead of the firmware developer writing its own handler,
@@ -554,10 +592,10 @@ void handleNodeStateHalted( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State CONFIG. A node can be placed into configuration state. We process any
-// LCS message, handle the periodic tasks registered and port events that may have 
-// been received. Note that we just listen to messages valid for that mode and invoke
-// the respective handler. All other messages are ignored.
+// Node State CONFIG. A node can be placed into configuration state. We process 
+// any LCS message, handle the periodic tasks registered and port events that 
+// may have been received. Note that we just listen to messages valid for that 
+// mode and invoke the respective handler. All other messages are ignored.
 //
 //----------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
@@ -591,6 +629,7 @@ void handleNodeStateConfig( ) {
 
     handlePeriodicTasks( );
     handleNodePortEvents( );
+    handlePendingReqTimeouts( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -657,6 +696,7 @@ void handleNodeStateOperations( ) {
 
     handlePeriodicTasks( );
     handleNodePortEvents( );
+    handlePendingReqTimeouts( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -848,9 +888,9 @@ uint8_t localMsgEvent( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "startRuntime" is the main routine of the node activity processing. We check that
-// the library was initialized properly and mark the nodeMap flag "READY". And then
-// we are in business.
+// "startRuntime" is the main routine of the node activity processing. We check 
+// that the library was initialized properly and mark the nodeMap flag "READY". 
+// And then we are in business.
 //
 //----------------------------------------------------------------------------------------
 uint8_t startRuntime( ) {

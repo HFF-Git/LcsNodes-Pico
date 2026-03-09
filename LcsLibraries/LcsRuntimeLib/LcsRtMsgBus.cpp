@@ -63,90 +63,28 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 
-#if 0
 //----------------------------------------------------------------------------------------
-// There are some LCS messages that expect a reply message. The library maintains 
-// a small pending request buffer. When a request type message is sent we add the
-// target node and a timer value to the buffer.  When the timeout expires, the 
-// caller is informed that the request timed out. A timeout value of zero means 
-// that we wait indefinitely. Easy and simple. 
-//
-// Note that there can be more than one entry for the same node / port combination
-// in the buffer. If the buffer is full, an error is returned. We have too many 
-// outstanding requests then.
+// 
 //
 //----------------------------------------------------------------------------------------
-uint8_t addToPendingReqMap( uint16_t npId, uint32_t timeoutVal = 0 ) {
+uint8_t sendMsg( uint16_t targetNpId, 
+                 uint8_t *msg, 
+                 uint8_t  msgPri ) {
 
-    uint32_t ts = getMillis( );
-
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
-
-        if ( pendingReqMap.map[ i ].npId == 0 ) {
-
-            pendingReqMap.map[ i ].npId = npId;
-            pendingReqMap.map[ i ].reqTimeoutTs = 
-                            (( timeoutVal != 0 ) ? ts + timeoutVal : 0 );
-            return ( LCS_OK );
-        }
-    }
-    
-    return ( ERR_PENDING_REQ_MAP_FULL );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) 
+        return ( ERR_LIB_NOT_READY );
+        
+    return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msg, msgPri ));
 }
 
-
-#endif
-
-// ??? rename to say that it scans the port map.... should go into core ?
-//----------------------------------------------------------------------------------------
-// "processPendingReqMapTimeouts" is part of the periodic processing of the node. 
-// It will check wether any requests waiting for a reply have timed out. In this 
-// case, we should invoke the reply callback with an error code and clear the entry.
-//
-// ??? is this called ?
-//----------------------------------------------------------------------------------------
-void processPendingReqMapTimeouts( ) {
-
-    uint32_t ts = getMillis( );
-
-    #if 0
-    for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
-
-        LcsPendingReqEntry *tPtr = &pendingReqMap.map[ i ];
-
-        if (( tPtr -> reqTimeoutTs != 0 ) && ( tPtr -> reqTimeoutTs > ts )) {
-
-            LcsPortMapEntry *pPtr = &portMap.map[ portId( tPtr -> npId ) ];
-
-            if ( pPtr -> repCallback != nullptr ) {
-
-                pPtr -> repCallback( pendingReqMap.map[ i ].npId, 
-                                     0, 
-                                     0, 
-                                     0, 
-                                     ERR_REQ_TIMEOUT,
-                                     pPtr -> repCallBackUdata );                
-            }
-
-            tPtr -> reqTimeoutTs    = 0;
-            tPtr -> npId            = 0;
-        } 
-    }
-    #endif
-}
-
-//----------------------------------------------------------------------------------------
-// Some messages are requests that expect a reply. We maintain a pending request 
-// map which keeps track of outstanding requests. In addition we can pass a timeout 
-// value to handle cases where no reply is received in a given time interval.
-//
-//----------------------------------------------------------------------------------------
 uint8_t sendTimedReq( uint16_t targetNpId, 
                       uint8_t *msg, 
-                      uint8_t msgPri, 
+                      uint8_t  msgPri, 
                       uint32_t timeout = 0 ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) 
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) 
         return ( ERR_LIB_NOT_READY );
 
     // check that the port/channel  is not already active ...
@@ -155,6 +93,8 @@ uint8_t sendTimedReq( uint16_t targetNpId,
 
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msg, msgPri ));
 }
+
+
 
 }; // namespace
 
@@ -211,11 +151,11 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
 // then send it. Depending on the type of sending there are different local routines
 // used.
 //
-// ??? messages with a reply, use timedRequest...
 //----------------------------------------------------------------------------------------
-uint8_t sendCfg( uint16_t targetNpId ) {
+uint8_t sendCFG( uint16_t targetNpId ) {
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) 
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) 
         return ( ERR_LIB_NOT_READY );
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_CFG };
@@ -225,7 +165,7 @@ uint8_t sendCfg( uint16_t targetNpId ) {
     return ( sendTimedReq( targetNpId, msgBuf,  MSG_PRI_HIGH, 0 ));
 }
 
-uint8_t sendOps( uint16_t targetNpId ) {
+uint8_t sendOPS( uint16_t targetNpId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_OPS };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -234,7 +174,7 @@ uint8_t sendOps( uint16_t targetNpId ) {
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_HIGH , 0 ));
 }
 
-uint8_t sendReset( uint16_t targetNpId ) {
+uint8_t sendRESET( uint16_t targetNpId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_RESET };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -243,19 +183,20 @@ uint8_t sendReset( uint16_t targetNpId ) {
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_HIGH, 0 ));
 }
 
-uint8_t sendBusOn( ) {
+uint8_t sendBON( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BON };
-    return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_VERY_HIGH ));
+    return ( sendMsg( nodeMap.nodeId, msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
-uint8_t sendBusOff( ) {
+uint8_t sendBOF( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BOF };
-    return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_VERY_HIGH ));
+    return ( sendMsg( nodeMap.nodeId, msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
-uint8_t sendErr( uint16_t sendingNpId, 
+// ??? combine with ACK ?
+uint8_t sendERR( uint16_t sendingNpId, 
                  uint16_t targetNpId, 
                  uint8_t errCode, 
                  uint8_t arg1, 
@@ -270,15 +211,15 @@ uint8_t sendErr( uint16_t sendingNpId,
     return ( msgBus -> sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendAck( uint16_t sendingNpId, uint16_t targetNpId ) {
+uint8_t sendACK( uint16_t sendingNpId, uint16_t targetNpId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ACK };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
-    return ( msgBus -> sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));
+    return ( sendMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendSync( uint16_t targetNpId, uint8_t item ) {
+uint8_t sendSYNC( uint16_t targetNpId, uint8_t item ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SYNC };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -291,7 +232,7 @@ uint8_t sendSync( uint16_t targetNpId, uint8_t item ) {
 // Node Id management.
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
+uint8_t sendREQNID( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
     
     uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_NID };
     msgBuf[ 1 ] = highByte( npId );
@@ -304,7 +245,7 @@ uint8_t sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
     return ( msgBus -> sendLcsMsg( npId, msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendRepNodeId( uint16_t npId, uint32_t nodeUID ) {
+uint8_t sendREPNID( uint16_t npId, uint32_t nodeUID ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REP_NID };
     msgBuf[ 1 ] = highByte( npId );
@@ -316,7 +257,7 @@ uint8_t sendRepNodeId( uint16_t npId, uint32_t nodeUID ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendSetNodeId( uint16_t npId, uint32_t nodeUID ) {
+uint8_t sendSETNID( uint16_t npId, uint32_t nodeUID ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_NID };
     msgBuf[ 1 ] = highByte( npId );
@@ -328,7 +269,7 @@ uint8_t sendSetNodeId( uint16_t npId, uint32_t nodeUID ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_LOW ));
 }
 
-uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
+uint8_t sendNCOL( uint16_t npId, uint32_t nodeUID ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NCOL };
     msgBuf[ 1 ] = highByte( npId );
@@ -344,33 +285,35 @@ uint8_t sendNodeIdCollision( uint16_t npId, uint32_t nodeUID ) {
 // Attribute access Management.
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendGetAttr( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint8_t item, 
-                     LcsRepCallback rep,
-                     void *uData ) {
+uint8_t sendAGET( uint16_t sendingNpId, 
+                  uint16_t targetNpId,           
+                  uint8_t item, 
+                  LcsRepCallback rep,
+                  void *uData ) {
 
     LcsPortMapEntry *portPtr = &portMap.map[ portId( targetNpId ) ];
 
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET }; // ??? fix...
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_GET }; // ??? fix...
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = item;
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
-uint8_t sendRepAttr( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint8_t item, 
-                     uint16_t arg )  {
+uint8_t sendAREP( uint16_t sendingNpId, 
+                  uint16_t targetNpId,           
+                  uint8_t item, 
+                  uint16_t arg )  {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
 
     // it is stored in the port...
     // ??? rather check if there is an active request...
 
-    return ( 0 );
+    return ( sendMsg( targetNpId, msgBuf, MSG_PRI_NORMAL ));
 }
 
 uint8_t sendPutAttr( uint16_t sendingNpId, 

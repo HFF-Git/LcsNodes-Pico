@@ -503,6 +503,7 @@ enum DebugOptions : uint16_t {
 };
 
 // ??? should we place this rather in the internal include file ?
+// ??? users should use the send XXX calls...
 //----------------------------------------------------------------------------------------
 // The message operation code identifies the LCS bus message. It is always the first
 // data byte of the message. We encode the number of payload data bytes in the first
@@ -511,6 +512,9 @@ enum DebugOptions : uint16_t {
 // length of the data bytes, the second the opcodeId within the group.
 //
 // NOTE: this list is work in progress, please us always the names rather than numbers.
+//
+//
+// ??? fix name mnemonics first...
 //----------------------------------------------------------------------------------------
 #define OPC( len, id ) ((uint8_t) (( len << 5 ) + ( id & 0x1F )))
 
