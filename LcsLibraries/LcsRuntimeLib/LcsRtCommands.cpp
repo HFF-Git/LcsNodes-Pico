@@ -46,7 +46,6 @@ namespace LCS {
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
     extern LcsTaskMap           taskMap;
-    extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
     extern LcsMsgBusCAN         *msgBus;
 
@@ -326,15 +325,6 @@ void dumpMemEventMap( ) {
     printf( "\n" );
 }
 
-void dumpMemPendingReqMap( ) {
-
-    printf( "MEM Pending Req Map: (Size: %d, Hwm: %d) \n\n", 
-            MAX_PENDING_REQ_MAP_ENTRIES, pendingReqMap.mapHwm );
-
-    dumpMemData((uint16_t *) &pendingReqMap, sizeof( LcsPendingReqMap ));
-    printf( "\n" );
-}
-
 void dumpMemTaskMap( ) {
 
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
@@ -365,7 +355,6 @@ void dumpMemRuntimeArea( ) {
     dumpMemPortMap( );
     dumpMemNodeData( );
     dumpMemEventMap( );
-    dumpMemPendingReqMap( );
     dumpMemTaskMap( );
     dumpMemDrvFuncMap( );
     printf( "\n" );
@@ -832,7 +821,6 @@ void listStatusCommand( char *s ) {
             case 3:     dumpMemNodeData( );             break;
             case 4:     dumpMemEventMap( );             break;
             case 5:     dumpMemPortMap( );              break;
-            case 6:     dumpMemPendingReqMap( );        break;
             case 7:     dumpMemTaskMap( );              break;
             case 8:     dumpMemDrvFuncMap( );           break;
             case 9:     dumpMemRuntimeArea( );          break;

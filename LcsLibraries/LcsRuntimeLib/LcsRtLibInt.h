@@ -99,13 +99,12 @@ namespace LCS {
 //
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
-const uint16_t  MAX_PORT_MAP_ENTRIES            = 16;
-const uint16_t  MAX_CHANNEL_MAP_ENTRIES         = 16;
+const uint16_t  MAX_PORT_MAP_ENTRIES            = 8;
+const uint16_t  MAX_CHANNEL_MAP_ENTRIES         = 8;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 768;
 const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
-const uint16_t  MAX_PENDING_REQ_MAP_ENTRIES     = 8;
 const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
-const uint16_t  MAX_NODE_DATA_BLOCKS            = 16;
+const uint16_t  MAX_NODE_DATA_BLOCKS            = MAX_PORT_MAP_ENTRIES;
 const uint16_t  MAX_ATTR_MAP_ENTRIES            = 128;
 const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
 
@@ -375,26 +374,21 @@ struct LcsEventMap {
 
 //----------------------------------------------------------------------------------------
 // The port map contains an array of ports, each described by a port map entry. 
-// There are 16 entries in the port map. Port zero refers to the entire node, i.e. 
-// the node itself. When node data such as the node type is accessed it is actually 
-// taken from the P0 port map entry. Port 1 to 15 are regular ports. 
+// There are 8 entries in the port map. Each port has an area of attributes, 
+// which are stored in the data block area. They map to ITEM numbers 128 to 255 
+// and are accessed via GET/SET calls. 
 //
-// Each port has an area of attributes, which are stored in the data block area. 
-// They map to ITEM numbers 128 to 255 and are accessed via GET/SET calls. In 
-// addition, each port supports a set of request functions, which are mapped to 
-// item 1 to 127. The item numbers 1 to 63 are reserved for node specific
-// purposes, the item numbers 64 to 127 are reserved for driver library functions.
+// The item numbers 1 to 63 are reserved for node/port specific purposes, the 
+// item numbers 64 to 127 are reserved for driver library functions. 
+// 
+// A port support up to 8 channels. Each channel corresponds to an I2C address
+// and is our way to access hardware, such as an extension board or a satellite
+// board. All channels on a port must have the same channel type.
 //
-// P1 to P14 can be associated with a hardware device, such as an extension board
-// or a satellite board. They all connect via the I2C bus. The port entry has a
-// channel map, where the channel type and the I2C address are kept. If a port is 
-// associated with hardware, the channel map is used to keep the channel type and
-// the I2C address of the hardware board channels. All channels on a port must 
-// have the same channel type.
-//
-// The portMap entry furthermore contains the fields that deal with the actual event 
-// received that the port is interested in. There are fields for the sending node, 
-// the event itself and its action. An event can also be invoked with a delay time.
+// The portMap entry furthermore contains the fields that deal with the actual 
+// event received that the port is interested in. There are fields for the sending
+// node, the event itself and its action. An event can also be invoked with a 
+// delay time.
 //
 // When a request os send, the target npId and a request time limit timestamp
 // are stored in the port map entry. This way, when a reply comes in, we can check
@@ -402,6 +396,7 @@ struct LcsEventMap {
 // be pending at a time. If another request is sent before the reply, it is an
 // error.
 //
+// ??? should we support that all channels can have an outstanding request ?
 //----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
@@ -428,15 +423,12 @@ struct LcsPortMapEntry {
     uint16_t            eventDelayTime              = 0;
     uint32_t            eventTimeStamp              = 0L;
 
-    uint16_t            targetNpId                  = NIL_NODE_ID;
+    uint16_t            targetNpId                  = 0;
     uint32_t            targetReqTs                 = 0; 
 
     uint16_t            channelMask                 = 0;
-    
 
-
-
-    uint16_t            channelMap[ MAX_CHANNEL_MAP_ENTRIES ];
+    // ??? do we need a kind of channel state ?
 };
 
 struct LcsPortMap {
@@ -464,28 +456,6 @@ struct LcsTaskMap {
 
     uint32_t            mapHwm      = 0;
     LcsPTaskMapEntry    map[ MAX_TASK_MAP_ENTRIES ];
-};
-
-// ??? this will go away...
-//----------------------------------------------------------------------------------------
-// The pending request map keeps track of outstanding requests to another node. 
-// We add an entry when our node sends a request and clear the entry when the 
-// matching reply comes in. The idea is that we only invoke the callback when we
-// expect a reply. Additionally, there is a timeout value, so that we can invoke 
-// the reply callback when the request times out or is lost.
-//
-// ??? this could go to the CanBus layer ?
-//----------------------------------------------------------------------------------------
-struct LcsPendingReqEntry {
-
-    uint16_t    npId            = 0;
-    uint32_t    reqTimeoutTs    = 0;
-};
-
-struct LcsPendingReqMap {
-
-    uint32_t    mapHwm          = 0;
-    LcsPendingReqEntry map[ MAX_PENDING_REQ_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------

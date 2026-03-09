@@ -43,7 +43,6 @@ namespace LCS {
     extern uint16_t             debugMask;
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
-    extern LcsPendingReqMap     pendingReqMap;
     extern LcsTaskMap           taskMap;
     extern LcsMsgBusCAN         *msgBus;
 
@@ -64,6 +63,7 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
 
+#if 0
 //----------------------------------------------------------------------------------------
 // There are some LCS messages that expect a reply message. The library maintains 
 // a small pending request buffer. When a request type message is sent we add the
@@ -125,7 +125,9 @@ bool searchPendingReqMap( uint16_t npId ) {
 
     return ( false );
 }
+#endif
 
+// ??? rename to say that it scans the port map....
 //----------------------------------------------------------------------------------------
 // "processPendingReqMapTimeouts" is part of the periodic processing of the node. 
 // It will check wether any requests waiting for a reply have timed out. In this 
@@ -137,6 +139,7 @@ void processPendingReqMapTimeouts( ) {
 
     uint32_t ts = getMillis( );
 
+    #if 0
     for ( uint8_t i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
 
         LcsPendingReqEntry *tPtr = &pendingReqMap.map[ i ];
@@ -159,6 +162,7 @@ void processPendingReqMapTimeouts( ) {
             tPtr -> npId            = 0;
         } 
     }
+    #endif
 }
 
 //----------------------------------------------------------------------------------------
@@ -175,11 +179,9 @@ uint8_t sendTimedReq( uint16_t targetNpId,
     if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) 
         return ( ERR_LIB_NOT_READY );
 
-    if ( addToPendingReqMap( targetNpId , timeout ) == NO_ERR ) {
+    // check that the port/channel  is not already active ...
 
-        return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msg, msgPri ));
-    } 
-    else return ( ERR_NODE_OUTSTANDING_REQ_LIMIT );
+    return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msg, msgPri ));
 }
 
 }; // namespace
@@ -243,14 +245,12 @@ uint8_t receiveLcsMsg( uint8_t *msg ) {
             ( msg[ 0 ] == LCS_OP_ACK ) || 
             ( msg[ 0 ] == LCS_OP_ERR )) {
 
-             uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
+            uint16_t nodeId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
-            if ( searchPendingReqMap( nodeId )) {
-
-                removeFromPendingReqMap( nodeId );
-                return ( msg[ 0 ] );
+            // ??? check the port / channel for a pending request...
+            // fix ....
             
-            } else return ( LCS_OP_NO_MSG );
+            return ( LCS_OP_NO_MSG );
 
         } else return ( msg[ 0 ] );
 

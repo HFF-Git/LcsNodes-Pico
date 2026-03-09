@@ -48,47 +48,42 @@ using namespace CDC;
 
 //----------------------------------------------------------------------------------------
 // A node is identified through the node number. Node numbers start with one. The 
-// nodeId of zero represents the NIL node Id. The node Id is a 12-bit number, so 
-// up to 4095 nodes can be addressed. The nodeId, a unique Id for the LCS nodes 
+// nodeId of zero represents the NIL node Id. The node Id is a 10-bit number, so 
+// up to 1023 nodes can be addressed. The nodeId, a unique Id for the LCS nodes 
 // in a layout, is also used as the canId used for the CAN bus. Keep in mind that 
 // a CAN bus can reasonably handle about 127 nodes at the same time.
 //
 //----------------------------------------------------------------------------------------
-enum LcsNodeId : uint8_t {
+enum LcsNodeId : uint16_t {
 
     NIL_NODE_ID   = 0,
     MIN_NODE_ID   = 1,
-    MAX_NODE_ID   = 255
+    MAX_NODE_ID   = 1023
 };
 
-// ??? do we support 8 ports and 16 channels ?
 //----------------------------------------------------------------------------------------
-// Nodes have ports. The port Id identifies the port on a given node. Port numbers 
-// start with one. The port number zero represents the NIL port number and refers 
-// to the node itself. A node can thus have up to 15 ports. Often the library 
-// functions expect a "node/portId". Which is the concatenation of the 8-bit 
-// node Id with the 4-bit port Id.
+// Nodes have ports. The port Id identifies the port on a given node. A node can
+// have up to 8 ports, numbered from 0 to 7. 
 //
 //----------------------------------------------------------------------------------------
-enum LcsPortId : uint8_t {
+enum LcsPortId : uint16_t {
 
     NIL_PORT_ID   = 0,
     MIN_PORT_ID   = 0,
-    MAX_PORT_ID   = 15
+    MAX_PORT_ID   = 7
 };
 
-// ??? do we support 16 ports and 8 channels ?
 //----------------------------------------------------------------------------------------
-// Ports have channels. The channel is a further qualification within a port. There
-// are up to 16 channels for a given port. A fully qualified address in the LCS 
-// system is therefore: "node:port:chan".
+// Ports have channels. The channel is a further qualification within a port. 
+// There are up to 8 channels for a given port. A fully qualified address in the
+// LCS system is: "node:port:chan".
 //
 //----------------------------------------------------------------------------------------
-enum LcsChannelId : uint8_t {
+enum LcsChannelId : uint16_t {
 
     NIL_CHAN_ID   = 0,
     MIN_CHAN_ID   = 0,
-    MAX_CHAN_ID   = 15
+    MAX_CHAN_ID   = 7
 };
 
 //----------------------------------------------------------------------------------------
@@ -105,9 +100,9 @@ enum LcsEventId : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Driver types are a numeric value assigned to a particular type. A hardware 
-// board will be associated with a type, which in turn is used to select the 
-// driver function to use when accessing it.
+// Driver types and subtype are a numeric value assigned to a particular driver. 
+// The firmware to manage a given hardware extension board will be associated 
+// with this info.
 //
 //----------------------------------------------------------------------------------------
 enum LcsDrvTypeId: uint16_t {
@@ -115,6 +110,13 @@ enum LcsDrvTypeId: uint16_t {
     NIL_DRV_T_ID = 0,
     MIN_DRV_T_ID = 1,
     MAX_DRV_T_ID = 255
+};
+
+enum LcsDrvSubTypeId: uint16_t {
+
+    NIL_DRV_S_T_ID = 0,
+    MIN_DRV_S_T_ID = 1,
+    MAX_DRV_S_T_ID = 255
 };
 
 //----------------------------------------------------------------------------------------
@@ -290,15 +292,17 @@ enum LocoSessionModes : uint8_t {
 // be set. Most options apply only to port zero, which is the node itself. The 
 // constants defined here indicate the bit positions and fields defined.
 //
-//  NPO_SKIP_NODE_ID_CONFIG - during startup, skip the nodeId configuration protocol.
+//  NPO_SKIP_NODE_ID_CONFIG -   during startup, skip the nodeId configuration 
+//                              protocol.
 //
-//  NPO_SKIP_PORT_INIT_STEP - during startup, skip the port initialization step.
+//  NPO_SKIP_PORT_INIT_STEP -   during startup, skip the port initialization step.
 //
-//  NPO_DEBUG_DURING_SETUP  - during startup print debug info.
+//  NPO_DEBUG_DURING_SETUP  -   during startup print debug info.
 //
-//  NPO_DISABLE_WATCHDOG    - start with a disabled watch dog timer.
+//  NPO_DISABLE_WATCHDOG    -   start with a disabled watch dog timer.
 //
-//  NPO_FORMAT_RUNTIME      - format the non-volatile runtime structures in any case.
+//  NPO_FORMAT_RUNTIME      -   format the non-volatile runtime structures in 
+//                              any case.
 //
 //----------------------------------------------------------------------------------------
 enum LcsNodePortOptions : uint16_t {
@@ -320,12 +324,12 @@ enum LcsNodePortOptions : uint16_t {
 //
 //  NPF_PORT_EVENT_HANDLING_ENABLED     -   the port has event handling enabled.
 //
-//  NPF_EVENT_PENDING                   -   an event has been received for this port 
-//                                          and is pending.
+//  NPF_EVENT_PENDING                   -   an event has been received for this
+//                                          port and is pending.
 //
-//  NPF_EXT_BOARD_PRESENT               -   there is an extension board associated 
-//                                          with the port. For P0 this flag indicates
-//                                          that there are an extension board at all.
+//  NPF_EXT_BOARD_PRESENT               -   when the extension I2C bus is scanned
+//                                          and one or more boards are found,
+//                                          this flags is set. 
 //                                          
 //  NPF_EXT_BOARD_VALID                 -   there is a valid extension board associated 
 //                                          with the port. This flag only applies to
@@ -343,11 +347,10 @@ enum LcsNodePortFlags : uint16_t {
     NPF_PORT_ENABLED                    = ( 1U << 2 ),
     NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1U << 3 ),
     NPF_EVENT_PENDING                   = ( 1U << 4 ),
-
     NPF_REQ_PENDING                     = ( 1U << 5 ),
+    NPF_EXT_BOARD_PRESENT               = ( 1U << 6  ),
 
     // ??? rethink...
-    NPF_EXT_BOARD_PRESENT               = ( 1U << 6  ),
     NPF_EXT_BOARD_VALID                 = ( 1U << 7  ),
     NPF_EXT_BOARD_READY                 = ( 1U << 8  )
 };
@@ -370,7 +373,6 @@ enum LcsPortEventAction : uint8_t {
     PEA_EVENT_EVT     = 3
 };
 
-// ??? dedicated function items ?
 //----------------------------------------------------------------------------------------
 // Node, port and extension board driver attributes and functions are accessed with 
 // three main routines, GET, SET and REQ.  
@@ -393,13 +395,13 @@ enum LcsPortEventAction : uint8_t {
 //
 //   0          -   NIL item, not used
 //   1  .. 63   -   Node / port / driver library reserved items.
-//  64  .. 127  -   Node / port / driver function items.
+//  64  .. 127  -   Driver function items.
 // 128  .. 255  -   Node / port / driver firmware defined items.
 //
 // The following declarations just list the item numbers defined. The valid ranges
-// are defined in the internal include file. The ranges as well as the reserved items 
-// defined here should not be tampered with. Note that the item numbers for GET/PUT 
-// and REQ can be the same but mean entirely different things. 
+// are defined in the internal include file. The ranges as well as the reserved 
+// items defined here should not be tampered with. Note that the item numbers 
+// for GET/PUT and REQ can be the same but mean entirely different things. 
 //
 // ??? to be sorted when more stable... what is a good sorting ?
 // ??? how about an item that allows to set / clear a bit in a mask ?
@@ -552,18 +554,23 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SET_CVS          = OPC( 4, 5 ),
     LCS_SYS_TIME            = OPC( 4, 6 ),
 
+    LCS_OP_ATTR_GET         = OPC( 4, 7 ),
+
     LCS_OP_ERR              = OPC( 5, 1 ),
     LCS_OP_SET_CVM          = OPC( 5, 2 ),
     LCS_OP_SEND_DCC5        = OPC( 5, 3 ),
+
+    LCS_OP_EATTR_GET        = OPC( 5, 5 ),    
 
     LCS_OP_EVT              = OPC( 6, 1 ),
     LCS_OP_SEND_DCC6        = OPC( 6, 2 ),
     LCS_OP_NCOL             = OPC( 6, 8 ),
 
-    LCS_OP_NODE_GET         = OPC( 6, 4 ),
-    LCS_OP_NODE_SET         = OPC( 6, 5 ),
-    LCS_OP_NODE_REQ         = OPC( 6, 6 ),
-    LCS_OP_NODE_REP         = OPC( 6, 7 ),
+    
+    LCS_OP_ATTR_SET         = OPC( 6, 5 ),
+    LCS_OP_ATTR_REP         = OPC( 6, 6 ),
+
+    
 
     LCS_OP_REQ_NID          = OPC( 7, 1 ),
     LCS_OP_REP_NID          = OPC( 7, 2 ),
@@ -573,8 +580,16 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_NODE_REQ2        = OPC( 7, 6 ),
     LCS_OP_NODE_REP2        = OPC( 7, 7 ),
     LCS_OP_REP_LOC          = OPC( 7, 8 ),
-    LCS_TIME                = OPC( 7, 9 ),
-    LCS_INFO                = OPC( 7, 10 )
+    LCS_OP_TIME             = OPC( 7, 9 ),
+    LCS_OP_INFO             = OPC( 7, 10 ),
+
+    LCS_OP_EATTR_SET        = OPC( 7, 12 ),
+    LCS_OP_EATTR_REP        = OPC( 7, 13 ),
+
+    LCS_OP_NODE_GET         = OPC( 7, 14 ),
+    LCS_OP_NODE_SET         = OPC( 7, 15 ),
+    LCS_OP_NODE_REQ         = OPC( 7, 16 ),
+    LCS_OP_NODE_REP         = OPC( 7, 17 ),
 };
 
 //----------------------------------------------------------------------------------------

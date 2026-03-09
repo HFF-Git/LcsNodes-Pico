@@ -41,7 +41,6 @@ namespace LCS {
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
     extern LcsTaskMap           taskMap;
-    extern LcsPendingReqMap     pendingReqMap;
     extern LcsDrvFuncMap        drvFuncMap;
     extern LcsMsgBusCAN         *msgBus;
 

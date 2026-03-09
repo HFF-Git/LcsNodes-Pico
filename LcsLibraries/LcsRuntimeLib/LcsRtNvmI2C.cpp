@@ -769,6 +769,7 @@ uint32_t rtNvmGetSize( ) {
     return ( nodeNvmSize );
 }
 
+// ??? they will go away ... ?
 //----------------------------------------------------------------------------------------
 // Extension Board Map access routines. These routines access the NVM on the 
 // extension board. The I2C address is formed by the chip common I2C address plus
@@ -813,6 +814,7 @@ uint32_t extNvmGetSize( ) {
     return ( extNvmSize );
 }
 
+// ??? will go away ? we compute the offset and use the standard routines rtNvmXXX
 //----------------------------------------------------------------------------------------
 // Controller Board User Map access routines. The area between the main controller 
 // NVM chip runtime area and the chips hardware maximum size is the memory area 

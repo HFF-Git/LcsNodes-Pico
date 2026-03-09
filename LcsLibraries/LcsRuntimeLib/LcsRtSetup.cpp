@@ -92,7 +92,6 @@ namespace LCS {
     LcsNodeMap          nodeMap;
     LcsPortMap          portMap;
     LcsEventMap         eventMap;
-    LcsPendingReqMap    pendingReqMap;
     LcsTaskMap          taskMap;
     LcsDrvFuncMap       drvFuncMap;
 }
@@ -803,39 +802,13 @@ uint8_t setupTaskMap( ) {
     return ( RET_STAT( LCS_OK ));
 }
 
-// ??? this will go away...
 //----------------------------------------------------------------------------------------
-// "setupPendingReqMap" initializes the pending request map.
-//
-//----------------------------------------------------------------------------------------
-uint8_t setupPendingReqMap( ) {
-
-    ENTER_FUNC( );
-
-    pendingReqMap.mapHwm = 0;
-    for ( int i = 0; i < MAX_PENDING_REQ_MAP_ENTRIES; i++ ) {
-
-        LcsPendingReqEntry tmp;
-        pendingReqMap.map[i] = tmp;
-    }
-
-    return ( RET_STAT( LCS_OK ));
-}
-
-//----------------------------------------------------------------------------------------
-// A port offers a set of up to 16 channels. A channel can be a logical entity
-// or associated with a physical resource, such as a DIO pin, an ADC channel, a PWM
-// channel, a servo channel, etc. The port map entry for the port will record the
-// driver type and version, which will allow us to map to the driver procedure. The
-// driver procedure will know how to talk to the particular I/O element. A failure
-// in this part of the sequence does not necessarily mean that the node cannot be 
-// used. 
-//
-// For each port we form the I2C addresses and try to read from that address. If
+// A port offers a set of up to 8 channels. For each channel we form the I2C 
+// addresses from portId and channelId and try to read from that address. If
 // there is a response, try to read a header to find out what is connected at 
-// that address. The I2C address is computed from portId * 16 + chanId. The ports
-// 0 and 15 are not supported for the I2C bus, because I2C addresses in that 
-// range are partially reserved by the I2C standard. 
+// that address. The I2C address is computed from ( portId * 16 + chanId ) + 8.
+// The funny "plus 8" is due to the fact that the I2C bus reserves the first 
+// 8 addresses for itself.  
 //
 // If we got a valid header, the port entry records the I/O element type, which 
 // in turn defines the driver function to use. All channels on a given port must
@@ -1117,7 +1090,6 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     if ( rStat == LCS_OK )  rStat = setupEventMap( );
     if ( rStat == LCS_OK )  rStat = setupUserMap( );
     if ( rStat == LCS_OK )  rStat = setupTaskMap( );
-    if ( rStat == LCS_OK )  rStat = setupPendingReqMap( );
     if ( rStat == LCS_OK )  rStat = setupDrvFuncMap( );
     if ( rStat == LCS_OK )  rStat = registerInternalTasks( );
 

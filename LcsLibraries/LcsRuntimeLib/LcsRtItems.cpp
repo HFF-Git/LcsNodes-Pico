@@ -11,10 +11,10 @@
 // attributes and function.
 // 
 // This file contains the LCS runtime routines that implement node attribute and
-// function access. There are three routines that allow to manipulate node and port
-// data as well as issue requests to a node or port. The "npId" will indicate which
-// node and port the call refers to. The node portion is ignored, as the calls
-// in this module always refer to the local node.
+// function access. There are three routines that allow to manipulate node and
+// port data as well as issue requests to a node or port. The "npId" will indicate
+// which node and port the call refers to. The node portion is ignored, as the 
+// calls in this module always refer to the local node.
 //
 // In addition there are extended attributes for the node. They are also indexed 
 // by an item number. Item number 256 to NN are referring to them. "NN" depends
