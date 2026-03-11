@@ -52,17 +52,17 @@ inline uint16_t roundupPow2( uint16_t value, uint16_t align ) {
 
 inline uint16_t nodeId( uint16_t npId ) {
 
-    return ( npId >> 8 );
+    return (( npId >> 6 ) & 0x3FF );
 }
 
 inline uint16_t portId( uint16_t npId ) {
 
-    return (( npId >> 4 ) & 0xF );
+    return (( npId >> 3 ) & 0x7 );
 }
 
 inline uint16_t chanId( uint16_t npId ) {
 
-    return ( npId & 0xF );
+    return ( npId & 0x7 );
 }
 
 inline uint16_t buildNpId( uint16_t nodeId, uint16_t portId, uint16_t chanId ) {

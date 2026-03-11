@@ -102,10 +102,7 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint8_t configNvm(uint8_t rIdNvm,
-                             uint32_t nvmSize,
-                             uint8_t rIdExtNvm,
-                             uint32_t extNvmSize);
+    extern uint8_t configNvm(uint8_t rIdNvm, uint32_t nvmSize );
 
     extern uint8_t rtNvmPutWord(uint32_t ofs, uint16_t word);
     extern uint8_t rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
@@ -167,13 +164,12 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultHeaderMap" initializes the NVM header map. We fill in the data 
+// "setupDefaultNodeHeader" initializes the NVM header map. We fill in the data 
 // for the main board from the board descriptor map. The extension entries are 
 // just cleared. The new NVM Node Map header is stored to NVM.
 //
-// ??? better name ...
 //----------------------------------------------------------------------------------------
-uint8_t setupDefaultHeaderMap( ) {
+uint8_t setupDefaultNodeHeader( ) {
 
     ENTER_FUNC();
 
@@ -290,35 +286,11 @@ uint8_t buildNvmRuntimeStructure( ) {
     ENTER_FUNC( );
 
     uint8_t rStat = LCS_OK;
-    if ( rStat == LCS_OK ) rStat = setupDefaultHeaderMap( );
+    if ( rStat == LCS_OK ) rStat = setupDefaultNodeHeader( );
     if ( rStat == LCS_OK ) rStat = setupDefaultNodeMap( );
     if ( rStat == LCS_OK ) rStat = setupDefaultNodeData( );
     if ( rStat == LCS_OK ) rStat = setupDefaultEventMap( );
     return ( RET_STAT( rStat ));
-}
-
-//----------------------------------------------------------------------------------------
-// "buildNvmExtBoardStructure" initializes the NVM header on an extension board. 
-// At this point we do not know much about the extension board other than it is 
-// such a board.
-//
-// ??? this changes with I2C bus concept...
-//----------------------------------------------------------------------------------------
-uint8_t buildNvmExtBoardStructure( uint8_t boardId ) {
-
-    if ( setupDebugEnabled( )) 
-        printf( "--> buildNvmExtBoardStructure: boardId=%d\n", boardId );
-
-    LcsBoardDesc head;
-    head.boardMword     = NVM_MWORD_EXT_HEADER;
-    head.boardInfo      = 0;    // type/subtype
-    head.boardVersion   = 0;    // major / sub version
-    head.boardCtrlInfo  = 0;    // family / cType
-
-    return ( RET_STAT( extNvmPutBytes( boardId,
-                                       0,
-                                       (uint8_t *) &head,
-                                       sizeof( LcsBoardDesc ))));
 }
 
 //----------------------------------------------------------------------------------------
@@ -410,7 +382,7 @@ uint8_t initCdcLayer( ) {
 
                 printf( "Starting - format mode\n" );
 
-                debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
+                debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP;
                 runtimeOptions |= NPO_FORMAT_RUNTIME;
                 return ( RET_STAT( LCS_OK ));
             } 
@@ -443,7 +415,6 @@ uint8_t initI2cChannels( ) {
     uint8_t rStat = LCS_OK;
     if ( rStat == LCS_OK) rStat = configureI2C( CDC_RN_NVM );
     if ( rStat == LCS_OK) rStat = configureI2C( CDC_RN_EXT_NVM );
-    if ( rStat == LCS_OK) rStat = scanI2CBus( CDC_RN_NVM ); // ??? why do we do this ?
 
     return ( RET_STAT( rStat ));
 }
@@ -453,14 +424,11 @@ uint8_t initI2cChannels( ) {
 //
 // ??? just do the runtime NVM ?
 //----------------------------------------------------------------------------------------
-uint8_t configNvmChannels( ) {
+uint8_t configNodeNvm( ) {
 
     ENTER_FUNC( );
 
-    uint8_t rStat = configNvm( CDC_RN_NVM,
-                               NVM_MAIN_BOARD_DEF_SIZE,
-                               CDC_RN_EXT_NVM,
-                               NVM_EXT_BOARD_DEF_SIZE );
+    uint8_t rStat = configNvm( CDC_RN_NVM, NVM_MAIN_BOARD_DEF_SIZE );
 
     return ( RET_STAT( rStat ));
 }
@@ -759,19 +727,31 @@ uint8_t discoverChannels( ) {
 
     ENTER_FUNC( );
    
-    for ( int i = 1; i < MAX_PORT_ID - 1; i++ ) {
+    for ( int i = 1; i < MAX_PORT_ID; i++ ) {
 
         for ( int j = 0; j < MAX_CHAN_ID; j++ ) {
 
-            int i2cAdr = i * 16 + j;
+            uint8_t i2cAdr = i * MAX_PORT_MAP_ENTRIES + j;
 
             if ( setupDebugEnabled( )) {
 
-                printf( "Testing I2C adr: %d\n", i2cAdr );
+                printf( "Testing I2C adr: 0x%2x\n", i2cAdr );
             }
 
-            // ??? try to read ... just read first four bytes - magic word
+            // ??? try to read ...
 
+            uint8_t tmp;
+            uint8_t rStat = i2cRead( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) &tmp, 1 );
+
+            if ( rStat != LCS_OK ) continue;
+
+            if ( setupDebugEnabled( )) {
+
+                printf( "Found a device\n", rStat );
+            }
+
+            
+        
             // ??? if OK, read the entire header.
 
             // ??? check if the type matches the port type of there is already 
@@ -783,15 +763,13 @@ uint8_t discoverChannels( ) {
 
             // ??? to do ...
 
+            // ??? update the portMap entry flags.
+
+            // portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
+            // portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
+            // portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
+            // portMap.map[i].reqCallback  = nullptr;
         }
-
-        // ??? update the portMap entry flags.
-
-        // portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
-        // portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
-        // portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
-        // portMap.map[i].reqCallback  = nullptr;
-
     }
 
     return( RET_STAT( LCS_OK ));
@@ -986,7 +964,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 3, (char *) "Fatal: CAN bus Configuration failed", rStat );
     }
 
-    if ( rStat == LCS_OK )  rStat = configNvmChannels( );
+    if ( rStat == LCS_OK )  rStat = configNodeNvm( );
     if ( rStat == LCS_OK )  rStat = setupWatchdog( &dMap );
     if ( rStat == LCS_OK )  rStat = setupPfail( &dMap );
     if ( rStat == LCS_OK )  rStat = setupNodeNvmHeader( &dMap );

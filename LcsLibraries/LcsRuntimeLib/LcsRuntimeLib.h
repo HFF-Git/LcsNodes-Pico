@@ -871,6 +871,28 @@ uint8_t     sendErr( uint16_t sendingNpId,
                      uint8_t arg1 = 0, 
                      uint8_t arg2 = 0 );
 
+uint8_t     sendGetNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,           
+                         uint8_t item, 
+                         uint16_t arg );
+
+uint8_t     sendSetNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,    
+                         uint8_t item, 
+                         uint16_t arg );
+
+uint8_t     sendReqNode( uint16_t sendingNpId,  
+                         uint16_t targetNpId,
+                         uint8_t item,    
+                         uint16_t val1, 
+                         uint16_t val2  );
+
+uint8_t     sendRepNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,
+                         uint8_t item, 
+                         uint16_t val1, 
+                         uint16_t val2  );
+
 uint8_t     sendGetAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
                          uint8_t item, 
@@ -882,7 +904,7 @@ uint8_t     sendRepAttr( uint16_t sendingNpId,
                          uint8_t item, 
                          uint16_t arg );
 
-uint8_t     sendPutAttr( uint16_t sendingNpId, 
+uint8_t     sendSetAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
                          uint8_t item, 
                          uint16_t arg,
@@ -901,7 +923,7 @@ uint8_t     sendRepExtAttr( uint16_t sendingNpId,
                             uint8_t item, 
                             uint16_t arg );
 
-uint8_t     sendPutExtAttr( uint16_t sendingNpId, 
+uint8_t     sendSetExtAttr( uint16_t sendingNpId, 
                             uint16_t targetNpId,           
                             uint8_t item, 
                             uint16_t arg,
@@ -1026,28 +1048,6 @@ uint8_t     sendRawMsg( uint8_t *msgBuf );
 
 
 
-// ??? phase out...
-uint8_t     sendGetNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,           
-                         uint8_t item, 
-                         uint16_t arg );
-
-uint8_t     sendSetNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,    
-                         uint8_t item, 
-                         uint16_t arg );
-
-uint8_t     sendReqNode( uint16_t sendingNpId,  
-                         uint16_t targetNpId,
-                         uint8_t item,    
-                         uint16_t val1, 
-                         uint16_t val2  );
-
-uint8_t     sendRepNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,
-                         uint8_t item, 
-                         uint16_t val1, 
-                         uint16_t val2  );
 
 
 

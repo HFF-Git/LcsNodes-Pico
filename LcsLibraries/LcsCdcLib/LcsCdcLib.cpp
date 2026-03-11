@@ -405,6 +405,8 @@ uint8_t watchDogCausedReboot( bool *reboot ) {
 //----------------------------------------------------------------------------------------
 uint8_t scanI2CBus( uint8_t rNum ) {
 
+    printf ( "scanI2CBus, rNum: %d\n ", rNum );
+
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
 

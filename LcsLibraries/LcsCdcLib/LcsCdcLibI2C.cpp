@@ -149,6 +149,7 @@ uint8_t i2cRead( uint8_t  rNum,
                             stopBit,
                             make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
 
+                            // ??? temp...
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
         printf( "i2cRead: rNum: %d, i2c: 0x%x, buf: %p, "
@@ -210,18 +211,15 @@ uint8_t i2cWrite( uint8_t  rNum,
         sleep_ms(1);
     }
 
-    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_PWM )) {
+    if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
-        if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
-
-            if ( ret == PICO_ERROR_GENERIC ){
-                
-                printf( "I2C write, PICO generic error\n" );
-            }
-            else if ( ret == PICO_ERROR_TIMEOUT ) { 
-                
-                printf( "I2C write, PICO timeout error\n" );
-            }
+        if ( ret == PICO_ERROR_GENERIC ){
+            
+            printf( "I2C write, PICO generic error\n" );
+        }
+        else if ( ret == PICO_ERROR_TIMEOUT ) { 
+            
+            printf( "I2C write, PICO timeout error\n" );
         }
     }
     

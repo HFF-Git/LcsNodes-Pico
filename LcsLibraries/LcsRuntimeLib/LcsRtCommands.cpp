@@ -210,59 +210,6 @@ void dumpNvmData( uint32_t  start,
 }
 
 //----------------------------------------------------------------------------------------
-// List extension board NVM storage data. We are passed the absolute offset into 
-// the NVM area and the length in bytes.
-//
-//----------------------------------------------------------------------------------------
-void dumpExtNvmData( uint8_t  boardId, 
-                     uint32_t start, 
-                     uint32_t len, 
-                     uint32_t itemsPerLine = 8 ) {
-
-    uint8_t     rStat = NO_ERR;
-    uint32_t    limit = start + len;
-    uint16_t    val   = 0;
-
-    while ( start < limit ) {
-
-        printf( "0x%08x: ", start );
-
-        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
-
-            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
-
-            if ( ofs < limit ) {
-
-                rStat = extNvmGetWord( boardId, ofs, &val );
-                if ( rStat == NO_ERR ) printf( "0x%04x  ", val );
-                else printf( "****  " );
-            }
-        }
-
-        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
-
-            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
-
-            if ( ofs < limit ) {
-
-                rStat = extNvmGetWord( boardId, ofs, &val );
-                if ( rStat == NO_ERR ) {
-                    
-                    if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
-                    else                       printf( "." );
-
-                    if ( isprint( val & 0xff )) printf( "%c ", val & 0xFF );
-                    else                        printf( ". " );
-                }
-            }
-        }
-
-        start = start + itemsPerLine * sizeof(uint16_t);
-        printf( "\n" );
-    }
-}
-
-//----------------------------------------------------------------------------------------
 // Routines to list contents of the various memory areas. Right now, we just dump out 
 // hex data. It would be nice to show formatted data. Perhaps one day...
 //
@@ -350,18 +297,11 @@ void dumpMemRuntimeArea( ) {
 // data. It would be nice to also show formatted data. Perhaps one day...
 //
 //----------------------------------------------------------------------------------------
-void dumpNvmHeaderMap( ) {
+void dumpNvmHeader( ) {
 
-    printf( "NVM Header Map (Node): \n" );
+    printf( "NVM Header (Node): \n" );
     dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsBoardDesc), 8, true );
     printf( "\n" );
-
-    for ( int i = 1; i <= 4; i++ ) {
-    
-        printf( "NVM Header Map (Ext %d): \n", i );
-        dumpExtNvmData( i, 0, sizeof(LcsBoardDesc), 8 );
-        printf( "\n") ;
-    }
 }
 
 void dumpNvmNodeMap( ) {
@@ -374,7 +314,21 @@ void dumpNvmNodeMap( ) {
 void dumpNvmNodeData( ) {
 
     printf( "NVM Node Data Dump: \n\n" );
-    dumpNvmData( NVM_NODE_DATA_OFS, NVM_NODE_DATA_SIZE, 8, true );
+
+    for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
+
+        uint32_t start = NVM_NODE_DATA_OFS + ( i * MAX_ATTR_MAP_ENTRIES * 2 );
+
+        printf( "Port %d:, Adr: 0x%08x\n", i, 
+        NVM_NODE_DATA_OFS + ( i * MAX_ATTR_MAP_ENTRIES * 2 ));
+
+        dumpNvmData( start, 
+                     MAX_ATTR_MAP_ENTRIES * 2,
+                     8, 
+                     true );
+        printf( "\n" );
+    }
+
     printf( "\n" );
 }
 
@@ -483,6 +437,22 @@ void printMemEventMap( ) {
         }
     }
     else printf( "No entries in map\n" );
+}
+
+void printMemTaskMap( ) {
+
+    printf( "Task Map (Size: %d, Hwm: %d): \n\n", 
+            MAX_TASK_MAP_ENTRIES, taskMap.mapHwm );
+
+    // ??? to do ...
+}
+
+void printMemDriverMap( ) {
+
+    printf( "Driver Map (Size: %d, Hwm: %d): \n\n", 
+            MAX_DRV_TYPE_MAP_ENTRIES, drvFuncMap.mapHwm );
+
+    // ??? to do ...
 }
 
 //----------------------------------------------------------------------------------------
@@ -785,19 +755,21 @@ void listStatusCommand( char *s ) {
             case 3:     dumpMemNodeData( );             break;
             case 4:     dumpMemEventMap( );             break;
             case 5:     dumpMemPortMap( );              break;
-            case 7:     dumpMemTaskMap( );              break;
-            case 8:     dumpMemDrvFuncMap( );           break;
-            case 9:     dumpMemRuntimeArea( );          break;
+            case 6:     dumpMemTaskMap( );              break;
+            case 7:     dumpMemDrvFuncMap( );           break;
+            case 8:     dumpMemRuntimeArea( );          break;
 
-            case 21:    dumpNvmHeaderMap( );            break;
+            case 21:    dumpNvmHeader( );               break;
             case 22:    dumpNvmNodeMap( );              break;
             case 23:    dumpNvmNodeData( );             break;
             case 24:    dumpNvmEventMap( );             break;
-            case 29:    dumpNvmRuntimeArea( );          break;
+            case 28:    dumpNvmRuntimeArea( );          break;
 
             case 42:    printMemNodeMap( );             break;
             case 44:    printMemEventMap( );            break;
             case 45:    printMemPortMap( );             break;
+            case 46:    printMemTaskMap( );             break;
+            case 47:    printMemDriverMap( );           break;
             
             case 50:    listDevicesI2C( );              break;   
             case 51:    printResourceDescMap( &dMap );  break;
@@ -831,16 +803,16 @@ void listCoreLibHelpCommand( ) {
     printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
 
     printf( "s [ level ] - list status, default is summary\n" );
-    printf( "   " " -   0           - Board summary\n" );
-    printf( "   " " -   1 (21) (41) - MEM (NVM) (FMT) Header Map\n" );
-    printf( "   " " -   2 (22) (42) - MEM (NVM) (FMT) Node Map\n" );
-    printf( "   " " -   3 (23)      - MEM (NVM) Node Data\n" );
-    printf( "   " " -   4 (24) (44) - MEM (NVM) (FMT) Event Map\n" );
-    printf( "   " " -   5 (45)      - MEM Port Map\n" );
-    printf( "   " " -   6           - MEM Pending Request Map\n" );
-    printf( "   " " -   7           - MEM Task Map\n" );
-    printf( "   " " -   8           - MEM Driver Function Map\n" );
-    printf( "   " " -   9  (29)     - MEM (NVM) Runtime Area\n" );
+    printf( "   " " -   MEM  NVM  FMT   - what\n" );
+    printf( "   " " -   0               - Board summary\n" );
+    printf( "   " " -        21   41    - Node Header\n" );
+    printf( "   " " -   2    22   42    - Node Map\n" );
+    printf( "   " " -   3    23         - Node Data\n" );
+    printf( "   " " -   4    24   44    - Event Map\n" );
+    printf( "   " " -   5         45    - Port Map\n" );
+    printf( "   " " -   6         46    - Task Map\n" );
+    printf( "   " " -   7         47    - Driver Map\n" );
+    printf( "   " " -   8    28         - Runtime Area\n" );
 
     printf( "   " " -  50  - Scan I2C Devices\n" );
     printf( "   " " -  51  - CDC Resource Desc Map\n");
@@ -966,8 +938,8 @@ uint8_t handleSerialCommand( void ) {
 
                 commandBuf[0] = '\0';
 
-                if      (nodeMap.nodeState == NS_CONFIG)  printf( "(C)->");
-                else if (nodeMap.nodeState == NS_OPERATE) printf( "(O)->");
+                if      (nodeMap.nodeState == NS_CONFIG)  printf( "(C)->" );
+                else if (nodeMap.nodeState == NS_OPERATE) printf( "(O)->" );
                 else                                      printf( "->" );
 
             } break;

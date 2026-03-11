@@ -101,9 +101,6 @@ const uint32_t      M24LC256_MAX_SIZE           = 32768;
 const uint16_t      M24LC512_PAGE_SIZE          = 128;
 const uint32_t      M24LC512_MAX_SIZE           = 65536;
 
-const uint16_t      M24C04_PAGE_SIZE            = 16;
-const uint32_t      M24C04_MAX_SIZE             = 512;
-
 const uint8_t       NVM_I2C_ADR_ROOT            = 0b1010000;
 const uint32_t      NVM_I2C_BAUDRATE            = 100 * 1000;
 
@@ -176,8 +173,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //----------------------------------------------------------------------------------------
 uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 
-    if      ( chipSize <= M24C04_MAX_SIZE )   return ( M24C04_MAX_SIZE );
-    else if ( chipSize <= M24LC32_MAX_SIZE )  return ( M24LC32_MAX_SIZE );
+    if      ( chipSize <= M24LC32_MAX_SIZE )  return ( M24LC32_MAX_SIZE );
     else if ( chipSize <= M24LC64_MAX_SIZE )  return ( M24LC64_MAX_SIZE );
     else if ( chipSize <= M24LC128_MAX_SIZE ) return ( M24LC128_MAX_SIZE );
     else if ( chipSize <= M24LC256_MAX_SIZE ) return ( M24LC256_MAX_SIZE );
@@ -186,9 +182,9 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "determineNvmChipMemorySize" detects the size of an I2C EEPROM (M24LCxxx family).
-// These chips have no internal register to report their capacity, so the only way
-// to determine the size is by probing memory locations and observing whether
+// "determineNvmChipMemorySize" detects the size of an I2C NVM (M24LCxxx family).
+// These chips have no internal register to report their capacity, so the only 
+// way to determine the size is by probing memory locations and observing whether
 // higher addresses are actually addressable or just mirrored (aliased) copies
 // of lower ones.
 //
@@ -432,7 +428,6 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
 // Just like we did in the write buffer counterpart, we need to send the address 
 // as one buffer.
 //
-// ??? with the next PCB versions, we take out the M24C04
 //----------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t  rNum, 
                              uint8_t  i2cAdr, 
@@ -451,24 +446,13 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
 
-    if ( nvmSize == M24C04_MAX_SIZE ) {
+    uint8_t adr[ 2 ];
 
-        uint8_t tmpAdr  = i2cAdr | (( ofs >> 8 ) & 0x01 );
-        uint8_t tmpData = ofs & 0xFF;
+    adr[ 0 ] =  ( ofs >> 8 ) & 0xFF;
+    adr[ 1 ] =  ofs & 0xFF;
 
-        rStat = i2cWrite( rNum, tmpAdr, &tmpData, sizeof( tmpData ), true );
-        if ( rStat == NO_ERR ) rStat = i2cRead( rNum, tmpAdr, buf, len, false );
-    }
-    else {
-
-        uint8_t adr[ 2 ];
-
-        adr[ 0 ] =  ( ofs >> 8 ) & 0xFF;
-        adr[ 1 ] =  ofs & 0xFF;
-
-        rStat = i2cWrite( rNum, i2cAdr, adr, 2, true );
-        if ( rStat == NO_ERR ) rStat = i2cRead( rNum, i2cAdr, buf, len, false );
-    }
+    rStat = i2cWrite( rNum, i2cAdr, adr, 2, true );
+    if ( rStat == NO_ERR ) rStat = i2cRead( rNum, i2cAdr, buf, len, false );
 
     return ( RET_STAT( rStat ));
 }
@@ -481,7 +465,6 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 // to figure  this out. We will have a local buffer where we combine the address and
 // data and then send it.
 //
-// ??? with the next Extension PCB versions, we take out the M24C04
 //----------------------------------------------------------------------------------------
 uint8_t nvmPutBytesInPage( uint8_t  rNum, 
                            uint8_t  i2cAdr, 
@@ -500,23 +483,12 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
 
     uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
 
-    if ( nvmSize == M24C04_MAX_SIZE ) {
+    dataBuf[ 0 ] = ( ofs  >> 8 ) & 0xFF;
+    dataBuf[ 1 ] = ofs & 0xFF;
 
-        dataBuf[ 0 ] = ofs & 0xFF;
-        for ( int i = 0; i < len; i++ ) dataBuf[ i + 1 ] = buf[ i ];
+    for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-        uint8_t tmpAdr = i2cAdr | (( ofs >> 8 ) & 0x01 );
-        rStat = i2cWrite( rNum, tmpAdr, dataBuf, len + 1, false );
-    }
-    else {
-
-        dataBuf[ 0 ] = ( ofs  >> 8 ) & 0xFF;
-        dataBuf[ 1 ] = ofs & 0xFF;
-
-        for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
-
-        rStat = i2cWrite( rNum, i2cAdr, dataBuf, len + 2, false );
-    }
+    rStat = i2cWrite( rNum, i2cAdr, dataBuf, len + 2, false );
 
     return ( RET_STAT( rStat ));
 }
@@ -694,18 +666,13 @@ namespace LCS {
 // "configNvm" will setup the module local variables. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t configNvm(  uint8_t     rIdNvm, 
-                    uint32_t    nvmSize, 
-                    uint8_t     rIdExtNvm,
-                    uint32_t    extNvmSize ) {
+uint8_t configNvm(  uint8_t rIdNvm, uint32_t nvmSize ) {
 
     rNumNvm     = rIdNvm;
-    rNumExtNvm  = rIdExtNvm;
     nodeNvmSize = nvmSize;
     extNvmSize  = extNvmSize;
 
     if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
-    if ( extNvmSize > NVM_MAX_EXT_SIZE )    extNvmSize  = NVM_MAX_EXT_SIZE;
 
     uint32_t testSize = determineNvmChipMemorySize( rIdNvm, NVM_I2C_ADR_ROOT );
     if ( testSize < nodeNvmSize ) nodeNvmSize = testSize;
@@ -715,10 +682,8 @@ uint8_t configNvm(  uint8_t     rIdNvm,
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "configNvm: rIdNvm: %d, size: %d, blockSize: %d,"
-                "rIdExNvm: %d, size: %d, blockSize: %d\n",
-                rIdNvm, nodeNvmSize, nodeNvmBlockSize, 
-                rIdExtNvm, extNvmSize, extNvmBlockSize ); 
+        printf( "configNvm: rIdNvm: %d, size: %d, blockSize: %d\n",
+                rIdNvm, nodeNvmSize, nodeNvmBlockSize ); 
     }
 
     return ( LCS_OK );
@@ -769,6 +734,7 @@ uint32_t rtNvmGetSize( ) {
     return ( nodeNvmSize );
 }
 
+#if 0
 // ??? they will go away ... ?
 //----------------------------------------------------------------------------------------
 // Extension Board Map access routines. These routines access the NVM on the 
@@ -813,6 +779,7 @@ uint32_t extNvmGetSize( ) {
 
     return ( extNvmSize );
 }
+
 
 // ??? will go away ? we compute the offset and use the standard routines rtNvmXXX
 //----------------------------------------------------------------------------------------
@@ -862,5 +829,7 @@ uint32_t usrNvmGetSize( ) {
        
     return ( nodeNvmSize - NVM_RUNTIME_MAPS_SIZE );
 }
+
+#endif
 
 }; // namespace LCS

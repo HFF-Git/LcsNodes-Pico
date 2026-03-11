@@ -30,10 +30,9 @@ function check_devices {
         if [[ ! " ${known_devices[*]} " =~ " ${device} " ]]; then
             known_devices+=("$device")
             echo "New device detected: $device"
-            osascript -e "tell application \"Terminal\" to do script \"/opt/homebrew/bin/minicom -D $device -b 115200\""
+            osascript -e "tell application \"Terminal\" to do script \"/opt/homebrew/bin/minicom -c off -D $device -b 115200\""
         fi
     done
-
 }
 
 #-------------------------------------------------------------------------------------------------------------
