@@ -628,6 +628,10 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
 
         return( RET_STAT( rtLibGet( npId, item, arg )));
     }
+    else if ( isInRangeU8( item, 64, 127 )) {
+
+        // ??? pass on to I2C bus for satellite...
+    }
     else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
@@ -640,16 +644,18 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
         }
         else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
     } 
+
+    // ??? addd extended attribute range 
+
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
 
 //----------------------------------------------------------------------------------------
 // "nodeSet" will write a value to the node map, port map or the attribute data 
-// map. The "npId" argument contains the node and port Id. For data attribute 
-// items the node state determines whether we just update the MEM attribute or 
-// both MEM and NVM version. Node state CONFIG will update NVM too. 
+// ranges. The "npId" argument contains the node, port and channel Id. For data
+// attribute items the node state determines whether we just update the MEM 
+// attribute or both MEM and NVM version. Node state CONFIG will update NVM too. 
 //
-// ??? how about integrating the extended attributes too ?
 //----------------------------------------------------------------------------------------
 uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
 
@@ -670,6 +676,10 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
 
         return( RET_STAT( rtLibSet( npId, item, val )));
     }
+    else if ( isInRangeU8( item, 64, 127 )) {
+
+        // ??? pass on to I2C bus for satellite...
+    }
     else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
@@ -680,8 +690,11 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
 
             return ( RET_STAT( writeAttrNvm( portId( npId ), item, val )));
         }
-        else  return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE )); 
+        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE )); 
     } 
+
+    // ??? addd extended attribute range 
+    
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
 

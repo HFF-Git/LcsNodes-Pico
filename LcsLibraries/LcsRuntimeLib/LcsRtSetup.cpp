@@ -242,7 +242,7 @@ uint8_t setupDefaultNodeData( ) {
 
     memset( nodeData.map,
             0,
-            MAX_NODE_DATA_BLOCKS * MAX_ATTR_MAP_ENTRIES * sizeof(uint16_t));
+            MAX_PORT_MAP_ENTRIES * MAX_ATTR_MAP_ENTRIES * sizeof(uint16_t));
 
     return ( RET_STAT( rtNvmPutBytes( NVM_NODE_DATA_OFS,
                                      (uint8_t *)&nodeData,

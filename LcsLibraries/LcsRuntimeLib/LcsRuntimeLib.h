@@ -913,19 +913,18 @@ uint8_t     sendSetAttr( uint16_t sendingNpId,
 
 uint8_t     sendGetExtAttr( uint16_t sendingNpId, 
                             uint16_t targetNpId,           
-                            uint8_t item, 
-                            uint16_t arg,
+                            uint16_t index, 
                             LcsRepCallback rep,
                             void *uData = nullptr );
 
 uint8_t     sendRepExtAttr( uint16_t sendingNpId, 
                             uint16_t targetNpId,           
-                            uint8_t item, 
+                            uint16_t index, 
                             uint16_t arg );
 
 uint8_t     sendSetExtAttr( uint16_t sendingNpId, 
                             uint16_t targetNpId,           
-                            uint8_t item, 
+                            uint16_t index, 
                             uint16_t arg,
                             LcsRepCallback rep,
                             void *uData = nullptr );

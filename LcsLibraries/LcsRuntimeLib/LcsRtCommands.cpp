@@ -239,7 +239,7 @@ void dumpMemNodeData( ) {
 
     printf( "MEM Node Data: \n\n" );
 
-    for ( int i  = 0; i < MAX_NODE_DATA_BLOCKS; i++ ) {
+    for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         printf( "Port %d:\n", i );
         dumpMemData((uint16_t *) &nodeData.map[ i ], 

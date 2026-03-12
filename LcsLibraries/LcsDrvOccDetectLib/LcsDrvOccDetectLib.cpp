@@ -80,7 +80,7 @@ uint8_t PCA9555I2cAdrRoot = 0x20;
 ///---------------------------------------------------------------------------------------
 uint8_t mapI2CAdr( uint8_t boardId ) {
 
-    return ( PCA9555I2cAdrRoot | ( ( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 ) );
+    return ( PCA9555I2cAdrRoot | ( ( boardId % 4 ) << 1 ) ); // ??? rework
 }
 
 ///---------------------------------------------------------------------------------------

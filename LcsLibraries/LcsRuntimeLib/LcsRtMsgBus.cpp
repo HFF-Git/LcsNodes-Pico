@@ -141,16 +141,16 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
     } else return ( LCS_OP_NO_MSG );
 }
 
-
-// ??? they should be named more consistently after their mnemonic in the OP Code
-// table...
-
-
 //----------------------------------------------------------------------------------------
 // LCB message send routines. They all follow the same pattern. There is a method
 // for each message opcode, which maps the input parameters to the byte array and 
 // then send it. Depending on the type of sending there are different local routines
 // used.
+//
+//----------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------
+//
 //
 //----------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t targetNpId ) {
@@ -175,6 +175,10 @@ uint8_t sendOps( uint16_t targetNpId ) {
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_HIGH , 0 ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendReset( uint16_t targetNpId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_RESET };
@@ -184,6 +188,10 @@ uint8_t sendReset( uint16_t targetNpId ) {
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_HIGH, 0 ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendBusOn( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BON };
@@ -196,6 +204,10 @@ uint8_t sendBusOff( ) {
     return ( sendMsg( nodeMap.nodeId, NIL_NODE_ID, msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 // ??? combine with ACK ?
 uint8_t sendErr( uint16_t sendingNpId, 
                  uint16_t targetNpId, 
@@ -324,9 +336,14 @@ uint8_t sendSetAttr( uint16_t sendingNpId,
                      LcsRepCallback rep,
                      void *uData )  {
 
-    // ??? same as GET
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_SET }; // ??? fix...
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
 
-    return ( 0 );
+    // it is stored in the port...
+    // ??? rather check if there is an active request...
+
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -335,39 +352,58 @@ uint8_t sendSetAttr( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 uint8_t sendGetExtAttr( uint16_t sendingNpId, 
                         uint16_t targetNpId,           
-                        uint8_t item, 
-                        uint16_t arg,
+                        uint16_t index, 
                         LcsRepCallback rep,
                         void *uData )  {
     
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    return ( 0 );
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_GET }; // ??? fix...
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = highByte( index );
+    msgBuf[ 4 ] = lowByte( index );
+
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
 uint8_t sendRepExtAttr( uint16_t sendingNpId, 
                         uint16_t targetNpId,           
-                        uint8_t item, 
+                        uint16_t index, 
                         uint16_t arg )  {
 
     // ??? why do we have targetNpId ?
     // it is stored in the port...
     // ??? rather check if there is an active request...
 
-    return ( 0 );
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_REP }; // ??? fix...
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = highByte( index );
+    msgBuf[ 4 ] = lowByte( index );
+    msgBuf[ 5 ] = highByte( arg );
+    msgBuf[ 6 ] = lowByte( arg );
+
+    return ( sendMsg( sendingNpId, targetNpId, msgBuf, MSG_PRI_NORMAL ));
 }
 
 uint8_t sendSetExtAttr( uint16_t sendingNpId, 
                         uint16_t targetNpId,           
-                        uint8_t item, 
+                        uint16_t index, 
                         uint16_t arg,
                         LcsRepCallback rep,
                         void *uData )  {
 
-    // ??? same as GET
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_SET }; // ??? fix...
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = highByte( index );
+    msgBuf[ 4 ] = lowByte( index );
+    msgBuf[ 5 ] = highByte( arg );
+    msgBuf[ 6 ] = lowByte( arg );
 
-    return ( 0 );
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
 //----------------------------------------------------------------------------------------

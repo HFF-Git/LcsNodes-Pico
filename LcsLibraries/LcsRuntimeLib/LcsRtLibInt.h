@@ -99,13 +99,10 @@ namespace LCS {
 // fixed sizes for each map avoids configuration complexity.
 //
 //----------------------------------------------------------------------------------------
-const uint16_t  MAX_NVM_HEADER_MAP_ENTRIES      = 5;
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 8;
 const uint16_t  MAX_CHANNEL_MAP_ENTRIES         = 8;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 768;
 const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
-const uint16_t  MAX_EXT_BOARD_MAP_ENTRIES       = 4;
-const uint16_t  MAX_NODE_DATA_BLOCKS            = MAX_PORT_MAP_ENTRIES;
 const uint16_t  MAX_ATTR_MAP_ENTRIES            = 128;
 const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
 
