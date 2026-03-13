@@ -198,8 +198,10 @@ uint8_t setupDefaultNodeMap( ) {
     nodeMap.magicWord               = NVM_MWORD_NODE_MAP;
     nodeMap.nvmOfs                  = NVM_NODE_MAP_OFS;
     nodeMap.nvmSize                 = sizeof(LcsNodeMap);
-    nodeMap.rtLibSwVersion          = LCS_RT_LIB_VERSION;
-    nodeMap.rtLibSwPatchLevel       = LCS_RT_LIB_PATCH_LEVEL;
+   
+    nodeMap.nodeFlags               = 0;
+    nodeMap.nodeOptions             = 0;
+    nodeMap.nodeLastErr             = 0;
 
     nodeMap.nodeState               = NS_NIL;
     nodeMap.nodeId                  = NIL_NODE_ID;
@@ -867,8 +869,8 @@ uint8_t setupDriverFunctions( ) {
 
         LcsPortMapEntry *pPtr = &portMap.map[i];
 
-        if (( pPtr->flags & NPF_EXT_BOARD_PRESENT ) &&
-            ( pPtr->flags & NPF_EXT_BOARD_VALID   )) {
+        if (( pPtr-> portFlags & NPF_EXT_BOARD_PRESENT ) &&
+            ( pPtr-> portFlags & NPF_EXT_BOARD_VALID   )) {
 
             for ( int j = 0; j < MAX_DRV_TYPE_MAP_ENTRIES; j++ ) {
 
@@ -881,8 +883,8 @@ uint8_t setupDriverFunctions( ) {
                                 i, j);
                     }
 
-                    pPtr->reqCallback = drvFuncMap.map[j].drvFunc;
-                    pPtr->flags       |= NPF_EXT_BOARD_READY;
+                    pPtr -> reqCallback = drvFuncMap.map[j].drvFunc;
+                    pPtr -> portFlags   |= NPF_EXT_BOARD_READY;
                 }
             }
         }

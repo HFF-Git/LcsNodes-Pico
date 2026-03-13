@@ -394,14 +394,14 @@ enum LcsPortEventAction : uint8_t {
 // defined as follows: 
 //
 //   0          -   NIL item, not used
-//   1  .. 63   -   Node / port / driver library reserved items.
+//   1  .. 63   -   Node / port library reserved items.
 //  64  .. 127  -   Driver function items.
 // 128  .. 255  -   Node / port / driver firmware defined items.
+// 256  .. NN   -   Node global attributes.
 //
 // The following declarations just list the item numbers defined. The valid ranges
 // are defined in the internal include file. The ranges as well as the reserved 
-// items defined here should not be tampered with. Note that the item numbers 
-// for GET/PUT and REQ can be the same but mean entirely different things. 
+// items defined here should not be tampered with.
 //
 // ??? to be sorted when more stable... what is a good sorting ?
 // ??? how about an item that allows to set / clear a bit in a mask ?
@@ -412,56 +412,59 @@ enum LcsItems : uint8_t {
     ITEM_ID_DEBUG_MASK                  = 1,    // GET / SET
     ITEM_ID_RUNTIME_OPTIONS             = 2,    // GET / SET
     ITEM_ID_FIRMWARE_OPTIONS            = 3,    // GET / SET
-    ITEM_ID_FLAGS                       = 4,    // GET / SET
+    ITEM_ID_RT_LIB_VERSION              = 4,    // GET / SET
+    ITEM_ID_RT_LIB_PATCH_LEVEL          = 5,    // GET / SET
+    
+    ITEM_ID_NODE_OPTIONS                = 6,
+    ITEM_ID_NODE_FLAGS                  = 7,    // GET / SET
 
-    ITEM_ID_BOARD_INFO                  = 5,    // GET / SET
-    ITEM_ID_BOARD_VERSION               = 6,    // GET / SET
-    ITEM_ID_BOARD_TYPE                  = 7,    // GET / SET
-    ITEM_ID_CONTROLLER_INFO             = 8,    // GET / SET
+    ITEM_ID_BOARD_INFO                  = 8,    // GET / SET
+    ITEM_ID_BOARD_VERSION               = 9,    // GET / SET
+    ITEM_ID_BOARD_TYPE                  = 10,   // GET / SET
+    ITEM_ID_CONTROLLER_INFO             = 11,   // GET / SET
 
-    ITEM_ID_RT_LIB_VERSION              = 9,    // GET / SET
-    ITEM_ID_RT_LIB_PATCH_LEVEL          = 10,   // GET / SET
-
-    ITEM_ID_TYPE                        = 11,   // GET / SET
+    ITEM_ID_OPTIONS                     = 12,   // GET / SET
+    ITEM_ID_FLAGS                       = 13,   // GET / SET
+    ITEM_ID_TYPE                        = 14,   // GET / SET
       
-    ITEM_ID_NODE_STATE                  = 12,   // GET / SET
-    ITEM_ID_NODE_ID                     = 13,   // GET / SET
+    ITEM_ID_NODE_STATE                  = 15,   // GET / SET
+    ITEM_ID_NODE_ID                     = 16,   // GET / SET
    
-    ITEM_ID_RESTART_COUNT               = 15,   // GET / SET
+    ITEM_ID_RESTART_COUNT               = 17,   // GET / SET
     
-    ITEM_ID_PORT_MAP_ENTRIES            = 16,   // GET
-    ITEM_ID_PORT_MAP_HWM                = 17,   // GET
-    ITEM_ID_EVENT_MAP_ENTRIES           = 18,   // GET
-    ITEM_ID_EVENT_MAP_HWM               = 19,   // GET
-    ITEM_ID_ATTR_MAP_ENTRIES            = 20,   // GET
+    ITEM_ID_PORT_MAP_ENTRIES            = 18,   // GET
+    ITEM_ID_PORT_MAP_HWM                = 19,   // GET
+    ITEM_ID_EVENT_MAP_ENTRIES           = 20,   // GET
+    ITEM_ID_EVENT_MAP_HWM               = 21,   // GET
+    ITEM_ID_ATTR_MAP_ENTRIES            = 22,   // GET
 
-    // ??? sort the function requests ? start with numbers 64 ... 
+    // ??? numbers can overlap between  GET / SET and REQ
 
-    ITEM_ID_RESET                       = 21,   // REQ
+    ITEM_ID_RESET                       = 23,   // REQ
     
-    ITEM_ID_GET_NODE_UID                = 14,   // REQ
-    ITEM_ID_SYNC_EVENT_MAP_MEM          = 23,   // REQ
-    ITEM_ID_SYNC_EVENT_MAP_NVM          = 24,   // REQ
-    ITEM_ID_SYNC_TO_NVM                 = 25,   // REQ
-    ITEM_ID_SYNC_TO_MEM                 = 26,   // REQ
+    ITEM_ID_GET_NODE_UID                = 24,   // REQ
+    ITEM_ID_SYNC_EVENT_MAP_MEM          = 25,   // REQ
+    ITEM_ID_SYNC_EVENT_MAP_NVM          = 26,   // REQ
+    ITEM_ID_SYNC_TO_NVM                 = 27,   // REQ
+    ITEM_ID_SYNC_TO_MEM                 = 28,   // REQ
 
-    ITEM_ID_FORMAT_EXT                  = 27,   // REQ
+    ITEM_ID_FORMAT_EXT                  = 29,   // REQ
     
-    ITEM_ID_ADD_EVENT_MASK              = 28,   // REQ
-    ITEM_ID_REMOVE_EVENT_MASK           = 29,   // REQ
-    ITEM_ID_LOOKUP_EVENT_ENTRY          = 30,   // REQ
+    ITEM_ID_ADD_EVENT_MASK              = 30,   // REQ
+    ITEM_ID_REMOVE_EVENT_MASK           = 31,   // REQ
+    ITEM_ID_LOOKUP_EVENT_ENTRY          = 32,   // REQ
 
-    ITEM_ID_GET_EVENT_MAP_ENTRY         = 31,   // REQ
-    ITEM_ID_EVENT_DELAY_TICKS           = 32,   
-    ITEM_ID_ENABLE_EVENT_PROCESSING     = 40,   // REQ
+    ITEM_ID_GET_EVENT_MAP_ENTRY         = 33,   // REQ
+    ITEM_ID_EVENT_DELAY_TICKS           = 34,   
+    ITEM_ID_ENABLE_EVENT_PROCESSING     = 35,   // REQ
 
-    ITEM_ID_SET_ACTIVE_LED              = 41,   // REQ
+    ITEM_ID_SET_ACTIVE_LED              = 36,   // REQ
 
-    ITEM_ID_SYNC_TO_EXTENDED_MEM        = 61,   // REQ
-    ITEM_ID_SYNC_TO_EXTENDED_NVM        = 62,   // REQ
+    ITEM_ID_SYNC_TO_EXTENDED_MEM        = 37,   // REQ
+    ITEM_ID_SYNC_TO_EXTENDED_NVM        = 38,   // REQ
 
-    ITEM_ID_FUNCTION_START              = 64,   // REQ
-    ITEM_ID_FUNCTION_END                = 127,  // REQ
+    ITEM_ID_FUNCTION_START              = 64,   // GET / SET / REQ
+    ITEM_ID_FUNCTION_END                = 127,  // GET / SET / REQ
 
     ITEM_ID_USER_START                  = 128,  // GET / SET / REQ
     ITEM_ID_USER_END                    = 255   // GET / SET / REQ

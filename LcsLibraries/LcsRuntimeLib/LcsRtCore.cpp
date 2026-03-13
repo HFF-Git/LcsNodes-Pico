@@ -102,9 +102,9 @@ void handleNodePortEvents( ) {
 
         LcsPortMapEntry *pPtr = & portMap.map[ i ];
 
-        if (( pPtr -> flags & NPF_PORT_ENABLED                  ) &&
-            ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
-            ( pPtr -> flags & NPF_EVENT_PENDING                 ) && 
+        if (( pPtr -> portFlags & NPF_PORT_ENABLED                  ) &&
+            ( pPtr -> portFlags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
+            ( pPtr -> portFlags & NPF_EVENT_PENDING                 ) && 
             ( pPtr -> eventCallback != nullptr                  )) {
 
             if ( ts > pPtr -> eventTimeStamp ) {
@@ -116,7 +116,7 @@ void handleNodePortEvents( ) {
                                         pPtr -> eventCallBackUdata );
             }
 
-            pPtr -> flags &= ~ NPF_EVENT_PENDING;
+            pPtr -> portFlags &= ~ NPF_EVENT_PENDING;
         }
     }
 }
@@ -417,8 +417,8 @@ void handleMsgEvent( uint8_t *msg ) {
 
             LcsPortMapEntry *pPtr = &portMap.map[ i ];
 
-            if (( pPtr -> flags & NPF_PORT_ENABLED                  ) &&
-                ( pPtr -> flags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
+            if (( pPtr -> portFlags & NPF_PORT_ENABLED                  ) &&
+                ( pPtr -> portFlags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
                 ( pPtr -> eventCallback != nullptr                  )) {
 
                 if ( eventMask & ( 1 << i )) {
@@ -429,7 +429,7 @@ void handleMsgEvent( uint8_t *msg ) {
                     pPtr -> eventValue      = eventData;
                     pPtr -> eventTimeStamp  = ts + 
                                 ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
-                    pPtr -> flags           |= NPF_EVENT_PENDING;
+                    pPtr -> portFlags       |= NPF_EVENT_PENDING;
                 }
             }
         }
@@ -506,9 +506,9 @@ void handleNodeStateInit( ) {
                 
             if ( rStat == NO_ERR ) {
                 
-                portMap.map[ i ].flags |= NPF_PORT_PRESENT;
-                portMap.map[ i ].flags |= NPF_PORT_ENABLED;
-                portMap.map[ i ].flags |= NPF_PORT_EVENT_HANDLING_ENABLED;
+                portMap.map[ i ].portFlags |= NPF_PORT_PRESENT;
+                portMap.map[ i ].portFlags |= NPF_PORT_ENABLED;
+                portMap.map[ i ].portFlags |= NPF_PORT_EVENT_HANDLING_ENABLED;
 
                 portMap.mapHwm = i + 1;
             }

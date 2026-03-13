@@ -183,7 +183,7 @@ uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
 
-    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         uint16_t arg = 0;
         return ( readAttrNvm( block, item, &arg ));
@@ -198,7 +198,7 @@ uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
 
-    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         uint16_t    arg     = 0;
         uint8_t     rStat   = readAttrMem( block, item, &arg );
@@ -307,13 +307,13 @@ uint8_t rtLibGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
 
         case ITEM_ID_RT_LIB_VERSION: {    
             
-            *arg = nodeMap.rtLibSwVersion; 
+            *arg = LCS_RT_LIB_VERSION; 
             return ( RET_STAT( LCS_OK ));
         }
 
         case ITEM_ID_RT_LIB_PATCH_LEVEL: {    
             
-            *arg = nodeMap.rtLibSwPatchLevel; 
+            *arg = LCS_RT_LIB_PATCH_LEVEL; 
             return ( RET_STAT( LCS_OK ));
         }
 
@@ -368,13 +368,13 @@ uint8_t rtLibGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
 
         case ITEM_ID_FLAGS: { 
             
-            *arg = portMap.map[ portId( npId ) ].flags; 
+            *arg = portMap.map[ portId( npId ) ].portFlags; 
             return ( RET_STAT( LCS_OK ));
         }
 
         case ITEM_ID_TYPE: { 
                         
-            *arg = portMap.map[ portId( npId ) ].type; 
+            *arg = portMap.map[ portId( npId ) ].portType; 
             return ( RET_STAT( LCS_OK ));
         }
 
@@ -424,23 +424,15 @@ uint8_t rtLibSet( uint16_t npId, uint8_t item, uint16_t val ) {
                                     val )));
         }
 
-        case ITEM_ID_RT_LIB_VERSION: {
-
-            nodeMap.rtLibSwVersion = val;
-            return ( RET_STAT( rtNvmPutWord( 
-                        NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, rtLibSwVersion ), 
-                            val )));
-        }
-
         case ITEM_ID_FLAGS: {
 
-            portMap.map[ portId( npId ) ].flags = val;
+            portMap.map[ portId( npId ) ].portFlags = val;
             return ( RET_STAT( LCS_OK ));
         }
 
         case ITEM_ID_TYPE: {
 
-            portMap.map[ portId( npId ) ].type = lowByte( val );
+            portMap.map[ portId( npId ) ].portType = lowByte( val );
             return ( RET_STAT( LCS_OK ));
         }
 
@@ -533,12 +525,12 @@ uint8_t rtLibRequest( uint8_t npId,
 
             if ( *arg1 ) {
 
-                portMap.map[ portId( npId ) - 1 ].flags |= 
+                portMap.map[ portId( npId ) - 1 ].portFlags |= 
                                         NPF_PORT_EVENT_HANDLING_ENABLED;
             }
             else {
 
-                portMap.map[ portId( npId ) - 1 ].flags &= 
+                portMap.map[ portId( npId ) - 1 ].portFlags &= 
                                         ~ NPF_PORT_EVENT_HANDLING_ENABLED;
             }
 
@@ -631,8 +623,10 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
     else if ( isInRangeU8( item, 64, 127 )) {
 
         // ??? pass on to I2C bus for satellite...
+
+        return( RET_STAT( 99 ));
     }
-    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
@@ -679,8 +673,9 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
     else if ( isInRangeU8( item, 64, 127 )) {
 
         // ??? pass on to I2C bus for satellite...
+        return( RET_STAT( 99 ));
     }
-    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
@@ -724,13 +719,13 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
         return ( RET_STAT( rtLibRequest( npId, item, arg1, arg2 )));
     } 
-    else if ( isInRangeU8( item, IR_DRV_FUNCTION_START, IR_DRV_FUNCTION_END )) {
+    else if ( isInRangeU8( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
         // ??? invoke a driver ?
 
         return( 0 ); // ??? for now...
     } 
-    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_USER_RANGE_END )) {
+    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         return ( RET_STAT( invokeUserItemCallback( npId, item, arg1, arg2 )));
     } 

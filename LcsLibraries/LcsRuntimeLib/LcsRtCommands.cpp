@@ -348,6 +348,8 @@ void dumpNvmRuntimeArea( ) {
 
 void dumpNvmUserArea( ) {
 
+    // ??? given that this could be thousands... long list.
+
     printf( "NVM Area Dump: \n\n" );
     dumpNvmData( NVM_USER_MAP_OFS , usrNvmGetSize( ), 8, true );
     printf( "\n" );
@@ -364,8 +366,8 @@ void printSummary( ) {
     printf( "LCS Node: \n" );
      
     printf( "Library Version: %d.%d, Patch Level: %d\n", 
-            highByte( nodeMap.rtLibSwVersion ),
-            lowByte( nodeMap.rtLibSwVersion ), 
+            highByte( LCS_RT_LIB_VERSION ),
+            lowByte( LCS_RT_LIB_VERSION ), 
             LCS_RT_LIB_PATCH_LEVEL );  
 
     printf( "Git Branch: %s\n", LCS_RT_LIB_GIT_BRANCH );
@@ -380,9 +382,9 @@ void printMemNodeMap( ) {
             nodeMap.nodeUID );
 
     printf( "RtLib SW Version: %d.%d.%d\n", 
-            highByte( nodeMap.rtLibSwVersion ), 
-            lowByte( nodeMap.rtLibSwVersion ),
-            nodeMap.rtLibSwPatchLevel );
+            highByte( LCS_RT_LIB_VERSION ), 
+            lowByte( LCS_RT_LIB_VERSION ),
+            LCS_RT_LIB_PATCH_LEVEL );
 
     printf( "Options: 0x%04x\n", runtimeOptions );
     printf( "Restart Count: %d\n", nodeMap.nodeRestartCnt );
@@ -401,8 +403,8 @@ void printMemPortMap( ) {
 
         printf( "Port %02d: Type: %02d, Flags: 0x%04x\n", 
                 i + 1,  
-                ptr -> type,
-                ptr -> flags );
+                ptr -> portType,
+                ptr -> portFlags );
 
         dumpMemData((uint16_t *) &portMap.map[ i ], 
                     sizeof( LcsPortMapEntry ), 8, true );
