@@ -125,7 +125,7 @@ namespace LCS {
 //
 //----------------------------------------------------------------------------------------
 uint8_t lcsDrvOccDetect( uint16_t boardId, 
-                         uint8_t  item, 
+                         uint16_t  item, 
                          uint16_t *arg1, 
                          uint16_t *arg2,
                          void     *udata ) {

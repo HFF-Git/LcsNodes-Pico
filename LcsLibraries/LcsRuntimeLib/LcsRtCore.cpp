@@ -309,7 +309,7 @@ void handleMsgGetNode( uint8_t *msg ) {
 
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
-        uint8_t   item  = msg[3];
+        uint16_t  item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint8_t   ret   = nodeGet( npId, item, &arg1 );
 
@@ -329,7 +329,7 @@ void handleMsgPutNode( uint8_t *msg ) {
 
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
-        uint8_t   item  = msg[3];
+        uint16_t  item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint8_t   ret   = nodeSet( npId, item, arg1 );
 
@@ -350,7 +350,7 @@ void handleMsgPutNode( uint8_t *msg ) {
 void handleMsgRepNode( uint8_t *msg ) {
 
     uint16_t  npId    = (( msg[1] << 8 ) + msg[2] );
-    uint8_t   item    = msg[3];
+    uint16_t  item    = msg[3];
     uint16_t  arg1    = ( msg[4] << 8 ) + msg[5];
     uint16_t  arg2    = ( msg[6] << 8 ) + msg[7];
     
@@ -373,7 +373,7 @@ void handleMsgReqNode( uint8_t *msg ) {
 
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
-        uint8_t   item  = msg[3];
+        uint16_t  item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
         uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
         uint8_t   ret   = nodeReq( npId, item, &arg1 );

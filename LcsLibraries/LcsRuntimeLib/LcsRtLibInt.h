@@ -417,7 +417,7 @@ struct LcsPortMapEntry {
     LcsRepCallback      repCallback                 = nullptr;
     void                *repCallBackUdata           = nullptr;
 
-    LcsRepCallback      drvReqCallback              = nullptr;
+    LcsReqCallback      drvReqCallback              = nullptr;
     void                *drvReqCallBackUdata        = nullptr;
 
     LcsEventCallback    eventCallback               = nullptr;

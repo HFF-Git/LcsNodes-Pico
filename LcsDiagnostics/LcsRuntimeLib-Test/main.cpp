@@ -98,7 +98,7 @@ uint8_t lcsPfailCallback( uint16_t npId, void *uData  ) {
 }
 
 uint8_t lcsReqCallback( uint16_t npId, 
-                        uint8_t item, 
+                        uint16_t item, 
                         uint16_t *arg1, 
                         uint16_t *arg2, 
                         void *uData  ) {
@@ -113,7 +113,7 @@ uint8_t lcsReqCallback( uint16_t npId,
 }
 
 uint8_t lcsRepCallback( uint16_t npId, 
-                        uint8_t item, 
+                        uint16_t item, 
                         uint16_t arg1, 
                         uint16_t arg2, 
                         uint8_t ret,

@@ -735,17 +735,17 @@ extern "C" {
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, 
                                             uint16_t eId, 
                                             uint8_t eAction,
-                                             uint16_t eData, 
-                                             void *uData );
+                                            uint16_t eData, 
+                                            void *uData );
     
     typedef uint8_t ( *LcsReqCallback ) ( uint16_t npId,
-                                          uint8_t item, 
+                                          uint16_t item, 
                                           uint16_t *arg1, 
                                           uint16_t *arg2,
                                           void *uData );
 
     typedef uint8_t ( *LcsRepCallback ) ( uint16_t npId, 
-                                          uint8_t item, 
+                                          uint16_t item, 
                                           uint16_t arg1, 
                                           uint16_t arg2, 
                                           uint8_t ret, 
@@ -775,11 +775,11 @@ uint8_t     startRuntime( );
 //
 // ??? a firmware should rather use the sendXXX calls.
 //----------------------------------------------------------------------------------------
-uint8_t     nodeGet( uint16_t npId, uint8_t  item, uint16_t *arg );
-uint8_t     nodeSet( uint16_t npId, uint8_t item, uint16_t arg );
+uint8_t     nodeGet( uint16_t npId, uint16_t item, uint16_t *arg );
+uint8_t     nodeSet( uint16_t npId, uint16_t item, uint16_t arg );
 
 uint8_t     nodeReq( uint16_t npId, 
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t *arg1 = nullptr, 
                      uint16_t *arg2 = nullptr );
 
@@ -876,40 +876,40 @@ uint8_t     sendErr( uint16_t sendingNpId,
 
 uint8_t     sendGetNode( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t arg );
 
 uint8_t     sendSetNode( uint16_t sendingNpId, 
                          uint16_t targetNpId,    
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t arg );
 
 uint8_t     sendReqNode( uint16_t sendingNpId,  
                          uint16_t targetNpId,
-                         uint8_t item,    
+                         uint16_t item,    
                          uint16_t val1, 
                          uint16_t val2  );
 
 uint8_t     sendRepNode( uint16_t sendingNpId, 
                          uint16_t targetNpId,
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t val1, 
                          uint16_t val2  );
 
 uint8_t     sendGetAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
-                         uint8_t item, 
+                         uint16_t item, 
                          LcsRepCallback rep,
                          void *uData = nullptr );
 
 uint8_t     sendRepAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t arg );
 
 uint8_t     sendSetAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t arg,
                          LcsRepCallback rep,
                          void *uData = nullptr );
@@ -934,7 +934,7 @@ uint8_t     sendSetExtAttr( uint16_t sendingNpId,
 
 uint8_t     sendReqFunc( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t arg1,
                          uint16_t arg2,
                          LcsRepCallback rep,
@@ -942,7 +942,7 @@ uint8_t     sendReqFunc( uint16_t sendingNpId,
 
 uint8_t     sendRepFunc( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
-                         uint8_t item, 
+                         uint16_t item, 
                          uint16_t arg1,
                          uint16_t arg2 );
 
@@ -976,9 +976,9 @@ uint8_t     sendLocConsist( uint8_t sId,
                             uint8_t consId, 
                             uint8_t flags );
 
-uint8_t     sendQueryLoc( uint8_t sId  );
+uint8_t     sendQueryLoc( uint8_t sId );
 
-uint8_t     sendKeepLoc( uint8_t sId  );
+uint8_t     sendKeepLoc( uint8_t sId );
 
 uint8_t     sendSetLocSpDir( uint8_t sId, 
                              uint8_t spDir );

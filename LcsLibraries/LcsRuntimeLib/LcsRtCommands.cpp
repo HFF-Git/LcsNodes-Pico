@@ -567,12 +567,12 @@ void getNodeCommand( char *s ) {
         return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
-    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpItem    = (uint16_t) item;
     uint16_t tmpArg     = (uint16_t) arg;
 
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
-        ret = nodeGet ( tmpNpId, tmpItem, &tmpArg );
+        ret = nodeGet( tmpNpId, tmpItem, &tmpArg );
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
         else printf( "Node: 0x%x, item: %d, arg1: 0x%x\n", 
                      tmpNpId, tmpItem, tmpArg );
@@ -606,7 +606,7 @@ void putNodeCommand( char *s ) {
         return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
-    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpItem    = (uint16_t) item;
     uint16_t tmpVal     = (uint16_t) val;
 
     printf ( "val: %d\n", val );
@@ -651,7 +651,7 @@ void reqNodeCommand( char *s ) {
         return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
-    uint8_t  tmpItem    = (uint8_t)  item;
+    uint16_t tmpItem    = (uint8_t)  item;
     uint16_t tmpVal1    = (uint16_t) val1;
     uint16_t tmpVal2    = (uint16_t) val2;
 

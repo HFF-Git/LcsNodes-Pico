@@ -423,7 +423,7 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
 //----------------------------------------------------------------------------------------
 // "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. 
 // Although a read can cross a page boundary, we follow the same principle as we 
-// do for writes when it comes to page boundaries. The read is send ing the address
+// do for writes when it comes to page boundaries. The read is sending the address
 // with retaining the bus. The PICO library will then use the restart condition. 
 // Just like we did in the write buffer counterpart, we need to send the address 
 // as one buffer.

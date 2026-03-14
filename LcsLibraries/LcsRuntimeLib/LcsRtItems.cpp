@@ -20,8 +20,6 @@
 // by an item number. Item number 256 to NN are referring to them. "NN" depends
 // on the actual size of the NVM on the board. 
 //
-// ??? need to finalize extended attributes.
-// ??? do items need to be a 16-bit number consequently ?
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime items
@@ -112,24 +110,24 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// "readAttrMem" gets a value from the node or port attribute map in MEM. As 
-// an internal function, we expect a valid block and item argument. The 
-// "block" argument will refer to the node and port data attributes. 
+// "readAttrMem" gets a value from the node or port attribute map in MEM. As an
+// internal function, we expect validated arguments. The "block" argument will 
+// refer to the node and port data attributes. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrMem( uint8_t block, uint8_t item, uint16_t *arg ) {
+uint8_t readAttrMem( uint16_t block, uint16_t item, uint16_t *arg ) {
 
     *arg = nodeData.map[ block ][ item - IR_USER_RANGE_START ];
     return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
-// "writeAttrMem" stores a value to a node or port attribute map in MEM. As 
-// an internal function, we expect a valid block and item argument. The 
-// "block" argument will refer to the node and port data attributes. 
+// "writeAttrMem" stores a value to a node or port attribute map in MEM. As an 
+// internal function, we expect validated arguments. The "block" argument will
+// refer to the node and port data attributes. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
+uint8_t writeAttrMem( uint16_t block, uint16_t item, uint16_t arg ) {
 
     nodeData.map[ block ][ item - IR_USER_RANGE_START ] = arg;
     return ( NO_ERR );
@@ -140,11 +138,10 @@ uint8_t writeAttrMem( uint8_t block, uint8_t item, uint16_t arg ) {
 // from the NVM area. If successful, we also store it in the MEM counterpart 
 // and then return it. This ensures that NVM and MEM are always in sync when 
 //accessing NVM. For NVM access, the byte offset into the storage needs to 
-// be computed. As an internal function, we expect a valid block and item 
-// argument.
+// be computed. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
+uint8_t readAttrNvm( uint16_t block, uint16_t item, uint16_t *arg ) {
 
     uint16_t index  = item - IR_USER_RANGE_START;
     uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
@@ -152,7 +149,6 @@ uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 
     uint8_t rStat = rtNvmGetWord( ofs, arg );
     if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, *arg );
-    
     return ( rStat );
 }
 
@@ -160,11 +156,11 @@ uint8_t readAttrNvm( uint8_t block, uint8_t item, uint16_t *arg ) {
 // "writeAttrNvm" stores an attribute to the NVM storage. If the update is 
 // successful, we also update the corresponding MEM attribute. This ensures 
 // that NVM and MEM are always in sync when accessing the NVM. For the NVM 
-// access, the byte offset into the storage needs to be computed. As an 
-// internal function, we expect a valid block and item argument.
+// access, the byte offset into the storage needs to be computed. As an internal
+// function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
+uint8_t writeAttrNvm( uint16_t block, uint16_t item, uint16_t arg ) {
 
     uint16_t index  = item - IR_USER_RANGE_START;
     uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
@@ -172,239 +168,150 @@ uint8_t writeAttrNvm( uint8_t block, uint8_t item, uint16_t arg ) {
 
     uint8_t rStat = rtNvmPutWord( ofs, arg );
     if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, arg );
-    
     return ( rStat );
 }
 
 //----------------------------------------------------------------------------------------
 // "syncAttrToMem" will copy the NVM attribute value to the MEM counterpart. 
-// All we do is just reading the NVM value to a dummy variable.
+// All we do is just reading the NVM value to a dummy variable. As an internal 
+// function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t syncAttrToMem( uint8_t block, uint8_t item ) {
+uint8_t syncAttrToMem( uint16_t block, uint16_t item ) {
 
-    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
-
-        uint16_t arg = 0;
-        return ( readAttrNvm( block, item, &arg ));
-    }
-    else return ( ERR_INVALID_ITEM_ID );
+    uint16_t arg = 0;
+    return ( readAttrNvm( block, item, &arg ));
 }
 
 //----------------------------------------------------------------------------------------
 // "syncAttrToNvm" will take the MEM attribute value of an item and writes it 
-// to the NVM counterpart.
+// to the NVM counterpart. As an internal function, we expect a valid block and
+// item argument.
 //
 //----------------------------------------------------------------------------------------
-uint8_t syncAttrToNvm( uint8_t block, uint8_t item ) {
+uint8_t syncAttrToNvm( uint16_t block, uint16_t item ) {
 
-    if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
-
-        uint16_t    arg     = 0;
-        uint8_t     rStat   = readAttrMem( block, item, &arg );
-        if ( rStat == NO_ERR ) rStat = writeAttrNvm( block, item, arg );
-        return ( rStat );
-    }
-    else return ( ERR_INVALID_ITEM_ID );
+    uint16_t    arg     = 0;
+    uint8_t     rStat   = readAttrMem( block, item, &arg );
+    if ( rStat == NO_ERR ) rStat = writeAttrNvm( block, item, arg );
+    return ( rStat );
 }
 
 //----------------------------------------------------------------------------------------
 // "readAttrMemExt" reads an attribute from the extended attribute map in main
-// memory.
+// memory. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrMemExt( uint16_t itemExt, uint16_t *arg ) {
+uint8_t readAttrMemExt( uint16_t item, uint16_t *arg ) {
 
-
-    return( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
 // "writeAttrMemExt" updates an attribute in the extended attribute map in main
-// memory.
+// memory. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t writeAttrMemExt( uint16_t itemExt, uint16_t arg ) {
+uint8_t writeAttrMemExt( uint16_t item, uint16_t arg ) {
 
-
-    return( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
 // "readAttrNvmExt" reads an attribute from the extended attribute map in
-// non volatile memory.
+// non volatile memory. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrNvmExt( uint16_t itemExt, uint16_t *arg ) {
+uint8_t readAttrNvmExt( uint16_t item, uint16_t *arg ) {
 
-
-    return( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
 // "writeAttrNvmExt" writes an attribute to the extended attribute map in
-// non volatile memory.
+// non volatile memory. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t writeAttrNvmExt( uint16_t itemExt, uint16_t arg ) {
+uint8_t writeAttrNvmExt( uint16_t item, uint16_t arg ) {
 
-
-    return( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
 // "syncAttrToMemExt" will copy the NVM extended attribute value to the MEM
 // counterpart. All we do is just reading the NVM value to a dummy variable.
+// As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToMemExt( uint16_t item ) {
 
-    return( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
 // "syncAttrToNvmExt" will take the MEM attribute value of an item and writes it 
-// to the NVM counterpart.
+// to the NVM counterpart. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToNvmExt( uint16_t item ) {
 
-    return( ERR_NOT_IMPLEMENTED );
+    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
 // "rtLibGet" handles all items that directly refer to the node and port map.
+// As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
-
-    if ( itemDebugEnabled( )) {
-
-        printf( "rtLibGet: npId: 0x%x, item: %d", npId, item  );
-        if ( arg != nullptr ) printf( ":%d", *arg ); else printf( "null" );
-        printf( "\n" );
-    }
+uint8_t rtLibGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     switch ( item ) {
 
-        case ITEM_ID_DEBUG_MASK: {   
-            
-            *arg = debugMask; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_RUNTIME_OPTIONS: {      
-            
-            *arg = runtimeOptions; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_FIRMWARE_OPTIONS: {
-
-            *arg = firmwareOptions;
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_RT_LIB_VERSION: {    
-            
-            *arg = LCS_RT_LIB_VERSION; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_RT_LIB_PATCH_LEVEL: {    
-            
-            *arg = LCS_RT_LIB_PATCH_LEVEL; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_NODE_STATE: {   
-            
-            *arg = nodeMap.nodeState; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_NODE_ID: {      
-            
-            *arg = nodeMap.nodeId; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-
-        case ITEM_ID_RESTART_COUNT: {
-            
-            *arg = nodeMap.nodeRestartCnt; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_PORT_MAP_ENTRIES: {
-
-            *arg = MAX_PORT_MAP_ENTRIES;
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_PORT_MAP_HWM: {
-
-            *arg = portMap.mapHwm;
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_EVENT_MAP_ENTRIES: {
-
-            *arg = MAX_EVENT_MAP_ENTRIES;
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_EVENT_MAP_HWM: {
-
-            *arg = eventMap.mapHwm;
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_ATTR_MAP_ENTRIES: {
-
-            *arg = MAX_ATTR_MAP_ENTRIES;
-            return ( RET_STAT( LCS_OK ));
-        }
+        case ITEM_ID_DEBUG_MASK:            *arg = debugMask;               break;
+        case ITEM_ID_RUNTIME_OPTIONS:       *arg = runtimeOptions;          break;
+        case ITEM_ID_FIRMWARE_OPTIONS:      *arg = firmwareOptions;         break;
+        case ITEM_ID_RT_LIB_VERSION:        *arg = LCS_RT_LIB_VERSION;      break;
+        case ITEM_ID_RT_LIB_PATCH_LEVEL:    *arg = LCS_RT_LIB_PATCH_LEVEL;  break;
+        case ITEM_ID_NODE_STATE:            *arg = nodeMap.nodeState;       break;
+        case ITEM_ID_NODE_ID:               *arg = nodeMap.nodeId;          break;
+        case ITEM_ID_RESTART_COUNT:         *arg = nodeMap.nodeRestartCnt;  break;
+        case ITEM_ID_PORT_MAP_ENTRIES:      *arg = MAX_PORT_MAP_ENTRIES;    break;
+        case ITEM_ID_PORT_MAP_HWM:          *arg = portMap.mapHwm;          break;
+        case ITEM_ID_EVENT_MAP_ENTRIES:     *arg = MAX_EVENT_MAP_ENTRIES;   break;
+        case ITEM_ID_EVENT_MAP_HWM:         *arg = eventMap.mapHwm;         break;
+        case ITEM_ID_ATTR_MAP_ENTRIES:      *arg = MAX_ATTR_MAP_ENTRIES;    break;
+        case ITEM_ID_LOOKUP_EVENT_ENTRY:    *arg = searchEvent( *arg );     break;
 
         case ITEM_ID_FLAGS: { 
             
             *arg = portMap.map[ portId( npId ) ].portFlags; 
-            return ( RET_STAT( LCS_OK ));
-        }
+            
+        } break;
 
         case ITEM_ID_TYPE: { 
                         
             *arg = portMap.map[ portId( npId ) ].portType; 
-            return ( RET_STAT( LCS_OK ));
-        }
-
-        case ITEM_ID_LOOKUP_EVENT_ENTRY: {
-
-            *arg = searchEvent( *arg );
-            return ( RET_STAT( LCS_OK ));
-        }
+            
+        } break;
 
         case ITEM_ID_EVENT_DELAY_TICKS: {
 
             *arg = portMap.map[ portId( npId ) ].eventDelayTime;
-            return ( RET_STAT( LCS_OK ));
-        }
+            
+        } break;
 
-        default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
+        default: return ( ERR_INVALID_ITEM_ID );
     }
+
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
 // "rtLibSet" handles all items that directly refer to the node and port map.
-// 
+// As an internal function, we expect validated arguments.
+//
 //----------------------------------------------------------------------------------------
-uint8_t rtLibSet( uint16_t npId, uint8_t item, uint16_t val ) {
-
-    if ( itemDebugEnabled( )) {
-
-    printf( "rtLibSet: npId: 0x%x, item: %d, val:%d\n",
-            npId, item, val  );
-    }
+uint8_t rtLibSet( uint16_t npId, uint16_t item, uint16_t val ) {
 
     switch ( item ) {
 
@@ -413,55 +320,47 @@ uint8_t rtLibSet( uint16_t npId, uint8_t item, uint16_t val ) {
             if ( usbIsConnected( )) debugMask = val | LCS_DBG_ENABLE;           
             else                    debugMask = val & ~ LCS_DBG_ENABLE;
             
-            return ( RET_STAT( LCS_OK ));
+            return ( LCS_OK );
         }
 
         case ITEM_ID_NODE_ID: {
 
-            nodeMap.nodeId = nodeId( val );
-            return ( RET_STAT( rtNvmPutWord( 
-                                NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
-                                    val )));
+            nodeMap.nodeId  = nodeId( val );
+            uint32_t ofs    = NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId );
+            return ( rtNvmPutWord( ofs, val ));
         }
 
         case ITEM_ID_FLAGS: {
 
             portMap.map[ portId( npId ) ].portFlags = val;
-            return ( RET_STAT( LCS_OK ));
+            return ( LCS_OK );
         }
 
         case ITEM_ID_TYPE: {
 
             portMap.map[ portId( npId ) ].portType = lowByte( val );
-            return ( RET_STAT( LCS_OK ));
+            return ( LCS_OK );
         }
 
         case ITEM_ID_EVENT_DELAY_TICKS: {
 
             portMap.map[ portId( npId ) ].eventDelayTime = val;
-            return ( RET_STAT( LCS_OK ));
+            return ( LCS_OK );
         }
 
-        default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
+        default: return ( ERR_INVALID_ITEM_ID );
     }
 }
 
 //----------------------------------------------------------------------------------------
 // "rtLibRequest" handles the request items for the runtime library itself.
+// As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibRequest( uint8_t npId, 
-                        uint8_t item, 
-                        uint16_t *arg1, 
-                        uint16_t *arg2 ) {
-
-    if ( itemDebugEnabled( )) {
-
-        printf( "nodeReq: 0x%x:%d", npId, item  );
-        if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
-        if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
-        printf( "\n" );
-    }
+uint8_t rtLibRequest( uint16_t npId, 
+                      uint16_t item, 
+                      uint16_t *arg1, 
+                      uint16_t *arg2 ) {
 
     switch ( item ) {
 
@@ -471,16 +370,12 @@ uint8_t rtLibRequest( uint8_t npId,
 
             *arg1 = nodeMap.nodeUID >> 16;
             *arg2 = nodeMap.nodeUID & 0xFFFF;
-            return ( RET_STAT( LCS_OK ));
+            return ( LCS_OK );
         }
 
         case ITEM_ID_GET_EVENT_MAP_ENTRY: {
 
-            if ( arg2 == nullptr ) {
-                
-                return ( RET_STAT(  ERR_INVALID_ATTR_ARG ));
-            }
-
+            if ( arg2 == nullptr ) return ( ERR_INVALID_ATTR_ARG );
             return ( getMemEmapEntry( *arg1, arg1, arg2 ));
         }
 
@@ -488,70 +383,94 @@ uint8_t rtLibRequest( uint8_t npId,
 
             // ??? to do ...
             
-            return ( RET_STAT( ERR_NOT_IMPLEMENTED ));
+            return ( ERR_NOT_IMPLEMENTED );
         }
 
         case ITEM_ID_SYNC_TO_MEM: {
 
-            return( RET_STAT( syncAttrToMem( portId( npId ), *arg1 )));
+            return ( syncAttrToMem( portId( npId ), *arg1 ));
         }
 
         case ITEM_ID_SYNC_TO_NVM: {
 
-            return( RET_STAT( syncAttrToNvm( portId( npId ), *arg1 )));
+            return ( syncAttrToNvm( portId( npId ), *arg1 ));
         }
 
         case ITEM_ID_ADD_EVENT_MASK: {
 
-            return ( RET_STAT( setEventMask( *arg1, *arg2 )));
+            return ( setEventMask( *arg1, *arg2 ));
         }
 
         case ITEM_ID_REMOVE_EVENT_MASK: {
 
-            return ( RET_STAT( removeEventMask( *arg1 )));
+            return ( removeEventMask( *arg1 ));
         }
 
         case ITEM_ID_SYNC_EVENT_MAP_MEM: {
 
-            return ( RET_STAT( syncEventMapToMem( )));
+            return ( syncEventMapToMem( ));
         }
 
         case ITEM_ID_SYNC_EVENT_MAP_NVM: {
 
-            return ( RET_STAT( syncEventMapToNvm( )));
+            return ( syncEventMapToNvm( ));
         }
 
         case ITEM_ID_ENABLE_EVENT_PROCESSING: {
 
-            if ( *arg1 ) {
+            LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
 
-                portMap.map[ portId( npId ) - 1 ].portFlags |= 
-                                        NPF_PORT_EVENT_HANDLING_ENABLED;
-            }
-            else {
+            if ( *arg1 ) pPtr -> portFlags |= NPF_PORT_EVENT_HANDLING_ENABLED;
+            else         pPtr -> portFlags &= ~ NPF_PORT_EVENT_HANDLING_ENABLED;
 
-                portMap.map[ portId( npId ) - 1 ].portFlags &= 
-                                        ~ NPF_PORT_EVENT_HANDLING_ENABLED;
-            }
-
-            return ( RET_STAT( LCS_OK ));
+            return ( LCS_OK );
         }
 
         case ITEM_ID_SET_ACTIVE_LED: {
 
-            if ( *arg1 == 1 ) {
-
-                return ( RET_STAT( writeDio( CDC_RN_ACTIVITY_LED, true )));
-            }
-            else if ( *arg1 == 2 ) { 
-
-                return ( RET_STAT( toggleDio( CDC_RN_ACTIVITY_LED )));
-            }
-            else return ( RET_STAT( writeDio( CDC_RN_ACTIVITY_LED, false )));
+            if ( *arg1 == 1 ) return ( writeDio( CDC_RN_ACTIVITY_LED, true ));
+            else return ( writeDio( CDC_RN_ACTIVITY_LED, false ));
         }
 
         default: return ( RET_STAT( ERR_INVALID_ITEM_ID ));
     }
+}
+
+//----------------------------------------------------------------------------------------
+// "rtLibI2cGet" reads a word from the peripheral based on the I2C address for 
+// the port and channel passed. As an internal function, we expect validated 
+// arguments.
+//
+//----------------------------------------------------------------------------------------
+uint8_t rtLibI2cGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
+
+    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
+    uint8_t ofs     = item - IR_DRV_CHAN_START;
+    uint8_t rStat   = 0;
+    uint8_t buf[ 4 ];
+
+    rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, &ofs, 1, true );
+    return ( i2cRead( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) arg, 2, false ));
+}
+
+//----------------------------------------------------------------------------------------
+// "rtLibI2cSet" writes a word to the peripheral based on the I2C address for 
+// the port and channel passed. As an internal function, we expect validated 
+// arguments.
+//
+//----------------------------------------------------------------------------------------
+uint8_t rtLibI2cSet( uint16_t npId, uint16_t item, uint16_t val ) {
+
+    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
+    uint8_t ofs     = item - IR_DRV_CHAN_START;
+    uint8_t rStat   = 0;
+    uint8_t buf[ 4 ];
+
+    buf[ 0 ] = ofs;
+    buf[ 1 ] = lowByte( val );
+    buf[ 2 ] = highByte( val );
+
+    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) &val, 2, false ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -560,20 +479,43 @@ uint8_t rtLibRequest( uint8_t npId,
 // arguments. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t invokeUserItemCallback( uint8_t npId, 
-                                uint8_t item, 
+uint8_t invokeUserItemCallback( uint16_t npId, 
+                                uint16_t item, 
                                 uint16_t *arg1, 
                                 uint16_t *arg2 ) {
 
-    if ( portMap.map[ portId( npId ) ].reqCallback != nullptr ) {
+    LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
 
-        LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
+    if ( pPtr -> reqCallback != nullptr ) {
 
         return ( pPtr -> reqCallback( portId( npId ), 
-                                        item, 
-                                        arg1, 
-                                        arg2, 
-                                        pPtr ->reqCallBackUdata ));
+                                      item, 
+                                      arg1, 
+                                      arg2, 
+                                      pPtr -> reqCallBackUdata ));
+    }
+    else return ( ERR_INVALID_ITEM_ID );
+}
+
+//----------------------------------------------------------------------------------------
+// Driver request function invocation routine. Items 64 to 127 are reserved for 
+// the driver request items. 
+// 
+//----------------------------------------------------------------------------------------
+uint8_t invokeDrvItemCallback( uint16_t npId, 
+                               uint16_t item, 
+                               uint16_t *arg1, 
+                               uint16_t *arg2 ) {
+
+    LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
+
+    if ( pPtr -> drvReqCallback != nullptr ) {
+
+        return ( pPtr -> drvReqCallback( npId, 
+                                         item, 
+                                         arg1, 
+                                         arg2, 
+                                         pPtr -> drvReqCallBackUdata ));
     }
     else return ( ERR_INVALID_ITEM_ID );
 }
@@ -589,13 +531,12 @@ namespace LCS {
 
 //----------------------------------------------------------------------------------------
 // "nodeGet" will lookup a value from the header map, node map, port map or the 
-// attribute data map. The "npId" argument contains the node and port Id. The item
-// argument determines which value we want to get. The data is returned in the "arg"
-// argument.
+// attribute data map. The "npId" argument contains the node and port Id. The 
+// item argument determines which value we want to get. The data is returned in 
+// the "arg" argument.
 //
-// ??? how about integrating the extended attributes too ?
 //----------------------------------------------------------------------------------------
-uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
+uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     if ( itemDebugEnabled( )) {
 
@@ -611,22 +552,17 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
 
-    if ( arg == nullptr ) {
-            
-        return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
+    if ( arg == nullptr ) return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
+
+    if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
+
+        return ( RET_STAT( rtLibGet( npId, item, arg )));
     }
+    else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-    if ( isInRangeU8( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
-
-        return( RET_STAT( rtLibGet( npId, item, arg )));
+        return ( RET_STAT( rtLibI2cGet( npId, item, arg ) ));
     }
-    else if ( isInRangeU8( item, 64, 127 )) {
-
-        // ??? pass on to I2C bus for satellite...
-
-        return( RET_STAT( 99 ));
-    }
-    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
+    else if ( isInRangeU16( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
@@ -637,10 +573,19 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
             return ( RET_STAT( readAttrNvm( portId( npId ), item, arg )));
         }
         else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
-    } 
+    }
+    else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-    // ??? addd extended attribute range 
+        if ( nodeMap.nodeState == NS_OPERATE ) {
 
+            return ( RET_STAT( readAttrMemExt( item, arg )));
+        }
+        else if ( nodeMap.nodeState == NS_CONFIG  ) {
+
+            return ( RET_STAT( readAttrNvmExt( item, arg )));
+        }
+        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+    }
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
 
@@ -651,12 +596,11 @@ uint8_t nodeGet( uint16_t npId, uint8_t item, uint16_t *arg ) {
 // attribute or both MEM and NVM version. Node state CONFIG will update NVM too. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
+uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t val ) {
 
     if ( itemDebugEnabled( )) {
 
-        printf( "nodeSet: npId: 0x%x, item: %d, val:%d\n",
-                npId, item, val  );
+        printf( "nodeSet: npId: 0x%x, item: %d, val:%d\n", npId, item, val  );
     }
 
     if (( nodeMap.nodeState != NS_OPERATE ) && 
@@ -666,16 +610,15 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
 
-     if ( isInRangeU8( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
+    if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return( RET_STAT( rtLibSet( npId, item, val )));
+        return ( RET_STAT( rtLibSet( npId, item, val )));
     }
-    else if ( isInRangeU8( item, 64, 127 )) {
+    else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        // ??? pass on to I2C bus for satellite...
-        return( RET_STAT( 99 ));
+        return ( RET_STAT( rtLibI2cSet( npId, item, val ) ));
     }
-    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
+    else if ( isInRangeU16( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         if ( nodeMap.nodeState == NS_OPERATE ) {
 
@@ -687,9 +630,18 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
         }
         else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE )); 
     } 
+    else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-    // ??? addd extended attribute range 
-    
+        if ( nodeMap.nodeState == NS_OPERATE ) {
+
+            return ( RET_STAT( writeAttrMemExt( item, val )));
+        }
+        else if ( nodeMap.nodeState == NS_CONFIG ) { 
+
+            return ( RET_STAT( writeAttrNvmExt( item, val )));
+        }
+        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE )); 
+    }
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
 
@@ -700,7 +652,7 @@ uint8_t nodeSet( uint16_t npId, uint8_t item, uint16_t val ) {
 // runtime library. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t nodeReq( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if ( itemDebugEnabled( )) {
 
@@ -710,22 +662,21 @@ uint8_t nodeReq( uint16_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
         printf( "\n" );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && ( nodeMap.nodeState != NS_CONFIG )) {
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) {
         
         return ( RET_STAT( ERR_LIB_NOT_READY ));
     }
 
-    if ( isInRangeU8( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
+    if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
         return ( RET_STAT( rtLibRequest( npId, item, arg1, arg2 )));
     } 
-    else if ( isInRangeU8( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
+    else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        // ??? invoke a driver ?
-
-        return( 0 ); // ??? for now...
+        return ( RET_STAT( invokeDrvItemCallback( npId, item, arg1, arg2 )));
     } 
-    else if ( isInRangeU8( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
+    else if ( isInRangeU16( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
 
         return ( RET_STAT( invokeUserItemCallback( npId, item, arg1, arg2 )));
     } 

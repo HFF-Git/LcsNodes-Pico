@@ -248,7 +248,7 @@ uint8_t sendAck( uint16_t sendingNpId, uint16_t targetNpId ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSync( uint16_t targetNpId, uint8_t item ) {
+uint8_t sendSync( uint16_t targetNpId, uint16_t item ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SYNC };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -328,7 +328,7 @@ uint8_t sendNodeCollision( uint16_t npId, uint32_t nodeUID ) {
 //----------------------------------------------------------------------------------------
 uint8_t sendGetAttr( uint16_t sendingNpId, 
                      uint16_t targetNpId,           
-                     uint8_t item, 
+                     uint16_t item, 
                      LcsRepCallback rep,
                      void *uData ) {
 
@@ -350,7 +350,7 @@ uint8_t sendGetAttr( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 uint8_t sendRepAttr( uint16_t sendingNpId, 
                   uint16_t targetNpId,           
-                  uint8_t item, 
+                  uint16_t item, 
                   uint16_t arg )  {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
@@ -367,7 +367,7 @@ uint8_t sendRepAttr( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 uint8_t sendSetAttr( uint16_t sendingNpId, 
                      uint16_t targetNpId,           
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t arg,
                      LcsRepCallback rep,
                      void *uData )  {
@@ -456,7 +456,7 @@ uint8_t sendSetExtAttr( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 uint8_t sendReqFunc( uint16_t sendingNpId, 
                      uint16_t targetNpId,           
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t arg1,
                      uint16_t arg2,
                      LcsRepCallback rep,
@@ -470,7 +470,7 @@ uint8_t sendReqFunc( uint16_t sendingNpId,
 
 uint8_t sendRepFunc( uint16_t sendingNpId, 
                      uint16_t targetNpId,           
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t arg1,
                      uint16_t arg2 )  {
 
@@ -486,7 +486,7 @@ uint8_t sendRepFunc( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 uint8_t sendGetNode( uint16_t sendingNpId, 
                      uint16_t targetNpId, 
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
@@ -500,7 +500,7 @@ uint8_t sendGetNode( uint16_t sendingNpId,
 
 uint8_t sendSetNode( uint16_t sendingNpId,
                      uint16_t targetNpId, 
-                     uint8_t item, uint16_t val ) {
+                     uint16_t item, uint16_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_SET };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -513,7 +513,7 @@ uint8_t sendSetNode( uint16_t sendingNpId,
 
 uint8_t sendReqNode( uint16_t sendingNpId,
                      uint16_t targetNpId, 
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t val1, 
                      uint16_t val2 ) {
 
@@ -530,7 +530,7 @@ uint8_t sendReqNode( uint16_t sendingNpId,
 
 uint8_t sendRepNode( uint16_t sendingNpId,
                      uint16_t targetNpId,
-                     uint8_t item, 
+                     uint16_t item, 
                      uint16_t val1,
                      uint16_t val2 ) {
 
