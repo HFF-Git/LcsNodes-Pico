@@ -184,7 +184,7 @@ void dccMsgCallback( uint8_t *msg ) {
         case LCS_OP_SET_LSPD:
         case LCS_OP_SET_LMOD:
         case LCS_OP_LOC_FON:
-        case LCS_OP_LOC_FOF:
+        case LCS_OP_LOC_FOFF:
 
         case LCS_OP_TON:
         case LCS_OP_TOF:

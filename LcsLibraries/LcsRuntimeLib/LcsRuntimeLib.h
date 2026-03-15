@@ -539,20 +539,21 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SET_LSPD         = OPC( 2, 4 ),
     LCS_OP_SET_LMOD         = OPC( 2, 5 ),
     LCS_OP_LOC_FON          = OPC( 2, 6 ),
-    LCS_OP_LOC_FOF          = OPC( 2, 7 ),
+    LCS_OP_LOC_FOFF         = OPC( 2, 7 ),
     LCS_OP_BACC             = OPC( 2, 8 ),
     LCS_OP_EACC             = OPC( 2, 9 ),
     LCS_OP_TON              = OPC( 2, 10 ),
     LCS_OP_TOF              = OPC( 2, 11 ),
 
     LCS_OP_RESET            = OPC( 3, 1 ),
-    LCS_OP_SYNC             = OPC( 3, 2 ),
+    
     LCS_OP_REQ_LOC          = OPC( 3, 3 ),
     LCS_OP_SET_LCON         = OPC( 3, 4 ),
     LCS_OP_LOC_FGRP         = OPC( 3, 5 ),
     LCS_OP_SEND_DCC3        = OPC( 3, 6 ),
     LCS_OP_DCC_ERR          = OPC( 3, 7 ),
     LCS_OP_REQ_CVS          = OPC( 3, 8 ),
+    LCS_OP_AGET             = OPC( 3, 9 ),
     
     LCS_OP_EVT_ON           = OPC( 4, 1 ),
     LCS_OP_EVT_OFF          = OPC( 4, 2 ),
@@ -561,7 +562,7 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SET_CVS          = OPC( 4, 5 ),
     LCS_SYS_TIME            = OPC( 4, 6 ),
 
-    LCS_OP_ATTR_GET         = OPC( 4, 7 ),
+    LCS_OP_EGET             = OPC( 4, 7 ),
 
     LCS_OP_ERR              = OPC( 5, 1 ),
     LCS_OP_SET_CVM          = OPC( 5, 2 ),
@@ -573,30 +574,24 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SEND_DCC6        = OPC( 6, 2 ),
     LCS_OP_NCOL             = OPC( 6, 8 ),
 
-    
-    LCS_OP_ATTR_SET         = OPC( 6, 5 ),
-    LCS_OP_ATTR_REP         = OPC( 6, 6 ),
-
-    
+    LCS_OP_ASET             = OPC( 6, 9 ),
+    LCS_OP_AREP             = OPC( 6, 10 ),
 
     LCS_OP_REQ_NID          = OPC( 7, 1 ),
     LCS_OP_REP_NID          = OPC( 7, 2 ),
     LCS_OP_SET_NID          = OPC( 7, 3 ),
-    LCS_OP_NODE_GET2        = OPC( 7, 4 ),
-    LCS_OP_NODE_SET2        = OPC( 7, 5 ),
-    LCS_OP_NODE_REQ2        = OPC( 7, 6 ),
-    LCS_OP_NODE_REP2        = OPC( 7, 7 ),
+    
     LCS_OP_REP_LOC          = OPC( 7, 8 ),
     LCS_OP_TIME             = OPC( 7, 9 ),
     LCS_OP_INFO             = OPC( 7, 10 ),
 
-    LCS_OP_EATTR_SET        = OPC( 7, 12 ),
-    LCS_OP_EATTR_REP        = OPC( 7, 13 ),
+    LCS_OP_ESET             = OPC( 7, 12 ),
+    LCS_OP_EREP             = OPC( 7, 13 ),
 
-    LCS_OP_NODE_GET         = OPC( 7, 14 ),
-    LCS_OP_NODE_SET         = OPC( 7, 15 ),
-    LCS_OP_NODE_REQ         = OPC( 7, 16 ),
-    LCS_OP_NODE_REP         = OPC( 7, 17 ),
+    LCS_OP_NGET             = OPC( 7, 14 ),
+    LCS_OP_NSET             = OPC( 7, 15 ),
+    LCS_OP_NREQ             = OPC( 7, 16 ),
+    LCS_OP_NREP             = OPC( 7, 17 ),
 };
 
 //----------------------------------------------------------------------------------------
@@ -850,6 +845,10 @@ uint8_t     sendReset( uint16_t targetNpId );
 uint8_t     sendBusOn( );
 uint8_t     sendBusOff( );
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendReqNodeId( uint16_t sendingNpId,
                            uint32_t nodeUID, 
                            uint8_t flags );
@@ -863,26 +862,13 @@ uint8_t     sendSetNodeId( uint16_t sendingNpId,
 uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
                                  uint32_t nodeUID );
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendAck( uint16_t sendingNpId,
-                     uint16_t targetNpId );
-
-// ??? needed ? We could do this via encoding a item ID of zero and the
-// argument 1 as error code.
-uint8_t     sendErr( uint16_t sendingNpId, 
                      uint16_t targetNpId,
-                     uint8_t errCode, 
-                     uint8_t arg1 = 0, 
-                     uint8_t arg2 = 0 );
-
-uint8_t     sendGetNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,           
-                         uint16_t item, 
-                         uint16_t arg );
-
-uint8_t     sendSetNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,    
-                         uint16_t item, 
-                         uint16_t arg );
+                     uint8_t  rStat = LCS_OK );
 
 uint8_t     sendReqNode( uint16_t sendingNpId,  
                          uint16_t targetNpId,
@@ -896,6 +882,10 @@ uint8_t     sendRepNode( uint16_t sendingNpId,
                          uint16_t val1, 
                          uint16_t val2  );
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendGetAttr( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
                          uint16_t item, 
@@ -914,6 +904,10 @@ uint8_t     sendSetAttr( uint16_t sendingNpId,
                          LcsRepCallback rep,
                          void *uData = nullptr );
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendGetExtAttr( uint16_t sendingNpId, 
                             uint16_t targetNpId,           
                             uint16_t index, 
@@ -932,20 +926,10 @@ uint8_t     sendSetExtAttr( uint16_t sendingNpId,
                             LcsRepCallback rep,
                             void *uData = nullptr );
 
-uint8_t     sendReqFunc( uint16_t sendingNpId, 
-                         uint16_t targetNpId,           
-                         uint16_t item, 
-                         uint16_t arg1,
-                         uint16_t arg2,
-                         LcsRepCallback rep,
-                         void *uData = nullptr );
-
-uint8_t     sendRepFunc( uint16_t sendingNpId, 
-                         uint16_t targetNpId,           
-                         uint16_t item, 
-                         uint16_t arg1,
-                         uint16_t arg2 );
-
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendEventOn( uint16_t sendingNpId, 
                          uint16_t eventId );
 
@@ -956,6 +940,10 @@ uint8_t     sendEvent( uint16_t sendingNpId,
                        uint16_t eventId, 
                        uint16_t arg );
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendTrackOn( );
 uint8_t     sendTrackOff( );
 uint8_t     sendEstop( );
@@ -1046,28 +1034,11 @@ uint8_t     sendDccErr( int8_t errCode,
                         uint8_t arg1 = 0, 
                         uint8_t arg2 = 0 );
 
-uint8_t     sendRawMsg( uint8_t *msgBuf );
-
-
-
-
-
-
-// ??? rethink this concept. We could also offer a method to address any 16-bit word 
-// in NVM via a GET / SET call, one parm being the variable number, the other the value.
 //----------------------------------------------------------------------------------------
-// The User Map interface. The LCS library offers a set of routines for the firmware
-// to access the user NVM area. The size is dependent on what the actual chip on the
-// board offers. The user map can be accessed in two ways. There is the generic data 
-// buffer read and write. This is quite helpful when a data structure should be read
-// in or written to. The second method uses the GET/SET routines. In this method, the
-// user area is seen an array of attributes. The GET/SET will use the parameter one 
-// for the index, and parameter for the data value. 
+//
 //
 //----------------------------------------------------------------------------------------
-uint8_t     usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-uint8_t     usrNvmInitArea( uint32_t ofs, uint32_t len, uint8_t val);
-uint32_t    usrNvmGetSize( );
+uint8_t     sendRawMsg( uint8_t *msgBuf );
+
 
 }; // LCS NameSpace

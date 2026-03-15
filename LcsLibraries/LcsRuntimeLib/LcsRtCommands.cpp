@@ -351,7 +351,7 @@ void dumpNvmUserArea( ) {
     // ??? given that this could be thousands... long list.
 
     printf( "NVM Area Dump: \n\n" );
-    dumpNvmData( NVM_USER_MAP_OFS , usrNvmGetSize( ), 8, true );
+    printf( "to do ...\n" );
     printf( "\n" );
 }
 
@@ -579,8 +579,9 @@ void getNodeCommand( char *s ) {
     }
     else {
 
-        ret = sendGetNode( 0, tmpNpId, tmpItem, tmpArg ); // ??? fix...
-         if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
+        // ??? fix...
+        // ret = sendGetAttr( 0, tmpNpId, tmpItem ); // ??? fix...
+        //  if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
     }
 }
 
@@ -620,8 +621,9 @@ void putNodeCommand( char *s ) {
     }
     else {
 
-        ret = sendSetNode( 0, tmpNpId, tmpItem, tmpVal ); // ??? fix ...
-        if ( ret != LCS_OK ) errStat((char *) "Remote Node SET error", ret );
+        // ??? fix ...
+        // ret = sendSetNode( 0, tmpNpId, tmpItem, tmpVal ); // ??? fix ...
+        // if ( ret != LCS_OK ) errStat((char *) "Remote Node SET error", ret );
     }
 }
 
@@ -664,8 +666,9 @@ void reqNodeCommand( char *s ) {
     }
     else {
 
-        ret = sendReqNode( nodeMap.nodeId, tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        if ( ret != LCS_OK ) errStat((char *) "Remote Node REQ error", ret );
+        // ??? fix ...
+        // ret = sendReqNode( nodeMap.nodeId, tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        // if ( ret != LCS_OK ) errStat((char *) "Remote Node REQ error", ret );
     }
 }
 

@@ -296,7 +296,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //
         //--------------------------------------------------------------------------------
         case LCS_OP_LOC_FON:
-        case LCS_OP_LOC_FOF: {
+        case LCS_OP_LOC_FOFF: {
 
             uint8_t sId   = msg[ 1 ];
             uint8_t fNum  = msg[ 2 ];

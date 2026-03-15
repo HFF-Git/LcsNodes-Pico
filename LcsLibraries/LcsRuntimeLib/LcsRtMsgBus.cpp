@@ -95,8 +95,6 @@ uint8_t sendTimedReq( uint16_t targetNpId,
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msg, msgPri ));
 }
 
-
-
 }; // namespace
 
 
@@ -107,11 +105,11 @@ uint8_t sendTimedReq( uint16_t targetNpId,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// The primary task of the receive function is to receive an LCS messages and pass
-// them to the respective handler method. In order to not always check whether a 
-// valid message was processed, this routine will always return a valid message 
-// opCode. The "LCS_NO_MSG" pseudo message is used to indicate that something else
-// happened and no further message processing is required. 
+// The primary task of the receive function is to receive an LCS messages and 
+// pass them to the respective handler method. In order to not always check 
+// whether a valid message was processed, this routine will always return a 
+// valid message opCode. The "LCS_NO_MSG" pseudo message is used to indicate 
+// that something else happened and no further message processing is required. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
@@ -125,9 +123,11 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
              printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
         }
 
-        if (( msg[ 0 ] == LCS_OP_NODE_REP ) || 
-            ( msg[ 0 ] == LCS_OP_ACK ) || 
-            ( msg[ 0 ] == LCS_OP_ERR )) {
+        if (( msg[ 0 ] == LCS_OP_NREP ) || 
+            ( msg[ 0 ] == LCS_OP_AREP ) || 
+            ( msg[ 0 ] == LCS_OP_EREP ) || 
+            ( msg[ 0 ] == LCS_OP_ACK  ) || 
+            ( msg[ 0 ] == LCS_OP_ERR  )) {
 
             uint16_t npId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
@@ -138,20 +138,21 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
 
         } else return ( msg[ 0 ] );
 
-    } else return ( LCS_OP_NO_MSG );
+    } 
+    else return ( LCS_OP_NO_MSG );
 }
 
 //----------------------------------------------------------------------------------------
 // LCB message send routines. They all follow the same pattern. There is a method
 // for each message opcode, which maps the input parameters to the byte array and 
-// then send it. Depending on the type of sending there are different local routines
-// used.
+// then send it.
 //
 //----------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------
+// Enable config mode.
 //
-//
+//  LCS_OP_CFG nId-H nId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t targetNpId ) {
 
@@ -167,8 +168,9 @@ uint8_t sendCfg( uint16_t targetNpId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Enable operations mode.
 //
-//
+//  LCS_OP_OPS nId-H nId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendOps( uint16_t targetNpId ) {
 
@@ -180,8 +182,9 @@ uint8_t sendOps( uint16_t targetNpId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Reset a node or port.
 //
-//
+//  LCS_OP_RESET nId-H nId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendReset( uint16_t targetNpId ) {
 
@@ -193,8 +196,9 @@ uint8_t sendReset( uint16_t targetNpId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Enable the LCS bus.
 //
-//
+//  LCS_OP_BON
 //----------------------------------------------------------------------------------------
 uint8_t sendBusOn( ) {
 
@@ -203,8 +207,9 @@ uint8_t sendBusOn( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Disable the LCS bus.
 //
-//
+//  LCS_OP_BOFF
 //----------------------------------------------------------------------------------------
 uint8_t sendBusOff( ) {
 
@@ -213,53 +218,23 @@ uint8_t sendBusOff( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Send an ACK message. 
 //
-//
+//  LCS_OP_ACK nId-H nId-L rStat
 //----------------------------------------------------------------------------------------
-// ??? combine with ACK ?
-uint8_t sendErr( uint16_t sendingNpId, 
-                 uint16_t targetNpId, 
-                 uint8_t errCode, 
-                 uint8_t arg1, 
-                 uint8_t arg2 ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ERR };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = errCode;
-    msgBuf[ 4 ] = arg1;
-    msgBuf[ 5 ] = arg2;
-    return ( msgBus -> sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t sendAck( uint16_t sendingNpId, uint16_t targetNpId ) {
+uint8_t sendAck( uint16_t sendingNpId, uint16_t targetNpId, uint8_t rStat ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ACK };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = rStat;
     return ( sendMsg( sendingNpId, NIL_NODE_ID, msgBuf, MSG_PRI_LOW ));
 }
 
 //----------------------------------------------------------------------------------------
+// Request our Node.
 //
-//
-//----------------------------------------------------------------------------------------
-uint8_t sendSync( uint16_t targetNpId, uint16_t item ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_SYNC };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_LOW, 0 ));
-}
-
-//----------------------------------------------------------------------------------------
-// Node Id management.
-//
+//  UID-1 flagsLCS_OP_REQ_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1 flags
 //----------------------------------------------------------------------------------------
 uint8_t sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
     
@@ -275,8 +250,9 @@ uint8_t sendReqNodeId( uint16_t npId, uint32_t nodeUID, uint8_t flags ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Reply to a nodeId request message.
 //
-//
+//  LCS_OP_REP_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1
 //----------------------------------------------------------------------------------------
 uint8_t sendRepNodeId( uint16_t npId, uint32_t nodeUID ) {
 
@@ -291,8 +267,9 @@ uint8_t sendRepNodeId( uint16_t npId, uint32_t nodeUID ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the node Id.
 //
-//
+//  LCS_OP_SET_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1
 //----------------------------------------------------------------------------------------
 uint8_t sendSetNodeId( uint16_t npId, uint32_t nodeUID ) {
 
@@ -307,8 +284,9 @@ uint8_t sendSetNodeId( uint16_t npId, uint32_t nodeUID ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Send a node Id collision message.
 //
-//
+//  LCS_OP_NCOL nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1
 //----------------------------------------------------------------------------------------
 uint8_t sendNodeCollision( uint16_t npId, uint32_t nodeUID ) {
 
@@ -323,8 +301,88 @@ uint8_t sendNodeCollision( uint16_t npId, uint32_t nodeUID ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Attribute access Management.
+// Request a node data item.
 //
+//  LCS_OP_NGET nId-H nId-L item
+//----------------------------------------------------------------------------------------
+uint8_t sendGetNode( uint16_t sendingNpId, 
+                     uint16_t targetNpId, 
+                     uint16_t item ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NGET };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
+}
+
+//----------------------------------------------------------------------------------------
+// Set a node data item.
+//
+//  LCS_OP_NSET nId-H nId-L item arg-H arg-L
+//----------------------------------------------------------------------------------------
+uint8_t sendSetNode( uint16_t sendingNpId,
+                     uint16_t targetNpId, 
+                     uint16_t item, 
+                     uint16_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NSET };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    msgBuf[ 4 ] = highByte( arg );
+    msgBuf[ 5 ] = lowByte( arg );
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
+}
+
+//----------------------------------------------------------------------------------------
+// Request a node function.
+//
+//  LCS_OP_NREQ nId-H nId-L item arg1-H arg1-L arg2-H arg2-L
+//----------------------------------------------------------------------------------------
+uint8_t sendReqNode( uint16_t sendingNpId,
+                     uint16_t targetNpId, 
+                     uint16_t item, 
+                     uint16_t val1, 
+                     uint16_t val2 ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NREQ };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    msgBuf[ 4 ] = highByte( val1 );
+    msgBuf[ 5 ] = lowByte( val1 );
+    msgBuf[ 6 ] = highByte( val2 );
+    msgBuf[ 7 ] = lowByte( val2 );
+    return ( sendTimedReq( targetNpId, msgBuf,  MSG_PRI_LOW, 0 ));
+}
+
+//----------------------------------------------------------------------------------------
+// Reply to a node function request.
+//
+//  LCS_OP_NREP nId-H nId-L item arg1-H arg1-L arg2-H arg2-L
+//----------------------------------------------------------------------------------------
+uint8_t sendRepNode( uint16_t sendingNpId,
+                     uint16_t targetNpId,
+                     uint16_t item, 
+                     uint16_t val1,
+                     uint16_t val2 ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NREP };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    msgBuf[ 4 ] = highByte( val1 );
+    msgBuf[ 5 ] = lowByte( val1 );
+    msgBuf[ 6 ] = highByte( val2 );
+    msgBuf[ 7 ] = lowByte( val2 );
+    return ( sendMsg( sendingNpId, targetNpId, msgBuf, MSG_PRI_LOW ));
+}
+
+//----------------------------------------------------------------------------------------
+// Request attribute data.
+//
+//  LCS_OP_AGET nId-H nId-L item
 //----------------------------------------------------------------------------------------
 uint8_t sendGetAttr( uint16_t sendingNpId, 
                      uint16_t targetNpId,           
@@ -337,7 +395,7 @@ uint8_t sendGetAttr( uint16_t sendingNpId,
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_GET }; // ??? fix...
+    uint8_t msgBuf[ 8 ] = { LCS_OP_AGET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = item;
@@ -345,25 +403,31 @@ uint8_t sendGetAttr( uint16_t sendingNpId,
 }
 
 //----------------------------------------------------------------------------------------
+// Reply to an attribute data request.
 //
-//
+//  LCS_OP_AREP nid-H nId-L item arg-H arg-L
 //----------------------------------------------------------------------------------------
 uint8_t sendRepAttr( uint16_t sendingNpId, 
-                  uint16_t targetNpId,           
-                  uint16_t item, 
-                  uint16_t arg )  {
+                     uint16_t targetNpId,           
+                     uint16_t item, 
+                     uint16_t arg )  {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_AREP };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    msgBuf[ 4 ] = highByte( arg );
+    msgBuf[ 5 ] = lowByte( arg );
 
-    // it is stored in the port...
-    // ??? rather check if there is an active request...
+    // ??? check if there is an active request...
 
     return ( sendMsg( targetNpId, NIL_NODE_ID, msgBuf, MSG_PRI_NORMAL ));
 }
 
 //----------------------------------------------------------------------------------------
+// Set an attribute data item.
 //
-//
+//  LCS_OP_ASET nId-H nId-L item arg-H arg-L
 //----------------------------------------------------------------------------------------
 uint8_t sendSetAttr( uint16_t sendingNpId, 
                      uint16_t targetNpId,           
@@ -372,19 +436,22 @@ uint8_t sendSetAttr( uint16_t sendingNpId,
                      LcsRepCallback rep,
                      void *uData )  {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_SET }; // ??? fix...
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ASET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = item;
+    msgBuf[ 4 ] = highByte( arg );
+    msgBuf[ 5 ] = lowByte( arg );
 
-    // it is stored in the port...
-    // ??? rather check if there is an active request...
+    // ??? check if there is an active request...
 
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
 //----------------------------------------------------------------------------------------
-// Extended attributes access management.
+// Request extended attribute data.
 //
+//  LCS_OP-EGET nId-H nId-L index-H index-L
 //----------------------------------------------------------------------------------------
 uint8_t sendGetExtAttr( uint16_t sendingNpId, 
                         uint16_t targetNpId,           
@@ -395,7 +462,7 @@ uint8_t sendGetExtAttr( uint16_t sendingNpId,
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_GET }; // ??? fix...
+    uint8_t msgBuf[ 8 ] = { LCS_OP_EGET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = highByte( index );
@@ -405,19 +472,18 @@ uint8_t sendGetExtAttr( uint16_t sendingNpId,
 }
 
 //----------------------------------------------------------------------------------------
+// Reply to an extended attribute data request.
 //
-//
+//  LCS_OP_EREP nId-H nId-L index-H index-L arg-H arg-L
 //----------------------------------------------------------------------------------------
 uint8_t sendRepExtAttr( uint16_t sendingNpId, 
                         uint16_t targetNpId,           
                         uint16_t index, 
                         uint16_t arg )  {
 
-    // ??? why do we have targetNpId ?
-    // it is stored in the port...
-    // ??? rather check if there is an active request...
+    // ??? check if there is an active request...
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_REP }; // ??? fix...
+    uint8_t msgBuf[ 8 ] = { LCS_OP_EREP };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = highByte( index );
@@ -429,8 +495,9 @@ uint8_t sendRepExtAttr( uint16_t sendingNpId,
 }
 
 //----------------------------------------------------------------------------------------
+// Set an extended attribute data item.
 //
-//
+//  LCS_OP_ESET nId-H nId-L index-H index-L arg-H arg-L
 //----------------------------------------------------------------------------------------
 uint8_t sendSetExtAttr( uint16_t sendingNpId, 
                         uint16_t targetNpId,           
@@ -439,7 +506,7 @@ uint8_t sendSetExtAttr( uint16_t sendingNpId,
                         LcsRepCallback rep,
                         void *uData )  {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ATTR_SET }; // ??? fix...
+    uint8_t msgBuf[ 8 ] = { LCS_OP_ESET }; // ??? fix...
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = highByte( index );
@@ -451,104 +518,9 @@ uint8_t sendSetExtAttr( uint16_t sendingNpId,
 }
 
 //----------------------------------------------------------------------------------------
+// Send an "ON" event.
 //
-//
-//----------------------------------------------------------------------------------------
-uint8_t sendReqFunc( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint16_t item, 
-                     uint16_t arg1,
-                     uint16_t arg2,
-                     LcsRepCallback rep,
-                     void *uData ) {
-
-    // ??? check if port is not busy
-    // ??? store sending npId, callback, uData and the timeout.
-
-    return ( 0 );
-}
-
-uint8_t sendRepFunc( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint16_t item, 
-                     uint16_t arg1,
-                     uint16_t arg2 )  {
-
-    // it is stored in the port...
-    // ??? rather check if there is an active request...
-
-    return ( 0 );
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t sendGetNode( uint16_t sendingNpId, 
-                     uint16_t targetNpId, 
-                     uint16_t item, 
-                     uint16_t val ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( val );
-    msgBuf[ 5 ] = lowByte( val );
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
-}
-
-uint8_t sendSetNode( uint16_t sendingNpId,
-                     uint16_t targetNpId, 
-                     uint16_t item, uint16_t val ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_SET };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( val );
-    msgBuf[ 5 ] = lowByte( val );
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
-}
-
-uint8_t sendReqNode( uint16_t sendingNpId,
-                     uint16_t targetNpId, 
-                     uint16_t item, 
-                     uint16_t val1, 
-                     uint16_t val2 ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REQ };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( val1 );
-    msgBuf[ 5 ] = lowByte( val1 );
-    msgBuf[ 6 ] = highByte( val2 );
-    msgBuf[ 7 ] = lowByte( val2 );
-    return ( sendTimedReq( targetNpId, msgBuf,  MSG_PRI_LOW, 0 ));
-}
-
-uint8_t sendRepNode( uint16_t sendingNpId,
-                     uint16_t targetNpId,
-                     uint16_t item, 
-                     uint16_t val1,
-                     uint16_t val2 ) {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REP };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( val1 );
-    msgBuf[ 5 ] = lowByte( val1 );
-    msgBuf[ 6 ] = highByte( val2 );
-    msgBuf[ 7 ] = lowByte( val2 );
-    return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_LOW ));
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//
+//  LCS_OP_EVT_ON nId-H nId-L eventId-H eventId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendEventOn( uint16_t npId, uint16_t eventId ) {
 
@@ -559,9 +531,14 @@ uint8_t sendEventOn( uint16_t npId, uint16_t eventId ) {
     msgBuf[ 4 ] = lowByte( eventId );
 
     localMsgEvent( msgBuf );
-    return ( msgBus -> sendLcsMsg( npId, msgBuf, MSG_PRI_LOW ));                                  
+    return ( sendMsg( npId, 0, msgBuf, MSG_PRI_LOW ));                                  
 }
 
+//----------------------------------------------------------------------------------------
+// Send an "OFF" event.
+//
+//  LCS_OP_EVT_ON nId-H nId-L eventId-H eventId-L
+//----------------------------------------------------------------------------------------
 uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT_OFF };
@@ -571,9 +548,14 @@ uint8_t sendEventOff( uint16_t npId, uint16_t eventId ) {
     msgBuf[ 4 ] = lowByte( eventId );
 
     localMsgEvent( msgBuf );
-    return ( msgBus -> sendLcsMsg( npId, msgBuf, MSG_PRI_LOW ));  
+    return ( sendMsg( npId, 0, msgBuf, MSG_PRI_LOW ));     
 }
 
+//----------------------------------------------------------------------------------------
+// Send an event.
+//
+//  LCS_OP_EVT nId-H nId-L eventId-H eventId-L arg-H arg-L
+//----------------------------------------------------------------------------------------
 uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT };
@@ -585,9 +567,8 @@ uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
     msgBuf[ 6 ] = lowByte( arg );
 
     localMsgEvent( msgBuf );
-    return ( msgBus -> sendLcsMsg( npId, msgBuf, MSG_PRI_LOW ));  
+    return ( sendMsg( npId, 0, msgBuf, MSG_PRI_LOW ));
 }
-
 
 //----------------------------------------------------------------------------------------
 //
@@ -599,18 +580,30 @@ uint8_t sendTrackOn( ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_HIGH ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendTrackOff( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_TOF };
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_HIGH ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendEstop( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ESTP };
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_VERY_HIGH ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendReqLoc( uint16_t locAdr, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_LOC };
@@ -620,6 +613,10 @@ uint8_t sendReqLoc( uint16_t locAdr, uint8_t flags ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendRelLoc( uint8_t sId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REL_LOC };
@@ -627,6 +624,10 @@ uint8_t sendRelLoc( uint8_t sId ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendRepLoc( uint8_t sId, 
                     uint16_t locAdr, 
                     uint8_t spDir, 
@@ -645,6 +646,10 @@ uint8_t sendRepLoc( uint8_t sId,
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LCON };
@@ -654,6 +659,10 @@ uint8_t sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendQueryLoc( uint8_t sId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_QRY_LOC };
@@ -661,6 +670,10 @@ uint8_t sendQueryLoc( uint8_t sId ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendKeepLoc( uint8_t sId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_KEEP_LOC };
@@ -668,6 +681,10 @@ uint8_t sendKeepLoc( uint8_t sId ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocSpDir( uint8_t sId, uint8_t spDir ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LSPD };
@@ -676,6 +693,10 @@ uint8_t sendSetLocSpDir( uint8_t sId, uint8_t spDir ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocMode( uint8_t sId, uint8_t mode ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LMOD };
@@ -684,6 +705,10 @@ uint8_t sendSetLocMode( uint8_t sId, uint8_t mode ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocFuncOn( uint8_t sId, uint8_t fNum ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FON };
@@ -692,14 +717,22 @@ uint8_t sendSetLocFuncOn( uint8_t sId, uint8_t fNum ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocFuncOff( uint8_t sId, uint8_t fNum ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FOF };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FOFF };
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = fNum;
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FGRP };
@@ -709,6 +742,10 @@ uint8_t sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_CVM };
@@ -720,6 +757,10 @@ uint8_t sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val 
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_CVS };
@@ -730,6 +771,10 @@ uint8_t sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendReqLocCvProg( uint16_t cvId, uint8_t mode ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_CVS };
@@ -739,6 +784,10 @@ uint8_t sendReqLocCvProg( uint16_t cvId, uint8_t mode ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendRepLocCvProg( uint16_t cvId, uint8_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REP_CVS };
@@ -748,6 +797,10 @@ uint8_t sendRepLocCvProg( uint16_t cvId, uint8_t val ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetBacc( uint16_t accAdr, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BACC };
@@ -757,6 +810,10 @@ uint8_t sendSetBacc( uint16_t accAdr, uint8_t flags ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendSetEacc( uint16_t accAdr, uint8_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_EACC };
@@ -766,6 +823,10 @@ uint8_t sendSetEacc( uint16_t accAdr, uint8_t val ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SEND_DCC3 };
@@ -775,6 +836,10 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 ) {
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SEND_DCC4 };
@@ -785,6 +850,10 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 ) 
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, 
                        uint8_t arg2, 
                        uint8_t arg3, 
@@ -800,6 +869,10 @@ uint8_t sendDccPacket( uint8_t arg1,
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, 
                        uint8_t arg2, 
                        uint8_t arg3, 
@@ -817,12 +890,20 @@ uint8_t sendDccPacket( uint8_t arg1,
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_NORMAL ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendDccAck( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_DCC_ACK };
     return ( msgBus -> sendLcsMsg( nodeMap.nodeId, msgBuf, MSG_PRI_LOW ));
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t sendDccErr( uint8_t errCode, uint8_t arg1, uint8_t arg2 ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_DCC_ERR };
