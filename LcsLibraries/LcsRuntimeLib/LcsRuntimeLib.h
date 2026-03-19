@@ -766,9 +766,9 @@ uint8_t     startRuntime( );
 //----------------------------------------------------------------------------------------
 // Local routines to access the node/port GET/SET/REQ items. These routines
 // return immediately to the caller with the requested data. All GET/SET/REQ
-// type messages use these calls below. 
+// type messages use these calls below. A firmware should rather use the 
+// sendXXX calls.
 //
-// ??? a firmware should rather use the sendXXX calls.
 //----------------------------------------------------------------------------------------
 uint8_t     nodeGet( uint16_t npId, uint16_t item, uint16_t *arg );
 uint8_t     nodeSet( uint16_t npId, uint16_t item, uint16_t arg );
@@ -809,18 +809,6 @@ uint8_t     registerReqCallback( LcsReqCallback handler,
                                  uint16_t portMask = 0xFFFF,
                                  void *uData = nullptr );
 
-// ??? this one is actually done for each individual message ?
-uint8_t     registerRepCallback( LcsRepCallback handler, 
-                                 uint16_t portMask = 0xFFFF,
-                                 void *uData = nullptr );
-
-// ??? we wold need a routine for registering drivers to a port ...
-// ??? should use port mask scheme ...
-
-uint8_t     registerDrvFunc( LcsReqCallback handler, 
-                             uint16_t drvType, 
-                             void *uData = nullptr );
-
 //----------------------------------------------------------------------------------------
 // A set of functions to send an LCS message. They are grouped into several 
 // categories. The LCS bus messages deal with global data and configuration
@@ -846,7 +834,10 @@ uint8_t     sendBusOn( );
 uint8_t     sendBusOff( );
 
 //----------------------------------------------------------------------------------------
-//
+// Node ID management. A node has the the option to request a node from a central
+// station database. The key is the unique never changing node UID. If two node
+// detects a node Id collision, it will send a collision message with its own UID 
+// and stop, waiting for external correction. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t     sendReqNodeId( uint16_t sendingNpId,
@@ -863,71 +854,55 @@ uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
                                  uint32_t nodeUID );
 
 //----------------------------------------------------------------------------------------
+// Node / port attribute management. The messages allow to set or read an attribute.
+// Attributes are organized into item ranges for accessing library, port and 
+// extended attributes.
 //
-//
+// ??? use an error parameter vs. an ACK message ?
 //----------------------------------------------------------------------------------------
 uint8_t     sendAck( uint16_t sendingNpId,
                      uint16_t targetNpId,
                      uint8_t  rStat = LCS_OK );
 
-uint8_t     sendReqNode( uint16_t sendingNpId,  
-                         uint16_t targetNpId,
-                         uint16_t item,    
-                         uint16_t val1, 
-                         uint16_t val2  );
-
-uint8_t     sendRepNode( uint16_t sendingNpId, 
-                         uint16_t targetNpId,
-                         uint16_t item, 
-                         uint16_t val1, 
-                         uint16_t val2  );
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-uint8_t     sendGetAttr( uint16_t sendingNpId, 
+uint8_t     sendGetNode( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
                          uint16_t item, 
                          LcsRepCallback rep,
                          void *uData = nullptr );
 
-uint8_t     sendRepAttr( uint16_t sendingNpId, 
-                         uint16_t targetNpId,           
-                         uint16_t item, 
-                         uint16_t arg );
-
-uint8_t     sendSetAttr( uint16_t sendingNpId, 
+uint8_t     sendSetNode( uint16_t sendingNpId, 
                          uint16_t targetNpId,           
                          uint16_t item, 
                          uint16_t arg,
                          LcsRepCallback rep,
                          void *uData = nullptr );
+                         
+uint8_t     sendRepNode( uint16_t sendingNpId, 
+                         uint16_t targetNpId,
+                         uint16_t item, 
+                         uint16_t val );
 
 //----------------------------------------------------------------------------------------
-//
+// Nodes accept functions request. Functions are organized into item ranges as
+// well. There are ranges for the library, a port and the hardware drivers.
 //
 //----------------------------------------------------------------------------------------
-uint8_t     sendGetExtAttr( uint16_t sendingNpId, 
-                            uint16_t targetNpId,           
-                            uint16_t index, 
-                            LcsRepCallback rep,
-                            void *uData = nullptr );
+uint8_t     sendFuncReqNode( uint16_t sendingNpId,  
+                             uint16_t targetNpId,
+                             uint16_t item,    
+                             uint16_t val1, 
+                             uint16_t val2,
+                             LcsRepCallback rep,
+                             void *uData = nullptr  );
 
-uint8_t     sendRepExtAttr( uint16_t sendingNpId, 
-                            uint16_t targetNpId,           
-                            uint16_t index, 
-                            uint16_t arg );
-
-uint8_t     sendSetExtAttr( uint16_t sendingNpId, 
-                            uint16_t targetNpId,           
-                            uint16_t index, 
-                            uint16_t arg,
-                            LcsRepCallback rep,
-                            void *uData = nullptr );
+uint8_t     sendFuncRepNode( uint16_t sendingNpId,  
+                             uint16_t targetNpId,
+                             uint16_t item,    
+                             uint16_t val1, 
+                             uint16_t val2  );
 
 //----------------------------------------------------------------------------------------
-//
+// Event management. Events are simply broadcasted.
 //
 //----------------------------------------------------------------------------------------
 uint8_t     sendEventOn( uint16_t sendingNpId, 
@@ -941,13 +916,19 @@ uint8_t     sendEvent( uint16_t sendingNpId,
                        uint16_t arg );
 
 //----------------------------------------------------------------------------------------
-//
+// Layout track management. There a global messages for turning all track sections
+// on or off, as well as to issue an emergency stop on all sections.
 //
 //----------------------------------------------------------------------------------------
 uint8_t     sendTrackOn( );
 uint8_t     sendTrackOff( );
 uint8_t     sendEstop( );
 
+//----------------------------------------------------------------------------------------
+// Locomotive management. Most of these messages are used by a base station to
+// control a DCC locomotive.
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendReqLoc( uint16_t locAdr, 
                         uint8_t flags  );
 
@@ -1035,10 +1016,9 @@ uint8_t     sendDccErr( int8_t errCode,
                         uint8_t arg2 = 0 );
 
 //----------------------------------------------------------------------------------------
-//
+// LCS message. A generic function to send an LCS message.
 //
 //----------------------------------------------------------------------------------------
 uint8_t     sendRawMsg( uint8_t *msgBuf );
-
 
 }; // LCS NameSpace

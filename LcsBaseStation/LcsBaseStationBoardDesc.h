@@ -73,9 +73,9 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------
-    .boardInfo      = CDC_BT_BASE_STATION, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO,
-    .boardVersion   = (( 2U << 8 ) | 0 ), 
+     .boardType      = CDC_BT_BASE_STATION, // fix ...
+   // .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardVersion   = (( 1U << 8 ) | 0 ),  
 
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 
@@ -159,9 +159,9 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_02_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------
-    .boardInfo      = CDC_BT_BASE_STATION, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO,
-    .boardVersion   = (( 1U << 8 ) | 0 ),  
+    .boardType      = CDC_BT_BASE_STATION, // fix ...
+   // .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardVersion   = (( 2U << 8 ) | 0 ),  
 
     //------------------------------------------------------------------------------------
     // The resource map. It is a simple array of resource entries. The values set 

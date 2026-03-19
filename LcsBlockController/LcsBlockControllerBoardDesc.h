@@ -100,8 +100,8 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_DUAL_BOARD_DESC_B_02_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------
-    .boardInfo      = CDC_BT_BLOCK_CONTROLLER, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardType      = CDC_BT_BLOCK_CONTROLLER,  // ??? fix ...
+   // .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 0U ),  
    
     //------------------------------------------------------------------------------------
@@ -179,8 +179,8 @@ const CdcResourceDescMap LCS_BLOCK_CONTROLLER_QUAD_BOARD_DESC_B_02_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------
-    .boardInfo      = CDC_BT_BLOCK_CONTROLLER, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardType      = CDC_BT_BLOCK_CONTROLLER,  // ??? fix ...
+  //  .boardCtrlInfo  = CDC_CF_RP_PICO, 
     .boardVersion   = (( 2U << 8 ) | 10U ),  
    
     //------------------------------------------------------------------------------------

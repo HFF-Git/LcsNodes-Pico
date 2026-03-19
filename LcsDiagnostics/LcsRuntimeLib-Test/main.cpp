@@ -159,22 +159,8 @@ uint8_t registerLcsCallbacks( ) {
     registerInitCallback( lcsInitCallback );
     registerPfailCallback( lcsPfailCallback );
     registerReqCallback( lcsReqCallback );
-    registerRepCallback( lcsRepCallback );
     registerEventCallback( lcsEventCallback );
     return( NO_ERR );
-}
-
-//----------------------------------------------------------------------------------------
-// Setup the drivers for extension boards.
-//
-//----------------------------------------------------------------------------------------
-uint8_t registerLcsDrvFunctions( ) {
-
-    printf( "Register Extension Board Drivers\n" );
-    uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
-    if ( ret != NO_ERR )  printf( "Registration failed: %d\n, ret ");
-
-    return( ret );
 }
 
 //----------------------------------------------------------------------------------------
@@ -212,7 +198,6 @@ int main( ) {
     uint8_t rStat = initLcsRuntime( );
     if ( rStat == NO_ERR ) rStat = setupPinsForExtBoardTests( );
     if ( rStat == NO_ERR ) rStat = registerLcsCallbacks( );
-    if ( rStat == NO_ERR ) rStat = registerLcsDrvFunctions( );
     if ( rStat == NO_ERR ) startLcsRuntime( );
     return( NO_ERR );
 }

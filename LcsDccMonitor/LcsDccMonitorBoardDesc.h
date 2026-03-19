@@ -66,8 +66,8 @@ const CdcResourceDescMap LCS_DCC_MONITOR_BOARD_DESC_B_02_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------ 
-    .boardInfo      = CDC_BT_MAIN_CONTROLLER, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardType      = CDC_BT_MAIN_CONTROLLER, // ??? fix ...
+  //  .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 0 ),  
            
     //------------------------------------------------------------------------------------

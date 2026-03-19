@@ -303,36 +303,71 @@ uint8_t sendNodeCollision( uint16_t npId, uint32_t nodeUID ) {
 //----------------------------------------------------------------------------------------
 // Request a node data item.
 //
-//  LCS_OP_NGET nId-H nId-L item
+//  LCS_OP_NGET nId-H nId-L item-H item-L
 //----------------------------------------------------------------------------------------
 uint8_t sendGetNode( uint16_t sendingNpId, 
                      uint16_t targetNpId, 
-                     uint16_t item ) {
+                     uint16_t item,
+                     LcsRepCallback rep,
+                     void *uData ) {
+
+    // ??? check if port is not busy
+    // ??? store sending npId, callback, uData and the timeout.
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NGET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
+    msgBuf[ 3 ] = highByte( item );
+    msgBuf[ 4 ] = lowByte( item );
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
 //----------------------------------------------------------------------------------------
 // Set a node data item.
 //
-//  LCS_OP_NSET nId-H nId-L item arg-H arg-L
+//  LCS_OP_NSET nId-H nId-L item-H item-L arg-H arg-L
 //----------------------------------------------------------------------------------------
 uint8_t sendSetNode( uint16_t sendingNpId,
                      uint16_t targetNpId, 
-                     uint16_t item, 
-                     uint16_t arg ) {
+                     uint16_t item,
+                     uint16_t arg,
+                     LcsRepCallback rep,
+                     void *uData ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NSET };
+    // ??? check if port is not busy
+    // ??? store sending npId, callback, uData and the timeout.
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NGET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( arg );
-    msgBuf[ 5 ] = lowByte( arg );
+    msgBuf[ 3 ] = highByte( item );
+    msgBuf[ 4 ] = lowByte( item );
+    msgBuf[ 5 ] = highByte( arg );
+    msgBuf[ 6 ] = lowByte( arg );
     return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
+}
+
+//----------------------------------------------------------------------------------------
+// Reply to a node get attribute or function request.
+//
+//  LCS_OP_NREP nId-H nId-L item arg1-H arg1-L arg2-H arg2-L
+//----------------------------------------------------------------------------------------
+uint8_t sendRepNode( uint16_t sendingNpId,
+                     uint16_t targetNpId,
+                     uint16_t item, 
+                     uint16_t val ) {
+
+    // ??? check if port was busy
+    // ??? clear fields.
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NREP };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = highByte( item );
+    msgBuf[ 4 ] = lowByte( item );
+    msgBuf[ 5 ] = highByte( val );
+    msgBuf[ 6 ] = lowByte( val );
+    return ( sendMsg( sendingNpId, targetNpId, msgBuf, MSG_PRI_LOW ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -340,11 +375,16 @@ uint8_t sendSetNode( uint16_t sendingNpId,
 //
 //  LCS_OP_NREQ nId-H nId-L item arg1-H arg1-L arg2-H arg2-L
 //----------------------------------------------------------------------------------------
-uint8_t sendReqNode( uint16_t sendingNpId,
-                     uint16_t targetNpId, 
-                     uint16_t item, 
-                     uint16_t val1, 
-                     uint16_t val2 ) {
+uint8_t sendFuncReqNode( uint16_t sendingNpId,
+                         uint16_t targetNpId, 
+                         uint16_t item, 
+                         uint16_t val1, 
+                         uint16_t val2,
+                         LcsRepCallback rep,
+                         void *uData ) {
+
+    // ??? check if port is not busy
+    // ??? store sending npId, callback, uData and the timeout.
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NREQ };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -354,19 +394,22 @@ uint8_t sendReqNode( uint16_t sendingNpId,
     msgBuf[ 5 ] = lowByte( val1 );
     msgBuf[ 6 ] = highByte( val2 );
     msgBuf[ 7 ] = lowByte( val2 );
-    return ( sendTimedReq( targetNpId, msgBuf,  MSG_PRI_LOW, 0 ));
+    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_LOW, 0 ));
 }
 
 //----------------------------------------------------------------------------------------
-// Reply to a node function request.
+// Reply to a node get attribute or function request.
 //
 //  LCS_OP_NREP nId-H nId-L item arg1-H arg1-L arg2-H arg2-L
 //----------------------------------------------------------------------------------------
-uint8_t sendRepNode( uint16_t sendingNpId,
-                     uint16_t targetNpId,
-                     uint16_t item, 
-                     uint16_t val1,
-                     uint16_t val2 ) {
+uint8_t sendFuncRepNode( uint16_t sendingNpId,
+                         uint16_t targetNpId,
+                         uint16_t item, 
+                         uint16_t val1,
+                         uint16_t val2 ) {
+
+    // ??? check if port was busy
+    // ??? clear fields.
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_NREP };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -377,144 +420,6 @@ uint8_t sendRepNode( uint16_t sendingNpId,
     msgBuf[ 6 ] = highByte( val2 );
     msgBuf[ 7 ] = lowByte( val2 );
     return ( sendMsg( sendingNpId, targetNpId, msgBuf, MSG_PRI_LOW ));
-}
-
-//----------------------------------------------------------------------------------------
-// Request attribute data.
-//
-//  LCS_OP_AGET nId-H nId-L item
-//----------------------------------------------------------------------------------------
-uint8_t sendGetAttr( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint16_t item, 
-                     LcsRepCallback rep,
-                     void *uData ) {
-
-    LcsPortMapEntry *portPtr = &portMap.map[ portId( targetNpId ) ];
-
-    // ??? check if port is not busy
-    // ??? store sending npId, callback, uData and the timeout.
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_AGET };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
-}
-
-//----------------------------------------------------------------------------------------
-// Reply to an attribute data request.
-//
-//  LCS_OP_AREP nid-H nId-L item arg-H arg-L
-//----------------------------------------------------------------------------------------
-uint8_t sendRepAttr( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint16_t item, 
-                     uint16_t arg )  {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_AREP };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( arg );
-    msgBuf[ 5 ] = lowByte( arg );
-
-    // ??? check if there is an active request...
-
-    return ( sendMsg( targetNpId, NIL_NODE_ID, msgBuf, MSG_PRI_NORMAL ));
-}
-
-//----------------------------------------------------------------------------------------
-// Set an attribute data item.
-//
-//  LCS_OP_ASET nId-H nId-L item arg-H arg-L
-//----------------------------------------------------------------------------------------
-uint8_t sendSetAttr( uint16_t sendingNpId, 
-                     uint16_t targetNpId,           
-                     uint16_t item, 
-                     uint16_t arg,
-                     LcsRepCallback rep,
-                     void *uData )  {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ASET };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = item;
-    msgBuf[ 4 ] = highByte( arg );
-    msgBuf[ 5 ] = lowByte( arg );
-
-    // ??? check if there is an active request...
-
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
-}
-
-//----------------------------------------------------------------------------------------
-// Request extended attribute data.
-//
-//  LCS_OP-EGET nId-H nId-L index-H index-L
-//----------------------------------------------------------------------------------------
-uint8_t sendGetExtAttr( uint16_t sendingNpId, 
-                        uint16_t targetNpId,           
-                        uint16_t index, 
-                        LcsRepCallback rep,
-                        void *uData )  {
-    
-    // ??? check if port is not busy
-    // ??? store sending npId, callback, uData and the timeout.
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_EGET };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = highByte( index );
-    msgBuf[ 4 ] = lowByte( index );
-
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
-}
-
-//----------------------------------------------------------------------------------------
-// Reply to an extended attribute data request.
-//
-//  LCS_OP_EREP nId-H nId-L index-H index-L arg-H arg-L
-//----------------------------------------------------------------------------------------
-uint8_t sendRepExtAttr( uint16_t sendingNpId, 
-                        uint16_t targetNpId,           
-                        uint16_t index, 
-                        uint16_t arg )  {
-
-    // ??? check if there is an active request...
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_EREP };
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = highByte( index );
-    msgBuf[ 4 ] = lowByte( index );
-    msgBuf[ 5 ] = highByte( arg );
-    msgBuf[ 6 ] = lowByte( arg );
-
-    return ( sendMsg( sendingNpId, targetNpId, msgBuf, MSG_PRI_NORMAL ));
-}
-
-//----------------------------------------------------------------------------------------
-// Set an extended attribute data item.
-//
-//  LCS_OP_ESET nId-H nId-L index-H index-L arg-H arg-L
-//----------------------------------------------------------------------------------------
-uint8_t sendSetExtAttr( uint16_t sendingNpId, 
-                        uint16_t targetNpId,           
-                        uint16_t index, 
-                        uint16_t arg,
-                        LcsRepCallback rep,
-                        void *uData )  {
-
-    uint8_t msgBuf[ 8 ] = { LCS_OP_ESET }; // ??? fix...
-    msgBuf[ 1 ] = highByte( targetNpId );
-    msgBuf[ 2 ] = lowByte( targetNpId );
-    msgBuf[ 3 ] = highByte( index );
-    msgBuf[ 4 ] = lowByte( index );
-    msgBuf[ 5 ] = highByte( arg );
-    msgBuf[ 6 ] = lowByte( arg );
-
-    return ( sendTimedReq( targetNpId, msgBuf, MSG_PRI_NORMAL, 0 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -571,8 +476,9 @@ uint8_t sendEvent( uint16_t npId, uint16_t eventId, uint16_t arg ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Turn all tracks on.
 //
-//
+//  LCS_OP_TON
 //----------------------------------------------------------------------------------------
 uint8_t sendTrackOn( ) {
 
@@ -581,8 +487,9 @@ uint8_t sendTrackOn( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Turn all tracks off.
 //
-//
+//  LCS_OP_TON
 //----------------------------------------------------------------------------------------
 uint8_t sendTrackOff( ) {
 
@@ -591,8 +498,9 @@ uint8_t sendTrackOff( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Issue an emergency stop to all tracks.
 //
-//
+//  LCS_OP_ESTP
 //----------------------------------------------------------------------------------------
 uint8_t sendEstop( ) {
 

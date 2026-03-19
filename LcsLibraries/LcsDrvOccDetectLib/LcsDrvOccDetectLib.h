@@ -40,8 +40,8 @@ namespace LCS {
 ///---------------------------------------------------------------------------------------
 enum LcsDrvOccDetectItems : uint8_t {
 
-    DRV_OCC_READ_MASK = IR_USER_RANGE_START + 0,
-    DRV_OCC_yyy = IR_USER_RANGE_START + 1
+    DRV_OCC_READ_MASK = IR_ATTR_RANGE_START + 0,
+    DRV_OCC_yyy = IR_ATTR_RANGE_START + 1
 };
 
 ///---------------------------------------------------------------------------------------

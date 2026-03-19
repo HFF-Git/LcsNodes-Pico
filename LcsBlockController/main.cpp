@@ -279,18 +279,6 @@ uint8_t registerCallbacks( ) {
 }
 #endif
 
-//----------------------------------------------------------------------------------------
-// Setup the drivers for extension boards.
-//
-//----------------------------------------------------------------------------------------
-uint8_t registerDrvFunctions( ) {
-
-    if ( debugSetupEnabled( ))  printf( "registerDrvFunctions\n" );
-
-    uint8_t ret = registerDrvFunc( lcsDrvOccDetect, CDC_BT_EXT_OCC_DETECT );
-    
-    return( RET_STAT( ret ));
-}
 
 //----------------------------------------------------------------------------------------
 //
@@ -382,7 +370,6 @@ int main( ) {
     uint8_t rStat = NO_ERR;
 
     if ( rStat == NO_ERR ) rStat = initBlockNode( );
-    if ( rStat == NO_ERR ) rStat = registerDrvFunctions( );
     if ( rStat == NO_ERR ) rStat = setupTrackControl( );
     if ( rStat == NO_ERR ) rStat = setupOccDetect( );
     if ( rStat == NO_ERR ) rStat = setupTurnoutControl( );

@@ -480,6 +480,26 @@ char *skipSpaces( char *s ) {
     return s;
 }
 
+
+//----------------------------------------------------------------------------------------
+// ??? we need a callback for replies...
+//
+//----------------------------------------------------------------------------------------
+uint8_t repMsgCallback ( uint16_t npId, 
+                         uint16_t item, 
+                         uint16_t arg1, 
+                         uint16_t arg2, 
+                         uint8_t ret, 
+                         void *uData ) {
+
+    printf( "REP callback: \n ");
+
+    // ??? to do ...
+
+    return( LCS_OK );
+}
+
+
 }; // namespace
 
 
@@ -570,7 +590,7 @@ void getNodeCommand( char *s ) {
     uint16_t tmpItem    = (uint16_t) item;
     uint16_t tmpArg     = (uint16_t) arg;
 
-    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
+    if ( nodeId( tmpNpId ) == 0 ) {
 
         ret = nodeGet( tmpNpId, tmpItem, &tmpArg );
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
@@ -579,9 +599,8 @@ void getNodeCommand( char *s ) {
     }
     else {
 
-        // ??? fix...
-        // ret = sendGetAttr( 0, tmpNpId, tmpItem ); // ??? fix...
-        //  if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
+        ret = sendGetNode( nodeMap.nodeId, tmpNpId, tmpItem, repMsgCallback, nullptr );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
     }
 }
 
@@ -612,7 +631,7 @@ void putNodeCommand( char *s ) {
 
     printf ( "val: %d\n", val );
 
-    if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
+    if ( nodeId( tmpNpId ) == 0 ) {
      
         ret = nodeSet( tmpNpId, tmpItem, tmpVal );
         if ( ret != LCS_OK ) errStat((char *) "Node SET error", ret );
@@ -621,7 +640,8 @@ void putNodeCommand( char *s ) {
     }
     else {
 
-        // ??? fix ...
+        // ??? we would need a callback to pass. Which one should it be ?
+
         // ret = sendSetNode( 0, tmpNpId, tmpItem, tmpVal ); // ??? fix ...
         // if ( ret != LCS_OK ) errStat((char *) "Remote Node SET error", ret );
     }

@@ -95,8 +95,8 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     // Controller configuration and common data.
     //
     //--------------------------------------------------------------------------
-    .boardInfo      = CDC_BT_NIL, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardType      = CDC_BT_NIL,  // ??? fix ..
+   // .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 1U << 8 ) | 0 ), 
            
     //--------------------------------------------------------------------------
@@ -231,8 +231,8 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------
-    .boardInfo      = CDC_BT_NIL, 
-    .boardCtrlInfo  = CDC_CF_RP_PICO, 
+    .boardType      = CDC_BT_NIL,  // ??? fix ...
+   //  .boardCtrlInfo  = CDC_CF_RP_PICO, 
     .boardVersion   = (( 2U << 8 ) | 0 ), 
 
     //------------------------------------------------------------------------------------

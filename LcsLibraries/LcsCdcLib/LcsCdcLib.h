@@ -160,7 +160,7 @@ const uint8_t   ILLEGAL_PIN             = 254;
 // firmware. 
 //
 //----------------------------------------------------------------------------------------
-enum CdcBoardInfo : uint16_t {
+enum CdcBoardType : uint16_t {
 
     CDC_BT_NIL                  = 0,
     CDC_BT_MAIN                 = 1,
@@ -169,7 +169,7 @@ enum CdcBoardInfo : uint16_t {
     CDC_BT_MAIN_CONTROLLER      = 10,
     CDC_BT_BASE_STATION         = 11,
     CDC_BT_BLOCK_CONTROLLER     = 12,
-    BT_CAB_HANDHELD             = 13,
+    CDC_BT_CAB_HANDHELD         = 13,
 
     CDC_BT_EXT_OCC_DETECT       = 80,
     CDC_BT_EXT_SV_32_IO_16      = 81
@@ -366,8 +366,7 @@ struct CdcResourceDesc {
 //----------------------------------------------------------------------------------------
 struct CdcResourceDescMap {
 
-    CdcBoardInfo        boardInfo;                      // board type/subtype
-    CdcControllerInfo   boardCtrlInfo;                  // family / cType
+    CdcBoardType        boardType;                      // family / board type/subtype
     uint16_t            boardVersion;                   // major / sub version
     CdcResourceDesc     map[ MAX_RES_DESC_ENTRIES ];
 };

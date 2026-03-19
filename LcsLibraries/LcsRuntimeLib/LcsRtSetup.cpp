@@ -176,9 +176,8 @@ uint8_t setupDefaultNodeHeader( ) {
     LcsBoardDesc tmp;
 
     tmp.boardMword     = NVM_MWORD_NODE_HEADER;
-    tmp.boardInfo      = dMap.boardInfo;
+    tmp.boardType      = dMap.boardType;
     tmp.boardVersion   = dMap.boardVersion;
-    tmp.boardCtrlInfo  = dMap.boardCtrlInfo;
 
     return ( RET_STAT( rtNvmPutBytes( NVM_MAP_STORAGE_START,
                                       (uint8_t *)&tmp,
@@ -260,7 +259,7 @@ uint8_t setupDefaultEventMap( ) {
 
     ENTER_FUNC();
 
-    eventMap.magicWord = NVM_MWORD_EVENT_MAP;
+    eventMap.magicWord = NVM_MWORD_NODE_EVENT_MAP;
     eventMap.nvmOfs    = NVM_EVENT_MAP_OFS;
     eventMap.nvmSize   = NVM_EVENT_MAP_SIZE;
     eventMap.mapHwm    = 0;
@@ -539,7 +538,7 @@ uint8_t checkMagicWords( ) {
         rStat = rtNvmGetBytes( NVM_EVENT_MAP_OFS, (uint8_t *) &mWord, sizeof( mWord ));
         if ( rStat == LCS_OK ) {
 
-            if ( mWord != NVM_MWORD_EVENT_MAP ) rStat = ERR_MWORD_EVENT_MAP;
+            if ( mWord != NVM_MWORD_NODE_EVENT_MAP ) rStat = ERR_MWORD_EVENT_MAP;
         }
     }
 
@@ -577,8 +576,7 @@ uint8_t setupNodeNvmHeader(CdcResourceDescMap *map) {
                            sizeof( LcsBoardDesc ));
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
-    if (( boardDesc.boardInfo != dMap.boardInfo ) &&
-        ( boardDesc.boardCtrlInfo != dMap.boardCtrlInfo )) {
+    if (( boardDesc.boardType != dMap.boardType )) {
     
         }
 
@@ -724,6 +722,10 @@ uint8_t setupTaskMap( ) {
 // in turn defines the driver function to use. All channels on a given port must
 // have the same type.
 //
+//
+// ??? what would we need it for ? Good to know, however, we should also cover
+// the case where a device is added later or disappears. Sounds more like a
+// periodic tasks to run for discovery and check....
 //----------------------------------------------------------------------------------------
 uint8_t discoverChannels( ) {
 
@@ -807,6 +809,7 @@ uint8_t registerInternalTasks( ) {
     return ( RET_STAT( LCS_OK ));
 }
 
+// ??? this may go away.... we make the device to directly handle requests...
 //----------------------------------------------------------------------------------------
 // Driver function registration. There is a simple table which maintains board
 // types and the driver REQ function for them. For already registered types, we 
@@ -865,6 +868,8 @@ uint8_t setupDriverFunctions( ) {
 
     ENTER_FUNC( );
 
+    #if 0
+
     for ( int i = 1; i < MAX_PORT_MAP_ENTRIES; i++ )  {
 
         LcsPortMapEntry *pPtr = &portMap.map[i];
@@ -889,6 +894,7 @@ uint8_t setupDriverFunctions( ) {
             }
         }
     }
+    #endif
 
     return ( RET_STAT( LCS_OK ));
 }

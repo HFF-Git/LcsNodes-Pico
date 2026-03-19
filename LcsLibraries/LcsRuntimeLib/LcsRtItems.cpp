@@ -117,7 +117,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 //----------------------------------------------------------------------------------------
 uint8_t readAttrMem( uint16_t block, uint16_t item, uint16_t *arg ) {
 
-    *arg = nodeData.map[ block ][ item - IR_USER_RANGE_START ];
+    *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
     return ( NO_ERR );
 }
 
@@ -129,7 +129,7 @@ uint8_t readAttrMem( uint16_t block, uint16_t item, uint16_t *arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t writeAttrMem( uint16_t block, uint16_t item, uint16_t arg ) {
 
-    nodeData.map[ block ][ item - IR_USER_RANGE_START ] = arg;
+    nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
     return ( NO_ERR );
 }
 
@@ -143,7 +143,7 @@ uint8_t writeAttrMem( uint16_t block, uint16_t item, uint16_t arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t readAttrNvm( uint16_t block, uint16_t item, uint16_t *arg ) {
 
-    uint16_t index  = item - IR_USER_RANGE_START;
+    uint16_t index  = item - IR_ATTR_RANGE_START;
     uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
         (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
@@ -162,7 +162,7 @@ uint8_t readAttrNvm( uint16_t block, uint16_t item, uint16_t *arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t writeAttrNvm( uint16_t block, uint16_t item, uint16_t arg ) {
 
-    uint16_t index  = item - IR_USER_RANGE_START;
+    uint16_t index  = item - IR_ATTR_RANGE_START;
     uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
         (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
@@ -259,11 +259,11 @@ uint8_t syncAttrToNvmExt( uint16_t item ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "rtLibGet" handles all items that directly refer to the node and port map.
+// "libItemGet" handles all items that directly refer to the node and port map.
 // As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
+uint8_t libItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     switch ( item ) {
 
@@ -307,11 +307,11 @@ uint8_t rtLibGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "rtLibSet" handles all items that directly refer to the node and port map.
+// "libItemSet" handles all items that directly refer to the node and port map.
 // As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibSet( uint16_t npId, uint16_t item, uint16_t val ) {
+uint8_t libItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 
     switch ( item ) {
 
@@ -353,18 +353,23 @@ uint8_t rtLibSet( uint16_t npId, uint16_t item, uint16_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "rtLibRequest" handles the request items for the runtime library itself.
+// "libItemRequest" handles the request items for the runtime library itself.
 // As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibRequest( uint16_t npId, 
-                      uint16_t item, 
-                      uint16_t *arg1, 
-                      uint16_t *arg2 ) {
+uint8_t libItemRequest( uint16_t npId, 
+                        uint16_t item, 
+                        uint16_t *arg1, 
+                        uint16_t *arg2 ) {
 
     switch ( item ) {
 
-        // ??? add OPS and CFG requests...
+        case ITEM_ID_RESET: {
+
+            // ??? to do ...
+            
+            return ( ERR_NOT_IMPLEMENTED );
+        }
 
         case ITEM_ID_GET_NODE_UID: {
 
@@ -377,13 +382,6 @@ uint8_t rtLibRequest( uint16_t npId,
 
             if ( arg2 == nullptr ) return ( ERR_INVALID_ATTR_ARG );
             return ( getMemEmapEntry( *arg1, arg1, arg2 ));
-        }
-
-        case ITEM_ID_RESET: {
-
-            // ??? to do ...
-            
-            return ( ERR_NOT_IMPLEMENTED );
         }
 
         case ITEM_ID_SYNC_TO_MEM: {
@@ -437,40 +435,71 @@ uint8_t rtLibRequest( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// "rtLibI2cGet" reads a word from the peripheral based on the I2C address for 
-// the port and channel passed. As an internal function, we expect validated 
-// arguments.
+// Get a port attribute.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibI2cGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
+uint8_t attrItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
 
-    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
-    uint8_t ofs     = item - IR_DRV_CHAN_START;
-    uint8_t rStat   = 0;
-    uint8_t buf[ 4 ];
+    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_INIT )) {
 
-    rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, &ofs, 1, true );
-    return ( i2cRead( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) arg, 2, false ));
+        return ( RET_STAT( readAttrMem( portId( npId ), item, arg )));
+    }
+    else if ( nodeMap.nodeState == NS_CONFIG || ( nodeMap.nodeState == NS_INIT )) {
+
+        return ( RET_STAT( readAttrNvm( portId( npId ), item, arg )));
+    }
+    else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
 }
 
 //----------------------------------------------------------------------------------------
-// "rtLibI2cSet" writes a word to the peripheral based on the I2C address for 
-// the port and channel passed. As an internal function, we expect validated 
-// arguments.
+// Set a port attribute.
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtLibI2cSet( uint16_t npId, uint16_t item, uint16_t val ) {
+uint8_t attrItemSet( int16_t npId, uint16_t item, uint16_t arg  ) {
 
-    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
-    uint8_t ofs     = item - IR_DRV_CHAN_START;
-    uint8_t rStat   = 0;
-    uint8_t buf[ 4 ];
+    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_INIT )) {
 
-    buf[ 0 ] = ofs;
-    buf[ 1 ] = lowByte( val );
-    buf[ 2 ] = highByte( val );
+        return ( RET_STAT( writeAttrMem( portId( npId ), item, arg )));
+    }
+    else if ( nodeMap.nodeState == NS_CONFIG || ( nodeMap.nodeState == NS_INIT )) {
 
-    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) &val, 2, false ));
+        return ( RET_STAT( writeAttrNvm( portId( npId ), item, arg )));
+    }
+    else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+}
+
+//----------------------------------------------------------------------------------------
+// Get a global attribute.
+//
+//----------------------------------------------------------------------------------------
+uint8_t glbItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
+
+    if ( nodeMap.nodeState == NS_OPERATE ) {
+
+        return ( RET_STAT( readAttrMemExt( item, arg )));
+    }
+    else if ( nodeMap.nodeState == NS_CONFIG  ) {
+
+        return ( RET_STAT( readAttrNvmExt( item, arg )));
+    }
+    else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+}
+
+//----------------------------------------------------------------------------------------
+// Get an extended attribute.
+//
+//----------------------------------------------------------------------------------------
+uint8_t glbItemSet( int16_t npId, uint16_t item, uint16_t arg  ) {
+
+    if ( nodeMap.nodeState == NS_OPERATE ) {
+
+        return ( RET_STAT( writeAttrMemExt( item, arg )));
+    }
+    else if ( nodeMap.nodeState == NS_CONFIG  ) {
+
+        return ( RET_STAT( writeAttrNvmExt( item, arg )));
+    }
+    else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -479,10 +508,10 @@ uint8_t rtLibI2cSet( uint16_t npId, uint16_t item, uint16_t val ) {
 // arguments. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t invokeUserItemCallback( uint16_t npId, 
-                                uint16_t item, 
-                                uint16_t *arg1, 
-                                uint16_t *arg2 ) {
+uint8_t userItemRequest( uint16_t npId, 
+                         uint16_t item, 
+                         uint16_t *arg1, 
+                         uint16_t *arg2 ) {
 
     LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
 
@@ -498,26 +527,73 @@ uint8_t invokeUserItemCallback( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// Driver request function invocation routine. Items 64 to 127 are reserved for 
-// the driver request items. 
+// "drvItemGet" reads a word from the peripheral based on the I2C address for 
+// the port and channel passed. As an internal function, we expect validated 
+// arguments.
+//
+//----------------------------------------------------------------------------------------
+uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
+
+    // ??? analyze the item to see if command or attr fetch
+
+    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
+    uint8_t ofs     = item - IR_DRV_CHAN_START;
+    uint8_t rStat   = 0;
+    uint8_t buf[ 4 ];
+
+    rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, &ofs, 1, true );
+    return ( i2cRead( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) arg, 2, false ));
+}
+
+//----------------------------------------------------------------------------------------
+// "drvItemSet" writes a word to the peripheral based on the I2C address for 
+// the port and channel passed. As an internal function, we expect validated 
+// arguments.
+//
+//----------------------------------------------------------------------------------------
+uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
+
+    // ??? analyze the item to see if command or attr set
+
+    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
+    uint8_t ofs     = item - IR_DRV_CHAN_START;
+    uint8_t rStat   = 0;
+    uint8_t buf[ 4 ];
+
+    buf[ 0 ] = ofs;
+    buf[ 1 ] = lowByte( val );
+    buf[ 2 ] = highByte( val );
+
+    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) &val, 2, false ));
+}
+
+//----------------------------------------------------------------------------------------
+// Driver request submit. We fill in the command data in the device. There are
+// four fields, STATUS, CMD, ARG1 and ARG2. In contrast to the library and 
+// use request items, we will not wait for a replay, as this may take a bit.
+// Instead, we fill the fields and return. A later status polling via the 
+// GET function will check the outcome and return the reply.
 // 
 //----------------------------------------------------------------------------------------
-uint8_t invokeDrvItemCallback( uint16_t npId, 
-                               uint16_t item, 
-                               uint16_t *arg1, 
-                               uint16_t *arg2 ) {
+uint8_t drvItemRequest( uint16_t npId, 
+                        uint16_t item, 
+                        uint16_t *arg1, 
+                        uint16_t *arg2 ) {
 
     LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
 
-    if ( pPtr -> drvReqCallback != nullptr ) {
+    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
+    uint8_t ofs     = 9; // ??? make it a constant. 
+    uint8_t buf[ 16 ];
 
-        return ( pPtr -> drvReqCallback( npId, 
-                                         item, 
-                                         arg1, 
-                                         arg2, 
-                                         pPtr -> drvReqCallBackUdata ));
-    }
-    else return ( ERR_INVALID_ITEM_ID );
+    buf[ 0 ] = 0;
+    buf[ 1 ] = lowByte( item );
+    buf[ 2 ] = lowByte( *arg1 );
+    buf[ 3 ] = highByte( *arg1 );
+    buf[ 4 ] = lowByte( *arg2 );
+    buf[ 5 ] = highByte( *arg2 );
+
+    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, buf, 6, false ));
 }
  
 } // namespace
@@ -545,46 +621,23 @@ uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
         printf( "\n" );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE) && 
-        ( nodeMap.nodeState != NS_CONFIG ) && 
-        ( nodeMap.nodeState != NS_INIT )) {
-
-        return ( RET_STAT( ERR_LIB_NOT_READY ));
-    }
-
     if ( arg == nullptr ) return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
 
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return ( RET_STAT( rtLibGet( npId, item, arg )));
+        return ( RET_STAT( libItemGet( npId, item, arg )));
     }
     else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        return ( RET_STAT( rtLibI2cGet( npId, item, arg ) ));
+        return ( RET_STAT( drvItemGet( npId, item, arg ) ));
     }
-    else if ( isInRangeU16( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
+    else if ( isInRangeU16( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
-        if ( nodeMap.nodeState == NS_OPERATE ) {
-
-            return ( RET_STAT( readAttrMem( portId( npId ), item, arg )));
-        }
-        else if ( nodeMap.nodeState == NS_CONFIG  ) {
-
-            return ( RET_STAT( readAttrNvm( portId( npId ), item, arg )));
-        }
-        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+        return( RET_STAT ( attrItemGet( npId, item, arg )));
     }
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-        if ( nodeMap.nodeState == NS_OPERATE ) {
-
-            return ( RET_STAT( readAttrMemExt( item, arg )));
-        }
-        else if ( nodeMap.nodeState == NS_CONFIG  ) {
-
-            return ( RET_STAT( readAttrNvmExt( item, arg )));
-        }
-        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
+        return( RET_STAT ( glbItemGet( npId, item, arg )));
     }
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
@@ -603,44 +656,21 @@ uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t val ) {
         printf( "nodeSet: npId: 0x%x, item: %d, val:%d\n", npId, item, val  );
     }
 
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )  && 
-        ( nodeMap.nodeState != NS_INIT   )) {
-        
-        return ( RET_STAT( ERR_LIB_NOT_READY ));
-    }
-
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return ( RET_STAT( rtLibSet( npId, item, val )));
+        return ( RET_STAT( libItemSet( npId, item, val )));
     }
     else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        return ( RET_STAT( rtLibI2cSet( npId, item, val ) ));
+        return ( RET_STAT( drvItemSet( npId, item, val ) ));
     }
-    else if ( isInRangeU16( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
+    else if ( isInRangeU16( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
-        if ( nodeMap.nodeState == NS_OPERATE ) {
-
-            return ( RET_STAT( writeAttrMem( portId( npId ), item, val )));
-        }
-        else if ( nodeMap.nodeState == NS_CONFIG ) { 
-
-            return ( RET_STAT( writeAttrNvm( portId( npId ), item, val )));
-        }
-        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE )); 
+        return( RET_STAT ( attrItemSet( npId, item, val )));
     } 
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-        if ( nodeMap.nodeState == NS_OPERATE ) {
-
-            return ( RET_STAT( writeAttrMemExt( item, val )));
-        }
-        else if ( nodeMap.nodeState == NS_CONFIG ) { 
-
-            return ( RET_STAT( writeAttrNvmExt( item, val )));
-        }
-        else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE )); 
+       return( RET_STAT ( glbItemSet( npId, item, val )));
     }
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
@@ -670,15 +700,15 @@ uint8_t nodeReq( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) 
 
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return ( RET_STAT( rtLibRequest( npId, item, arg1, arg2 )));
+        return ( RET_STAT( libItemRequest( npId, item, arg1, arg2 )));
     } 
     else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        return ( RET_STAT( invokeDrvItemCallback( npId, item, arg1, arg2 )));
+        return ( RET_STAT( drvItemRequest( npId, item, arg1, arg2 )));
     } 
-    else if ( isInRangeU16( item, IR_USER_RANGE_START, IR_ATTR_RANGE_END )) {
+    else if ( isInRangeU16( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) {
 
-        return ( RET_STAT( invokeUserItemCallback( npId, item, arg1, arg2 )));
+        return ( RET_STAT( userItemRequest( npId, item, arg1, arg2 )));
     } 
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }

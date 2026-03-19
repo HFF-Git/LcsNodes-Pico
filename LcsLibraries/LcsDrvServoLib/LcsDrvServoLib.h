@@ -43,7 +43,7 @@ namespace LCS {
 ///---------------------------------------------------------------------------------------
 enum LcsDrvServoItems : uint8_t {
 
-    DRV_SERVO_xxx = IR_USER_RANGE_START + 0,
+    DRV_SERVO_xxx = IR_ATTR_RANGE_START + 0,
     
 };
 

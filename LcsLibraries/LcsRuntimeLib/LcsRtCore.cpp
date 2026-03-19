@@ -313,7 +313,7 @@ void handleMsgGetNode( uint8_t *msg ) {
         uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
         uint8_t   ret   = nodeGet( npId, item, &arg );
 
-        if ( ret == NO_ERR )  sendRepAttr( nodeMap.nodeId, npId, item, arg );
+        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg );
         else                  sendAck( nodeMap.nodeId, npId, ret );
     }
 }
@@ -355,8 +355,13 @@ void handleMsgRepNode( uint8_t *msg ) {
     
     LcsPortMapEntry *pPtr = &portMap.map[ portId( npId ) ];
 
-    if ( pPtr -> repCallback != nullptr ) 
-        pPtr -> repCallback( npId, item, arg1, arg2, LCS_OK, pPtr ->repCallBackUdata );
+    if ( pPtr -> targetRepCallback != nullptr ) 
+        pPtr -> targetRepCallback( npId, 
+                                   item, 
+                                   arg1, 
+                                   arg2, 
+                                   LCS_OK, 
+                                   pPtr ->targetRepCallBackUdata );
 }
 
 //----------------------------------------------------------------------------------------
@@ -373,11 +378,10 @@ void handleMsgReqNode( uint8_t *msg ) {
     if ( nodeId( npId ) == nodeMap.nodeId ) {
 
         uint16_t  item  = msg[3];
-        uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-        uint16_t  arg2  = ( msg[6] << 8 ) + msg[7];
-        uint8_t   ret   = nodeReq( npId, item, &arg1 );
+        uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
+        uint8_t   ret   = nodeReq( npId, item, &arg );
 
-        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg1, arg2 );
+        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg );
         else                  sendAck( nodeMap.nodeId, npId, ret );
     }
 }
@@ -820,20 +824,6 @@ uint8_t registerReqCallback( LcsReqCallback functionId,
     for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         if ( portMask & ( 1 << i )) portMap.map[ i ].reqCallback = functionId;
-    }
-
-    return ( LCS_OK );
-}
-
-uint8_t registerRepCallback( LcsRepCallback functionId, 
-                             uint16_t portMask, 
-                             void *uData ) {
-
-    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
-
-    for ( int i = 0; i <= MAX_PORT_MAP_ENTRIES; i++ ) {
-
-        if ( portMask & ( 1 << i )) portMap.map[ i ].repCallback = functionId;
     }
 
     return ( LCS_OK );

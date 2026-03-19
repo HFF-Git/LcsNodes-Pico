@@ -440,8 +440,7 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
     printf( "CDC Resource Descriptor Map:" );
  
-    printf( "Board Type: %d\n", dMap -> boardInfo );
-    printf( "Board Controller: %d\n", dMap -> boardCtrlInfo );
+    printf( "Board Type: 0x%4x\n", dMap -> boardType );
     printf( "Board Version: %d.%d\n", ( dMap -> boardVersion >> 8 ) & 0xff,
                                       ( dMap -> boardVersion & 0xFF ));
     
@@ -543,7 +542,7 @@ void printResourceMap( ) {
     printf( "Options: 0x%04x\n", options );
     printf( "Debug Mask: 0x%04x\n", debugMask );
 
-    printf( "Controller Family: %d\n", dMap.boardCtrlInfo );
+    printf( "Controller Family: %d\n", dMap.boardType ); // ??? fix .... use family only...
     printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", 
             rMap.cpuCores, rMap.memorySize, rMap.eepromSize );
             
