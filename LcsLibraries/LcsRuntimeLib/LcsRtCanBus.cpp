@@ -425,6 +425,14 @@ uint8_t LcsMsgBusCAN::sendLcsMsg (  uint16_t sendingNpId,
 // message was actually received. This is also the case when the message queue is
 // empty.
 //
+//
+// ??? it would be a good place to do filtering. Any GET/SET/REQ/REP that we
+// not involved, should be ignored right here. If we can also the broadcast
+// type messages nicely grouped, we could also filter. For example, DCC messages
+// typically send from throttle to base station, etc. 
+//
+// ??? still, there should be an option to get any kind of message for a 
+// tracing tool, etc.
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
 
