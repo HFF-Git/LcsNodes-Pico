@@ -359,14 +359,9 @@ uint8_t LcsMsgBusCAN::sendLcsMsg (  uint16_t sendingNpId,
 
     uint8_t msgOp = msgBuf[ 0 ];
 
-    if (
-        ( msgOp == LCS_OP_NGET ) ||
-        ( msgOp == LCS_OP_NSET ) ||
-        ( msgOp == LCS_OP_NREQ ) ||
-        ( msgOp == LCS_OP_AGET ) ||
-        ( msgOp == LCS_OP_ASET ) ||
-        ( msgOp == LCS_OP_EGET ) ||
-        ( msgOp == LCS_OP_ESET )) { 
+    if (( msgOp == LCS_OP_NODE_GET ) ||
+        ( msgOp == LCS_OP_NODE_SET ) ||
+        ( msgOp == LCS_OP_NODE_REQ )) { 
 
         uint16_t targetNpId = msg.data[ 1 ] << 8 | msg.data[ 2 ]; 
 

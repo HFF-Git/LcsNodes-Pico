@@ -254,7 +254,7 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 
         } break;
 
-        case LCS_OP_NCOL: {
+        case LCS_OP_NODE_COL: {
 
             writeDio( CDC_RN_ACTIVITY_LED, false );
 
@@ -615,12 +615,12 @@ void handleNodeStateConfig( ) {
         case LCS_OP_ACK:
         case LCS_OP_ERR:
         case LCS_OP_SET_NID:
-        case LCS_OP_NCOL:           handleMsgLcsMgt( msg );     break;
+        case LCS_OP_NODE_COL:           handleMsgLcsMgt( msg );     break;
 
-        case LCS_OP_NGET:           handleMsgGetNode( msg );    break;
-        case LCS_OP_NSET:           handleMsgPutNode( msg );    break;
-        case LCS_OP_NREQ:           handleMsgReqNode( msg );    break;
-        case LCS_OP_NREP:           handleMsgRepNode( msg );    break;
+        case LCS_OP_NODE_GET:           handleMsgGetNode( msg );    break;
+        case LCS_OP_NODE_SET:           handleMsgPutNode( msg );    break;
+        case LCS_OP_NODE_REQ:           handleMsgReqNode( msg );    break;
+        case LCS_OP_NODE_REP:           handleMsgRepNode( msg );    break;
     }
 
     handlePeriodicTasks( );
@@ -649,12 +649,12 @@ void handleNodeStateOperations( ) {
         case LCS_OP_ACK:
         case LCS_OP_ERR:
         case LCS_OP_REQ_NID:
-        case LCS_OP_NCOL:           handleMsgLcsMgt( msg );     break;
+        case LCS_OP_NODE_COL:           handleMsgLcsMgt( msg );     break;
 
-        case LCS_OP_NGET:           handleMsgGetNode( msg );    break;
-        case LCS_OP_NSET:           handleMsgPutNode( msg );    break;
-        case LCS_OP_NREQ:           handleMsgReqNode( msg );    break;
-        case LCS_OP_NREP:           handleMsgRepNode( msg );    break;
+        case LCS_OP_NODE_GET:           handleMsgGetNode( msg );    break;
+        case LCS_OP_NODE_SET:           handleMsgPutNode( msg );    break;
+        case LCS_OP_NODE_REQ:           handleMsgReqNode( msg );    break;
+        case LCS_OP_NODE_REP:           handleMsgRepNode( msg );    break;
         
         case LCS_OP_EVT_ON:
         case LCS_OP_EVT_OFF:

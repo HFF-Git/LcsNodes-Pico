@@ -123,9 +123,7 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
              printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
         }
 
-        if (( msg[ 0 ] == LCS_OP_NREP ) || 
-            ( msg[ 0 ] == LCS_OP_AREP ) || 
-            ( msg[ 0 ] == LCS_OP_EREP ) || 
+        if (( msg[ 0 ] == LCS_OP_NODE_REP ) || 
             ( msg[ 0 ] == LCS_OP_ACK  ) || 
             ( msg[ 0 ] == LCS_OP_ERR  )) {
 
@@ -290,7 +288,7 @@ uint8_t sendSetNodeId( uint16_t npId, uint32_t nodeUID ) {
 //----------------------------------------------------------------------------------------
 uint8_t sendNodeCollision( uint16_t npId, uint32_t nodeUID ) {
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NCOL };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_COL };
     msgBuf[ 1 ] = highByte( npId );
     msgBuf[ 2 ] = lowByte( npId );
     msgBuf[ 3 ] = ( nodeUID & 0xFF000000 ) >> 24;
@@ -314,7 +312,7 @@ uint8_t sendGetNode( uint16_t sendingNpId,
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NGET };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_GET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = highByte( item );
@@ -337,7 +335,7 @@ uint8_t sendSetNode( uint16_t sendingNpId,
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NGET };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_SET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = highByte( item );
@@ -360,7 +358,7 @@ uint8_t sendRepNode( uint16_t sendingNpId,
     // ??? check if port was busy
     // ??? clear fields.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NREP };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REP };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = highByte( item );
@@ -386,7 +384,7 @@ uint8_t sendFuncReqNode( uint16_t sendingNpId,
     // ??? check if port is not busy
     // ??? store sending npId, callback, uData and the timeout.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NREQ };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REQ };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = item;
@@ -411,7 +409,7 @@ uint8_t sendFuncRepNode( uint16_t sendingNpId,
     // ??? check if port was busy
     // ??? clear fields.
 
-    uint8_t msgBuf[ 8 ] = { LCS_OP_NREP };
+    uint8_t msgBuf[ 8 ] = { LCS_OP_NODE_REP };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
     msgBuf[ 3 ] = item;

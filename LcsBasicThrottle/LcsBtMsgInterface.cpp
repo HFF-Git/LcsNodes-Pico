@@ -155,7 +155,7 @@ void busMgtCallback( uint8_t *msg ) {
         case LCS_OP_CFG:
         case LCS_OP_BON:
         case LCS_OP_BOF:
-        case LCS_OP_NCOL:
+        case LCS_OP_NODE_COL:
         case LCS_OP_RESET: break;
 
         default: ;
