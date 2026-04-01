@@ -190,8 +190,7 @@ void dccMsgCallback( uint8_t *msg ) {
         case LCS_OP_TOF:
         case LCS_OP_ESTP:
 
-        case LCS_OP_DCC_ACK:
-        case LCS_OP_DCC_ERR:  break;
+        case LCS_OP_DCC_ACK: break;
 
         default: ;
     }

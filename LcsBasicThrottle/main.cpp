@@ -7,6 +7,21 @@
 //
 // ??? both throttle could share a throttle lib with common code...
 //
+//
+// ??? there are no sessions anymore.
+// ??? all we need is an array of cabIds and one cabEntry to manage the actual
+// loco.
+// ??? when cabId is entered, REQ_LOC asks for the data.
+// ??? REP_LOC is stored in the current cabEntry structure.
+// ??? refresh is either LOC_KEEP of current loco, or simply another REQ_LOC
+// ??? sharing is simply two throttles managing the same loco. There is no
+// takeover.
+// ??? the base station is the single source of truth. 
+// ??? all throttles monitor LCS DCC commands for his current loco to ensure
+// that the current loco data are in sync with the base station.
+// ??? the base station is unaware of many throttles for the same loco.
+// 
+//
 //----------------------------------------------------------------------------------------
 //
 // LCS - Basic Throttle Code - Raspberry PI Pico Implementation

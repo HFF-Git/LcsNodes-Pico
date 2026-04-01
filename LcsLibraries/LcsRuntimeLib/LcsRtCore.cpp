@@ -313,7 +313,7 @@ void handleMsgGetNode( uint8_t *msg ) {
         uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
         uint8_t   ret   = nodeGet( npId, item, &arg );
 
-        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg );
+        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg ); // ??? fix
         else                  sendAck( nodeMap.nodeId, npId, ret );
     }
 }
@@ -381,7 +381,7 @@ void handleMsgReqNode( uint8_t *msg ) {
         uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
         uint8_t   ret   = nodeReq( npId, item, &arg );
 
-        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg );
+        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg ); // ??? fix ...
         else                  sendAck( nodeMap.nodeId, npId, ret );
     }
 }
@@ -613,13 +613,12 @@ void handleNodeStateConfig( ) {
         case LCS_OP_BON:
         case LCS_OP_BOF:
         case LCS_OP_ACK:
-        case LCS_OP_ERR:
         case LCS_OP_SET_NID:
         case LCS_OP_NODE_COL:           handleMsgLcsMgt( msg );     break;
 
         case LCS_OP_NODE_GET:           handleMsgGetNode( msg );    break;
         case LCS_OP_NODE_SET:           handleMsgPutNode( msg );    break;
-        case LCS_OP_NODE_REQ:           handleMsgReqNode( msg );    break;
+        case LCS_OP_NODE_FREQ:          handleMsgReqNode( msg );    break;
         case LCS_OP_NODE_REP:           handleMsgRepNode( msg );    break;
     }
 
@@ -647,18 +646,19 @@ void handleNodeStateOperations( ) {
         case LCS_OP_BON:
         case LCS_OP_BOF:
         case LCS_OP_ACK:
-        case LCS_OP_ERR:
         case LCS_OP_REQ_NID:
         case LCS_OP_NODE_COL:           handleMsgLcsMgt( msg );     break;
 
         case LCS_OP_NODE_GET:           handleMsgGetNode( msg );    break;
         case LCS_OP_NODE_SET:           handleMsgPutNode( msg );    break;
-        case LCS_OP_NODE_REQ:           handleMsgReqNode( msg );    break;
         case LCS_OP_NODE_REP:           handleMsgRepNode( msg );    break;
+
+        case LCS_OP_NODE_FREQ:          handleMsgReqNode( msg );    break;
+        case LCS_OP_NODE_FREP:          handleMsgRepNode( msg );    break;
         
         case LCS_OP_EVT_ON:
         case LCS_OP_EVT_OFF:
-        case LCS_OP_EVT:            handleMsgEvent( msg );      break;
+        case LCS_OP_EVT:                handleMsgEvent( msg );      break;
 
         case LCS_OP_REQ_LOC:
         case LCS_OP_REL_LOC:
@@ -684,8 +684,7 @@ void handleNodeStateOperations( ) {
         case LCS_OP_SEND_DCC5:
         case LCS_OP_SEND_DCC6:
 
-        case LCS_OP_DCC_ACK:
-        case LCS_OP_DCC_ERR:        handleMsgDccMgt( msg );      break;
+        case LCS_OP_DCC_ACK:             handleMsgDccMgt( msg );      break;
     }
 
     handlePeriodicTasks( );

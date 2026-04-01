@@ -338,9 +338,9 @@ void LcsMsgBusCAN::setNodeId( uint8_t nodeId ) {
 // style message, which us handled at the event processing loop.
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsMsgBusCAN::sendLcsMsg (  uint16_t sendingNpId, 
-                                    uint8_t *msgBuf,
-                                    uint8_t msgPri ) {
+uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId, 
+                                   uint8_t *msgBuf,
+                                   uint8_t msgPri ) {
 
     can2040_msg msg;
 
@@ -361,7 +361,7 @@ uint8_t LcsMsgBusCAN::sendLcsMsg (  uint16_t sendingNpId,
 
     if (( msgOp == LCS_OP_NODE_GET ) ||
         ( msgOp == LCS_OP_NODE_SET ) ||
-        ( msgOp == LCS_OP_NODE_REQ )) { 
+        ( msgOp == LCS_OP_NODE_FREQ )) { 
 
         uint16_t targetNpId = msg.data[ 1 ] << 8 | msg.data[ 2 ]; 
 

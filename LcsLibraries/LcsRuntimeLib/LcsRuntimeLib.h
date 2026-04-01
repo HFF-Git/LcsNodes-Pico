@@ -530,21 +530,19 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_TON              = OPC( 0, 3 ),
     LCS_OP_TOF              = OPC( 0, 4 ),
     LCS_OP_ESTP             = OPC( 0, 5 ),
-    LCS_OP_DCC_ACK          = OPC( 0, 6 ),
 
-    LCS_OP_DCC_ERR          = OPC( 1, 1 ),
+    LCS_OP_DCC_ACK          = OPC( 1, 1 ),
    
     LCS_OP_CFG              = OPC( 2, 1 ),
     LCS_OP_OPS              = OPC( 2, 2 ),
     LCS_OP_RESET            = OPC( 2, 3 ),
     LCS_OP_EVT_ON           = OPC( 2, 4 ),
     LCS_OP_EVT_OFF          = OPC( 2, 5 ),
-    LCS_OP_ACK              = OPC( 2, 6 ),
-    LCS_OP_QRY_LOC          = OPC( 2, 7 ),
-    LCS_OP_KEEP_LOC         = OPC( 2, 8 ),
-    LCS_OP_QRY_LCON         = OPC( 2, 9 ),
+    LCS_OP_QRY_LOC          = OPC( 2, 6 ),
+    LCS_OP_KEEP_LOC         = OPC( 2, 7 ),
+    LCS_OP_QRY_LCON         = OPC( 2, 8 ),
 
-    LCS_OP_ERR              = OPC( 5, 1 ),
+    LCS_OP_ACK              = OPC( 3, 1 ),
     LCS_OP_REQ_LOC          = OPC( 3, 2 ),
     LCS_OP_REL_LOC          = OPC( 3, 3 ),
     LCS_OP_SET_LSPD         = OPC( 3, 4 ),
@@ -570,15 +568,16 @@ enum LcsMsgOpCodes : uint8_t {
 
     LCS_OP_NODE_COL         = OPC( 6, 1 ),
     LCS_OP_NODE_SET         = OPC( 6, 2 ),
-    LCS_OP_SEND_DCC6        = OPC( 6, 3 ),
-    LCS_OP_SET_CVM          = OPC( 6, 4 ),
-    LCS_OP_SEND_DCCM        = OPC( 6, 5 ),
+    LCS_OP_NODE_REP         = OPC( 6, 3 ),
+    LCS_OP_SEND_DCC6        = OPC( 6, 4 ),
+    LCS_OP_SET_CVM          = OPC( 6, 5 ),
+    LCS_OP_SEND_DCCM        = OPC( 6, 6 ),
 
     LCS_OP_REQ_NID          = OPC( 7, 1 ),
     LCS_OP_REP_NID          = OPC( 7, 2 ),
     LCS_OP_SET_NID          = OPC( 7, 3 ),
-    LCS_OP_NODE_REQ         = OPC( 7, 4 ),
-    LCS_OP_NODE_REP         = OPC( 7, 5 ),
+    LCS_OP_NODE_FREQ        = OPC( 7, 4 ),
+    LCS_OP_NODE_FREP        = OPC( 7, 5 ),
     LCS_OP_REP_LOC          = OPC( 7, 6 ),
     LCS_OP_SET_BACC         = OPC( 7, 7 ), 
     LCS_OP_SET_EACC         = OPC( 7, 8 ),
@@ -849,11 +848,14 @@ uint8_t     sendReqNodeId( uint16_t sendingNpId,
                            uint32_t nodeUID, 
                            uint8_t flags );
 
-uint8_t     sendRepNodeId( uint16_t sendingNpId,
-                           uint32_t nodeUID );
+uint8_t     sendRepNodeId( uint16_t targetNpId,
+                           uint32_t nodeUID, 
+                           uint8_t flags );
 
 uint8_t     sendSetNodeId( uint16_t sendingNpId,
-                           uint32_t nodeUID );
+                           uint16_t targetNpId,
+                           uint32_t nodeUID, 
+                           uint8_t flags );
 
 uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
                                  uint32_t nodeUID );
@@ -863,7 +865,6 @@ uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
 // Attributes are organized into item ranges for accessing library, port and 
 // extended attributes.
 //
-// ??? use an error parameter vs. an ACK message ?
 //----------------------------------------------------------------------------------------
 uint8_t     sendAck( uint16_t sendingNpId,
                      uint16_t targetNpId,
@@ -885,7 +886,7 @@ uint8_t     sendSetNode( uint16_t sendingNpId,
 uint8_t     sendRepNode( uint16_t sendingNpId, 
                          uint16_t targetNpId,
                          uint16_t item, 
-                         uint16_t val );
+                         uint16_t val1 );
 
 //----------------------------------------------------------------------------------------
 // Nodes accept functions request. Functions are organized into item ranges as
