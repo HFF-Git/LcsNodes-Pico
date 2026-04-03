@@ -1,35 +1,52 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "LcsCdcLib.h" // ??? not found at link time ...
 
-const int  MAX_CAB_ENTRIES = 256;
-const int MAX_CAB_HASH_TAB_ENTRIES = 512;   // must be power of two
+//----------------------------------------------------------------------------------------
+//
+// ??? goes into LcsRtLib.
+//----------------------------------------------------------------------------------------
 const uint16_t NIL_CAB_ID = 0;
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 struct CabTableEntry {
 
     uint16_t cabId;
-    uint32_t last_seen;
+    uint32_t lastSeen;
 };
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 struct CabTableIndexEntry {
 
     uint16_t cabId;
     uint16_t index;
 };
 
-struct CabTable {
-
-    uint16_t            hwm;
-    uint32_t            tick;
-    CabTableEntry       locoTable [ MAX_CAB_ENTRIES ];
-    CabTableIndexEntry  locoIndexTable [ MAX_CAB_HASH_TAB_ENTRIES ];
-};
-
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 namespace {
 
-/* ---------------- HASH ---------------- */
+const int           MAX_CAB_ENTRIES = 256;
+const int           MAX_CAB_HASH_TAB_ENTRIES = 512;   // must be power of two
 
+uint16_t            cabTableHwm;
+CabTableEntry       locoTable [ MAX_CAB_ENTRIES ];
+CabTableIndexEntry  locoIndexTable [ MAX_CAB_HASH_TAB_ENTRIES ];
+
+
+//----------------------------------------------------------------------------------------
+// Hash function.
+//
+//----------------------------------------------------------------------------------------
 static inline uint32_t hash( uint16_t x ) {
 
     x ^= x >> 7;
@@ -38,52 +55,53 @@ static inline uint32_t hash( uint16_t x ) {
     return x;
 }
 
-/* ---------------- INSERT INDEX ---------------- */
+//----------------------------------------------------------------------------------------
+// Insert into hash table.
+//
+//----------------------------------------------------------------------------------------
+void insertCabTableIndex( uint16_t cabId, uint16_t index ) {
 
-void insertCabTableIndex( CabTable *t, uint16_t id, uint16_t idx ) {
-
-    uint32_t i = hash( id ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    uint32_t i = hash( cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start = i;
 
-    while ( t -> locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+    while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
 
-        if ( i == start )
-            return; // table full ( should not happen )
+        if ( i == start ) return; // table full ( should not happen )
     }
 
-    t -> locoIndexTable [ i ].cabId = id;
-    t -> locoIndexTable [ i ].index = idx;
+    locoIndexTable [ i ].cabId = cabId;
+    locoIndexTable [ i ].index = index;
 }
 
-/* ---------------- REMOVE INDEX ---------------- */
+//----------------------------------------------------------------------------------------
+// Remove from hash table.
+//
+//----------------------------------------------------------------------------------------
+void removeCabTableIndex( uint16_t cabId ) {
 
-void removeCabTableIndex( CabTable *t, uint16_t id ) {
+    uint32_t i      = hash( cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    uint32_t start  = i;
 
-    uint32_t i = hash( id ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-    uint32_t start = i;
+    while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
 
-    while ( t -> locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
-
-        if ( t -> locoIndexTable [ i ].cabId == id ) break;
-
+        if ( locoIndexTable [ i ].cabId == cabId ) break;
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-
         if ( i == start ) return;
     }
 
-    if ( t -> locoIndexTable [ i ].cabId == NIL_CAB_ID ) return;
+    if ( locoIndexTable [ i ].cabId == NIL_CAB_ID ) return;
 
     // remove
-    t -> locoIndexTable [ i ].cabId = NIL_CAB_ID;
+    locoIndexTable [ i ].cabId = NIL_CAB_ID;
 
     // reinsert cluster
     uint32_t j = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
 
-    while ( t -> locoIndexTable [ j ].cabId != NIL_CAB_ID ) {
+    while ( locoIndexTable [ j ].cabId != NIL_CAB_ID ) {
 
-        CabTableIndexEntry tmp = t -> locoIndexTable [ j ];
-        t -> locoIndexTable [ j ].cabId = NIL_CAB_ID;
+        CabTableIndexEntry tmp = locoIndexTable [ j ];
+        locoIndexTable [ j ].cabId = NIL_CAB_ID;
 
         uint32_t k = hash( tmp.cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
         uint32_t kstart = k;
@@ -91,97 +109,97 @@ void removeCabTableIndex( CabTable *t, uint16_t id ) {
         while ( t -> locoIndexTable [ k ].cabId != NIL_CAB_ID ) {
 
             k = ( k + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-
             if ( k == kstart ) break;
         }
 
-        t -> locoIndexTable [ k ] = tmp;
-
+        locoIndexTable [ k ] = tmp;
         j = ( j + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     }
 }
 
-
 } // namespace
 
-
-
-/* ---------------- INIT ---------------- */
-
-void cabTable_init(  CabTable *t  ) {
+//----------------------------------------------------------------------------------------
+// Setup hash table.
+//
+//----------------------------------------------------------------------------------------
+void cabTableInit( ) {
 
     for ( int i = 0; i < MAX_CAB_HASH_TAB_ENTRIES; i++ ) {
         
-        t -> locoIndexTable [ i ].cabId = NIL_CAB_ID;
+        locoIndexTable [ i ].cabId = NIL_CAB_ID;
     }
-    t -> hwm = 0;
-    t -> tick = 0;
+    cabTableHwm = 0;
 }
 
-/* ---------------- FIND ---------------- */
+//----------------------------------------------------------------------------------------
+// Lookup in hash table.
+//
+//----------------------------------------------------------------------------------------
+CabTableEntry *lookupCab( uint16_t cabId ) {
 
-CabTableEntry *lookupCab( CabTable *t, uint16_t id ) {
-
-    uint32_t i = hash( id ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    uint32_t i = hash( cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start = i;
 
-    while ( t -> locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+    while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
 
-        if ( t -> locoIndexTable [ i ].cabId == id )
-            return &t -> locoTable [ t -> locoIndexTable [ i ].index ];
+        if ( locoIndexTable [ i ].cabId == cabId )
+            return &locoTable [ locoIndexTable [ i ].index ];
 
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-
         if ( i == start ) return NULL;
     }
 
-    return NULL;
+    return ( nullptr );
 }
 
-/* ---------------- GET OR ADD ---------------- */
+//----------------------------------------------------------------------------------------
+// Lookup cabId and add if not found. 
+//
+//----------------------------------------------------------------------------------------
+CabTableEntry *lookupCabAndAdd( uint16_t cabId ) {
 
-CabTableEntry *lookupCabAndAdd( CabTable *t, uint16_t id ) {
+    if ( cabId == NIL_CAB_ID ) return ( nullptr );
 
-    if ( id == NIL_CAB_ID )
-        return NULL;
-
-    CabTableEntry *l = lookupCab( t, id );
+    CabTableEntry *l = lookupCab( cabId );
     if ( l ) return l;
 
-    if ( t -> hwm >= MAX_CAB_ENTRIES ) return NULL;
+    if ( cabTableHwm >= MAX_CAB_ENTRIES ) return ( nullptr );
 
-    uint16_t idx = t -> hwm++;
-    t -> locoTable [ idx ].cabId = id;
-    t -> locoTable [ idx ].last_seen = t -> tick;
+    uint16_t index = cabTableHwm++;
+    locoTable [ index ].cabId = cabId;
+    locoTable [ index ].lastSeen = CDC::getMillis( );
 
-    insertCabTableIndex( t, id, idx );
-    return &t -> locoTable [ idx ];
+    insertCabTableIndex( cabId, index );
+    return ( &locoTable [ index ] );
 }
 
-/* ---------------- REMOVE LOCO ---------------- */
+//----------------------------------------------------------------------------------------
+// Remove a cabId.
+//
+//----------------------------------------------------------------------------------------
+void removeCab( uint16_t cabId ) {
 
-void removeCab( CabTable *t, uint16_t id ) {
-
-    CabTableEntry *l = lookupCab( t, id );
+    CabTableEntry *l = lookupCab( cabId );
     if ( !l ) return;
 
-    uint16_t idx = ( uint16_t )( l - t -> locoTable );
-    uint16_t last = t -> hwm - 1;
+    uint16_t index = ( uint16_t )( l - locoTable );
+    uint16_t last = cabTableHwm - 1;
 
-    removeCabTableIndex( t, id );
+    removeCabTableIndex( cabId );
 
-    if ( idx != last ) {
-        t -> locoTable [ idx ] = t -> locoTable [ last ];
+    if ( index != last ) {
+        
+        locoTable [ index ] = locoTable [ last ];
 
-        uint16_t moved_id = t -> locoTable [ idx ].cabId;
+        uint16_t movedId = locoTable [ index ].cabId;
+        uint32_t i       = hash( movedId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
 
-        uint32_t i = hash( moved_id ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+        while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
 
-        while ( t -> locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+            if ( locoIndexTable [ i ].cabId == movedId ) {
 
-            if ( t -> locoIndexTable [ i ].cabId == moved_id ) {
-
-                t -> locoIndexTable [ i ].index = idx;
+                locoIndexTable [ i ].index = index;
                 break;
             }
 
@@ -189,61 +207,71 @@ void removeCab( CabTable *t, uint16_t id ) {
         }
     }
 
-    t -> hwm--;
+    cabTableHwm--;
 }
 
-/* ---------------- AGING ---------------- */
+//----------------------------------------------------------------------------------------
+// Scan CabTable for expired cabs.
+//
+//----------------------------------------------------------------------------------------
+void cabTableAge( uint32_t timeout ) {
 
-void cabTable_age( CabTable *t, uint32_t timeout ) {
+    uint32_t now = CDC::getMillis( );
 
-    for ( uint16_t i = 0; i < t -> hwm;  ) {
+    for ( uint16_t i = 0; i < cabTableHwm; ) {
 
-        if ( ( t -> tick - t -> locoTable [ i ].last_seen ) > timeout ) {
+        if ( ( now - locoTable [ i ].lastSeen ) > timeout ) {
 
-            removeCab( t, t -> locoTable [ i ].cabId );
+            removeCab( locoTable [ i ].cabId );
 
-        } else {
-            i++;
-        }
+        } 
+        else i++;
     }
 }
 
-/* ---------------- DEBUG ---------------- */
+//----------------------------------------------------------------------------------------
+// List cabTable table.
+//
+//----------------------------------------------------------------------------------------
+void dumpCabTable( ) {
 
-void dumpCabTable( CabTable *t ) {
+    printf( "---- LOCOS ( %u ) ----\n", cabTableHwm );
 
-    printf( "---- LOCOS ( %u ) ----\n", t -> hwm );
-
-    for ( uint16_t i = 0; i < t -> hwm; i++ ) {
+    for ( uint16_t i = 0; i < cabTableHwm; i++ ) {
 
         printf( " [ %3u ] id=%5u last=%u\n",
                i,
-               t -> locoTable [ i ].cabId,
-               t -> locoTable [ i ].last_seen );
+               locoTable [ i ].cabId,
+               locoTable [ i ].lastSeen );
     }
 }
 
+//----------------------------------------------------------------------------------------
+// Remove from hash table.
+//
+//----------------------------------------------------------------------------------------
 /* ---------------- MAIN TEST ---------------- */
 
 int main( void ) {
 
-    CabTable table;
-    cabTable_init( &table );
+    cabTableInit( );
 
-    for ( table.tick = 0; table.tick < 50; table.tick++ ) {
+    for ( int i = 0; i < 20; i++ ) {
 
-        for ( int i = 0; i < 3; i++ ) {
+        for ( int j = 0; j < 3; j++ ) {
 
             uint16_t id = rand(  ) % 100;
 
-            CabTableEntry *l = lookupCabAndAdd( &table, id );
-            if ( l ) l -> last_seen = table.tick;
+            CabTableEntry *l = lookupCabAndAdd( id );
+            if ( l ) l -> lastSeen = CDC::getMillis( );
         }
 
-        cabTable_age( &table, 10 );
+        CDC::sleepMillis( 2000 );
 
-        printf( "\nTICK %u\n", table.tick );
-        dumpCabTable( &table );
+        cabTableAge( 1000 );
+
+        printf( "\nTICK\n" );
+        dumpCabTable( );
     }
 
     return 0;
