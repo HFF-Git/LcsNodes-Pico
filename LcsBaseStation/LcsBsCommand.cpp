@@ -163,6 +163,7 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 //
 //    returns: <O sId>
 //
+// ??? goes away ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::openSessionCmd( char *s ) {
 
@@ -186,6 +187,7 @@ void LcsBaseStationCommand::openSessionCmd( char *s ) {
 //
 //    returns: <K status>
 //
+// ??? goes away...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::closeSessionCmd( char *s ) {
 
@@ -199,47 +201,35 @@ void LcsBaseStationCommand::closeSessionCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setThrottleCmd" handles the throttle command. The original DCC++ interface 
-// uses both the register Id and the cabId. In our new base station version the
-// sId is sufficient. When the sessionId is non-zero we have a session and the 
-// cabId should be a zero or match exactly. When the sessionId is zero, the cabId
-// must be looked up to find the sessionId. When the the session cannot be found
-// and auto-session allocation is implemented, cabId is used to allocate the 
-// sessionId.
+// "setThrottleCmd" handles the throttle command. 
 // 
-// With this out of the way, the command sets the throttle speed and direction 
-// for the given sessionId. The command syntax is as follows:
-// 
-//    <t sId cabId speed direction>
+//    <t cabId [ speed direction ]>
 //
-//    sId       -   the allocated session number.
-//    cabId     -   the Cab Id. The number must match the can number in the 
-//                  session or be zero.
+//    cabId     -   the Cab Id. 
+//
 //    speed     -   throttle speed from 0-126, or -1 for emergency stop 
 //                  (resets SPEED to 0)
+//
 //    direction -   the direction: 1=forward, 0=reverse. Setting direction when 
 //                  speed=0 only effects direction of cab lighting for a stopped 
 //                  train.
 //
-//    returns: <t sId speed direction >
+//    returns: <t speed direction >
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setThrottleCmd( char *s ) {
 
-    uint8_t   sId         = NIL_LOCO_SESSION_ID;
     uint16_t  cabId       = NIL_CAB_ID;
     uint8_t   speed       = 0;
     uint8_t   direction   = 0;
 
-    if ( sscanf( s, "%hhu %hu %hhu %hhu", &sId, &cabId, &speed, &direction ) != 4 ) 
+    if ( sscanf( s, "%hu %hhu %hhu", &cabId, &speed, &direction ) < 1 ) 
         return;
 
-    if (( cabId != NIL_CAB_ID ) && 
-      ( locoSessions -> getSessionIdByCabId( cabId ) != sId )) return;
+    // ??? how to just send a refresh of cabId ? 
+    // locoSessions -> setThrottle( 0, speed, direction ); // FIX...
 
-    locoSessions -> setThrottle( sId, speed, direction );
-
-    printf( "<t %d %d %d>", sId, speed, direction );
+    printf( "<t %d %d>", speed, direction );
 }
 
 //----------------------------------------------------------------------------------------
@@ -248,24 +238,25 @@ void LcsBaseStationCommand::setThrottleCmd( char *s ) {
 // to the engine decoder. The command interface is handling one function number at
 // a time. The base station will handle the DCC byte generation.
 //
-//    <v sId funcId val >
+//    <F cabId funcId val >
 //
-//    sId     -  the allocated session number, from 1 to MAX_MAIN_REGISTERS.
+//    cabId   -  the cabId.
 //    funcId  -  the function number, currently implemented for F0 - F68.
 //    val     -  the value to set, 1 or 0.
 //
 //    returns: NONE.
 //
+// ??? changes... session not needed ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 
-    uint8_t sId = NIL_LOCO_SESSION_ID;
-    uint8_t funcNum   = 0;
-    uint8_t val       = 0;
+    uint16_t cabId      = NIL_CAB_ID;
+    uint8_t  funcNum    = 0;
+    uint8_t  val        = 0;
 
-    if ( sscanf( s, "%hhu %hhu %hhu", &sId, &funcNum, &val ) != 3 ) return;
+    if ( sscanf( s, "%hu %hhu %hhu", &cabId, &funcNum, &val ) != 3 ) return;
 
-    locoSessions -> setDccFunctionBit( sId, funcNum, val );
+    locoSessions -> setDccFunctionBit( 0, funcNum, val ); // FIX ...
 }
 
 //----------------------------------------------------------------------------------------
@@ -326,6 +317,7 @@ void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 //      BYTE2: (FN)*1 + (FN+1)*2 + (FN+2)*4 + (FN+3)*8 + (FN+4)*16 + 
 //             (FN+5)*32 + (FN+6)*64 + (FN+7)*128
 //
+// ??? changes... session not needed ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
 
@@ -477,6 +469,7 @@ void LcsBaseStationCommand::writeCVBitCmd( char *s ) {
 //
 //    returns: NONE
 //
+// ??? changes... session not needed ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeCVByteMainCmd( char *s ) {
 
@@ -504,6 +497,7 @@ void LcsBaseStationCommand::writeCVByteMainCmd( char *s ) {
 //
 //    returns: NONE
 //
+// ??? changes... session not needed ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::writeCVBitMainCmd( char *s ) {
 
@@ -669,6 +663,7 @@ void LcsBaseStationCommand::setTrackOptionCmd( char *s ) {
 //    returns:  series of status information that can be read by an interface to 
 //              determine status of the base station and important settings
 //
+// ??? changes... some prints change...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printStatusCmd( char *s ) {
 
@@ -873,15 +868,11 @@ void LcsBaseStationCommand::printHelpCmd( ) {
 
     printf( "\nCommands:\n" );
 
-    printf( "<O cabId>                              " 
-            "- allocate a session for the cab\n" );
-    printf( "<K sId>                                "
-            "- release a session\n" );
-    printf( "<t sId cabId speed dir>                "
+    printf( "<t cabId speed dir>                "
             "- set cab speed / direction\n" );
     printf( "<f cabId funcId val >                  "
             "- set cab function value, group DCC format\n" );
-    printf( "<v sId funcId val >                    "
+    printf( "<F cabId funcId val >                    "
             "- set cab function value, individual\n" );
     printf( "<R cvId callbacknum callbacksub >      "
             "- read CV byte\n" );

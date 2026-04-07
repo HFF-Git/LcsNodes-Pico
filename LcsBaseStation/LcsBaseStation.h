@@ -163,8 +163,8 @@ enum DccTrackFlags : uint16_t {
 // state machine as part of the power on state.
 //
 //----------------------------------------------------------------------------------------
-const uint8_t   PWR_SAMPLE_BUF_SIZE               = 64;
-const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS   = 16;
+const uint8_t   PWR_SAMPLE_BUF_SIZE             = 64;
+const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS = 16;
 
 //----------------------------------------------------------------------------------------
 // The RailCom buffer size. During the cutout period up to eight bytes of raw data
@@ -178,7 +178,7 @@ const uint8_t   RAILCOM_BUF_SIZE = 8;
 // has timed out and needs to be removed from the session map.
 //
 //----------------------------------------------------------------------------------------
-const uint32_t  DCC_SESSION_TIMEOUT_MILLIS        = 2000;
+const uint32_t  DCC_SESSION_TIMEOUT_MILLIS = 2000;
 
 //----------------------------------------------------------------------------------------
 // The session map options. These are options initially set when the base station 
@@ -282,41 +282,6 @@ enum BaseStationItems : uint8_t {
 const uint32_t  MAIN_TRACK_STATE_TIME_INTERVAL  = 10;
 const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
 const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
-
-//----------------------------------------------------------------------------------------
-// Maximum number of cab sessions supported by the base station.
-//
-//----------------------------------------------------------------------------------------
-const uint16_t  MAX_CAB_SESSIONS                = 128;
-
-//----------------------------------------------------------------------------------------
-// For creating the Loco Session object the session map object is described by the
-// following descriptor.
-//
-//----------------------------------------------------------------------------------------
-struct LcsBaseStationSessionMapDesc {
-
-    uint16_t    options       = SM_OPT_DEFAULT_SETTING;
-    uint16_t    maxSessions   = MAX_CAB_SESSIONS;
-};
-
-//----------------------------------------------------------------------------------------
-// We need also a way of mapping a cabId to a sessionId. The structure below 
-// defines an entry in the mapping table and the mapping table itself.
-//
-//----------------------------------------------------------------------------------------
-struct LcsCabSessionEntry {
-
-    uint16_t cabId;  
-    uint8_t  sessionId;   
-};
-
-struct LcsCabSessionMapTable {
-
-    LcsCabSessionEntry map[ MAX_CAB_SESSIONS ];
-    uint16_t           hwm;
-
-};
 
 //----------------------------------------------------------------------------------------
 // For creating the DCC track object, the track is described by the data structure 
@@ -528,8 +493,49 @@ struct LcsBaseStationDccTrack {
     public:
 
     static void         startDccProcessing( );
+};
+
+
+//----------------------------------------------------------------------------------------
+// Maximum number of cab sessions supported by the base station.
+//
+// ??? goes into Session File...
+//----------------------------------------------------------------------------------------
+const uint16_t  MAX_CAB_SESSIONS  = 128;
+
+//----------------------------------------------------------------------------------------
+// For creating the Loco Session object the session map object is described by the
+// following descriptor.
+//
+// ??? we may not need this, just options...
+//----------------------------------------------------------------------------------------
+struct LcsBaseStationSessionMapDesc {
+
+    uint16_t    options       = SM_OPT_DEFAULT_SETTING;
+    uint16_t    maxSessions   = MAX_CAB_SESSIONS;
+};
+
+//----------------------------------------------------------------------------------------
+// We need also a way of mapping a cabId to a sessionId. The structure below 
+// defines an entry in the mapping table and the mapping table itself.
+//
+// ??? this should go local to session file ?
+//----------------------------------------------------------------------------------------
+struct LcsCabSessionEntry {
+
+    uint16_t cabId;  
+    uint8_t  sessionId;   
+};
+
+struct LcsCabSessionMapTable {
+
+    LcsCabSessionEntry map[ MAX_CAB_SESSIONS ];
+    uint16_t           hwm;
 
 };
+
+
+
 
 //----------------------------------------------------------------------------------------
 // Every allocated loco session is described by the sessionMap structure. There 
@@ -546,16 +552,15 @@ struct LcsBaseStationDccTrack {
 //----------------------------------------------------------------------------------------
 struct SessionMapEntry {
 
-  uint16_t        flags               = SME_DEFAULT_SETTING;
-  uint16_t        cabId               = NIL_CAB_ID;
-  uint8_t         speed               = 0;
-  uint8_t         speedSteps          = 128;
-  uint8_t         direction           = 0;
-  uint8_t         engineState         = 0;
-  uint8_t         nextRefreshStep     = 0;
-  unsigned long   lastKeepAliveTime   = 0;
-  uint8_t         functions[ LCS::MAX_DCC_FUNC_GROUP_ID ] = { 0 };
-
+  uint16_t  flags               = SME_DEFAULT_SETTING;
+  uint16_t  cabId               = NIL_CAB_ID;
+  uint8_t   speed               = 0;
+  uint8_t   speedSteps          = 128;
+  uint8_t   direction           = 0;
+  uint8_t   engineState         = 0;
+  uint8_t   nextRefreshStep     = 0;
+  uint32_t  lastKeepAliveTime   = 0;
+  uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
 };
 
 //----------------------------------------------------------------------------------------
@@ -566,6 +571,8 @@ struct SessionMapEntry {
 // entry and communicate via the LCS bus with the block controller that actually 
 // owns the engine at the moment.
 //
+// 
+// ??? some rework... 
 //----------------------------------------------------------------------------------------
 struct LcsBaseStationLocoSession {
 
@@ -672,10 +679,17 @@ struct LcsBaseStationLocoSession {
     uint32_t                  lastAliveCheckTime      = 0L;
     uint32_t                  refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;
 
+    // ??? rework this... 
+
+    // ??? add hash table... ?
+    // ??? HWM a simple int ?
+    // ??? next refresh a simple int ?
+    // ??? limit is a constant ?
+
     SessionMapEntry           *sessionMap             = nullptr;
     SessionMapEntry           *sessionMapNextRefresh  = nullptr;
     SessionMapEntry           *sessionMapHwm          = nullptr;
-    SessionMapEntry           *sessionMapLimit        = nullptr;
+    SessionMapEntry           *sessionMapLimit        = nullptr; // ??? goes away...
 };
 
 //----------------------------------------------------------------------------------------

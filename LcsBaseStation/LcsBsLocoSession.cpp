@@ -172,6 +172,7 @@ LcsBaseStationLocoSession::LcsBaseStationLocoSession( ) { }
 // to the core library and the two tracks. Loco sessions are numbered from 1 to 
 // MAX_SESSION_ID. 
 //
+// ??? we need track and options, no session maps any more...
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setupSessionMap(
 
@@ -220,6 +221,7 @@ uint8_t LcsBaseStationLocoSession::setupSessionMap(
 // controller to share the session entry and issue commands to the same locomotive. 
 // Right now, the STEAL and SHARED option are not implemented.
 //
+// ??? there is no session concept anymore... out
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::requestSession(  uint16_t cabId, 
                                                     uint8_t mode, 
@@ -266,7 +268,7 @@ uint8_t LcsBaseStationLocoSession::requestSession(  uint16_t cabId,
 //----------------------------------------------------------------------------------------
 // A cab session can be released, freeing up the slot in the cab session table.
 //
-// ??? for a shared session, what does this mean ?
+// ??? no session concept - out
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::releaseSession( uint8_t sId ) {
 
@@ -282,6 +284,7 @@ uint8_t LcsBaseStationLocoSession::releaseSession( uint8_t sId ) {
 // setting. To be implemented once we know what the flags and the update concept 
 // should be ...
 //
+// ??? no session concept - out
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::updateSession( uint8_t sId, uint8_t flags ) {
 
@@ -297,6 +300,7 @@ uint8_t LcsBaseStationLocoSession::updateSession( uint8_t sId, uint8_t flags ) {
 // last "alive" timestamp. The base station will periodically check this value to 
 // see if a session is still alive.
 //
+// ??? change to markCabAlive
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::markSessionAlive( uint8_t sId ) {
 
@@ -321,6 +325,8 @@ uint8_t LcsBaseStationLocoSession::markSessionAlive( uint8_t sId ) {
 //
 // ??? also a base station needs to broadcast its capabilities every
 //
+//
+// ??? change to refreshActiveCabIds
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::refreshActiveSessions( ) {
 
@@ -360,6 +366,8 @@ void LcsBaseStationLocoSession::refreshActiveSessions( ) {
 //
 // ??? separate out the check alive functionality ? it is a separate task...
 // ??? sessionMapNextAliveCheck var needed ...
+//
+// ??? change to refreshCabEntry
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 
@@ -418,6 +426,7 @@ void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
 // ESTOP DCC broadcast packet and then set the speed value in each session to one,
 // which is the value for emergency stop. All else is unchanged.
 //
+// ??? run through the can entries...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::emergencyStopAll( ) {
 
@@ -432,6 +441,7 @@ void LcsBaseStationLocoSession::emergencyStopAll( ) {
 //----------------------------------------------------------------------------------------
 // Getter methods for session related info. Straightforward.
 //
+// ??? new concept - rework some calls....
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::getSessionIdByCabId( uint16_t cabId ) {
 
@@ -477,6 +487,7 @@ uint8_t LcsBaseStationLocoSession::getActiveSessions( ) {
 // on the track. This signature will just locate the session map entry and then 
 // invoke the internal signature with accepts a pointer to the entry.
 //
+// ??? change to lookup by cabId
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setThrottle( uint8_t sId, 
                                                 uint8_t speed, 
@@ -537,6 +548,7 @@ uint8_t LcsBaseStationLocoSession::setThrottle( SessionMapEntry *smePtr,
 // This is important as the DCC commands send out entire groups only. The actual 
 // work is then done by the "setDccFunctionGroup" method.
 //
+// ??? change to lookup by cabId
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setDccFunctionBit( uint8_t sId, 
                                                       uint8_t fNum, 
@@ -558,6 +570,7 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionBit( uint8_t sId,
 // will first find the session entry, do the argument checks and the invoke the 
 // internal signature.
 //
+// ??? change to lookup by cabId
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( uint8_t sId, 
                                                         uint8_t fGroup, 
@@ -641,6 +654,7 @@ uint8_t LcsBaseStationLocoSession::setDccFunctionGroup( SessionMapEntry *smePtr,
 // is available, the decoder can answer with the CV value in a following cutout. 
 // This is currently not implemented.
 //
+// ??? change to lookup by cabId
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVMain( uint8_t sId, 
                                                 uint16_t cvId, 
@@ -662,6 +676,7 @@ uint8_t LcsBaseStationLocoSession::writeCVMain( uint8_t sId,
 // way to validate our operation, only writes are possible. The packet is sent four 
 // times.
 //
+// ??? change to lookup by cabId
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVByteMain( uint8_t sId, 
                                                     uint16_t cvId, 
@@ -694,6 +709,7 @@ uint8_t LcsBaseStationLocoSession::writeCVByteMain( uint8_t sId,
 // value in bit 3. There is no way to validate our operation, only CV writes are 
 // possible. The packet is sent four times.
 //
+// ??? change to lookup by cabId
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::writeCVBitMain( uint8_t sId, 
                                                    uint16_t cvId, 
@@ -761,11 +777,11 @@ uint8_t LcsBaseStationLocoSession::readCV( uint16_t cvId, uint8_t mode, uint8_t 
 //an ACK.
 //
 //
-// ??? This command may take a long time, a lot of packets are sent. While this not 
-// an issue with the signal generation, which is done via interrupt handlers, it may
-// be an issue with any other work of the base station. This code needs to be 
-// redesigned to use a kind of state machine that sends a packet at a time so other
-// work can interleave.
+// ??? This command may take a long time, a lot of packets are sent. While this 
+// not an issue with the signal generation, which is done via interrupt handlers,
+// it may be an issue with any other work of the base station. This code needs to
+// be redesigned to use a kind of state machine that sends a packet at a time so 
+// other work can interleave.
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationLocoSession::readCVByte( uint16_t cvId, uint8_t *val ) {
 
@@ -996,6 +1012,8 @@ uint8_t LcsBaseStationLocoSession::writeDccPacketProg( uint8_t *pBuf,
 // fails try to raise the high water mark. If that fails, we are out of luck and
 // return a null pointer.
 //
+// ??? new concept, we don't have sessions...
+// ??? allocation is done on the fly...
 //----------------------------------------------------------------------------------------
 SessionMapEntry* LcsBaseStationLocoSession::allocateSessionEntry( uint16_t cabId ) {
 
@@ -1029,6 +1047,7 @@ SessionMapEntry* LcsBaseStationLocoSession::allocateSessionEntry( uint16_t cabId
 // water mark. This way the high water mark shrinks again and we do not need to 
 // work through unused entries in the middle.
 //
+// ??? new concept, we deallocate on the fly.
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::deallocateSessionEntry( SessionMapEntry *smePtr ) {
 
@@ -1062,7 +1081,7 @@ void LcsBaseStationLocoSession::deallocateSessionEntry( SessionMapEntry *smePtr 
 // If none is found, a nullptr is returned. Note that a NIL_CAB_ID as argument is
 // also a valid input and will return the first free entry.
 //
-// ??? changes for auto allocate ?
+// ??? new concept, not needed anymore...
 //----------------------------------------------------------------------------------------
 SessionMapEntry *LcsBaseStationLocoSession::lookupSessionEntry( uint16_t cabId ) {
 
@@ -1080,6 +1099,7 @@ SessionMapEntry *LcsBaseStationLocoSession::lookupSessionEntry( uint16_t cabId )
 //----------------------------------------------------------------------------------------
 // "initSessionEntry" initializes a session map entry with default values.
 //
+// ??? we keep this ... 
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::initSessionEntry( SessionMapEntry *smePtr ) {
 
@@ -1099,6 +1119,7 @@ void LcsBaseStationLocoSession::initSessionEntry( SessionMapEntry *smePtr ) {
 // "getSessionMapEntryPtr" returns a pointer to a valid and used sessionMap entry. 
 // The sessionId starts with index 1.
 //
+// ??? new concept, we use cabId to get the entry...
 //----------------------------------------------------------------------------------------
 SessionMapEntry *LcsBaseStationLocoSession::getSessionMapEntryPtr( uint8_t sId ) {
 
@@ -1112,6 +1133,7 @@ SessionMapEntry *LcsBaseStationLocoSession::getSessionMapEntryPtr( uint8_t sId )
 //----------------------------------------------------------------------------------------
 // "printSessionMapConfig" lists cab session map configuration data.
 //
+// ??? what to print...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::printSessionMapConfig( ) {
 
@@ -1123,6 +1145,7 @@ void LcsBaseStationLocoSession::printSessionMapConfig( ) {
 //----------------------------------------------------------------------------------------
 // "printSessionMapInfo" lists the cab session map data.
 //
+// ??? key to print, should we add "options" here ???
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::printSessionMapInfo( ) {
 
@@ -1141,6 +1164,7 @@ void LcsBaseStationLocoSession::printSessionMapInfo( ) {
 //----------------------------------------------------------------------------------------
 // "printSessionEntry" lists a cab session.
 //
+// ??? revise ... but keep
 //----------------------------------------------------------------------------------------
 void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
 
@@ -1168,6 +1192,7 @@ void LcsBaseStationLocoSession::printSessionEntry( SessionMapEntry *smePtr ) {
 // by cabId, so we can use a binary search algorithm. If found, the sessionId is
 // returned, otherwise -1.
 //
+// ??? goes away...
 //----------------------------------------------------------------------------------------
 int cabIdToSessionId(const LcsCabSessionMapTable *map, uint16_t cabId ) {
 
@@ -1194,6 +1219,7 @@ int cabIdToSessionId(const LcsCabSessionMapTable *map, uint16_t cabId ) {
 // first. If the cabId is already present, we return -2 as error code. If the
 // table is full, we return -1 as error code. On success we return 0.
 //
+// ??? goes away... new routine...
 //----------------------------------------------------------------------------------------
 int insertInCabSessionMap( LcsCabSessionMapTable *map,
                            uint16_t cabId, 
@@ -1243,6 +1269,7 @@ int insertInCabSessionMap( LcsCabSessionMapTable *map,
 // The table is kept sorted by cabId, so we first need to find the entry. If not
 // found, we return -1 as error code. On success we return 0.
 //
+// ??? goes away... new routine...
 //----------------------------------------------------------------------------------------
 int removeFromCabSessionMap( LcsCabSessionMapTable *map, uint16_t cabId ) {
 
@@ -1277,3 +1304,289 @@ int removeFromCabSessionMap( LcsCabSessionMapTable *map, uint16_t cabId ) {
     map-> hwm--;
     return 0;
 }
+
+
+
+
+
+
+
+
+
+// ??? how to start ? Add new routines for hashTab here ?
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "LcsCdcLib.h" // ??? not found at link time ...
+
+
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+struct CabTableEntry {
+
+    uint16_t cabId;
+    uint32_t lastSeen;
+};
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+struct CabTableIndexEntry {
+
+    uint16_t cabId;
+    uint16_t index;
+};
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+namespace {
+
+const int           MAX_CAB_ENTRIES = 256;
+const int           MAX_CAB_HASH_TAB_ENTRIES = 512;   // must be power of two
+
+uint16_t            cabTableHwm;
+CabTableEntry       locoTable [ MAX_CAB_ENTRIES ];
+CabTableIndexEntry  locoIndexTable [ MAX_CAB_HASH_TAB_ENTRIES ];
+
+
+//----------------------------------------------------------------------------------------
+// Hash function.
+//
+//----------------------------------------------------------------------------------------
+static inline uint32_t hash( uint16_t x ) {
+
+    x ^= x >> 7;
+    x *= 0x9E37;
+    x ^= x >> 9;
+    return x;
+}
+
+//----------------------------------------------------------------------------------------
+// Insert into hash table.
+//
+//----------------------------------------------------------------------------------------
+void insertCabTableIndex( uint16_t cabId, uint16_t index ) {
+
+    uint32_t i = hash( cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    uint32_t start = i;
+
+    while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+        i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+
+        if ( i == start ) return; // table full ( should not happen )
+    }
+
+    locoIndexTable [ i ].cabId = cabId;
+    locoIndexTable [ i ].index = index;
+}
+
+//----------------------------------------------------------------------------------------
+// Remove from hash table.
+//
+//----------------------------------------------------------------------------------------
+void removeCabTableIndex( uint16_t cabId ) {
+
+    uint32_t i      = hash( cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    uint32_t start  = i;
+
+    while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+
+        if ( locoIndexTable [ i ].cabId == cabId ) break;
+        i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+        if ( i == start ) return;
+    }
+
+    if ( locoIndexTable [ i ].cabId == NIL_CAB_ID ) return;
+
+    // remove
+    locoIndexTable [ i ].cabId = NIL_CAB_ID;
+
+    // reinsert cluster
+    uint32_t j = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+
+    while ( locoIndexTable [ j ].cabId != NIL_CAB_ID ) {
+
+        CabTableIndexEntry tmp = locoIndexTable [ j ];
+        locoIndexTable [ j ].cabId = NIL_CAB_ID;
+
+        uint32_t k = hash( tmp.cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+        uint32_t kstart = k;
+
+        while ( locoIndexTable [ k ].cabId != NIL_CAB_ID ) {
+
+            k = ( k + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+            if ( k == kstart ) break;
+        }
+
+        locoIndexTable [ k ] = tmp;
+        j = ( j + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    }
+}
+
+} // namespace
+
+//----------------------------------------------------------------------------------------
+// Setup hash table.
+//
+//----------------------------------------------------------------------------------------
+void cabTableInit( ) {
+
+    for ( int i = 0; i < MAX_CAB_HASH_TAB_ENTRIES; i++ ) {
+        
+        locoIndexTable [ i ].cabId = NIL_CAB_ID;
+    }
+    cabTableHwm = 0;
+}
+
+//----------------------------------------------------------------------------------------
+// Lookup in hash table.
+//
+//----------------------------------------------------------------------------------------
+CabTableEntry *lookupCab( uint16_t cabId ) {
+
+    uint32_t i = hash( cabId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+    uint32_t start = i;
+
+    while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+
+        if ( locoIndexTable [ i ].cabId == cabId )
+            return &locoTable [ locoIndexTable [ i ].index ];
+
+        i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+        if ( i == start ) return NULL;
+    }
+
+    return ( nullptr );
+}
+
+//----------------------------------------------------------------------------------------
+// Lookup cabId and add if not found. 
+//
+//----------------------------------------------------------------------------------------
+CabTableEntry *lookupCabAndAdd( uint16_t cabId ) {
+
+    if ( cabId == NIL_CAB_ID ) return ( nullptr );
+
+    CabTableEntry *l = lookupCab( cabId );
+    if ( l ) return l;
+
+    if ( cabTableHwm >= MAX_CAB_ENTRIES ) return ( nullptr );
+
+    uint16_t index = cabTableHwm++;
+    locoTable [ index ].cabId = cabId;
+    locoTable [ index ].lastSeen = CDC::getMillis( );
+
+    insertCabTableIndex( cabId, index );
+    return ( &locoTable [ index ] );
+}
+
+//----------------------------------------------------------------------------------------
+// Remove a cabId.
+//
+//----------------------------------------------------------------------------------------
+void removeCab( uint16_t cabId ) {
+
+    CabTableEntry *l = lookupCab( cabId );
+    if ( !l ) return;
+
+    uint16_t index = ( uint16_t )( l - locoTable );
+    uint16_t last = cabTableHwm - 1;
+
+    removeCabTableIndex( cabId );
+
+    if ( index != last ) {
+        
+        locoTable [ index ] = locoTable [ last ];
+
+        uint16_t movedId = locoTable [ index ].cabId;
+        uint32_t i       = hash( movedId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+
+        while ( locoIndexTable [ i ].cabId != NIL_CAB_ID ) {
+
+            if ( locoIndexTable [ i ].cabId == movedId ) {
+
+                locoIndexTable [ i ].index = index;
+                break;
+            }
+
+            i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
+        }
+    }
+
+    cabTableHwm--;
+}
+
+//----------------------------------------------------------------------------------------
+// Scan CabTable for expired cabs.
+//
+//----------------------------------------------------------------------------------------
+void cabTableAge( uint32_t timeout ) {
+
+    uint32_t now = CDC::getMillis( );
+
+    for ( uint16_t i = 0; i < cabTableHwm; ) {
+
+        if ( ( now - locoTable [ i ].lastSeen ) > timeout ) {
+
+            removeCab( locoTable [ i ].cabId );
+
+        } 
+        else i++;
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// List cabTable table.
+//
+//----------------------------------------------------------------------------------------
+void dumpCabTable( ) {
+
+    printf( "---- LOCOS ( %u ) ----\n", cabTableHwm );
+
+    for ( uint16_t i = 0; i < cabTableHwm; i++ ) {
+
+        printf( " [ %3u ] id=%5u last=%u\n",
+               i,
+               locoTable [ i ].cabId,
+               locoTable [ i ].lastSeen );
+    }
+}
+
+#if 0
+//----------------------------------------------------------------------------------------
+// Remove from hash table.
+//
+//----------------------------------------------------------------------------------------
+/* ---------------- MAIN TEST ---------------- */
+
+int main( void ) {
+
+    cabTableInit( );
+
+    for ( int i = 0; i < 20; i++ ) {
+
+        for ( int j = 0; j < 3; j++ ) {
+
+            uint16_t id = rand(  ) % 100;
+
+            CabTableEntry *l = lookupCabAndAdd( id );
+            if ( l ) l -> lastSeen = CDC::getMillis( );
+        }
+
+        CDC::sleepMillis( 2000 );
+
+        cabTableAge( 1000 );
+
+        printf( "\nTICK\n" );
+        dumpCabTable( );
+    }
+
+    return 0;
+}
+#endif

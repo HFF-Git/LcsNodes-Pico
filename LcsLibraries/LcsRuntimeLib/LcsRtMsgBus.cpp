@@ -457,7 +457,7 @@ uint8_t sendEventOn( uint16_t sendingNpId, uint16_t eventId ) {
     msgBuf[ 2 ] = lowByte( eventId );
 
     localMsgEvent( msgBuf );
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_LOW ));                                  
+    return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));                                  
 }
 
 //----------------------------------------------------------------------------------------
@@ -472,7 +472,7 @@ uint8_t sendEventOff( uint16_t sendingNpId, uint16_t eventId ) {
     msgBuf[ 2 ] = lowByte( eventId );
 
     localMsgEvent( msgBuf );
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_LOW ));     
+    return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));     
 }
 
 //----------------------------------------------------------------------------------------
@@ -490,7 +490,7 @@ uint8_t sendEvent( uint16_t sendingNpId, uint16_t eventId, uint16_t arg ) {
 
     localMsgEvent( msgBuf ); // ??? rethink ...
 
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_NORMAL ));
 }
 
 //----------------------------------------------------------------------------------------

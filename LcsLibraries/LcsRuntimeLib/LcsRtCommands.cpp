@@ -221,6 +221,10 @@ void dumpMemNodeMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemPortMap( ) {
 
     printf( "MEM Port Map: \n\n" );
@@ -235,6 +239,10 @@ void dumpMemPortMap( ) {
     printf( "\n" );
 }
  
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemNodeData( ) {
 
     printf( "MEM Node Data: \n\n" );
@@ -248,6 +256,10 @@ void dumpMemNodeData( ) {
     }
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemEventMap( ) {
 
     printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
@@ -257,6 +269,10 @@ void dumpMemEventMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemTaskMap( ) {
 
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
@@ -266,6 +282,10 @@ void dumpMemTaskMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemDrvFuncMap( ) {
 
     printf( "MEM Driver Function Map: (Size: %d, Hwm: %d) \n\n", 
@@ -280,6 +300,10 @@ void dumpMemDrvFuncMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemRuntimeArea( ) {
 
     printf( "MEM Area Dump: \n\n" );
@@ -304,6 +328,10 @@ void dumpNvmHeader( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpNvmNodeMap( ) {
 
     printf( "NVM Node Map Dump: \n\n" );
@@ -311,6 +339,10 @@ void dumpNvmNodeMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpNvmNodeData( ) {
 
     printf( "NVM Node Data Dump: \n\n" );
@@ -332,6 +364,10 @@ void dumpNvmNodeData( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpNvmEventMap( ) {
 
     printf( "NVM Node Event Dump: \n\n" );
@@ -339,6 +375,10 @@ void dumpNvmEventMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpNvmRuntimeArea( ) {
 
     printf( "NVM Runtime Area Dump: \n\n" );
@@ -346,6 +386,10 @@ void dumpNvmRuntimeArea( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpNvmUserArea( ) {
 
     // ??? given that this could be thousands... long list.
@@ -373,6 +417,10 @@ void printSummary( ) {
     printf( "Git Branch: %s\n", LCS_RT_LIB_GIT_BRANCH );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void printMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
@@ -392,6 +440,10 @@ void printMemNodeMap( ) {
     printf( "\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void printMemPortMap( ) {
 
     printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", 
@@ -413,6 +465,10 @@ void printMemPortMap( ) {
     }
 }
  
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void printMemEventMap( ) {
 
     const int itemsPerLine = 4;
@@ -441,6 +497,10 @@ void printMemEventMap( ) {
     else printf( "No entries in map\n" );
 }
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void printMemTaskMap( ) {
 
     printf( "Task Map (Size: %d, Hwm: %d): \n\n", 
@@ -449,6 +509,10 @@ void printMemTaskMap( ) {
     // ??? to do ...
 }
 
+//----------------------------------------------------------------------------------------
+//
+// ??? goes away ?
+//----------------------------------------------------------------------------------------
 void printMemDriverMap( ) {
 
     printf( "Driver Map (Size: %d, Hwm: %d): \n\n", 
@@ -492,11 +556,22 @@ uint8_t repMsgCallback ( uint16_t npId,
                          uint8_t ret, 
                          void *uData ) {
 
-    printf( "REP callback: \n ");
-
-    // ??? to do ...
-
+    printf( "REP callback: npId: 0x%4x, item: %d, arg1: %d, arg2: %d, ret: %d\n ",
+            npId, item, arg1, arg2, ret);
     return( LCS_OK );
+}
+
+uint8_t fRepCallback( uint16_t npId, 
+                      uint16_t item, 
+                      uint16_t arg1, 
+                      uint16_t arg2, 
+                      uint8_t ret, 
+                      void *uData ) {
+
+    printf( "FREP callback: npId: 0x%4x, item: %d, arg1: %d, arg2: %d, ret: %d\n ",
+            npId, item, arg1, arg2, ret );
+    return( LCS_OK );
+
 }
 
 
@@ -510,7 +585,7 @@ uint8_t repMsgCallback ( uint16_t npId,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "c" switches a node to CFG mode. For a local node command, we construct the 
+// "C" switches a node to CFG mode. For a local node command, we construct the 
 // LCS_OP_CFG message payload data and invoke the msg handler for switching the 
 // node mode. For any other node, we will just send a LCS message.
 //
@@ -539,7 +614,7 @@ void switchToConfigCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "o" switches the nodes to OPS mode. For a local node command, we construct the 
+// "O" switches the nodes to OPS mode. For a local node command, we construct the 
 // LCS_OP_OPS message payload data and invoke the msg handler for switching the node 
 // mode. For any other node, we will just send a LCS message.
 //
@@ -566,14 +641,17 @@ void switchToOperationsCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "g" handles the node/port attribute query command. If the node is our node, we 
-// call the local access routines. Otherwise we send a message.
+// "g" handles the node/port attribute query command. If the node is our node, 
+// we call the local access routines. Otherwise we send a message. Note that for 
+// a local access the result is returned right away. For a remote access, we 
+// just send the message, the result is returned in a callback when the reply 
+// message is received.
 //
-//    <!g npId item [ val ]>
+//    <!g npId item>
 //
 //    npId      - the node/port Id.
-//    item      - the node item to query, the result will be listed in HEX format.
-//    val       - the argument 1 on input.
+//    item      - the node item to query.
+//    arg       - the argument.
 //
 //----------------------------------------------------------------------------------------
 void getNodeCommand( char *s ) {
@@ -590,7 +668,7 @@ void getNodeCommand( char *s ) {
     uint16_t tmpItem    = (uint16_t) item;
     uint16_t tmpArg     = (uint16_t) arg;
 
-    if ( nodeId( tmpNpId ) == 0 ) {
+     if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
         ret = nodeGet( tmpNpId, tmpItem, &tmpArg );
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
@@ -599,30 +677,37 @@ void getNodeCommand( char *s ) {
     }
     else {
 
-        ret = sendGetNode( nodeMap.nodeId, tmpNpId, tmpItem, repMsgCallback, nullptr );
+        ret = sendGetNode( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                           tmpNpId, 
+                           tmpItem, 
+                           repMsgCallback, 
+                           nullptr );
         if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "p" handles the node or port attribute value set command. If the node is out node, 
-// we call the local access routines. Otherwise we send a message.
+// "p" handles the node or port attribute value set command. If the node is our 
+// node, we call the local access routines. Otherwise we send a message. Note 
+// that for a local access the result is returned right away. For a remote access,
+// we just send the message, the acknowledge is returned in a callback when the
+// reply message is received.
 //
-//    <!p npId item [ val ]>
+//    <!p npId item val>
 //
 //    npId      - the node/port Id.
 //    item      - the port item to control
-//    val      - the item value 1
+//    val       - the item value 1
 //
 //----------------------------------------------------------------------------------------
-void putNodeCommand( char *s ) {
+void setNodeCommand( char *s ) {
 
     int     npId    = 0;
     int     item    = 0;
     int     val     = 0;
     uint8_t ret     = LCS_OK;
 
-    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val ) < 2 ) 
+    if ( sscanf(  s, "%i %i %i %i", &npId, &item, &val ) < 3 ) 
         return ( errArgList( ));
 
     uint16_t tmpNpId    = (uint16_t) npId;
@@ -631,25 +716,28 @@ void putNodeCommand( char *s ) {
 
     printf ( "val: %d\n", val );
 
-    if ( nodeId( tmpNpId ) == 0 ) {
+     if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
         ret = nodeSet( tmpNpId, tmpItem, tmpVal );
         if ( ret != LCS_OK ) errStat((char *) "Node SET error", ret );
-        else printf( "Node: 0x%x, item: %d, val: 0x%x\n", 
-                    tmpNpId, tmpItem, tmpVal );
+        else printf( "OK\n" );
     }
     else {
 
-        // ??? we would need a callback to pass. Which one should it be ?
-
-        // ret = sendSetNode( 0, tmpNpId, tmpItem, tmpVal ); // ??? fix ...
-        // if ( ret != LCS_OK ) errStat((char *) "Remote Node SET error", ret );
+        ret = sendSetNode(  buildNpId( nodeMap.nodeId, 0, 0 ),
+                            tmpNpId, 
+                            tmpItem, 
+                            tmpVal,
+                            repMsgCallback, 
+                            nullptr );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "r" handles the node / port request command. If the node is out node, we call
-// the local access routines. Otherwise we send a message.
+// "r" handles the node / port request command. If the node is our node, we call
+// the local access routine and return the result right away. Otherwise we send
+// a FREQ message.
 //
 //    r npId item [ val1 [ val2 ]]
 //
@@ -658,8 +746,7 @@ void putNodeCommand( char *s ) {
 //    val1      - the item value 1
 //    val2      - the item value 2 ( optional )
 //
-// ??? need to rethink. if a REQ local to the node, we still want it to behave 
-// like a REQ/REP pair... ?
+
 //----------------------------------------------------------------------------------------
 void reqNodeCommand( char *s ) {
 
@@ -686,9 +773,14 @@ void reqNodeCommand( char *s ) {
     }
     else {
 
-        // ??? fix ...
-        // ret = sendReqNode( nodeMap.nodeId, tmpNpId, tmpItem, tmpVal1, tmpVal2 );
-        // if ( ret != LCS_OK ) errStat((char *) "Remote Node REQ error", ret );
+        ret = sendFuncReqNode( buildNpId( nodeMap.nodeId, 0, 0 ),
+                               tmpNpId,
+                               item,
+                               val1,
+                               val2,
+                               fRepCallback,
+                               nullptr  );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node FREQ error", ret );
     }
 }
 
@@ -697,7 +789,7 @@ void reqNodeCommand( char *s ) {
 // an event on the local node. Sending to ourselves is also quite useful for debug
 // event callback handlers.
 //
-//    e mode npId eventId [ arg ]
+//    e mode eventId [ arg ]
 //
 //    mode      - 0 - ON, 1 - OFF, 2 - DATA
 //    npId      - the sending node / port Id
@@ -872,7 +964,7 @@ static void executeCommand( char *commandBuf ) {
         case 'O': switchToOperationsCommand(cmd + 1); break;
 
         case 'g': getNodeCommand(cmd + 1);            break;
-        case 'p': putNodeCommand(cmd + 1);            break;
+        case 'p': setNodeCommand(cmd + 1);            break;
         case 'r': reqNodeCommand(cmd + 1);            break;
         case 'e': sendEventCommand(cmd + 1);          break;
 
