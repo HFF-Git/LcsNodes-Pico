@@ -858,9 +858,9 @@ uint8_t     sendNodeIdCollision( uint16_t sendingNpId,
                                  uint32_t nodeUID );
 
 //----------------------------------------------------------------------------------------
-// Node / port attribute management. The messages allow to set or read an attribute.
-// Attributes are organized into item ranges for accessing library, port and 
-// extended attributes.
+// Attribute management. The messages allow to set or read an attribute. They 
+// are organized into item ranges for accessing library, port and extended 
+// attributes.
 //
 //----------------------------------------------------------------------------------------
 uint8_t     sendAck( uint16_t sendingNpId,
@@ -932,44 +932,42 @@ uint8_t     sendEstop( );
 // control a DCC locomotive.
 //
 //----------------------------------------------------------------------------------------
-uint8_t     sendReqLoc( uint16_t locAdr, 
+uint8_t     sendReqLoc( uint16_t cabId, 
                         uint8_t flags  );
 
-uint8_t     sendRelLoc( uint8_t sId  );
+uint8_t     sendRelLoc( uint16_t cabId  );
 
-uint8_t     sendRepLoc( uint8_t sId, 
-                        uint16_t locAdr, 
+uint8_t     sendRepLoc( uint16_t cabId, 
                         uint8_t spDir, 
                         uint8_t fn1 = 0, 
                         uint8_t fn2 = 0, 
                         uint8_t fn3 = 0 );
 
-uint8_t     sendLocConsist( uint8_t sId, 
+uint8_t     sendLocConsist( uint16_t cabId,
                             uint8_t consId, 
                             uint8_t flags );
 
-uint8_t     sendQueryLoc( uint8_t sId );
+uint8_t     sendQueryLoc( uint16_t cabId );
 
-uint8_t     sendKeepLoc( uint8_t sId );
+uint8_t     sendKeepLoc( uint16_t cabId );
 
-uint8_t     sendSetLocSpDir( uint8_t sId, 
+uint8_t     sendSetLocSpDir( uint16_t cabId,
                              uint8_t spDir );
 
-uint8_t     sendSetLocMode( uint8_t 
-                            sId, 
+uint8_t     sendSetLocMode( uint16_t cabId,
                             uint8_t mode );
 
-uint8_t     sendSetLocFuncOn( uint8_t sId, 
+uint8_t     sendSetLocFuncOn( uint16_t cabId, 
                               uint8_t fNum );
 
-uint8_t     sendSetLocFuncOff( uint8_t sId, 
+uint8_t     sendSetLocFuncOff( uint16_t cabId, 
                                uint8_t fNum );
 
-uint8_t     sendSetLocFgroup( uint8_t sId, 
+uint8_t     sendSetLocFgroup( uint16_t cabId, 
                               uint8_t fGroup, 
                               uint8_t data );
 
-uint8_t     sendSetLocCvMain( uint8_t sId, 
+uint8_t     sendSetLocCvMain( uint16_t cabId, 
                               uint16_t cvId, 
                               uint8_t mode, 
                               uint8_t val );
@@ -1026,20 +1024,20 @@ uint8_t     sendStartLoad( uint16_t npId,
                            uint8_t  cmd,
                            uint32_t size );
 
-uint8_t     sendStartBlock( uint16_t npid,
+uint8_t     sendStartBlock( uint16_t npId,
                             uint8_t cmd,
                             uint16_t blockId );
 
-uint8_t     sendBlockData( uint16_t npid,
+uint8_t     sendBlockData( uint16_t npId,
                            uint8_t cmd,
                            uint32_t data );
 
-uint8_t     sendEndBlock( uint16_t npid,
+uint8_t     sendEndBlock( uint16_t npId,
                           uint8_t cmd,
                           uint16_t blockId,
                           uint16_t checkSum );
 
-uint8_t     sendEndLoad( uint16_t npid,
+uint8_t     sendEndLoad( uint16_t npId,
                          uint8_t cmd,
                          uint32_t checkSum );
                          

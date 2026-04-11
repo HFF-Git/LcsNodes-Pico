@@ -48,7 +48,7 @@ namespace LCS {
     extern LcsMsgBusCAN         *msgBus;
 
     // ??? may go away...
-    extern uint8_t              localMsgEvent( uint8_t *msg );      
+    extern uint8_t              localMsgEvent( uint16_t senderNpId, uint8_t *msg );      
 };
 
 //----------------------------------------------------------------------------------------
@@ -461,7 +461,8 @@ uint8_t sendEventOn( uint16_t sendingNpId, uint16_t eventId ) {
     msgBuf[ 1 ] = highByte( eventId );
     msgBuf[ 2 ] = lowByte( eventId );
 
-    localMsgEvent( msgBuf );
+    // localMsgEvent( msgBuf ); // ??? fix, is this needed ?
+    
     return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));                                  
 }
 
@@ -476,7 +477,8 @@ uint8_t sendEventOff( uint16_t sendingNpId, uint16_t eventId ) {
     msgBuf[ 1 ] = highByte( eventId );
     msgBuf[ 2 ] = lowByte( eventId );
 
-    localMsgEvent( msgBuf );
+    // localMsgEvent( msgBuf ); // ??? fix, is this needed ?
+
     return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));     
 }
 
@@ -494,7 +496,7 @@ uint8_t sendEvent( uint16_t sendingNpId, uint16_t eventId, uint16_t arg ) {
     msgBuf[ 4 ] = lowByte( arg );
 
     // ??? this should be no different than a remote GET ...
-    localMsgEvent( msgBuf ); // ??? rethink ...
+    // localMsgEvent( sendingNpId, msgBuf ); // ??? rethink ...
 
     return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_NORMAL ));
 }
@@ -539,50 +541,49 @@ uint8_t sendEstop( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Request locomotive data. 
 //
-//
+//  LCS_OP_REQ_LOC <cabId-H> <cabId-L> <flags>
 //----------------------------------------------------------------------------------------
-uint8_t sendReqLoc( uint16_t locAdr, uint8_t flags ) {
+uint8_t sendReqLoc( uint16_t cabId, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_LOC };
-    msgBuf[ 1 ] = highByte( locAdr );
-    msgBuf[ 2 ] = lowByte( locAdr );
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
     msgBuf[ 3 ] = flags;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
-                         msgBuf, 
-                         MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
+// Inform that a local was removed.
 //
-//
+//  LCS_OP__REL_LOC <cabId-H> <cabId-L>
 //----------------------------------------------------------------------------------------
-uint8_t sendRelLoc( uint8_t sId ) {
+uint8_t sendRelLoc( uint16_t cabId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REL_LOC };
-    msgBuf[ 1 ] = sId;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf));
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendRepLoc( uint8_t sId, 
-                    uint16_t locAdr, 
+uint8_t sendRepLoc( uint16_t cabId, 
                     uint8_t spDir, 
                     uint8_t fn1, 
                     uint8_t fn2, 
                     uint8_t fn3  ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REP_LOC };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = highByte( locAdr );
-    msgBuf[ 3 ] = lowByte( locAdr );
-    msgBuf[ 4 ] = spDir;
-    msgBuf[ 5 ] = fn1;
-    msgBuf[ 6 ] = fn2;
-    msgBuf[ 7 ] = fn3;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = spDir;
+    msgBuf[ 4 ] = fn1;
+    msgBuf[ 5 ] = fn2;
+    msgBuf[ 6 ] = fn3;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -590,12 +591,13 @@ uint8_t sendRepLoc( uint8_t sId,
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags ) {
+uint8_t sendLocConsist( uint16_t cabId, uint8_t consId, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LCON };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = consId;
-    msgBuf[ 3 ] = flags;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = consId;
+    msgBuf[ 4 ] = flags;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -603,10 +605,11 @@ uint8_t sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendQueryLoc( uint8_t sId ) {
+uint8_t sendQueryLoc( uint16_t cabId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_QRY_LOC };
-    msgBuf[ 1 ] = sId;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -614,10 +617,11 @@ uint8_t sendQueryLoc( uint8_t sId ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendKeepLoc( uint8_t sId ) {
+uint8_t sendKeepLoc( uint16_t cabId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_KEEP_LOC };
-    msgBuf[ 1 ] = sId;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -625,11 +629,12 @@ uint8_t sendKeepLoc( uint8_t sId ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSetLocSpDir( uint8_t sId, uint8_t spDir ) {
+uint8_t sendSetLocSpDir( uint16_t cabId, uint8_t spDir ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LSPD };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = spDir;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = spDir;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -637,11 +642,12 @@ uint8_t sendSetLocSpDir( uint8_t sId, uint8_t spDir ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSetLocMode( uint8_t sId, uint8_t mode ) {
+uint8_t sendSetLocMode( uint16_t cabId, uint8_t mode ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LMOD };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = mode;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = mode;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -649,11 +655,12 @@ uint8_t sendSetLocMode( uint8_t sId, uint8_t mode ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSetLocFuncOn( uint8_t sId, uint8_t fNum ) {
+uint8_t sendSetLocFuncOn( uint16_t cabId, uint8_t fNum ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FON };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = fNum;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = fNum;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -661,11 +668,12 @@ uint8_t sendSetLocFuncOn( uint8_t sId, uint8_t fNum ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSetLocFuncOff( uint8_t sId, uint8_t fNum ) {
+uint8_t sendSetLocFuncOff( uint16_t cabId, uint8_t fNum ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FOFF };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = fNum;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = fNum;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -673,12 +681,13 @@ uint8_t sendSetLocFuncOff( uint8_t sId, uint8_t fNum ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data ) {
+uint8_t sendSetLocFgroup( uint16_t cabId, uint8_t fGroup, uint8_t data ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FGRP };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = fGroup;
-    msgBuf[ 3 ] = data;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = fGroup;
+    msgBuf[ 4 ] = data;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
@@ -686,14 +695,15 @@ uint8_t sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data ) {
 //
 //
 //----------------------------------------------------------------------------------------
-uint8_t sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val ) {
+uint8_t sendSetLocCvMain( uint16_t cabId, uint16_t cvId, uint8_t mode, uint8_t val ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_CVM };
-    msgBuf[ 1 ] = sId;
-    msgBuf[ 2 ] = highByte( cvId );
-    msgBuf[ 3 ] = lowByte( cvId );
-    msgBuf[ 4 ] = mode;
-    msgBuf[ 5 ] = val;
+    msgBuf[ 1 ] = highByte( cabId );
+    msgBuf[ 2 ] = lowByte( cabId );
+    msgBuf[ 3 ] = highByte( cvId );
+    msgBuf[ 4 ] = lowByte( cvId );
+    msgBuf[ 5 ] = mode;
+    msgBuf[ 6 ] = val;
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 

@@ -189,9 +189,8 @@ void handlePeriodicTasks( ) {
 // is for our node and we update our nodeId accordingly in MEM and NVM. The next
 // node state is OPERATE.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgRepNid( uint8_t *msg ) {
+void handleMsgRepNid( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t nodeId   = ( msg[1] << 8 ) + msg[2];
     uint32_t nodeUID  = ((uint32_t) msg[3] << 24 ) +
@@ -212,9 +211,8 @@ void handleMsgRepNid( uint8_t *msg ) {
 // LCS management deals with messages concerning the general LCS management. Most 
 // messages just update the MEM nodeMap. If there is a callback, it will be invoked.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgLcsMgt( uint8_t *msg ) {
+void handleMsgLcsMgt( uint16_t senderNpId, uint8_t *msg ) {
 
     switch ( msg[ 0 ] ) {
 
@@ -301,9 +299,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 // "handleMsgGetNode" processes an incoming GET message. We carry out the request 
 // and construct the reply message with the requested data.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgGetNode( uint8_t *msg ) {
+void handleMsgGetNode( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
@@ -322,9 +319,8 @@ void handleMsgGetNode( uint8_t *msg ) {
 // "handleMsgPutNode" processes an incoming PUT message for a node or port attribute. 
 // We update the data and send a confirmation.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgPutNode( uint8_t *msg ) {
+void handleMsgPutNode( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t npId =  (( msg[1] << 8 ) + msg[2] );
 
@@ -340,15 +336,15 @@ void handleMsgPutNode( uint8_t *msg ) {
 
 //----------------------------------------------------------------------------------------
 // "handleMsgRepNode" processes the answer to a previously sent node query. The 
-// incoming message will only result in an action when we have an outstanding request 
-// for that node. That is, this handler will only be called when the we passed the 
-// outstanding reply map check done before. The outstanding request table was already 
-// cleared. All we do is to route the reply messages to the callback for the port. It
-// is up to the firmware programmer to analyze for what and whom the reply really is. 
+// incoming message will only result in an action when we have an outstanding 
+// request for that node. That is, this handler will only be called when the we 
+// passed the outstanding reply map check done before. The outstanding request
+// table was already cleared. All we do is to route the reply messages to the 
+// callback for the port. It is up to the firmware programmer to analyze for 
+// what and whom the reply really is. 
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgRepNode( uint8_t *msg ) {
+void handleMsgRepNode( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t  npId    = (( msg[1] << 8 ) + msg[2] );
     uint16_t  item    = msg[3];
@@ -368,12 +364,11 @@ void handleMsgRepNode( uint8_t *msg ) {
 
 //----------------------------------------------------------------------------------------
 // "handleMsgReqNode" processes an incoming request for a node or port. The REQ 
-// message request will result in invoking the register firmware callback. We send a
-// a reply or error message.
+// message request will result in invoking the register firmware callback. We
+// send a reply or error message.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgReqNode( uint8_t *msg ) {
+void handleMsgReqNode( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t npId = (( msg[1] << 8 ) + msg[2] );
 
@@ -389,16 +384,15 @@ void handleMsgReqNode( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleMsgEvent" deals with the event messages for inbound ports. If the event 
-// is configured in the event map, all bits set in the eventMask will result in 
-// recording the event data and the optional future time stamp when the event should
-// result in a callback. The actual event processing is done in the event processing
-// routine, which will manage the timely invocation of the event callbacks. The event
-// mask has a bit for each port. 
+// "handleMsgEvent" deals with the event messages for inbound ports. If the 
+// event is configured in the event map, all bits set in the eventMask will 
+// result in recording the event data and the optional future time stamp when 
+// the event should result in a callback. The actual event processing is done 
+// in the event processing routine, which will manage the timely invocation of
+// the event callbacks. The event mask has a bit for each port. 
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgEvent( uint8_t *msg ) {
+void handleMsgEvent( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t  eventId = ( msg[3] << 8 ) + msg[4];
     int       index   = searchEvent( eventId );
@@ -443,14 +437,13 @@ void handleMsgEvent( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// We received a DCC subsystem message. These messages are handled solely by firmware, 
-// which is typically the base station, a handheld, or a decoder alike device. All we
-// do is to pass the message to the call back routine. One day, we could decode the 
-// message a bit more and invoke more specialized callback.
+// We received a DCC subsystem message. These messages are handled solely by 
+// firmware, which is typically the base station, a handheld, or a decoder alike
+// device. All we do is to pass the message to the call back routine. One day, 
+// we could decode the message a bit more and invoke more specialized callback.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleMsgDccMgt( uint8_t *msg ) {
+void handleMsgDccMgt( uint16_t senderNpId, uint8_t *msg ) {
 
     if ( nodeMap.dccMsgCallback != NULL ) 
         nodeMap.dccMsgCallback( msg, nodeMap.dccMsgCallBackUdata );
@@ -470,11 +463,10 @@ void handleNodeStateFail( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State Power FAIL. This is the state after when the node starts up after a
-// power fail. We have this state so that the firmware programmer can take some 
-// recovery action before the power goes away. 
+// Node State Power FAIL. This is the state after when the node starts up after 
+// a power fail. We have this state so that the firmware programmer can take 
+// some recovery action before the power goes away. 
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
 
@@ -487,20 +479,21 @@ void handleNodeStatePfail( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node state INIT. This is the first state after the initial library setup. The 
-// runtime init call created all memory areas and initialized the data structures.
-// After a successful runtime init call, the state is INIT and the firmware can 
-// register the necessary callback functions and do other firmware specific work. 
-// Eventually, the runtime start function is called. First, any drivers mapped to P1
-// to P4 are sent a RESET request, so that any hardware initialization can be done. 
-// Any other port with a registered callback is handled next. Each port with a
-// successful return code will finally be enabled and the high water mark adjusted
-// accordingly.
+// Node state INIT. This is the first state after the initial library setup. 
+// The runtime init call created all memory areas and initialized the data 
+// structures. After a successful runtime init call, the state is INIT and the
+// firmware can register the necessary callback functions and do other firmware 
+// specific work. 
+//
+// Eventually, the runtime start function is called. First, any drivers mapped 
+// to P1 to P4 are sent a RESET request, so that any hardware initialization can
+// be done. Any other port with a registered callback is handled next. Each port
+// with a successful return code will finally be enabled and the high water mark
+// adjusted accordingly.
 // 
 // ??? is there anything that we will need to remember in NVM ? 
 // ??? should all ports get a reset call ?
 // 
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
@@ -539,22 +532,21 @@ void handleNodeStateInit( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State REGISTER. This is the state after the INIT state when a nodeId setup
-// was requested. We are waiting for a nodeId reply message. If there is a timely 
-// reply message, we will handle the message reply and the node state will advance.
-// If there is no timely reply, we will resubmit the request.
+// Node State REGISTER. This is the state after the INIT state when a nodeId 
+// setup was requested. We are waiting for a nodeId reply message. If there is
+// a timely reply message, we will handle the message reply and the node state 
+// will advance. If there is no timely reply, we will resubmit the request.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateRegister( ) {
 
     uint16_t senderNpId;
-    uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint8_t  msg[ MAX_LCS_MSG_SIZE ];
 
     switch ( receiveLcsMsg( &senderNpId, msg )) {
 
-        case LCS_OP_REP_NID: handleMsgRepNid( msg );  break;
-        case LCS_OP_RESET:   handleMsgLcsMgt( msg );  break;
+        case LCS_OP_REP_NID: handleMsgRepNid( senderNpId, msg );  break;
+        case LCS_OP_RESET:   handleMsgLcsMgt( senderNpId, msg );  break;
 
         default: {
 
@@ -572,17 +564,16 @@ void handleNodeStateRegister( ) {
 // detected a nodeId collision. We will stay in this state and only react to 
 // RESET and SET_NID messages.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateCollision( ) {
 
     uint16_t senderNpId;
-    uint8_t msg[ MAX_LCS_MSG_SIZE ];
+    uint8_t  msg[ MAX_LCS_MSG_SIZE ];
 
     switch ( receiveLcsMsg( &senderNpId, msg )) {
 
         case LCS_OP_RESET:
-        case LCS_OP_SET_NID:  handleMsgLcsMgt( msg ); break;
+        case LCS_OP_SET_NID:  handleMsgLcsMgt( senderNpId, msg ); break;
     }
 }
 
@@ -593,15 +584,15 @@ void handleNodeStateCollision( ) {
 //
 // ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
-void handleNodeStateHalted( ) {
-
-    uint16_t senderNpId;              
+void handleNodeStateHalted(  ) {
+            
+    uint16_t senderNpId;
     uint8_t  msg[ MAX_LCS_MSG_SIZE ];
 
     switch ( receiveLcsMsg( &senderNpId,  msg )) {
 
         case LCS_OP_BON:
-        case LCS_OP_RESET: handleMsgLcsMgt( msg ); break;
+        case LCS_OP_RESET: handleMsgLcsMgt( senderNpId, msg ); break;
     }
 }
 
@@ -611,7 +602,6 @@ void handleNodeStateHalted( ) {
 // may have been received. Note that we just listen to messages valid for that 
 // mode and invoke the respective handler. All other messages are ignored.
 //
-// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
 
@@ -626,12 +616,12 @@ void handleNodeStateConfig( ) {
         case LCS_OP_BOF:
         case LCS_OP_ACK:
         case LCS_OP_SET_NID:
-        case LCS_OP_NODE_COL:           handleMsgLcsMgt( msg );     break;
+        case LCS_OP_NODE_COL:       handleMsgLcsMgt( senderNpId, msg );  break;
 
-        case LCS_OP_NODE_GET:           handleMsgGetNode( msg );    break;
-        case LCS_OP_NODE_SET:           handleMsgPutNode( msg );    break;
-        case LCS_OP_NODE_FREQ:          handleMsgReqNode( msg );    break;
-        case LCS_OP_NODE_REP:           handleMsgRepNode( msg );    break;
+        case LCS_OP_NODE_GET:       handleMsgGetNode( senderNpId, msg ); break;
+        case LCS_OP_NODE_SET:       handleMsgPutNode( senderNpId, msg ); break;
+        case LCS_OP_NODE_FREQ:      handleMsgReqNode( senderNpId, msg ); break;
+        case LCS_OP_NODE_REP:       handleMsgRepNode( senderNpId, msg ); break;
     }
 
     handlePeriodicTasks( );
@@ -660,18 +650,18 @@ void handleNodeStateOperations( ) {
         case LCS_OP_BOF:
         case LCS_OP_ACK:
         case LCS_OP_REQ_NID:
-        case LCS_OP_NODE_COL:           handleMsgLcsMgt( msg );     break;
+        case LCS_OP_NODE_COL:   handleMsgLcsMgt( senderNpId, msg );     break;
 
-        case LCS_OP_NODE_GET:           handleMsgGetNode( msg );    break;
-        case LCS_OP_NODE_SET:           handleMsgPutNode( msg );    break;
-        case LCS_OP_NODE_REP:           handleMsgRepNode( msg );    break;
+        case LCS_OP_NODE_GET:   handleMsgGetNode( senderNpId, msg );    break;
+        case LCS_OP_NODE_SET:   handleMsgPutNode( senderNpId, msg );    break;
+        case LCS_OP_NODE_REP:   handleMsgRepNode( senderNpId, msg );    break;
 
-        case LCS_OP_NODE_FREQ:          handleMsgReqNode( msg );    break;
-        case LCS_OP_NODE_FREP:          handleMsgRepNode( msg );    break;
+        case LCS_OP_NODE_FREQ:  handleMsgReqNode( senderNpId, msg );    break;
+        case LCS_OP_NODE_FREP:  handleMsgRepNode( senderNpId, msg );    break;
         
         case LCS_OP_EVT_ON:
         case LCS_OP_EVT_OFF:
-        case LCS_OP_EVT:                handleMsgEvent( msg );      break;
+        case LCS_OP_EVT:        handleMsgEvent( senderNpId, msg );      break;
 
         case LCS_OP_REQ_LOC:
         case LCS_OP_REL_LOC:
@@ -697,7 +687,7 @@ void handleNodeStateOperations( ) {
         case LCS_OP_SEND_DCC5:
         case LCS_OP_SEND_DCC6:
 
-        case LCS_OP_DCC_ACK:             handleMsgDccMgt( msg );      break;
+        case LCS_OP_DCC_ACK:    handleMsgDccMgt( senderNpId, msg );      break;
     }
 
     handlePeriodicTasks( );
@@ -872,10 +862,10 @@ uint8_t registerTaskCallback( LcsTaskCallback task,
 //
 // ??? should this be covered in the general issue of a node sending to itself ?
 //----------------------------------------------------------------------------------------
-uint8_t localMsgEvent( uint8_t *msg ) {
+uint8_t localMsgEvent( uint16_t senderNpid, uint8_t *msg ) {
 
     if ( nodeMap.nodeState != NS_OPERATE ) return ( ERR_LIB_NOT_INITIALIZED );
-    handleMsgEvent( msg );
+    handleMsgEvent( senderNpid, msg );
     return ( LCS_OK );
 }
 

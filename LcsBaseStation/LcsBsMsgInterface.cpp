@@ -145,6 +145,9 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 if ( smePtr != NULL ) {
 
+                    // ??? FIX ...
+
+                    #if 0
                     sendRepLoc( sId,
                                 cabId,
                                 ((( smePtr -> direction ) ? 0x80 : 0 ) | 
@@ -152,6 +155,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                                 smePtr -> functions[ 0 ],
                                 smePtr -> functions[ 1 ],
                                 smePtr -> functions[ 2 ] );
+                    #endif
                 }
                 else sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
                                   highByte( cabId ), 
@@ -182,6 +186,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
             if ( smePtr != NULL ) {
 
+                #if 0 // ??? FIX .... 
                 sendRepLoc( sId,
                             smePtr -> cabId,
                             ((( smePtr -> direction ) ? 0x80 : 0 ) | 
@@ -189,6 +194,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                             smePtr -> functions[ 0 ],
                             smePtr -> functions[ 1 ],
                             smePtr -> functions[ 2 ] );
+                #endif
             }
             else sendDccErr( ERR_SESSION_NOT_FOUND, sId );
 
