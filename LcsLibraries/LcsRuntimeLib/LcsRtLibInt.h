@@ -54,22 +54,27 @@ namespace LCS {
 // general concept, most of the data areas are stored in the NVM. Upon reset or 
 // power up the memory areas are initialized from their NVM counter parts. 
 // 
-// Data that needs to be changed permanently is flushed from memory to NVM so 
+// Data that needs to be kept permanently is flushed from memory to NVM so 
 // that it is the initial value on the next restart. All data is stored in 
 // controller native endianness. Only the messages exchanged via the LcsMsgBus 
 // are transmitted in big endian order.
 //
-// The NVM layout is a fixed one. We have the nodeMap starting at NVM_NODE_MAP_START
-// offset. All data areas follow. Their starting offset is the sum of the size of 
-// the previous structures starting. The system area needs to be at least the size 
-// of the declared structures up to the use map. The optional user map occupies
-// all the remaining bytes in the NVM. 
+// The NVM layout is a fixed one. The layout starts with 16 bytes board data. 
+// This area is right now primarily used for the magic word. Following this 
+// data area is the nodeMAp, the central structure for a node. It contains the 
+// nodeId, the node state and so on. Following the nodeMap is the node data 
+// area, which contains the port attributes. Each port has a set of 128 16-bit
+// words. Following this area is the event map, which contains the eventId to
+// portId mapping. The last area is the optional extended attribute map, which
+// can be used for any user defined data. It is an array of attributes global
+// to the node.
+// 
 //
-//          :-----------------------------------:   NVM_NODE_MAP_START 
+//          :-----------------------------------:   NVM_MAP_STORAGE_START 
 //          :                                   :
-//          :   Board Header Map                :
+//          :   NVM Header                      :
 //          :                                   :
-//          :-----------------------------------:   + sizeof( LcsBoardDesc ) 
+//          :-----------------------------------:   NVM_NODE_MAP_START
 //          :                                   :
 //          :   Node Map                        :
 //          :                                   :
@@ -85,7 +90,7 @@ namespace LCS {
 //          :                                   :
 //          :                                   :
 //          :                                   :
-//          :   Optional User Map               :
+//          :   Optional Ext Attribute Map      :
 //          :                                   :
 //          :                                   :
 //          :                                   :
@@ -103,9 +108,8 @@ namespace LCS {
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 8;
 const uint16_t  MAX_CHANNEL_MAP_ENTRIES         = 8;
 const uint16_t  MAX_EVENT_MAP_ENTRIES           = 768;
-const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 const uint16_t  MAX_ATTR_MAP_ENTRIES            = 128;
-const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
+const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 
 //----------------------------------------------------------------------------------------
 // Other common constants.
@@ -114,6 +118,7 @@ const uint8_t   MAX_DRV_TYPE_MAP_ENTRIES        = 8;
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
+const uint8_t   I2C_ADDRESS_OFFSET              = 8;
 
 //----------------------------------------------------------------------------------------
 // The default sizes for the chips on the board. For the main boards, we will figure
@@ -125,22 +130,22 @@ const int       NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
 
 //----------------------------------------------------------------------------------------
 // The maps have as their first word a magic word, which is just a special 
-// constant. We simply read in that word and check it for being a valid word for
-// the particular map. If valid, the area was configured before and we can do 
-// further checking. It would be  quite unlikely that a random NVM content has 
-// this word at the right spot. 
+// constant. We simply read in that word and check it for being a valid word 
+// for the particular map. If valid, the area was configured before and we can
+// do further checking. It would be  quite unlikely that a random NVM content 
+// has this word at the right spot. 
 //
-// ??? have different MWords ?
+// ??? have different MWords ? use 32-bit words ?
 //----------------------------------------------------------------------------------------
-const uint16_t  NVM_MWORD_MAIN              = 0xa5a5;
-const uint16_t  NVM_MWORD_EXTENSION         = 0xa5a5;
-const uint16_t  NVM_MWORD_DEVICE            = 0xa5a5;
+const uint16_t  NVM_MWORD_MAIN                  = 0xa5a5;
+const uint16_t  NVM_MWORD_EXTENSION             = 0xa5a5;
+const uint16_t  NVM_MWORD_DEVICE                = 0xa5a5;
 
-const uint16_t  NVM_MWORD_NODE_HEADER       = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_MAP          = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_DATA_MAP     = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_EXT_DATA_MAP = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_EVENT_MAP    = 0xa5a5;
+const uint16_t  NVM_MWORD_NODE_HEADER           = 0xa5a5;
+const uint16_t  NVM_MWORD_NODE_MAP              = 0xa5a5;
+const uint16_t  NVM_MWORD_NODE_DATA_MAP         = 0xa5a5;
+const uint16_t  NVM_MWORD_NODE_EXT_DATA_MAP     = 0xa5a5;
+const uint16_t  NVM_MWORD_NODE_EVENT_MAP        = 0xa5a5;
 
 //----------------------------------------------------------------------------------------
 // The node states. Essentially, the node runtime is a big state machine. The 
@@ -243,80 +248,76 @@ struct LcsMsgBusCAN {
 
     private: 
 
-    uint8_t localNodeId = 0;
+    uint8_t localNodeId;
 };
 
 //----------------------------------------------------------------------------------------
-// The LcsBoardDesc structure defines what the board actually represents. It is 
-// also the first structure that can be found on the controller board NVM as well 
-// as the extension board controller, which acts like a NVM for that purpose. An 
-// Atmega Attiny controller board also has the nice property of a serial number. 
-// On the PICO, we "invent" a serial number. The option field is used to keep
-// data specific to the board. The device for example keeps the I2C address in 
-// there.
-//
-// The header structure is 16 bytes long and matches exactly what is used in the
-// Attiny world.
+// The LcsNvmHeader structure is the first area in the NVM storage. It contains
+// the magic word and some space reserved for future use. The magic word is used
+// to check that the NVM storage was initialized before and that the data is 
+// valid.
 // 
 //----------------------------------------------------------------------------------------
-struct LcsBoardDesc {
+struct LcsNvmHeader {
 
-    uint16_t            boardMword;         // 0  - magic word
-    uint16_t            boardType;          // 1  - family/type/subtype
-    uint16_t            boardVersion;       // 2  - major / sub version
-    uint16_t            serialNum1;         // 3  - serial number part 1
-    uint16_t            serialNum2;         // 4  - serial number part 2
-    uint16_t            serialNum3;         // 5  - serial number part 3
-    uint16_t            serialNum4;         // 6  - serial number part 4  
-    uint16_t            cfgOption;          // 7  - config option
+    uint32_t magicWord;   
+    uint32_t reserved1;
+    uint32_t reserved2;
+    uint32_t reserved3;
 };
 
 //----------------------------------------------------------------------------------------
 // The nodeMap is the heart of all data on the node. When bringing up a node, we 
-// first read in the NVM header and then the node map. Once read in from the NVM 
-// storage, several validity checks are performed. The most important check is to 
-// compare the size of the various data structures with the runtime data size that 
-// we know from the compilation. That is the reason that each NVM area starts with 
-// a  magic word. Only when they match can we somewhat trust the rest of the data 
-// maps to read.
-//
-// During configuration and operation state, update to some nodeMap fields can 
-// also be forwarded to their NVM counterpart. 
+// first read in the NVM header to check the validity of the NVM data and then
+// the node map. Several validity checks for the nodeMap data are performed. T
+// he most important check is to compare the size of the various data structures
+// with the runtime data size that we know from the compilation. That is the 
+// reason that each NVM area also starts with a magic word. Only when they match
+// can we somewhat trust the rest of the data maps.
 //
 //----------------------------------------------------------------------------------------
 struct LcsNodeMap {
 
-    uint32_t            magicWord                       = NVM_MWORD_NODE_MAP;
-    uint32_t            nvmOfs                          = 0;
-    uint32_t            nvmSize                         = sizeof( LcsNodeMap );
+    uint32_t            magicWord;              // magic word of the node map
+    uint32_t            nvmOfs;                 // byte offset in NVM
+    uint32_t            nvmSize;                // size of the node map in bytes   
 
-    uint16_t            nodeOptions                     = 0;
-    uint16_t            nodeFlags                       = 0;
-    uint16_t            nodeLastErr                     = 0;
+    uint16_t            nodeOptions;            // node options
+    uint16_t            nodeFlags;              // node flags           
+    uint16_t            nodeLastErr;            // laster code on the node
+    uint16_t            nodeType;               // node type, e.g. main board
+       
+    uint16_t            boardType;              // board type, e.g. LCS_MAIN_BOARD  
+    uint16_t            boardVersion;           // board  version, e.g. 1.0
+    uint16_t            serialNum1;             // board  serial number part 1
+    uint16_t            serialNum2;             // board  serial number part 2
+    uint16_t            serialNum3;             // board  serial number part 3
+    uint16_t            serialNum4;             // board  serial number part 4  
+    uint16_t            cfgOption;              // board  config option
 
-    uint16_t            nodeState                       = NS_NIL;
-    uint16_t            nodeId                          = NIL_NODE_ID;
-    uint32_t            nodeUID                         = 0L;
-    uint16_t            nodeRestartCnt                  = 0;
-    uint32_t            nodeSystemTime                  = 0;
+    uint16_t            nodeState;              // node state, e.g. NS_INIT;
+    uint16_t            nodeId;                 // node Id
+    uint32_t            nodeUID;                // node unique ID        
+    uint16_t            nodeRestartCnt;         // restart counter  
+    uint32_t            nodeSystemTime;         // system time in milliseconds
    
-    LcsInitCallback     initCallback                    = nullptr;
-    void                *initCallBackUdata              = nullptr;
+    LcsInitCallback     initCallback;           // init callback
+    void                *initCallBackUdata;     // init callback user data
 
-    LcsPfailCallback    pfailCallback                   = nullptr;
-    void                *pfailCallBackUdata             = nullptr;
+    LcsPfailCallback    pfailCallback;          // power failure callback
+    void                *pfailCallBackUdata;    // power failure callback user data
 
-    LcsMsgCallback      lcsMsgCallback                  = nullptr;
-    void                *lcsMsgCallBackUdata            = nullptr;
+    LcsMsgCallback      lcsMsgCallback;         // LCS message callback
+    void                *lcsMsgCallBackUdata;   // LCS message callback user data
 
-    LcsMsgCallback      dccMsgCallback                  = nullptr;
-    void                *dccMsgCallBackUdata            = nullptr;
+    LcsMsgCallback      dccMsgCallback;         // DCC message callback
+    void                *dccMsgCallBackUdata;   // DCC message callback user data
 
-    LcsCmdCallback      cmdLineCallback                 = nullptr;
-    void                *cmdLineCallBackUdata           = nullptr;
+    LcsCmdCallback      cmdLineCallback;        // command line callback
+    void                *cmdLineCallBackUdata;  // command line callback user data
 
-    LcsRepCallback      repCallback                 = nullptr;
-    void                *repCallBackUdata           = nullptr;
+    LcsRepCallback      repCallback;            // LCS msg reply callback
+    void                *repCallBackUdata;      // LCS msg reply callback user data
 };
 
 //----------------------------------------------------------------------------------------
@@ -328,30 +329,27 @@ struct LcsNodeMap {
 //----------------------------------------------------------------------------------------
 struct LcsNodeData {
 
-    uint32_t    magicWord   = NVM_MWORD_NODE_DATA_MAP;
-    uint32_t    nvmOfs      = 0;
-    uint32_t    nvmSize     = sizeof( LcsNodeData );    
-
-    uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_ATTR_MAP_ENTRIES ] = { 0 };
+    uint32_t    magicWord;
+    uint32_t    nvmOfs;
+    uint32_t    nvmSize;    
+    uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_ATTR_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
-// A node offers an area of extended or global attributes that are in memory as
-// well as in the node NVM. The sizeof this area is the available space in the 
-// NVM minus the storage requirements of the runtime data. Upon power up the 
-// header structure is validated and the node data from the NVM area is copied 
-// to the MEM counterpart. 
+// A node offers an area of extended or global attributes. The sizeof this area
+// is the available space in the NVM minus the storage requirements of the 
+// runtime data. Upon power up the header structure is validated just like all
+// the other NVM areas. In contrast to node and port attributes, the extended 
+// attributes are directly accessed form the NVM. The idea us that these 
+// attributes are not modified very often and thus we can do with the slower 
+// access time of the NVM.
 //
-// ??? should we have a rather fixed start ?
-// ??? storage needs to be allocated.
 //----------------------------------------------------------------------------------------
 struct LcsNodeExtData {
 
-    uint32_t    magicWord   = NVM_MWORD_NODE_EXT_DATA_MAP;
-    uint32_t    nvmOfs      = 0;
-    uint32_t    nvmSize     = 0;    
-
-    uint16_t    *map        = nullptr;   
+    uint32_t    magicWord;
+    uint32_t    nvmOfs;
+    uint32_t    nvmSize;      
 };
 
 //----------------------------------------------------------------------------------------
@@ -364,17 +362,16 @@ struct LcsNodeExtData {
 //----------------------------------------------------------------------------------------
 struct LcsEventMapEntry {
 
-    uint16_t eventId    = NIL_EVENT_ID;
-    uint16_t eventMask  = 0;
+    uint16_t eventId;
+    uint16_t eventMask;
 };
 
 struct LcsEventMap {
 
-    uint32_t            magicWord   = NVM_MWORD_NODE_EVENT_MAP;
-    uint32_t            nvmOfs      = 0;
-    uint32_t            nvmSize     = sizeof( LcsEventMap );
-    uint32_t            mapHwm      = 0;
-
+    uint32_t            magicWord;
+    uint32_t            nvmOfs;
+    uint32_t            nvmSize;
+    uint32_t            mapHwm;
     LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
 };
 
@@ -387,7 +384,7 @@ struct LcsEventMap {
 // The item numbers 1 to 63 are reserved for node/port specific purposes, the 
 // item numbers 64 to 127 are reserved for driver library functions. 
 // 
-// A port support up to 8 channels. Each port/channel combo corresponds to an 
+// A port supports up to 8 channels. Each port/channel combo corresponds to an 
 // I2C address and is our way to access hardware, such as an extension board or
 // a satellite board. All channels on a port must have the same channel type.
 //
@@ -397,88 +394,65 @@ struct LcsEventMap {
 // with a delay time.
 //
 // When a request is send, the target npId and a request time limit timestamp
-// are stored in the port map entry. This way, when a reply comes in, we can check
-// if it is expected and invoke the reply callback. On a port, one request can
-// be pending at a time. If another request is sent before the reply, it is an
-// error.
+// are stored in the port map entry. This way, when a reply comes in, we can 
+// check if it is expected and invoke the reply callback. On a port, one request
+// can be pending at a time. If another request is sent before the reply, it is
+// an error.
 //
 //----------------------------------------------------------------------------------------
 struct LcsPortMapEntry {
 
-    uint16_t            portOptions                 = 0;
-    uint16_t            portFlags                   = 0;
-    uint16_t            portType                    = 0;
-    uint16_t            portLastErr                 = 0;
+    uint16_t            portOptions;
+    uint16_t            portFlags;
+    uint16_t            portType;
+    uint16_t            portLastErr;
    
-    LcsReqCallback      reqCallback                 = nullptr;
-    void                *reqCallBackUdata           = nullptr;
+    LcsReqCallback      reqCallback;;
+    void                *reqCallBackUdata;
 
-    LcsEventCallback    eventCallback               = nullptr;
-    void                *eventCallBackUdata         = nullptr;
+    LcsEventCallback    eventCallback;
+    void                *eventCallBackUdata;
 
-    uint16_t            eventNpId                   = 0;
-    uint16_t            eventId                     = NIL_EVENT_ID;
-    uint16_t            eventValue                  = 0;
-    uint16_t            eventAction                 = PEA_EVENT_IDLE;
-    uint16_t            eventDelayTime              = 0;
-    uint32_t            eventTimeStamp              = 0L;
+    uint16_t            eventNpId;
+    uint16_t            eventId;
+    uint16_t            eventValue;
+    uint16_t            eventAction;
+    uint16_t            eventDelayTime;
+    uint32_t            eventTimeStamp;
 
-    uint16_t            targetNpId                  = 0;
-    uint32_t            targetReqTs                 = 0; 
-    LcsRepCallback      targetRepCallback           = nullptr;
-    void                *targetRepCallBackUdata     = nullptr;
+    uint16_t            targetNpId;
+    uint32_t            targetReqTs; 
+    LcsRepCallback      targetRepCallback;
+    void                *targetRepCallBackUdata;
 
-    uint16_t            channelMask                 = 0;
+    uint16_t            channelMap; // ??? needed ?
 };
 
 struct LcsPortMap {
 
-    uint32_t        mapHwm = 0;
+    uint32_t        mapHwm;
     LcsPortMapEntry map[ MAX_PORT_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
-// The core library maintains an array of periodic tasks. The entry maintains the
-// task procedure label, the time it ran the last time, and the minimum interval
-// between invocations. Note that the timing is not very accurate, but it is 
-// guaranteed that a task will eventually run when the interval is reached.
+// The core library maintains an array of periodic tasks. The entry maintains 
+// the task procedure label, the time it ran the last time, and the minimum 
+// interval between invocations. Note that the timing is not very accurate, but
+// it is guaranteed that a task will eventually run when the interval is reached.
 //
 //----------------------------------------------------------------------------------------
 struct LcsPTaskMapEntry {
 
-    LcsTaskCallback     task        = nullptr;
-    void                *uData      = nullptr; 
-    uint32_t            timeStamp   = 0;
-    uint32_t            interval    = 0;
+    LcsTaskCallback     task;
+    void                *uData; 
+    uint32_t            timeStamp;
+    uint32_t            interval;
 };
 
 struct LcsTaskMap {
 
-    uint32_t            mapHwm      = 0;
+    uint32_t            mapHwm;
     LcsPTaskMapEntry    map[ MAX_TASK_MAP_ENTRIES ];
-};
-
-// ??? needed ?
-//----------------------------------------------------------------------------------------
-// An extension board is associated with a port and thus has attributes and 
-// request items. Attributes are naturally accessed via the GET/PUT calls. The
-// extension board specific request functions are accessed via the REQ calls. 
-// The firmware is required to register a callback, i.e. driver, for each driver
-// type used. The type and function label for extension boards are kept in the 
-// driver function map. 
-//
-//----------------------------------------------------------------------------------------
-struct LcsDrvFuncEntry {
-
-    uint16_t        drvType = CDC_BT_NIL;
-    LcsReqCallback  drvFunc = nullptr;
-    void            *uData  = nullptr;
-};
-
-struct LcsDrvFuncMap {
-
-    uint32_t        mapHwm = 0;
-    LcsDrvFuncEntry map[ MAX_DRV_TYPE_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
@@ -487,17 +461,17 @@ struct LcsDrvFuncMap {
 // and sizes as constants.
 //
 //----------------------------------------------------------------------------------------
-const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsBoardDesc );
+const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsNvmHeader );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
 const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
 const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
-
-const uint32_t  NVM_MAP_STORAGE_START       =   0;
 
 const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_BOARD_DESC_SIZE + 
                                                 NVM_NODE_MAP_SIZE   +
                                                 NVM_NODE_DATA_SIZE  +
                                                 NVM_EVENT_MAP_SIZE;
+
+const uint32_t  NVM_MAP_STORAGE_START       =   0;
 
 const uint32_t  NVM_HEADER_MAP_OFS          =   NVM_MAP_STORAGE_START;  
 
@@ -513,7 +487,7 @@ const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
-const uint32_t  NVM_USER_MAP_OFS            =   NVM_MAP_STORAGE_START + 
+const uint32_t  NVM_EXT_NODE_DATA_OFS       =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   + 
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +

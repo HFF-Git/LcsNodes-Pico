@@ -3,8 +3,8 @@
 // Layout Control System - Runtime library core.
 //
 //----------------------------------------------------------------------------------------
-// The file contains the runtime core routines. The runtime library is essentially
-// a big state machine, which periodically scans for messages and pother work to do. 
+// The file contains the runtime core routines. The runtime is essentially a big
+// state machine, which periodically scans for messages and pother work to do. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -15,15 +15,16 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
+#include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
 //----------------------------------------------------------------------------------------
@@ -41,11 +42,8 @@ namespace LCS {
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
     extern LcsTaskMap           taskMap;
-    extern LcsDrvFuncMap        drvFuncMap;
 
     extern uint8_t              handleSerialCommand( );
-    extern uint8_t              setupDriverFunctions( );
-    extern uint8_t              setupPortMap( );
     extern int                  searchEvent( uint16_t eventId );
     extern uint8_t              rtNvmPutWord( uint32_t ofs, uint16_t word );
     extern uint8_t              receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg );
@@ -124,7 +122,8 @@ void handleNodePortEvents( ) {
 //----------------------------------------------------------------------------------------
 // "handlePendingReqTimeouts" is part of the periodic processing of the node. 
 // It will check wether any requests waiting for a reply have timed out. In this 
-// case, we should invoke the reply callback with an error code and clear the entry.
+// case, we should invoke the reply callback with an error code and clear the 
+// entry.
 //
 // ??? is this called ?
 //----------------------------------------------------------------------------------------
@@ -186,10 +185,11 @@ void handlePeriodicTasks( ) {
 
 //----------------------------------------------------------------------------------------
 // "handleMsgRepNid" handles the message that the configuring node sends to our 
-// node in response to a nodeId setup request. If the UID matches, the message is 
-// for our node and we update our nodeId accordingly in MEM and NVM. The next node
-// state is OPERATE.
+// node in response to a nodeId setup request. If the UID matches, the message 
+// is for our node and we update our nodeId accordingly in MEM and NVM. The next
+// node state is OPERATE.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgRepNid( uint8_t *msg ) {
 
@@ -202,8 +202,7 @@ void handleMsgRepNid( uint8_t *msg ) {
     if ( nodeUID == nodeMap.nodeUID ) {
 
         nodeMap.nodeId = nodeId;
-        uint8_t rStat  =
-            rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeId );
+        rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), nodeId );
             
         nodeMap.nodeState = NS_OPERATE;
     }
@@ -213,6 +212,7 @@ void handleMsgRepNid( uint8_t *msg ) {
 // LCS management deals with messages concerning the general LCS management. Most 
 // messages just update the MEM nodeMap. If there is a callback, it will be invoked.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgLcsMgt( uint8_t *msg ) {
 
@@ -284,9 +284,8 @@ void handleMsgLcsMgt( uint8_t *msg ) {
                 if ( nodeMap.nodeState == NS_CONFIG ) {
 
                     nodeMap.nodeId = nodeId;
-                    
-                    uint8_t rStat = 
-                        rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
+                
+                    rtNvmPutWord( NVM_NODE_MAP_OFS + offsetof( LcsNodeMap, nodeId ), 
                                       nodeId );
 
                     sendAck( nodeMap.nodeId, nodeId );
@@ -299,9 +298,10 @@ void handleMsgLcsMgt( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleMsgGetNode" processes an incoming GET message for a node or port attribute. 
-// We construct the reply message with the requested data.
+// "handleMsgGetNode" processes an incoming GET message. We carry out the request 
+// and construct the reply message with the requested data.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgGetNode( uint8_t *msg ) {
 
@@ -322,6 +322,7 @@ void handleMsgGetNode( uint8_t *msg ) {
 // "handleMsgPutNode" processes an incoming PUT message for a node or port attribute. 
 // We update the data and send a confirmation.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgPutNode( uint8_t *msg ) {
 
@@ -345,6 +346,7 @@ void handleMsgPutNode( uint8_t *msg ) {
 // cleared. All we do is to route the reply messages to the callback for the port. It
 // is up to the firmware programmer to analyze for what and whom the reply really is. 
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgRepNode( uint8_t *msg ) {
 
@@ -369,7 +371,7 @@ void handleMsgRepNode( uint8_t *msg ) {
 // message request will result in invoking the register firmware callback. We send a
 // a reply or error message.
 //
-// ??? we need to get the sender Id...
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgReqNode( uint8_t *msg ) {
 
@@ -394,6 +396,7 @@ void handleMsgReqNode( uint8_t *msg ) {
 // routine, which will manage the timely invocation of the event callbacks. The event
 // mask has a bit for each port. 
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgEvent( uint8_t *msg ) {
 
@@ -445,6 +448,7 @@ void handleMsgEvent( uint8_t *msg ) {
 // do is to pass the message to the call back routine. One day, we could decode the 
 // message a bit more and invoke more specialized callback.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleMsgDccMgt( uint8_t *msg ) {
 
@@ -453,9 +457,12 @@ void handleMsgDccMgt( uint8_t *msg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State FAIL. This is the state after the node startup failed. We simply stay
-// in this state.
+// Node State FAIL. This is the state after the node startup failed. We simply
+// stay in this state.
 //
+// ??? how critical is the state ? should we fatalErr ? 
+// can we be reached from outside ?
+// should we have a watchdog mechanism that retries ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateFail( ) {
 
@@ -467,6 +474,7 @@ void handleNodeStateFail( ) {
 // power fail. We have this state so that the firmware programmer can take some 
 // recovery action before the power goes away. 
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStatePfail( ) {
 
@@ -491,12 +499,12 @@ void handleNodeStatePfail( ) {
 // 
 // ??? is there anything that we will need to remember in NVM ? 
 // ??? should all ports get a reset call ?
+// 
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateInit( ) {
 
     uint8_t rStat = NO_ERR;
-
-    setupDriverFunctions( );
 
     for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -536,6 +544,7 @@ void handleNodeStateInit( ) {
 // reply message, we will handle the message reply and the node state will advance.
 // If there is no timely reply, we will resubmit the request.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateRegister( ) {
 
@@ -563,6 +572,7 @@ void handleNodeStateRegister( ) {
 // detected a nodeId collision. We will stay in this state and only react to 
 // RESET and SET_NID messages.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateCollision( ) {
 
@@ -581,6 +591,7 @@ void handleNodeStateCollision( ) {
 // the bus is still there, just not active. We just listen to the BON or RESET message
 // to get going again.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateHalted( ) {
 
@@ -600,6 +611,7 @@ void handleNodeStateHalted( ) {
 // may have been received. Note that we just listen to messages valid for that 
 // mode and invoke the respective handler. All other messages are ignored.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateConfig( ) {
 
@@ -633,11 +645,12 @@ void handleNodeStateConfig( ) {
 // that may have been received. Note that we just listen to messages valid for that
 // mode and invoke the respective handler. All other messages are ignored.
 //
+// ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
 void handleNodeStateOperations( ) {
 
     uint16_t senderNpId;
-    uint8_t msg [ MAX_LCS_MSG_SIZE ];
+    uint8_t  msg [ MAX_LCS_MSG_SIZE ];
 
     switch ( receiveLcsMsg( &senderNpId, msg )) {
 
@@ -808,7 +821,7 @@ uint8_t registerEventCallback( LcsEventCallback functionId,
 
     for ( int i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        if ( portMask & ( 1 << i )) portMap.map[ i ].eventCallback = functionId;
+        if ( portMask & ( 1U << i )) portMap.map[ i ].eventCallback = functionId;
     }
 
     return ( LCS_OK );

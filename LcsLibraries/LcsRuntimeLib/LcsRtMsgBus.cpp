@@ -23,11 +23,11 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -59,13 +59,6 @@ namespace {
 
 using namespace LCS;
 
-//----------------------------------------------------------------------------------------
-// Little helper functions and constants.
-//
-//----------------------------------------------------------------------------------------
-const uint32_t DEF_REQ_TIMEOUT_VAL_MS = 50000;
-
-
 }; // namespace
 
 
@@ -81,7 +74,9 @@ namespace LCS {
 // we successfully initialized the runtime library.
 // 
 //----------------------------------------------------------------------------------------
-uint8_t sendLcsMsg( uint16_t senderNpId, uint8_t *msg, uint8_t msgPri ) {
+uint8_t sendLcsMsg( uint16_t senderNpId, 
+                    uint8_t *msg, 
+                    uint8_t msgPri = MSG_PRI_NORMAL ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_READY );
     return ( msgBus -> sendLcsMsg( senderNpId, msg, msgPri ));
@@ -135,6 +130,8 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
 
             uint16_t npId = (( msg[1] << 8 ) + msg[2] ) >> 4;
 
+            // ??? our node ?
+
             // ??? check the port / channel for a pending request...
             // fix ....
             
@@ -162,7 +159,9 @@ uint8_t sendBusOn( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BON };
 
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_VERY_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_VERY_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -174,7 +173,9 @@ uint8_t sendBusOff( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_BOF };
 
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_VERY_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_VERY_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -183,10 +184,6 @@ uint8_t sendBusOff( ) {
 //  LCS_OP_CFG nId-H nId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendCfg( uint16_t targetNpId ) {
-
-    if (( nodeMap.nodeState != NS_OPERATE ) && 
-        ( nodeMap.nodeState != NS_CONFIG )) 
-        return ( ERR_LIB_NOT_READY );
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_CFG };
     msgBuf[ 1 ] = highByte( targetNpId );
@@ -224,7 +221,9 @@ uint8_t sendReset( uint16_t targetNpId ) {
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
    
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_VERY_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_VERY_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -275,7 +274,9 @@ uint8_t sendRepNodeId( uint16_t targetNpId, uint32_t nodeUID, uint8_t flags ) {
     msgBuf[ 6 ] = ( nodeUID & 0x000000FF );
     msgBuf[ 7 ] = flags;
 
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_LOW ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_LOW ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -297,7 +298,9 @@ uint8_t sendSetNodeId( uint16_t sendingNpId,
     msgBuf[ 6 ] = ( nodeUID & 0x000000FF );
     msgBuf[ 7 ] = flags;
 
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_LOW ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_LOW ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -315,7 +318,9 @@ uint8_t sendNodeCollision( uint16_t sendingNpId, uint32_t nodeUID ) {
     msgBuf[ 5 ] = ( nodeUID & 0x0000FF00 ) >> 8;
     msgBuf[ 6 ] = ( nodeUID & 0x000000FF );
 
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                                    msgBuf, 
+                                    MSG_PRI_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -488,6 +493,7 @@ uint8_t sendEvent( uint16_t sendingNpId, uint16_t eventId, uint16_t arg ) {
     msgBuf[ 3 ] = highByte( arg );
     msgBuf[ 4 ] = lowByte( arg );
 
+    // ??? this should be no different than a remote GET ...
     localMsgEvent( msgBuf ); // ??? rethink ...
 
     return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_NORMAL ));
@@ -501,7 +507,9 @@ uint8_t sendEvent( uint16_t sendingNpId, uint16_t eventId, uint16_t arg ) {
 uint8_t sendTrackOn( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_TON };
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -512,7 +520,9 @@ uint8_t sendTrackOn( ) {
 uint8_t sendTrackOff( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_TOF };
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -523,7 +533,9 @@ uint8_t sendTrackOff( ) {
 uint8_t sendEstop( ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_ESTP };
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_VERY_HIGH ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_VERY_HIGH ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -536,7 +548,9 @@ uint8_t sendReqLoc( uint16_t locAdr, uint8_t flags ) {
     msgBuf[ 1 ] = highByte( locAdr );
     msgBuf[ 2 ] = lowByte( locAdr );
     msgBuf[ 3 ] = flags;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
+                         msgBuf, 
+                         MSG_PRI_NORMAL ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -547,7 +561,7 @@ uint8_t sendRelLoc( uint8_t sId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_REL_LOC };
     msgBuf[ 1 ] = sId;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf));
 }
 
 //----------------------------------------------------------------------------------------
@@ -569,7 +583,7 @@ uint8_t sendRepLoc( uint8_t sId,
     msgBuf[ 5 ] = fn1;
     msgBuf[ 6 ] = fn2;
     msgBuf[ 7 ] = fn3;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -582,7 +596,7 @@ uint8_t sendLocConsist( uint8_t sId, uint8_t consId, uint8_t flags ) {
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = consId;
     msgBuf[ 3 ] = flags;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -593,7 +607,7 @@ uint8_t sendQueryLoc( uint8_t sId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_QRY_LOC };
     msgBuf[ 1 ] = sId;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -604,7 +618,7 @@ uint8_t sendKeepLoc( uint8_t sId ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_KEEP_LOC };
     msgBuf[ 1 ] = sId;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -616,7 +630,7 @@ uint8_t sendSetLocSpDir( uint8_t sId, uint8_t spDir ) {
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LSPD };
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = spDir;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -628,7 +642,7 @@ uint8_t sendSetLocMode( uint8_t sId, uint8_t mode ) {
     uint8_t msgBuf[ 8 ] = { LCS_OP_SET_LMOD };
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = mode;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -640,7 +654,7 @@ uint8_t sendSetLocFuncOn( uint8_t sId, uint8_t fNum ) {
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FON };
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = fNum;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -652,7 +666,7 @@ uint8_t sendSetLocFuncOff( uint8_t sId, uint8_t fNum ) {
     uint8_t msgBuf[ 8 ] = { LCS_OP_LOC_FOFF };
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = fNum;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -665,7 +679,7 @@ uint8_t sendSetLocFgroup( uint8_t sId, uint8_t fGroup, uint8_t data ) {
     msgBuf[ 1 ] = sId;
     msgBuf[ 2 ] = fGroup;
     msgBuf[ 3 ] = data;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -680,7 +694,7 @@ uint8_t sendSetLocCvMain( uint8_t sId, uint16_t cvId, uint8_t mode, uint8_t val 
     msgBuf[ 3 ] = lowByte( cvId );
     msgBuf[ 4 ] = mode;
     msgBuf[ 5 ] = val;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -694,7 +708,7 @@ uint8_t sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val ) {
     msgBuf[ 2 ] = lowByte( cvId );
     msgBuf[ 3 ] = mode;
     msgBuf[ 4 ] = val;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -707,7 +721,7 @@ uint8_t sendReqLocCvProg( uint16_t cvId, uint8_t mode ) {
     msgBuf[ 1 ] = highByte( cvId );
     msgBuf[ 2 ] = lowByte( cvId );
     msgBuf[ 3 ] = mode;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -720,7 +734,7 @@ uint8_t sendRepLocCvProg( uint16_t cvId, uint8_t val ) {
     msgBuf[ 1 ] = highByte( cvId );
     msgBuf[ 2 ] = lowByte( cvId );
     msgBuf[ 3 ] = val;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -733,7 +747,7 @@ uint8_t sendSetBacc( uint16_t accAdr, uint8_t flags ) {
     msgBuf[ 1 ] = highByte( accAdr );
     msgBuf[ 2 ] = lowByte( accAdr );
     msgBuf[ 3 ] = flags;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -746,7 +760,7 @@ uint8_t sendSetEacc( uint16_t accAdr, uint8_t val ) {
     msgBuf[ 1 ] = highByte( accAdr );
     msgBuf[ 2 ] = lowByte( accAdr );
     msgBuf[ 3 ] = val;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -759,7 +773,7 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 ) {
     msgBuf[ 1 ] = arg1;
     msgBuf[ 2 ] = arg2;
     msgBuf[ 3 ] = arg3;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -773,7 +787,7 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 ) 
     msgBuf[ 2 ] = arg2;
     msgBuf[ 3 ] = arg3;
     msgBuf[ 4 ] = arg4;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -792,7 +806,7 @@ uint8_t sendDccPacket( uint8_t arg1,
     msgBuf[ 3 ] = arg3;
     msgBuf[ 4 ] = arg4;
     msgBuf[ 5 ] = arg5;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -813,7 +827,7 @@ uint8_t sendDccPacket( uint8_t arg1,
     msgBuf[ 4 ] = arg4;
     msgBuf[ 5 ] = arg5;
     msgBuf[ 6 ] = arg6;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -824,13 +838,39 @@ uint8_t sendDccAck( uint8_t rStat ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_DCC_ACK };
     msgBuf[ 1 ] = rStat;
-    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf, MSG_PRI_LOW ));
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
-//
+// Remote update facility messages.
 //
 //----------------------------------------------------------------------------------------
-// ??? add firmware update messages...
+uint8_t sendStartLoad( uint16_t npId, uint8_t  cmd, uint32_t size ) {
+
+    return( 0 );
+}
+
+uint8_t sendStartBlock( uint16_t npid, uint8_t cmd, uint16_t blockId )  {
+
+    return( 0 );
+}
+
+uint8_t sendBlockData( uint16_t npid, uint8_t cmd, uint32_t data )  {
+
+    return( 0 );
+}
+
+uint8_t sendEndBlock( uint16_t npid,
+                      uint8_t cmd,
+                      uint16_t blockId,
+                      uint16_t checkSum )  {
+
+    return( 0 );
+}
+
+uint8_t sendEndLoad( uint16_t npid, uint8_t cmd, uint32_t checkSum )  {
+
+    return( 0 );
+}
 
 }; // namespace LCS

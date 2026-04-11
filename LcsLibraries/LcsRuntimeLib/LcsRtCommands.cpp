@@ -30,7 +30,6 @@
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
-#include "LcsUtilLib.h"
 
 //----------------------------------------------------------------------------------------
 // External declaration to global structures and functions.
@@ -45,7 +44,7 @@ namespace LCS {
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
     extern LcsTaskMap           taskMap;
-    extern LcsDrvFuncMap        drvFuncMap;
+    
     extern LcsMsgBusCAN         *msgBus;
 
     extern CdcResourceDescMap   dMap;
@@ -286,24 +285,6 @@ void dumpMemTaskMap( ) {
 //
 //
 //----------------------------------------------------------------------------------------
-void dumpMemDrvFuncMap( ) {
-
-    printf( "MEM Driver Function Map: (Size: %d, Hwm: %d) \n\n", 
-            MAX_DRV_TYPE_MAP_ENTRIES, drvFuncMap.mapHwm );
-
-    for ( int i  = 0; i < MAX_DRV_TYPE_MAP_ENTRIES; i++ ) {
-
-        LcsDrvFuncEntry *entry = &drvFuncMap.map[ i ];
-        printf( "%2d: Type: %2d, Func: %p\n", i, entry -> drvType, entry -> drvFunc );
-    }
-
-    printf( "\n" );
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
 void dumpMemRuntimeArea( ) {
 
     printf( "MEM Area Dump: \n\n" );
@@ -312,7 +293,6 @@ void dumpMemRuntimeArea( ) {
     dumpMemNodeData( );
     dumpMemEventMap( );
     dumpMemTaskMap( );
-    dumpMemDrvFuncMap( );
     printf( "\n" );
 }
 
@@ -323,8 +303,8 @@ void dumpMemRuntimeArea( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmHeader( ) {
 
-    printf( "NVM Header (Node): \n" );
-    dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsBoardDesc), 8, true );
+    printf( "NVM Header: \n" );
+    dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsNvmHeader), 8, true );
     printf( "\n" );
 }
 
@@ -505,18 +485,6 @@ void printMemTaskMap( ) {
 
     printf( "Task Map (Size: %d, Hwm: %d): \n\n", 
             MAX_TASK_MAP_ENTRIES, taskMap.mapHwm );
-
-    // ??? to do ...
-}
-
-//----------------------------------------------------------------------------------------
-//
-// ??? goes away ?
-//----------------------------------------------------------------------------------------
-void printMemDriverMap( ) {
-
-    printf( "Driver Map (Size: %d, Hwm: %d): \n\n", 
-            MAX_DRV_TYPE_MAP_ENTRIES, drvFuncMap.mapHwm );
 
     // ??? to do ...
 }
@@ -873,20 +841,18 @@ void listStatusCommand( char *s ) {
             case 4:     dumpMemEventMap( );             break;
             case 5:     dumpMemPortMap( );              break;
             case 6:     dumpMemTaskMap( );              break;
-            case 7:     dumpMemDrvFuncMap( );           break;
-            case 8:     dumpMemRuntimeArea( );          break;
+            case 7:     dumpMemRuntimeArea( );          break;
 
             case 21:    dumpNvmHeader( );               break;
             case 22:    dumpNvmNodeMap( );              break;
             case 23:    dumpNvmNodeData( );             break;
             case 24:    dumpNvmEventMap( );             break;
-            case 28:    dumpNvmRuntimeArea( );          break;
+            case 27:    dumpNvmRuntimeArea( );          break;
 
             case 42:    printMemNodeMap( );             break;
             case 44:    printMemEventMap( );            break;
             case 45:    printMemPortMap( );             break;
             case 46:    printMemTaskMap( );             break;
-            case 47:    printMemDriverMap( );           break;
             
             case 50:    listDevicesI2C( );              break;   
             case 51:    printResourceDescMap( &dMap );  break;
@@ -928,8 +894,7 @@ void listCoreLibHelpCommand( ) {
     printf( "   " " -   4    24   44    - Event Map\n" );
     printf( "   " " -   5         45    - Port Map\n" );
     printf( "   " " -   6         46    - Task Map\n" );
-    printf( "   " " -   7         47    - Driver Map\n" );
-    printf( "   " " -   8    28         - Runtime Area\n" );
+    printf( "   " " -   7    27         - Runtime Area\n" );
 
     printf( "   " " -  50  - Scan I2C Devices\n" );
     printf( "   " " -  51  - CDC Resource Desc Map\n");

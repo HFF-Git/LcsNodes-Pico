@@ -4,21 +4,28 @@
 //
 //----------------------------------------------------------------------------------------
 // A key concept in the LCS runtime is the idea of items. An item is an entity
-// such as a data attribute of a port or a function callback related to an item.
-// The item itself is a number. items are organized in ranges. Item 1 to 63 are
+// such as a data attribute of a port or a requested function to perform. The
+// item itself is a number. items are organized in ranges. Item 1 to 63 are
 // reserved for runtime library attribute and functions, items 64 to 127 are 
 // reserved for driver functions and items 128 to 255 are user defined items for
 // attributes and function.
 // 
-// This file contains the LCS runtime routines that implement node attribute and
-// function access. There are three routines that allow to manipulate node and
-// port data as well as issue requests to a node or port. The "npId" will indicate
-// which node and port the call refers to. The node portion is ignored, as the 
-// calls in this module always refer to the local node.
+// This file contains the LCS runtime routines that implement attribute and
+// function access. Besides the item argument there is also the "npId" argument,
+// which indicates the node and port the item refers to. The node portion of the
+// npId is ignored, as the calls in this module always refer to the local node.
+// The port portion of the npId is used to determine the port the item refers to.
+// Finally, the channel portion of the npId is is used when the item is a driver
+// function request.
 //
 // In addition there are extended attributes for the node. They are also indexed 
 // by an item number. Item number 256 to NN are referring to them. "NN" depends
 // on the actual size of the NVM on the board. 
+//
+// Note that the routines offered in this module are blocking calls. The caller
+// will wait until the call is completed. The message system is responsible for
+// receiving a message, calling this blocking functions in this module and 
+// sending the reply back to the caller. 
 //
 //----------------------------------------------------------------------------------------
 //
@@ -29,11 +36,11 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -77,7 +84,7 @@ namespace LCS {
 };
 
 //----------------------------------------------------------------------------------------
-// The LcsCoreLib implementation file local declarations and routines.
+// The LcsCoreLib implementation file local declarations and routines. 
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -111,52 +118,48 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
 //----------------------------------------------------------------------------------------
 // "readAttrMem" gets a value from the node or port attribute map in MEM. As an
-// internal function, we expect validated arguments. The "block" argument will 
+// internal function, we expect validated arguments. The "port" argument will 
 // refer to the node and port data attributes. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrMem( uint16_t block, uint16_t item, uint16_t *arg ) {
+uint8_t readAttrMem( uint16_t port, uint16_t item, uint16_t *arg ) {
 
-    *arg = nodeData.map[ block ][ item - IR_ATTR_RANGE_START ];
+    *arg = nodeData.map[ port ][ item - IR_ATTR_RANGE_START ];
     return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
 // "writeAttrMem" stores a value to a node or port attribute map in MEM. As an 
-// internal function, we expect validated arguments. The "block" argument will
+// internal function, we expect validated arguments. The "port" argument will
 // refer to the node and port data attributes. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t writeAttrMem( uint16_t block, uint16_t item, uint16_t arg ) {
+uint8_t writeAttrMem( uint16_t port, uint16_t item, uint16_t arg ) {
 
-    nodeData.map[ block ][ item - IR_ATTR_RANGE_START ] = arg;
+    nodeData.map[ port ][ item - IR_ATTR_RANGE_START ] = arg;
     return ( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
 // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
 // from the NVM area. If successful, we also store it in the MEM counterpart 
-// and then return it. This ensures that NVM and MEM are always in sync when 
-//accessing NVM. For NVM access, the byte offset into the storage needs to 
-// be computed. As an internal function, we expect validated arguments.
+// and then return it. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrNvm( uint16_t block, uint16_t item, uint16_t *arg ) {
+uint8_t readAttrNvm( uint16_t port, uint16_t item, uint16_t *arg ) {
 
     uint16_t index  = item - IR_ATTR_RANGE_START;
     uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
-        (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        (( port * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
     uint8_t rStat = rtNvmGetWord( ofs, arg );
-    if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, *arg );
+    if ( rStat == NO_ERR ) rStat = writeAttrMem( port, item, *arg );
     return ( rStat );
 }
 
 //----------------------------------------------------------------------------------------
 // "writeAttrNvm" stores an attribute to the NVM storage. If the update is 
-// successful, we also update the corresponding MEM attribute. This ensures 
-// that NVM and MEM are always in sync when accessing the NVM. For the NVM 
-// access, the byte offset into the storage needs to be computed. As an internal
+// successful, we also update the corresponding MEM attribute. As an internal
 // function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
@@ -177,10 +180,10 @@ uint8_t writeAttrNvm( uint16_t block, uint16_t item, uint16_t arg ) {
 // function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t syncAttrToMem( uint16_t block, uint16_t item ) {
+uint8_t syncAttrToMem( uint16_t port, uint16_t item ) {
 
     uint16_t arg = 0;
-    return ( readAttrNvm( block, item, &arg ));
+    return ( readAttrNvm( port, item, &arg ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -189,32 +192,12 @@ uint8_t syncAttrToMem( uint16_t block, uint16_t item ) {
 // item argument.
 //
 //----------------------------------------------------------------------------------------
-uint8_t syncAttrToNvm( uint16_t block, uint16_t item ) {
+uint8_t syncAttrToNvm( uint16_t port, uint16_t item ) {
 
     uint16_t    arg     = 0;
-    uint8_t     rStat   = readAttrMem( block, item, &arg );
-    if ( rStat == NO_ERR ) rStat = writeAttrNvm( block, item, arg );
+    uint8_t     rStat   = readAttrMem( port, item, &arg );
+    if ( rStat == NO_ERR ) rStat = writeAttrNvm( port, item, arg );
     return ( rStat );
-}
-
-//----------------------------------------------------------------------------------------
-// "readAttrMemExt" reads an attribute from the extended attribute map in main
-// memory. As an internal function, we expect validated arguments.
-//
-//----------------------------------------------------------------------------------------
-uint8_t readAttrMemExt( uint16_t item, uint16_t *arg ) {
-
-    return ( ERR_NOT_IMPLEMENTED );
-}
-
-//----------------------------------------------------------------------------------------
-// "writeAttrMemExt" updates an attribute in the extended attribute map in main
-// memory. As an internal function, we expect validated arguments.
-//
-//----------------------------------------------------------------------------------------
-uint8_t writeAttrMemExt( uint16_t item, uint16_t arg ) {
-
-    return ( ERR_NOT_IMPLEMENTED );
 }
 
 //----------------------------------------------------------------------------------------
@@ -224,7 +207,11 @@ uint8_t writeAttrMemExt( uint16_t item, uint16_t arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t readAttrNvmExt( uint16_t item, uint16_t *arg ) {
 
-    return ( ERR_NOT_IMPLEMENTED );
+    uint16_t index  = item - IR_GLOBAL_ATTR_START;
+    uint16_t ofs    = NVM_EXT_NODE_DATA_OFS + sizeof( LcsNodeExtData ) + 
+                      ( index * sizeof( uint16_t ));
+
+    return ( rtNvmGetWord( ofs, arg ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -234,34 +221,18 @@ uint8_t readAttrNvmExt( uint16_t item, uint16_t *arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t writeAttrNvmExt( uint16_t item, uint16_t arg ) {
 
-    return ( ERR_NOT_IMPLEMENTED );
-}
+    uint16_t index  = item - IR_GLOBAL_ATTR_START;
+    uint16_t ofs    = NVM_EXT_NODE_DATA_OFS + sizeof( LcsNodeExtData ) + 
+                      ( index * sizeof( uint16_t ));
 
-//----------------------------------------------------------------------------------------
-// "syncAttrToMemExt" will copy the NVM extended attribute value to the MEM
-// counterpart. All we do is just reading the NVM value to a dummy variable.
-// As an internal function, we expect validated arguments.
-//
-//----------------------------------------------------------------------------------------
-uint8_t syncAttrToMemExt( uint16_t item ) {
-
-    return ( ERR_NOT_IMPLEMENTED );
-}
-
-//----------------------------------------------------------------------------------------
-// "syncAttrToNvmExt" will take the MEM attribute value of an item and writes it 
-// to the NVM counterpart. As an internal function, we expect validated arguments.
-//
-//----------------------------------------------------------------------------------------
-uint8_t syncAttrToNvmExt( uint16_t item ) {
-
-    return ( ERR_NOT_IMPLEMENTED );
+    return ( rtNvmPutWord( ofs, arg ));
 }
 
 //----------------------------------------------------------------------------------------
 // "libItemGet" handles all items that directly refer to the node and port map.
 // As an internal function, we expect validated arguments.
 //
+// ??? add new items for new nodeMap fields.
 //----------------------------------------------------------------------------------------
 uint8_t libItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
@@ -310,6 +281,7 @@ uint8_t libItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 // "libItemSet" handles all items that directly refer to the node and port map.
 // As an internal function, we expect validated arguments.
 //
+// ??? add new items for new nodeMap fields.
 //----------------------------------------------------------------------------------------
 uint8_t libItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 
@@ -435,7 +407,8 @@ uint8_t libItemRequest( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// Get a port attribute.
+// Get a port attribute. Depending on the node state, we will read the attribute
+// from MEM or NVM. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
 uint8_t attrItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
@@ -452,7 +425,8 @@ uint8_t attrItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Set a port attribute.
+// Set a port attribute. Depending on the node state, we will write the attribute
+// to MEM or NVM. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
 uint8_t attrItemSet( int16_t npId, uint16_t item, uint16_t arg  ) {
@@ -474,11 +448,7 @@ uint8_t attrItemSet( int16_t npId, uint16_t item, uint16_t arg  ) {
 //----------------------------------------------------------------------------------------
 uint8_t glbItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
 
-    if ( nodeMap.nodeState == NS_OPERATE ) {
-
-        return ( RET_STAT( readAttrMemExt( item, arg )));
-    }
-    else if ( nodeMap.nodeState == NS_CONFIG  ) {
+    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_INIT )) {
 
         return ( RET_STAT( readAttrNvmExt( item, arg )));
     }
@@ -491,11 +461,7 @@ uint8_t glbItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
 //----------------------------------------------------------------------------------------
 uint8_t glbItemSet( int16_t npId, uint16_t item, uint16_t arg  ) {
 
-    if ( nodeMap.nodeState == NS_OPERATE ) {
-
-        return ( RET_STAT( writeAttrMemExt( item, arg )));
-    }
-    else if ( nodeMap.nodeState == NS_CONFIG  ) {
+    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_INIT )) {
 
         return ( RET_STAT( writeAttrNvmExt( item, arg )));
     }
@@ -534,8 +500,6 @@ uint8_t userItemRequest( uint16_t npId,
 //----------------------------------------------------------------------------------------
 uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
-    // ??? analyze the item to see if command or attr fetch
-
     uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
     uint8_t ofs     = item - IR_DRV_CHAN_START;
     uint8_t rStat   = 0;
@@ -553,8 +517,6 @@ uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 //----------------------------------------------------------------------------------------
 uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 
-    // ??? analyze the item to see if command or attr set
-
     uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
     uint8_t ofs     = item - IR_DRV_CHAN_START;
     uint8_t rStat   = 0;
@@ -569,10 +531,7 @@ uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 
 //----------------------------------------------------------------------------------------
 // Driver request submit. We fill in the command data in the device. There are
-// four fields, STATUS, CMD, ARG1 and ARG2. In contrast to the library and 
-// use request items, we will not wait for a replay, as this may take a bit.
-// Instead, we fill the fields and return. A later status polling via the 
-// GET function will check the outcome and return the reply.
+// four fields, CMD, ARG1 and ARG2 and STATUS. 
 // 
 //----------------------------------------------------------------------------------------
 uint8_t drvItemRequest( uint16_t npId, 
@@ -580,22 +539,40 @@ uint8_t drvItemRequest( uint16_t npId,
                         uint16_t *arg1, 
                         uint16_t *arg2 ) {
 
-    LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
+    const int retycountMax = 10;
 
-    uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
-    uint8_t ofs     = 9; // ??? make it a constant. 
-    uint8_t buf[ 16 ];
+    uint16_t        index   = item - IR_DRV_CHAN_START;
+    LcsPortMapEntry *pPtr   = & portMap.map[ portId( npId ) ];
+    uint8_t         i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8;
+    uint8_t         rStat   = 0;
+    uint8_t         buf[ 16 ];
+    
+    buf[ 0 ] = lowByte( item );
+    buf[ 1 ] = lowByte( *arg1 );
+    buf[ 2 ] = highByte( *arg1 );
+    buf[ 3 ] = lowByte( *arg2 );
+    buf[ 4 ] = highByte( *arg2 );
 
-    buf[ 0 ] = 0;
-    buf[ 1 ] = lowByte( item );
-    buf[ 2 ] = lowByte( *arg1 );
-    buf[ 3 ] = highByte( *arg1 );
-    buf[ 4 ] = lowByte( *arg2 );
-    buf[ 5 ] = highByte( *arg2 );
+    rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, buf, 6, false );
 
-    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, buf, 6, false ));
+    if ( rStat == NO_ERR ) {
+
+        // ??? ugly, we could wait forever...
+
+        while ( true ) {
+
+            rStat = i2cRead( CDC_RN_EXT_NVM, i2cAdr, buf, 1, false );
+            if ( rStat != NO_ERR ) break;
+
+            if ( buf[ 0 ] == 0xFF ) continue; // still processing
+
+            break;
+        }
+    }
+
+    return( rStat );
 }
- 
+
 } // namespace
 
 
@@ -606,10 +583,8 @@ uint8_t drvItemRequest( uint16_t npId,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "nodeGet" will lookup a value from the header map, node map, port map or the 
-// attribute data map. The "npId" argument contains the node and port Id. The 
-// item argument determines which value we want to get. The data is returned in 
-// the "arg" argument.
+// "nodeGet" will lookup a value from the various maps based on the item Id. 
+// The "npId" argument contains the node/port/channel Id. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
@@ -643,10 +618,8 @@ uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeSet" will write a value to the node map, port map or the attribute data 
-// ranges. The "npId" argument contains the node, port and channel Id. For data
-// attribute items the node state determines whether we just update the MEM 
-// attribute or both MEM and NVM version. Node state CONFIG will update NVM too. 
+// "nodeSet" will write a value into one of the various maps. The "npId"
+// argument contains the node/port/channel Id. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t val ) {
@@ -676,10 +649,11 @@ uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeReq" will carry out a node, port or driver function request. A function 
-// item defined in the user range, is handled by the firmware registered 
-// callback function. Function items in the system range are handled by the 
-// runtime library. 
+// "nodeReq" will carry out a node, port or driver function request. The "npId"
+// argument contains the node/port/channel Id. The "item" argument indicates the
+// requested function. The "arg1" and "arg2" arguments are optional arguments 
+// for the requested function. The actual meaning of the arguments depends on 
+// the requested function.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nodeReq( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) {

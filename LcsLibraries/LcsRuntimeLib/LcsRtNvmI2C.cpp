@@ -30,16 +30,6 @@
 //
 //----------------------------------------------------------------------------------------
 
-
-// ??? this file will only support the runtime NVM, all else is handled by I2C channel
-// stuff.... take out extension board stuff.
-//
-// ??? take out the LC04 chip type...
-
-// ??? compute the available user map size during configuration...
-
-
-
 //----------------------------------------------------------------------------------------
 // Include files.
 //
@@ -53,8 +43,7 @@
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t     debugMask;
-    extern LcsNodeMap   nodeMap;
+    extern uint16_t debugMask;
 };
 
 //----------------------------------------------------------------------------------------
@@ -76,12 +65,11 @@ using namespace CDC;
 //
 // The pageSizes on the chip are a multiple of 32bytes. For now, we use this size 
 // as the common denominator. Block handling and chipSize page handling are nicely
-// taken care of this way. The downside is however that a write will update the chip
-// page up to four times for a pageSize of 128. However, since the chips have more
-// than a million write cycles and we rarely write large chunks of data, this will
-// hopefully not be an issue in the near future.
+// taken care of this way. The downside is however that a write will update the 
+// chip page up to four times for a pageSize of 128. However, since the chips 
+// have more than a million write cycles and we rarely write large chunks of data,
+// this will hopefully not be an issue in the near future.
 //
-// ??? the M24C04 is to be phased out ... we do not use that chip anymore...
 //----------------------------------------------------------------------------------------
 const uint16_t      MAX_BUFFER_BLOCK_SIZE       = 128;
 const uint16_t      DEF_BUFFER_BLOCK_SIZE       = 16;
@@ -104,41 +92,24 @@ const uint32_t      M24LC512_MAX_SIZE           = 65536;
 const uint8_t       NVM_I2C_ADR_ROOT            = 0b1010000;
 const uint32_t      NVM_I2C_BAUDRATE            = 100 * 1000;
 
-const uint8_t       EXT_I2C_ADR_ROOT            = 0b1010000;
-const uint32_t      EXT_I2C_BAUDRATE            = 50 * 1000;
-
 const uint8_t       NVM_WRITE_DELAY             = 0x05;
 
 //----------------------------------------------------------------------------------------
-// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The maximum size for
-// an extension board NVM chip is 4Kb. 
+// Runtime NVM sizes. The maximum size of a NVM chip is 64Kb. The minimum size
+// must at least cover the runtime areas, which is less than 8Kb.
 //
 //----------------------------------------------------------------------------------------
+const uint32_t      NVM_MIN_NVM_SIZE            = 0x2000;
 const uint32_t      NVM_MAX_NVM_SIZE            = 0x10000;
-const uint32_t      NVM_MAX_EXT_SIZE            = 0x1000;
 
 //----------------------------------------------------------------------------------------
 // Module global data. A LCS node board has two NVM channels. The "NVM" channel 
-// refers to the NVM chip on main controller board. The "EXT" channel is the I2C 
-// bus that reaches out the the extension boards. On each extension board there is
-// again a small NVM chip with configuration data. 
-//
-// There is no easy way to determine the size of the actual chip. By convention, the
-// extension board NVM chip has a fixed 4 Kbytes. The NVM chip on the main controller 
-// board is at least 16Kbyte. The maximum size is 64 Kbytes. All the chips are from
-// a hardware perspective identical. The difference between the runtime map size and 
-// the particular NVM chip maximum is considered "user NVM space" which the firmware
-// can use as needed.
+// refers to the NVM chip on main controller board. 
 //
 //----------------------------------------------------------------------------------------
 uint32_t    nodeNvmSize         = 0;
 uint32_t    nodeNvmBlockSize    = DEF_BUFFER_BLOCK_SIZE;
-
-uint32_t    extNvmSize          = 0;
-uint32_t    extNvmBlockSize     = DEF_BUFFER_BLOCK_SIZE;
-
 uint8_t     rNumNvm             = UNDEFINED_RES_ID;
-uint8_t     rNumExtNvm          = UNDEFINED_RES_ID;
 
 //----------------------------------------------------------------------------------------
 // "nvmDebugEnabled" and "retStat" are the debug support routines. We can easily 
@@ -215,6 +186,7 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 //   • Devices smaller than 32-Kbit (24LC16/08/04) use 1-byte addressing and
 //     separate I²C sub-addresses; support for those can be added separately.
 //
+// It is amazing how much code one needs to deal with a flexible use of chips.
 //----------------------------------------------------------------------------------------
 uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
@@ -435,8 +407,6 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
                              uint8_t  *buf, 
                              uint32_t len ) {
 
-    uint8_t rStat = NO_ERR;
-
     if ( nvmDebugEnabled( )) {
 
         printf( "nvmGetBytesFromPage: rNum: %d, i2cAdr: 0x%x," 
@@ -444,8 +414,7 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
                 rNum, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
-
+    uint8_t rStat = NO_ERR;
     uint8_t adr[ 2 ];
 
     adr[ 0 ] =  ( ofs >> 8 ) & 0xFF;
@@ -458,12 +427,12 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmPutBytesInPage" transmits a set of data bytes only within the page boundary.
-// In general, a write cannot cross a chip internal page boundary. The Chip expects 
-// a write to be one sequence with the address bytes first followed by the data bytes
-// with no stop or restart condition in between. This took me quite some debugging 
-// to figure  this out. We will have a local buffer where we combine the address and
-// data and then send it.
+// "nvmPutBytesInPage" transmits a set of data bytes only within the page 
+// boundary. In general, a write cannot cross a chip internal page boundary. 
+// The Chip expects a write to be one sequence with the address bytes first 
+// followed by the data bytes with no stop or restart condition in between. 
+// This took me quite some debugging to figure  this out. We will have a local
+// buffer where we combine the address and data and then send it.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nvmPutBytesInPage( uint8_t  rNum, 
@@ -481,23 +450,19 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
                 "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
-
     dataBuf[ 0 ] = ( ofs  >> 8 ) & 0xFF;
     dataBuf[ 1 ] = ofs & 0xFF;
 
     for ( int i = 0; i < len; i++ ) dataBuf[ i + 2 ] = buf[ i ];
 
-    rStat = i2cWrite( rNum, i2cAdr, dataBuf, len + 2, false );
-
-    return ( RET_STAT( rStat ));
+    return ( RET_STAT( i2cWrite( rNum, i2cAdr, dataBuf, len + 2, false )));
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmGetBytes" reads a set of data bytes from the memory. Although read operations
-// do not have a page boundary issue, we stick to the concept to read within page 
-// boundaries as we may one day use more than chip to build NVMs and then we have 
-// no problems with crossing chip boundaries.
+// "nvmGetBytes" reads a set of data bytes from the memory. Although read 
+// operations do not have a page boundary issue, we stick to the concept to 
+// read within page boundaries as we may one day use more than chip to build 
+// NVMs and then we have no problems with crossing chip boundaries.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nvmGetBytes( uint8_t rNum, 
@@ -514,13 +479,10 @@ uint8_t nvmGetBytes( uint8_t rNum,
                 "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
-    if ( ofs + len > nvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
-
-    uint32_t bufSize = (( rNum == rNumNvm ) ? nodeNvmBlockSize : extNvmBlockSize );
+    if ( ofs + len > nodeNvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
 
     uint32_t  bytesLeft     = len;
-    uint32_t  pageBytesLeft = bufSize - ofs % bufSize;
+    uint32_t  pageBytesLeft = nodeNvmBlockSize - ofs % nodeNvmBlockSize;
 
     while ( bytesLeft > pageBytesLeft ) {
 
@@ -532,7 +494,7 @@ uint8_t nvmGetBytes( uint8_t rNum,
         if ( rStat != NO_ERR ) break;
 
         bytesLeft       -= pageBytesLeft;
-        pageBytesLeft   = bufSize;
+        pageBytesLeft   = nodeNvmBlockSize;
     }
 
     if (( rStat == NO_ERR ) && ( bytesLeft > 0 )) {
@@ -548,16 +510,17 @@ uint8_t nvmGetBytes( uint8_t rNum,
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmPutBytes" transmits a set of data bytes to the memory. We cannot write across
-// the internal NVM page boundary and also across a chip boundary. This routine will
-// split  the data to write only within one page in a given write cycle.
+// "nvmPutBytes" transmits a set of data bytes to the memory. We cannot write 
+// across the internal NVM page boundary and also across a chip boundary. This
+// routine will split  the data to write only within one page in a given write 
+// cycle.
 //
-// There is a quirk with figuring out that a chip is ready for the next write. The 
-// data sheet suggest a writing of one byte to see of the chip acknowledges. If not 
-// it is still in a write operation. This approach does not seem to work with the 
-// PICO i2c libraries. So, we will go the "slow" way of giving the chip the time to
-// complete the write cycle before issuing another one. Since we do not often write
-// to the NVM, the slow mode is perhaps acceptable for now.
+// There is a quirk with figuring out that a chip is ready for the next write. 
+// The data sheet suggest a writing of one byte to see of the chip acknowledges.
+// If not it is still in a write operation. This approach does not seem to work
+// with the PICO i2c libraries. So, we will go the "slow" way of giving the chip
+// the time to complete the write cycle before issuing another one. Since we do
+// not often write to the NVM, the slow mode is perhaps acceptable for now.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nvmPutBytes( uint8_t rNum, 
@@ -574,11 +537,9 @@ uint8_t nvmPutBytes( uint8_t rNum,
                 " buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
     }
 
-    uint32_t nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
-    if ( ofs + len > nvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
+    if ( ofs + len > nodeNvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
 
-    uint32_t bufSize = (( rNum == rNumNvm ) ? nodeNvmBlockSize : extNvmBlockSize );
-
+    uint32_t  bufSize       = nodeNvmBlockSize;
     uint32_t  bytesLeft     = len;
     uint32_t  pageBytesLeft = bufSize - ofs % bufSize;
 
@@ -629,10 +590,9 @@ uint8_t nvmClearArea( uint8_t rNum,
 
     uint8_t     tmpBuf[ DEF_BUFFER_BLOCK_SIZE ];
     uint8_t     rStat   = NO_ERR;
-    uint32_t    nvmSize = (( rNum == rNumNvm ) ? nodeNvmSize : extNvmSize );
     uint32_t    limit   = ofs + len;
 
-    if ( ofs + len > nvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
+    if ( ofs + len > nodeNvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
 
     for ( int i = 0; i < DEF_BUFFER_BLOCK_SIZE; i ++ ) tmpBuf[ i ] = val;
 
@@ -670,15 +630,13 @@ uint8_t configNvm(  uint8_t rIdNvm, uint32_t nvmSize ) {
 
     rNumNvm     = rIdNvm;
     nodeNvmSize = nvmSize;
-    extNvmSize  = extNvmSize;
-
-    if ( nodeNvmSize > NVM_MAX_NVM_SIZE )   nodeNvmSize = NVM_MAX_NVM_SIZE;
+ 
+    if ( nodeNvmSize > NVM_MAX_NVM_SIZE ) nodeNvmSize = NVM_MAX_NVM_SIZE;
 
     uint32_t testSize = determineNvmChipMemorySize( rIdNvm, NVM_I2C_ADR_ROOT );
     if ( testSize < nodeNvmSize ) nodeNvmSize = testSize;
 
     nodeNvmBlockSize = determineBufferBlockSize( nodeNvmSize );
-    extNvmBlockSize  = DEF_BUFFER_BLOCK_SIZE;
 
     if ( nvmDebugEnabled( )) {
 
@@ -733,103 +691,5 @@ uint32_t rtNvmGetSize( ) {
 
     return ( nodeNvmSize );
 }
-
-#if 0
-// ??? they will go away ... ?
-//----------------------------------------------------------------------------------------
-// Extension Board Map access routines. These routines access the NVM on the 
-// extension board. The I2C address is formed by the chip common I2C address plus
-// the address bits of the chip to select the chip on the particular extension 
-// board. Similar to the runtime NVM access routines, there are routines for 
-// getting and setting a word as well as routines to read and  write a buffer. 
-// All access routines are prefixed with "ext".
-//
-//----------------------------------------------------------------------------------------
-uint8_t extNvmPutWord( uint8_t boardId, uint32_t ofs, uint16_t word ) {
-
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmPutBytes( rNumExtNvm, i2cAdr, ofs, (uint8_t *) &word, sizeof( uint16_t )));
-}
-
-uint8_t extNvmGetWord( uint8_t boardId, uint32_t ofs, uint16_t *word ) {
-
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmGetBytes( rNumExtNvm, i2cAdr, ofs, (uint8_t *) word, sizeof( uint16_t )));
-}
-
-uint8_t extNvmPutBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
-
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmPutBytes( rNumExtNvm, i2cAdr, ofs, buf, len ));
-}
-
-uint8_t extNvmGetBytes( uint8_t boardId, uint32_t ofs, uint8_t *buf, uint32_t len ) {
-
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmGetBytes( rNumExtNvm, i2cAdr, ofs, buf, len ));
-}
-
-uint8_t extNvmClearArea( uint8_t boardId, uint32_t ofs, uint32_t len, uint8_t val ) {
-
-    uint8_t i2cAdr = EXT_I2C_ADR_ROOT + (( boardId % MAX_EXT_BOARD_MAP_ENTRIES ) << 1 );
-    return ( nvmClearArea( rNumExtNvm, i2cAdr, ofs, len, val ));
-}
-
-uint32_t extNvmGetSize( ) {
-
-    return ( extNvmSize );
-}
-
-
-// ??? will go away ? we compute the offset and use the standard routines rtNvmXXX
-//----------------------------------------------------------------------------------------
-// Controller Board User Map access routines. The area between the main controller 
-// NVM chip runtime area and the chips hardware maximum size is the memory area 
-// available for the firmware programmer. Again, there are routines for getting and
-// setting a word as well as routines to read and  write a buffer. All access routines
-// are  prefixed with "usr".
-//
-// ??? how do we best offers the user space ? just a set of attributes ?
-// ??? or do we model his just like the runtime area and let the "item" code
-// figure out what to access ?
-//----------------------------------------------------------------------------------------
-uint8_t usrNvmPutWord( uint32_t ofs, uint16_t word ) {
-
-    ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( rNumNvm, 
-                          NVM_I2C_ADR_ROOT + 0, 
-                          ofs, 
-                          (uint8_t *) &word, 
-                          sizeof( uint16_t )));
-}
-
-uint8_t usrNvmGetWord( uint32_t ofs, uint16_t *word ) {
-
-    ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( rNumNvm, 
-                          NVM_I2C_ADR_ROOT + 0, 
-                          ofs, 
-                          (uint8_t *) word, 
-                          sizeof( uint16_t )));
-}
-
-uint8_t usrNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
-
-    ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
-}
-
-uint8_t usrNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
-
-    ofs = ofs + NVM_USER_MAP_OFS;
-    return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
-}
-
-uint32_t usrNvmGetSize( ) {
-       
-    return ( nodeNvmSize - NVM_RUNTIME_MAPS_SIZE );
-}
-
-#endif
 
 }; // namespace LCS

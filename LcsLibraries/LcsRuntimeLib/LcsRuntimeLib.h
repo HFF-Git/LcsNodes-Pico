@@ -505,8 +505,6 @@ enum DebugOptions : uint16_t {
     LCS_DBG_ALL             = 0xFF00
 };
 
-// ??? should we place this rather in the internal include file ?
-// ??? users should use the send XXX calls...
 //----------------------------------------------------------------------------------------
 // The message operation code identifies the LCS bus message. It is always the first
 // data byte of the message. We encode the number of payload data bytes in the first
@@ -516,8 +514,6 @@ enum DebugOptions : uint16_t {
 //
 // NOTE: this list is work in progress, please us always the names rather than numbers.
 //
-//
-// ??? fix name mnemonics first...
 //----------------------------------------------------------------------------------------
 #define OPC( len, id ) ((uint8_t) (( len << 5 ) + ( id & 0x1F )))
 
@@ -624,18 +620,19 @@ enum LcsErrorCodes : uint8_t {
     ERR_MWORD_PORT_MAP                  = 12,
     ERR_MWORD_NODE_DATA                 = 13,
     ERR_MWORD_EVENT_MAP                 = 14,
+    ERR_MWORD_NODE_EXT_DATA_MAP         = 15,
 
-    ERR_NVM_CHIP_SIZE_DETECT            = 15,
-    ERR_NVM_NODE_MAP_CORRUPT            = 16,
-    ERR_NVM_SIZE_EXCEEDED               = 17,
-    ERR_MEM_SIZE_EXCEEDED               = 18,
-    ERR_NVM_OP_FAILED                   = 19,
+    ERR_NVM_CHIP_SIZE_DETECT            = 16,
+    ERR_NVM_NODE_MAP_CORRUPT            = 17,
+    ERR_NVM_SIZE_EXCEEDED               = 18,
+    ERR_MEM_SIZE_EXCEEDED               = 19,
+    ERR_NVM_OP_FAILED                   = 20,
 
-    ERR_INVALID_OP_FOR_NODE_STATE       = 20,
-    ERR_NODE_NOT_OPS_STATE              = 21,
-    ERR_NODE_NOT_CONFIG_STATE           = 22,
-    ERR_NODE_OUTSTANDING_REQ_LIMIT      = 23,
-    ERR_TASK_MAP_SIZE_EXCEEDED          = 24,
+    ERR_INVALID_OP_FOR_NODE_STATE       = 21,
+    ERR_NODE_NOT_OPS_STATE              = 22,
+    ERR_NODE_NOT_CONFIG_STATE           = 23,
+    ERR_NODE_OUTSTANDING_REQ_LIMIT      = 24,
+    ERR_TASK_MAP_SIZE_EXCEEDED          = 25,
 
     ERR_INVALID_NODE_ID                 = 30,
     ERR_INVALID_PORT_ID                 = 31,
@@ -1021,6 +1018,31 @@ uint8_t     sendDccErr( int8_t errCode,
                         uint8_t arg1 = 0, 
                         uint8_t arg2 = 0 );
 
+//----------------------------------------------------------------------------------------
+// Remote Update Messages. 
+//
+//----------------------------------------------------------------------------------------
+uint8_t     sendStartLoad( uint16_t npId, 
+                           uint8_t  cmd,
+                           uint32_t size );
+
+uint8_t     sendStartBlock( uint16_t npid,
+                            uint8_t cmd,
+                            uint16_t blockId );
+
+uint8_t     sendBlockData( uint16_t npid,
+                           uint8_t cmd,
+                           uint32_t data );
+
+uint8_t     sendEndBlock( uint16_t npid,
+                          uint8_t cmd,
+                          uint16_t blockId,
+                          uint16_t checkSum );
+
+uint8_t     sendEndLoad( uint16_t npid,
+                         uint8_t cmd,
+                         uint32_t checkSum );
+                         
 //----------------------------------------------------------------------------------------
 // LCS message. A generic function to send an LCS message.
 //

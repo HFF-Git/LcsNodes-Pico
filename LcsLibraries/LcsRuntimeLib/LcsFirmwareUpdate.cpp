@@ -3,7 +3,7 @@
 // Layout Control System - Runtime Library Firmware Update.
 //
 //----------------------------------------------------------------------------------------
-// his file contains the part of the runtime library that deals with the remote
+// This file contains the part of the runtime library that deals with the remote
 // firmware update.
 //
 // ??? highly processor family dependent... what to abstract ?
