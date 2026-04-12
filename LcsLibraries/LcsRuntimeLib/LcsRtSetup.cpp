@@ -42,11 +42,11 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
@@ -105,6 +105,7 @@ namespace LCS {
 
     extern uint8_t setEventMask(uint16_t eventId, uint16_t eventMask);
     extern uint8_t syncEventMapToMem( );
+    uint8_t loadEventMap( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -252,7 +253,9 @@ uint8_t setupDefaultNodeData( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultEventMap( ) {
 
-    ENTER_FUNC();
+    ENTER_FUNC( );
+
+    // ??? just have eventMap local for the init purpose ?
 
     eventMap.magicWord = NVM_MWORD_NODE_EVENT_MAP;
     eventMap.nvmOfs    = NVM_EVENT_MAP_OFS;
@@ -693,7 +696,9 @@ uint8_t setupNodeDataMap( ) {
 uint8_t setupEventMap( ) {
 
     ENTER_FUNC( );
-    return ( RET_STAT( syncEventMapToMem( )));
+
+    // return ( RET_STAT( syncEventMapToMem( )));
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------

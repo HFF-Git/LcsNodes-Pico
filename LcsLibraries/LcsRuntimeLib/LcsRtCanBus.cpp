@@ -324,17 +324,18 @@ void LcsMsgBusCAN::setNodeId( uint8_t nodeId ) {
 // message priority. The message length is encoded in the first message byte, 
 // which represents the LCS message opCode as well as the length of the message. 
 //
-// There are two main cases. When the message is targeted for the local node, we 
-// potentially queue the message onto the receive queue, if the message type is
-// supporting this local send.  In all other cases the message should be sent. 
-// However, when the message is targeted at the local node but is not of the 
-// aforementioned type, we return an error. Otherwise we send it on the CAN bus. 
-// When the send fails, we will retry a few times by raising the message priority. 
-// When the message cannot be sent at the highest priority, we report a send error.
+// There are two main cases. When the message is targeted to a remote node, we
+// just send it. When the target is a another port on the local node, we simply
+// queue the message onto the receive queue.  
 //
-// Note that a message that is broadcasted to all nodes, is not considered a local 
-// message and cannot be linked to a callback. The only exception is an EVENT
-// style message, which us handled at the event processing loop.
+// Event message are always queued to the receiver queue, we cannot know if a
+// another port on the local node is interested. The event message is therefore
+// received by all local ports that registered an interest.
+//
+// In all other cases the message should be sent to the outside world. When the
+// send fails, we will retry a few times by raising the message priority. 
+// When the message cannot be sent at the highest priority, we report a send 
+// error.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId, 
@@ -358,8 +359,8 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId,
 
     uint8_t msgOp = msgBuf[ 0 ];
 
-    if (( msgOp == LCS_OP_NODE_GET ) ||
-        ( msgOp == LCS_OP_NODE_SET ) ||
+    if (( msgOp == LCS_OP_NODE_GET  ) ||
+        ( msgOp == LCS_OP_NODE_SET  ) ||
         ( msgOp == LCS_OP_NODE_FREQ )) { 
 
         uint16_t targetNpId = msg.data[ 1 ] << 8 | msg.data[ 2 ]; 
@@ -377,6 +378,15 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId,
 
                 return ( RET_STAT( ERR_CAN_MSG_SEND ));
             }
+        }
+    }
+    else if (( msgOp == LCS_OP_EVT       ) ||
+             ( msgOp == LCS_OP_EVT_ON    )||
+             ( msgOp == LCS_OP_EVT_OFF   ) ) { 
+     
+        if ( ! queue_try_add( &rxQueue, &msg )) {
+
+                return ( RET_STAT( ERR_CAN_MSG_SEND ));
         }
     }
     else {
@@ -401,20 +411,15 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 // "receiveLcsMsg" will check for a message on the receiver queue. The CAN Bus 
 // library will place a message received onto this queue. In addition, local 
-// massages, i.e. messages send to the our own node, will also be placed in the
-// receiver queue. 
+// massages, i.e. messages send from our own node, will also be placed in the
+// receiver queue. These messages have a nodeId of NIL_NODE_ID and need to 
+// be patched on receive with the local nodeId before returning to the caller.
 //
-// Besides receiving a message, there is the handling of Node Id collisions. 
-// When we detect a non-zero length message with a Node Id that is our own, we
-// have a collision and report an error. This could happen for example when a 
-// node hardware is connected to another layout. Both nodes will then stop and 
-// wait for manual resolution. 
-//
-// In the local case, however, the check for a collision should not be done, as 
-// the message is send by ourselves. The sending routine will send with the NIL 
-// node Id to indicate that our node is the sender. In this case we can just patch
-// up the sender node Id to be our own node Id. This is a bit of a hack, but it 
-//saves us from having to do a check for local messages at the higher level.
+// Besides receiving a message, there is the handling of Node Id collisions on
+// the LCS bus. When we detect a non-zero length message with a Node Id that is
+// our own and was not queued locally, we have a collision and report an error. 
+// This could happen for example when a node hardware is connected to another 
+// layout. Both nodes will then stop and wait for manual resolution. 
 //
 // In addition to message processing, we also need to react to a CAN Bus RTR 
 // message by sending a zero length message response. Replying to such a message
@@ -422,14 +427,11 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId,
 // call as no LCS message was actually received. This is also the case when the 
 // message queue is empty.
 //
-//
 // ??? it would be a good place to do filtering. Any GET/SET/REQ/REP that we
 // not involved, should be ignored right here. If we can also the broadcast
 // type messages nicely grouped, we could also filter. For example, DCC messages
-// typically send from throttle to base station, etc. 
-//
-// ??? still, there should be an option to get any kind of message for a 
-// tracing tool, etc.
+// typically send from throttle to base station, etc. Still, there should be
+// an option to get any kind of message for a tracing tool, etc.
 //----------------------------------------------------------------------------------------
 uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
 

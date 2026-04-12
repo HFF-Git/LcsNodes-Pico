@@ -35,6 +35,11 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
+// ??? key question: do we need to have "sendingPid" even for messages where
+// the sender does not care which port/channel ? This would make the interface
+// a bit more easier to use. We can locally construct a "node:0:0" sendingNpId
+// as it does not matter who sent the message.
+
 //----------------------------------------------------------------------------------------
 // External declaration to global structures defined in "LcsRtSetup".
 //
@@ -45,10 +50,7 @@ namespace LCS {
     extern LcsNodeMap           nodeMap;
     extern LcsPortMap           portMap;
     extern LcsTaskMap           taskMap;
-    extern LcsMsgBusCAN         *msgBus;
-
-    // ??? may go away...
-    extern uint8_t              localMsgEvent( uint16_t senderNpId, uint8_t *msg );      
+    extern LcsMsgBusCAN         *msgBus; 
 };
 
 //----------------------------------------------------------------------------------------
@@ -460,10 +462,7 @@ uint8_t sendEventOn( uint16_t sendingNpId, uint16_t eventId ) {
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT_ON };
     msgBuf[ 1 ] = highByte( eventId );
     msgBuf[ 2 ] = lowByte( eventId );
-
-    // localMsgEvent( msgBuf ); // ??? fix, is this needed ?
-    
-    return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));                                  
+    return ( sendLcsMsg( sendingNpId, msgBuf ));                                  
 }
 
 //----------------------------------------------------------------------------------------
@@ -476,10 +475,7 @@ uint8_t sendEventOff( uint16_t sendingNpId, uint16_t eventId ) {
     uint8_t msgBuf[ 8 ] = { LCS_OP_EVT_OFF };
     msgBuf[ 1 ] = highByte( eventId );
     msgBuf[ 2 ] = lowByte( eventId );
-
-    // localMsgEvent( msgBuf ); // ??? fix, is this needed ?
-
-    return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_LOW ));     
+    return ( sendLcsMsg( sendingNpId, msgBuf ));     
 }
 
 //----------------------------------------------------------------------------------------
@@ -494,11 +490,7 @@ uint8_t sendEvent( uint16_t sendingNpId, uint16_t eventId, uint16_t arg ) {
     msgBuf[ 2 ] = lowByte( eventId );
     msgBuf[ 3 ] = highByte( arg );
     msgBuf[ 4 ] = lowByte( arg );
-
-    // ??? this should be no different than a remote GET ...
-    // localMsgEvent( sendingNpId, msgBuf ); // ??? rethink ...
-
-    return ( sendLcsMsg( sendingNpId, msgBuf, MSG_PRI_NORMAL ));
+    return ( sendLcsMsg( sendingNpId, msgBuf ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -555,7 +547,7 @@ uint8_t sendReqLoc( uint16_t cabId, uint8_t flags ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Inform that a local was removed.
+// Inform that an engine was removed.
 //
 //  LCS_OP__REL_LOC <cabId-H> <cabId-L>
 //----------------------------------------------------------------------------------------

@@ -69,6 +69,8 @@ namespace LCS {
     extern uint8_t          syncEventMapToNvm( );
     extern uint8_t          setEventMask( uint16_t eventId, uint16_t eventMask );
     extern uint8_t          removeEventMask( uint16_t eventId );
+
+    
     extern int              searchEvent( uint16_t eventId );
 
     extern uint8_t          getMemEmapEntry( uint16_t index, 
