@@ -65,13 +65,16 @@ namespace LCS {
     extern LcsPortMap       portMap;
     extern LcsEventMap      eventMap;
 
+    // ??? changes
     extern uint8_t          syncEventMapToMem( );
     extern uint8_t          syncEventMapToNvm( );
     extern uint8_t          setEventMask( uint16_t eventId, uint16_t eventMask );
     extern uint8_t          removeEventMask( uint16_t eventId );
 
-    
+
     extern int              searchEvent( uint16_t eventId );
+    extern uint8_t          addEvent( uint16_t eventId, uint16_t eventMask );
+    extern uint8_t          removeEvent( uint16_t eventId );
 
     extern uint8_t          getMemEmapEntry( uint16_t index, 
                                              uint16_t *eventId, 
@@ -497,7 +500,13 @@ uint8_t userItemRequest( uint16_t npId,
 //----------------------------------------------------------------------------------------
 // "drvItemGet" reads a word from the peripheral based on the I2C address for 
 // the port and channel passed. As an internal function, we expect validated 
-// arguments.
+// arguments. The item id is passed in the range for drivers ( 64 .. 127 ) but
+// mapped to the driver board attribute numbers 0 .. 63.
+//
+//  We send the following data:
+//
+//      W: i2cAdr, item
+//      R: i2cAdr, arg-h, arg-l
 //
 //----------------------------------------------------------------------------------------
 uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
@@ -513,8 +522,13 @@ uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
 //----------------------------------------------------------------------------------------
 // "drvItemSet" writes a word to the peripheral based on the I2C address for 
-// the port and channel passed. As an internal function, we expect validated 
-// arguments.
+// the port and channel passed. The item id is passed in the range for drivers
+// ( 64 .. 127 ) but mapped to the driver board attribute numbers 0 .. 63. As 
+// an internal function, we expect validated arguments. 
+//
+// We send the following data:
+// 
+//      W: i2cAdr, item, arg-h, arg-l
 //
 //----------------------------------------------------------------------------------------
 uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
@@ -535,18 +549,30 @@ uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 // Driver request submit. We fill in the command data in the device. There are
 // four fields, CMD, ARG1 and ARG2 and STATUS. 
 // 
+// We first send the request:
+// 
+//      W: i2cAdr, item, arg1-h, arg1-l, arg2-h, arg2-l
+//
+// And then poll for the reply:
+//
+//      W: i2cAdr, item
+//      R: i2cAdr, stat, arg1-h, arg1-l, arg2-h, arg2-l
+//
+// The status field tells the outcome. We read the entire data fields and
+// check the status field. A code of 255 is the "busy" code.
+//
 //----------------------------------------------------------------------------------------
 uint8_t drvItemRequest( uint16_t npId, 
                         uint16_t item, 
                         uint16_t *arg1, 
                         uint16_t *arg2 ) {
 
-    const int retycountMax = 10;
+    const int maxRetryCount = 100;
 
-    uint16_t        index   = item - IR_DRV_CHAN_START;
-    LcsPortMapEntry *pPtr   = & portMap.map[ portId( npId ) ];
-    uint8_t         i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8;
-    uint8_t         rStat   = 0;
+    uint16_t        index       = item - IR_DRV_CHAN_START;
+    LcsPortMapEntry *pPtr       = & portMap.map[ portId( npId ) ];
+    uint8_t         i2cAdr      = ( portId( npId ) * 8 ) + chanId( npId ) + 8;
+    uint8_t         rStat       = 0;
     uint8_t         buf[ 16 ];
     
     buf[ 0 ] = lowByte( item );
@@ -556,19 +582,13 @@ uint8_t drvItemRequest( uint16_t npId,
     buf[ 4 ] = highByte( *arg2 );
 
     rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, buf, 6, false );
-
     if ( rStat == NO_ERR ) {
 
-        // ??? ugly, we could wait forever...
+        for ( int i = 0; i < maxRetryCount; i++ ) {
 
-        while ( true ) {
-
-            rStat = i2cRead( CDC_RN_EXT_NVM, i2cAdr, buf, 1, false );
+            rStat = i2cRead( CDC_RN_EXT_NVM, i2cAdr, buf, 6, false );
             if ( rStat != NO_ERR ) break;
-
-            if ( buf[ 0 ] == 0xFF ) continue; // still processing
-
-            break;
+            if ( buf[ 0 ] != 0xFF ) break;
         }
     }
 
