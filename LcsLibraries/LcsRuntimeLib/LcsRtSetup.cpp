@@ -86,6 +86,7 @@ namespace LCS {
     LcsPortMap          portMap;
     LcsNodeData         nodeData;
     LcsNodeExtData      nodeExtData;
+    LcsEventHashMap     eventHashMap;
     LcsTaskMap          taskMap;
 }
 

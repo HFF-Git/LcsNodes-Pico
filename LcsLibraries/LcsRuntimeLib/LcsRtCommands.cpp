@@ -42,6 +42,7 @@ namespace LCS {
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
+    extern LcsEventHashMap      eventHashMap;
     extern LcsTaskMap           taskMap;
     extern LcsMsgBusCAN         *msgBus;
     extern CdcResourceDescMap   dMap;
@@ -81,9 +82,57 @@ void errStat( char *msg, uint8_t ret ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "dumpMemData" lists the memory data content of the storage area passed. The data 
-// is displayed in 16-bit  quantities. Because the PICO uses little-endian format, 
-// ASCII characters may appear reversed when interpreted directly.
+// "printLine" is a helper routine for the memory dump. It prints one line of
+// the memory content. The line starts at the specified index and contains the
+// specified number of items. The line is printed in hex format. If the 
+// "printAscii" flag is set, the ASCII representation of the data is printed on
+// the right side.
+//
+//----------------------------------------------------------------------------------------
+static void printLine(uint16_t *ptr,
+                      uint16_t index,
+                      uint16_t limit,
+                      uint8_t  itemsPerLine,
+                      bool     printAscii ) {
+
+    printf("0x%08x: ", index * sizeof(uint16_t));
+
+    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+        if ( index + i < limit ) printf("0x%04x ", ptr[index + i]);
+    }
+
+    if ( printAscii ) {
+
+        if ( index + itemsPerLine >= limit ) {
+
+            int tmp = index + itemsPerLine - limit;
+            for ( int i = 0; i < tmp; i++ ) printf( "       " );
+        }
+
+        printf( "  " );
+
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+            if ( index + i < limit ) {
+
+                uint16_t val = ptr[ index + i ] ;
+
+                printf( "%c", isprint( val >> 8 ) ? ( val >> 8) : '.' );
+                printf( "%c ", isprint( val & 0xff ) ? ( val & 0xff) : '.' );
+            }
+        }
+    }
+
+    printf( "\n" );
+}
+
+//----------------------------------------------------------------------------------------
+// "dumpMemData" lists the memory data content of the storage area passed. The
+// data is displayed in 16-bit  quantities. Longer sequences of lines with just 
+// zeroes are suppressed and listed with three dots. Because the PICO uses 
+// little-endian format, ASCII characters may appear reversed when interpreted 
+// directly.
 //
 //----------------------------------------------------------------------------------------
 void dumpMemData( uint16_t *area, 
@@ -91,48 +140,112 @@ void dumpMemData( uint16_t *area,
                   uint8_t  itemsPerLine = 8,
                   bool     printAscii   = false ) {
 
-    uint16_t  index   = 0;
-    uint16_t  limit   = ( len + 1 ) / 2; 
-    uint16_t  *ptr    = area;
+    const uint16_t  zeroLinesThreshold = 4;
+
+    uint16_t limit = ( len + 1 ) / 2;
+    uint16_t *ptr  = area;
+
+    uint16_t index = 0;
+
+    // Zero-run tracking
+    uint16_t zeroRunStart = 0;
+    uint16_t zeroRunLength = 0;
 
     while ( index < limit ) {
 
-        printf( "0x%08x: ", index * sizeof( uint16_t ));
+        // ---- Check if current line is all zeros ----
+        bool isZeroLine = true;
 
-        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+        for ( uint16_t i = 0; i < itemsPerLine && ( index + i ) < limit; i++ ) {
+            if ( ptr[ index + i ] != 0 ) {
 
-            if ( index + i < limit ) printf( "0x%04x ", ptr[ index + i ] );
-        }
-
-        if ( printAscii ) {
-
-            if ( index + itemsPerLine >= limit ) {
-
-                int tmp = index + itemsPerLine - limit;
-                for ( int i = 0; i < tmp; i++ ) printf( "       " );
-            };
-
-            printf( "  " );
-
-            for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
-
-                if ( index + i < limit ) {
-
-                    if ( isprint( ptr[ index + i ] >> 8  )) 
-                        printf( "%c", ptr[ index + i ] >> 8 );
-                    else                                   
-                        printf( "." );
-
-                    if ( isprint( ptr[ index + i ] & 0xff )) 
-                        printf( "%c ", ptr[ index + i ] & 0xff );
-                    else                                     
-                        printf( ". " );
-                }
+                isZeroLine = false;
+                break;
             }
         }
-       
+
+        if ( isZeroLine ) {
+
+            if ( zeroRunLength == 0 ) zeroRunStart = index;
+            zeroRunLength++;
+
+        } 
+        else {
+
+            // ---- Flush any pending zero run ----
+            if ( zeroRunLength > 0 ) {
+
+                if ( zeroRunLength <= zeroLinesThreshold ) {
+
+                    // Print all lines
+                    for ( uint16_t i = 0; i < zeroRunLength; i++ ) {
+ 
+                        printLine( ptr,
+                                   zeroRunStart + i * itemsPerLine,
+                                   limit,
+                                   itemsPerLine,
+                                   printAscii);
+                    }
+                } 
+                else {
+                    
+                    // Print first line
+                    printLine( ptr,
+                               zeroRunStart,
+                               limit,
+                               itemsPerLine,
+                               printAscii);
+
+                    printf( "...\n" );
+
+                    // Print last line
+                    printLine( ptr,
+                               zeroRunStart + (zeroRunLength - 1) * itemsPerLine,
+                               limit,
+                               itemsPerLine,
+                               printAscii);
+                }
+
+                zeroRunLength = 0;
+            }
+
+            // ---- Print current non-zero line ----
+            printLine( ptr, index, limit, itemsPerLine, printAscii );
+        }
+
         index += itemsPerLine;
-        printf( "\n" );
+    }
+
+    // ---- Flush zero run at end ----
+    if ( zeroRunLength > 0 ) {
+
+        if ( zeroRunLength <= zeroLinesThreshold ) {
+
+            for ( uint16_t i = 0; i < zeroRunLength; i++ ) {
+
+                printLine( ptr,
+                           zeroRunStart + i * itemsPerLine,
+                           limit,
+                           itemsPerLine,
+                           printAscii);
+            }
+        } 
+        else {
+            
+            printLine( ptr,
+                       zeroRunStart,
+                       limit,
+                       itemsPerLine,
+                       printAscii);
+
+            printf( "...\n" );
+
+            printLine( ptr,
+                       zeroRunStart + (zeroRunLength - 1) * itemsPerLine,
+                       limit,
+                       itemsPerLine,
+                       printAscii);
+        }
     }
 }
 
@@ -255,6 +368,19 @@ void dumpMemNodeData( ) {
 //
 //
 //----------------------------------------------------------------------------------------
+void dumpMemEventHashMap( ) {
+
+    printf( "MEM Event Hash Map: (Size: %d) \n\n", eventHashMap.numEntries );
+    dumpMemData(( uint16_t *) &eventHashMap.map, 
+                sizeof( eventHashMap.map ), 
+                8, 
+                false );
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 void dumpMemTaskMap( ) {
 
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
@@ -275,6 +401,7 @@ void dumpMemRuntimeArea( ) {
     dumpMemPortMap( );
     dumpMemNodeData( );
     dumpMemTaskMap( );
+    dumpMemEventHashMap( );
     printf( "\n" );
 }
 
@@ -790,13 +917,14 @@ void listStatusCommand( char *s ) {
             case 3:     dumpMemNodeData( );             break;
             case 5:     dumpMemPortMap( );              break;
             case 6:     dumpMemTaskMap( );              break;
-            case 7:     dumpMemRuntimeArea( );          break;
+            case 7:     dumpMemEventHashMap( );         break;
+            case 8:     dumpMemRuntimeArea( );          break;
 
             case 21:    dumpNvmHeader( );               break;
             case 22:    dumpNvmNodeMap( );              break;
             case 23:    dumpNvmNodeData( );             break;
             case 24:    dumpNvmEventMap( );             break;
-            case 27:    dumpNvmRuntimeArea( );          break;
+            case 28:    dumpNvmRuntimeArea( );          break;
 
             case 42:    printMemNodeMap( );             break;
             case 45:    printMemPortMap( );             break;
@@ -839,10 +967,11 @@ void listCoreLibHelpCommand( ) {
     printf( "   " " -        21         - Node Header\n" );
     printf( "   " " -   2    22   42    - Node Map\n" );
     printf( "   " " -   3    23         - Node Data\n" );
-    printf( "   " " -        24   44    - Event Map\n" );
+    printf( "   " " -             44    - Event Map\n" );
     printf( "   " " -   5         45    - Port Map\n" );
     printf( "   " " -   6         46    - Task Map\n" );
-    printf( "   " " -   7    27         - Runtime Area\n" );
+     printf( "   " " -  7               - Event Hash Map\n" );
+    printf( "   " " -   8    28         - Runtime Area\n" );
 
     printf( "   " " -  50  - Scan I2C Devices\n" );
     printf( "   " " -  51  - CDC Resource Desc Map\n");

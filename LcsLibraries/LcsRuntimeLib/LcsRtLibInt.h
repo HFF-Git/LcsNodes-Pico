@@ -367,6 +367,19 @@ struct LcsEventMap {
 };
 
 //----------------------------------------------------------------------------------------
+// Events map entries are loaded into a memory map for faster access. The table
+// is a hash table.
+//
+//----------------------------------------------------------------------------------------
+const int               MAX_CAB_HASH_TAB_ENTRIES = 2048;
+
+struct LcsEventHashMap {
+
+    uint32_t           numEntries;
+    LcsEventMapEntry   map[ MAX_CAB_HASH_TAB_ENTRIES ];
+};
+
+//----------------------------------------------------------------------------------------
 // The port map contains an array of ports, each described by a port map entry. 
 // There are 8 entries in the port map. Each port has an area of attributes, 
 // which are stored in the data block area. They map to ITEM numbers 128 to 255 

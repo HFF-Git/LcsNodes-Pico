@@ -355,12 +355,11 @@ uint8_t getMemEmapEntry( uint16_t index, uint16_t *eventId, uint16_t *eventMask 
 //----------------------------------------------------------------------------------------
 namespace LCS {
 
-    extern uint16_t     debugMask;
+    extern uint16_t         debugMask;
+    extern LcsEventHashMap  eventHashMap;
 
-   // extern uint8_t      rtNvmPutWord( uint32_t ofs, uint16_t word );
-   // extern uint8_t      rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
-    extern uint8_t      rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
-    extern uint8_t      rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
+    extern uint8_t  rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
+    extern uint8_t  rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
 };
 
 //----------------------------------------------------------------------------------------
@@ -398,15 +397,10 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// Fundamental constants. Note that the hash table must be a power of two in 
-// size and at least twice as large as the NVM eventMap. The fetch chunk size
-// is used to speed up the NVM read process.
+// Fundamental constants. 
 //
 //----------------------------------------------------------------------------------------
-const int          MAX_CAB_HASH_TAB_ENTRIES = 2048;
-const int          FETCH_CHUNK_SIZE         = 8;
-
-LcsEventMapEntry   eventMapTable [ MAX_CAB_HASH_TAB_ENTRIES ];
+const uint32_t  FETCH_CHUNK_SIZE = 8;
 
 //----------------------------------------------------------------------------------------
 // Hash function.
@@ -601,10 +595,10 @@ LcsEventMapEntry *lookupEventMapEntry( uint16_t eventId ) {
     uint32_t i = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start = i;
 
-    while ( eventMapTable [ i ].eventId != NIL_EVENT_ID ) {
+    while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
 
-        if ( eventMapTable [ i ].eventId == eventId )
-            return ( &eventMapTable [ i ] );
+        if ( eventHashMap.map[ i ].eventId == eventId )
+            return ( &eventHashMap.map[ i ] );
 
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
         if ( i == start ) return ( nullptr );
@@ -623,14 +617,14 @@ void insertEventMapEntry( uint16_t eventId, uint16_t eventMask ) {
     uint32_t i = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start = i;
 
-    while ( eventMapTable[ i ].eventId != NIL_EVENT_ID ) {
+    while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
 
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
         if ( i == start ) return;
     }
 
-    eventMapTable[ i ].eventId = eventId;
-    eventMapTable[ i ].eventMask = eventMask;
+    eventHashMap.map[ i ].eventId = eventId;
+    eventHashMap.map[ i ].eventMask = eventMask;
 }
 
 //----------------------------------------------------------------------------------------
@@ -645,34 +639,34 @@ void removeEventMapEntry( uint16_t eventId ) {
     uint32_t i      = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start  = i;
 
-    while ( eventMapTable [ i ].eventId != NIL_EVENT_ID ) {
+    while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
 
-        if ( eventMapTable [ i ].eventId == eventId ) break;
+        if ( eventHashMap.map [ i ].eventId == eventId ) break;
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
         if ( i == start ) return;
     }
 
-    if ( eventMapTable [ i ].eventId == NIL_EVENT_ID ) return;
+    if ( eventHashMap.map[ i ].eventId == NIL_EVENT_ID ) return;
 
-    eventMapTable [ i ].eventId = NIL_CAB_ID;
+    eventHashMap.map [ i ].eventId = NIL_CAB_ID;
 
     uint32_t j = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
 
-    while ( eventMapTable [ j ].eventId != NIL_EVENT_ID ) {
+    while ( eventHashMap.map[ j ].eventId != NIL_EVENT_ID ) {
 
-        LcsEventMapEntry tmp = eventMapTable [ j ];
-        eventMapTable [ j ].eventId = NIL_EVENT_ID;
+        LcsEventMapEntry tmp = eventHashMap.map [ j ];
+        eventHashMap.map[ j ].eventId = NIL_EVENT_ID;
 
         uint32_t k = hash( tmp.eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
         uint32_t kstart = k;
 
-        while ( eventMapTable[ k ].eventId != NIL_EVENT_ID ) {
+        while ( eventHashMap.map[ k ].eventId != NIL_EVENT_ID ) {
 
             k = ( k + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
             if ( k == kstart ) break;
         }
 
-        eventMapTable [ k ] = tmp;
+        eventHashMap.map[ k ] = tmp;
         j = ( j + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     }
 }
@@ -695,8 +689,8 @@ uint8_t loadEventMapFromNvm( uint32_t mapOfs, uint32_t hwm ) {
 
     for ( int i = 0; i < MAX_CAB_HASH_TAB_ENTRIES; i++ ) {
         
-        eventMapTable [ i ].eventId = NIL_EVENT_ID;
-        eventMapTable [ i ].eventMask = 0;
+        eventHashMap.map [ i ].eventId = NIL_EVENT_ID;
+        eventHashMap.map [ i ].eventMask = 0;
     }
 
     if ( hwm > MAX_EVENT_MAP_ENTRIES ) hwm = MAX_EVENT_MAP_ENTRIES;
