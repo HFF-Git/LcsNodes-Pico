@@ -35,18 +35,18 @@ namespace LCS {
 
     using namespace CDC;
 
-    extern uint16_t             debugMask;
-    extern uint16_t             runtimeOptions;
+    extern uint16_t         debugMask;
+    extern uint16_t         runtimeOptions;
    
-    extern LcsNodeMap           nodeMap;
-    extern LcsPortMap           portMap;
-    extern LcsEventMap          eventMap;
-    extern LcsTaskMap           taskMap;
+    extern LcsNodeMap       nodeMap;
+    extern LcsPortMap       portMap;
+    extern LcsEventMap      eventMap;
+    extern LcsTaskMap       taskMap;
 
-    extern uint8_t              handleSerialCommand( );
-    extern int                  searchEvent( uint16_t eventId );
-    extern uint8_t              rtNvmPutWord( uint32_t ofs, uint16_t word );
-    extern uint8_t              receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg );
+    extern uint8_t          handleSerialCommand( );
+    LcsEventMapEntry        *lookupEvent( uint16_t eventId );
+    extern uint8_t          rtNvmPutWord( uint32_t ofs, uint16_t word );
+    extern uint8_t          receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg );
 };
 
 //----------------------------------------------------------------------------------------
@@ -68,6 +68,8 @@ uint32_t        timerVal                        = 0L;
 //----------------------------------------------------------------------------------------
 // Reset.
 //
+//
+// ??? in case of a node reset, can there be an ACK ?
 //----------------------------------------------------------------------------------------
 void reset( uint16_t npId ) {
 
@@ -395,16 +397,17 @@ void handleMsgReqNode( uint16_t senderNpId, uint8_t *msg ) {
 void handleMsgEvent( uint16_t senderNpId, uint8_t *msg ) {
 
     uint16_t  eventId = ( msg[3] << 8 ) + msg[4];
-    int       index   = searchEvent( eventId );
 
-    if ( index >= 0 ) {
+    LcsEventMapEntry *e = lookupEvent( eventId );
+   
+    if ( e != nullptr ) {
 
         uint8_t     opCode          = msg[0];
         uint16_t    npId            = ( msg[1] * 256 ) + msg[2];
         uint16_t    eventData       = ( msg[5] * 256 ) + msg[6];
         uint8_t     eventAction     = PEA_EVENT_IDLE;
         uint32_t    ts              = getMillis( );
-        uint16_t    eventMask       = eventMap.map[ index ].eventMask;
+        uint16_t    eventMask       = e -> eventMask;
 
         switch ( opCode ) {
 

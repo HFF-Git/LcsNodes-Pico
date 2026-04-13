@@ -227,7 +227,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
     //
     //------------------------------------------------------------------------------------
     .boardType      = CDC_BT_MAIN_CONTROLLER, // ??? fix ...
-   // .boardCtrlInfo  = CDC_CF_RP_PICO,
     .boardVersion   = (( 2U << 8 ) | 0 ),  
 
     //------------------------------------------------------------------------------------

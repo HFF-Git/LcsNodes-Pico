@@ -65,13 +65,6 @@ namespace LCS {
     extern LcsPortMap       portMap;
     extern LcsEventMap      eventMap;
 
-    // ??? changes
-    extern uint8_t          syncEventMapToMem( );
-    extern uint8_t          syncEventMapToNvm( );
-    extern uint8_t          setEventMask( uint16_t eventId, uint16_t eventMask );
-    extern uint8_t          removeEventMask( uint16_t eventId );
-
-
     extern int              searchEvent( uint16_t eventId );
     extern uint8_t          addEvent( uint16_t eventId, uint16_t eventMask );
     extern uint8_t          removeEvent( uint16_t eventId );
@@ -254,9 +247,13 @@ uint8_t libItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
         case ITEM_ID_PORT_MAP_ENTRIES:      *arg = MAX_PORT_MAP_ENTRIES;    break;
         case ITEM_ID_PORT_MAP_HWM:          *arg = portMap.mapHwm;          break;
         case ITEM_ID_EVENT_MAP_ENTRIES:     *arg = MAX_EVENT_MAP_ENTRIES;   break;
-        case ITEM_ID_EVENT_MAP_HWM:         *arg = eventMap.mapHwm;         break;
         case ITEM_ID_ATTR_MAP_ENTRIES:      *arg = MAX_ATTR_MAP_ENTRIES;    break;
-        case ITEM_ID_LOOKUP_EVENT_ENTRY:    *arg = searchEvent( *arg );     break;
+
+         case ITEM_ID_EVENT_MAP_HWM: {
+            
+            *arg = 0; // ??? fix, we need to get from NVM.        
+
+        } break;
 
         case ITEM_ID_FLAGS: { 
             
@@ -371,24 +368,14 @@ uint8_t libItemRequest( uint16_t npId,
             return ( syncAttrToNvm( portId( npId ), *arg1 ));
         }
 
-        case ITEM_ID_ADD_EVENT_MASK: {
+        case ITEM_ID_ADD_EVENT: {
 
-            return ( setEventMask( *arg1, *arg2 ));
+            return ( addEvent( *arg1, *arg2 ));
         }
 
-        case ITEM_ID_REMOVE_EVENT_MASK: {
+        case ITEM_ID_REMOVE_EVENT: {
 
-            return ( removeEventMask( *arg1 ));
-        }
-
-        case ITEM_ID_SYNC_EVENT_MAP_MEM: {
-
-            return ( syncEventMapToMem( ));
-        }
-
-        case ITEM_ID_SYNC_EVENT_MAP_NVM: {
-
-            return ( syncEventMapToNvm( ));
+            return ( removeEvent( *arg1 ));
         }
 
         case ITEM_ID_ENABLE_EVENT_PROCESSING: {

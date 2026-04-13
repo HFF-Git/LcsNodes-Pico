@@ -42,14 +42,10 @@ namespace LCS {
     extern LcsNodeMap           nodeMap;
     extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
-    extern LcsEventMap          eventMap;
     extern LcsTaskMap           taskMap;
-    
     extern LcsMsgBusCAN         *msgBus;
-
     extern CdcResourceDescMap   dMap;
 
-    extern int                  searchEvent( uint16_t eventId );
     extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
     extern uint8_t              extNvmGetWord(  uint8_t boardId, 
                                                 uint32_t ofs, 
@@ -259,19 +255,6 @@ void dumpMemNodeData( ) {
 //
 //
 //----------------------------------------------------------------------------------------
-void dumpMemEventMap( ) {
-
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
-            MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
-
-    dumpMemData((uint16_t *) &eventMap, sizeof( LcsEventMap ));
-    printf( "\n" );
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
 void dumpMemTaskMap( ) {
 
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
@@ -291,7 +274,6 @@ void dumpMemRuntimeArea( ) {
     dumpMemNodeMap( );
     dumpMemPortMap( );
     dumpMemNodeData( );
-    dumpMemEventMap( );
     dumpMemTaskMap( );
     printf( "\n" );
 }
@@ -443,38 +425,6 @@ void printMemPortMap( ) {
 
         printf( "\n" );
     }
-}
- 
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-void printMemEventMap( ) {
-
-    const int itemsPerLine = 4;
-
-    printf( "MEM Event Map (Size: %d, Hwm: %d): \n\n", 
-            MAX_EVENT_MAP_ENTRIES, eventMap.mapHwm );
-
-    if ( eventMap.mapHwm > 0 ) {
-
-        for ( int i = 0; i < eventMap.mapHwm; i++ ) {
-
-            for ( int j = 0; j < itemsPerLine; j++ ) {
-
-                if (( i * itemsPerLine ) + j < eventMap.mapHwm ) {
-
-                    printf( "(E: %d, M: 0x%04x) ", 
-                    eventMap.map[ ( i * itemsPerLine ) + j ].eventId, 
-                    eventMap.map[ ( i * itemsPerLine ) + j ].eventMask );
-                }
-            }
-
-            printf( "\n" );
-            i += itemsPerLine;
-        }
-    }
-    else printf( "No entries in map\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -838,7 +788,6 @@ void listStatusCommand( char *s ) {
             case 0:     printSummary( );                break;
             case 2:     dumpMemNodeMap( );              break;
             case 3:     dumpMemNodeData( );             break;
-            case 4:     dumpMemEventMap( );             break;
             case 5:     dumpMemPortMap( );              break;
             case 6:     dumpMemTaskMap( );              break;
             case 7:     dumpMemRuntimeArea( );          break;
@@ -850,7 +799,6 @@ void listStatusCommand( char *s ) {
             case 27:    dumpNvmRuntimeArea( );          break;
 
             case 42:    printMemNodeMap( );             break;
-            case 44:    printMemEventMap( );            break;
             case 45:    printMemPortMap( );             break;
             case 46:    printMemTaskMap( );             break;
             
@@ -888,10 +836,10 @@ void listCoreLibHelpCommand( ) {
     printf( "s [ level ] - list status, default is summary\n" );
     printf( "   " " -   MEM  NVM  FMT   - what\n" );
     printf( "   " " -   0               - Board summary\n" );
-    printf( "   " " -        21   41    - Node Header\n" );
+    printf( "   " " -        21         - Node Header\n" );
     printf( "   " " -   2    22   42    - Node Map\n" );
     printf( "   " " -   3    23         - Node Data\n" );
-    printf( "   " " -   4    24   44    - Event Map\n" );
+    printf( "   " " -        24   44    - Event Map\n" );
     printf( "   " " -   5         45    - Port Map\n" );
     printf( "   " " -   6         46    - Task Map\n" );
     printf( "   " " -   7    27         - Runtime Area\n" );

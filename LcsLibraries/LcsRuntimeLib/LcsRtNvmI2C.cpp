@@ -3,13 +3,10 @@
 // LCS Runtime library - Non volatile storage I2C interface
 //
 //----------------------------------------------------------------------------------------
-// This file implements the LCS runtime library non-volatile memory. The hardware 
-// is the AA24xxx chip family, which offers an I2C protocol based chip with various 
-// capacities. They all share the same pin layout and command structure.
-//
-// In addition we also support the M24C04 chip, which is used on the extension 
-// boards as a configuration storage. This chip will however be replaced by 24AA32,
-// a 4K chip of the same chip family as the other chips on the controller board.
+// This file implements the LCS runtime library non-volatile memory access. The
+// hardware is based on the AA24xxx chip family, which offers an I2C protocol 
+// based chip with various capacities. They all share the same pin layout and
+// command structure.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -20,13 +17,11 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
-//
-//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 
@@ -72,7 +67,7 @@ using namespace CDC;
 //
 //----------------------------------------------------------------------------------------
 const uint16_t      MAX_BUFFER_BLOCK_SIZE       = 128;
-const uint16_t      DEF_BUFFER_BLOCK_SIZE       = 16;
+const uint16_t      DEF_BUFFER_BLOCK_SIZE       = 32;
 
 const uint16_t      M24LC32_PAGE_SIZE           = 32;
 const uint32_t      M24LC32_MAX_SIZE            = 4096;
@@ -186,7 +181,8 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 //   • Devices smaller than 32-Kbit (24LC16/08/04) use 1-byte addressing and
 //     separate I²C sub-addresses; support for those can be added separately.
 //
-// It is amazing how much code one needs to deal with a flexible use of chips.
+// It is amazing how much code one needs to deal with a flexible selection of
+// NVM chips capacity.
 //----------------------------------------------------------------------------------------
 uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
@@ -393,12 +389,12 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nvmGetBytesFromPage" transmits a set of data bytes only within the page boundary. 
-// Although a read can cross a page boundary, we follow the same principle as we 
-// do for writes when it comes to page boundaries. The read is sending the address
-// with retaining the bus. The PICO library will then use the restart condition. 
-// Just like we did in the write buffer counterpart, we need to send the address 
-// as one buffer.
+// "nvmGetBytesFromPage" transmits a set of data bytes only within the page 
+// boundary. Although a read can cross a page boundary, we follow the same 
+// principle as we do for writes when it comes to page boundaries. The read is
+// sending the address with retaining the bus. The PICO library will then use 
+// the restart condition. Just like we did in the write buffer counterpart, we
+// need to send the address as one buffer.
 //
 //----------------------------------------------------------------------------------------
 uint8_t nvmGetBytesFromPage( uint8_t  rNum, 
@@ -623,7 +619,8 @@ uint8_t nvmClearArea( uint8_t rNum,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "configNvm" will setup the module local variables. 
+// "configNvm" will setup the module local variables. We also determine chip
+// capacity and buffer page size.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configNvm(  uint8_t rIdNvm, uint32_t nvmSize ) {
@@ -648,9 +645,8 @@ uint8_t configNvm(  uint8_t rIdNvm, uint32_t nvmSize ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Controller Board Runtime Map access routines. The runtime map occupies the first 
-// 8 Kbytes of the main controller NVM chip. There are routines for getting and 
-// setting a word as well as routines to read and write a buffer. All access 
+// Controller Board Runtime Map access routines. here are routines for getting 
+// and setting a word as well as routines to read and write a buffer. All access 
 // routines are prefixed with "rt".
 //
 //----------------------------------------------------------------------------------------

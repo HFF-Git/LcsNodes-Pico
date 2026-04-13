@@ -443,15 +443,11 @@ enum LcsItems : uint8_t {
     ITEM_ID_RESET                       = 23,   // REQ
     
     ITEM_ID_GET_NODE_UID                = 24,   // REQ
-    ITEM_ID_SYNC_EVENT_MAP_MEM          = 25,   // REQ
-    ITEM_ID_SYNC_EVENT_MAP_NVM          = 26,   // REQ
     ITEM_ID_SYNC_TO_NVM                 = 27,   // REQ
     ITEM_ID_SYNC_TO_MEM                 = 28,   // REQ
-
-    ITEM_ID_FORMAT_EXT                  = 29,   // REQ
     
-    ITEM_ID_ADD_EVENT_MASK              = 30,   // REQ
-    ITEM_ID_REMOVE_EVENT_MASK           = 31,   // REQ
+    ITEM_ID_ADD_EVENT                   = 30,   // REQ
+    ITEM_ID_REMOVE_EVENT                = 31,   // REQ
     ITEM_ID_LOOKUP_EVENT_ENTRY          = 32,   // REQ
 
     ITEM_ID_GET_EVENT_MAP_ENTRY         = 33,   // REQ

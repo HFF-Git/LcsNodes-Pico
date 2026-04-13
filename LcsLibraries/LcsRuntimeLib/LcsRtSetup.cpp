@@ -85,7 +85,6 @@ namespace LCS {
     LcsNodeMap          nodeMap;
     LcsPortMap          portMap;
     LcsNodeData         nodeData;
-    LcsEventMap         eventMap;
     LcsNodeExtData      nodeExtData;
     LcsTaskMap          taskMap;
 }
@@ -103,9 +102,7 @@ namespace LCS {
     extern uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
     extern uint32_t rtNvmGetSize( );
 
-    extern uint8_t setEventMask(uint16_t eventId, uint16_t eventMask);
-    extern uint8_t syncEventMapToMem( );
-    uint8_t loadEventMap( );
+    extern uint8_t loadEventMap( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -184,19 +181,15 @@ uint8_t setupDefaultNodeMap( ) {
     nodeMap.magicWord               = NVM_MWORD_NODE_MAP;
     nodeMap.nvmOfs                  = NVM_NODE_MAP_OFS;
     nodeMap.nvmSize                 = sizeof(LcsNodeMap);
+
+    nodeMap.boardType               = dMap.boardType;
+    nodeMap.boardVersion            = dMap.boardVersion;
+    nodeMap.serialNum               = 0; // for now ...
    
+    nodeMap.nodeType                = 0; 
     nodeMap.nodeFlags               = 0;
     nodeMap.nodeOptions             = 0;
     nodeMap.nodeLastErr             = 0;
-
-    nodeMap.nodeType                = 0;   // fix ???
-    nodeMap.boardType               = dMap.boardType;
-    nodeMap.boardVersion            = dMap.boardVersion;
-    nodeMap.serialNum1              = 0;   // ??? fix where to get it ? CDC ?
-    nodeMap.serialNum2              = 0;
-    nodeMap.serialNum3              = 0;
-    nodeMap.serialNum4              = 0;
-    nodeMap.cfgOption               = 0;
 
     nodeMap.nodeState               = NS_NIL;
     nodeMap.nodeId                  = NIL_NODE_ID;
@@ -247,15 +240,14 @@ uint8_t setupDefaultNodeData( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultEventMap" initializes the event map and write it to NVM. We also
-// return the newly created event map.
+// "setupDefaultEventMap" initializes an event map and writes it to NVM. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultEventMap( ) {
 
     ENTER_FUNC( );
 
-    // ??? just have eventMap local for the init purpose ?
+    LcsEventMap eventMap;
 
     eventMap.magicWord = NVM_MWORD_NODE_EVENT_MAP;
     eventMap.nvmOfs    = NVM_EVENT_MAP_OFS;
@@ -283,25 +275,42 @@ uint8_t setupDefaultExtAttrMap( ) {
 
     ENTER_FUNC();
 
-    uint32_t extAttrMapSize = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
-    uint8_t rStat;
-
     nodeExtData.magicWord = NVM_MWORD_NODE_EXT_DATA_MAP;   
     nodeExtData.nvmOfs    = NVM_EXT_NODE_DATA_OFS;
-    nodeExtData.nvmSize   = extAttrMapSize;
+    nodeExtData.nvmSize   = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
+
+    uint8_t rStat;
 
     rStat = rtNvmPutBytes( NVM_EXT_NODE_DATA_OFS,
-                                      (uint8_t *)&nodeExtData,
-                                      sizeof( LcsNodeExtData ));
+                            (uint8_t *)&nodeExtData,
+                            sizeof( LcsNodeExtData ));
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
-    for ( uint16_t i = 0; i < ( extAttrMapSize / sizeof( uint16_t )) ; i++ ) {
+    uint32_t numOfAttr = 
+        ( nodeExtData.nvmSize - sizeof( LcsNodeExtData )) / sizeof( uint16_t );
 
-        uint16_t arg = 0;
-        rStat = rtNvmPutWord( NVM_EXT_NODE_DATA_OFS + 
-                              sizeof( LcsNodeExtData ) + 
-                              ( i * sizeof( uint16_t )), arg );
-        if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+    #define CHUNK_SIZE 64
+
+    uint8_t buf[ CHUNK_SIZE ];
+    memset( buf, 0, CHUNK_SIZE );
+
+    uint32_t offset = 0;
+    uint32_t total  = nodeExtData.nvmSize - sizeof(LcsNodeExtData);
+
+    while (offset < total) {
+
+        uint32_t size = 
+              (total - offset > CHUNK_SIZE) ? CHUNK_SIZE : (total - offset);
+
+        rStat = rtNvmPutBytes(
+                 NVM_EXT_NODE_DATA_OFS + sizeof(LcsNodeExtData) + offset,
+                    buf,
+                    size
+                 );
+
+        if (rStat != LCS_OK) return RET_STAT(rStat);
+
+        offset += size;
     }
 
     return ( RET_STAT( LCS_OK ));
@@ -852,6 +861,9 @@ uint8_t powerFailHandler( ) {
 // correct configuration of the nodeMap, so that we can hopefully restart with a
 // correct nodeMap.
 //
+// ?? what would we do different when we came back from a watchdog or 
+// power fail ?
+//
 //----------------------------------------------------------------------------------------
 uint8_t initRuntime( CdcResourceDescMap  *descMap,
                      uint16_t            options,
@@ -863,11 +875,14 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     runtimeOptions  = options;
     debugMask       = dbgMask;
 
+    
     rStat = initCdcLayer( );
     if ( rStat != LCS_OK ) {
 
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
+
+    printf( "DebugMask: 0x04x\n", debugMask );
   
     rStat = initI2cChannels( );
     if ( rStat != LCS_OK ) {

@@ -35,7 +35,7 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-#if 1
+#if 0
 // ??? old version...
 //----------------------------------------------------------------------------------------
 // External declaration to global structures and functions.
@@ -357,8 +357,8 @@ namespace LCS {
 
     extern uint16_t     debugMask;
 
-    extern uint8_t      rtNvmPutWord( uint32_t ofs, uint16_t word );
-    extern uint8_t      rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
+   // extern uint8_t      rtNvmPutWord( uint32_t ofs, uint16_t word );
+   // extern uint8_t      rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len );
     extern uint8_t      rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
     extern uint8_t      rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
 };

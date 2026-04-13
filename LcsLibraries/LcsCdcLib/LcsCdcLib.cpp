@@ -245,6 +245,9 @@ CdcResourceDesc *lookupResourceDesc( uint8_t rNum, uint8_t type ) {
 // If we have a console, we attempt to first write an error message to the console 
 // before looping.
 //
+// Also, the watchdog facility might be enabled. We just refresh the watchdog
+// to make sure we stay in this routine.
+//
 //----------------------------------------------------------------------------------------
 void fatalError( uint8_t n, char *str, uint8_t rStat ) {
 
@@ -266,6 +269,8 @@ void fatalError( uint8_t n, char *str, uint8_t rStat ) {
     gpio_set_dir( ledPin, GPIO_OUT );
 
     while ( true ) {
+
+        watchdog_update( );
 
         sleep_ms( longPulse );
        

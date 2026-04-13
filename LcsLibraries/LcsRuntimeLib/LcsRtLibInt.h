@@ -126,7 +126,7 @@ const uint8_t   I2C_ADDRESS_OFFSET              = 8;
 // for now.
 //
 //----------------------------------------------------------------------------------------
-const int       NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
+const uint32_t  NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
 
 //----------------------------------------------------------------------------------------
 // The maps have as their first word a magic word, which is just a special 
@@ -135,17 +135,12 @@ const int       NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
 // do further checking. It would be  quite unlikely that a random NVM content 
 // has this word at the right spot. 
 //
-// ??? have different MWords ? use 32-bit words ?
 //----------------------------------------------------------------------------------------
-const uint16_t  NVM_MWORD_MAIN                  = 0xa5a5;
-const uint16_t  NVM_MWORD_EXTENSION             = 0xa5a5;
-const uint16_t  NVM_MWORD_DEVICE                = 0xa5a5;
-
-const uint16_t  NVM_MWORD_NODE_HEADER           = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_MAP              = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_DATA_MAP         = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_EXT_DATA_MAP     = 0xa5a5;
-const uint16_t  NVM_MWORD_NODE_EVENT_MAP        = 0xa5a5;
+const uint32_t  NVM_MWORD_NODE_HEADER           = ( 0xa5a5 << 16 ) | 1L;
+const uint32_t  NVM_MWORD_NODE_MAP              = ( 0xa5a5 << 16 ) | 2L;
+const uint32_t  NVM_MWORD_NODE_DATA_MAP         = ( 0xa5a5 << 16 ) | 3L;
+const uint32_t  NVM_MWORD_NODE_EXT_DATA_MAP     = ( 0xa5a5 << 16 ) | 4L;
+const uint32_t  NVM_MWORD_NODE_EVENT_MAP        = ( 0xa5a5 << 16 ) | 5L;
 
 //----------------------------------------------------------------------------------------
 // The node states. Essentially, the node runtime is a big state machine. The 
@@ -289,11 +284,7 @@ struct LcsNodeMap {
        
     uint16_t            boardType;              // board type, e.g. LCS_MAIN_BOARD  
     uint16_t            boardVersion;           // board  version, e.g. 1.0
-    uint16_t            serialNum1;             // board  serial number part 1
-    uint16_t            serialNum2;             // board  serial number part 2
-    uint16_t            serialNum3;             // board  serial number part 3
-    uint16_t            serialNum4;             // board  serial number part 4  
-    uint16_t            cfgOption;              // board  config option
+    uint64_t            serialNum;              // board serial number
 
     uint16_t            nodeState;              // node state, e.g. NS_INIT;
     uint16_t            nodeId;                 // node Id
@@ -487,8 +478,8 @@ const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
-const uint32_t  NVM_EXT_NODE_DATA_OFS       =   NVM_MAP_STORAGE_START + 
-                                                NVM_BOARD_DESC_SIZE   + 
+const uint32_t NVM_EXT_NODE_DATA_OFS        =   NVM_MAP_STORAGE_START +
+                                                NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +
                                                 NVM_EVENT_MAP_SIZE;
