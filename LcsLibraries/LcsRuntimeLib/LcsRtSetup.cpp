@@ -185,7 +185,7 @@ uint8_t setupDefaultNodeMap( ) {
 
     nodeMap.boardType               = dMap.boardType;
     nodeMap.boardVersion            = dMap.boardVersion;
-    nodeMap.serialNum               = 0; // for now ...
+    nodeMap.serialNum               = getSerialNum( );
    
     nodeMap.nodeType                = 0; 
     nodeMap.nodeFlags               = 0;

@@ -309,6 +309,25 @@ void sleepMicros( uint32_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "getSerialNum" returns a unique board Id. It is based on the external NOR
+// flash, since the PICO does not have a serial number. 
+//
+//----------------------------------------------------------------------------------------
+uint64_t getSerialNum(void) {
+
+    pico_unique_board_id_t id;
+    pico_get_unique_board_id(&id);
+
+    uint64_t tmp = 0;
+    for (int i = 0; i < 8; i++) {
+
+        tmp |= ((uint64_t)id.id[ i ]) << ( i * 8 );
+    }
+
+    return tmp;
+}
+
+//----------------------------------------------------------------------------------------
 // "createUid" is the routine that produces a unique ID for the node. The scheme is 
 // based on a random number. Alternatively we could use the unique flash chip ID on
 // the board. 

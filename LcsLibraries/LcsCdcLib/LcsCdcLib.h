@@ -408,6 +408,7 @@ uint32_t        getMillis( );
 uint32_t        getMicros( );
 void            sleepMillis( uint32_t val );
 void            sleepMicros( uint32_t val );
+uint64_t        getSerialNum( );
 uint32_t        createUid( );
 
 //----------------------------------------------------------------------------------------

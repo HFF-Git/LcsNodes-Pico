@@ -38,6 +38,7 @@
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
 #include "pico/time.h"
+#include "pico/unique_id.h"
 
 #include "hardware/regs/usb.h"
 #include "hardware/regs/rosc.h"

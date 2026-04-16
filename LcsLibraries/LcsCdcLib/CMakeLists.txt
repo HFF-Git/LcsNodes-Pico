@@ -30,6 +30,7 @@ target_include_directories( ${PROJECT_NAME} INTERFACE
 target_link_libraries( ${PROJECT_NAME} 
 
     pico_stdlib 
+    pico_unique_id
     hardware_gpio
     hardware_i2c 
     hardware_clocks
