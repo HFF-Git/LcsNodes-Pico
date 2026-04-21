@@ -208,7 +208,7 @@ uint8_t i2cWrite( uint8_t  rNum,
                         make_timeout_time_ms( rPtr -> i2c.timeoutValMs ));
         if ( ret >= 0 ) break;
 
-        sleep_ms(1);
+        sleep_ms( 1 );
     }
 
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {

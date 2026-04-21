@@ -117,6 +117,7 @@ const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_LCS_MSG_SIZE                = 8;
 const uint16_t  MAX_COMMAND_LINE_SIZE           = 256;
+const uint16_t  MAX_ITEMS_PER_LINE              = 8;
 const uint16_t  EVENT_DELAY_TICK_MILLIS         = 32;
 const uint8_t   I2C_ADDRESS_OFFSET              = 8;
 

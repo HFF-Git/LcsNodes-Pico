@@ -177,14 +177,14 @@ uint32_t getPatchLevel( ) {
 // called more than once without a problem.
 //
 //----------------------------------------------------------------------------------------
-uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t debugMask ) {
+uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t dbgMask ) {
 
     dMap = *dMapPtr;
  
     if ( ! initialized ) {
 
         initResourceMap( &rMap );
-        debugMask = debugMask;
+        debugMask = dbgMask;
         options   = options;
 
         initIsrTable( );

@@ -91,7 +91,6 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
     //
     //------------------------------------------------------------------------------------
     .boardType      = CDC_BT_MAIN_CONTROLLER, // ??? fix ...
-   // .boardCtrlInfo  = CDC_CF_RP_PICO, 
     .boardVersion   = (( 1U << 8 ) | 0 ), 
   
     //------------------------------------------------------------------------------------
@@ -122,11 +121,11 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_NVM,
-            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 25 }
+            .i2c { .sclPin = 3, .sdaPin = 2, .baudRate = 100000, .i2cTimeoutMs = 50 }
         },
 
         {   .type = CDC_RT_I2C, .resId = CDC_RN_EXT_NVM,
-            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 25 }
+            .i2c { .sclPin = 17, .sdaPin = 16, .baudRate = 100000, .i2cTimeoutMs = 50 }
         },
 
         {

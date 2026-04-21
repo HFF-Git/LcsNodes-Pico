@@ -171,7 +171,14 @@ uint8_t initLcsRuntime( ) {
 
     uint8_t rStat = initRuntime( &dMap, 
                                  ( NPO_SKIP_NODE_ID_CONFIG | NPO_DISABLE_WATCHDOG ),
-                                 ( LCS_DBG_ENABLE | LCS_DBG_SETUP ));
+                                 
+                                 ( LCS_DBG_ENABLE | CDC_DBG_ENABLE
+                                    
+                                    | LCS_DBG_SETUP 
+                                    // | LCS_DBG_NVM_ACCESS 
+                                    // | CDC_DBG_ENABLE | CDC_DBG_I2C 
+                                   
+                                 ));
 
     printf( "LCS Runtime Lib Test Program Setup ==============================\n" );
     return( rStat );

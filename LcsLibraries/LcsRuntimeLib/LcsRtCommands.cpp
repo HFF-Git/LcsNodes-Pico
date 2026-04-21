@@ -68,6 +68,28 @@ using namespace LCS;
 char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
 //----------------------------------------------------------------------------------------
+// We can dump memory or NVM content. The routines to list the data are very
+// similar. We print a line of up to n items and several lines of all zeroes
+// are condensed. The routines accept a context, which tells from where the 
+// data is coming from.
+//
+//----------------------------------------------------------------------------------------
+typedef enum {
+
+    DUMP_SRC_MEM,
+    DUMP_SRC_NVM
+
+} DumpSource;
+
+typedef struct {
+
+    DumpSource  type;
+    uint16_t    *memPtr;
+    uint32_t     nvmStart;
+
+} DumpContext;
+
+//----------------------------------------------------------------------------------------
 // Helper routines for error status handling.
 //
 //----------------------------------------------------------------------------------------
@@ -82,239 +104,253 @@ void errStat( char *msg, uint8_t ret ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printLine" is a helper routine for the memory dump. It prints one line of
-// the memory content. The line starts at the specified index and contains the
-// specified number of items. The line is printed in hex format. If the 
-// "printAscii" flag is set, the ASCII representation of the data is printed on
-// the right side.
+// A helper function to check if a line is all zeroes.
 //
 //----------------------------------------------------------------------------------------
-static void printLine(uint16_t *ptr,
-                      uint16_t index,
-                      uint16_t limit,
-                      uint8_t  itemsPerLine,
-                      bool     printAscii ) {
-
-    printf("0x%08x: ", index * sizeof(uint16_t));
+bool isZeroLine( uint16_t *line, bool *valid, uint16_t itemsPerLine ) {
 
     for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-        if ( index + i < limit ) printf("0x%04x ", ptr[index + i]);
+        if ( valid[i] && line[i] != 0 ) return false;
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------------------------
+// Print a line. We list the content in hex and optional append an ASCII version.
+//
+//----------------------------------------------------------------------------------------
+void printLineBuf( uint32_t   address,
+                   uint16_t   *line,
+                   bool       *valid,
+                   uint16_t   itemsPerLine,
+                   bool       printAscii ) {
+
+    printf( "0x%08x: ", address );
+
+    for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+        if ( valid[ i ]) printf( "0x%04x ", line[ i ]);
+        else             printf( "     " );
     }
 
     if ( printAscii ) {
 
-        if ( index + itemsPerLine >= limit ) {
-
-            int tmp = index + itemsPerLine - limit;
-            for ( int i = 0; i < tmp; i++ ) printf( "       " );
-        }
-
         printf( "  " );
-
+ 
         for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+            
+            if ( valid[ i ] ) {
 
-            if ( index + i < limit ) {
-
-                uint16_t val = ptr[ index + i ] ;
-
-                printf( "%c", isprint( val >> 8 ) ? ( val >> 8) : '.' );
-                printf( "%c ", isprint( val & 0xff ) ? ( val & 0xff) : '.' );
+                uint16_t v = line[i];
+                printf("%c", isprint( v >> 8 ) ? v >> 8 : '.' );
+                printf("%c ", isprint( v & 0xff ) ? v & 0xff : '.' );
             }
         }
     }
 
-    printf( "\n" );
+    printf("\n");
 }
 
 //----------------------------------------------------------------------------------------
-// "dumpMemData" lists the memory data content of the storage area passed. The
-// data is displayed in 16-bit  quantities. Longer sequences of lines with just 
-// zeroes are suppressed and listed with three dots. Because the PICO uses 
-// little-endian format, ASCII characters may appear reversed when interpreted 
-// directly.
+// "fetchLine" retrieves a line of data depending on the dump context. We are
+// passed the starting byte address, the buffer to which the data is written,
+// list options and the limit of the address range. 
 //
 //----------------------------------------------------------------------------------------
-void dumpMemData( uint16_t *area, 
-                  uint16_t len,
-                  uint8_t  itemsPerLine = 8,
-                  bool     printAscii   = false ) {
+void fetchLine( const DumpContext *ctx,
+                uint32_t index,
+                uint16_t *line,
+                bool *valid,
+                uint16_t itemsPerLine,
+                uint32_t limit ) {
 
-    const uint16_t  zeroLinesThreshold = 4;
+    if (ctx->type == DUMP_SRC_MEM) {
 
-    uint16_t limit = ( len + 1 ) / 2;
-    uint16_t *ptr  = area;
+        uint32_t wordIndex = index / sizeof(uint16_t);
 
-    uint16_t index = 0;
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-    // Zero-run tracking
-    uint16_t zeroRunStart = 0;
-    uint16_t zeroRunLength = 0;
+            uint32_t addr = ( wordIndex + i ) * sizeof(uint16_t);
+
+            if ( addr < limit ) {
+
+                line[ i ]  = ctx->memPtr[wordIndex + i];
+                valid[ i ] = true;
+            } 
+            else valid[ i ] = false;
+        }
+    }
+    else {
+
+        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+
+            uint32_t ofs = index + i * sizeof(uint16_t);
+
+            if ( ofs < limit ) {
+
+                uint8_t rStat = rtNvmGetWord( ofs, &line[ i ]);
+                valid[ i ] = ( rStat == NO_ERR );
+            } 
+            else valid[ i ] = false;
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// "dumpCore" is the work horse for listing data. We get the context, start and 
+// end address and a couple of options that control the printout.
+//
+//----------------------------------------------------------------------------------------
+void dumpCore( const DumpContext *ctx,
+               uint32_t start,
+               uint32_t limit,
+               uint16_t itemsPerLine,
+               bool printAscii,
+               uint32_t byteStep,
+               bool compressZeroes ) {
+
+    const uint16_t zeroLinesThreshold = 4;
+
+    uint16_t line[ MAX_ITEMS_PER_LINE ];
+    bool     valid[ MAX_ITEMS_PER_LINE ];
+
+    uint32_t index          = start;
+    uint32_t zeroRunStart   = 0;
+    uint32_t zeroRunLength  = 0;
 
     while ( index < limit ) {
 
-        // ---- Check if current line is all zeros ----
-        bool isZeroLine = true;
+        fetchLine( ctx, index, line, valid, itemsPerLine, limit );
 
-        for ( uint16_t i = 0; i < itemsPerLine && ( index + i ) < limit; i++ ) {
-            if ( ptr[ index + i ] != 0 ) {
+        bool isZero = isZeroLine( line, valid, itemsPerLine );
+        if ( !compressZeroes ) isZero = false;
 
-                isZeroLine = false;
-                break;
-            }
-        }
-
-        if ( isZeroLine ) {
+        if ( isZero ) {
 
             if ( zeroRunLength == 0 ) zeroRunStart = index;
             zeroRunLength++;
 
-        } 
+        }
         else {
 
-            // ---- Flush any pending zero run ----
             if ( zeroRunLength > 0 ) {
 
                 if ( zeroRunLength <= zeroLinesThreshold ) {
 
-                    // Print all lines
-                    for ( uint16_t i = 0; i < zeroRunLength; i++ ) {
- 
-                        printLine( ptr,
-                                   zeroRunStart + i * itemsPerLine,
-                                   limit,
-                                   itemsPerLine,
-                                   printAscii);
+                    for ( uint32_t i = 0; i < zeroRunLength; i++ ) {
+
+                        uint32_t tmp = zeroRunStart + i * byteStep;
+
+                        fetchLine( ctx, tmp, line, valid, itemsPerLine, limit );
+                        printLineBuf( tmp, line, valid, itemsPerLine, printAscii );
                     }
+
                 } 
                 else {
-                    
-                    // Print first line
-                    printLine( ptr,
-                               zeroRunStart,
-                               limit,
-                               itemsPerLine,
-                               printAscii);
 
-                    printf( "...\n" );
+                    fetchLine( ctx, zeroRunStart, line, valid, itemsPerLine, limit );
+                    printLineBuf( zeroRunStart, line, valid, itemsPerLine, printAscii );
 
-                    // Print last line
-                    printLine( ptr,
-                               zeroRunStart + (zeroRunLength - 1) * itemsPerLine,
-                               limit,
-                               itemsPerLine,
-                               printAscii);
+                    printf("...\n");
+
+                    uint32_t last = zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
+
+                    fetchLine( ctx, last, line, valid, itemsPerLine, limit );
+                    printLineBuf( last, line, valid, itemsPerLine, printAscii );
                 }
 
                 zeroRunLength = 0;
             }
 
-            // ---- Print current non-zero line ----
-            printLine( ptr, index, limit, itemsPerLine, printAscii );
+            printLineBuf( index, line, valid, itemsPerLine, printAscii );
         }
 
-        index += itemsPerLine;
+        index += byteStep;
     }
 
-    // ---- Flush zero run at end ----
-    if ( zeroRunLength > 0 ) {
+    // flush trailing zeros
+    if ( compressZeroes && zeroRunLength > 0 ) {
 
         if ( zeroRunLength <= zeroLinesThreshold ) {
 
-            for ( uint16_t i = 0; i < zeroRunLength; i++ ) {
+            for ( uint32_t i = 0; i < zeroRunLength; i++ ) {
 
-                printLine( ptr,
-                           zeroRunStart + i * itemsPerLine,
-                           limit,
-                           itemsPerLine,
-                           printAscii);
+                uint32_t tmp = zeroRunStart + i * byteStep;
+
+                fetchLine( ctx, tmp, line, valid, itemsPerLine, limit );
+                printLineBuf( tmp, line, valid, itemsPerLine, printAscii );
             }
-        } 
-        else {
-            
-            printLine( ptr,
-                       zeroRunStart,
-                       limit,
-                       itemsPerLine,
-                       printAscii);
+
+        } else {
+
+            fetchLine( ctx, zeroRunStart, line, valid, itemsPerLine, limit );
+            printLineBuf( zeroRunStart, line, valid, itemsPerLine, printAscii );
 
             printf( "...\n" );
 
-            printLine( ptr,
-                       zeroRunStart + (zeroRunLength - 1) * itemsPerLine,
-                       limit,
-                       itemsPerLine,
-                       printAscii);
+            uint32_t last = zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
+
+            fetchLine( ctx, last, line, valid, itemsPerLine, limit );
+            printLineBuf( last, line, valid, itemsPerLine, printAscii );
         }
     }
 }
 
 //----------------------------------------------------------------------------------------
-// List the NVM storage data. The function receives the absolute byte offset within 
-// the NVM area and the length in bytes. The data is displayed in 16-bit quantities. 
-// Because the PICO uses little-endian format, ASCII characters may appear reversed 
-// when interpreted directly.
+// A simple Api to list our memory content.
 //
 //----------------------------------------------------------------------------------------
-void dumpNvmData( uint32_t  start, 
-                  uint32_t  len, 
-                  uint32_t  itemsPerLine = 8, 
-                  bool      printAscii = false ) {
+void dumpMemData(uint16_t *area,
+                 uint16_t len,
+                 uint8_t itemsPerLine = 8,
+                 bool printAscii = true,
+                 bool compressZeroes = true )
 
-    uint8_t     rStat = NO_ERR;
-    uint32_t    limit = start + len;
-    uint16_t    val   = 0;
+{
 
-    while ( start < limit ) {
+    DumpContext ctx = {
 
-        printf( "0x%08x: ", start );
+        .type   = DUMP_SRC_MEM,
+        .memPtr = area
+    };
 
-        for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
+    uint32_t start = 0;
+    uint32_t limit = len;
 
-            uint32_t ofs = ( start + ( i * sizeof(uint16_t)));
+    dumpCore( &ctx,
+              start,
+              limit,
+              itemsPerLine,
+              printAscii,
+              itemsPerLine * sizeof(uint16_t),
+              compressZeroes );
 
-            if ( ofs < limit ) {
+}
 
-                rStat = rtNvmGetWord( ofs, &val );
-                if ( rStat == NO_ERR ) printf( "0x%04x ", val );
-                else printf( "**** " );
-            }
-        }
+//----------------------------------------------------------------------------------------
+// A simple Api to list our NVM content.
+//
+//----------------------------------------------------------------------------------------
+void dumpNvmData( uint32_t start,
+                  uint32_t len,
+                  uint8_t itemsPerLine = 8,
+                  bool printAscii = true,
+                  bool compressZeroes = true ) {
+    DumpContext ctx = {
 
-        if ( printAscii ) {
+        .type     = DUMP_SRC_NVM,
+        .nvmStart = start
+    };
 
-            if ( start + ( itemsPerLine * sizeof(uint16_t)) >= limit ) {
-
-                int tmp = ( start + 
-                    ( itemsPerLine * sizeof(uint16_t)) - limit ) / sizeof( uint16_t);
-
-                for ( int i = 0; i < tmp; i++ ) printf( "       " );
-            };
-
-            printf( "  " );
-
-            for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
-
-                uint32_t ofs = start + ( i * sizeof(uint16_t));
-
-                if ( ofs < limit ) {
-
-                    rStat = rtNvmGetWord( ofs, &val );
-                    if ( rStat == NO_ERR ) {
-
-                        if ( isprint( val >> 8  )) printf( "%c", val >> 8 );
-                        else                       printf( "." );
-
-                        if ( isprint( val & 0xff )) printf( "%c ", val & 0xFF );
-                        else                        printf( ". " );
-                    }
-                }
-            }
-        }
-   
-        start = start + ( itemsPerLine * sizeof(uint16_t));
-        printf( "\n" );
-    }
+    dumpCore( &ctx,
+              start,
+              start + len,
+              itemsPerLine,
+              printAscii,
+              itemsPerLine * sizeof(uint16_t),
+              compressZeroes );
 }
 
 //----------------------------------------------------------------------------------------
@@ -335,7 +371,7 @@ void dumpMemNodeMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemPortMap( ) {
 
-    printf( "MEM Port Map: \n\n" );
+    printf( "MEM Port Map: (Hwm: %d)\n\n", portMap.mapHwm );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -386,7 +422,7 @@ void dumpMemTaskMap( ) {
     printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
             MAX_TASK_MAP_ENTRIES, taskMap.mapHwm );
 
-    dumpMemData((uint16_t *) &taskMap, sizeof( LcsTaskMap ));
+    dumpMemData((uint16_t *) &taskMap.map, sizeof( LcsTaskMap ) - 4 );
     printf( "\n" );
 }
 
@@ -434,19 +470,20 @@ void dumpNvmNodeMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmNodeData( ) {
 
-    printf( "NVM Node Data Dump: \n\n" );
+    printf( "NVM Node Data Dump: \n\n");
+    printf( "Header: " );
+    dumpNvmData( NVM_NODE_DATA_OFS, 12, 8, false );
+    printf( "\n" );
+
+     uint32_t start = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        uint32_t start = NVM_NODE_DATA_OFS + ( i * MAX_ATTR_MAP_ENTRIES * 2 );
+        uint32_t adr = start + ( i * MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
 
-        printf( "Port %d:, Adr: 0x%08x\n", i, 
-        NVM_NODE_DATA_OFS + ( i * MAX_ATTR_MAP_ENTRIES * 2 ));
+        printf( "Port %d:, Adr: 0x%08x\n", i, adr );
 
-        dumpNvmData( start, 
-                     MAX_ATTR_MAP_ENTRIES * 2,
-                     8, 
-                     true );
+        dumpNvmData( adr, MAX_ATTR_MAP_ENTRIES * 2, 8, true );
         printf( "\n" );
     }
 
@@ -967,10 +1004,10 @@ void listCoreLibHelpCommand( ) {
     printf( "   " " -        21         - Node Header\n" );
     printf( "   " " -   2    22   42    - Node Map\n" );
     printf( "   " " -   3    23         - Node Data\n" );
-    printf( "   " " -             44    - Event Map\n" );
+    printf( "   " " -        24   44    - Event Map\n" );
     printf( "   " " -   5         45    - Port Map\n" );
     printf( "   " " -   6         46    - Task Map\n" );
-     printf( "   " " -  7               - Event Hash Map\n" );
+    printf( "   " " -   7               - Event Hash Map\n" );
     printf( "   " " -   8    28         - Runtime Area\n" );
 
     printf( "   " " -  50  - Scan I2C Devices\n" );

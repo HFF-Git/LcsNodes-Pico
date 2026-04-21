@@ -588,12 +588,22 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     if ( runtimeOptions & NPO_FORMAT_RUNTIME ) {
 
+        if ( setupDebugEnabled( )) {
+
+            printf ( "Runtime Option: FORMAT\n" );
+        }
+
         rStat = buildNvmRuntimeStructure( );
-        if ( rStat != LCS_OK) return ( RET_STAT( rStat ));
+        if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
     }
 
     rStat = checkMagicWords( );
     if ( rStat != LCS_OK ) {
+
+        if ( setupDebugEnabled( )) {
+            
+            printf ( "Magic Word Check failed: FORMAT\n" );
+        }
 
         rStat = buildNvmRuntimeStructure( );
         if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
@@ -747,66 +757,6 @@ uint8_t setupTaskMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// A port offers a set of up to 8 channels. 
-//
-// ??? what would we need it for ? 
-// Good to know, however, we should also cover the case where a device is added
-// later or disappears. Sounds more like a periodic tasks to run for discovery 
-// and check....
-//----------------------------------------------------------------------------------------
-uint8_t discoverChannels( ) {
-
-    ENTER_FUNC( );
-   
-    for ( int i = 1; i < MAX_PORT_ID; i++ ) {
-
-        for ( int j = 0; j < MAX_CHAN_ID; j++ ) {
-
-            uint8_t i2cAdr = i * MAX_PORT_MAP_ENTRIES + j + 8;
-
-            if ( setupDebugEnabled( )) {
-
-                printf( "Testing I2C adr: 0x%2x\n", i2cAdr );
-            }
-
-            // ??? try to read ...
-
-            uint8_t tmp;
-            uint8_t rStat = i2cRead( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) &tmp, 1 );
-
-            if ( rStat != LCS_OK ) continue;
-
-            if ( setupDebugEnabled( )) {
-
-                printf( "Found a device\n", rStat );
-            }
-
-            
-        
-            // ??? if OK, read the entire header.
-
-            // ??? check if the type matches the port type of there is already 
-            // a type set for the port. If no match it is an error, and the port
-            // is disabled in error.
-
-            // ??? if match, remember the channelId in a bit mask. Not all 
-            // channel Ids need to be in use...
-
-            // ??? to do ...
-
-            // ??? update the portMap entry flags.
-
-            // portMap.map[0].flags        |= NPF_EXT_BOARD_PRESENT;
-            // portMap.map[i].flags        |= NPF_EXT_BOARD_PRESENT;
-            // portMap.map[i].flags        |= NPF_EXT_BOARD_VALID;
-            // portMap.map[i].reqCallback  = nullptr;
-        }
-    }
-
-    return( RET_STAT( LCS_OK ));
-}
-
-//----------------------------------------------------------------------------------------
 // The runtime library will one day perhaps a set of internal functions to execute
 // periodically. They should be added here. Right now, this routine will do nothing.
 //
@@ -868,7 +818,7 @@ uint8_t powerFailHandler( ) {
 //----------------------------------------------------------------------------------------
 uint8_t initRuntime( CdcResourceDescMap  *descMap,
                      uint16_t            options,
-                     uint16_t            dbgMask) {
+                     uint16_t            dbgMask ) {
 
     uint8_t rStat = LCS_OK;
 
@@ -883,7 +833,8 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
 
-    printf( "DebugMask: 0x04x\n", debugMask );
+
+    printf( "DebugMask: 0x%04x\n", debugMask );
   
     rStat = initI2cChannels( );
     if ( rStat != LCS_OK ) {
@@ -903,7 +854,6 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
     if ( rStat == LCS_OK )  rStat = setupNodeNvmHeader( &dMap );
     if ( rStat == LCS_OK )  rStat = setupNodeMap( );
     if ( rStat == LCS_OK )  rStat = setupPortMap( );
-    if ( rStat == LCS_OK )  rStat = discoverChannels( );
     if ( rStat == LCS_OK )  rStat = setupNodeDataMap( );
     if ( rStat == LCS_OK )  rStat = setupEventMap( );
     if ( rStat == LCS_OK )  rStat = setupUserMap( );
@@ -916,6 +866,8 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
 
             // ??? we came back from a PFAIL ?
         }
+
+        // ??? is there also a we started after a watchdog reset ?
 
         nodeMap.nodeState = NS_INIT;
     }

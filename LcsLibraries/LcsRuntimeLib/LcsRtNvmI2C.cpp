@@ -186,6 +186,12 @@ uint32_t roundNvmMaxSize( uint16_t chipSize ) {
 //----------------------------------------------------------------------------------------
 uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
+    if ( nvmDebugEnabled( )) {
+
+        printf( "determineNvmChipMemorySize: rNum: %d, i2cAdr: 0x%02x\n",
+            rNum, i2cAdr );
+    }
+
     uint32_t nvmSize    = M24LC512_MAX_SIZE;
     uint32_t testAdr    = nvmSize - 1;
     uint32_t mirrorAdr  = 0;
