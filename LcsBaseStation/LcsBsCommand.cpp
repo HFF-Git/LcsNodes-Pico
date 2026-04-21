@@ -72,6 +72,9 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 // configuration tool to be used. The command handler supports command sequences
 // "<" ... ">" in one line which are processed once the carriage return is hit.
 //
+//
+// ??? cross check with the DDC-EX folks, they interface to RocRail...
+// ??? good news: most of this matches... old DCCC++ stuff...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 

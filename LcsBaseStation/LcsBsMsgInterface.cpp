@@ -117,10 +117,13 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
     switch ( msg[ 0 ] ) {
 
         //--------------------------------------------------------------------------------
-        // LCS_OP_REQ_LOC request. A session is requested for the cabId. Depending
-        // on the "flags" it is either a new allocation, a steal or shared allocation.
-        // The reply command is the REP-LOC command, which sends the allocated 
-        // sessionId and initial speed, direction and function data for F0 to F12.
+        // LCS_OP_REQ_LOC request.
+        //
+        // ??? The meaning will change if we auto-allocate a session. We should still
+        // add a session entry on behalf of the loco and return a REP_LOC message.
+        // One day, we could return data from a dictionary about default loco 
+        // settings. If the session entry already exist, we just return the actual
+        // data. That will do for SHARE and perhaps also STEAL.
         //
         // ??? need to implement a protocol between handhelds for STEAL and SHARE.
         //--------------------------------------------------------------------------------
@@ -171,6 +174,10 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         // LCS_OP_QRY_LOC request. The query request obtains the current session data. 
         // The reply command is the REP-LOC command, which sends the current sessionId 
         // and speed, direction and function data for F0 to F12.
+        //
+        //
+        // ??? we can combine this with an RLOC message. Since there are only
+        // sessions on demand, there is no point to query that data.
         //
         //--------------------------------------------------------------------------------
         case LCS_OP_QRY_LOC: {
