@@ -814,12 +814,6 @@ uint8_t     registerReqCallback( LcsReqCallback handler,
 // port. The request function and reply group implements a function style call.
 // The event group manages events.
 //
-// The sendingNpId argument specifies the sender. Although we have a global 
-// nodeId, the portId can be different. It is possible to send a message from 
-// a port to another port on the same node. When the sendingNpId parameter
-// is omitted, the global nodeId with a portId of zero is used. The channelId
-// is always ignored and passed as is.
-//
 // The request / reply style messages allow on the sending side to pass an 
 // individual callback for the reply.
 // 

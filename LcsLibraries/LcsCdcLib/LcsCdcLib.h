@@ -604,7 +604,7 @@ int             getEncoderPosition( uint8_t rNum );
 int             getEncoderLowerLimit( uint8_t rNum );    
 int             getEncoderUpperLimit( uint8_t rNum );
 
-void            attacPositionChanged( uint8_t rNum, 
+void            attachPositionChanged( uint8_t rNum, 
                                       EncoderCallback functionId );
     
 };
