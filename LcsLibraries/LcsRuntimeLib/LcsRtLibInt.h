@@ -372,7 +372,7 @@ struct LcsEventMap {
 // is a hash table.
 //
 //----------------------------------------------------------------------------------------
-const int               MAX_CAB_HASH_TAB_ENTRIES = 2048;
+const int              MAX_CAB_HASH_TAB_ENTRIES = 2048;
 
 struct LcsEventHashMap {
 

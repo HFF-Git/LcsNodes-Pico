@@ -86,7 +86,7 @@ inline uint16_t chanId( uint16_t npId ) {
 
 inline uint16_t buildNpId( uint16_t nodeId, uint16_t portId, uint16_t chanId ) {
 
-    return((( nodeId & 0x2FF ) << 10 ) | 
+    return((( nodeId & 0x2FF ) << 6 ) | 
            (( portId & 0x7 )   << 3  ) | 
            ( chanId & 0x7 ));
 }

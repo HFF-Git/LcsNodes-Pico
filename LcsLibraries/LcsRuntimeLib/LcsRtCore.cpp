@@ -396,15 +396,13 @@ void handleMsgReqNode( uint16_t senderNpId, uint8_t *msg ) {
 //----------------------------------------------------------------------------------------
 void handleMsgEvent( uint16_t senderNpId, uint8_t *msg ) {
 
-    uint16_t  eventId = ( msg[3] << 8 ) + msg[4];
+    uint16_t         eventId = ( msg[1] << 8 ) + msg[2];
+    LcsEventMapEntry *e      = lookupEvent( eventId );
 
-    LcsEventMapEntry *e = lookupEvent( eventId );
-   
     if ( e != nullptr ) {
 
-        uint8_t     opCode          = msg[0];
-        uint16_t    npId            = ( msg[1] * 256 ) + msg[2];
-        uint16_t    eventData       = ( msg[5] * 256 ) + msg[6];
+        uint8_t     opCode          = msg[ 0 ];
+        uint16_t    eventData       = ( msg[ 3 ] * 256 ) + msg[ 4 ];
         uint8_t     eventAction     = PEA_EVENT_IDLE;
         uint32_t    ts              = getMillis( );
         uint16_t    eventMask       = e -> eventMask;
@@ -424,9 +422,13 @@ void handleMsgEvent( uint16_t senderNpId, uint8_t *msg ) {
                 ( pPtr -> portFlags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
                 ( pPtr -> eventCallback != nullptr                  )) {
 
+                printf( "handleMsgEvent: port: %d\n", i );
+
                 if ( eventMask & ( 1 << i )) {
 
-                    pPtr -> eventNpId       = npId;
+                    printf( "handleMsgEvent: fire\n" );
+
+                    pPtr -> eventNpId       = senderNpId;
                     pPtr -> eventId         = eventId;
                     pPtr -> eventAction     = eventAction;
                     pPtr -> eventValue      = eventData;

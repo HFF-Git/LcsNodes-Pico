@@ -716,9 +716,7 @@ uint8_t setupNodeDataMap( ) {
 uint8_t setupEventMap( ) {
 
     ENTER_FUNC( );
-
-    // return ( RET_STAT( syncEventMapToMem( )));
-    return( LCS_OK );
+    return ( RET_STAT( loadEventMap( )));
 }
 
 //----------------------------------------------------------------------------------------

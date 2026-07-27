@@ -225,7 +225,7 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00 = {
 // Board Descriptor for Main Controller Board Version: B.02.00
 //
 //----------------------------------------------------------------------------------------
-const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
+const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_10 = {
 
     //------------------------------------------------------------------------------------
     // Controller configuration and common data.
@@ -319,45 +319,25 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_7,
             .gpio { .pinA = 13, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
-    
-        {
-            .type = CDC_RT_GPIO, .resId = RNUM_DIO_4,
-            .gpio { .pinA = 10, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
-        },
-    
-        {
-            .type = CDC_RT_GPIO, .resId = RNUM_DIO_5,
-            .gpio { .pinA = 11, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
-        },
-    
-        {
-            .type = CDC_RT_GPIO, .resId = RNUM_DIO_6,
-            .gpio { .pinA = 12, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
-        },
-
-        {
-            .type = CDC_RT_GPIO, .resId = RNUM_DIO_7,
-            .gpio { .pinA = 13, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
-        },
 
         {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_8,
-            .gpio { .pinA = 21, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+            .gpio { .pinA = 18, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
 
         {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_9,
-            .gpio { .pinA = 20, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
-        },
-
-        {
-            .type = CDC_RT_GPIO, .resId = RNUM_DIO_10,
             .gpio { .pinA = 19, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
 
         {
+            .type = CDC_RT_GPIO, .resId = RNUM_DIO_10,
+            .gpio { .pinA = 20, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+        },
+
+        {
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_11,
-            .gpio { .pinA = 18, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
+            .gpio { .pinA = 21, .pinB = UNDEFINED_PIN, .pinMode = CDC_DIO_IN }
         },
 
         {
@@ -372,12 +352,12 @@ const CdcResourceDescMap LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_00 = {
 
         {   
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_2,
-            .gpio { .pinA = 21, .pinB = 20, .pinMode = CDC_DIO_IN }
+            .gpio { .pinA = 20, .pinB = 21, .pinMode = CDC_DIO_IN }
         },
     
         {   
             .type = CDC_RT_GPIO, .resId = RNUM_DIO_P_3,
-            .gpio { .pinA = 19, .pinB = 18, .pinMode = CDC_DIO_IN }
+            .gpio { .pinA = 18, .pinB = 19, .pinMode = CDC_DIO_IN }
         },
     
         {   

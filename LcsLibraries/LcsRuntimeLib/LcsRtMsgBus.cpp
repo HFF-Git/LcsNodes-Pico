@@ -80,7 +80,10 @@ uint8_t sendLcsMsg( uint16_t senderNpId,
                     uint8_t *msg, 
                     uint8_t msgPri = MSG_PRI_NORMAL ) {
 
-    if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_READY );
+    if (( nodeMap.nodeState != NS_OPERATE ) && 
+        ( nodeMap.nodeState != NS_CONFIG )) 
+        return ( ERR_LIB_NOT_READY );
+
     return ( msgBus -> sendLcsMsg( senderNpId, msg, msgPri ));
 }
 
@@ -124,7 +127,12 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
 
         if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_MSG_BUS )) {
             
-             printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
+            printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
+
+            for ( uint32_t i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i++ ) 
+                printf( " 0x%x", msg[ i ] );
+
+            printf( ")\n" );
         }
 
         if (( msg[ 0 ] == LCS_OP_NODE_REP ) || 

@@ -38,7 +38,7 @@ using namespace CDC;
 // Global declarations.
 //
 //----------------------------------------------------------------------------------------
-CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
+CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_10;
 
 //----------------------------------------------------------------------------------------
 // When a main controller board is used to drive an extension board, the DIO pins 
@@ -171,12 +171,15 @@ uint8_t initLcsRuntime( ) {
 
     uint8_t rStat = initRuntime( &dMap, 
                                  ( NPO_SKIP_NODE_ID_CONFIG | NPO_DISABLE_WATCHDOG ),
-                                 
-                                 ( LCS_DBG_ENABLE | CDC_DBG_ENABLE
-                                    
+                                 ( LCS_DBG_ENABLE 
+                                    | CDC_DBG_ENABLE 
                                     | LCS_DBG_SETUP 
+                                    | LCS_DBG_ITEMS
+                                    | LCS_DBG_EVENTS
+                                    // | LCS_DBG_CAN_BUS
+                                    | LCS_DBG_MSG_BUS
                                     // | LCS_DBG_NVM_ACCESS 
-                                    // | CDC_DBG_ENABLE | CDC_DBG_I2C 
+                                    // | CDC_DBG_I2C 
                                    
                                  ));
 
@@ -203,7 +206,6 @@ void startLcsRuntime( ) {
 int main( ) {
 
     uint8_t rStat = initLcsRuntime( );
-    if ( rStat == NO_ERR ) rStat = setupPinsForExtBoardTests( );
     if ( rStat == NO_ERR ) rStat = registerLcsCallbacks( );
     if ( rStat == NO_ERR ) startLcsRuntime( );
     return( NO_ERR );

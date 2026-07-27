@@ -231,7 +231,6 @@ void dumpCore( const DumpContext *ctx,
 
             if ( zeroRunLength == 0 ) zeroRunStart = index;
             zeroRunLength++;
-
         }
         else {
 
@@ -243,27 +242,38 @@ void dumpCore( const DumpContext *ctx,
 
                         uint32_t tmp = zeroRunStart + i * byteStep;
 
-                        fetchLine( ctx, tmp, line, valid, itemsPerLine, limit );
-                        printLineBuf( tmp, line, valid, itemsPerLine, printAscii );
+                        fetchLine( ctx, tmp, line, valid,
+                                itemsPerLine, limit );
+
+                        printLineBuf( tmp, line, valid,
+                                    itemsPerLine, printAscii );
                     }
 
                 } 
                 else {
 
-                    fetchLine( ctx, zeroRunStart, line, valid, itemsPerLine, limit );
-                    printLineBuf( zeroRunStart, line, valid, itemsPerLine, printAscii );
+                    fetchLine( ctx, zeroRunStart, line, valid,
+                            itemsPerLine, limit );
+
+                    printLineBuf( zeroRunStart, line, valid,
+                                itemsPerLine, printAscii );
 
                     printf("...\n");
 
-                    uint32_t last = zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
+                    uint32_t last =
+                        zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
 
-                    fetchLine( ctx, last, line, valid, itemsPerLine, limit );
-                    printLineBuf( last, line, valid, itemsPerLine, printAscii );
+                    fetchLine( ctx, last, line, valid,
+                            itemsPerLine, limit );
+
+                    printLineBuf( last, line, valid,
+                                itemsPerLine, printAscii );
                 }
 
                 zeroRunLength = 0;
             }
 
+            fetchLine( ctx, index, line, valid, itemsPerLine, limit );
             printLineBuf( index, line, valid, itemsPerLine, printAscii );
         }
 
@@ -410,7 +420,8 @@ void dumpMemEventHashMap( ) {
     dumpMemData(( uint16_t *) &eventHashMap.map, 
                 sizeof( eventHashMap.map ), 
                 8, 
-                false );
+                false,
+                true );
 }
 
 //----------------------------------------------------------------------------------------
@@ -871,11 +882,11 @@ void reqNodeCommand( char *s ) {
 // an event on the local node. Sending to ourselves is also quite useful for debug
 // event callback handlers.
 //
-//    e mode eventId [ arg ]
+//    e npId eventId mode [ arg ]
 //
-//    mode      - 0 - ON, 1 - OFF, 2 - DATA
 //    npId      - the sending node / port Id
 //    eventId   - the event Id
+//    mode      - 0 - ON, 1 - OFF, 2 - DATA
 //    arg       - optional data argument for the data event.
 //
 //----------------------------------------------------------------------------------------
@@ -888,7 +899,7 @@ void sendEventCommand( char *s ) {
     int     len         = 0;
     uint8_t ret         = LCS_OK;
 
-    len = sscanf( s, "%i %i %i %i", &mode, &npId, &eventId, &arg );
+    len = sscanf( s, "%i %i %i %i", &npId, &eventId, &mode, &arg );
 
     uint16_t tmpNpId    = (uint16_t) npId;
     uint16_t tmpEvent   = (uint16_t) eventId;

@@ -32,7 +32,7 @@ using namespace CDC;
 // This is the board configuration we use. See the include file for the details.
 //
 //----------------------------------------------------------------------------------------
-CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_01_00;
+CdcResourceDescMap dMap = LCS_MAIN_CONTROLLER_BOARD_DESC_B_02_10;
 
 //----------------------------------------------------------------------------------------
 // Init the library. 
@@ -243,6 +243,10 @@ void testDioOutput( ) {
     configureDioOutPinA( RNUM_DIO_5 );
     configureDioOutPinA( RNUM_DIO_6 );
     configureDioOutPinA( RNUM_DIO_7 );
+    configureDioOutPinA( RNUM_DIO_8 );
+    configureDioOutPinA( RNUM_DIO_9 );
+    configureDioOutPinA( RNUM_DIO_10 );
+    configureDioOutPinA( RNUM_DIO_11 );
 
     while ( true ) {
 
@@ -255,6 +259,10 @@ void testDioOutput( ) {
         writeDio( RNUM_DIO_5, false );
         writeDio( RNUM_DIO_6, false );
         writeDio( RNUM_DIO_7, false );
+        writeDio( RNUM_DIO_8, false );
+        writeDio( RNUM_DIO_9, false );
+        writeDio( RNUM_DIO_10, false );
+        writeDio( RNUM_DIO_11, false );
         sleepMillis( 1000 );
 
         writeDio( RNUM_DIO_0, true );
@@ -272,6 +280,14 @@ void testDioOutput( ) {
         writeDio( RNUM_DIO_6, true );
         sleepMillis( 500 );
         writeDio( RNUM_DIO_7, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_8, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_9, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_10, true );
+        sleepMillis( 500 );
+        writeDio( RNUM_DIO_11, true );
         sleepMillis( 500 );
     }
 }
@@ -299,6 +315,15 @@ void testDioOutputPair( ) {
     configureDioOutPinPair( RNUM_DIO_P_1 );
     configureDioOutPinPair( RNUM_DIO_P_2 );
     configureDioOutPinPair( RNUM_DIO_P_3 );
+    configureDioOutPinA( RNUM_DIO_0 );
+    configureDioOutPinA( RNUM_DIO_1 );
+    configureDioOutPinA( RNUM_DIO_6 );
+    configureDioOutPinA( RNUM_DIO_7 );
+
+    writeDio( RNUM_DIO_0, false );
+    writeDio( RNUM_DIO_1, false );
+    writeDio( RNUM_DIO_6, false );
+    writeDio( RNUM_DIO_7, false );
      
     while ( true ) {
 
@@ -556,10 +581,10 @@ int main( ) {
     // testOnboardLeds( );
     // testDioInput( );
     // testDioOutput( );
-    // testDioOutputPair( );
+    testDioOutputPair( );
     // testAdcBlockingRead( );
     // testTimer( );
-    testI2C( );
+    // testI2C( );
     // testPWMFixed( );
     // testPWMWithAnalogInput( );
     // testUIDGen( );

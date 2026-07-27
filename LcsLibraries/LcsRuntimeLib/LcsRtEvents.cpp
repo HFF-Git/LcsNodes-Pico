@@ -114,7 +114,7 @@ uint8_t getEventMapHwm( uint32_t *hwm ) {
 
 uint8_t putEventMapHwm( uint32_t hwm ) {
 
-    return ( rtNvmGetBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm ),
+    return ( rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm ),
                            (uint8_t *) &hwm,
                            sizeof(uint32_t)));
 }
@@ -126,7 +126,7 @@ uint8_t getEventMapEntry( uint32_t index, LcsEventMapEntry *e ) {
     uint32_t ofs = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
                     index * sizeof(LcsEventMapEntry);
 
-    return( rtNvmGetBytes( ofs, (uint8_t*)&e, sizeof(LcsEventMapEntry)));
+    return( rtNvmGetBytes( ofs, (uint8_t*)e, sizeof(LcsEventMapEntry)));
 }
 
 uint8_t putEventMapEntry( uint32_t index, LcsEventMapEntry *e ) {
@@ -136,7 +136,7 @@ uint8_t putEventMapEntry( uint32_t index, LcsEventMapEntry *e ) {
     uint32_t ofs = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
                     index * sizeof(LcsEventMapEntry);
 
-    return( rtNvmPutBytes( ofs, (uint8_t*)&e, sizeof(LcsEventMapEntry)));
+    return( rtNvmPutBytes( ofs, (uint8_t*)e, sizeof(LcsEventMapEntry)));
 }
 
 //----------------------------------------------------------------------------------------
@@ -260,9 +260,7 @@ uint8_t getEventEntryByIndex( uint32_t index,
 
     if ( index >= hwm ) return( RET_STAT( ERR_INVALID_EVENT_MAP_INDEX ));
 
-    rStat = rtNvmGetBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
-                           (uint8_t *) &e,
-                           sizeof( e ));
+    rStat = getEventMapEntry( index, &e );
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
     *eventId   = e.eventId;
@@ -281,10 +279,15 @@ LcsEventMapEntry *lookupEventMapEntry( uint16_t eventId ) {
     uint32_t i = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start = i;
 
+    printf( "lookupEventMapEntry, id: %d, hash: %d\n", eventId, i );
+
     while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
 
-        if ( eventHashMap.map[ i ].eventId == eventId )
+        if ( eventHashMap.map[ i ].eventId == eventId ) {
+
+            printf( "lookupEventMapEntry: FOUND\n" );
             return ( &eventHashMap.map[ i ] );
+        }
 
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
         if ( i == start ) return ( nullptr );
@@ -305,6 +308,12 @@ void insertEventMapEntry( uint16_t eventId, uint16_t eventMask ) {
     uint32_t i = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     uint32_t start = i;
 
+    if ( eventsDebugEnabled( )) {
+
+        printf( "insertEventMapEntry, id: 0x%04x, mask: 0x%04x, hash: %d\n", 
+                eventId, eventMask, i  );
+    }
+
     while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
 
         i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
@@ -313,6 +322,8 @@ void insertEventMapEntry( uint16_t eventId, uint16_t eventMask ) {
 
     eventHashMap.map[ i ].eventId = eventId;
     eventHashMap.map[ i ].eventMask = eventMask;
+
+    eventHashMap.numEntries ++;
 }
 
 //----------------------------------------------------------------------------------------
@@ -357,6 +368,8 @@ void removeEventMapEntry( uint16_t eventId ) {
         eventHashMap.map[ k ] = tmp;
         j = ( j + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
     }
+
+    eventHashMap.numEntries --;
 }
 
 //----------------------------------------------------------------------------------------
@@ -373,7 +386,7 @@ uint8_t loadEventMapFromNvm( uint32_t mapOfs, uint32_t hwm ) {
 
     if ( eventsDebugEnabled( )) {
 
-        printf( "Load event map table, ofs: 0x4x, hwm: %d\n", mapOfs, hwm  );
+        printf( "Load event map table, ofs: 0x%4x, hwm: %d\n", mapOfs, hwm  );
     }
 
     for ( int i = 0; i < MAX_CAB_HASH_TAB_ENTRIES; i++ ) {

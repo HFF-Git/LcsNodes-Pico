@@ -125,8 +125,11 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( canBusDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-        else                    printf( "%s: %d\n", name, errId );
+       // if ( errId == LCS_OK )  printf( "%s: OK\n", name )
+       //  else                    printf( "%s: %d\n", name, errId );
+
+       if (( errId != LCS_OK ) && ( errId != ERR_CAN_MSG_NO_MSG )) 
+            printf( "%s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -441,7 +444,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
 
         if ( canBusDebugEnabled( )) {
 
-            printf( "CAN Recv (TS: 0x%x)(Id: 0x%x, len: %d)(Data: ", 
+            printf( "CAN Recv (TS: 0x%x)( Id: 0x%x, len: %d)(Data: ", 
                     getMillis( ), msg.id, msg.dlc );
 
             for ( uint32_t i = 0; i < msg.dlc; i++ ) 
@@ -470,9 +473,7 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
         }
         else if ( rtrFlag ) {
 
-            msg.id          = buildNpId( localNodeId, 
-                                         portId( 0 ), 
-                                         chanId( 0 ));
+            msg.id          = buildNpId( localNodeId, portId( 0 ), chanId( 0 ));
             msg.dlc         = 0;
             msg.data32[ 0 ] = 0;
             msg.data32[ 1 ] = 0;
