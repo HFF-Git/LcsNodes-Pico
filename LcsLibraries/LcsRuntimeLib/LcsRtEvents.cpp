@@ -179,9 +179,9 @@ uint8_t addEventEntryNvm( uint16_t eventId, uint16_t eventMask ) {
 //----------------------------------------------------------------------------------------
 uint8_t removeEventEntryNvm( uint16_t eventId ) {
 
-    uint8_t rStat;
+    uint8_t  rStat;
     uint32_t hwm;
-    uint32_t mapAddr =  NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map );
+    uint32_t mapAddr = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map );
 
     rStat = getEventMapHwm( &hwm );
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
@@ -189,7 +189,7 @@ uint8_t removeEventEntryNvm( uint16_t eventId ) {
     uint32_t i = 0;
     int32_t foundIndex = -1;
 
-    LcsEventMapEntry buffer[FETCH_CHUNK_SIZE];
+    LcsEventMapEntry buffer[ FETCH_CHUNK_SIZE ];
 
     // --- 1. Search ---
     while ( i < hwm ) {
@@ -217,14 +217,14 @@ uint8_t removeEventEntryNvm( uint16_t eventId ) {
     }
 
     if ( foundIndex < 0 ) return( RET_STAT( LCS_OK ));
-        
+
     uint32_t lastIndex = hwm - 1;
 
     // --- 2. If last entry, just shrink ---
     if ((uint32_t)foundIndex == lastIndex) {
 
         hwm--;
-        return ( RET_STAT( LCS_OK ));
+        return( RET_STAT( putEventMapHwm( hwm )));
     }
 
     // --- 3. Read last entry ---
@@ -239,8 +239,7 @@ uint8_t removeEventEntryNvm( uint16_t eventId ) {
 
     // --- 5. Decrease HWM ---
     hwm--;
-
-    return ( RET_STAT( LCS_OK ));
+   return( RET_STAT( putEventMapHwm( hwm )));
 }
 
 //----------------------------------------------------------------------------------------
@@ -481,7 +480,7 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 
     if ( eventsDebugEnabled( )) {
 
-        printf( "Add event, eventId: 0x04x, mask: 0x4x\n", eventId, eventMask );
+        printf( "Add event, eventId: %d, mask: 0x%04x\n", eventId, eventMask );
     }
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
@@ -510,7 +509,7 @@ uint8_t removeEvent( uint16_t eventId ) {
 
     if ( eventsDebugEnabled( )) {
 
-        printf( "Remove event, eventId: 0x04x\n", eventId );
+        printf( "Remove event, eventId: %d\n", eventId );
     }
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
