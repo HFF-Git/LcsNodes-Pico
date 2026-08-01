@@ -524,27 +524,28 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_ESTP             = OPC( 0, 5 ),
 
     LCS_OP_DCC_ACK          = OPC( 1, 1 ),
-   
+
     LCS_OP_CFG              = OPC( 2, 1 ),
     LCS_OP_OPS              = OPC( 2, 2 ),
-    LCS_OP_RESET            = OPC( 2, 3 ),
     LCS_OP_EVT_ON           = OPC( 2, 4 ),
     LCS_OP_EVT_OFF          = OPC( 2, 5 ),
     LCS_OP_QRY_LOC          = OPC( 2, 6 ),
     LCS_OP_KEEP_LOC         = OPC( 2, 7 ),
     LCS_OP_QRY_LCON         = OPC( 2, 8 ),
 
-    LCS_OP_ACK              = OPC( 3, 1 ),
-    LCS_OP_REQ_LOC          = OPC( 3, 2 ),
-    LCS_OP_REL_LOC          = OPC( 3, 3 ),
-    LCS_OP_SET_LSPD         = OPC( 3, 4 ),
-    LCS_OP_SET_LMOD         = OPC( 3, 5 ),
-    LCS_OP_LOC_FON          = OPC( 3, 6 ),
-    LCS_OP_LOC_FOFF         = OPC( 3, 7 ),
-    LCS_OP_BACC             = OPC( 3, 8 ),
-    LCS_OP_EACC             = OPC( 3, 9 ),
-    LCS_OP_SEND_DCC3        = OPC( 3, 10 ),
-    LCS_OP_REP_CVS          = OPC( 3, 11 ),
+    LCS_OP_RESET            = OPC( 3, 1 ),
+    LCS_OP_ACK              = OPC( 3, 2 ),
+    LCS_OP_REQ_LOC          = OPC( 3, 3 ),
+    LCS_OP_REL_LOC          = OPC( 3, 4 ),
+    LCS_OP_SET_LSPD         = OPC( 3, 5 ),
+    LCS_OP_SET_LMOD         = OPC( 3, 6 ),
+    LCS_OP_LOC_FON          = OPC( 3, 7 ),
+    LCS_OP_LOC_FOFF         = OPC( 3, 8 ),
+    LCS_OP_BACC             = OPC( 3, 9 ),
+    LCS_OP_EACC             = OPC( 3, 10 ),
+    LCS_OP_SEND_DCC3        = OPC( 3, 11 ),
+    LCS_OP_REP_CVS          = OPC( 3, 12 ),
+    LCS_OP_REQ_CVS          = OPC( 3, 13 ),
 
     LCS_OP_SYS_TIME         = OPC( 4, 1 ),
     LCS_OP_SYS_INFO         = OPC( 4, 2 ),
@@ -553,10 +554,10 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SET_LCON         = OPC( 4, 5 ),
     LCS_OP_LOC_FGRP         = OPC( 4, 6 ),
     LCS_OP_SET_CVS          = OPC( 4, 7 ),
-    LCS_OP_REQ_CVS          = OPC( 4, 8 ),
-    LCS_OP_SEND_DCC4        = OPC( 4, 9 ),
+    LCS_OP_SEND_DCC4        = OPC( 4, 8 ),
     
-    LCS_OP_SEND_DCC5        = OPC( 5, 3 ),
+    LCS_OP_SEND_DCC5        = OPC( 5, 1 ),
+    LCS_OP_START_BLOCK      = OPC( 5, 2 ),
 
     LCS_OP_NODE_COL         = OPC( 6, 1 ),
     LCS_OP_NODE_SET         = OPC( 6, 2 ),
@@ -575,7 +576,6 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SET_EACC         = OPC( 7, 8 ),
 
     LCS_OP_START_LOAD       = OPC( 7, 10 ),
-    LCS_OP_START_BLOCK      = OPC( 7, 11 ),
     LCS_OP_SEND_DATA        = OPC( 7, 12 ),
     LCS_OP_END_BLOCK        = OPC( 7, 13 ),
     LCS_OP_END_LOAD         = OPC( 7, 14 ),
@@ -583,11 +583,9 @@ enum LcsMsgOpCodes : uint8_t {
     LCS_OP_SET_MPOM         = OPC( 7, 15 ),
     LCS_OP_REQ_MPOM         = OPC( 7, 16 ),
     LCS_OP_REP_MPOM         = OPC( 7, 17 ),
-
     LCS_OP_SET_APOM         = OPC( 7, 18 ),
     LCS_OP_REQ_APOM         = OPC( 7, 19 ),
-    LCS_OP_REP_APOM         = OPC( 7, 20 ),
-    
+    LCS_OP_REP_APOM         = OPC( 7, 20 )
 };
 
 //----------------------------------------------------------------------------------------
@@ -972,11 +970,40 @@ uint8_t     sendReqLocCvProg( uint16_t cvId,
 uint8_t     sendRepLocCvProg( uint16_t cvId, 
                               uint8_t val );
 
+uint8_t     sentSetMPOM( uint16_t accAdr, 
+                         uint8_t ctrl, 
+                         uint32_t arg );
+
+uint8_t     sentReqMPOM( uint16_t accAdr, 
+                         uint8_t ctrl, 
+                         uint32_t arg );
+
+uint8_t     sentRepMPOM( uint16_t accAdr, 
+                         uint8_t ctrl, 
+                         uint32_t arg );
+
+//----------------------------------------------------------------------------------------
+// Accessory management. Most of these messages are used by a base station to
+// control a DCC accessory.
+//
+//----------------------------------------------------------------------------------------
 uint8_t     sendSetBacc( uint16_t accAdr, 
                          uint8_t flags  );
 
 uint8_t     sendSetEacc( uint16_t accAdr, 
                          uint8_t val  );
+
+uint8_t     sentSetAPOM( uint16_t accAdr, 
+                         uint8_t ctrl, 
+                         uint32_t arg );
+
+uint8_t     sentReqAPOM( uint16_t accAdr, 
+                         uint8_t ctrl, 
+                         uint32_t arg );
+
+uint8_t     sentRepAPOM( uint16_t accAdr, 
+                         uint8_t ctrl, 
+                         uint32_t arg );
 
 uint8_t     sendDccPacket( uint8_t arg1, 
                            uint8_t arg2, 

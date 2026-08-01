@@ -223,14 +223,15 @@ uint8_t sendOps( uint16_t targetNpId ) {
 //----------------------------------------------------------------------------------------
 // Reset a node or port.
 //
-//  LCS_OP_RESET nId-H nId-L
+//  LCS_OP_RESET nId-H nId-L flags
 //----------------------------------------------------------------------------------------
-uint8_t sendReset( uint16_t targetNpId ) {
+uint8_t sendReset( uint16_t targetNpId, uint8_t flags ) {
 
     uint8_t msgBuf[ 8 ] = { LCS_OP_RESET };
     msgBuf[ 1 ] = highByte( targetNpId );
     msgBuf[ 2 ] = lowByte( targetNpId );
-   
+    msgBuf[ 3 ] = flags;
+
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), 
                          msgBuf, 
                          MSG_PRI_VERY_HIGH ));
@@ -253,7 +254,7 @@ uint8_t sendAck( uint16_t sendingMpId, uint16_t targetNpId, uint8_t rStat ) {
 //----------------------------------------------------------------------------------------
 // Request our Node.
 //
-//  UID-1 flagsLCS_OP_REQ_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1 flags
+//  LCS_OP_REQ_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1 flags
 //----------------------------------------------------------------------------------------
 uint8_t sendReqNodeId( uint16_t sendingNpId, uint32_t nodeUID, uint8_t flags ) {
     
@@ -271,7 +272,7 @@ uint8_t sendReqNodeId( uint16_t sendingNpId, uint32_t nodeUID, uint8_t flags ) {
 //----------------------------------------------------------------------------------------
 // Reply to a nodeId request message.
 //
-//  LCS_OP_REP_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1
+//  LCS_OP_REP_NID nId-H nId-L nUID-4 nUID-3 nUID-2 nUID-1 flags
 //----------------------------------------------------------------------------------------
 uint8_t sendRepNodeId( uint16_t targetNpId, uint32_t nodeUID, uint8_t flags ) {
 
@@ -336,7 +337,7 @@ uint8_t sendNodeCollision( uint16_t sendingNpId, uint32_t nodeUID ) {
 //----------------------------------------------------------------------------------------
 // Request a node data item.
 //
-//  LCS_OP_NGET nId-H nId-L item-H item-L
+//  LCS_OP_NODE_GET nId-H nId-L item-H item-L
 //----------------------------------------------------------------------------------------
 uint8_t sendGetNode( uint16_t sendingNpId, 
                      uint16_t targetNpId, 
@@ -359,7 +360,7 @@ uint8_t sendGetNode( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 // Set a node data item.
 //
-//  LCS_OP_NSET nId-H nId-L item-H item-L arg-H arg-L
+//  LCS_OP_NODE_SET nId-H nId-L item-H item-L arg-H arg-L
 //----------------------------------------------------------------------------------------
 uint8_t sendSetNode( uint16_t sendingNpId,
                      uint16_t targetNpId, 
@@ -385,7 +386,7 @@ uint8_t sendSetNode( uint16_t sendingNpId,
 //----------------------------------------------------------------------------------------
 // Reply to a node get attribute request.
 //
-//  LCS_OP_NREP nId-H nId-L item val-H val-L 0 0
+//  LCS_OP_NODE_REP nId-H nId-L item-H item-L val-H val-L
 //----------------------------------------------------------------------------------------
 uint8_t sendRepNode( uint16_t sendingNpId,
                      uint16_t targetNpId,
@@ -476,7 +477,7 @@ uint8_t sendEventOn( uint16_t sendingNpId, uint16_t eventId ) {
 //----------------------------------------------------------------------------------------
 // Send an "OFF" event.
 //
-//  LCS_OP_EVT_ON eventId-H eventId-L
+//  LCS_OP_EVT_OFF eventId-H eventId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendEventOff( uint16_t sendingNpId, uint16_t eventId ) {
 
@@ -517,7 +518,7 @@ uint8_t sendTrackOn( ) {
 //----------------------------------------------------------------------------------------
 // Turn all tracks off.
 //
-//  LCS_OP_TON
+//  LCS_OP_TOF
 //----------------------------------------------------------------------------------------
 uint8_t sendTrackOff( ) {
 
@@ -543,7 +544,7 @@ uint8_t sendEstop( ) {
 //----------------------------------------------------------------------------------------
 // Request locomotive data. 
 //
-//  LCS_OP_REQ_LOC <cabId-H> <cabId-L> <flags>
+//  LCS_OP_REQ_LOC cabId-H cabId-L flags
 //----------------------------------------------------------------------------------------
 uint8_t sendReqLoc( uint16_t cabId, uint8_t flags ) {
 
@@ -557,7 +558,7 @@ uint8_t sendReqLoc( uint16_t cabId, uint8_t flags ) {
 //----------------------------------------------------------------------------------------
 // Inform that an engine was removed.
 //
-//  LCS_OP__REL_LOC <cabId-H> <cabId-L>
+//  LCS_OP_REL_LOC <cabId-H> <cabId-L>
 //----------------------------------------------------------------------------------------
 uint8_t sendRelLoc( uint16_t cabId ) {
 
@@ -568,8 +569,9 @@ uint8_t sendRelLoc( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Reply to a locomotive request.
 //
-//
+//  LCS_OP_REP_LOC cabId-H cabId-L spDir fn1 fn2 fn3
 //----------------------------------------------------------------------------------------
 uint8_t sendRepLoc( uint16_t cabId, 
                     uint8_t spDir, 
@@ -588,8 +590,9 @@ uint8_t sendRepLoc( uint16_t cabId,
 }
 
 //----------------------------------------------------------------------------------------
+// Attach a locomotive to a consist. 
 //
-//
+//  LCS_OP_SET_LCON cabId-H cabId-L consId flags
 //----------------------------------------------------------------------------------------
 uint8_t sendLocConsist( uint16_t cabId, uint8_t consId, uint8_t flags ) {
 
@@ -603,7 +606,7 @@ uint8_t sendLocConsist( uint16_t cabId, uint8_t consId, uint8_t flags ) {
 
 //----------------------------------------------------------------------------------------
 //
-//
+//  LCS_OP_QRY_LOC cadId-H cabId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendQueryLoc( uint16_t cabId ) {
 
@@ -614,8 +617,9 @@ uint8_t sendQueryLoc( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Refresh a locomotive session. 
 //
-//
+// LCS_OP_KEEP_LOC cabId-H cabId-L
 //----------------------------------------------------------------------------------------
 uint8_t sendKeepLoc( uint16_t cabId ) {
 
@@ -626,8 +630,9 @@ uint8_t sendKeepLoc( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive speed and direction.
 //
-//
+//  LCS_OP_SET_LSPD cabId-H cabId-L spDir
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocSpDir( uint16_t cabId, uint8_t spDir ) {
 
@@ -639,8 +644,9 @@ uint8_t sendSetLocSpDir( uint16_t cabId, uint8_t spDir ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive mode.
 //
-//
+//  LCS_OP_SET_LMOD cabId-H cabId-L mode
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocMode( uint16_t cabId, uint8_t mode ) {
 
@@ -652,8 +658,9 @@ uint8_t sendSetLocMode( uint16_t cabId, uint8_t mode ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive function on.
 //
-//
+//  LCS_OP_LOC_FON cabId-H cabId-L fNum
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocFuncOn( uint16_t cabId, uint8_t fNum ) {
 
@@ -665,8 +672,9 @@ uint8_t sendSetLocFuncOn( uint16_t cabId, uint8_t fNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive function off.
 //
-//
+//  LCS_OP_LOC_FOFF cabId-H cabId-L fNum
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocFuncOff( uint16_t cabId, uint8_t fNum ) {
 
@@ -678,8 +686,9 @@ uint8_t sendSetLocFuncOff( uint16_t cabId, uint8_t fNum ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive function group.
 //
-//
+//  LCS_OP_LOC_FGRP cabId-H cabId-L fGroup data
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocFgroup( uint16_t cabId, uint8_t fGroup, uint8_t data ) {
 
@@ -692,8 +701,9 @@ uint8_t sendSetLocFgroup( uint16_t cabId, uint8_t fGroup, uint8_t data ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive CV in main memory.
 //
-//
+//  LCS_OP_SET_CVM cabId-H cabId-L cvId-H cvId-L mode val
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocCvMain( uint16_t cabId, uint16_t cvId, uint8_t mode, uint8_t val ) {
 
@@ -708,8 +718,9 @@ uint8_t sendSetLocCvMain( uint16_t cabId, uint16_t cvId, uint8_t mode, uint8_t v
 }
 
 //----------------------------------------------------------------------------------------
+// Set the locomotive CV in programming mode.
 //
-//
+// LCS_OP_SET_CVS cvId-H cvId-L mode val
 //----------------------------------------------------------------------------------------
 uint8_t sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val ) {
 
@@ -722,8 +733,9 @@ uint8_t sendSetLocCvProg( uint16_t cvId, uint8_t mode, uint8_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Request the locomotive CV in programming mode.
 //
-//
+// LCS_OP_REQ_CVS cvId-H cvId-L mode
 //----------------------------------------------------------------------------------------
 uint8_t sendReqLocCvProg( uint16_t cvId, uint8_t mode ) {
 
@@ -735,8 +747,9 @@ uint8_t sendReqLocCvProg( uint16_t cvId, uint8_t mode ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Reply to a locomotive CV request in programming mode.
 //
-//
+// LCS_OP_REP_CVS cvId-H cvId-L val
 //----------------------------------------------------------------------------------------
 uint8_t sendRepLocCvProg( uint16_t cvId, uint8_t val ) {
 
@@ -748,8 +761,9 @@ uint8_t sendRepLocCvProg( uint16_t cvId, uint8_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
+// 
 //
-//
+// LCS_OP_BACC accAdr-H accAdr-L flags
 //----------------------------------------------------------------------------------------
 uint8_t sendSetBacc( uint16_t accAdr, uint8_t flags ) {
 
@@ -762,7 +776,7 @@ uint8_t sendSetBacc( uint16_t accAdr, uint8_t flags ) {
 
 //----------------------------------------------------------------------------------------
 //
-//
+//  LCS_OP_EACC accAdr-H accAdr-L val
 //----------------------------------------------------------------------------------------
 uint8_t sendSetEacc( uint16_t accAdr, uint8_t val ) {
 
@@ -773,9 +787,125 @@ uint8_t sendSetEacc( uint16_t accAdr, uint8_t val ) {
     return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
 }
 
+
 //----------------------------------------------------------------------------------------
 //
 //
+//  LCS_OP_SET_MPOM ctrl arg-4 arg-3 arg-2 arg-1
+//----------------------------------------------------------------------------------------
+uint8_t sendSetMPOM( uint16_t targetNpId, uint8_t ctrl, uint32_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_SET_MPOM };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = ctrl;
+    msgBuf[ 4 ] = ( arg & 0xFF000000 ) >> 24;
+    msgBuf[ 5 ] = ( arg & 0x00FF0000 ) >> 16;
+    msgBuf[ 6 ] = ( arg & 0x0000FF00 ) >> 8;
+    msgBuf[ 7 ] = ( arg & 0x000000FF );
+
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//  LCS_OP_REQ_MPOM ctrl arg-4 arg-3 arg-2 arg-1
+//----------------------------------------------------------------------------------------
+uint8_t sendReqMPOM( uint16_t targetNpId, uint8_t ctrl, uint32_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_MPOM };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = ctrl;
+    msgBuf[ 4 ] = ( arg & 0xFF000000 ) >> 24;
+    msgBuf[ 5 ] = ( arg & 0x00FF0000 ) >> 16;
+    msgBuf[ 6 ] = ( arg & 0x0000FF00 ) >> 8;
+    msgBuf[ 7 ] = ( arg & 0x000000FF );
+
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//  LCS_OP_REP_MPOM ctrl arg-4 arg-3 arg-2 arg-1
+//----------------------------------------------------------------------------------------
+uint8_t sendRepMPOM( uint16_t targetNpId, uint8_t ctrl, uint32_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_REP_MPOM };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = ctrl;
+    msgBuf[ 4 ] = ( arg & 0xFF000000 ) >> 24;
+    msgBuf[ 5 ] = ( arg & 0x00FF0000 ) >> 16;
+    msgBuf[ 6 ] = ( arg & 0x0000FF00 ) >> 8;
+    msgBuf[ 7 ] = ( arg & 0x000000FF );
+
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//  LCS_OP_SET_APOM ctrl arg-4 arg-3 arg-2 arg-1
+//----------------------------------------------------------------------------------------
+uint8_t sendSetAPOM( uint16_t targetNpId, uint8_t ctrl, uint32_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_SET_APOM };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = ctrl;
+    msgBuf[ 4 ] = ( arg & 0xFF000000 ) >> 24;
+    msgBuf[ 5 ] = ( arg & 0x00FF0000 ) >> 16;
+    msgBuf[ 6 ] = ( arg & 0x0000FF00 ) >> 8;
+    msgBuf[ 7 ] = ( arg & 0x000000FF );
+
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//  LCS_OP_REQ_APOM ctrl arg-4 arg-3 arg-2 arg-1
+//----------------------------------------------------------------------------------------
+uint8_t sendReqAPOM( uint16_t targetNpId, uint8_t ctrl, uint32_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_REQ_APOM };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = ctrl;
+    msgBuf[ 4 ] = ( arg & 0xFF000000 ) >> 24;
+    msgBuf[ 5 ] = ( arg & 0x00FF0000 ) >> 16;
+    msgBuf[ 6 ] = ( arg & 0x0000FF00 ) >> 8;
+    msgBuf[ 7 ] = ( arg & 0x000000FF );
+
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//  LCS_OP_REP_APOM ctrl arg-4 arg-3 arg-2 arg-1
+//----------------------------------------------------------------------------------------
+uint8_t sendRepAPOM( uint16_t targetNpId, uint8_t ctrl, uint32_t arg ) {
+
+    uint8_t msgBuf[ 8 ] = { LCS_OP_REP_APOM };
+    msgBuf[ 1 ] = highByte( targetNpId );
+    msgBuf[ 2 ] = lowByte( targetNpId );
+    msgBuf[ 3 ] = ctrl;
+    msgBuf[ 4 ] = ( arg & 0xFF000000 ) >> 24;
+    msgBuf[ 5 ] = ( arg & 0x00FF0000 ) >> 16;
+    msgBuf[ 6 ] = ( arg & 0x0000FF00 ) >> 8;
+    msgBuf[ 7 ] = ( arg & 0x000000FF );
+
+    return ( sendLcsMsg( buildNpId( nodeMap.nodeId, 0, 0 ), msgBuf ));
+}
+
+//----------------------------------------------------------------------------------------
+// Send a three byte DCC packet.
+//
+//  LCS_OP_SEND_DCC3 arg1 arg2 arg3
 //----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 ) {
 
@@ -787,8 +917,9 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3 ) {
 }
 
 //----------------------------------------------------------------------------------------
+//  Send a four byte DCC packet.
 //
-//
+//  LCS_OP_SEND_DCC4 arg1 arg2 arg3 arg4    
 //----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 ) {
 
@@ -801,8 +932,9 @@ uint8_t sendDccPacket( uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4 ) 
 }
 
 //----------------------------------------------------------------------------------------
+// Send a five byte DCC packet.
 //
-//
+// LCS_OP_SEND_DCC5 arg1 arg2 arg3 arg4 arg5
 //----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, 
                        uint8_t arg2, 
@@ -820,8 +952,9 @@ uint8_t sendDccPacket( uint8_t arg1,
 }
 
 //----------------------------------------------------------------------------------------
+// Send a six byte DCC packet.
 //
-//
+// LCS_OP_SEND_DCC6 arg1 arg2 arg3 arg4 arg5 arg6
 //----------------------------------------------------------------------------------------
 uint8_t sendDccPacket( uint8_t arg1, 
                        uint8_t arg2, 
@@ -841,8 +974,9 @@ uint8_t sendDccPacket( uint8_t arg1,
 }
 
 //----------------------------------------------------------------------------------------
+// Send a DCC acknowledge message. 
 //
-//
+// LCS_OP_DCC_ACK rStat
 //----------------------------------------------------------------------------------------
 uint8_t sendDccAck( uint8_t rStat ) {
 
