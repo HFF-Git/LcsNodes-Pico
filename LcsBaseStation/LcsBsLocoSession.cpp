@@ -177,8 +177,8 @@ LcsBaseStationLocoSession::LcsBaseStationLocoSession( ) { }
 uint8_t LcsBaseStationLocoSession::setupSessionMap(
 
     LcsBaseStationSessionMapDesc  *sessionMapDesc,
-    LcsBaseStationDccTrack        *mainTrack,
-    LcsBaseStationDccTrack        *progTrack
+    LcsDccTrack        *mainTrack,
+    LcsDccTrack        *progTrack
 
     ) {
 

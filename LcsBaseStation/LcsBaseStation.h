@@ -350,11 +350,11 @@ struct LcsBaseStationTrackDesc {
 // current measurement and the serial IO for optional RailCom message processing. 
 //
 //----------------------------------------------------------------------------------------
-struct LcsBaseStationDccTrack {
+struct LcsDccTrack {
 
     public:
 
-    LcsBaseStationDccTrack( );
+    LcsDccTrack( );
 
     uint8_t             setupDccTrack( LcsBaseStationTrackDesc* trackDesc );
     void                loadPacket( const uint8_t *packet, 
@@ -583,8 +583,8 @@ struct LcsBaseStationLocoSession {
     uint8_t setupSessionMap(
 
         LcsBaseStationSessionMapDesc  *sessionMapDesc,
-        LcsBaseStationDccTrack        *mainTrack,
-        LcsBaseStationDccTrack        *progTrack
+        LcsDccTrack        *mainTrack,
+        LcsDccTrack        *progTrack
     );
 
     uint8_t                   requestSession( uint16_t cabId, 
@@ -671,8 +671,8 @@ struct LcsBaseStationLocoSession {
 
     private:
 
-    LcsBaseStationDccTrack    *mainTrack              = nullptr;
-    LcsBaseStationDccTrack    *progTrack              = nullptr;
+    LcsDccTrack    *mainTrack              = nullptr;
+    LcsDccTrack    *progTrack              = nullptr;
 
     uint16_t                  options                 = DT_OPT_DEFAULT_SETTING;
     uint16_t                  flags                   = DT_F_DEFAULT_SETTING;
@@ -705,8 +705,8 @@ struct LcsBaseStationMsgInterface {
     LcsBaseStationMsgInterface( );
 
     uint8_t setupLcsMsgInterface( LcsBaseStationLocoSession   *locoSessions,
-                                  LcsBaseStationDccTrack      *mainTrack,
-                                  LcsBaseStationDccTrack      *progTrack
+                                  LcsDccTrack      *mainTrack,
+                                  LcsDccTrack      *progTrack
                                 );
 
     void handleLcsMsg( uint8_t *msg );
@@ -714,8 +714,8 @@ struct LcsBaseStationMsgInterface {
     private:
 
     LcsBaseStationLocoSession   *locoSessions   = nullptr;
-    LcsBaseStationDccTrack      *mainTrack      = nullptr;
-    LcsBaseStationDccTrack      *progTrack      = nullptr;
+    LcsDccTrack      *mainTrack      = nullptr;
+    LcsDccTrack      *progTrack      = nullptr;
 
 };
 
@@ -734,8 +734,8 @@ struct LcsBaseStationCommand {
     LcsBaseStationCommand( );
 
     uint8_t setupSerialCommand( LcsBaseStationLocoSession  *locoSessions,
-                                LcsBaseStationDccTrack     *mainTrack,
-                                LcsBaseStationDccTrack     *progTrack );
+                                LcsDccTrack     *mainTrack,
+                                LcsDccTrack     *progTrack );
 
     void handleSerialCommand( char *s );
 
@@ -779,8 +779,8 @@ struct LcsBaseStationCommand {
     private:
 
     LcsBaseStationLocoSession *locoSessions = nullptr;
-    LcsBaseStationDccTrack    *mainTrack    = nullptr;
-    LcsBaseStationDccTrack    *progTrack    = nullptr;
+    LcsDccTrack    *mainTrack    = nullptr;
+    LcsDccTrack    *progTrack    = nullptr;
 };
 
 #endif

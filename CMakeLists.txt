@@ -36,9 +36,13 @@ add_subdirectory( LcsRocRailGateway)
 add_subdirectory( LcsLibraries/LcsUtilLib )
 add_subdirectory( LcsLibraries/LcsCdcLib )
 add_subdirectory( LcsLibraries/LcsDccPktFmtLib )
+
+add_subdirectory( LcsLibraries/LcsRuntimeLib )
+add_subdirectory( LcsLibraries/LcsUIElementsLib )
+add_subdirectory( LcsLibraries/LcsLcdDisplayLib )
+add_subdirectory( LcsLibraries/LcsOledDisplayLib )
+add_subdirectory( LcsLibraries/LcsDccTrackLib )
+
+# still needed ?
 add_subdirectory( LcsLibraries/LcsDrvOccDetectLib )
 add_subdirectory( LcsLibraries/LcsDrvServoLib )
-add_subdirectory( LcsLibraries/LcsRuntimeLib )
-add_subdirectory(LcsLibraries/LcsUIElementsLib)
-add_subdirectory(LcsLibraries/LcsLcdDisplayLib)
-add_subdirectory(LcsLibraries/LcsOledDisplayLib)

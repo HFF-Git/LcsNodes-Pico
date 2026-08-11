@@ -1,40 +1,45 @@
-//----------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
-// LCS Base Station - DCC Track - implementation file
+// LCS - DCC Track Manager
 //
-//----------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 // The DCC track object is one of the the key objects for the DCC subsystem. It 
 // is responsible for the DCC track signal generation and the power management 
 // functions.
 //
 // There will be exactly two objects of this kind, one for the MAIN track and the
 // other for the PROG track. The DCC track object has two major functional parts. 
-// The first is to transmit a DCC packet to the track. This is the most important 
-// task, as with no packets no power is on the tracks and the locomotive will not
-// work. The second task is to continuously monitor the current consumption. 
+// The first is to transmit a DCC packet to the track. The second task is to 
+// continuously monitor the current consumption and potential short circuits.
 //
-// Finally, for the RailCom option, the cutout generation and receiving of the 
-// RailCOm packets is handled.  
+// Both channels are Decoder Ack Detect, Cutout and RailCom capable. Note that
+// the two features are mutually exclusive. When a channel is in decoder ACK
+// detect mode, RailCom and cutout is off. When RailCom is enabled, Cutout is
+// also set and decoder ACk off.
 //
-//----------------------------------------------------------------------------------------
+///---------------------------------------------------------------------------------------
 //
-// LCS - Base Station DCC Track implementation file
+// LCS - Driver Library Code for Occupancy Detect extension boards
 // Copyright (C) 2020 - 2026  Helmut Fieres
 //
-// This program is free software: you can redistribute it and/or modify it under
-// the terms of the GNU General Public License as published by the Free Software
+// This program is free software: you can redistribute it and/or modify it under 
+// the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
+//
+//  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#include "LcsBaseStationBoardDesc.h"
-#include "LcsBaseStation.h"
+#include "LcsDccTrackLib.h"
 #include <math.h>
+
+using namespace CDC;
+using namespace LCS;
 
 //----------------------------------------------------------------------------------------
 // External global variables.
@@ -60,8 +65,7 @@ extern uint16_t debugMask;
 // There are exactly two object instances created, MAIN and PROG. Both however 
 // share the global mechanism for generating the DCC hardware signals. There are
 // callback functions for the DCC timer and the serial I/O capability for the 
-// RailCom feature. The hardware lower layers can be found in controller dependent
-// code (CDC) layer.
+// RailCom feature. The hardware lower layers can be found in the CDC library.
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -70,25 +74,28 @@ using namespace LCS;
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
-// The DCC Track will allocate two DCC Track Objects. For the interrupt system to 
-// work, references to the objects must be static variables. The initialization 
-// sequence outside of this class will allocate the two objects and we keep a copy
-// of the respective DCC track object created right here.
+// The DCC Base Station will allocate two DCC Track Objects and also a timer for
+// DCC signal generation. For the interrupt system to work, references to the 
+// objects must be static variables. The initialization sequence outside of this
+// class will allocate the two objects. We also keep a copy of these two object
+// handles. The track resource descriptor options field has a bit for each type
+// of track, so we know which global variable to set. Likewise, the descriptor
+// contains the resource Id of the timer, last descriptor wins.
 //
-// ??? when we use the global variables in the "main" file, can this go away ?
  //----------------------------------------------------------------------------------------
 LcsDccTrack  *mainTrack  = nullptr;
 LcsDccTrack  *progTrack  = nullptr;
+uint8_t      rNumTimer   = 0;
 
 //----------------------------------------------------------------------------------------
-// DCC packet definitions. A DCC packet payload is at most 15 bytes long, excluding 
-// the checksum byte. This is true for XPOM and DCC-A support, otherwise it is 
-// according to NMRA up to 6 bytes. The preamble is a series of "ONE" bits, which 
-// helps the decoders to sync to the bit stream. The standard specifies a minimum
-// of 16 ONE bits for the MAIN track and 22 ONE bits for the PROG track. The
-// postamble is exactly one "ONE" bit. If the cutout period option is enabled, the
-// cutout is exactly one "ONE" bit. If the cutout period option is enabled, the 
-// cutout overlays the first ONE bits the preamble. 
+// DCC packet definitions. A DCC packet payload is at most 15 bytes long, 
+// excluding the checksum byte. This is true for XPOM and DCC-A support, else it
+// is according to NMRA up to 6 bytes. The preamble is a series of "ONE" bits, 
+// which helps the decoders to sync to the bit stream. The standard specifies a 
+// minimum of 16 ONE bits for the MAIN track and 22 ONE bits for the PROG track.
+// The postamble is exactly one "ONE" bit. If the cutout period option is enabled, 
+// the cutout is exactly one "ONE" bit. If the cutout period option is enabled, 
+// the cutout overlays the first ONE bits the preamble. 
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   MAIN_PACKET_PREAMBLE_BIT_LEN    = 17;
@@ -123,34 +130,37 @@ const uint8_t   bitMask9[ ]         = { 0x00, 0x80, 0x40, 0x20, 0x10,
 const uint8_t ACK_TRESHOLD_VAL      = 100;
 
 //----------------------------------------------------------------------------------------
-// The DCC signal generator thinks in ticks. With a DCC ONE based on 58 microseconds
-// and a DCC ZERO based on 116 microseconds half period, we define a tick as a 29
-// microsecond interval. Although, ONE and ZERO bit signals could be implemented 
-// using a multiple of 58 microseconds, the cutout function requires a signal length
-// of 29 microseconds at the beginning of the period, right after the packet end
-// bit of the previous packet. Luckily 2 * 29 is 58, 2 * 58 is 116. Perfect for
-// DCC packets.
+// The DCC signal generator thinks in ticks. With a DCC ONE based on 58 micro
+// seconds and a DCC ZERO based on 116 microseconds half period, we define a tick
+// as a 29 microsecond interval. Although, ONE and ZERO bit signals could be 
+// implemented using a multiple of 58 microseconds, the cutout function requires
+// a signal length of 29 microseconds at the beginning of the period, right after
+// the packet end bit of the previous packet. Luckily 2 * 29 is 58, 2 * 58 is 116. 
+// Perfect for DCC packets.
 //
-// ??? think directly in microseconds ?
 //----------------------------------------------------------------------------------------
-const uint32_t TICKS_29_MICROS              =  1;
-const uint32_t TICKS_58_MICROS              =  TICKS_29_MICROS * 2;
-const uint32_t TICKS_116_MICROS             =  TICKS_29_MICROS * 4;
-const uint32_t TICKS_CUTOUT_MICROS          =  TICKS_29_MICROS * 16;
+const uint32_t TICKS_29_MICROS         =  1;
+const uint32_t TICKS_58_MICROS         =  TICKS_29_MICROS * 2;
+const uint32_t TICKS_116_MICROS        =  TICKS_29_MICROS * 4;
+const uint32_t TICKS_CUTOUT_MICROS     =  TICKS_29_MICROS * 16;
 
 //----------------------------------------------------------------------------------------
 // Base Station global limits. Perhaps to move to a configurable place...
 //
+// 
+// ??? it would be nice to just mention adc voltage, digits, and resistor used...
 //----------------------------------------------------------------------------------------
-const uint16_t MILLI_VOLT_PER_DIGIT         = 5;
-const uint16_t MILLI_VOLT_PER_AMP           = 1500;
+const uint16_t MILLI_VOLT_PER_DIGIT    = 5;
+const uint16_t MILLI_VOLT_PER_AMP      = 1500;
 
 //----------------------------------------------------------------------------------------
 // DCC track power management runs on a state machine managing the state of the 
-// power track. Maximum values for the DCC track power start and stop sequence as 
-// well as limits for power overload events are defined. We also define reasonable
-// default values.
+// power track. Maximum values for the DCC track power start and stop sequence 
+// as  well as limits for power overload events are defined. We also define 
+// reasonable default values.
 //
+//
+// ??? how can we simplify these numbers ?
 //----------------------------------------------------------------------------------------
 const uint16_t MAX_START_TIME_THRESHOLD_MILLIS     = 2000;
 const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS      = 1000;
@@ -165,24 +175,29 @@ const uint16_t DEF_OVERLOAD_EVENT_COUNT            = 10;
 const uint16_t DEF_OVERLOAD_RESTART_COUNT          = 10;
 
 //----------------------------------------------------------------------------------------
-// Track state machine state definitions. See the track state machine routine for
-// an explanation of the individual states.
+// Track state machine state definitions. See the track state machine routine 
+// for an explanation of the individual states.
 //
+// ??? can we simplify ? can the start sequence be done by the base station 
+// not the DCC track ?
+//
+// ??? can the track state be modeled by the bits in "flags" ? 
 //----------------------------------------------------------------------------------------
 enum DccTrackState : uint8_t {
 
-    DCC_TRACK_POWER_OFF       = 0,
-    DCC_TRACK_POWER_ON        = 1,
-    DCC_TRACK_POWER_OVERLOAD  = 2,
-    DCC_TRACK_POWER_START1    = 3,
-    DCC_TRACK_POWER_START2    = 4,
-    DCC_TRACK_POWER_STOP1     = 5,
-    DCC_TRACK_POWER_STOP2     = 6
+    DCC_TRACK_POWER_OFF             = 0,
+    DCC_TRACK_POWER_ON              = 1,
+    DCC_TRACK_POWER_OVERLOAD        = 2,
+    DCC_TRACK_POWER_SHORT_CIRCUIT   = 3,
+    DCC_TRACK_POWER_START1          = 4,
+    DCC_TRACK_POWER_START2          = 5,
+    DCC_TRACK_POWER_STOP1           = 6,
+    DCC_TRACK_POWER_STOP2           = 7
 };
 
 //----------------------------------------------------------------------------------------
-// DCC Track signal state machine states. See the DCC signal state machine routine
-// for an explanation of the states.
+// DCC Track signal state machine states. See the DCC signal state machine 
+// routine for an explanation of the states.
 //
 //----------------------------------------------------------------------------------------
 enum DccSignalState : uint8_t {
@@ -198,27 +213,12 @@ enum DccSignalState : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-//
-// ??? idea: each state has a number of ticks it will set. Have an array where to
-// get this value and just set it from the table... not used yet.
-//----------------------------------------------------------------------------------------
-uint8_t ticksForState[ ] = {
-
-    TICKS_29_MICROS,        // DCC_SIG_CUTOUT_START
-    TICKS_CUTOUT_MICROS,    // DCC_SIG_CUTOUT_1
-    TICKS_29_MICROS,        // DCC_SIG_CUTOUT_2
-    TICKS_58_MICROS,        // DCC_SIG_CUTOUT_3
-    TICKS_58_MICROS,        // DCC_SIG_CUTOUT_END
-    TICKS_58_MICROS,        // DCC_SIG_START_BIT
-    TICKS_58_MICROS,        // DCC_TEST_BIT,
-    TICKS_116_MICROS        // DCC_SIG_ZERO_SECOND_HALF
-};
-
-//----------------------------------------------------------------------------------------
 // DCC Track signal state machine follow up request items. The signal state 
-// machine first sets the hardware signal for both tracks and then determines 
-// whether a follow up action is required. See the track state machine routine 
-// for an explanation of the individual follow up actions.
+// machine works in two phases. First the H-Bridge signals are set so we do not
+// endanger accurate DCC timing. Next, any follow up action required by the 
+// track, such as power measurement or bit data fetch, is performed. See the 
+// track state machine routine for an explanation of the individual follow up
+// actions.
 //
 //----------------------------------------------------------------------------------------
 enum DccSignalStateFollowup : uint8_t {
@@ -227,9 +227,10 @@ enum DccSignalStateFollowup : uint8_t {
     DCC_SIG_FOLLOW_UP_GET_BIT             = 1,
     DCC_SIG_FOLLOW_UP_GET_PACKET          = 2,
     DCC_SIG_FOLLOW_UP_MEASURE_CURRENT     = 3,
-    DCC_SIG_FOLLOW_UP_START_RAILCOM_IO    = 4,
-    DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO     = 5,
-    DCC_SIG_FOLLOW_UP_RAILCOM_MSG         = 6,
+    DCC_SIG_FOLLOW_UP_SHORT_CIRCUIT_CHECK = 4,
+    DCC_SIG_FOLLOW_UP_START_RAILCOM_IO    = 5,
+    DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO     = 6,
+    DCC_SIG_FOLLOW_UP_RAILCOM_MSG         = 7,
 };
 
 //----------------------------------------------------------------------------------------
@@ -494,10 +495,60 @@ uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "followUpDccTrackWork" is the follow up handler when the signal state 
+// machine signaled that there is more work for this track other than just 
+// setting the control signals. 
+// 
+// This split allows to run the time sensitive signal level settings first and
+// any actions, such as getting the next packet, after both signal generator 
+// signal settings have been processed. 
+//
+// The timer interrupt routine and all it calls runs with interrupts disabled. 
+// As said, better be quick. Top priority is to fetch the next bit and the next 
+// packet. 
+//
+//----------------------------------------------------------------------------------------
+inline void followUpDccTrackWork( uint8_t followUp,
+                                  LcsDccTrack *track ) {
+
+    if ( followUp != DCC_SIG_FOLLOW_UP_NONE ) {
+        
+    } 
+    else  if ( followUp == DCC_SIG_FOLLOW_UP_GET_BIT ) {       
+
+        track -> getNextBit( );
+    }
+    else if ( followUp == DCC_SIG_FOLLOW_UP_GET_PACKET ) {    
+
+        track -> getNextPacket( );
+    }
+    else if ( followUp == DCC_SIG_FOLLOW_UP_START_RAILCOM_IO ) { 
+            
+        track -> startRailComIO( );
+    }
+    else if ( followUp == DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO ) {
+              
+        track -> stopRailComIO( );
+    }
+    else if ( followUp == DCC_SIG_FOLLOW_UP_RAILCOM_MSG ) {
+
+        track -> handleRailComMsg( );    
+    }
+    else if ( followUp == DCC_SIG_FOLLOW_UP_SHORT_CIRCUIT_CHECK ) {
+
+        track -> shortCircuitDetect( );
+    }
+    else if ( followUp == DCC_SIG_FOLLOW_UP_MEASURE_CURRENT ) {
+
+        track -> powerManagement( );
+    }
+}
+
+//----------------------------------------------------------------------------------------
 // The DccTrack timer interrupt handler routine implements the heartbeat of the 
 // DCC system. The two DCC track signal generators state machines MAIN and PROG 
 // use the same timer interrupt handler. Upon the timer interrupt, we first will 
-//update the time left counters. If a counter falls to zero, the signal state 
+// update the time left counters. If a counter falls to zero, the signal state 
 // machine for that track will run and set the DCC signal levels. The state machine
 // returns the next time interval it expects to be called again and a possible 
 // follow up action code. 
@@ -509,29 +560,8 @@ uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
 // to interrupt values.
 //
 // If a state machine determined that it needs to do some more elaborate action, 
-// the interrupt handler runs part two of its work. This split allows to run the 
-// time sensitive signal level settings first and any actions, such as getting the 
-// next packet, after both signal generator signal settings have been processed. 
-//
-// Follow up actions are getting the next bit value to transmit, the next packet 
-// to send, a power consumption measurement and Railcom message processing. As we
-// do not have all time in the world, these follow up actions still should be brief.
-// The state machine carefully selects the spot for requesting such follow up 
-// actions in the DCC bit stream.
-//
-// The timer interrupt routine and all it calls runs with interrupts disabled. 
-// As said, better be quick. Top priority is to fetch the next bit and the next 
-// packet. 
-//
-// Next is the Railcom processing if enabled. If there are power consumption 
-// measurement follow up actions, they are run last. Since the ADC converter 
-// hardware serializes the analog measurements, we will only do one measurement 
-// and drop the other. MAIN always has the higher priority. 
-//
-// For the MAIN track with cutout enabled, the entry and exit of that cutout is 
-// a 29us timer call. That is awfully short and no follow-up action is scheduled 
-// there. All other intervals are either 58us or 116us or even longer for the 
-// cutout itself and give us some more room.
+// the interrupt handler runs part two of its work. See "followUpDccTrackWork"
+// what needs to be done.
 //
 //----------------------------------------------------------------------------------------
 void timerCallback( uint32_t timerVal ) {
@@ -555,58 +585,27 @@ void timerCallback( uint32_t timerVal ) {
     timeToInterrupt = (( timeLeftMainTrack < timeLeftProgTrack ) ? 
                         timeLeftMainTrack : timeLeftProgTrack );
 
-    setRepeatingTimerLimit( RNUM_TIMER_0, timeToInterrupt * TICK_IN_MICROSECONDS );
+    setRepeatingTimerLimit( rNumTimer, timeToInterrupt * TICK_IN_MICROSECONDS );
 
-    if (( followUpMain != DCC_SIG_FOLLOW_UP_NONE ) && 
-        ( followUpMain != DCC_SIG_FOLLOW_UP_MEASURE_CURRENT )) {
+    if ( followUpMain != DCC_SIG_FOLLOW_UP_NONE ) {
 
-        if ( followUpMain == DCC_SIG_FOLLOW_UP_GET_BIT ) {       
+        followUpDccTrackWork( followUpMain, mainTrack );
+    } 
 
-            mainTrack -> getNextBit( );
-        }
-        else if ( followUpMain == DCC_SIG_FOLLOW_UP_GET_PACKET ) {    
+    if ( followUpProg != DCC_SIG_FOLLOW_UP_NONE ) {
 
-            mainTrack -> getNextPacket( );
-        }
-        else if ( followUpMain == DCC_SIG_FOLLOW_UP_START_RAILCOM_IO ) { 
-            mainTrack -> startRailComIO( );
-        }
-        else if ( followUpMain == DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO ) {
-              
-            mainTrack -> stopRailComIO( );
-        }
-        else if ( followUpMain == DCC_SIG_FOLLOW_UP_RAILCOM_MSG ) {
-
-            mainTrack -> handleRailComMsg( );
-        }    
-    }
-
-    if (( followUpProg != DCC_SIG_FOLLOW_UP_NONE ) && 
-        ( followUpProg != DCC_SIG_FOLLOW_UP_MEASURE_CURRENT )) {
-
-        if ( followUpProg == DCC_SIG_FOLLOW_UP_GET_BIT ) {
-    
-            progTrack -> getNextBit( );
-        }
-        else if ( followUpProg == DCC_SIG_FOLLOW_UP_GET_PACKET ) { 
-
-            progTrack -> getNextPacket( );
-        }
-    }
-
-    if ( followUpMain == DCC_SIG_FOLLOW_UP_MEASURE_CURRENT ) {
-
-        mainTrack -> powerMeasurement( );
-    }
-    else if ( followUpProg == DCC_SIG_FOLLOW_UP_MEASURE_CURRENT ) {
-
-        progTrack -> powerMeasurement( );
-    }
+        followUpDccTrackWork( followUpProg, progTrack );
+    } 
+   
 } // timerCallback
+
+
+
+
 
 //----------------------------------------------------------------------------------------
 // When all DCC track objects are initialized, the last thing to do before 
-// operation is to  start the timer heartbeat. We start b firing up the timer 
+// operation is to  start the timer heartbeat. We start by firing up the timer 
 // with a first short delay, so when it expires the timer routine will be called. 
 // The current time tick of zero and no ticks left, so the state machine for the 
 //signals will run.
@@ -614,12 +613,14 @@ void timerCallback( uint32_t timerVal ) {
 //----------------------------------------------------------------------------------------
 void initDccTrackProcessing( ) {
 
-    timeToInterrupt    = 0;
-    timeLeftMainTrack  = 0;
-    timeLeftProgTrack  = 0;
+    rNumTimer           = 0;
+    timeToInterrupt     = 0;
+    timeLeftMainTrack   = 0;
+    timeLeftProgTrack   = 0;
     
-    uint8_t rStat = configureTimer( RNUM_TIMER_0, timerCallback );
-    startRepeatingTimer( RNUM_TIMER_0, TICK_IN_MICROSECONDS );
+    uint8_t rStat = configureTimer( rNumTimer, timerCallback );
+
+    startRepeatingTimer( rNumTimer, TICK_IN_MICROSECONDS );
 }   
 
 //----------------------------------------------------------------------------------------
@@ -694,7 +695,9 @@ void writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
         if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
 
             logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
-            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+
+            for ( uint8_t i = 0; i < len; i++ ) 
+                logBuf[ logBufIndex ++ ] = buf[ i ];
         }
     }
 }
@@ -847,6 +850,8 @@ LcsDccTrack::LcsDccTrack( ) { }
 // interrupt handlers to work. If any of the checks fails, the flag field will have
 // the error bit set.
 //
+//
+// ??? simplify the setup, make default decisions....
 //----------------------------------------------------------------------------------------
 uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 
@@ -858,12 +863,13 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
         return ( ERR_DCC_PIN_CONFIG );
     }
 
+    // ??? make the two tracks identical ?
+    // ??? be a bit more forgiving ? If railcom is set, just set cutout too....
+
     if ((( tDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && 
          ( tDesc -> options & DT_OPT_CUTOUT ))                                  ||
         (( tDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && 
          ( tDesc -> options & DT_OPT_RAILCOM ))                                 ||
-        (( tDesc -> options & DT_OPT_RAILCOM ) && 
-         ( ! ( tDesc -> options & DT_OPT_CUTOUT )))                             ||
         ( tDesc -> initCurrentMilliAmp  > tDesc -> limitCurrentMilliAmp )       ||
         ( tDesc -> limitCurrentMilliAmp > tDesc -> maxCurrentMilliAmp )         ||
         ( tDesc -> startTimeThresholdMillis > MAX_START_TIME_THRESHOLD_MILLIS ) ||
@@ -876,6 +882,8 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
         flags = DT_F_CONFIG_ERROR;
         return ( ERR_DCC_TRACK_CONFIG );
     }
+
+    if ( tDesc -> options & DT_OPT_RAILCOM ) options |= DT_OPT_CUTOUT;
 
     signalState               = DCC_SIG_START_BIT;
     trackState                = DCC_TRACK_POWER_OFF;
@@ -907,6 +915,11 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
     totalPwrSamplesTaken      = 0;
     lastPwrSamplePerSecTaken  = 0;
     pwrSamplesPerSec          = 0;
+
+
+
+
+
 
     configureDio( rNumEnable );
     configureDio( rNumControl );
@@ -964,8 +977,9 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 // time to run again and any other follow up action of this invocation are set. 
 // The idea is to separate HW signal generation and follow up actions. The timer
 // interrupt handler will first call both state machines, MAIN and PROG, and then 
-// work on the optional follow-up actions. The state machine has the following 
-// states:
+// work on the optional follow-up actions. 
+//
+// The state machine has the following states:
 //
 // DCC_SIG_CUTOUT_START: if the cutout option is on, a new DCC packet starts with 
 // this signal state. The DCC signal goes HIGH for one tick and the signal state
@@ -975,13 +989,13 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 // Also, if the RailCom is enabled, there is a follow up request to start the 
 // serial IO read function. The signal state advances to state DCC_SIG_CUTOUT_2.
 //
-// DCC_SIG_CUTOUT_2: this stage sets the signal to LOW for the cutout end tick. The
-// signal state advances to signal state DCC_SIG_CUTOUT_3.
+// DCC_SIG_CUTOUT_2: this stage sets the signal to LOW for the cutout end tick.
+// The signal state advances to signal state DCC_SIG_CUTOUT_3.
 //
-// DC_SIG_CUTOUT_3: the DC_SIG_CUTOUT_3 and DC_SIG_END_CUTOUT states represent the
-// first DCC "One" after the cutout. The DCC signal is set to HIGH and the next 
-// period is two ticks. The follow-up request is to disable the UART receiver. The
-// signal state advances to DC_SIG_CUTOUT_END. 
+// DC_SIG_CUTOUT_3: the DC_SIG_CUTOUT_3 and DC_SIG_END_CUTOUT states represent 
+// the first DCC "One" after the cutout. The DCC signal is set to HIGH and the 
+// next period is two ticks. The follow-up request is to disable the UART receiver. 
+// The signal state advances to DC_SIG_CUTOUT_END. 
 //
 // DC_SIG_CUTOUT_END: The DC_SIG_END_CUTOUT state is the second half of the DCC 
 // one. The signal is set to low and the next period to two ticks. If RailCom is
@@ -991,30 +1005,47 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 //
 // DCC_SIG_START_BIT: this stage is the start of the DCC packet bits, which are 
 // preamble, the data bytes with separators and postamble. If the cutout option 
-// is off, this is also the start for the DCC packet. The signal is set HIGH, the
-// tick count is two and we need a follow up to get the current bit, which determines
-// the length of the signal for the bit we just started. The next stage is signal
-// state DCC_SIG_TEST_BIT.  
+// is off, this is also the start for the DCC packet. The signal is set HIGH, 
+// the tick count is two and we need a follow up to get the current bit, which 
+// determines the length of the signal for the bit we just started. The next
+// stage is signal state DCC_SIG_TEST_BIT.  
 //
-// DCC_SIG_TEST_BIT: coming from signal state DCC_SIG_START_BIT, we need to see if 
-// the current bit is a ONE or ZERO bit. If a ONE bit, the signal needs to become 
-// LOW, the next period is 2 ticks and the next state is state DCC_SIG_START_BIT. 
-// If it is the last ONE bit of the postamble, the next packet and signal state 
-// needs to be determined. For a CUTOUT enabled track this is state 
-// DCC_SIG_START_CUTOUT, else DCC_SIG_START_BIT. If a ZERO bit, the signal is 
-// kept HIGH for another two ticks and the state is DCC_SIG_ZERO_SECOND_HALF.
+// DCC_SIG_TEST_BIT: coming from signal state DCC_SIG_START_BIT, we need to see 
+// if the current bit is a ONE or ZERO bit. If a ONE bit, the signal needs to 
+// become LOW, the next period is 2 ticks and the next state is state 
+// DCC_SIG_START_BIT. If it is the last ONE bit of the postamble, the next packet
+// and signal state needs to be determined. For a CUTOUT enabled track this is 
+// state DCC_SIG_START_CUTOUT, else DCC_SIG_START_BIT. If a ZERO bit, the signal
+// is kept HIGH for another two ticks and the state is DCC_SIG_ZERO_SECOND_HALF.
 //
-// The ZERO bit case is also a good place to do a current measurement. We are 
-// already two ticks into the signal polarity change and there should be no spike 
-// from the signal level transition. However, we do not want to measure all zero 
-// bits since this would mean several hundreds to few thousands per second. Each 
-// data byte starts with a DCC ZERO bit. We will just sample the current there and
-// end up with a few hundred samples per second, which is less of a burden but 
-// still often enough for overload detection and so on.
+// The first half ZERO bit case is also a good place to do a current measurement 
+// and short circuit detection. The H-Bridge offers a method to signal that a 
+// short circuit was detected and the bridge was shut down. However, after a 
+// short period the bridge turns on after a short time, in the order of 
+// microseconds. For the L6205 chip, we have a dedicated input GPIO pin that we
+// will check on every second half of the zero bit transmitted. When set, we set
+// a flag in the  DCC track flag word.
 //
-// DCC_SIG_ZERO_SECOND_HALF: coming from signal state DCC_SIG_TEST_BIT, we need to
-// transmit the second half of the ZERO bit. The signal is set to LOW for four ticks
-// and set the next stage is signal state to DCC_SIG_START_BIT.
+// The current measurement is also a task done while we transmit a zero bit.
+// However, we do not want to measure on all zero  bits transmissions since this
+// would mean several hundreds to few thousands per second. Instead we just 
+// measure when a data byte starts. Each data byte starts with a DCC ZERO bit. 
+// We will just sample the current there and end up with a few hundred samples
+// per second, which is less of a burden but still often enough for overload 
+// detection and so on.
+//
+// The current measurement handler is also the place where we combine the two
+// pieces of information to make a decision what to do with the track. There 
+// are threshold values that count the occurrences of short circuits and current
+// limit overload and produce the final decision based on these thresholds.
+//
+// Once a H-Bridge is turned off, it needs to be enabled manually. Note that
+// this object does not send a notification. The user is expected to periodically
+// check the track state.
+//
+// DCC_SIG_ZERO_SECOND_HALF: coming from signal state DCC_SIG_TEST_BIT, we need 
+// to transmit the second half of the ZERO bit. The signal is set to LOW for 
+// four ticks and set the next stage is signal state to DCC_SIG_START_BIT.
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::runDccSignalStateMachine(
@@ -1112,7 +1143,7 @@ void LcsDccTrack::runDccSignalStateMachine(
 
                 *followUpAction   = (( bitsSent == 0 ) ? 
                                     DCC_SIG_FOLLOW_UP_MEASURE_CURRENT :  
-                                    DCC_SIG_FOLLOW_UP_NONE );
+                                    DCC_SIG_FOLLOW_UP_SHORT_CIRCUIT_CHECK );
                 signalState       = DCC_SIG_ZERO_SECOND_HALF;
             }
 
@@ -1139,18 +1170,18 @@ void LcsDccTrack::runDccSignalStateMachine(
 
 //----------------------------------------------------------------------------------------
 // The "getNextBit" routine works through the active packet buffer bit for bit. 
-// A packet consists of the optional cutout sequence, the preamble bits, the data 
-// bytes separated by a ZERO bit and the postamble bits. The cutout option, the 
-// preamble and postamble are configured at DCC track object init time. The preamble
-// length is different for MAIN and PROG tracks with the the cutout period overlaid 
-// at the beginning of the preamble. The postamble is currently always just one HIGH
-// bit, according to standard.
+// A packet consists of the optional cutout sequence, the preamble bits, the 
+// data bytes separated by a ZERO bit and the postamble bits. The cutout option, 
+// the preamble and postamble are configured at DCC track object init time. The
+// preamble length is different for MAIN and PROG tracks with the the cutout 
+// period overlaid at the beginning of the preamble. The postamble is currently 
+// always just one HIGH bit, according to standard.
 //
 // The routine works first through the preamble bit count, then through the data 
 // byte bits, and finally through the postamble bits. The bits to select from the 
-// data byte is done with a 9-bit mask. Remember that the first bit to send is the 
-// data byte separator, which is always a zero. We run from 0 to 8 through the bit
-// mask, the first bit being the ZERO bit.
+// data byte is done with a 9-bit mask. Remember that the first bit to send is 
+// the data byte separator, which is always a zero. We run from 0 to 8 through 
+// the bit mask, the first bit being the ZERO bit.
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::getNextBit( ) {
@@ -1186,9 +1217,9 @@ void LcsDccTrack::getNextBit( ) {
 // pending packet. If so, it is copied to the active buffer and the pending flag 
 // is reset. 
 //    
-// This signals anyone waiting, that the next packet can be queued. If there is no 
-// pending packet, we still need to keep the track going and will load an IDLE or 
-// RESET packet.
+// This signals anyone waiting, that the next packet can be queued. If there is 
+// no pending packet, we still need to keep the track going and will load an IDLE 
+// or RESET packet.
 //
 // For non-service mode packets, there is a requirement that a decoder should not 
 // be receive two consecutive packets. The standards talks about 5 milliseconds 
@@ -1198,13 +1229,13 @@ void LcsDccTrack::getNextBit( ) {
 // A decoder will most likely, if there is more than one decoder active, not be
 // addressed in two consecutive packets, simply because the session refresh
 // mechanism will go round robin through the session list. However, if there is
-// only one decoder active, two packets will be sent in a row, but the decoders are
-// robust enough to ignore this fact. Better run more than one loco :-).
+// only one decoder active, two packets will be sent in a row, but the decoders 
+// are robust enough to ignore this fact. Better run more than one loco :-).
 //
 // This routine is the central place to submit a DCC packet to the track and 
-// therefore a good place to write a DCC_LOG record. We distinguish between a RESET, 
-// an IDLE and a data packet. Note that these records will only be written when DCC 
-// logging is enabled.
+// therefore a good place to write a DCC_LOG record. We distinguish between a 
+// RESET, an IDLE and a data packet. Note that these records will only be written
+// when DCC logging is enabled.
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::getNextPacket( ) {
@@ -1252,9 +1283,9 @@ void LcsDccTrack::getNextPacket( ) {
 // sends 8 data bytes. They are divided into two channels, 2bytes and another 6 
 // bytes. The bytes themselves are encoded such that each byte has four bits set, 
 // i.e. a hamming weight of 4. The first channel is used to just send the engine
-// address when the decoder is addressed. The second channel is used only when the
-// decoder is explicitly addressed via a CV operation command to provide the answer
-// to the request.
+// address when the decoder is addressed. The second channel is used only when 
+// the decoder is explicitly addressed via a CV operation command to provide the
+// answer to the request.
 //
 // The received datagrams are also recorded in the DCC_LOG, if enabled.
 //
@@ -1331,13 +1362,14 @@ uint8_t LcsDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
     } else return ( 0 );
 }
 
+// ??? rethink this state machine ?
 //----------------------------------------------------------------------------------------
-// DCC track power is not just a matter of turning power on or off. To address all
-// the requirements of the standard, the track is managed by a state machine that
-// implements the start and stop sequences. It is also important that we do not 
-// really block the progress of the entire base station, so any timing calls are
-// handled by timestamp comparison in state machine WAIT states. The track state 
-// machine routine is expected to be called very often.
+// DCC track power is not just a matter of turning power on or off. To address
+// all the requirements of the standard, the track is managed by a state machine 
+// that implements the start and stop sequences. It is also important that we do
+// not really block the progress of the entire base station, so any timing calls 
+// are handled by timestamp comparison in state machine WAIT states. The track 
+// state machine routine is expected to be called very often.
 //
 //  DCC_TRACK_POWER_START1    - this is the first state of a start sequence. When
 //                              the track should be powered on, the first activity
@@ -1404,7 +1436,7 @@ void LcsDccTrack::runDccTrackStateMachine( ) {
             // ??? do we need a way to check for overload during this 
             // initial phase, just like we do when ON ?
 
-            trackTimeStamp          = CDC::getMillis( );
+            trackTimeStamp          = getMillis( );
             flags                   |= DT_F_POWER_ON;
             flags                   &= ~DT_F_POWER_OVERLOAD;
             flags                   &= ~DT_F_MEASUREMENT_ON;
@@ -1578,6 +1610,11 @@ bool LcsDccTrack::isPowerOverload( ) {
     return ( flags & DT_F_POWER_OVERLOAD );
 }
 
+bool LcsDccTrack::isPowerShortCircuit( ) {
+
+    return ( flags & DT_F_POWER_SHORT_CIRCUIT );
+}
+
 bool LcsDccTrack::isServiceModeOn( ) {
 
     return ( flags & DT_F_SERVICE_MODE_ON );
@@ -1599,57 +1636,65 @@ bool LcsDccTrack::isRailComOn( ) {
 // flag. Starting and stopping track power is done by setting the respective START
 // or STOP state.
 //
+// ??? check what calls to offer .... 
+// 
 //----------------------------------------------------------------------------------------
-void LcsDccTrack::powerStart( ) {
+void LcsDccTrack::powerEnable( bool enable ) {
 
-    trackState = DCC_TRACK_POWER_START1;
+    trackState = ( enable  ) ? DCC_TRACK_POWER_START1 : DCC_TRACK_POWER_STOP1;
 }
+ 
+void LcsDccTrack::serviceModeEnable( bool enable ) {
 
-void LcsDccTrack::powerStop( ) {
+    if ( enable ) {
 
-    trackState = DCC_TRACK_POWER_STOP1;
-}
+        if ( options & DT_OPT_SERVICE_MODE_TRACK ) flags |= DT_F_SERVICE_MODE_ON;
+    }
+    else {
 
-void LcsDccTrack::serviceModeOn( ) {
-
-    if ( options & DT_OPT_SERVICE_MODE_TRACK ) flags |= DT_F_SERVICE_MODE_ON;
-}
-
-void LcsDccTrack::serviceModeOff( ) {
-
-    if ( options & DT_OPT_SERVICE_MODE_TRACK ) flags &= ~DT_F_SERVICE_MODE_ON;
-}
-
-void LcsDccTrack::cutoutOn( ) {
-
-    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
-
-        preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
-        flags       |= DT_F_CUTOUT_MODE_ON;
+        if ( options & DT_OPT_SERVICE_MODE_TRACK ) flags &= ~DT_F_SERVICE_MODE_ON;
     }
 }
 
-void LcsDccTrack::cutoutOff( ) {
+void LcsDccTrack::cutoutEnable( bool enable ) {
 
-    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
+    if ( enable ) {
+
+         if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
+
+        preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
+        flags       |= DT_F_CUTOUT_MODE_ON;
+        }
+    }
+    else {
+
+        if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
 
         preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN;
         flags       &= ~DT_F_CUTOUT_MODE_ON;
         flags       &= ~DT_F_RAILCOM_MODE_ON;
+        }
     }
 }
 
-void LcsDccTrack::railComOn( ) {
+void LcsDccTrack::railComEnable( bool enable ) {
 
-    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
+    // ??? also enable cutout automatically ....
 
-        flags |= DT_F_CUTOUT_MODE_ON | DT_F_RAILCOM_MODE_ON;
+    if ( enable ) {
+
+        if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
+
+            flags |= DT_F_CUTOUT_MODE_ON | DT_F_RAILCOM_MODE_ON;
+        }
     }
-}
+    else {
 
-void LcsDccTrack::railComOff( ) {
-
-    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) flags &= ~DT_F_RAILCOM_MODE_ON;
+        if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) { 
+            
+            flags &= ~DT_F_RAILCOM_MODE_ON;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -1694,16 +1739,16 @@ void LcsDccTrack::setLimitCurrent( uint16_t val ) {
 
 //----------------------------------------------------------------------------------------
 // The "getRMSCurrent" function returns the power consumption based on the 
-// samples taken and stored in the sample buffer. The function computes the square
-// root of the sum of the squares of the array elements. The result is returned 
-// in milliAmps.
+// samples taken and stored in the sample buffer. The function computes the 
+// square root of the sum of the squares of the array elements. The result is 
+// returned in milliAmps.
 // 
-// Note that our measurement is based on unsigned 16-bit quantities that come from
-// the controller ADC converter. We compute the RMS based on 16-bit unsigned integers,
-// which compared to floating point computation is not really precise. However, for 
-// our purpose to just show a rough power consumption, the error should be not a big
-// issue. We will not use RMS values for power overload detection or decoder ACK 
-// detection.
+// Note that our measurement is based on unsigned 16-bit quantities that come 
+// from the controller ADC converter. We compute the RMS based on 16-bit unsigned
+// integers, which compared to floating point computation is not really precise.
+// However, for our purpose to just show a rough power consumption, the error 
+// should be not a big issue. We will not use RMS values for power overload 
+// detection or decoder ACK detection.
 //
 //----------------------------------------------------------------------------------------
 uint16_t LcsDccTrack::getRMSCurrent( ) {
@@ -1717,7 +1762,30 @@ uint16_t LcsDccTrack::getRMSCurrent( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// This function is called whenever a power measurement operation completes from 
+// "shortCircuitDetect" is invoked by the signal state machine to check whether
+// the H-Bridge signaled a short circuit. We latch a short circuit event and 
+// let the power management handler deal with the decision.
+//
+//----------------------------------------------------------------------------------------
+void LcsDccTrack::shortCircuitDetect( ) {
+
+    bool stat;
+    uint8_t rStat = readDio( rNumStatus, &stat );
+
+    if ( stat ) flags |= DT_F_POWER_SHORT_CIRCUIT;
+}
+
+//----------------------------------------------------------------------------------------
+// This function is called by the DCC signal state machine to analyze the 
+// H-Bridge power status. It is invoked on the first zero bit transmitted in a
+// DCC data byte. We examine the short circuit detection flag and optional 
+// perform a power consumption measurement.
+//
+
+// ??? this routine manages the track state and threshold stuff.....
+
+
+// whenever a power measurement operation completes from 
 // the analog conversion interrupt handler. This typically takes place on the first
 // half of the DCC "0" bit. If power measurement is enabled, we increment the number
 // of samples taken, check the measured value for an overload situation and also set
@@ -1725,7 +1793,7 @@ uint16_t LcsDccTrack::getRMSCurrent( ) {
 // the amount work really short.
 //
 //----------------------------------------------------------------------------------------
-void LcsDccTrack::powerMeasurement( ) {
+void LcsDccTrack::powerManagement( ) {
 
     if ( flags & DT_F_MEASUREMENT_ON ) {
 
@@ -1743,6 +1811,10 @@ void LcsDccTrack::powerMeasurement( ) {
             flags |= DT_F_POWER_OVERLOAD;
     }
 }
+
+
+
+
 
 //----------------------------------------------------------------------------------------
 // The DCC decoder programming requires the detection of a current consumption 
@@ -1807,8 +1879,7 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 // we need a kind of state machine approach to cut the long sequence in smaller 
 // chunks to allow other work in between.
 //----------------------------------------------------------------------------------------
-bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, 
-                                               uint8_t  retries ) {
+bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) {
 
     if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
 
@@ -1932,6 +2003,7 @@ void LcsDccTrack::endLog( ) {
 // The order of data entry for numeric types is big endian, i.e. most significant
 // byte first.
 //
+// ??? put logActive, logEnabled in flags ?
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
 

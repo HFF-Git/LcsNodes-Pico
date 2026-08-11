@@ -48,8 +48,8 @@ using namespace CDC;
 uint16_t                        debugMask;
 CdcResourceDescMap              dMap;
 LcsBaseStationCommand           serialCmd;
-LcsBaseStationDccTrack          mainTrack;
-LcsBaseStationDccTrack          progTrack;
+LcsDccTrack          mainTrack;
+LcsDccTrack          progTrack;
 LcsBaseStationLocoSession       locoSessions;
 LcsBaseStationMsgInterface      msgInterface;
 
@@ -370,7 +370,7 @@ uint8_t startBaseStation( ) {
 
     if ( rStat == NO_ERR ) {
 
-        LcsBaseStationDccTrack::startDccProcessing( );
+        LcsDccTrack::startDccProcessing( );
 
         mainTrack.powerStart( );
         progTrack.powerStart( );

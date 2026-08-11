@@ -53,8 +53,8 @@ LcsBaseStationCommand::LcsBaseStationCommand( ) { }
 uint8_t LcsBaseStationCommand::setupSerialCommand(
 
     LcsBaseStationLocoSession *locoSessions,
-    LcsBaseStationDccTrack    *mainTrack,
-    LcsBaseStationDccTrack    *progTrack ) {
+    LcsDccTrack    *mainTrack,
+    LcsDccTrack    *progTrack ) {
 
     this -> locoSessions  = locoSessions;
     this -> mainTrack     = mainTrack;

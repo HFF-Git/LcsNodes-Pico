@@ -81,8 +81,8 @@ LcsBaseStationMsgInterface::LcsBaseStationMsgInterface( ) { }
 uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
 
     LcsBaseStationLocoSession   *locoSessions,
-    LcsBaseStationDccTrack      *mainTrack,
-    LcsBaseStationDccTrack      *progTrack
+    LcsDccTrack      *mainTrack,
+    LcsDccTrack      *progTrack
 
     ) {
 
