@@ -31,6 +31,11 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
+
+// ???? this changed with the new SOCKET concept.... these libs are perhaps 
+// not necessary anymore....
+
+
 namespace LCS {
 
 ///---------------------------------------------------------------------------------------

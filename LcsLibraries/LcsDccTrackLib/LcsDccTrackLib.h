@@ -179,7 +179,6 @@ const uint8_t   RAILCOM_BUF_SIZE = 8;
 //----------------------------------------------------------------------------------------
 const uint32_t  MAIN_TRACK_STATE_TIME_INTERVAL  = 10;
 const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
-const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
 
 //----------------------------------------------------------------------------------------
 // For creating the DCC track object, the track is described by the data structure 

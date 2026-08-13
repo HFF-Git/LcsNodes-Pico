@@ -42,6 +42,7 @@ add_subdirectory( LcsLibraries/LcsUIElementsLib )
 add_subdirectory( LcsLibraries/LcsLcdDisplayLib )
 add_subdirectory( LcsLibraries/LcsOledDisplayLib )
 add_subdirectory( LcsLibraries/LcsDccTrackLib )
+add_subdirectory( LcsLibraries/LcsLocoSessionLib )
 
 # still needed ?
 add_subdirectory( LcsLibraries/LcsDrvOccDetectLib )
