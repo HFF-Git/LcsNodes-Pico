@@ -48,6 +48,30 @@ using namespace LCS;
 extern uint16_t debugMask;
 
 //----------------------------------------------------------------------------------------
+// 
+// 
+//----------------------------------------------------------------------------------------
+inline bool dccTrackDebugEnabled(  ) {
+
+    return ( true ); // ??? for now ... 
+}
+
+inline bool dccTrackDebugAccDetect( ) {
+
+    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
+}
+
+inline bool dccTrackDebugRaiCom( ) {
+
+    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
+}
+
+inline bool dccTrackDebugPowerMgt( ) {
+
+    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
+}
+
+//----------------------------------------------------------------------------------------
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a 
 // debugging option to set the clock much slower so that the waveform can be seen.
 //
@@ -114,9 +138,13 @@ const uint8_t   RAILCOM_BUFFER_SIZE             = 8;
 // mask for a quick bit select in the data byte.
 //
 //----------------------------------------------------------------------------------------
-DccPacket       idleDccPacket       = { 3, 0, { 0xFF, 0x00, 0xFF }};
-DccPacket       resetDccPacket      = { 3, 0, { 0x00, 0x00, 0x00 }};
-const uint8_t   bitMask9[ ]         = { 0x00, 0x80, 0x40, 0x20, 0x10, 
+const uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
+const uint8_t   resetDccPacketData[ ]   = { 0x00, 0x00 };
+const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
+
+DccPacket       idleDccPacket           = { 3, 0, { 0xFF, 0x00, 0xFF }};
+DccPacket       resetDccPacket          = { 3, 0, { 0x00, 0x00, 0x00 }};
+const uint8_t   bitMask9[ ]             = { 0x00, 0x80, 0x40, 0x20, 0x10, 
                                         0x08, 0x04, 0x02, 0x01 };
 
 //----------------------------------------------------------------------------------------
@@ -152,6 +180,16 @@ const uint32_t TICKS_CUTOUT_MICROS     =  TICKS_29_MICROS * 16;
 //----------------------------------------------------------------------------------------
 const uint16_t MILLI_VOLT_PER_DIGIT    = 5;
 const uint16_t MILLI_VOLT_PER_AMP      = 1500;
+
+//----------------------------------------------------------------------------------------
+// Current measurement is done via measuring the voltage over a shunt resistor.
+// Externally we think in milliAmps, internally we think in ADC digits. The 
+// global variables contain the offset and conversion factor used when converting.
+// Current measurement conversion
+//
+//----------------------------------------------------------------------------------------
+static uint32_t adcDigitsPerMilliAmpTimes1000;
+static uint16_t currentZeroOffset;
 
 //----------------------------------------------------------------------------------------
 // DCC track power management runs on a state machine managing the state of the 
@@ -253,7 +291,9 @@ volatile uint8_t timeLeftProgTrack  = 0;
 // purposes. During operation a set of log entries can be recorded to a log buffer. 
 // A log entry consist of the header byte, which contains in the first byte the 
 // 4-bit log id and the 4-bit length of the log data. A log entry can therefore 
-// record up to 16 bytes of payload. 
+// record up to 16 bytes of payload. When writing to the log buffer, the index 
+// will always point to the next available position. Once the buffer is full, 
+// no further data can be added.
 //
 //----------------------------------------------------------------------------------------
 enum LogId : uint8_t {
@@ -269,19 +309,6 @@ enum LogId : uint8_t {
     LOG_VAL       = 8,
     LOG_INV       = 15
 };
-
-//----------------------------------------------------------------------------------------
-// The log buffer and the log index. When writing to the log buffer, the index will
-// always point to the next available position. Once the buffer is full, no further
-// data can be added.
-//
-//----------------------------------------------------------------------------------------
-const uint16_t  LOG_BUF_SIZE            = 8192;
-
-bool            logEnabled              = false;
-bool            logActive               = false;
-uint16_t        logBufIndex             = 0;
-uint8_t         logBuf[ LOG_BUF_SIZE ]  = { 0 };
 
 //----------------------------------------------------------------------------------------
 // RailCom decoder table. The Railcom communication will send raw bytes where only
@@ -444,16 +471,6 @@ enum railComDatagramStatId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Utility routine for number range checks.
-//
-// ??? replace by util function ?
-//----------------------------------------------------------------------------------------
-bool isInRangeU( uint8_t val, uint8_t lower, uint8_t upper ) {
-
-    return (( val >= lower ) && ( val <= upper ));
-}
-
-//----------------------------------------------------------------------------------------
 // Utility function to map a DCC address to a railcom decoder type.
 //
 //----------------------------------------------------------------------------------------
@@ -466,32 +483,86 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Conversion functions between milliAmps and digit values as report4de by the 
-// analog to digital converter hardware. For a better precision, the formula uses
-// 32 bit computation and stores the result back in a 16 bit quantity. 
+// Setup the current measurement conversion. While externally we think in 
+// milliAmps, internally we just thing in digit values. For convenience, the
+// setup tales as input all the relevant hardware data and computes the 
+// conversion factors. Our model is a ADC pin at the controller, an opAmp for
+// amplification and a shunt resistor where the voltage is measured.
+//
+//  referenceMilliVolt      - ADC reference voltage in mV
+//  shuntMilliOhm           - Shunt resistance in milliOhms
+//  amplifierGain           - Amplifier gain
+//  adcBits                 - ADC resolution
+//  zeroOffset              - ADC value at zero current
+//
+// We keep for our conversion routines "currentCountsPerMilliAmpTimes1000", which
+// contains ADC counts per mA, multiplied by 1000 for fixed-point precision.
+//
+// Formulas:
+//
+//  ADC counts per mA:
+//
+//     Vshunt = I[mA] * R[mOhm] / 1000
+//     Vadc   = Vshunt * gain
+//
+//     ADC = Vadc * adcMax / Vref
+//
+//  Therefore:
+//    
+//               R[mOhm] * gain * adcMax
+//      ADC/mA = -------------------------
+//               1000 * Vref[mV]
+//
+//  Store ADC/mA multiplied by 1000 in "currentCountsPerMilliAmpTimes1000".
 //
 //----------------------------------------------------------------------------------------
-uint16_t milliAmpToDigitValue( uint16_t milliAmp, uint16_t digitsPerAmp ) {
+void currentSenseSetup(uint16_t referenceMilliVolt,
+                       uint16_t shuntMilliOhm,
+                       uint8_t  amplifierGain,
+                       uint8_t  adcBits,
+                       uint16_t zeroOffset ) {
 
-    #if 0
-    uint32_t mA = milliAmp;
-    uint32_t dPA = digitsPerAmp;
-    return (( uint16_t ) ( mA * dPA / 1000 ));
-    #endif
+    uint32_t adcMax     = (1UL << adcBits) - 1;
+    uint64_t numerator  = (uint64_t)shuntMilliOhm *
+                          (uint64_t)amplifierGain *
+                          (uint64_t)adcMax *
+                          1000ULL;
 
-    return ((uint16_t) ((((uint32_t) milliAmp ) * ((uint32_t) digitsPerAmp )) / 1000 ));
+    adcDigitsPerMilliAmpTimes1000 =
+        (uint32_t) ((numerator + ((uint64_t)referenceMilliVolt * 500ULL )) /
+                    ((uint64_t) referenceMilliVolt * 1000ULL ));
+
+    currentZeroOffset = zeroOffset;
 }
 
-uint16_t digitValueToMilliAmp( uint16_t digitValue, uint16_t digitsPerAmp ) {
+//----------------------------------------------------------------------------------------
+// Convert milliAmps to ADC counts.
+//
+//----------------------------------------------------------------------------------------
+uint16_t milliAmpToAdcDigits( uint16_t milliAmp ) {
+    
+    uint64_t value = ((uint64_t) milliAmp *
+                      (uint64_t) adcDigitsPerMilliAmpTimes1000 +
+                      500ULL ) / 1000ULL;
 
-    #if 0
-    uint32_t dV = digitValue;
-    uint32_t dPA = digitsPerAmp;
-    return ((uint16_t)( dV * 1000 / dPA ));
-    #endif
+    return ((uint16_t) value + currentZeroOffset );
+}
 
-    return ((uint16_t) ((((uint32_t) digitValue ) * 1000 ) / 
-            ((uint32_t) digitsPerAmp )));
+//----------------------------------------------------------------------------------------
+// Convert ADC counts to milliAmps.
+//
+//----------------------------------------------------------------------------------------
+uint16_t adcDigitsToMilliAmp( uint16_t adcValue ) {
+
+    if ( adcValue <= currentZeroOffset ) return ( 0 );
+
+    uint32_t value = adcValue - currentZeroOffset;
+
+    uint64_t result = ((uint64_t) value * 1000ULL +
+                       ((uint64_t) adcDigitsPerMilliAmpTimes1000 / 2ULL )) /
+                       (uint64_t) adcDigitsPerMilliAmpTimes1000;
+
+    return (uint16_t)result;
 }
 
 //----------------------------------------------------------------------------------------
@@ -599,10 +670,6 @@ void timerCallback( uint32_t timerVal ) {
    
 } // timerCallback
 
-
-
-
-
 //----------------------------------------------------------------------------------------
 // When all DCC track objects are initialized, the last thing to do before 
 // operation is to  start the timer heartbeat. We start by firing up the timer 
@@ -619,10 +686,10 @@ void initDccTrackProcessing( ) {
     timeLeftProgTrack   = 0;
     
     uint8_t rStat = configureTimer( rNumTimer, timerCallback );
-
     startRepeatingTimer( rNumTimer, TICK_IN_MICROSECONDS );
 }   
 
+#if 0
 //----------------------------------------------------------------------------------------
 // DCC log functions for printing the DCC log buffer. The fist byte of each log 
 // entry has encoded the log entry type and the entry length. Depending on the 
@@ -631,32 +698,32 @@ void initDccTrackProcessing( ) {
 // the DCC log entry.   
 //
 //----------------------------------------------------------------------------------------
-void printLogTimeStamp( uint16_t index ) {
+void printLogTimeStamp( uint16_t ofs ) {
 
-    uint32_t ts = logBuf[ index ];
-    ts = ( ts << 8 ) | logBuf[ index + 1 ];
-    ts = ( ts << 8 ) | logBuf[ index + 2 ];
-    ts = ( ts << 8 ) | logBuf[ index + 3 ];
+    uint32_t ts = logBuf[ ofs ];
+    ts = ( ts << 8 ) | logBuf[ ofs + 1 ];
+    ts = ( ts << 8 ) | logBuf[ ofs + 2 ];
+    ts = ( ts << 8 ) | logBuf[ ofs + 3 ];
     printf( "0x%x", ts );
 }
 
-void printLogVal( uint16_t index ) {
+void printLogVal( uint16_t ofs ) {
 
-    uint16_t val = logBuf[ index ] << 8 | logBuf[ index + 1 ];
+    uint16_t val = logBuf[ ofs ] << 8 | logBuf[ ofs + 1 ];
     printf( "0x%04x", val );
 }
 
-void printLogData( uint16_t index, uint8_t len ) {
+void printLogData( uint16_t ofs, uint8_t len ) {
 
-    for ( int i = 0; i < len; i++ ) printf( "0x%02x ", logBuf[ index + i ] );
+    for ( int i = 0; i < len; i++ ) printf( "0x%02x ", logBuf[ ofs + i ] );
 }
 
-uint8_t printLogEntry( uint16_t index ) {
+uint8_t printLogEntry( uint16_t ofs ) {
 
-    if ( index < LOG_BUF_SIZE ) {
+    if ( ofs < LOG_BUF_SIZE ) {
 
-        uint8_t logEntryId  = logBuf[ index ] >> 4;
-        uint8_t logEntryLen = logBuf[ index ] & 0x0F;
+        uint8_t logEntryId  = logBuf[ ofs ] >> 4;
+        uint8_t logEntryLen = logBuf[ ofs ] & 0x0F;
 
         switch ( logEntryId ) {
 
@@ -669,12 +736,14 @@ uint8_t printLogEntry( uint16_t index ) {
             case LOG_DCC_PKT:  printf( "DCC_PKT    " ); break;
             case LOG_DCC_RCM:  printf( "DCC_RCOM   " ); break;
             case LOG_VAL:      printf( "VAL        " ); break;
-            default:           printf( "INVALID ( 0x%02 )", logBuf[ index ] >> 4 );
+            default:           printf( "INVALID ( 0x%02 )", logBuf[ ofs ] >> 4 );
         }
 
-        if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( index + 1 );
-        else if ( logEntryId == LOG_VAL     )  printLogVal( index + 1 );
-        else                                   printLogData( index + 1, logEntryLen );
+        ofs += 1;
+
+        if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( ofs );
+        else if ( logEntryId == LOG_VAL     )  printLogVal( ofs );
+        else                                   printLogData( ofs, logEntryLen );
 
         return ( logEntryLen + 1 );
     }
@@ -692,19 +761,19 @@ void writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
     if ( logActive ) {
 
         len = len % 16;
-        if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+        if ( logBufOfs + len + 1 < LOG_BUF_SIZE ) {
 
-            logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
+            logBuf[ logBufOfs ++ ] = ( id << 4 ) | len;
 
             for ( uint8_t i = 0; i < len; i++ ) 
-                logBuf[ logBufIndex ++ ] = buf[ i ];
+                logBuf[ logBufOfs ++ ] = buf[ i ];
         }
     }
 }
 
 void writeLogId( uint8_t id ) {
 
-    if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 ) | 1;
+    if ( logActive ) logBuf[ logBufOfs ++ ] = ( id << 4 ) | 1;
 }
 
 void writeLogTs( ) {
@@ -712,11 +781,11 @@ void writeLogTs( ) {
     if ( logActive ) {
 
         uint32_t ts = CDC::getMicros( );
-        logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
-        logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+        logBuf[ logBufOfs ++ ] = ( ts >> 24 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 16 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 8  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 0  ) & 0xFF;
     }
 }
 
@@ -724,10 +793,10 @@ void writeLogVal( uint8_t valId, uint16_t val ) {
 
     if ( logActive ) {
 
-        logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
-        logBuf[ logBufIndex ++ ] = valId;
-        logBuf[ logBufIndex ++ ] = val >> 8;
-        logBuf[ logBufIndex ++ ] = val & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_VAL << 4 ) | 3;
+        logBuf[ logBufOfs ++ ] = valId;
+        logBuf[ logBufOfs ++ ] = val >> 8;
+        logBuf[ logBufOfs ++ ] = val & 0xFF;
     }
 }
 
@@ -750,7 +819,7 @@ void beginLog( ) {
     if ( logEnabled ) {
 
         logActive   = true;
-        logBufIndex = 0;
+        logBufOfs = 0;
         writeLogId( LOG_BEGIN );
         writeLogTs( );
     }
@@ -776,14 +845,14 @@ void printLog( ) {
 
         if ( ! logActive ) {
 
-            if ( logBufIndex > 0 ) {
+            if ( logBufOfs > 0 ) {
 
                 printf( "\n" );
 
                 uint16_t entryIndex  = 0;
                 uint8_t  entryLen    = 0;
 
-                while ( entryIndex < logBufIndex ) {
+                while ( entryIndex < logBufOfs ) {
 
                     entryLen = printLogEntry( entryIndex );
                     printf( "\n" );
@@ -798,6 +867,7 @@ void printLog( ) {
     }
     else printf( "DCC Log disabled\n" );
 }
+#endif
 
 }; // namespace
 
@@ -863,6 +933,20 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
         return ( ERR_DCC_PIN_CONFIG );
     }
 
+    configureDio( rNumEnable );
+    configureDio( rNumControl );
+    configureAdc( rNumSense );
+
+    writeDio( rNumEnable, false );
+    writeDio( rNumControl, false, false );
+
+
+
+
+
+
+
+
     // ??? make the two tracks identical ?
     // ??? be a bit more forgiving ? If railcom is set, just set cutout too....
 
@@ -893,6 +977,7 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
     rNumControl               = tDesc -> rNumControl;
     rNumSense                 = tDesc -> rNumSense;
     rNumUartRx                = tDesc -> rNumUartRx;
+
     initCurrentMilliAmp       = tDesc -> initCurrentMilliAmp;
     limitCurrentMilliAmp      = tDesc -> limitCurrentMilliAmp;
     maxCurrentMilliAmp        = tDesc -> maxCurrentMilliAmp;
@@ -902,14 +987,8 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
     overloadEventThreshold    = tDesc -> overloadEventThreshold;
     overloadRestartThreshold  = tDesc -> overloadRestartThreshold;
 
-    // ??? MILLI_VOLT_PER_DIGIT is actually 4,72V / 1024 = 4,6 mV. 
-    // How to make this more precise ?
-
-    milliVoltPerAmp           = tDesc -> milliVoltPerAmp;
-    digitsPerAmp              = milliVoltPerAmp / MILLI_VOLT_PER_DIGIT;
-
-    limitCurrentDigitValue    = milliAmpToDigitValue( initCurrentMilliAmp, digitsPerAmp );
-    ackThresholdDigitValue    = milliAmpToDigitValue( ACK_TRESHOLD_VAL, digitsPerAmp );
+    limitCurrentDigitValue    = milliAmpToAdcDigits( initCurrentMilliAmp );
+    ackThresholdDigitValue    = milliAmpToAdcDigits( ACK_TRESHOLD_VAL );
     actualCurrentDigitValue   = 0;
     dccPacketsSend            = 0;
     totalPwrSamplesTaken      = 0;
@@ -921,12 +1000,9 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 
 
 
-    configureDio( rNumEnable );
-    configureDio( rNumControl );
-    configureAdc( rNumSense );
+   
 
-    writeDio( rNumEnable, false );
-    writeDio( rNumControl, false, false );
+
 
     if ( options & DT_OPT_SERVICE_MODE_TRACK ) {
 
@@ -969,15 +1045,15 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DCC signal generation is done through a state machine that is invoked when the 
-// DCC timer interrupts. The interrupt timer thinks in multiples of 29us, which we
-// will just call a "tick" in the description below. It runs as part of the timer 
-// interrupt handler, so we need to be short and quick. First, the HW signals are
-// set. This keeps the track signals in their timing. Next, the new signal state, 
-// time to run again and any other follow up action of this invocation are set. 
-// The idea is to separate HW signal generation and follow up actions. The timer
-// interrupt handler will first call both state machines, MAIN and PROG, and then 
-// work on the optional follow-up actions. 
+// DCC signal generation is done through a state machine that is invoked when 
+// the DCC timer interrupts. The interrupt timer thinks in multiples of 29us, 
+// which we will just call a "tick" in the description below. It runs as part of
+// the timer interrupt handler, so we need to be short and quick. First, the HW 
+// signals are set. This keeps the track signals in their timing. Next, the new
+// signal state, time to run again and any other follow up action of this 
+// invocation are set. The idea is to separate HW signal generation and follow 
+// up actions. The timer interrupt handler will first call both state machines, 
+// MAIN and PROG, and then work on the optional follow-up actions. 
 //
 // The state machine has the following states:
 //
@@ -1210,7 +1286,7 @@ void LcsDccTrack::getNextBit( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// If all bits of a packet have been processed, the next packet will be determined
+// If all bits of a packet have been processed, the next packet is determined
 // during the last ONE bit transmission of the postamble. If there is a non-zero 
 // repeat count on the current packet, the same packet is sent again until the 
 // repeat count drops to zero. On a zero repeat count, we check if there is a 
@@ -1280,7 +1356,7 @@ void LcsDccTrack::getNextPacket( ) {
 // Railcom. If the cutout period and the RailCom feature is enabled, the signal 
 // state machine will also start and stop the UART reader for RailCom data. The 
 // final message is then to handle that message. In the cutout period, a decoder 
-// sends 8 data bytes. They are divided into two channels, 2bytes and another 6 
+// sends 8 data bytes. They are divided into two channels, 2 bytes and another 6 
 // bytes. The bytes themselves are encoded such that each byte has four bits set, 
 // i.e. a hamming weight of 4. The first channel is used to just send the engine
 // address when the decoder is addressed. The second channel is used only when 
@@ -1362,6 +1438,10 @@ uint8_t LcsDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
     } else return ( 0 );
 }
 
+
+
+
+
 // ??? rethink this state machine ?
 //----------------------------------------------------------------------------------------
 // DCC track power is not just a matter of turning power on or off. To address
@@ -1440,8 +1520,7 @@ void LcsDccTrack::runDccTrackStateMachine( ) {
             flags                   |= DT_F_POWER_ON;
             flags                   &= ~DT_F_POWER_OVERLOAD;
             flags                   &= ~DT_F_MEASUREMENT_ON;
-            limitCurrentDigitValue  = milliAmpToDigitValue( initCurrentMilliAmp, 
-                                                            digitsPerAmp );
+            limitCurrentDigitValue  = milliAmpToAdcDigits( initCurrentMilliAmp );
 
             writeDio( rNumEnable, true );
             trackState = DCC_TRACK_POWER_START2;
@@ -1457,8 +1536,7 @@ void LcsDccTrack::runDccTrackStateMachine( ) {
                 overloadRestartCount    = 0;
                 overloadEventCount      = 0;
                 flags                   |= DT_F_POWER_ON | DT_F_MEASUREMENT_ON;
-                limitCurrentDigitValue  = milliAmpToDigitValue( limitCurrentMilliAmp, 
-                                                                digitsPerAmp );
+                limitCurrentDigitValue  = milliAmpToAdcDigits( limitCurrentMilliAmp );
 
                 writeDio( rNumEnable, true );
                 trackState = DCC_TRACK_POWER_ON;
@@ -1491,8 +1569,7 @@ void LcsDccTrack::runDccTrackStateMachine( ) {
 
                 if ( overloadEventCount > overloadEventThreshold ) {
 
-                    if (( debugMask & DBG_BS_CONFIG ) && 
-                        ( debugMask & DBG_BS_TRACK_POWER_MGMT )) {
+                    if ( dccTrackDebugPowerMgt( )) {
 
                         printf( "Overload detected: " );
 
@@ -1532,8 +1609,7 @@ void LcsDccTrack::runDccTrackStateMachine( ) {
 
                 if ( overloadRestartCount > overloadRestartThreshold ) {
 
-                    if (( debugMask & DBG_BS_CONFIG ) && 
-                        ( debugMask & DBG_BS_TRACK_POWER_MGMT )) {
+                     if ( dccTrackDebugPowerMgt( )) {
 
                         printf( "Overload restart failed, Cnt:%d\n", 
                                 overloadRestartCount );
@@ -1641,59 +1717,46 @@ bool LcsDccTrack::isRailComOn( ) {
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::powerEnable( bool enable ) {
 
+    // ??? just set the flag ?
+
+    // ??? clear all flags and threshold counters on ON....
+
     trackState = ( enable  ) ? DCC_TRACK_POWER_START1 : DCC_TRACK_POWER_STOP1;
 }
  
 void LcsDccTrack::serviceModeEnable( bool enable ) {
 
-    if ( enable ) {
+    if ( options & DT_OPT_SERVICE_MODE_TRACK ) {
 
-        if ( options & DT_OPT_SERVICE_MODE_TRACK ) flags |= DT_F_SERVICE_MODE_ON;
-    }
-    else {
-
-        if ( options & DT_OPT_SERVICE_MODE_TRACK ) flags &= ~DT_F_SERVICE_MODE_ON;
-    }
+        if ( enable )   flags |= DT_F_SERVICE_MODE_ON;
+        else            flags &= ~DT_F_SERVICE_MODE_ON;
+    }    
 }
 
 void LcsDccTrack::cutoutEnable( bool enable ) {
 
-    if ( enable ) {
+    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
 
-         if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
+        if ( enable ) {
 
-        preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
-        flags       |= DT_F_CUTOUT_MODE_ON;
+            preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
+            flags       |= DT_F_CUTOUT_MODE_ON;
         }
-    }
-    else {
+        else {
 
-        if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
-
-        preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN;
-        flags       &= ~DT_F_CUTOUT_MODE_ON;
-        flags       &= ~DT_F_RAILCOM_MODE_ON;
+            preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN;
+            flags       &= ~DT_F_CUTOUT_MODE_ON;
+            flags       &= ~DT_F_RAILCOM_MODE_ON;
         }
     }
 }
 
 void LcsDccTrack::railComEnable( bool enable ) {
 
-    // ??? also enable cutout automatically ....
+    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
 
-    if ( enable ) {
-
-        if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
-
-            flags |= DT_F_CUTOUT_MODE_ON | DT_F_RAILCOM_MODE_ON;
-        }
-    }
-    else {
-
-        if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) { 
-            
-            flags &= ~DT_F_RAILCOM_MODE_ON;
-        }
+        if ( enable ) flags |= DT_F_CUTOUT_MODE_ON | DT_F_RAILCOM_MODE_ON;
+        else          flags &= ~DT_F_RAILCOM_MODE_ON;
     }
 }
 
@@ -1708,19 +1771,19 @@ void LcsDccTrack::railComEnable( bool enable ) {
 // values converted from and to milliAmps.
 //
 //----------------------------------------------------------------------------------------
-uint16_t LcsDccTrack::getLimitCurrent( ) {
-
-    return ( limitCurrentMilliAmp );
-}
-
 uint16_t LcsDccTrack::getActualCurrent( ) {
 
-    return ( digitValueToMilliAmp( actualCurrentDigitValue, digitsPerAmp ));
+    return ( adcDigitsToMilliAmp( actualCurrentDigitValue ));
 }
 
 uint16_t LcsDccTrack::getInitCurrent( ) {
 
     return ( initCurrentMilliAmp );
+}
+
+uint16_t LcsDccTrack::getLimitCurrent( ) {
+
+    return ( limitCurrentMilliAmp );
 }
 
 uint16_t LcsDccTrack::getMaxCurrent( ) {
@@ -1734,7 +1797,7 @@ void LcsDccTrack::setLimitCurrent( uint16_t val ) {
     else if ( val > maxCurrentMilliAmp  )  val = maxCurrentMilliAmp;
 
     limitCurrentMilliAmp    = val;
-    limitCurrentDigitValue  = milliAmpToDigitValue( val, digitsPerAmp );
+    limitCurrentDigitValue  = milliAmpToAdcDigits( val );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1758,39 +1821,44 @@ uint16_t LcsDccTrack::getRMSCurrent( ) {
     for ( uint8_t i = 0; i < PWR_SAMPLE_BUF_SIZE; i++ ) 
         res += pwrSampleBuf[ i ] * pwrSampleBuf[ i ];
 
-    return ( digitValueToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE ), digitsPerAmp ));
+    return ( adcDigitsToMilliAmp( sqrt( res / PWR_SAMPLE_BUF_SIZE )));
 }
 
 //----------------------------------------------------------------------------------------
 // "shortCircuitDetect" is invoked by the signal state machine to check whether
-// the H-Bridge signaled a short circuit. We latch a short circuit event and 
-// let the power management handler deal with the decision.
+// the current consumptions is larger than the maximum current value. The 
+// measurement is invoked on each zero bit transmission. If the event occurred
+// a number of times, we set the short circuit flag.
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::shortCircuitDetect( ) {
 
-    bool stat;
-    uint8_t rStat = readDio( rNumStatus, &stat );
+    uint16_t adcVal;
+    uint8_t rStat = readAdc( rNumSense, &adcVal );
 
-    if ( stat ) flags |= DT_F_POWER_SHORT_CIRCUIT;
+    actualCurrentDigitValue = adcVal;
+
+    if ( actualCurrentDigitValue > maxCurrentDigitValue ) {
+
+        shorCircuitEventCount ++;
+
+        if ( shorCircuitEventCount > shortCircuitEventThreshold )
+            flags |= DT_F_POWER_SHORT_CIRCUIT;
+    } 
 }
 
 //----------------------------------------------------------------------------------------
 // This function is called by the DCC signal state machine to analyze the 
-// H-Bridge power status. It is invoked on the first zero bit transmitted in a
-// DCC data byte. We examine the short circuit detection flag and optional 
+// H-Bridge power consumption. It is invoked on the first zero bit transmitted
+// in a DCC data byte. 
+
+// We examine the short circuit detection flag and optional 
 // perform a power consumption measurement.
 //
 
 // ??? this routine manages the track state and threshold stuff.....
 
-
-// whenever a power measurement operation completes from 
-// the analog conversion interrupt handler. This typically takes place on the first
-// half of the DCC "0" bit. If power measurement is enabled, we increment the number
-// of samples taken, check the measured value for an overload situation and also set
-// the high water mark accordingly. Since we are part of an interrupt handler, keep
-// the amount work really short.
+//
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::powerManagement( ) {
@@ -1807,8 +1875,32 @@ void LcsDccTrack::powerManagement( ) {
         if ( actualCurrentDigitValue > highWaterMarkDigitValue ) 
             highWaterMarkDigitValue = actualCurrentDigitValue;
 
-        if ( actualCurrentDigitValue > limitCurrentDigitValue ) 
-            flags |= DT_F_POWER_OVERLOAD;
+        if ( actualCurrentDigitValue > limitCurrentDigitValue ) {
+
+            overloadEventCount ++;
+
+            if ( overloadEventCount > overloadEventThreshold ) 
+                flags |= DT_F_POWER_OVERLOAD;
+        }
+    }
+
+    if (( flags & DT_F_POWER_SHORT_CIRCUIT ) || 
+        ( flags & DT_F_POWER_OVERLOAD )) {
+
+        // writeDio( rNumEnable, false );
+        // flags &= ~DT_F_POWER_ON;
+        // flags &= ~DT_F_MEASUREMENT_ON;
+
+        // if ( trackTimeStamp == 0 ) { 
+            // trackTimeStamp  = getMillis( );
+        // }
+        // else { 
+                
+            // if timestamp + timeInterval > actual time 
+            // increment restart count 
+            // restart 
+            // clear all counts and flags 
+        // }
     }
 }
 
@@ -1818,20 +1910,21 @@ void LcsDccTrack::powerManagement( ) {
 
 //----------------------------------------------------------------------------------------
 // The DCC decoder programming requires the detection of a current consumption 
-// change. This is the way a DCC decoder signals an acknowledgement. To detect the
-// consumption change we need first an idea what the actual average current baseline
-// consumption of the decoder is. This method will send the required DCC reset 
-// packets according to the DCC standard and at the same time determine the current
-// consumption as a baseline. We use the high water mark for this purpose.
+// change. This is the way a DCC decoder signals an acknowledgement. To detect 
+// the consumption change we need first an idea what the actual average current 
+// baseline consumption of the decoder is. This method will send the required 
+// DCC reset packets according to the DCC standard and at the same time determine 
+// the current consumption as a baseline. We use the high water mark for this 
+// purpose.
 //
-// ??? although the routines for decoder ACK detection work, they will produce quite
-// a number of packets. During this time, other LCS work is blocked. Perhaps we need
-// a kind of state machine approach to cut the long sequence in smaller chunks to 
-// allow other work in between.
+// ??? although the routines for decoder ACK detection work, they will produce 
+// quite a number of packets. During this time, other LCS work is blocked. 
+// Perhaps we need a kind of state machine approach to cut the long sequence 
+// in smaller chunks to allow other work in between.
 //----------------------------------------------------------------------------------------
 uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
-    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+    if ( dccTrackDebugAccDetect( )) {
 
         printf( "\nDecoder Ack setup: ( " );
     }
@@ -1844,7 +1937,7 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
         loadPacket( resetDccPacketData, 2, 0 );
 
-        if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+        if ( dccTrackDebugAccDetect( )) {
        
             printf( "%d ", highWaterMarkDigitValue );
         }
@@ -1852,7 +1945,7 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
         sum += highWaterMarkDigitValue;
     }
 
-    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+    if ( dccTrackDebugAccDetect( )) {
 
         printf( ") -> %d\n", ( sum + resetPacketsToSend - 1 ) / resetPacketsToSend );
     }
@@ -1861,27 +1954,28 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "decoderAckDetect" is the counterpart to the decoder ack setup routine. The setup
-// method established a base line for the power consumption and put the decoder in 
-// CV programming mode by sending the RESET packets. The decoder ACK detect routine
-// now sends out resets packets to follow the programming packets required and
-// monitors the current consumption. We use the high water mark for this purpose. 
-// The DCC standard specifies a time window in which the decoder should raise its 
-// power consumption level and signal an acknowledge this way. We will send out a 
-// series of reset packets and monitor after each packet the consumption level. The
-// number of retries depends on whether it is a read ( 50ms window ) or a write 
-// ( 100ms window ). If we detect a raised value the decoder did signal a positive
-// outcome. If not, we time out after the last reset packet. The programming operation
-// either failed or the decoder did on purpose not answer. We cannot tell.
+// "decoderAckDetect" is the counterpart to the decoder ack setup routine. The 
+// setup method established a base line for the power consumption and put the 
+// decoder in CV programming mode by sending the RESET packets. The decoder ACK 
+// detect routine now sends out resets packets to follow the programming packets
+// required and monitors the current consumption. We use the high water mark for 
+// this purpose. The DCC standard specifies a time window in which the decoder 
+// should raise its power consumption level and signal an acknowledge this way. 
+// We will send out a series of reset packets and monitor after each packet the
+// consumption level. The number of retries depends on whether it is a read 
+// ( 50ms window ) or a write ( 100ms window ). If we detect a raised value the 
+// decoder did signal a positive outcome. If not, we time out after the last 
+// reset packet. The programming operation either failed or the decoder did on 
+// purpose not answer. We cannot tell.
 //
 // ??? although the routines for decoder ACK detection work, they will produce 
-// quite a number of packets. During this time, other LCS work is blocked. Perhaps
-// we need a kind of state machine approach to cut the long sequence in smaller 
-// chunks to allow other work in between.
+// quite a number of packets. During this time, other LCS work is blocked. 
+// Perhaps we need a kind of state machine approach to cut the long sequence 
+// in smaller chunks to allow other work in between.
 //----------------------------------------------------------------------------------------
 bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) {
 
-    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+    if ( dccTrackDebugAccDetect( )) {
 
         printf( "Decoder Ack detect: ( %d : %d : ( ", 
                 baseDigitValue, ackThresholdDigitValue );
@@ -1890,11 +1984,9 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
     for ( uint8_t i = 0; i < retries; i++ ) {
 
         highWaterMarkDigitValue = 0;
-
         loadPacket( resetDccPacketData, 2, 0 );
 
-        if (( debugMask & DBG_BS_CONFIG ) && 
-            ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+        if ( dccTrackDebugAccDetect( )) {
 
             printf( "%d ", highWaterMarkDigitValue );
         }
@@ -1902,22 +1994,17 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
         if (( highWaterMarkDigitValue >= baseDigitValue ) &&
             ( highWaterMarkDigitValue - baseDigitValue >= ackThresholdDigitValue )) {
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
+            if ( dccTrackDebugAccDetect( )) {
 
                 printf( "[ %d ] ) -> OK\n", 
                         abs( highWaterMarkDigitValue - baseDigitValue ));
             }
 
-        return ( true );
+            return ( true );
         }
     }
 
-    if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_DCC_ACK_DETECT )) {
-
-        printf( ") -> FAILED" );
-    }
-
+    if ( dccTrackDebugAccDetect( )) printf( ") -> FAILED" );
     return ( false );
 }
 
@@ -1962,26 +2049,34 @@ void LcsDccTrack::loadPacket( const uint8_t *packet,
 }
 
 //----------------------------------------------------------------------------------------
-// The log management routines. A typical transaction to log would start the logging
-// process and then end it after the operation to analyze/debug. The "enableLog" call
-// should be used to enable the logging process all together, the other calls will 
-// only do work when the log is enabled. With this call the recording process could 
-// be controlled from a command line setting or so. "beginLog" and "endLog" start 
-// and end a recording sequence.
+// The log management routines. A typical transaction to log would start the 
+// logging process and then end it after the operation to analyze/debug. The 
+// "enableLog" call should be used to enable the logging process all together, 
+// the other calls will only do work when the log is enabled. With this call 
+// the recording process could be controlled from a command line setting or so.
+// "beginLog" and "endLog" start and end a recording sequence.
 //
 //----------------------------------------------------------------------------------------
-void LcsDccTrack::enableLog( bool arg ) {
+void LcsDccTrack::enableLog( bool enable ) {
 
-    logEnabled = arg;
-    logActive  = false;
+    if ( enable ) {
+
+        flags |= DT_F_LOG_ENABLED;
+        flags &= ~ DT_F_LOG_ACTIVE;
+    }
+    else {
+
+        flags &= ~ DT_F_LOG_ENABLED;
+        flags &= ~ DT_F_LOG_ACTIVE;
+    } 
 }
 
 void LcsDccTrack::beginLog( ) {
 
-    if ( logEnabled ) {
+    if ( flags & DT_F_LOG_ENABLED ) {
 
-        logActive   = true;
-        logBufIndex = 0;
+        flags |= DT_F_LOG_ACTIVE;
+        logBufOfs = 0;
         writeLogId( LOG_BEGIN );
         writeLogTs( );
     }
@@ -1989,96 +2084,139 @@ void LcsDccTrack::beginLog( ) {
 
 void LcsDccTrack::endLog( ) {
 
-    if ( logActive ) {
+    if ( flags & DT_F_LOG_ACTIVE ) {
 
         writeLogTs( );
         writeLogId( LOG_END );
-        logActive = false;
+        flags &= ~ DT_F_LOG_ACTIVE;
     }
 }
 
 //----------------------------------------------------------------------------------------
-// There are a couple of routines to write the log data when the logging is active.
-// For convenience, some of the log entry types are available as a direct call. 
+// There are a couple of routines to write the log data when the logging is active. 
 // The order of data entry for numeric types is big endian, i.e. most significant
 // byte first.
 //
-// ??? put logActive, logEnabled in flags ?
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
 
-    if ( logActive ) {
+    if ( flags & DT_F_LOG_ACTIVE ) {
 
         len = len % 16;
-        if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+        if ( logBufOfs + len + 1 < LOG_BUF_SIZE ) {
 
-            logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
-            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+            logBuf[ logBufOfs ++ ] = ( id << 4 ) | len;
+            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufOfs ++ ] = buf[ i ];
         }
     }
 }
 
 void LcsDccTrack::writeLogId( uint8_t id ) {
 
-    if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 );
+    if ( flags & DT_F_LOG_ACTIVE ) logBuf[ logBufOfs ++ ] = ( id << 4 );
 }
 
 void LcsDccTrack::writeLogTs( ) {
 
-    if ( logActive ) {
+    if ( flags & DT_F_LOG_ACTIVE ) {
 
-        uint32_t ts = CDC::getMicros( );
-        logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
-        logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+        uint32_t ts = getMicros( );
+        logBuf[ logBufOfs ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+        logBuf[ logBufOfs ++ ] = ( ts >> 24 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 16 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 8  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 0  ) & 0xFF;
     }
 }
 
 void LcsDccTrack::writeLogVal( uint8_t valId, uint16_t val ) {
 
-    if ( logActive ) {
+    if ( flags & DT_F_LOG_ACTIVE ) {
 
-        logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
-        logBuf[ logBufIndex ++ ] = valId;
-        logBuf[ logBufIndex ++ ] = val >> 8;
-        logBuf[ logBufIndex ++ ] = val & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_VAL << 4 ) | 3;
+        logBuf[ logBufOfs ++ ] = valId;
+        logBuf[ logBufOfs ++ ] = val >> 8;
+        logBuf[ logBufOfs ++ ] = val & 0xFF;
     }
 }
 
 //----------------------------------------------------------------------------------------
-// Print out the log data, one entry on one line. We only print the log buffer when
-// there is no log sequence active.
+// There are a couple of routines to print out the log data.
 //
 //----------------------------------------------------------------------------------------
+void LcsDccTrack::printLogTimeStamp( uint16_t ofs ) {
+
+    uint32_t ts = logBuf[ ofs ];
+    ts = ( ts << 8 ) | logBuf[ ofs + 1 ];
+    ts = ( ts << 8 ) | logBuf[ ofs + 2 ];
+    ts = ( ts << 8 ) | logBuf[ ofs + 3 ];
+    printf( "0x%x", ts );
+}
+
+void LcsDccTrack::printLogVal( uint16_t ofs ) {
+
+    uint16_t val = logBuf[ ofs ] << 8 | logBuf[ ofs + 1 ];
+    printf( "0x%04x", val );
+}
+
+void LcsDccTrack::printLogData( uint16_t ofs, uint8_t len ) {
+
+    for ( int i = 0; i < len; i++ ) printf( "0x%02x ", logBuf[ ofs + i ] );
+}
+
+uint8_t LcsDccTrack::printLogEntry( uint16_t ofs ) {
+
+    if ( ofs < LOG_BUF_SIZE ) {
+
+        uint8_t logEntryId  = logBuf[ ofs ] >> 4;
+        uint8_t logEntryLen = logBuf[ ofs ] & 0x0F;
+
+        switch ( logEntryId ) {
+
+            case LOG_NIL:      printf( "NIL        " ); break;
+            case LOG_BEGIN:    printf( "BEGIN      " ); break;
+            case LOG_END:      printf( "END        " ); break;
+            case LOG_TSTAMP:   printf( "TSTAMP     " ); break;
+            case LOG_DCC_IDL:  printf( "DCC_IDLE   " ); break;
+            case LOG_DCC_RST:  printf( "DCC_RESET  " ); break;
+            case LOG_DCC_PKT:  printf( "DCC_PKT    " ); break;
+            case LOG_DCC_RCM:  printf( "DCC_RCOM   " ); break;
+            case LOG_VAL:      printf( "VAL        " ); break;
+            default:           printf( "INVALID ( 0x%02 )", logBuf[ ofs ] >> 4 );
+        }
+
+        if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( ofs + 1 );
+        else if ( logEntryId == LOG_VAL     )  printLogVal( ofs + 1 );
+        else                                   printLogData( ofs + 1, logEntryLen );
+
+        return ( logEntryLen + 1 );
+    }
+    else return ( 0 );
+}
+
 void LcsDccTrack::printLog( ) {
 
-    if ( logEnabled ) {
+    if (( flags & DT_F_LOG_ENABLED ) && ( ! ( flags & DT_F_LOG_ACTIVE ))) {
 
-        if ( ! logActive ) {
+        if ( logBufOfs > 0 ) {
 
-            if ( logBufIndex > 0 ) {
+            printf( "\n" );
 
+            uint16_t entryIndex  = 0;
+            uint8_t  entryLen    = 0;
+
+            while ( entryIndex < logBufOfs ) {
+
+                entryLen = printLogEntry( entryIndex );
                 printf( "\n" );
 
-                uint16_t entryIndex  = 0;
-                uint8_t  entryLen    = 0;
-
-                while ( entryIndex < logBufIndex ) {
-
-                    entryLen = printLogEntry( entryIndex );
-                    printf( "\n" );
-
-                    if ( entryLen > 0 ) entryIndex += entryLen;
-                    else                break;
-                }
+                if ( entryLen > 0 ) entryIndex += entryLen;
+                else                break;
             }
-            else printf( "DCC Log Buf: Nothing recorded\n" );
         }
-        else printf( "DCC Log Active\n" );
+        else printf( "DCC Log Buf: Nothing recorded\n" );
     }
-    else printf( "DCC Log disabled\n" );
+    else printf( "DCC Log disabled or active\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -2101,8 +2239,7 @@ void LcsDccTrack::printDccTrackConfig( ) {
 
     printf( " Current Initial(mA): %d Current Limit(mA): %d Current Max(mA): %d\n",
             getInitCurrent( ), getLimitCurrent( ), getMaxCurrent( ));
-    printf( " milliVoltPerAmp: %d\n", milliVoltPerAmp ); 
-    printf( " digitsPerAmp: %d\n", digitsPerAmp );
+    
 
     printf( " Limit Digit Value: %d\n", limitCurrentDigitValue );
     printf( " Ack Threshold Digit Value:%d\n", ackThresholdDigitValue );
