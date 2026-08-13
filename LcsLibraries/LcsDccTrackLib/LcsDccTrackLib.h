@@ -37,34 +37,23 @@ using namespace CDC;
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// The base station maintains a set of debug flags. The overall concept is very 
-// similar to the LCS runtime library debug mask. Then following debug flags are 
-// defined:
+// The DCC Track library maintains a set of debug flags. The following debug 
+// flags are defined:
 //
-//      DBG_BS_CONFIG                   -   DEBUG base station enabled
-//      DBG_BS_SESSION                  -   show the session management actions
-//      DBG_BS_LCS_MSG_INTERFACE        -   show the incoming LCS messages
-//      DBG_BS_TRACK_POWER_MGMT         -   show the track power measurement data
-//      DBG_BS_DCC_ACK_DETECT           -   display decoder ACK power measurements
-//      DBG_BS_CHECK_ALIVE_SESSIONS     -   display check for inactive sessions
-//      DBG_BS_RAILCOM                  -   show the RailCom activity
+//  DBG_DCC_TRACK_ENABLED         - DEBUG messages enabled.
+//  DBG_DCC_TRACK_CONFIG          - debug DCC track configuration
+//  DBG_DCC_TRACK_POWER_MGMT      - debug power management 
+//  DBG_DCC_TRACK_DCC_ACK_DETECT  - debug display decoder ACK     
+//  DBG_DCC_TRACK_RAILCOM         - debug RailCom function.
 //
-// The way to use these flags is for example:
-//
-//      if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_SESSION )) 
-//
-// ??? should have a command to set the debug mask on the fly...
 //----------------------------------------------------------------------------------------
-enum BaseStationDebugFlags : uint16_t {
+enum DccTrackDebugFlags : uint16_t {
 
-    DBG_BS_CONFIG                  = 1 << 15,   
-
-    DBG_BS_SESSION                 = 1 << 0,    
-    DBG_BS_LCS_MSG_INTERFACE       = 1 << 1,    
-    DBG_BS_TRACK_POWER_MGMT        = 1 << 2,        
-    DBG_BS_DCC_ACK_DETECT          = 1 << 3,        
-    DBG_BS_CHECK_ALIVE_SESSIONS    = 1 << 4,        
-    DBG_BS_RAILCOM                 = 1 << 5   
+    DBG_DCC_TRACK_ENABLED          = 1 << 15,
+    DBG_DCC_TRACK_CONFIG           = 1 << 0,   
+    DBG_DCC_TRACK_POWER_MGMT       = 1 << 1, 
+    DBG_DCC_TRACK_DCC_ACK_DETECT   = 1 << 2,     
+    DBG_DCC_TRACK_RAILCOM          = 1 << 3   
 };
 
 //----------------------------------------------------------------------------------------
@@ -74,7 +63,7 @@ enum BaseStationDebugFlags : uint16_t {
 //
 // ??? better way ?
 //----------------------------------------------------------------------------------------
-enum BaseStationErrors : uint8_t {
+enum DccTrackErrors : uint8_t {
 
     BASE_STATION_ERR_BASE             = ERR_USER_SPECIFIC_BASE,
     ERR_DCC_TRACK_CONFIG              = BASE_STATION_ERR_BASE + 11,
@@ -100,19 +89,9 @@ struct DccPacket {
 };
 
 //----------------------------------------------------------------------------------------
-// DCC packet payload data definitions we need often, so these constants come in 
-// handy.
-//
-//----------------------------------------------------------------------------------------
-const uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
-const uint8_t   resetDccPacketData[ ]   = { 0x00, 0x00 };
-const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
-
-//----------------------------------------------------------------------------------------
 // Setup options to set for the DCC track. They are set when the track object is
 // created.
 //
-// 
 //  DT_OPT_SERVICE_MODE_TRACK  - The track is a DCC PROG track, else a MAIN track.
 //  DT_OPT_CUTOUT              - The track is configured to emit a cutout.
 //  DT_OPT_RAILCOM             - The track support Railcom detection.
@@ -130,40 +109,31 @@ enum DccTrackOptions : uint16_t {
 // The DCC track object has a set of flags to indicate its current status.
 //
 //  DT_F_POWER_ON             - The track is under power.
-//  DT_F_POWER_OVERLOAD       - An overload situation was detected.
 //  DT_F_POWER_SHORT_CIRCUIT  - The H-Bridge signaled a short circuit condition. 
-//  DT_F_MEASUREMENT_ON       - The power measurement is enabled.
-//  DT_F_SERVICE_MODE_ON      - The track is currently in service mode, uses Ack Detect.
+//  DT_F_POWER_OVERLOAD       - An overload situation was detected.
 //  DT_F_CUTOUT_MODE_ON       - The track has the cutout generation enabled.
 //  DT_F_RAILCOM_MODE_ON      - The track has the railcom detect enabled.
 //  DT_F_RAILCOM_MSG_PENDING  - A Railcom received datagram is indicated.
+//  DT_F_LOG_ENABLED          - Internal log facility is enabled.
+//  DT_F_LOG_ACTIVE           - Internal log facility is active.
 //  DT_F_CONFIG_ERROR         - The configuration descriptor has invalid options.
 //
 //----------------------------------------------------------------------------------------
 enum DccTrackFlags : uint16_t {
 
-    DT_F_DEFAULT_SETTING      = 0,
-    DT_F_POWER_ON             = 1 << 0,
-    DT_F_POWER_OVERLOAD       = 1 << 1,
-    DT_F_POWER_SHORT_CIRCUIT  = 1 << 2,
-    DT_F_MEASUREMENT_ON       = 1 << 3,
-    DT_F_SERVICE_MODE_ON      = 1 << 4,
-    DT_F_CUTOUT_MODE_ON       = 1 << 5,
-    DT_F_RAILCOM_MODE_ON      = 1 << 6,
-    DT_F_DCC_PACKET_PENDING   = 1 << 7,
-    DT_F_RAILCOM_MSG_PENDING  = 1 << 8,
-    DT_F_CONFIG_ERROR         = 1 << 15
+    DT_F_NIL                    = 0,
+    DT_F_POWER_ON               = 1 << 0,
+    DT_F_POWER_SAMPLE_PENDING   = 1 << 1,
+    DT_F_POWER_OVERLOAD         = 1 << 2,
+    DT_F_SERVICE_MODE_ON        = 1 << 4,
+    DT_F_CUTOUT_MODE_ON         = 1 << 5,
+    DT_F_RAILCOM_MODE_ON        = 1 << 6,
+    DT_F_DCC_PACKET_PENDING     = 1 << 7,
+    DT_F_RAILCOM_MSG_PENDING    = 1 << 8,
+    DT_F_LOG_ENABLED            = 1 << 9,
+    DT_F_LOG_ACTIVE             = 1 << 10,
+    DT_F_CONFIG_ERROR           = 1 << 15
 };
-
-//----------------------------------------------------------------------------------------
-// The following constants are for the current consumption RMS measurement. The 
-// idea is to record the measured ADC values in a circular buffer, every time a 
-// certain amount of milliseconds has passed. This work is done by the DCC track 
-// state machine as part of the power on state.
-//
-//----------------------------------------------------------------------------------------
-const uint8_t   PWR_SAMPLE_BUF_SIZE             = 64;
-const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS = 16;
 
 //----------------------------------------------------------------------------------------
 // The RailCom buffer size. During the cutout period up to eight bytes of raw data
@@ -172,13 +142,9 @@ const uint32_t  PWR_SAMPLE_TIME_INTERVAL_MILLIS = 16;
 //----------------------------------------------------------------------------------------
 const uint8_t   RAILCOM_BUF_SIZE = 8;
 
+//----------------------------------------------------------------------------------------
+const uint16_t  LOG_BUF_SIZE            = 8192;
 
-//----------------------------------------------------------------------------------------
-// Timeout intervals for various base station tasks. Measured in milliseconds.
-//
-//----------------------------------------------------------------------------------------
-const uint32_t  MAIN_TRACK_STATE_TIME_INTERVAL  = 10;
-const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
 
 //----------------------------------------------------------------------------------------
 // For creating the DCC track object, the track is described by the data structure 
@@ -192,6 +158,8 @@ const uint32_t  PROG_TRACK_STATE_TIME_INTERVAL  = 10;
 // value is measured in milliVolt per Ampere drawn. Finally, there are threshold 
 // times for managing the track overload and restart capability.
 //
+//
+// ??? think about a dual descriptor layout ....
 //----------------------------------------------------------------------------------------
 struct LcsBaseStationTrackDesc {
 
@@ -199,7 +167,6 @@ struct LcsBaseStationTrackDesc {
 
     uint8_t     rNumTimer                       = 0;
     uint8_t     rNumEnable                      = 0;
-    uint8_t     rNumStatus                      = 0;
     uint8_t     rNumControl                     = 0;
     uint8_t     rNumSense                       = 0;
     uint8_t     rNumUartRx                      = 0;
@@ -207,7 +174,6 @@ struct LcsBaseStationTrackDesc {
     uint16_t    initCurrentMilliAmp             = 0;
     uint16_t    limitCurrentMilliAmp            = 0;
     uint16_t    maxCurrentMilliAmp              = 0;
-    uint16_t    milliVoltPerAmp                 = 0;
 
     uint16_t    startTimeThresholdMillis        = 0;
     uint16_t    stopTimeThresholdMillis         = 0;
@@ -225,26 +191,24 @@ struct LcsBaseStationTrackDesc {
 // separated with a ZERO bit, followed by the checksum byte. The DCC track object
 // builds the packet bit stream from the DCC packet data structure and then sends
 // it to the track. Sending the bit stream is done with a state machine that is
-// invoked every 29 microseconds via a hardware timer interrupt. This state machine
-// creates the actual DCC signal on the track output pin.
+// invoked every 29 microseconds via a hardware timer interrupt. It creates the
+// actual DCC signal on the track output pins.
 //
-// The DCC track object also manages the repeated sending of DCC packets. When a
-// packet is loaded into the DCC track object, it can be specified how often the 
-// packet is to be repeated. The DCC track object will then take care of sending
-// the packet the specified number of times.
-//
-// The DCC signal state machine finally invokes follow up actions that measure the 
-// actual power consumption, read in a railcom message and so on. There is also 
-// a DCC log facility which records internal events for testing and debugging. 
-// 
-// The other state machine will manage the actual track power. This state machine 
-// is responsible for the periodic checking of power consumption and resulting power 
-// control. In contrast to the DCC signal state machine, this machine is not driven
-// by a periodic interrupt but invoked periodically via the LCS runtime task manager.
+// After the generating the track signals, it invokes follow up actions that 
+// fetch the next DCC bit or packet, measure the actual power consumption, read
+// in a railcom message and so on. Internal events are recorded for testing and 
+// debugging in an internal log.
 //
 // For a base station, there will be two track objects. One is the MAIN track and 
 // the other one is the PROG track. Each track has a DCC track object associated 
-// with it. In addition to the two track objects, there are class level static 
+// with it. 
+
+
+// ??? text ....
+
+
+
+// In addition to the two track objects, there are class level static 
 // routines to manage the timer hardware functions, the analog signal read for 
 // current measurement and the serial IO for optional RailCom message processing. 
 //
@@ -267,7 +231,6 @@ struct LcsDccTrack {
     void                powerEnable( bool enable );
     bool                isPowerOn( );
     bool                isPowerOverload( );
-    bool                isPowerShortCircuit( );
 
     void                serviceModeEnable( bool enable );
     bool                isServiceModeOn( ); 
@@ -292,11 +255,9 @@ struct LcsDccTrack {
                             volatile uint8_t *timeToInterrupt, 
                             uint8_t *followUpAction 
                         );
-    void                runDccTrackStateMachine( );
 
     void                getNextBit( );
     void                getNextPacket( );
-    void                shortCircuitDetect( );
     void                powerManagement( );
 
     void                startRailComIO( );
@@ -305,9 +266,7 @@ struct LcsDccTrack {
     uint8_t             getRailComMsg( uint8_t *buf, uint8_t bufLen );
 
     uint32_t            getDccPacketsSend( );
-    uint32_t            getPwrSamplesTaken( );
-    uint16_t            getPwrSamplesPerSec( );
-
+  
     void                printDccTrackConfig( );
     void                printDccTrackStatus( );
 
@@ -315,26 +274,26 @@ struct LcsDccTrack {
     void                beginLog( );
     void                endLog( );
     void                printLog( );
+    uint8_t             printLogEntry( uint16_t ofs );
+    void                printLogTimeStamp( uint16_t ofs );
+    void                printLogVal( uint16_t ofs );
+    void                printLogData( uint16_t ofs, uint8_t len );
 
     void                writeLogData( uint8_t id, uint8_t *buf, uint8_t len );
     void                writeLogId( uint8_t id );
     void                writeLogTs( );
     void                writeLogVal( uint8_t valId, uint16_t val );
+   
 
     private:
 
     uint16_t            options                         = DT_OPT_DEFAULT_SETTING;
-    volatile uint16_t   flags                           = DT_F_DEFAULT_SETTING;
+    volatile uint16_t   flags                           = DT_F_NIL;
 
     volatile uint8_t    trackState                      = 0;
     volatile uint8_t    signalState                     = 0;
 
-    volatile uint32_t   trackTimeStamp                  = 0;
-    volatile uint8_t    overloadEventCount              = 0;
-    volatile uint8_t    overloadRestartCount            = 0;
-
     uint8_t             rNumEnable                      = 0;
-    uint8_t             rNumStatus                      = 0;
     uint8_t             rNumControl                     = 0;
     uint8_t             rNumSense                       = 0;
     uint8_t             rNumUartRx                      = 0;
@@ -342,27 +301,22 @@ struct LcsDccTrack {
     uint16_t            initCurrentMilliAmp             = 0;
     uint16_t            limitCurrentMilliAmp            = 0;
     uint16_t            maxCurrentMilliAmp              = 0;
-
-    uint16_t            startTimeThreshold              = 0;
-    uint16_t            stopTimeThreshold               = 0;
-    uint16_t            overloadTimeThreshold           = 0;
-    uint16_t            overloadEventThreshold          = 0;
-    uint16_t            overloadRestartThreshold        = 0;
-
-    uint16_t            milliVoltPerAmp                 = 0;
-    uint16_t            digitsPerAmp                    = 0;
+   
     volatile uint16_t   actualCurrentDigitValue         = 0;
     volatile uint16_t   highWaterMarkDigitValue         = 0;
     volatile uint16_t   limitCurrentDigitValue          = 0;
+
+    volatile uint16_t   overloadEventCount              = 0;
+    volatile uint16_t   overloadEventThreshold          = 0;
     uint16_t            ackThresholdDigitValue          = 0;
 
-    uint32_t            totalPwrSamplesTaken            = 0;
-    uint32_t            lastPwrSampleTimeStamp          = 0;
-
-    uint32_t            lastPwrSamplePerSecTaken        = 0;
-    uint32_t            lastPwrSamplePerSecTimeStamp    = 0;
-    uint32_t            pwrSamplesPerSec                = 0;
-
+    volatile uint16_t   sampleIntervalSize              = 0;
+    volatile uint16_t   sampleIntervalCount             = 0;
+                      
+    volatile uint64_t   sampleSum                       = 0; 
+    volatile uint32_t   sampleCount                     = 0;
+    volatile uint32_t   sampleSize                      = 0;
+   
     uint8_t             preambleLen                     = 0;
     uint8_t             postambleLen                    = 0;
     volatile bool       currentBit                      = false;
@@ -377,6 +331,9 @@ struct LcsDccTrack {
     DccPacket           *activeBufPtr                   = nullptr;
     DccPacket           *pendingBufPtr                  = nullptr;
 
+    uint16_t            logBufOfs               = 0;
+    uint8_t             logBuf[ LOG_BUF_SIZE ]  = { 0 };
+
     // ??? add base station capabilities according to RCN200 - 4 16 bit words
     // sample values per second for samples and dcc packets
     // ??? add buffers for POM / XPOM data
@@ -385,12 +342,10 @@ struct LcsDccTrack {
     uint8_t             railComBufIndex                     = 0;
     uint8_t             railComMsgBuf[ RAILCOM_BUF_SIZE ]   = { 0 };
 
-    uint8_t             pwrSampleBufIndex                    = 0;
-    uint16_t            pwrSampleBuf[ PWR_SAMPLE_BUF_SIZE ]  = { 0 };
-
-
-
     public:
 
+    static void         setup( );
+    LcsDccTrack         *getTrackA( );
+    LcsDccTrack         *getTrackB( );
     static void         startDccProcessing( );
 };

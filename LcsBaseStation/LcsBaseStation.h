@@ -144,7 +144,7 @@ enum DccTrackOptions : uint16_t {
 //----------------------------------------------------------------------------------------
 enum DccTrackFlags : uint16_t {
 
-    DT_F_DEFAULT_SETTING      = 0,
+    DT_F_NIL      = 0,
     DT_F_POWER_ON             = 1 << 0,
     DT_F_POWER_OVERLOAD       = 1 << 1,
     DT_F_MEASUREMENT_ON       = 1 << 2,
@@ -427,7 +427,7 @@ struct LcsDccTrack {
     private:
 
     uint16_t            options                         = DT_OPT_DEFAULT_SETTING;
-    volatile uint16_t   flags                           = DT_F_DEFAULT_SETTING;
+    volatile uint16_t   flags                           = DT_F_NIL;
 
     volatile uint8_t    trackState                      = 0;
     volatile uint8_t    signalState                     = 0;
@@ -675,7 +675,7 @@ struct LcsBaseStationLocoSession {
     LcsDccTrack    *progTrack              = nullptr;
 
     uint16_t                  options                 = DT_OPT_DEFAULT_SETTING;
-    uint16_t                  flags                   = DT_F_DEFAULT_SETTING;
+    uint16_t                  flags                   = DT_F_NIL;
     uint32_t                  lastAliveCheckTime      = 0L;
     uint32_t                  refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;
 

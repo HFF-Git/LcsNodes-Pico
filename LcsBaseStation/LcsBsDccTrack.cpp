@@ -279,7 +279,7 @@ const uint16_t  LOG_BUF_SIZE            = 8192;
 
 bool            logEnabled              = false;
 bool            logActive               = false;
-uint16_t        logBufIndex             = 0;
+uint16_t        logBufOfs             = 0;
 uint8_t         logBuf[ LOG_BUF_SIZE ]  = { 0 };
 
 //----------------------------------------------------------------------------------------
@@ -691,17 +691,17 @@ void writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
     if ( logActive ) {
 
         len = len % 16;
-        if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+        if ( logBufOfs + len + 1 < LOG_BUF_SIZE ) {
 
-            logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
-            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+            logBuf[ logBufOfs ++ ] = ( id << 4 ) | len;
+            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufOfs ++ ] = buf[ i ];
         }
     }
 }
 
 void writeLogId( uint8_t id ) {
 
-    if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 ) | 1;
+    if ( logActive ) logBuf[ logBufOfs ++ ] = ( id << 4 ) | 1;
 }
 
 void writeLogTs( ) {
@@ -709,11 +709,11 @@ void writeLogTs( ) {
     if ( logActive ) {
 
         uint32_t ts = CDC::getMicros( );
-        logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
-        logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+        logBuf[ logBufOfs ++ ] = ( ts >> 24 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 16 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 8  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 0  ) & 0xFF;
     }
 }
 
@@ -721,10 +721,10 @@ void writeLogVal( uint8_t valId, uint16_t val ) {
 
     if ( logActive ) {
 
-        logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
-        logBuf[ logBufIndex ++ ] = valId;
-        logBuf[ logBufIndex ++ ] = val >> 8;
-        logBuf[ logBufIndex ++ ] = val & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_VAL << 4 ) | 3;
+        logBuf[ logBufOfs ++ ] = valId;
+        logBuf[ logBufOfs ++ ] = val >> 8;
+        logBuf[ logBufOfs ++ ] = val & 0xFF;
     }
 }
 
@@ -747,7 +747,7 @@ void beginLog( ) {
     if ( logEnabled ) {
 
         logActive   = true;
-        logBufIndex = 0;
+        logBufOfs = 0;
         writeLogId( LOG_BEGIN );
         writeLogTs( );
     }
@@ -773,14 +773,14 @@ void printLog( ) {
 
         if ( ! logActive ) {
 
-            if ( logBufIndex > 0 ) {
+            if ( logBufOfs > 0 ) {
 
                 printf( "\n" );
 
                 uint16_t entryIndex  = 0;
                 uint8_t  entryLen    = 0;
 
-                while ( entryIndex < logBufIndex ) {
+                while ( entryIndex < logBufOfs ) {
 
                     entryLen = printLogEntry( entryIndex );
                     printf( "\n" );
@@ -879,7 +879,7 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
 
     signalState               = DCC_SIG_START_BIT;
     trackState                = DCC_TRACK_POWER_OFF;
-    flags                     = DT_F_DEFAULT_SETTING;
+    flags                     = DT_F_NIL;
     options                   = tDesc -> options;
     rNumEnable                = tDesc -> rNumEnable;
     rNumControl               = tDesc -> rNumControl;
@@ -1910,7 +1910,7 @@ void LcsDccTrack::beginLog( ) {
     if ( logEnabled ) {
 
         logActive   = true;
-        logBufIndex = 0;
+        logBufOfs = 0;
         writeLogId( LOG_BEGIN );
         writeLogTs( );
     }
@@ -1938,17 +1938,17 @@ void LcsDccTrack::writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
     if ( logActive ) {
 
         len = len % 16;
-        if ( logBufIndex + len + 1 < LOG_BUF_SIZE ) {
+        if ( logBufOfs + len + 1 < LOG_BUF_SIZE ) {
 
-            logBuf[ logBufIndex ++ ] = ( id << 4 ) | len;
-            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufIndex ++ ] = buf[ i ];
+            logBuf[ logBufOfs ++ ] = ( id << 4 ) | len;
+            for ( uint8_t i = 0; i < len; i++ ) logBuf[ logBufOfs ++ ] = buf[ i ];
         }
     }
 }
 
 void LcsDccTrack::writeLogId( uint8_t id ) {
 
-    if ( logActive ) logBuf[ logBufIndex ++ ] = ( id << 4 );
+    if ( logActive ) logBuf[ logBufOfs ++ ] = ( id << 4 );
 }
 
 void LcsDccTrack::writeLogTs( ) {
@@ -1956,11 +1956,11 @@ void LcsDccTrack::writeLogTs( ) {
     if ( logActive ) {
 
         uint32_t ts = CDC::getMicros( );
-        logBuf[ logBufIndex ++ ] = ( LOG_TSTAMP << 4 ) | 4;
-        logBuf[ logBufIndex ++ ] = ( ts >> 24 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 16 ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 8  ) & 0xFF;
-        logBuf[ logBufIndex ++ ] = ( ts >> 0  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_TSTAMP << 4 ) | 4;
+        logBuf[ logBufOfs ++ ] = ( ts >> 24 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 16 ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 8  ) & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( ts >> 0  ) & 0xFF;
     }
 }
 
@@ -1968,10 +1968,10 @@ void LcsDccTrack::writeLogVal( uint8_t valId, uint16_t val ) {
 
     if ( logActive ) {
 
-        logBuf[ logBufIndex ++ ] = ( LOG_VAL << 4 ) | 3;
-        logBuf[ logBufIndex ++ ] = valId;
-        logBuf[ logBufIndex ++ ] = val >> 8;
-        logBuf[ logBufIndex ++ ] = val & 0xFF;
+        logBuf[ logBufOfs ++ ] = ( LOG_VAL << 4 ) | 3;
+        logBuf[ logBufOfs ++ ] = valId;
+        logBuf[ logBufOfs ++ ] = val >> 8;
+        logBuf[ logBufOfs ++ ] = val & 0xFF;
     }
 }
 
@@ -1986,14 +1986,14 @@ void LcsDccTrack::printLog( ) {
 
         if ( ! logActive ) {
 
-            if ( logBufIndex > 0 ) {
+            if ( logBufOfs > 0 ) {
 
                 printf( "\n" );
 
                 uint16_t entryIndex  = 0;
                 uint8_t  entryLen    = 0;
 
-                while ( entryIndex < logBufIndex ) {
+                while ( entryIndex < logBufOfs ) {
 
                     entryLen = printLogEntry( entryIndex );
                     printf( "\n" );

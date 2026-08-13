@@ -295,7 +295,7 @@ struct LcsLocoSessions {
     private:
 
     uint16_t            options                 = DT_OPT_DEFAULT_SETTING;
-    uint16_t            flags                   = DT_F_DEFAULT_SETTING;
+    uint16_t            flags                   = DT_F_NIL;
     uint32_t            lastAliveCheckTime      = 0L;
     uint32_t            refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;
 
