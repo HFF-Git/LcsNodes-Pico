@@ -58,16 +58,15 @@ enum DccTrackDebugFlags : uint16_t {
 
 //----------------------------------------------------------------------------------------
 // Base station errors. Note that they need to be in the assigned to the user 
-// number range of errors defined in the LCS runtime library. The first 128 error 
-// codes are reserved for the LCS library.
+// number range of errors defined in the LCS runtime library. 
 //
 // ??? better way ?
 //----------------------------------------------------------------------------------------
 enum DccTrackErrors : uint8_t {
 
-    BASE_STATION_ERR_BASE             = ERR_USER_SPECIFIC_BASE,
-    ERR_DCC_TRACK_CONFIG              = BASE_STATION_ERR_BASE + 11,
-    ERR_DCC_PIN_CONFIG                = BASE_STATION_ERR_BASE + 12,
+    ERR_DCC_TRACK_ERR_BASE            = ERR_USER_SPECIFIC_BASE,
+    ERR_DCC_TRACK_CONFIG              = ERR_DCC_TRACK_ERR_BASE + 1,
+    ERR_DCC_PIN_CONFIG                = ERR_DCC_TRACK_ERR_BASE + 2,
 };
 
 //----------------------------------------------------------------------------------------
@@ -99,7 +98,7 @@ struct DccPacket {
 //----------------------------------------------------------------------------------------
 enum DccTrackOptions : uint16_t {
 
-    DT_OPT_DEFAULT_SETTING      = 0,
+    DT_OPT_NIL      = 0,
     DT_OPT_SERVICE_MODE_TRACK   = 1 << 1,
     DT_OPT_CUTOUT               = 1 << 2,
     DT_OPT_RAILCOM              = 1 << 3
@@ -136,50 +135,31 @@ enum DccTrackFlags : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The RailCom buffer size. During the cutout period up to eight bytes of raw data
-// are sent by the decoder if the Railcom option is enabled.
+// For creating the DCC track objects, the tracks are described by the data 
+// structure below. In addition to the hardware resources, there are the limits
+// for current consumption values, all specified in milliAmps. Mostly, the 
+// hardware is described by this structure.
 //
 //----------------------------------------------------------------------------------------
-const uint8_t   RAILCOM_BUF_SIZE = 8;
+struct LcsDccTrackDesc {
 
-//----------------------------------------------------------------------------------------
-const uint16_t  LOG_BUF_SIZE            = 8192;
+    uint16_t    options;      
 
+    uint8_t     rNumTimer;
+    uint8_t     rNumEnable;
+    uint8_t     rNumControl;
+    uint8_t     rNumSense;
+    uint8_t     rNumUartRx;
 
-//----------------------------------------------------------------------------------------
-// For creating the DCC track object, the track is described by the data structure 
-// below. In addition to the hardware resources, there are the limits for current 
-// consumption values, all specified in milliAmps. The initial current sets the 
-// current consumption limit after the track is turned on. The limit current 
-// consumption specifies the actual configured value that is checked for a track 
-// current overload situation. The maximum current defines what current the power 
-// module should never exceed. For the measurements to work, the power module needs
-// to deliver a voltage that corresponds to the current drawn on the track. The 
-// value is measured in milliVolt per Ampere drawn. Finally, there are threshold 
-// times for managing the track overload and restart capability.
-//
-//
-// ??? think about a dual descriptor layout ....
-//----------------------------------------------------------------------------------------
-struct LcsBaseStationTrackDesc {
+    uint16_t    limitCurrentMilliAmp;
+    uint16_t    maxCurrentMilliAmp;
+    uint16_t    overloadEventThreshold;
 
-    uint16_t    options                         = 0;
-
-    uint8_t     rNumTimer                       = 0;
-    uint8_t     rNumEnable                      = 0;
-    uint8_t     rNumControl                     = 0;
-    uint8_t     rNumSense                       = 0;
-    uint8_t     rNumUartRx                      = 0;
-
-    uint16_t    initCurrentMilliAmp             = 0;
-    uint16_t    limitCurrentMilliAmp            = 0;
-    uint16_t    maxCurrentMilliAmp              = 0;
-
-    uint16_t    startTimeThresholdMillis        = 0;
-    uint16_t    stopTimeThresholdMillis         = 0;
-    uint16_t    overloadTimeThresholdMillis     = 0;
-    uint16_t    overloadEventThreshold          = 0;
-    uint16_t    overloadRestartThreshold        = 0;
+    uint16_t    referenceMilliVolt;
+    uint16_t    shuntMilliOhm;
+    uint16_t    amplifierGain;
+    uint16_t    adcBitResolution;
+    uint16_t    adcZeroOffset;
 };
 
 //----------------------------------------------------------------------------------------
@@ -194,32 +174,26 @@ struct LcsBaseStationTrackDesc {
 // invoked every 29 microseconds via a hardware timer interrupt. It creates the
 // actual DCC signal on the track output pins.
 //
-// After the generating the track signals, it invokes follow up actions that 
-// fetch the next DCC bit or packet, measure the actual power consumption, read
-// in a railcom message and so on. Internal events are recorded for testing and 
-// debugging in an internal log.
+// After the generating the track signals, the timer interrupt handler invokes
+// follow up actions that fetch the next DCC bit or packet, measure the actual 
+// power consumption, read in a railcom message and so on. Internal events are 
+// recorded for testing and debugging in an internal log.
 //
-// For a base station, there will be two track objects. One is the MAIN track and 
-// the other one is the PROG track. Each track has a DCC track object associated 
-// with it. 
-
 
 // ??? text ....
 
-
-
-// In addition to the two track objects, there are class level static 
-// routines to manage the timer hardware functions, the analog signal read for 
-// current measurement and the serial IO for optional RailCom message processing. 
 //
 //----------------------------------------------------------------------------------------
+const uint8_t   RAILCOM_BUF_SIZE = 8;
+const uint16_t  LOG_BUF_SIZE     = 8192;
+
 struct LcsDccTrack {
 
     public:
 
     LcsDccTrack( );
 
-    uint8_t             setupDccTrack( LcsBaseStationTrackDesc* trackDesc );
+    bool                setupDccTrack( LcsDccTrackDesc* trackDesc );
 
     void                loadPacket( const uint8_t *packet, 
                                     uint8_t len, 
@@ -227,6 +201,7 @@ struct LcsDccTrack {
 
     uint16_t            getFlags( );
     uint16_t            getOptions( );
+    uint8_t             getErrCode( );
 
     void                powerEnable( bool enable );
     bool                isPowerOn( );
@@ -244,7 +219,6 @@ struct LcsDccTrack {
     void                setLimitCurrent( uint16_t val );
     uint16_t            getLimitCurrent( );
     uint16_t            getActualCurrent( );
-    uint16_t            getInitCurrent( );
     uint16_t            getMaxCurrent( );
     uint16_t            getRMSCurrent( );
 
@@ -284,68 +258,74 @@ struct LcsDccTrack {
     void                writeLogTs( );
     void                writeLogVal( uint8_t valId, uint16_t val );
    
-
     private:
 
-    uint16_t            options                         = DT_OPT_DEFAULT_SETTING;
-    volatile uint16_t   flags                           = DT_F_NIL;
+    uint16_t            options                             = DT_OPT_NIL;
+    volatile uint16_t   flags                               = DT_F_NIL;
+    uint8_t             errCode                             = 0;
 
-    volatile uint8_t    trackState                      = 0;
-    volatile uint8_t    signalState                     = 0;
+    volatile uint8_t    signalState                         = 0;
 
-    uint8_t             rNumEnable                      = 0;
-    uint8_t             rNumControl                     = 0;
-    uint8_t             rNumSense                       = 0;
-    uint8_t             rNumUartRx                      = 0;
+    uint8_t             rNumEnable                          = 0;
+    uint8_t             rNumControl                         = 0;
+    uint8_t             rNumSense                           = 0;
+    uint8_t             rNumUartRx                          = 0;
 
-    uint16_t            initCurrentMilliAmp             = 0;
-    uint16_t            limitCurrentMilliAmp            = 0;
-    uint16_t            maxCurrentMilliAmp              = 0;
+    uint16_t            referenceMilliVolt                  = 0;
+    uint16_t            shuntMilliOhm                       = 0;
+    uint16_t            amplifierGain                       = 0;
+    uint16_t            adcBitResolution                    = 0;
+    uint16_t            adcZeroOffset                       = 0;
+
+    uint16_t            limitCurrentMilliAmp                = 0;
+    uint16_t            maxCurrentMilliAmp                  = 0;
    
-    volatile uint16_t   actualCurrentDigitValue         = 0;
-    volatile uint16_t   highWaterMarkDigitValue         = 0;
-    volatile uint16_t   limitCurrentDigitValue          = 0;
+    volatile uint16_t   actualCurrentDigitValue             = 0;
+    volatile uint16_t   highWaterMarkDigitValue             = 0;
+    volatile uint16_t   limitCurrentDigitValue              = 0;
 
-    volatile uint16_t   overloadEventCount              = 0;
-    volatile uint16_t   overloadEventThreshold          = 0;
-    uint16_t            ackThresholdDigitValue          = 0;
+    volatile uint16_t   overloadEventCount                  = 0;
+    volatile uint16_t   overloadEventThreshold              = 0;
+    uint16_t            ackThresholdDigitValue              = 0;
 
-    volatile uint16_t   sampleIntervalSize              = 0;
-    volatile uint16_t   sampleIntervalCount             = 0;
+    volatile uint16_t   sampleIntervalSize                  = 0;
+    volatile uint16_t   sampleIntervalCount                 = 0;
                       
-    volatile uint64_t   sampleSum                       = 0; 
-    volatile uint32_t   sampleCount                     = 0;
-    volatile uint32_t   sampleSize                      = 0;
+    volatile uint64_t   sampleSum                           = 0; 
+    volatile uint32_t   sampleCount                         = 0;
+    volatile uint32_t   sampleSize                          = 0;
    
-    uint8_t             preambleLen                     = 0;
-    uint8_t             postambleLen                    = 0;
-    volatile bool       currentBit                      = false;
-    volatile uint8_t    bytesSent                       = 0;
-    volatile uint8_t    bitsSent                        = 0;
-    volatile uint8_t    preambleSent                    = 0;
-    volatile uint8_t    postambleSent                   = 0;
-    uint32_t            dccPacketsSend                  = 0;
+    uint8_t             preambleLen                         = 0;
+    uint8_t             postambleLen                        = 0;
+    volatile bool       currentBit                          = false;
+    volatile uint8_t    bytesSent                           = 0;
+    volatile uint8_t    bitsSent                            = 0;
+    volatile uint8_t    preambleSent                        = 0;
+    volatile uint8_t    postambleSent                       = 0;
+    uint32_t            dccPacketsSend                      = 0;
 
-    DccPacket           dccBuf1                         = { 0 }; 
-    DccPacket           dccBuf2                         = { 0 };
-    DccPacket           *activeBufPtr                   = nullptr;
-    DccPacket           *pendingBufPtr                  = nullptr;
+    DccPacket           dccBuf1                             = { 0 }; 
+    DccPacket           dccBuf2                             = { 0 };
+    DccPacket           *activeBufPtr                       = nullptr;
+    DccPacket           *pendingBufPtr                      = nullptr;
 
-    uint16_t            logBufOfs               = 0;
-    uint8_t             logBuf[ LOG_BUF_SIZE ]  = { 0 };
+    uint16_t            logBufOfs                           = 0;
+    uint8_t             logBuf[ LOG_BUF_SIZE ]              = { 0 };
+
+    uint8_t             railComBufIndex                     = 0;
+    uint8_t             railComMsgBuf[ RAILCOM_BUF_SIZE ]   = { 0 };
 
     // ??? add base station capabilities according to RCN200 - 4 16 bit words
     // sample values per second for samples and dcc packets
     // ??? add buffers for POM / XPOM data
     // ??? add queue for POM / XPOM commands
 
-    uint8_t             railComBufIndex                     = 0;
-    uint8_t             railComMsgBuf[ RAILCOM_BUF_SIZE ]   = { 0 };
-
     public:
 
-    static void         setup( );
-    LcsDccTrack         *getTrackA( );
-    LcsDccTrack         *getTrackB( );
+    // ??? setup both ? how to return errors ?
+    static void         setup( LcsDccTrackDesc *desc );
+
+    LcsDccTrack         *getTrackMain( );
+    LcsDccTrack         *getTrackProg( );
     static void         startDccProcessing( );
 };

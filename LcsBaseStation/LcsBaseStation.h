@@ -123,7 +123,7 @@ const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 //----------------------------------------------------------------------------------------
 enum DccTrackOptions : uint16_t {
 
-    DT_OPT_DEFAULT_SETTING      = 0,
+    DT_OPT_NIL      = 0,
     DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
     DT_OPT_CUTOUT               = 1 << 1,
     DT_OPT_RAILCOM              = 1 << 2
@@ -296,7 +296,7 @@ const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
 // times for managing the track overload and restart capability.
 //
 //----------------------------------------------------------------------------------------
-struct LcsBaseStationTrackDesc {
+struct LcsDccTrackDesc {
 
     uint16_t    options                         = SM_OPT_DEFAULT_SETTING;
 
@@ -356,7 +356,7 @@ struct LcsDccTrack {
 
     LcsDccTrack( );
 
-    uint8_t             setupDccTrack( LcsBaseStationTrackDesc* trackDesc );
+    uint8_t             setupDccTrack( LcsDccTrackDesc* trackDesc );
     void                loadPacket( const uint8_t *packet, 
                                     uint8_t len, 
                                     uint8_t repeat = 0 );
@@ -426,7 +426,7 @@ struct LcsDccTrack {
 
     private:
 
-    uint16_t            options                         = DT_OPT_DEFAULT_SETTING;
+    uint16_t            options                         = DT_OPT_NIL;
     volatile uint16_t   flags                           = DT_F_NIL;
 
     volatile uint8_t    trackState                      = 0;
@@ -674,7 +674,7 @@ struct LcsBaseStationLocoSession {
     LcsDccTrack    *mainTrack              = nullptr;
     LcsDccTrack    *progTrack              = nullptr;
 
-    uint16_t                  options                 = DT_OPT_DEFAULT_SETTING;
+    uint16_t                  options                 = DT_OPT_NIL;
     uint16_t                  flags                   = DT_F_NIL;
     uint32_t                  lastAliveCheckTime      = 0L;
     uint32_t                  refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;

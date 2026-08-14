@@ -848,7 +848,7 @@ LcsDccTrack::LcsDccTrack( ) { }
 // the error bit set.
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
+uint8_t LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 
     if ((  tDesc -> rNumEnable  == 0 ) ||
         (  tDesc -> rNumControl == 0 ) ||

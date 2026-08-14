@@ -252,7 +252,7 @@ uint8_t setupLocoSessions( ) {
 //----------------------------------------------------------------------------------------
 int setupDccTrackMain( ) {
 
-  LcsBaseStationTrackDesc mainTrackDesc;
+  LcsDccTrackDesc mainTrackDesc;
 
   mainTrackDesc.options                     = DT_OPT_RAILCOM | DT_OPT_CUTOUT;
 
@@ -282,7 +282,7 @@ int setupDccTrackMain( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDccTrackProg( ) {
 
-  LcsBaseStationTrackDesc progTrackDesc;
+  LcsDccTrackDesc progTrackDesc;
 
   progTrackDesc.options                     = DT_OPT_SERVICE_MODE_TRACK;
 

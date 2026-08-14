@@ -173,15 +173,6 @@ const uint32_t TICKS_116_MICROS        =  TICKS_29_MICROS * 4;
 const uint32_t TICKS_CUTOUT_MICROS     =  TICKS_29_MICROS * 16;
 
 //----------------------------------------------------------------------------------------
-// Base Station global limits. Perhaps to move to a configurable place...
-//
-// 
-// ??? it would be nice to just mention adc voltage, digits, and resistor used...
-//----------------------------------------------------------------------------------------
-const uint16_t MILLI_VOLT_PER_DIGIT    = 5;
-const uint16_t MILLI_VOLT_PER_AMP      = 1500;
-
-//----------------------------------------------------------------------------------------
 // Current measurement is done via measuring the voltage over a shunt resistor.
 // Externally we think in milliAmps, internally we think in ADC digits. The 
 // global variables contain the offset and conversion factor used when converting.
@@ -200,18 +191,10 @@ static uint16_t currentZeroOffset;
 //
 // ??? how can we simplify these numbers ?
 //----------------------------------------------------------------------------------------
-const uint16_t MAX_START_TIME_THRESHOLD_MILLIS     = 2000;
-const uint16_t MAX_STOP_TIME_THRESHOLD_MILLIS      = 1000;
-const uint16_t MAX_OVERLOAD_TIME_THRESHOLD_MILLIS  = 500;
 const uint16_t MAX_OVERLOAD_EVENT_COUNT            = 10;
-const uint16_t MAX_OVERLOAD_RESTART_COUNT          = 10;
-
-const uint16_t DEF_START_TIME_THRESHOLD_MILLIS     = 1000;
-const uint16_t DEF_STOP_TIME_THRESHOLD_MILLIS      = 500;
-const uint16_t DEF_OVERLOAD_TIME_THRESHOLD_MILLIS  = 300;
 const uint16_t DEF_OVERLOAD_EVENT_COUNT            = 10;
-const uint16_t DEF_OVERLOAD_RESTART_COUNT          = 10;
 
+#if 0
 //----------------------------------------------------------------------------------------
 // Track state machine state definitions. See the track state machine routine 
 // for an explanation of the individual states.
@@ -232,6 +215,7 @@ enum DccTrackState : uint8_t {
     DCC_TRACK_POWER_STOP1           = 6,
     DCC_TRACK_POWER_STOP2           = 7
 };
+#endif
 
 //----------------------------------------------------------------------------------------
 // DCC Track signal state machine states. See the DCC signal state machine 
@@ -515,11 +499,11 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 //  Store ADC/mA multiplied by 1000 in "currentCountsPerMilliAmpTimes1000".
 //
 //----------------------------------------------------------------------------------------
-void currentSenseSetup(uint16_t referenceMilliVolt,
-                       uint16_t shuntMilliOhm,
-                       uint8_t  amplifierGain,
-                       uint8_t  adcBits,
-                       uint16_t zeroOffset ) {
+void currentSenseSetup( uint16_t referenceMilliVolt,
+                        uint16_t shuntMilliOhm,
+                        uint16_t amplifierGain,
+                        uint16_t adcBits,
+                        uint16_t zeroOffset ) {
 
     uint32_t adcMax     = (1UL << adcBits) - 1;
     uint64_t numerator  = (uint64_t)shuntMilliOhm *
@@ -717,126 +701,147 @@ LcsDccTrack::LcsDccTrack( ) { }
 // the hardware, the DCC packet options such as preamble and postamble length, the
 // initial state machine state current consumption limit and load the initial packet
 // into the active buffer. There is quite a list of parameters and options that 
-// can be set. This routine does the following checking:
+// can be set. 
 //
-//    - the resources used in the CDC layer must be a pair.
-//    - the sensePin must be an analog input pin.
-//    - if the track is a service track, cutout and RailCom are not supported.
-//    - if RailCom is set, Cutout must be set too.
-//    - the initial current limit consumption setting must be less than the 
-//      current limit setting.
-//    - the current limit setting must be less than the maximum current limit setting.
+// This routine does the parameter checking, and ensures consistency, except
+// when critical parameters are wrong. The error is returned via a flag in the
+// flag variable. 
 //
 // Once the DCC track object is initialized, the last thing to do is to remember 
 // the object instance in the file static variables. This is necessary for the 
-// interrupt handlers to work. If any of the checks fails, the flag field will have
-// the error bit set.
+// interrupt handlers to work. 
 //
-//
-// ??? simplify the setup, make default decisions....
 //----------------------------------------------------------------------------------------
-uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
+bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 
-    if ((  tDesc -> rNumEnable  == 0 ) ||
-        (  tDesc -> rNumControl == 0 ) ||
-        (  tDesc -> rNumSense   == 0 )) {
+    flags                       = DT_F_NIL;
+    errCode                     = LCS_OK;
+    options                     = tDesc -> options;
+    
+    rNumEnable                  = tDesc -> rNumEnable;
+    rNumControl                 = tDesc -> rNumControl;
+    rNumSense                   = tDesc -> rNumSense;
+    rNumUartRx                  = tDesc -> rNumUartRx;
+
+    limitCurrentMilliAmp        = tDesc -> limitCurrentMilliAmp;
+    maxCurrentMilliAmp          = tDesc -> maxCurrentMilliAmp;
+    overloadEventThreshold      = tDesc -> overloadEventThreshold;
+
+    referenceMilliVolt          = tDesc -> referenceMilliVolt;
+    shuntMilliOhm               = tDesc -> shuntMilliOhm;
+    amplifierGain               = tDesc -> amplifierGain;
+    adcBitResolution            = tDesc -> adcBitResolution; 
+    adcZeroOffset               = tDesc -> adcZeroOffset;
+
+
+    if (  rNumEnable  == CDC_RN_UNDEFINED ) {
 
         flags = DT_F_CONFIG_ERROR;
-        return ( ERR_DCC_PIN_CONFIG );
+        errCode = ERR_DCC_PIN_CONFIG;
+        return( false );
     }
 
-    configureDio( rNumEnable );
-    configureDio( rNumControl );
-    configureAdc( rNumSense );
+    if (  rNumControl  == CDC_RN_UNDEFINED ) {
+
+        flags = DT_F_CONFIG_ERROR;
+        errCode = ERR_DCC_PIN_CONFIG;
+        return( false );
+    }
+
+    if (  rNumSense  == CDC_RN_UNDEFINED ) {
+
+        flags = DT_F_CONFIG_ERROR;
+        errCode = ERR_DCC_PIN_CONFIG;
+        return( false );
+    }
+
+    if ( configureDio( rNumEnable ) != LCS_OK ) {
+
+        flags = DT_F_CONFIG_ERROR;
+        errCode = ERR_DCC_PIN_CONFIG;
+        return( false );
+    }
+    
+    if ( configureDio( rNumControl ) != LCS_OK ) {
+
+        flags = DT_F_CONFIG_ERROR;
+        errCode = ERR_DCC_PIN_CONFIG;
+        return( false );
+    }
+
+    if ( configureAdc( rNumSense ) != LCS_OK ) {
+
+        flags = DT_F_CONFIG_ERROR;
+        errCode = ERR_DCC_PIN_CONFIG;
+        return( false );
+    }
 
     writeDio( rNumEnable, false );
     writeDio( rNumControl, false, false );
 
+    
+    if ( options & DT_OPT_SERVICE_MODE_TRACK ) {
 
 
+    }
+   
+
+    if ( options & DT_OPT_CUTOUT ) {
 
 
-
-
-
-    // ??? make the two tracks identical ?
-    // ??? be a bit more forgiving ? If railcom is set, just set cutout too....
-
-    if ((( tDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && 
-         ( tDesc -> options & DT_OPT_CUTOUT ))                                  ||
-        (( tDesc -> options & DT_OPT_SERVICE_MODE_TRACK ) && 
-         ( tDesc -> options & DT_OPT_RAILCOM ))                                 ||
-        ( tDesc -> initCurrentMilliAmp  > tDesc -> limitCurrentMilliAmp )       ||
-        ( tDesc -> limitCurrentMilliAmp > tDesc -> maxCurrentMilliAmp )         ||
-        ( tDesc -> startTimeThresholdMillis > MAX_START_TIME_THRESHOLD_MILLIS ) ||
-        ( tDesc -> stopTimeThresholdMillis > MAX_STOP_TIME_THRESHOLD_MILLIS )   ||
-        ( tDesc -> overloadTimeThresholdMillis > MAX_OVERLOAD_TIME_THRESHOLD_MILLIS ) ||
-        ( tDesc -> overloadEventThreshold > MAX_OVERLOAD_EVENT_COUNT )          ||
-        ( tDesc -> overloadRestartThreshold > MAX_OVERLOAD_RESTART_COUNT )
-       ) {
-
-        flags = DT_F_CONFIG_ERROR;
-        return ( ERR_DCC_TRACK_CONFIG );
     }
 
-    if ( tDesc -> options & DT_OPT_RAILCOM ) options |= DT_OPT_CUTOUT;
+    if ( options & DT_OPT_RAILCOM ) {
 
-    signalState               = DCC_SIG_START_BIT;
-    trackState                = DCC_TRACK_POWER_OFF;
-    flags                     = DT_F_NIL;
-    options                   = tDesc -> options;
-    rNumEnable                = tDesc -> rNumEnable;
-    rNumControl               = tDesc -> rNumControl;
-    rNumSense                 = tDesc -> rNumSense;
-    rNumUartRx                = tDesc -> rNumUartRx;
+       options |= DT_OPT_CUTOUT;
+    }
 
-    initCurrentMilliAmp       = tDesc -> initCurrentMilliAmp;
-    limitCurrentMilliAmp      = tDesc -> limitCurrentMilliAmp;
-    maxCurrentMilliAmp        = tDesc -> maxCurrentMilliAmp;
-    
-    overloadEventThreshold    = tDesc -> overloadEventThreshold;
-  
 
-    limitCurrentDigitValue    = milliAmpToAdcDigits( initCurrentMilliAmp );
+
+    if ( limitCurrentMilliAmp > maxCurrentMilliAmp )  {
+
+        limitCurrentMilliAmp = maxCurrentMilliAmp;
+    }
+
+    if ( overloadEventThreshold > MAX_OVERLOAD_EVENT_COUNT ) {
+
+        overloadEventThreshold = MAX_OVERLOAD_EVENT_COUNT;
+    }
+
+    limitCurrentDigitValue    = milliAmpToAdcDigits( limitCurrentMilliAmp );
     ackThresholdDigitValue    = milliAmpToAdcDigits( ACK_TRESHOLD_VAL );
     actualCurrentDigitValue   = 0;
     dccPacketsSend            = 0;
   
-
-
-
-
-
-   
-
-
-
     if ( options & DT_OPT_SERVICE_MODE_TRACK ) {
 
-        progTrack     =   this;
-        preambleLen   =   PROG_PACKET_PREAMBLE_BIT_LEN;
-        postambleLen  =   PROG_PACKET_POSTAMBLE_BIT_LEN;
-        flags         |=  DT_F_SERVICE_MODE_ON;
-        activeBufPtr  =   &resetDccPacket;
-        pendingBufPtr =   &dccBuf1;
+        progTrack       =   this;
+        preambleLen     =   PROG_PACKET_PREAMBLE_BIT_LEN;
+        postambleLen    =   PROG_PACKET_POSTAMBLE_BIT_LEN;
+        flags           |=  DT_F_SERVICE_MODE_ON;
+        activeBufPtr    =   &resetDccPacket;
+        pendingBufPtr   =   &dccBuf1;
+        signalState     =   DCC_SIG_START_BIT;
     }
     else {
 
-        mainTrack     =   this;
-        preambleLen   =   MAIN_PACKET_PREAMBLE_BIT_LEN;
-        postambleLen  =   MAIN_PACKET_POSTAMBLE_BIT_LEN;
-        activeBufPtr  =   &idleDccPacket;
-        pendingBufPtr =   &dccBuf1;
+        mainTrack       =   this;
+        preambleLen     =   MAIN_PACKET_PREAMBLE_BIT_LEN;
+        postambleLen    =   MAIN_PACKET_POSTAMBLE_BIT_LEN;
+        flags           &=  ~ DT_F_SERVICE_MODE_ON;
+        activeBufPtr    =   &idleDccPacket;
+        pendingBufPtr   =   &dccBuf1;
+        signalState     =   DCC_SIG_START_BIT;
     }
 
-    if ( tDesc -> options & DT_OPT_CUTOUT ) {
+    if ( options & DT_OPT_CUTOUT ) {
 
         preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
         flags       |= DT_F_CUTOUT_MODE_ON;
         signalState =  DCC_SIG_CUTOUT_START;
     }
 
-    if ( tDesc -> options & DT_OPT_RAILCOM ) {
+    if ( options & DT_OPT_RAILCOM ) {
 
         flags |= DT_F_RAILCOM_MODE_ON;
 
@@ -844,11 +849,12 @@ uint8_t LcsDccTrack::setupDccTrack( LcsBaseStationTrackDesc* tDesc ) {
         if ( rStat != LCS_OK ) {
 
             flags = DT_F_CONFIG_ERROR;
-            return ( ERR_DCC_TRACK_CONFIG );
+            errCode = ERR_DCC_TRACK_CONFIG;
+            return ( false );
         }
     }
 
-    return ( LCS_OK );
+    return ( true );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1285,6 +1291,11 @@ bool LcsDccTrack::isRailComOn( ) {
     return ( flags & DT_F_RAILCOM_MODE_ON );
 }
 
+uint8_t LcsDccTrack::getErrCode( ) {
+
+    return ( errCode );
+}
+
 //----------------------------------------------------------------------------------------
 // DCC track power management functions. The actual state of track power is kept
 // in the track status field and can be queried or set by setting the respective 
@@ -1518,11 +1529,6 @@ uint16_t LcsDccTrack::getActualCurrent( ) {
     return ( adcDigitsToMilliAmp( actualCurrentDigitValue ));
 }
 
-uint16_t LcsDccTrack::getInitCurrent( ) {
-
-    return ( initCurrentMilliAmp );
-}
-
 uint16_t LcsDccTrack::getLimitCurrent( ) {
 
     return ( limitCurrentMilliAmp );
@@ -1535,8 +1541,7 @@ uint16_t LcsDccTrack::getMaxCurrent( ) {
 
 void LcsDccTrack::setLimitCurrent( uint16_t val ) {
 
-    if      ( val < initCurrentMilliAmp )  val = initCurrentMilliAmp;
-    else if ( val > maxCurrentMilliAmp  )  val = maxCurrentMilliAmp;
+    if ( val > maxCurrentMilliAmp  ) val = maxCurrentMilliAmp;
 
     limitCurrentMilliAmp    = val;
     limitCurrentDigitValue  = milliAmpToAdcDigits( val );
@@ -1789,8 +1794,8 @@ void LcsDccTrack::printDccTrackConfig( ) {
     if ( options & DT_OPT_RAILCOM ) printf( "Railcom " );
     printf( "\n" );
 
-    printf( " Current Initial(mA): %d Current Limit(mA): %d Current Max(mA): %d\n",
-            getInitCurrent( ), getLimitCurrent( ), getMaxCurrent( ));
+    printf( " Current Limit(mA): %d Current Max(mA): %d\n",
+            getLimitCurrent( ), getMaxCurrent( ));
     
 
     printf( " Limit Digit Value: %d\n", limitCurrentDigitValue );
