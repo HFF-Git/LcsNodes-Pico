@@ -149,11 +149,11 @@ enum DccTrackFlags : uint16_t {
     DT_F_POWER_OVERLOAD       = 1 << 1,
     DT_F_MEASUREMENT_ON       = 1 << 2,
     DT_F_SERVICE_MODE_ON      = 1 << 3,
-    DT_F_CUTOUT_MODE_ON       = 1 << 4,
-    DT_F_RAILCOM_MODE_ON      = 1 << 5,
+    DT_F_CUTOUT_ON       = 1 << 4,
+    DT_F_RAILCOM_ON      = 1 << 5,
     DT_F_DCC_PACKET_PENDING   = 1 << 6,
     DT_F_RAILCOM_MSG_PENDING  = 1 << 7,
-    DT_F_CONFIG_ERROR         = 1 << 15
+    DT_F_SETUP_ERROR         = 1 << 15
 };
 
 //----------------------------------------------------------------------------------------

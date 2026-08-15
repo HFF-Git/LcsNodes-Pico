@@ -60,13 +60,20 @@ enum DccTrackDebugFlags : uint16_t {
 // Base station errors. Note that they need to be in the assigned to the user 
 // number range of errors defined in the LCS runtime library. 
 //
-// ??? better way ?
 //----------------------------------------------------------------------------------------
 enum DccTrackErrors : uint8_t {
 
-    ERR_DCC_TRACK_ERR_BASE            = ERR_USER_SPECIFIC_BASE,
-    ERR_DCC_TRACK_CONFIG              = ERR_DCC_TRACK_ERR_BASE + 1,
-    ERR_DCC_PIN_CONFIG                = ERR_DCC_TRACK_ERR_BASE + 2,
+    ERR_DCC_TRACK_ERR_BASE          = ERR_USER_SPECIFIC_BASE,
+    ERR_DCC_RNUM_CONFIG_ERR         = ERR_DCC_TRACK_ERR_BASE + 1,
+    ERR_DCC_ENABLE_RNUM_ERR         = ERR_DCC_TRACK_ERR_BASE + 2,
+    ERR_DCC_CONTROL_RNUM_ERR        = ERR_DCC_TRACK_ERR_BASE + 3,
+    ERR_DCC_SENSE_RNUM_ERR          = ERR_DCC_TRACK_ERR_BASE + 4,
+    ERR_DCC_UART_RNUM_ERR           = ERR_DCC_TRACK_ERR_BASE + 5,
+
+
+    ERR_DCC_TRACK_CONFIG            = ERR_DCC_TRACK_ERR_BASE + 1,
+
+
 };
 
 //----------------------------------------------------------------------------------------
@@ -99,9 +106,38 @@ struct DccPacket {
 enum DccTrackOptions : uint16_t {
 
     DT_OPT_NIL      = 0,
-    DT_OPT_SERVICE_MODE_TRACK   = 1 << 1,
-    DT_OPT_CUTOUT               = 1 << 2,
-    DT_OPT_RAILCOM              = 1 << 3
+    DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
+   
+
+    DT_OPT_ACC_DETECT           = 1 << 3
+};
+
+//----------------------------------------------------------------------------------------
+// A track can operate in several modes. The modes influence in what operating
+// mode the track works.
+// 
+//  DT_M_PLAIN          -   the track is in DCC main track mode. No cutout, no
+//                          railcom support, no Acc-Detect function. The default
+//                          packet is the IDLE packet.
+//
+//  DT_M_CUTOUT         -   the track is in DCC main track mode and has the 
+//                          cutout generation enabled.
+//
+//  DT_M_RAILCOM        -   the track is in DCC main track mode and has the 
+//                          cutout generation and railcom detection enabled.
+//
+//  DT_M_ACC_DETECT     -   the track is in DCC programming mode. The decoder
+//                          acknowledge function is enabled, cutout and RailCom
+//                          are disabled. The default packet is the RESET packet. 
+//
+//----------------------------------------------------------------------------------------
+enum DccTrackMode : uint8_t {
+
+    DT_M_NIL                    = 0,
+    DT_M_PLAIN                  = 1,
+    DT_M_CUTOUT                 = 2,
+    DT_M_RAILCOM                = 3,
+    DT_M_ACC_DETECT             = 4
 };
 
 //----------------------------------------------------------------------------------------
@@ -124,14 +160,14 @@ enum DccTrackFlags : uint16_t {
     DT_F_POWER_ON               = 1 << 0,
     DT_F_POWER_SAMPLE_PENDING   = 1 << 1,
     DT_F_POWER_OVERLOAD         = 1 << 2,
-    DT_F_SERVICE_MODE_ON        = 1 << 4,
-    DT_F_CUTOUT_MODE_ON         = 1 << 5,
-    DT_F_RAILCOM_MODE_ON        = 1 << 6,
+    DT_F_CUTOUT_ON              = 1 << 4,
+    DT_F_RAILCOM_ON             = 1 << 5,
+    DT_F_ACC_DETECT_ON          = 1 << 6,
     DT_F_DCC_PACKET_PENDING     = 1 << 7,
     DT_F_RAILCOM_MSG_PENDING    = 1 << 8,
     DT_F_LOG_ENABLED            = 1 << 9,
     DT_F_LOG_ACTIVE             = 1 << 10,
-    DT_F_CONFIG_ERROR           = 1 << 15
+    DT_F_SETUP_ERROR            = 1 << 15
 };
 
 //----------------------------------------------------------------------------------------
@@ -143,23 +179,24 @@ enum DccTrackFlags : uint16_t {
 //----------------------------------------------------------------------------------------
 struct LcsDccTrackDesc {
 
-    uint16_t    options;      
+    DccTrackOptions     options;      
+    DccTrackMode        initTrackMode;
 
-    uint8_t     rNumTimer;
-    uint8_t     rNumEnable;
-    uint8_t     rNumControl;
-    uint8_t     rNumSense;
-    uint8_t     rNumUartRx;
+    uint8_t             rNumTimer;
+    uint8_t             rNumEnable;
+    uint8_t             rNumControl;
+    uint8_t             rNumSense;
+    uint8_t             rNumUartRx;
 
-    uint16_t    limitCurrentMilliAmp;
-    uint16_t    maxCurrentMilliAmp;
-    uint16_t    overloadEventThreshold;
+    uint16_t            limitCurrentMilliAmp;
+    uint16_t            maxCurrentMilliAmp;
+    uint16_t            overloadEventThreshold;
 
-    uint16_t    referenceMilliVolt;
-    uint16_t    shuntMilliOhm;
-    uint16_t    amplifierGain;
-    uint16_t    adcBitResolution;
-    uint16_t    adcZeroOffset;
+    uint16_t            referenceMilliVolt;
+    uint16_t            shuntMilliOhm;
+    uint16_t            amplifierGain;
+    uint16_t            adcBitResolution;
+    uint16_t            adcZeroOffset;
 };
 
 //----------------------------------------------------------------------------------------
@@ -207,14 +244,8 @@ struct LcsDccTrack {
     bool                isPowerOn( );
     bool                isPowerOverload( );
 
-    void                serviceModeEnable( bool enable );
-    bool                isServiceModeOn( ); 
-
-    void                cutoutEnable( bool enabled );
-    bool                isCutoutOn( );
-
-    void                railComEnable( bool enabled );
-    bool                isRailComOn( );
+    void                setTrackMode( DccTrackMode mode );
+    DccTrackMode        getTrackMode( );
 
     void                setLimitCurrent( uint16_t val );
     uint16_t            getLimitCurrent( );
@@ -261,6 +292,8 @@ struct LcsDccTrack {
     private:
 
     uint16_t            options                             = DT_OPT_NIL;
+    DccTrackMode        trackMode                           = DT_M_NIL;
+
     volatile uint16_t   flags                               = DT_F_NIL;
     uint8_t             errCode                             = 0;
 

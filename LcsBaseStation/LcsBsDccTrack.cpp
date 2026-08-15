@@ -854,7 +854,7 @@ uint8_t LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
         (  tDesc -> rNumControl == 0 ) ||
         (  tDesc -> rNumSense   == 0 )) {
 
-        flags = DT_F_CONFIG_ERROR;
+        flags = DT_F_SETUP_ERROR;
         return ( ERR_DCC_PIN_CONFIG );
     }
 
@@ -873,7 +873,7 @@ uint8_t LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
         ( tDesc -> overloadRestartThreshold > MAX_OVERLOAD_RESTART_COUNT )
        ) {
 
-        flags = DT_F_CONFIG_ERROR;
+        flags = DT_F_SETUP_ERROR;
         return ( ERR_DCC_TRACK_CONFIG );
     }
 
@@ -936,18 +936,18 @@ uint8_t LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
     if ( tDesc -> options & DT_OPT_CUTOUT ) {
 
         preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
-        flags       |= DT_F_CUTOUT_MODE_ON;
+        flags       |= DT_F_CUTOUT_ON;
         signalState =  DCC_SIG_CUTOUT_START;
     }
 
     if ( tDesc -> options & DT_OPT_RAILCOM ) {
 
-        flags |= DT_F_RAILCOM_MODE_ON;
+        flags |= DT_F_RAILCOM_ON;
 
         uint8_t rStat = configureUart( rNumUartRx );
         if ( rStat != LCS_OK ) {
 
-            flags = DT_F_CONFIG_ERROR;
+            flags = DT_F_SETUP_ERROR;
             return ( ERR_DCC_TRACK_CONFIG );
         }
     }
@@ -1039,7 +1039,7 @@ void LcsDccTrack::runDccSignalStateMachine(
 
             writeDio( rNumControl, false, false );
             *timeToInterrupt  = TICKS_CUTOUT_MICROS;
-            *followUpAction   = (( flags & DT_F_RAILCOM_MODE_ON ) ?
+            *followUpAction   = (( flags & DT_F_RAILCOM_ON ) ?
                                 DCC_SIG_FOLLOW_UP_START_RAILCOM_IO : 
                                 DCC_SIG_FOLLOW_UP_NONE );
             signalState       = DCC_SIG_CUTOUT_2;
@@ -1061,7 +1061,7 @@ void LcsDccTrack::runDccSignalStateMachine(
             *timeToInterrupt  = TICKS_58_MICROS;
             signalState       = DCC_SIG_CUTOUT_END;
 
-            if ( flags & DT_F_RAILCOM_MODE_ON ) {
+            if ( flags & DT_F_RAILCOM_ON ) {
 
                 flags           |= DT_F_RAILCOM_MSG_PENDING;
                 *followUpAction = DCC_SIG_FOLLOW_UP_STOP_RAILCOM_IO;
@@ -1074,7 +1074,7 @@ void LcsDccTrack::runDccSignalStateMachine(
 
             writeDio( rNumControl, false, true );
             *timeToInterrupt  = TICKS_58_MICROS;
-            *followUpAction   = (( flags & DT_F_RAILCOM_MODE_ON ) ?
+            *followUpAction   = (( flags & DT_F_RAILCOM_ON ) ?
                                 DCC_SIG_FOLLOW_UP_RAILCOM_MSG : 
                                 DCC_SIG_FOLLOW_UP_NONE );
             signalState       = DCC_SIG_START_BIT;
@@ -1099,7 +1099,7 @@ void LcsDccTrack::runDccSignalStateMachine(
                 if ( postambleSent >= postambleLen ) {
 
                     *followUpAction = DCC_SIG_FOLLOW_UP_GET_PACKET;
-                    signalState     = (( flags & DT_F_CUTOUT_MODE_ON ) ? 
+                    signalState     = (( flags & DT_F_CUTOUT_ON ) ? 
                                         DCC_SIG_CUTOUT_START : DCC_SIG_START_BIT );
                 }
                 else {
@@ -1585,12 +1585,12 @@ bool LcsDccTrack::isServiceModeOn( ) {
 
 bool LcsDccTrack::isCutoutOn( ) {
 
-    return ( flags & DT_F_CUTOUT_MODE_ON );
+    return ( flags & DT_F_CUTOUT_ON );
 }
 
 bool LcsDccTrack::isRailComOn( ) {
 
-    return ( flags & DT_F_RAILCOM_MODE_ON );
+    return ( flags & DT_F_RAILCOM_ON );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1625,7 +1625,7 @@ void LcsDccTrack::cutoutOn( ) {
     if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
 
         preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
-        flags       |= DT_F_CUTOUT_MODE_ON;
+        flags       |= DT_F_CUTOUT_ON;
     }
 }
 
@@ -1634,8 +1634,8 @@ void LcsDccTrack::cutoutOff( ) {
     if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
 
         preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN;
-        flags       &= ~DT_F_CUTOUT_MODE_ON;
-        flags       &= ~DT_F_RAILCOM_MODE_ON;
+        flags       &= ~DT_F_CUTOUT_ON;
+        flags       &= ~DT_F_RAILCOM_ON;
     }
 }
 
@@ -1643,13 +1643,13 @@ void LcsDccTrack::railComOn( ) {
 
     if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) {
 
-        flags |= DT_F_CUTOUT_MODE_ON | DT_F_RAILCOM_MODE_ON;
+        flags |= DT_F_CUTOUT_ON | DT_F_RAILCOM_ON;
     }
 }
 
 void LcsDccTrack::railComOff( ) {
 
-    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) flags &= ~DT_F_RAILCOM_MODE_ON;
+    if ( ! ( options & DT_OPT_SERVICE_MODE_TRACK )) flags &= ~DT_F_RAILCOM_ON;
 }
 
 //----------------------------------------------------------------------------------------
@@ -2059,9 +2059,9 @@ void LcsDccTrack::printDccTrackStatus( ) {
     if ( flags & DT_F_POWER_OVERLOAD   ) printf( "PowerOverload " );
     if ( flags & DT_F_MEASUREMENT_ON   ) printf( "PowerMeasOn " );
     if ( flags & DT_F_SERVICE_MODE_ON  ) printf( "SvcModeOn " );
-    if ( flags & DT_F_CUTOUT_MODE_ON   ) printf( "CutoutOn " );
-    if ( flags & DT_F_RAILCOM_MODE_ON  ) printf( "RailcomOn " );
-    if ( flags & DT_F_CONFIG_ERROR     ) printf( "ConfigError " );
+    if ( flags & DT_F_CUTOUT_ON   ) printf( "CutoutOn " );
+    if ( flags & DT_F_RAILCOM_ON  ) printf( "RailcomOn " );
+    if ( flags & DT_F_SETUP_ERROR     ) printf( "ConfigError " );
     printf( "\n" );
 
     printf( "Packets Send: %d\n", dccPacketsSend );
