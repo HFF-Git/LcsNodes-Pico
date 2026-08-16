@@ -105,10 +105,10 @@ struct DccPacket {
 //----------------------------------------------------------------------------------------
 enum DccTrackOptions : uint16_t {
 
-    DT_OPT_NIL      = 0,
-    DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
-   
+    DT_OPT_NIL                  = 0,
 
+    DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
+    
     DT_OPT_ACC_DETECT           = 1 << 3
 };
 
@@ -134,10 +134,11 @@ enum DccTrackOptions : uint16_t {
 enum DccTrackMode : uint8_t {
 
     DT_M_NIL                    = 0,
-    DT_M_PLAIN                  = 1,
-    DT_M_CUTOUT                 = 2,
-    DT_M_RAILCOM                = 3,
-    DT_M_ACC_DETECT             = 4
+    DT_M_TRACK_OFF              = 1,
+    DT_M_PLAIN                  = 2,
+    DT_M_CUTOUT                 = 3,
+    DT_M_RAILCOM                = 4,
+    DT_M_ACC_DETECT             = 5
 };
 
 //----------------------------------------------------------------------------------------
@@ -256,7 +257,7 @@ struct LcsDccTrack {
     uint16_t            decoderAckBaseline( uint8_t resetPacketsToSend );
     bool                decoderAckDetect( uint16_t baseValue, uint8_t retries );
    
-    void                runDccSignalStateMachine( 
+    void                runDccTrackStateMachine( 
                             volatile uint8_t *timeToInterrupt, 
                             uint8_t *followUpAction 
                         );
@@ -297,7 +298,7 @@ struct LcsDccTrack {
     volatile uint16_t   flags                               = DT_F_NIL;
     uint8_t             errCode                             = 0;
 
-    volatile uint8_t    signalState                         = 0;
+    volatile uint8_t    trackState                          = 0;
 
     uint8_t             rNumEnable                          = 0;
     uint8_t             rNumControl                         = 0;

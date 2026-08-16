@@ -877,7 +877,7 @@ uint8_t LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
         return ( ERR_DCC_TRACK_CONFIG );
     }
 
-    signalState               = DCC_SIG_START_BIT;
+    trackState               = DCC_SIG_START_BIT;
     trackState                = DCC_TRACK_POWER_OFF;
     flags                     = DT_F_NIL;
     options                   = tDesc -> options;
@@ -937,7 +937,7 @@ uint8_t LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 
         preambleLen =  MAIN_PACKET_PREAMBLE_BIT_LEN - DCC_PACKET_CUTOUT_BIT_LEN;
         flags       |= DT_F_CUTOUT_ON;
-        signalState =  DCC_SIG_CUTOUT_START;
+        trackState =  DCC_SIG_CUTOUT_START;
     }
 
     if ( tDesc -> options & DT_OPT_RAILCOM ) {
@@ -1024,14 +1024,14 @@ void LcsDccTrack::runDccSignalStateMachine(
 
     ) {
 
-    switch ( signalState ) {
+    switch ( trackState ) {
 
         case DCC_SIG_CUTOUT_START: {
 
             writeDio( rNumControl, true, false );
             *timeToInterrupt  = TICKS_29_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_NONE;
-            signalState       = DCC_SIG_CUTOUT_1;
+            trackState       = DCC_SIG_CUTOUT_1;
 
         } break;
 
@@ -1042,7 +1042,7 @@ void LcsDccTrack::runDccSignalStateMachine(
             *followUpAction   = (( flags & DT_F_RAILCOM_ON ) ?
                                 DCC_SIG_FOLLOW_UP_START_RAILCOM_IO : 
                                 DCC_SIG_FOLLOW_UP_NONE );
-            signalState       = DCC_SIG_CUTOUT_2;
+            trackState       = DCC_SIG_CUTOUT_2;
 
         } break;
 
@@ -1051,7 +1051,7 @@ void LcsDccTrack::runDccSignalStateMachine(
             writeDio( rNumControl, false, true );
             *timeToInterrupt  = TICKS_29_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_NONE;
-            signalState       = DCC_SIG_CUTOUT_3;
+            trackState       = DCC_SIG_CUTOUT_3;
 
         } break;
 
@@ -1059,7 +1059,7 @@ void LcsDccTrack::runDccSignalStateMachine(
 
             writeDio( rNumControl, true, false );
             *timeToInterrupt  = TICKS_58_MICROS;
-            signalState       = DCC_SIG_CUTOUT_END;
+            trackState       = DCC_SIG_CUTOUT_END;
 
             if ( flags & DT_F_RAILCOM_ON ) {
 
@@ -1077,7 +1077,7 @@ void LcsDccTrack::runDccSignalStateMachine(
             *followUpAction   = (( flags & DT_F_RAILCOM_ON ) ?
                                 DCC_SIG_FOLLOW_UP_RAILCOM_MSG : 
                                 DCC_SIG_FOLLOW_UP_NONE );
-            signalState       = DCC_SIG_START_BIT;
+            trackState       = DCC_SIG_START_BIT;
 
         } break;
 
@@ -1086,7 +1086,7 @@ void LcsDccTrack::runDccSignalStateMachine(
             writeDio( rNumControl, true, false );
             *timeToInterrupt  = TICKS_58_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_GET_BIT;
-            signalState       = DCC_SIG_TEST_BIT;
+            trackState       = DCC_SIG_TEST_BIT;
 
         } break;
 
@@ -1099,13 +1099,13 @@ void LcsDccTrack::runDccSignalStateMachine(
                 if ( postambleSent >= postambleLen ) {
 
                     *followUpAction = DCC_SIG_FOLLOW_UP_GET_PACKET;
-                    signalState     = (( flags & DT_F_CUTOUT_ON ) ? 
+                    trackState     = (( flags & DT_F_CUTOUT_ON ) ? 
                                         DCC_SIG_CUTOUT_START : DCC_SIG_START_BIT );
                 }
                 else {
 
                     *followUpAction = DCC_SIG_FOLLOW_UP_NONE;
-                    signalState     = DCC_SIG_START_BIT;
+                    trackState     = DCC_SIG_START_BIT;
                 }
             }
             else {
@@ -1113,7 +1113,7 @@ void LcsDccTrack::runDccSignalStateMachine(
                 *followUpAction   = (( bitsSent == 0 ) ? 
                                     DCC_SIG_FOLLOW_UP_MEASURE_CURRENT :  
                                     DCC_SIG_FOLLOW_UP_NONE );
-                signalState       = DCC_SIG_ZERO_SECOND_HALF;
+                trackState       = DCC_SIG_ZERO_SECOND_HALF;
             }
 
             *timeToInterrupt  = TICKS_58_MICROS;
@@ -1125,7 +1125,7 @@ void LcsDccTrack::runDccSignalStateMachine(
             writeDio( rNumControl, false, true );
             *timeToInterrupt  = TICKS_116_MICROS;
             *followUpAction   = DCC_SIG_FOLLOW_UP_NONE;
-            signalState       = DCC_SIG_START_BIT;
+            trackState       = DCC_SIG_START_BIT;
 
         } break;
 
