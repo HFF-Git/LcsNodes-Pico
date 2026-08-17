@@ -160,7 +160,6 @@ enum SessionMapEntryFlags : uint16_t {
 // Timeout intervals for various base station tasks. Measured in milliseconds.
 //
 //----------------------------------------------------------------------------------------
-
 const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
 
 
@@ -182,12 +181,6 @@ struct LcsBaseStationSessionMapDesc {
     uint16_t    options       = SM_OPT_DEFAULT_SETTING;
     uint16_t    maxSessions   = MAX_CAB_SESSIONS;
 };
-
-
-
-
-
-
 
 //----------------------------------------------------------------------------------------
 // Every allocated loco session is described by the cabMap structure. There 
@@ -228,18 +221,25 @@ struct LcsLocoSessions {
 
     LcsLocoSessions( );
 
-    uint8_t             setup( uint16_t options, 
-                               LcsDccTrack *mainTrack,
-                               LcsDccTrack *progTrack
-                             );
+    uint8_t             setupLocoSessions( uint16_t options, 
+                                           LcsDccTrack *mainTrack,
+                                           LcsDccTrack *progTrack
+                                         );
+
+    uint8_t             setupCabEntry( LcsCabEntry *cPtr );
 
     uint16_t            getOptions( );
     uint16_t            getFlags( );
+    uint16_t            getCabCount( );
 
    
     void                emergencyStopAll( );
 
     uint8_t             setThrottle( uint16_t cabId, 
+                                     uint8_t speed, 
+                                     uint8_t direction );
+
+    uint8_t             setThrottle( LcsCabEntry *cabEntryPtr, 
                                      uint8_t speed, 
                                      uint8_t direction );
 
@@ -250,6 +250,10 @@ struct LcsLocoSessions {
     uint8_t             setDccFunctionGroup( uint16_t cabId, 
                                              uint8_t fGroup, 
                                              uint8_t dccByte );
+
+    uint8_t             setDccFunctionGroup( LcsCabEntry *cPtr, 
+                                              uint8_t fGroup, 
+                                              uint8_t dccByte );
 
     uint8_t             writeCVMain( uint16_t cabId, 
                                      uint16_t cvId, 
@@ -273,19 +277,9 @@ struct LcsLocoSessions {
     uint8_t             writeCVByte( uint16_t cvId, uint8_t val );
     uint8_t             writeCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val );
 
-    uint8_t             writeDccPacketMain( uint8_t *buf,  
-                                            uint8_t len, 
-                                            uint8_t nRepeat );
-
-    uint8_t             writeDccPacketProg( uint8_t *buf,  
-                                            uint8_t len, 
-                                            uint8_t nRepeat );
-
-    void                refreshActiveSessions( );
-    uint8_t             markSessionAlive( uint16_t cabId );
-    uint32_t            getSessionKeepAliveInterval( );
-
-
+    uint8_t             markCabAlive( uint16_t cabId );
+    uint8_t             refreshActiveSessions( );
+    
     void                printConfig( );
     void                printCabInfo( LcsCabEntry *csPtr );
     void                printCabMap( );
