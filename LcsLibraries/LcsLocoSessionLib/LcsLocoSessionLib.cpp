@@ -268,8 +268,8 @@ LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "allocateCabEntry" returns the cab entry for the cabId. If the cab already 
-// exists, it is moved to position zero in the index map, making it the most 
+// "allocateCabEntry" returns the cab entry for the cabId. If the cab already
+// exists, it is moved to position zero in the index map, making it the most
 // recently used entry.
 //
 // If the cab does not exist, a new physical entry is allocated when space is
@@ -279,10 +279,10 @@ LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 //----------------------------------------------------------------------------------------
 LcsCabEntry *LcsLocoSessions::allocateCabEntry( uint16_t cabId ) {
 
-    if ( ! validCabId( cabId )) return( nullptr );
+    if ( !validCabId( cabId )) return( nullptr );
 
     //------------------------------------------------------------------------------------
-    // Look for an existing entry. If found, we move the entry to the top and 
+    // Look for an existing entry. If found, move the entry to the top and
     // shift all others down.
     //
     //------------------------------------------------------------------------------------
@@ -308,20 +308,35 @@ LcsCabEntry *LcsLocoSessions::allocateCabEntry( uint16_t cabId ) {
 
     //------------------------------------------------------------------------------------
     // Cab was not found. Allocate a physical entry and make this entry the most
-    // recently used one. For a new entry this shifts all existing entries one 
-    // position down. For an overlay this also removes the old LRU entry from 
-    // the map. Finally, setup the entry and return a pointer to it.
+    // recently used one. If there is still room in the table, find an unused 
+    // physical entry. If the table is full, reuse the least recently used entry.
     //
     //------------------------------------------------------------------------------------
     uint16_t cabIndex;
 
     if ( cabCount < MAX_CAB_SESSIONS ) {
 
-        cabIndex = cabCount;
-        cabCount ++;
+        // Find a free physical entry.
+        for ( cabIndex = 0; cabIndex < MAX_CAB_SESSIONS; cabIndex++ ) {
 
-    } else cabIndex = cabIndexMap[ MAX_CAB_SESSIONS - 1 ];
+            if ( cabMap[ cabIndex ].cabId == NIL_CAB_ID ) break;
+        }
 
+        cabMap[ cabIndex ].cabId = cabId;
+        cabCount++;
+
+    } else {
+
+        // Table is full. Reuse the least recently used entry.
+        cabIndex = cabIndexMap[ MAX_CAB_SESSIONS - 1 ];
+    }
+
+    //------------------------------------------------------------------------------------
+    // Make this entry the most recently used one. For a new entry this shifts
+    // all existing entries one position down. For an overlay this removes the
+    // old LRU entry from the map.
+    //
+    //------------------------------------------------------------------------------------
     for ( uint16_t j = cabCount - 1; j > 0; j-- ) {
 
         cabIndexMap[ j ] = cabIndexMap[ j - 1 ];
@@ -329,10 +344,16 @@ LcsCabEntry *LcsLocoSessions::allocateCabEntry( uint16_t cabId ) {
 
     cabIndexMap[ 0 ] = cabIndex;
 
+    //------------------------------------------------------------------------------------
+    // Initialize the physical entry.
+    //
+    //------------------------------------------------------------------------------------
     LcsCabEntry *ptr = &cabMap[ cabIndex ];
+
     setupCabEntry( ptr, cabId );
     return( ptr );
 }
+
 
 //----------------------------------------------------------------------------------------
 // "deallocateCabEntry" removes a cab entry from the map. Any entry above the
@@ -347,12 +368,15 @@ void LcsLocoSessions::deallocateCabEntry( uint16_t cabId ) {
 
         if ( cabMap[ cabIndex ].cabId == cabId ) {
 
+            // Remove the entry from the MRU map.
             for ( uint16_t j = i; j + 1 < cabCount; j++ ) {
 
                 cabIndexMap[ j ] = cabIndexMap[ j + 1 ];
             }
 
-            cabCount --;
+            // The physical entry is now free.
+            cabMap[ cabIndex ].cabId = NIL_CAB_ID;
+            cabCount--;
             return;
         }
     }
@@ -380,6 +404,9 @@ void LcsLocoSessions::emergencyStopAll( ) {
 }
 
 //----------------------------------------------------------------------------------------
+//
+//
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::refreshActiveSessions( ) {
 
