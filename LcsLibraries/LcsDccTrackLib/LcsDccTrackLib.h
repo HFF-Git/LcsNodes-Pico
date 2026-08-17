@@ -134,11 +134,10 @@ enum DccTrackOptions : uint16_t {
 enum DccTrackMode : uint8_t {
 
     DT_M_NIL                    = 0,
-    DT_M_TRACK_OFF              = 1,
-    DT_M_PLAIN                  = 2,
-    DT_M_CUTOUT                 = 3,
-    DT_M_RAILCOM                = 4,
-    DT_M_ACC_DETECT             = 5
+    DT_M_PLAIN                  = 1,
+    DT_M_CUTOUT                 = 2,
+    DT_M_RAILCOM                = 3,
+    DT_M_ACC_DETECT             = 4
 };
 
 //----------------------------------------------------------------------------------------
@@ -349,12 +348,12 @@ struct LcsDccTrack {
     uint8_t             railComBufIndex                     = 0;
     uint8_t             railComMsgBuf[ RAILCOM_BUF_SIZE ]   = { 0 };
 
-    // ??? add base station capabilities according to RCN200 - 4 16 bit words
-    // sample values per second for samples and dcc packets
     // ??? add buffers for POM / XPOM data
     // ??? add queue for POM / XPOM commands
 
     public:
+
+    static  uint16_t    debugMask;
 
     // ??? setup both ? how to return errors ?
     static void         setup( LcsDccTrackDesc *desc );

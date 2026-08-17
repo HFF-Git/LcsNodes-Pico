@@ -42,12 +42,6 @@ using namespace CDC;
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// External global variables.
-//
-//----------------------------------------------------------------------------------------
-extern uint16_t debugMask;
-
-//----------------------------------------------------------------------------------------
 // 
 // 
 //----------------------------------------------------------------------------------------
@@ -145,7 +139,7 @@ const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 DccPacket       idleDccPacket           = { 3, 0, { 0xFF, 0x00, 0xFF }};
 DccPacket       resetDccPacket          = { 3, 0, { 0x00, 0x00, 0x00 }};
 const uint8_t   bitMask9[ ]             = { 0x00, 0x80, 0x40, 0x20, 0x10, 
-                                        0x08, 0x04, 0x02, 0x01 };
+                                            0x08, 0x04, 0x02, 0x01 };
 
 //----------------------------------------------------------------------------------------
 // Programming decoders require to detect a short rise in power consumption. The
@@ -198,7 +192,6 @@ const uint16_t MAX_OVERLOAD_EVENT_COUNT = 10;
 //----------------------------------------------------------------------------------------
 enum DccSignalState : uint8_t {
 
-    DCC_SIG_TRACK_OFF           = 0,
     DCC_SIG_CUTOUT_START        = 1,
     DCC_SIG_CUTOUT_1            = 2,
     DCC_SIG_CUTOUT_2            = 3,
@@ -570,9 +563,9 @@ inline void followUpDccTrackWork( uint8_t followUp,
 // DCC system. The two DCC track signal generators state machines MAIN and PROG 
 // use the same timer interrupt handler. Upon the timer interrupt, we first will 
 // update the time left counters. If a counter falls to zero, the signal state 
-// machine for that track will run and set the DCC signal levels. The state machine
-// returns the next time interval it expects to be called again and a possible 
-// follow up action code. 
+// machine for that track will run and set the DCC signal levels. The state 
+// machine returns the next time interval it expects to be called again and a 
+// possible follow up action code. 
 //
 // After handling both state machines, the timer is set to the smaller new 
 // remaining minimum time interval of both state machines. This is the time when 
@@ -583,6 +576,18 @@ inline void followUpDccTrackWork( uint8_t followUp,
 // If a state machine determined that it needs to do some more elaborate action, 
 // the interrupt handler runs part two of its work. See "followUpDccTrackWork"
 // what needs to be done.
+//
+// 
+// ??? we need a way to ensure that the signal interrupts for both tacks stay
+// in sync. The cutout introduces a 29 us tick but gets us back to a 58us
+// baseline after the cutout. But what if a track mode is set with exactly 
+// 1 tick, i.e. 29us, off ? Then we would have a lot of interrupts at 29us
+// time marks. Is just more load .....
+//
+// Idea: introduce a "SYNC" state. If one track is not at a 58us boundary while
+// switching modes, a delay of 1 tick is inserted. 
+// 
+// ??? how to know we are at that 58us boundary ?
 //
 //----------------------------------------------------------------------------------------
 void timerCallback( uint32_t timerVal ) {
@@ -625,7 +630,7 @@ void timerCallback( uint32_t timerVal ) {
 // operation is to  start the timer heartbeat. We start by firing up the timer 
 // with a first short delay, so when it expires the timer routine will be called. 
 // The current time tick of zero and no ticks left, so the state machine for the 
-//signals will run.
+// signals will run.
 //
 //----------------------------------------------------------------------------------------
 void initDccTrackProcessing( ) {
@@ -636,7 +641,7 @@ void initDccTrackProcessing( ) {
     timeLeftProgTrack   = 0;
     
     uint8_t rStat = configureTimer( rNumTimer, timerCallback );
-    startRepeatingTimer( rNumTimer, TICK_IN_MICROSECONDS );
+    startRepeatingTimer( rNumTimer, TICKS_58_MICROS );
 }   
 
 
@@ -861,16 +866,6 @@ void LcsDccTrack::runDccTrackStateMachine(
     ) {
 
     switch ( trackState ) {
-
-        case DCC_SIG_TRACK_OFF: {
-
-            writeDio( rNumEnable, false );
-            writeDio( rNumControl, false, false );
-            flags               &= ~ DT_F_POWER_ON;
-             *followUpAction    = DCC_SIG_FOLLOW_UP_NONE;
-            trackState          = DCC_SIG_TRACK_OFF;
-           
-        } break;
 
         case DCC_SIG_CUTOUT_START: {
 
@@ -1224,7 +1219,6 @@ void LcsDccTrack::powerEnable( bool enable ) {
 
     
         flags |= DT_F_POWER_ON;
-
     }
     else {
 
@@ -1239,19 +1233,13 @@ void LcsDccTrack::powerEnable( bool enable ) {
 // modes, we set the packet characteristics and point the track state machine
 // at the respective start.
 //
-// ??? should we set signals too ?
+// ??? perhaps a bit tricky if we are interrupted in the middle....
 //----------------------------------------------------------------------------------------
 void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
 
     trackMode = mode;
 
     switch ( trackMode ) {
-
-        case DT_M_TRACK_OFF: {
-
-            trackState      =   DCC_SIG_TRACK_OFF;
-
-        } break;
 
         case DT_M_PLAIN: {
 
@@ -1271,7 +1259,7 @@ void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
             flags           |=  DT_F_CUTOUT_ON;
             activeBufPtr    =   &idleDccPacket;
             pendingBufPtr   =   &dccBuf1;
-            trackState      =  DCC_SIG_CUTOUT_START;
+            trackState      =   DCC_SIG_CUTOUT_START;
 
         } break;
 
@@ -1280,11 +1268,10 @@ void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
             preambleLen     =   MAIN_PACKET_PREAMBLE_BIT_LEN;
             preambleLen     -=  DCC_PACKET_CUTOUT_BIT_LEN;
             postambleLen    =   MAIN_PACKET_POSTAMBLE_BIT_LEN;
-            flags           |=  DT_F_CUTOUT_ON;
-            flags           |=  DT_F_RAILCOM_ON;
+            flags           |=  DT_F_CUTOUT_ON | DT_F_RAILCOM_ON;
             activeBufPtr    =   &idleDccPacket;
             pendingBufPtr   =   &dccBuf1;
-            trackState     =  DCC_SIG_CUTOUT_START;
+            trackState      =   DCC_SIG_CUTOUT_START;
 
         } break;
 
@@ -1295,7 +1282,7 @@ void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
             flags           |=  DT_F_ACC_DETECT_ON;
             activeBufPtr    =   &resetDccPacket;
             pendingBufPtr   =   &dccBuf1;
-            trackState     =   DCC_SIG_START_BIT;
+            trackState      =   DCC_SIG_START_BIT;
 
         } break;
 
@@ -1305,7 +1292,7 @@ void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
             postambleLen    =   MAIN_PACKET_POSTAMBLE_BIT_LEN;
             activeBufPtr    =   &idleDccPacket;
             pendingBufPtr   =   &dccBuf1;
-            trackState     =   DCC_SIG_START_BIT;
+            trackState      =   DCC_SIG_START_BIT;
         }
     }
 }

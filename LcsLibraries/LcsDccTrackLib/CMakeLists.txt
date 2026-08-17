@@ -9,6 +9,7 @@ add_library( ${PROJECT_NAME} STATIC
     
     LcsDccTrackLib.h 
     LcsDccTrackLib.cpp
+    LcsDccSignalGen.pio
 ) 
 
 target_include_directories( ${PROJECT_NAME} INTERFACE 
