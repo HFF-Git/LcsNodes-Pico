@@ -228,10 +228,6 @@ struct LcsDccTrack {
 
     public:
 
-    LcsDccTrack( );
-
-    bool                setupDccTrack( LcsDccTrackDesc* trackDesc );
-
     void                loadPacket( const uint8_t *packet, 
                                     uint8_t len, 
                                     uint8_t repeat = 0 );
@@ -296,6 +292,7 @@ struct LcsDccTrack {
 
     volatile uint16_t   flags                               = DT_F_NIL;
     uint8_t             errCode                             = 0;
+    uint16_t            getDebugMask                        = 0;
 
     volatile uint8_t    trackState                          = 0;
 
@@ -351,14 +348,17 @@ struct LcsDccTrack {
     // ??? add buffers for POM / XPOM data
     // ??? add queue for POM / XPOM commands
 
+    private:
+
+    LcsDccTrack( );
+    bool                setupDccTrack( LcsDccTrackDesc* trackDesc );
+
     public:
 
-    static  uint16_t    debugMask;
-
-    // ??? setup both ? how to return errors ?
-    static void         setup( LcsDccTrackDesc *desc );
-
-    LcsDccTrack         *getTrackMain( );
-    LcsDccTrack         *getTrackProg( );
+    static void         setupDccTrackLib( );
+    static LcsDccTrack  *createTrackA( LcsDccTrackDesc *desc );
+    static LcsDccTrack  *createTrackB( LcsDccTrackDesc *desc );
+    static LcsDccTrack  *getTrackA( );
+    static LcsDccTrack  *getTrackB( );
     static void         startDccProcessing( );
 };

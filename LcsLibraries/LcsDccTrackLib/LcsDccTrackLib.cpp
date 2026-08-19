@@ -100,10 +100,10 @@ using namespace CDC;
 // of track, so we know which global variable to set. Likewise, the descriptor
 // contains the resource Id of the timer, last descriptor wins.
 //
- //----------------------------------------------------------------------------------------
-LcsDccTrack  *mainTrack  = nullptr;
-LcsDccTrack  *progTrack  = nullptr;
-uint8_t      rNumTimer   = 0;
+//----------------------------------------------------------------------------------------
+uint8_t      rNumTimer  = 0;
+LcsDccTrack  *trackA    = nullptr;
+LcsDccTrack  *trackB    = nullptr;
 
 //----------------------------------------------------------------------------------------
 // DCC packet definitions. A DCC packet payload is at most 15 bytes long, 
@@ -600,12 +600,12 @@ void timerCallback( uint32_t timerVal ) {
 
     if ( timeLeftMainTrack == 0 ) {
 
-        mainTrack -> runDccTrackStateMachine( &timeLeftMainTrack, &followUpMain );
+        trackA -> runDccTrackStateMachine( &timeLeftMainTrack, &followUpMain );
     }
 
     if ( timeLeftProgTrack == 0 ) {
 
-        progTrack -> runDccTrackStateMachine( &timeLeftProgTrack, &followUpProg );
+        trackB -> runDccTrackStateMachine( &timeLeftProgTrack, &followUpProg );
     }
 
     timeToInterrupt = (( timeLeftMainTrack < timeLeftProgTrack ) ? 
@@ -615,12 +615,12 @@ void timerCallback( uint32_t timerVal ) {
 
     if ( followUpMain != DCC_SIG_FOLLOW_UP_NONE ) {
 
-        followUpDccTrackWork( followUpMain, mainTrack );
+        followUpDccTrackWork( followUpMain, trackA );
     } 
 
     if ( followUpProg != DCC_SIG_FOLLOW_UP_NONE ) {
 
-        followUpDccTrackWork( followUpProg, progTrack );
+        followUpDccTrackWork( followUpProg, trackB );
     } 
    
 } // timerCallback
@@ -647,6 +647,63 @@ void initDccTrackProcessing( ) {
 
 }; // namespace
 
+using namespace CDC;
+using namespace LCS;
+
+//========================================================================================
+//========================================================================================
+//
+// Class part.
+//
+//========================================================================================
+//========================================================================================
+
+//----------------------------------------------------------------------------------------
+// The DCC tracks are initialized with a set of class routines. We first setup 
+// the class, create the two DCC track objects based on the descriptor data and
+// then kick off the DCC timer for the track signal processing.
+//
+// The idea is that the program first creates all the DCC track objects, does 
+// whatever else needs to be initialized and then starts the signal generation 
+// with this routine.
+//
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+void LcsDccTrack::setupDccTrackLib( ) {
+
+
+}
+
+LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
+
+    trackA = new LcsDccTrack( );
+    trackA -> setupDccTrack( desc );
+    return( trackA );
+}
+
+LcsDccTrack *LcsDccTrack::createTrackB( LcsDccTrackDesc *desc ) {
+
+    trackB = new LcsDccTrack( );
+    trackB -> setupDccTrack( desc );
+    return( trackB );
+}
+
+LcsDccTrack *LcsDccTrack::getTrackA( ) {
+
+    return ( trackA );
+}
+    
+LcsDccTrack *LcsDccTrack::getTrackB( ) {
+
+    return ( trackB );
+}
+    
+void LcsDccTrack::startDccProcessing( ) {
+
+    initDccTrackProcessing( );
+}
 
 //========================================================================================
 //========================================================================================
@@ -655,20 +712,6 @@ void initDccTrackProcessing( ) {
 //
 //========================================================================================
 //========================================================================================
-using namespace CDC;
-using namespace LCS;
-
-//----------------------------------------------------------------------------------------
-// "startDccProcessing" will kick off the DCC timer for the track signal processing.
-// The idea is that the program first creates all the DCC track objects, does 
-// whatever else needs to be initialized and then starts the signal generation with
-// this routine.
-//
-//----------------------------------------------------------------------------------------
-void LcsDccTrack::startDccProcessing( ) {
-
-    initDccTrackProcessing( );
-}
 
 //----------------------------------------------------------------------------------------
 // Object instance section. The DccTrack constructor. Nothing to do so far.
@@ -771,8 +814,8 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 
     // ??? how to best say which track this is ?
 
-    if ( options & DT_OPT_SERVICE_MODE_TRACK )  progTrack = this;
-    else                                        mainTrack = this;
+    if ( options & DT_OPT_SERVICE_MODE_TRACK )  trackB = this;
+    else                                        trackA = this;
 
     // ??? we could also fire up the timer here ... if rNumTimer != 0 then 
     // we already did it ...
