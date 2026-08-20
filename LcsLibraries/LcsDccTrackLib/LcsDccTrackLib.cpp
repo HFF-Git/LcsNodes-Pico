@@ -69,6 +69,12 @@ inline bool dccTrackDebugPowerMgt( ) {
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a 
 // debugging option to set the clock much slower so that the waveform can be seen.
 //
+//
+// ??? well, waveform is stable now, we could however look at the interrupt
+// timing. Idea: use the ACTIVE LED pin to set high on timer interrupt entry
+// and off on exit. In addition, select only intervals that are 29us to see
+// if this happens often and how much CPU is consumed ...
+//
 //----------------------------------------------------------------------------------------
 #define DEBUG_WAVE_FORM 0               
 
