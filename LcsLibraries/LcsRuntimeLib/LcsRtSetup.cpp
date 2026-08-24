@@ -772,6 +772,11 @@ uint8_t registerInternalTasks( ) {
 // "PFAIL". Upon restart, we check this state and know that we came back after a
 // power fail.
 //
+// ??? we should find a way to do the PFAIL work but before entering the PFAIL 
+// state check that power is still gone. Suppose we have a short power glitch
+// that the capacitor covered. When power is back in the time the capacitor
+// covered, we are in good shape and just continue rather than shut down.
+//
 //----------------------------------------------------------------------------------------
 uint8_t powerFailHandler( ) {
 

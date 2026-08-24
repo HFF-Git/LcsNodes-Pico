@@ -178,8 +178,9 @@ const uint16_t  MAX_CAB_SESSIONS  = 128;
 //----------------------------------------------------------------------------------------
 struct LcsBaseStationSessionMapDesc {
 
-    uint16_t    options       = SM_OPT_DEFAULT_SETTING;
-    uint16_t    maxSessions   = MAX_CAB_SESSIONS;
+    uint16_t    options           = SM_OPT_DEFAULT_SETTING;
+    uint16_t    maxCabSessions    = MAX_CAB_SESSIONS;
+    uint16_t    maxActiveSessions = 32; // ??? for now ...
 };
 
 //----------------------------------------------------------------------------------------
@@ -197,6 +198,8 @@ struct LcsBaseStationSessionMapDesc {
 //----------------------------------------------------------------------------------------
 struct LcsCabEntry {
 
+    bool active ; // ???? cleanup ...
+
   uint16_t  flags               = SME_DEFAULT_SETTING;
   uint16_t  cabId               = NIL_CAB_ID;
   uint8_t   speed               = 0;
@@ -207,6 +210,30 @@ struct LcsCabEntry {
   uint32_t  lastKeepAliveTime   = 0;
   uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
 };
+
+
+// ??? how many words would we really need in the dictionary ?
+struct LcsCabEntryNVM {
+
+    uint16_t  cabId;            // 0 
+    uint16_t  flags;            // 1  
+    uint16_t  speedInfo;        // 2 - speedSteps, speed, dir       
+
+                                // 3 - 7 
+    uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
+
+
+};
+
+struct LcsCabEntryMEM {
+
+    uint16_t  cabId;            // 0 
+    uint16_t  flags;            // 1  
+
+
+};
+
+
 
 //----------------------------------------------------------------------------------------
 // The loco sessions object is the central data structure for the base station 
@@ -297,10 +324,21 @@ struct LcsLocoSessions {
     LcsDccTrack         *progTrack              = nullptr;
 
     uint16_t            cabCount                = 0;
-    uint16_t            cabIndexMap[ MAX_CAB_SESSIONS ];
+    uint16_t            activeCabCount          = 0;
+    uint16_t            cabRefreshIndex         = 0;
     LcsCabEntry         cabMap[ MAX_CAB_SESSIONS ];
+    uint16_t            activeCabList[ MAX_CAB_SESSIONS ];
 
     void                setupCabEntry( LcsCabEntry *entry, uint16_t cabId );
-    LcsCabEntry         *allocateCabEntry( uint16_t cabId );
-    void                deallocateCabEntry( uint16_t cabId );
+
+    LcsCabEntry         *activateCabEntry( uint16_t cabId );
+    void                deactivateCabEntry( uint16_t cabId );
+
+    void                addActiveCab( uint16_t locoIndex );
+    void                removeActiveCab( uint16_t locoIndex );
+    void                refreshActiveCabs( );
+    void                refreshActiveCabEntry( LcsCabEntry *cab );
+
+
+   
 };

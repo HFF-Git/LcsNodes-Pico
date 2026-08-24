@@ -25,12 +25,32 @@
 //----------------------------------------------------------------------------------------
 #include "LcsLocoSessionLib.h"
 
-// ??? abandon the idea of an explicitly allocated  session
-// ??? need to think how we still do refresh work
-// ??? refresh should also move the entry to the top ?
-// ??? be lazy in deallocating
-// ??? keep the current commands for speed, function, etc. 
-// ??? keep the CV programming stuff
+
+
+// the basic idea is that there is a loco dictionary. It will hold all 
+// locomotives entered as our "roster". This is a NVM data structure, an 
+// array of cab entries, unsorted.
+
+// At system startup, the entries are copied to a MEM structure. This is our
+// loco base. It is a sorted table. Adding and removing an entry will be done
+// at NVM level and then we re-sort the MEM table.
+
+// An auxiliary structure maps the cabId to the corresponding MEM entry.
+// This could be a 4 way 64 set cache type structure. We can really quickly
+// index into this structure to find the entry. We never remove a cache entry
+// it will be overwritten when we run out of room in a set. Not so bad. 
+
+// an alternative is to just use the MEM map to do a binary search. Worst case
+// is up to ten searches for a 1024 entry dictionary. When we have a four way
+// cache it is only 4, but there is a chance of a miss, which also will cost.
+
+// we still need to have a way to run to the list of active loco entries for 
+// refresh purposes. An active loco ( speed > 0 ), will result in sending 
+// DCC packets. We could have an auxiliary data structure to maintain a list
+// of active locos. Inactive or expired locos will just be removed. This 
+// structure should just be a list of indices of the dictionary entries active.
+
+
 
 
 ///---------------------------------------------------------------------------------------
@@ -237,149 +257,107 @@ uint16_t LcsLocoSessions::getCabCount( ) {
     return ( cabCount );
 }
 
+
+
+
+
+
 //----------------------------------------------------------------------------------------
-// ??? intended for external code to lookup an entry ... can return not found!
-// ??? needed, what is the harm to allocate on tHE FLY ?
+// "addActiveLoco" adds a loco index to the active loco list. The index is only
+// added if it is not already in the list.
+//
+//----------------------------------------------------------------------------------------
+void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
+
+    for ( uint16_t i = 0; i < activeCabCount; ++i ) {
+
+        if ( activeCabList[ i ] == locoIndex ) return;
+    }
+
+    if ( activeCabCount >= MAX_CAB_SESSIONS ) return;
+
+    activeCabList[ activeCabCount ] = locoIndex;
+    ++activeCabCount;
+}
+
+//----------------------------------------------------------------------------------------
+// "removeActiveLoco" removes a loco index from the active loco list. Order of 
+// the active list is not significant, so the last entry is moved into the 
+// position of the removed entry.
+//
+//----------------------------------------------------------------------------------------
+void LcsLocoSessions::removeActiveCab( uint16_t locoIndex ) {
+
+    for ( uint16_t i = 0; i < activeCabCount; ++i ) {
+
+        if ( activeCabList[ i ] == locoIndex ) {
+
+            activeCabCount --;
+
+            if ( i != activeCabCount )
+                activeCabList[ i ] = activeCabList[ activeCabCount ];
+
+            return;
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// "lookupCabEntry" looks for a cab entry in the sorted loco base.
+//
+// Returns a pointer to the entry if found, otherwise nullptr.
 //
 //----------------------------------------------------------------------------------------
 LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 
-     for ( uint16_t i = 0; i < cabCount; i++ ) {
+    uint16_t low  = 0;
+    uint16_t high = cabCount;
 
-        uint16_t cabIndex = cabIndexMap[ i ];
+    while ( low < high ) {
 
-        if ( cabMap[ cabIndex ].cabId == cabId ) {
+        uint16_t mid = low + ( high - low ) / 2;
 
-            if ( i != 0 ) {
-
-                for ( uint16_t j = i; j > 0; j-- ) {
-
-                    cabIndexMap[ j ] = cabIndexMap[ j - 1 ];
-                }
-
-                cabIndexMap[ 0 ] = cabIndex;
-            }
-
-            return( &cabMap[ cabIndex ] );
-        }
+        if ( cabMap[ mid ].cabId < cabId )
+            low = mid + 1;
+        else if ( cabMap[ mid ].cabId > cabId )
+            high = mid;
+        else
+            return( &cabMap[ mid ] );
     }
 
     return( nullptr );
 }
 
 //----------------------------------------------------------------------------------------
-// "allocateCabEntry" returns the cab entry for the cabId. If the cab already
-// exists, it is moved to position zero in the index map, making it the most
-// recently used entry.
-//
-// If the cab does not exist, a new physical entry is allocated when space is
-// available. Otherwise the least recently used entry is overlaid. In both cases
-// the returned entry is at position zero in the index map.
+// "allocateCabEntry" activates the cab entry. The entry already exists in the 
+// loco dictionary. If it is found, it is added to the active loco list if it 
+// isn't already active. Returns a pointer to the entry, or nullptr if the cab 
+// does not exist.
 //
 //----------------------------------------------------------------------------------------
-LcsCabEntry *LcsLocoSessions::allocateCabEntry( uint16_t cabId ) {
+LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 
-    if ( !validCabId( cabId )) return( nullptr );
+    LcsCabEntry *entry = lookupCabEntry( cabId );
+    if ( entry == nullptr ) return( nullptr );
 
-    //------------------------------------------------------------------------------------
-    // Look for an existing entry. If found, move the entry to the top and
-    // shift all others down.
-    //
-    //------------------------------------------------------------------------------------
-    for ( uint16_t i = 0; i < cabCount; i++ ) {
-
-        uint16_t cabIndex = cabIndexMap[ i ];
-
-        if ( cabMap[ cabIndex ].cabId == cabId ) {
-
-            if ( i != 0 ) {
-
-                for ( uint16_t j = i; j > 0; j-- ) {
-
-                    cabIndexMap[ j ] = cabIndexMap[ j - 1 ];
-                }
-
-                cabIndexMap[ 0 ] = cabIndex;
-            }
-
-            return( &cabMap[ cabIndex ] );
-        }
-    }
-
-    //------------------------------------------------------------------------------------
-    // Cab was not found. Allocate a physical entry and make this entry the most
-    // recently used one. If there is still room in the table, find an unused 
-    // physical entry. If the table is full, reuse the least recently used entry.
-    //
-    //------------------------------------------------------------------------------------
-    uint16_t cabIndex;
-
-    if ( cabCount < MAX_CAB_SESSIONS ) {
-
-        // Find a free physical entry.
-        for ( cabIndex = 0; cabIndex < MAX_CAB_SESSIONS; cabIndex++ ) {
-
-            if ( cabMap[ cabIndex ].cabId == NIL_CAB_ID ) break;
-        }
-
-        cabMap[ cabIndex ].cabId = cabId;
-        cabCount++;
-
-    } else {
-
-        // Table is full. Reuse the least recently used entry.
-        cabIndex = cabIndexMap[ MAX_CAB_SESSIONS - 1 ];
-    }
-
-    //------------------------------------------------------------------------------------
-    // Make this entry the most recently used one. For a new entry this shifts
-    // all existing entries one position down. For an overlay this removes the
-    // old LRU entry from the map.
-    //
-    //------------------------------------------------------------------------------------
-    for ( uint16_t j = cabCount - 1; j > 0; j-- ) {
-
-        cabIndexMap[ j ] = cabIndexMap[ j - 1 ];
-    }
-
-    cabIndexMap[ 0 ] = cabIndex;
-
-    //------------------------------------------------------------------------------------
-    // Initialize the physical entry.
-    //
-    //------------------------------------------------------------------------------------
-    LcsCabEntry *ptr = &cabMap[ cabIndex ];
-
-    setupCabEntry( ptr, cabId );
-    return( ptr );
+    if ( ! ( entry->active )) addActiveCab( entry - cabMap );
+    return( entry );
 }
 
-
 //----------------------------------------------------------------------------------------
-// "deallocateCabEntry" removes a cab entry from the map. Any entry above the
-// entry to remove is moved one place down and cabCount adjusted.
+// "deallocateCabEntry" deactivates a cab entry and removes it from the active
+// loco list. The entry remains in the dictionary base.
 //
+// ??? i am not sure what else to do. Perhaps the refresh routine using this 
+// call will set some more flags ...
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::deallocateCabEntry( uint16_t cabId ) {
+void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 
-    for ( uint16_t i = 0; i < cabCount; i++ ) {
+    LcsCabEntry *entry = lookupCabEntry( cabId );
 
-        uint16_t cabIndex = cabIndexMap[ i ];
+    if ( entry == nullptr ) return;
 
-        if ( cabMap[ cabIndex ].cabId == cabId ) {
-
-            // Remove the entry from the MRU map.
-            for ( uint16_t j = i; j + 1 < cabCount; j++ ) {
-
-                cabIndexMap[ j ] = cabIndexMap[ j + 1 ];
-            }
-
-            // The physical entry is now free.
-            cabMap[ cabIndex ].cabId = NIL_CAB_ID;
-            cabCount--;
-            return;
-        }
-    }
+    if ( entry->active ) removeActiveCab( entry - cabMap );
 }
 
 //----------------------------------------------------------------------------------------
@@ -421,7 +399,7 @@ uint8_t LcsLocoSessions::refreshActiveSessions( ) {
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::markCabAlive( uint16_t cabId ) {
 
-     LcsCabEntry *cPtr = allocateCabEntry( cabId );                                    
+    LcsCabEntry *cPtr = activateCabEntry( cabId );                                    
     if ( cPtr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     cPtr -> lastKeepAliveTime = getMillis( );
@@ -438,7 +416,7 @@ uint8_t LcsLocoSessions::setThrottle( uint16_t cabId,
                                       uint8_t speed, 
                                       uint8_t direction ) {
 
-    LcsCabEntry *ptr = allocateCabEntry( cabId );                                    
+    LcsCabEntry *ptr = activateCabEntry( cabId );                                    
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     return ( setThrottle( ptr, speed, direction ));
@@ -498,7 +476,7 @@ uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId,
                                             uint8_t fNum, 
                                             uint8_t val ) {
 
-    LcsCabEntry *ptr = allocateCabEntry( cabId );                                    
+    LcsCabEntry *ptr = activateCabEntry( cabId );                                    
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
@@ -520,7 +498,7 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( uint16_t cabId,
                                               uint8_t fGroup, 
                                               uint8_t dccByte ) {
 
-   LcsCabEntry *ptr = allocateCabEntry( cabId );                                    
+   LcsCabEntry *ptr = activateCabEntry( cabId );                                    
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     return ( setDccFunctionGroup( ptr, fGroup, dccByte ));
@@ -628,7 +606,7 @@ uint8_t LcsLocoSessions::writeCVByteMain( uint16_t cabId,
     uint8_t   pBuf[ MAX_DCC_PACKET_SIZE ];
     uint8_t   pLen = 0;
 
-    LcsCabEntry *cPtr = allocateCabEntry( cabId );                                    
+    LcsCabEntry *cPtr = activateCabEntry( cabId );                                    
     if ( cPtr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
@@ -658,7 +636,7 @@ uint8_t LcsLocoSessions::writeCVBitMain( uint16_t cabId,
                                          uint8_t bitPos, 
                                          uint8_t val ) {
 
-    LcsCabEntry *cPtr = allocateCabEntry( cabId );                                    
+    LcsCabEntry *cPtr = activateCabEntry( cabId );                                    
     if ( cPtr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
@@ -973,45 +951,49 @@ void  LcsLocoSessions::printCabMap( ) {
 }
 
 
+//----------------------------------------------------------------------------------------
+// "refreshActiveCabs" manages the cab refresh task. We need to send to an
+// active cab the DCC throttle commands to refresh the decoder settings. Since
+// we have also other things to do in a base station, we will only refresh one
+// can at a time and go round robin though the active cab list.
+//
+//----------------------------------------------------------------------------------------
+void LcsLocoSessions::refreshActiveCabs( ) {
+
+    if ( activeCabCount == 0 ) return;
+
+    uint16_t locoIndex = activeCabList[ cabRefreshIndex ];
+
+    LcsCabEntry *cab = &cabMap[ locoIndex ];
+    refreshActiveCabEntry( cab );
+    cabRefreshIndex ++;
+
+    if ( cabRefreshIndex >= activeCabCount ) cabRefreshIndex = 0;
+}
+
+//----------------------------------------------------------------------------------------
+// "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
+// for an active loco DCC packets to refresh the decoder settings. 
+// 
+// ??? do it in one step ? or also split in several steps...
+// ??? the send speed/function is very attractive if the decoder supports it ...
+// ??? if not: send speed dir, send from the ten function groups only the ones
+// that have been modified...
+//
+//----------------------------------------------------------------------------------------
+void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
+
+
+
+}
 
 
 
 #if 0
 
-//----------------------------------------------------------------------------------------
-// "refreshActiveSessions" walks through the session map up to the high water mark
-// and invokes the session refresh function for each used entry. As the refresh
-// entry routine will show, we will do this refreshing in small pieces in order to
-// stay responsive to external requests.
-//
-//
-// ??? this may should perhaps all be reworked. There are many more duties to do
-// periodically.
-//
-// ??? an active loco ( speed > 0 ) needs to be address at least every 2.5 seconds.
-//
-// ??? also a base station needs to broadcast its capabilities every
-//
-//
-// ??? change to refreshActiveCabIds
-//----------------------------------------------------------------------------------------
-void LcsBaseStationLocoSession::refreshActiveSessions( ) {
+ 
 
-    if (( flags & SM_F_ENABLE_REFRESH ) && ( sessionMapHwm > sessionMap )) {
-
-        refreshSessionEntry( sessionMapNextRefresh );
-
-        sessionMapNextRefresh ++;
-
-        if ( sessionMapNextRefresh >= sessionMapHwm ) 
-            sessionMapNextRefresh = sessionMap;
-    }
-}
-
-//----------------------------------------------------------------------------------------
-// "refreshSessionEntry" checks first that the session is still alive and then 
-// issues the next DCC packet for refreshing the loco session. To avoid DCC 
-// bandwidth issues, a loco session refresh is done in several small steps. There
+// There
 // is one state for speed and direction and steps to refresh the function groups 
 // 1 to 5. If the function refresh option is set, we use the DCC command that sets
 // speed, direction and the function flags in one DCC command.
