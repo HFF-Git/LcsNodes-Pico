@@ -135,105 +135,90 @@ enum SessionMapFlags : uint16_t {
 //----------------------------------------------------------------------------------------
 // Each session map entry has a set of flags.
 //
-//  SME_ALLOCATED           - the session is allocated, the entry valid.
+//  SME_ACTIVE              - 
 //  SME_COMBINED_REFRESH    - locomotive speed/dir and functions are refreshed.
 //  SME_SPDIR_REFRESH       - locomotive speed/dir are refreshed.
 //  SME_FUNC_REFRESH        - locomotive functions are refreshed. 
-//  SME_DISPATCHED          -
-//  SME_SHARED              -
+
 // 
+// ??? rework a little ...
 //----------------------------------------------------------------------------------------
 enum SessionMapEntryFlags : uint16_t {
 
     SME_DEFAULT_SETTING     = 0,
-    SME_ALLOCATED           = 1 << 0,
+    SME_ACTIVE              = 1 << 0,
     SME_COMBINED_REFRESH    = 1 << 1,
     SME_SPDIR_REFRESH       = 1 << 2,
     SME_FUNC_REFRESH        = 1 << 3,
-    SME_DISPATCHED          = 1 << 4,
-    SME_SHARED              = 1 << 5
+   
 };
 
 
+//----------------------------------------------------------------------------------------
+// Maximum number of cabMap entries. The maximum size size depends on the size
+// of the NVM chip on the base station board. 
+// 
+// ??? for now 128... to get going ...
+// ??? for active sessions, no real mem limit, but what is realistic ?
+//----------------------------------------------------------------------------------------
+const uint16_t  MAX_CAB_DICT_SESSIONS   = 128;
+const uint16_t  MAX_CAB_ACTIVE_SESSIONS = 32;
+
 
 //----------------------------------------------------------------------------------------
-// Timeout intervals for various base station tasks. Measured in milliseconds.
+// Every locomotive know to the system has an entry in the cabMap. Loading the
+// cabMap results in a sorted array of cabMap entries.
 //
-//----------------------------------------------------------------------------------------
-const uint32_t  SESSION_REFRESH_TASK_INTERVAL   = 50;
-
-
-//----------------------------------------------------------------------------------------
-// Maximum number of cab sessions supported by the base station.
 //
-// ??? goes into Session File...
-//----------------------------------------------------------------------------------------
-const uint16_t  MAX_CAB_SESSIONS  = 128;
-
-//----------------------------------------------------------------------------------------
-// For creating the Loco Session object the session map object is described by the
-// following descriptor.
+// ??? describe the entry....
 //
-// ??? we may not need this, just options...
-//----------------------------------------------------------------------------------------
-struct LcsBaseStationSessionMapDesc {
+// ??? describe what we get from the NVM to build this puppy.
 
-    uint16_t    options           = SM_OPT_DEFAULT_SETTING;
-    uint16_t    maxCabSessions    = MAX_CAB_SESSIONS;
-    uint16_t    maxActiveSessions = 32; // ??? for now ...
-};
-
-//----------------------------------------------------------------------------------------
-// Every allocated loco session is described by the cabMap structure. There 
-// are the engine cab Id, speed, direction and function information. There is also
-// a field that indicates when we received information for this session from a cab 
-// control handheld. The function flags are stored in an array, where each byte 
-// represents a DCC function group. So function 0 to 7 are in byte 0, function 8
-// to 15 in byte 1 and so on, up to function 80 in byte 9. This makes it easy to 
-// set a group. Most of the fields are actually used for a DCC type locomotive. 
-// When the locomotive is an analog engine, only a subset of the fields is actually
-// used. Nevertheless, even for an analog engine we will have a session. The base 
-// station will however not generate packets for this engine.
+// Cab data is stored in an 8-word entry. It contains the configured initial
+// data for the cap. There is always the cabId and some static flags. The 
+// rest are config words 0 to 5 which are loco type dependent.  
 //
+//  DCC Cab:
+//
+//      config0 -> 
+//      config1 -> 
+//      config2 -> 
+//      config3 -> 
+//      config4 -> 
+//      config5 -> 
+//  
+//  Analog Cab:
+// 
+//      config0 -> 
+//      config1 -> 
+//      config2 -> 
+//      config3 -> 
+//      config4 -> 
+//      config5 -> 
+//
+// The entries are accessed from the runtime NVM using the getAttr / setAttr
+// functions.
+//
+// ??? actually, we do not really have a struct on the NVM. So, perhaps these
+// fields are just offsets...
+//
+
+
 //----------------------------------------------------------------------------------------
 struct LcsCabEntry {
 
-    bool active ; // ???? cleanup ...
-
-  uint16_t  flags               = SME_DEFAULT_SETTING;
-  uint16_t  cabId               = NIL_CAB_ID;
-  uint8_t   speed               = 0;
-  uint8_t   speedSteps          = 128;
-  uint8_t   direction           = 0;
-  uint8_t   engineState         = 0;
-  uint8_t   nextRefreshStep     = 0;
-  uint32_t  lastKeepAliveTime   = 0;
-  uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
-};
-
-
-// ??? how many words would we really need in the dictionary ?
-struct LcsCabEntryNVM {
-
-    uint16_t  cabId;            // 0 
-    uint16_t  flags;            // 1  
-    uint16_t  speedInfo;        // 2 - speedSteps, speed, dir       
-
-                                // 3 - 7 
+    uint16_t  cabId               = NIL_CAB_ID;
+    uint16_t  flags               = SME_DEFAULT_SETTING;
+    
+    uint8_t   speed               = 0;
+    uint8_t   speedSteps          = 128;
+    uint8_t   direction           = 0;
+    uint8_t   nextRefreshStep     = 0;
+    uint32_t  lastKeepAliveTime   = 0;
     uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
 
 
 };
-
-struct LcsCabEntryMEM {
-
-    uint16_t  cabId;            // 0 
-    uint16_t  flags;            // 1  
-
-
-};
-
-
 
 //----------------------------------------------------------------------------------------
 // The loco sessions object is the central data structure for the base station 
@@ -253,13 +238,16 @@ struct LcsLocoSessions {
                                            LcsDccTrack *progTrack
                                          );
 
-    uint8_t             setupCabEntry( LcsCabEntry *cPtr );
-
+    uint8_t             loadCabMap( );
+    uint8_t             loadCabMapEntry( uint16_t cabId );
+    uint8_t             addCabEntry( LcsCabEntry *entry );
+    uint8_t             removeCabEntry( uint16_t cabId );
+    LcsCabEntry         *lookupCabEntry( uint16_t cabId );
+    
     uint16_t            getOptions( );
     uint16_t            getFlags( );
     uint16_t            getCabCount( );
 
-   
     void                emergencyStopAll( );
 
     uint8_t             setThrottle( uint16_t cabId, 
@@ -311,8 +299,6 @@ struct LcsLocoSessions {
     void                printCabInfo( LcsCabEntry *csPtr );
     void                printCabMap( );
 
-    LcsCabEntry         *lookupCabEntry( uint16_t cabId );
-  
     private:
 
     uint16_t            options                 = DT_OPT_NIL;
@@ -323,13 +309,12 @@ struct LcsLocoSessions {
     LcsDccTrack         *mainTrack              = nullptr;
     LcsDccTrack         *progTrack              = nullptr;
 
+    uint16_t            nvmCabCount             = 0;
     uint16_t            cabCount                = 0;
     uint16_t            activeCabCount          = 0;
     uint16_t            cabRefreshIndex         = 0;
-    LcsCabEntry         cabMap[ MAX_CAB_SESSIONS ];
-    uint16_t            activeCabList[ MAX_CAB_SESSIONS ];
-
-    void                setupCabEntry( LcsCabEntry *entry, uint16_t cabId );
+    LcsCabEntry         cabMap[ MAX_CAB_DICT_SESSIONS ];
+    int                 activeCabList[ MAX_CAB_ACTIVE_SESSIONS ];
 
     LcsCabEntry         *activateCabEntry( uint16_t cabId );
     void                deactivateCabEntry( uint16_t cabId );
@@ -338,7 +323,4 @@ struct LcsLocoSessions {
     void                removeActiveCab( uint16_t locoIndex );
     void                refreshActiveCabs( );
     void                refreshActiveCabEntry( LcsCabEntry *cab );
-
-
-   
 };

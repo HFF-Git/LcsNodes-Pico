@@ -235,6 +235,12 @@ enum LcsDccFuncIdMap : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
+// digital vs. analog cab types ?
+//
+//----------------------------------------------------------------------------------------
+
+
+//----------------------------------------------------------------------------------------
 // The DCC standard defines several speed step modes. Today, the 28 speed step 
 // option is the one used in all new decoders. The other speed steps are mapped 
 // to the 128 value range.
@@ -262,8 +268,8 @@ enum LocoSpeed : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Locomotive direction. Typically it is encoded in the DCC speed byte. For analog 
-// engines, we keep this scheme too.
+// Locomotive direction. Typically it is encoded in the DCC speed byte. For 
+// analog engines, we keep this scheme too.
 //
 //----------------------------------------------------------------------------------------
 enum LocoDirection : uint8_t {
@@ -273,6 +279,7 @@ enum LocoDirection : uint8_t {
     LOCO_DIR_LOCO_REVERSE  = 2
 };
 
+// ??? phase out ...
 //----------------------------------------------------------------------------------------
 // "LocSessionModes" specify the options when creating a session for the loco. 
 // Besides creating a normal session an existing session can be taken over or even
@@ -327,17 +334,6 @@ enum LcsNodePortOptions : uint16_t {
 //  NPF_EVENT_PENDING                   -   an event has been received for this
 //                                          port and is pending.
 //
-//  NPF_EXT_BOARD_PRESENT               -   when the extension I2C bus is scanned
-//                                          and one or more boards are found,
-//                                          this flags is set. 
-//                                          
-//  NPF_EXT_BOARD_VALID                 -   there is a valid extension board associated 
-//                                          with the port. This flag only applies to
-//                                          P1 .. P4.
-//
-//  NPF_EXT_BOARD_READY                 -   there is a valid extension board ready to
-//                                          be used. This flag only applies to P1 .. P4.
-//
 //----------------------------------------------------------------------------------------
 enum LcsNodePortFlags : uint16_t {
 
@@ -348,11 +344,6 @@ enum LcsNodePortFlags : uint16_t {
     NPF_PORT_EVENT_HANDLING_ENABLED     = ( 1U << 3 ),
     NPF_EVENT_PENDING                   = ( 1U << 4 ),
     NPF_REQ_PENDING                     = ( 1U << 5 ),
-    NPF_EXT_BOARD_PRESENT               = ( 1U << 6  ),
-
-    // ??? rethink...
-    NPF_EXT_BOARD_VALID                 = ( 1U << 7  ),
-    NPF_EXT_BOARD_READY                 = ( 1U << 8  )
 };
 
 //----------------------------------------------------------------------------------------
@@ -762,7 +753,9 @@ uint8_t     startRuntime( );
 // Local routines to access the node/port GET/SET/REQ items. These routines
 // return immediately to the caller with the requested data. All GET/SET/REQ
 // type messages use these calls below. A firmware should rather use the 
-// sendXXX calls.
+// sendXXX calls. One exception is the support for reading and writing a range
+// of attributes. This functionality is quite useful for loading initial data
+// attributes.
 //
 //----------------------------------------------------------------------------------------
 uint8_t     nodeGet( uint16_t npId, uint16_t item, uint16_t *arg );
@@ -772,6 +765,16 @@ uint8_t     nodeReq( uint16_t npId,
                      uint16_t item, 
                      uint16_t *arg1 = nullptr, 
                      uint16_t *arg2 = nullptr );
+
+uint8_t     nodeGetRange( uint16_t npId, 
+                          uint16_t itemStart, 
+                          uint16_t len, 
+                          uint16_t *argArray );
+
+uint8_t     nodePutRange( uint16_t npId, 
+                          uint16_t itemStart, 
+                          uint16_t len, 
+                          uint16_t *argArray );
 
 //----------------------------------------------------------------------------------------
 // Function registration routines for callbacks, tasks, driver types, etc.

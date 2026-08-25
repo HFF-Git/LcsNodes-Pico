@@ -3,8 +3,22 @@
 // LCS - Loco Session Lib
 //
 ///---------------------------------------------------------------------------------------
-// This source file contains ...
+// This source file contains functions to manage the locomotives in the layout.
+// The basic idea is that there is a cab dictionary. It will hold all cabs 
+// entered as our "roster". This is a NVM data structure, an array of cab 
+// entries, unsorted. If the cabId is not in this roster, it does not exist.
 //
+// At system startup, the entries are copied to a MEM structure. This is our
+// cab base. It is a sorted table. Adding and removing an entry will be done
+// at NVM level and then we re-sort the MEM table.
+//
+// An auxiliary structure contains the entry index of the currently active
+// cabs. Looking up a cab in the cabMap result in adding the index to the list.
+// A refresh mechanism will remove indices of non-active cabs. 
+//
+// The majority of the library functions are to build the DCC packets that we 
+// send to the cabs. Also, for DCC the CV programming mode packets are created.
+// 
 ///---------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Raspberry PI Pico Implementation
@@ -25,39 +39,13 @@
 //----------------------------------------------------------------------------------------
 #include "LcsLocoSessionLib.h"
 
-
-
-// the basic idea is that there is a loco dictionary. It will hold all 
-// locomotives entered as our "roster". This is a NVM data structure, an 
-// array of cab entries, unsorted.
-
-// At system startup, the entries are copied to a MEM structure. This is our
-// loco base. It is a sorted table. Adding and removing an entry will be done
-// at NVM level and then we re-sort the MEM table.
-
-// An auxiliary structure maps the cabId to the corresponding MEM entry.
-// This could be a 4 way 64 set cache type structure. We can really quickly
-// index into this structure to find the entry. We never remove a cache entry
-// it will be overwritten when we run out of room in a set. Not so bad. 
-
-// an alternative is to just use the MEM map to do a binary search. Worst case
-// is up to ten searches for a 1024 entry dictionary. When we have a four way
-// cache it is only 4, but there is a chance of a miss, which also will cost.
-
-// we still need to have a way to run to the list of active loco entries for 
-// refresh purposes. An active loco ( speed > 0 ), will result in sending 
-// DCC packets. We could have an auxiliary data structure to maintain a list
-// of active locos. Inactive or expired locos will just be removed. This 
-// structure should just be a list of indices of the dictionary entries active.
-
-
-
-
 ///---------------------------------------------------------------------------------------
 // Local name space.
 //
 ///---------------------------------------------------------------------------------------
 namespace {
+
+using namespace LCS;
 
 //----------------------------------------------------------------------------------------
 // DCC packet definitions. A DCC packet payload is at most 10 bytes long, excluding
@@ -175,6 +163,34 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
     else                                    return ( 0 );
 }
 
+//----------------------------------------------------------------------------------------
+// 
+//  - need a routine to access the NVM cab count.
+//
+// 
+//----------------------------------------------------------------------------------------
+
+const uint16_t NVM_CAB_MAP_OFS = 8192;  // ??? for now ...
+
+uint8_t getNvmCabCount( uint16_t *cabCount ) {
+
+    uint8_t rStat = nodeGet( 0,0, cabCount ); // ??? for now ...
+    return ( LCS_OK );
+}
+
+uint8_t putNvmCabCount( uint16_t cabCount ) {
+
+    uint8_t rStat = nodeSet( 0, 0, cabCount ); // ??? for now ...
+    return ( LCS_OK );
+}
+
+// ??? we could use a routine that reads the attributes of the entry and 
+// return the MEM version of the data.
+
+// ??? we could also use a routine to read a number of attributes in one go.
+// ??? -> put in runtime, only locally available.
+
+
 }; // namespace
 
 //----------------------------------------------------------------------------------------
@@ -184,9 +200,12 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
 LcsLocoSessions::LcsLocoSessions( ) { }
 
 //----------------------------------------------------------------------------------------
-// "setupLocoSessions" gets the show on the road.
+// "setupLocoSessions" gets the show on the road. We will keep a local copy of
+// the two tracks for MAIN and PROG. 
 //
+// ??? add debug info ...
 //
+// ??? confusing index 0 ???
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options, 
                                             LcsDccTrack *mainTrack,
@@ -208,35 +227,32 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
     if ( options & SM_OPT_ENABLE_REFRESH )      flags |= SM_F_ENABLE_REFRESH;
     if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) flags |= SM_F_KEEP_ALIVE_CHECKING;
 
-    for ( int i = 0; i < MAX_CAB_SESSIONS; i++ ) {
+    for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
 
-        cabIndexMap[ i ] = 0;
-        setupCabEntry( &cabMap[ i ] );
+        // ??? clear the entry...
+
+    }
+
+    for ( int i = 0; i < MAX_CAB_ACTIVE_SESSIONS; i ++ ) {
+        
+        activeCabList[ i ] = -1;
     }
 
     return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
+// "loadCabMap" ...
 //
 //
-// ??? linkage to a dictionary ?
 //----------------------------------------------------------------------------------------
-uint8_t LcsLocoSessions::setupCabEntry( LcsCabEntry *cPtr ) {
+uint8_t LcsLocoSessions::loadCabMap( ) {
 
-    cPtr -> flags              = SME_DEFAULT_SETTING;
-    cPtr -> cabId               = NIL_CAB_ID;
-    cPtr -> speed               = 0;
-    cPtr -> speedSteps          = 128;
-    cPtr -> direction           = 0;
-    cPtr -> engineState         = 0;
-    cPtr -> nextRefreshStep     = 0;
-    cPtr -> lastKeepAliveTime   = 0;
-    cPtr -> functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
+    // ??? read NVM entries data and build the cabEntries. 
+    // ??? sort the array.
 
-    return ( LCS_OK );
+    return( LCS_OK );
 }
-
 
 //----------------------------------------------------------------------------------------
 // Getter methods for session related info. Straightforward.
@@ -257,14 +273,47 @@ uint16_t LcsLocoSessions::getCabCount( ) {
     return ( cabCount );
 }
 
+//----------------------------------------------------------------------------------------
+// "addNvmCabEntry" is used to add a cab configuration to the the NVM cabMap.
+// We just add the entry to the NVM array and increment the NVM cab count.
+// The MEM data structure needs to be reloaded and sorted then. We can do this
+// also after all entries are added.
+//
+// ??? we perhaps need a different signature. It will just add data to the 
+// NVM cabMap. ( an array of uint16_t words ?)
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::addCabEntry( LcsCabEntry *entry ) {
 
+    uint8_t rStat = LCS_OK;
 
-
-
+    // if room, append to NVM
+    // increment NVM cab count 
+   
+    
+    return ( rStat );
+}
 
 //----------------------------------------------------------------------------------------
-// "addActiveLoco" adds a loco index to the active loco list. The index is only
-// added if it is not already in the list.
+// "removeNvmCabEntry" removes an entry from the NVM cabMap.  Order of the cabMap
+// is not significant, so the last entry is moved into the position of the 
+// removed entry. The cabCount is decremented. The MEM data structure needs to
+// be reloaded and sorted then. We can do this also after all entries are added.
+// 
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
+
+    uint8_t rStat = LCS_OK;
+
+    // we have the index ?
+    // copy the entry at cabCount to this place
+    // decrement cabCount
+
+    return ( rStat );
+}
+
+//----------------------------------------------------------------------------------------
+// "addActiveLoco" adds a cab entry index to the active cab list. The index is
+// only added if it is not already in the list.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
@@ -274,15 +323,15 @@ void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
         if ( activeCabList[ i ] == locoIndex ) return;
     }
 
-    if ( activeCabCount >= MAX_CAB_SESSIONS ) return;
+    if ( activeCabCount >= MAX_CAB_ACTIVE_SESSIONS ) return;
 
     activeCabList[ activeCabCount ] = locoIndex;
     ++activeCabCount;
 }
 
 //----------------------------------------------------------------------------------------
-// "removeActiveLoco" removes a loco index from the active loco list. Order of 
-// the active list is not significant, so the last entry is moved into the 
+// "removeActiveLoco" removes a cab entry index from the active cab list. Order
+// of the active list is not significant, so the last entry is moved into the 
 // position of the removed entry.
 //
 //----------------------------------------------------------------------------------------
@@ -340,7 +389,7 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
     LcsCabEntry *entry = lookupCabEntry( cabId );
     if ( entry == nullptr ) return( nullptr );
 
-    if ( ! ( entry->active )) addActiveCab( entry - cabMap );
+    if ( ! ( entry -> flags & SME_ACTIVE )) addActiveCab( entry - cabMap );
     return( entry );
 }
 
@@ -354,10 +403,9 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 
     LcsCabEntry *entry = lookupCabEntry( cabId );
-
     if ( entry == nullptr ) return;
 
-    if ( entry->active ) removeActiveCab( entry - cabMap );
+    if ( entry -> flags & SME_ACTIVE ) removeActiveCab( entry - cabMap );
 }
 
 //----------------------------------------------------------------------------------------
@@ -382,13 +430,39 @@ void LcsLocoSessions::emergencyStopAll( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
-//
+// "refreshActiveCabs" manages the cab refresh task. We need to send to an
+// active cab the DCC throttle commands to refresh the decoder settings. Since
+// we have also other things to do in a base station, we will only refresh one
+// can at a time and go round robin though the active cab list.
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsLocoSessions::refreshActiveSessions( ) {
+void LcsLocoSessions::refreshActiveCabs( ) {
 
-    return( 0 );
+    if ( activeCabCount == 0 ) return;
+
+    uint16_t locoIndex = activeCabList[ cabRefreshIndex ];
+
+    LcsCabEntry *cab = &cabMap[ locoIndex ];
+    refreshActiveCabEntry( cab );
+    cabRefreshIndex ++;
+
+    if ( cabRefreshIndex >= activeCabCount ) cabRefreshIndex = 0;
+}
+
+//----------------------------------------------------------------------------------------
+// "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
+// for an active loco DCC packets to refresh the decoder settings. 
+// 
+// ??? do it in one step ? or also split in several steps...
+// ??? the send speed/function is very attractive if the decoder supports it ...
+// ??? if not: send speed dir, send from the ten function groups only the ones
+// that have been modified...
+//
+//----------------------------------------------------------------------------------------
+void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
+
+
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -467,9 +541,9 @@ uint8_t LcsLocoSessions::setThrottle( LcsCabEntry *cPtr,
 //----------------------------------------------------------------------------------------
 // "setDccFunctionBit" controls the functions in a decoder. The DCC function 
 // flags F0 .. F68 are stored in ten groups. The routines first updates the 
-// function bit in the loco session entry data structure, so we can keep track 
-// of the values. This is important as the DCC commands send out entire groups 
-// only. The actual work is then done by the "setDccFunctionGroup" method.
+// function bit in the cab entry data structure, so we can keep track of the 
+// values. This is important as the DCC commands send out entire groups only. 
+// The actual work is then done by the "setDccFunctionGroup" method.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId, 
@@ -492,7 +566,7 @@ uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId,
 // will first find the session entry, do the argument checks and the invoke the 
 // internal signature.
 //
-// ??? change to lookup by cabId
+// ??? keep track which group was modified ? ( for refresh logic )
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setDccFunctionGroup( uint16_t cabId, 
                                               uint8_t fGroup, 
@@ -881,6 +955,7 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
 
     // ???
     // if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
     cvId--;
 
@@ -901,19 +976,6 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
                         LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-void LcsLocoSessions::printConfig( ) {
-
-    printf( "LocoSessions Config\n" );
-    printf( " Options: 0x%x\n", options );
-   
-    // ??? to do ...
-
-
-}
 
 //----------------------------------------------------------------------------------------
 // "printCabInfo" lists a cab entry. 
@@ -940,52 +1002,33 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr ) {
 
 //----------------------------------------------------------------------------------------
 //
-//
+// ??? print the entire cabMap ?
+// ??? print just the active cab list ?
 //----------------------------------------------------------------------------------------
 void  LcsLocoSessions::printCabMap( ) {
 
      // ??? to do ...
     printf( "Active Cabs: \n" );
 
-
-}
-
-
-//----------------------------------------------------------------------------------------
-// "refreshActiveCabs" manages the cab refresh task. We need to send to an
-// active cab the DCC throttle commands to refresh the decoder settings. Since
-// we have also other things to do in a base station, we will only refresh one
-// can at a time and go round robin though the active cab list.
-//
-//----------------------------------------------------------------------------------------
-void LcsLocoSessions::refreshActiveCabs( ) {
-
-    if ( activeCabCount == 0 ) return;
-
-    uint16_t locoIndex = activeCabList[ cabRefreshIndex ];
-
-    LcsCabEntry *cab = &cabMap[ locoIndex ];
-    refreshActiveCabEntry( cab );
-    cabRefreshIndex ++;
-
-    if ( cabRefreshIndex >= activeCabCount ) cabRefreshIndex = 0;
 }
 
 //----------------------------------------------------------------------------------------
-// "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
-// for an active loco DCC packets to refresh the decoder settings. 
 // 
-// ??? do it in one step ? or also split in several steps...
-// ??? the send speed/function is very attractive if the decoder supports it ...
-// ??? if not: send speed dir, send from the ten function groups only the ones
-// that have been modified...
-//
+// ??? print the entire cabMap ?
+// ??? print just the active cab list ?
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
+void LcsLocoSessions::printConfig( ) {
 
+    printf( "LocoSessions Config\n" );
+    printf( " Options: 0x%x\n", options );
+   
+    // ??? to do ...
 
 
 }
+
+
+
 
 
 

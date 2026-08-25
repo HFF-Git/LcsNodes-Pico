@@ -658,6 +658,30 @@ uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t nodeGetRange( uint16_t npId, 
+                      uint16_t itemStart, 
+                      uint16_t len, 
+                      uint16_t *argArray ) {
+
+    return( RET_STAT( ERR_NOT_IMPLEMENTED ));
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t nodePutRange( uint16_t npId, 
+                      uint16_t itemStart, 
+                      uint16_t len, 
+                      uint16_t *argArray ) {
+
+    return( RET_STAT( ERR_NOT_IMPLEMENTED ));
+}
+
+//----------------------------------------------------------------------------------------
 // "nodeReq" will carry out a node, port or driver function request. The "npId"
 // argument contains the node/port/channel Id. The "item" argument indicates the
 // requested function. The "arg1" and "arg2" arguments are optional arguments 
