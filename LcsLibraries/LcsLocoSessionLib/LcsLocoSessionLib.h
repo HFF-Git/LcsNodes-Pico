@@ -110,7 +110,6 @@ enum SessionMapOptions : uint16_t {
     SM_OPT_DEFAULT_SETTING      = 0,
     SM_OPT_KEEP_ALIVE_CHECKING  = 1 << 0,
     SM_OPT_ENABLE_REFRESH       = 1 << 1,
-    SM_SESSION_AUTO_CREATE      = 1 << 3,
 };
 
 //----------------------------------------------------------------------------------------
@@ -169,43 +168,72 @@ const uint16_t  MAX_CAB_ACTIVE_SESSIONS = 32;
 // Every locomotive know to the system has an entry in the cabMap. Loading the
 // cabMap results in a sorted array of cabMap entries.
 //
-//
-// ??? describe the entry....
-//
-// ??? describe what we get from the NVM to build this puppy.
-
-// Cab data is stored in an 8-word entry. It contains the configured initial
-// data for the cap. There is always the cabId and some static flags. The 
-// rest are config words 0 to 5 which are loco type dependent.  
-//
-//  DCC Cab:
-//
-//      config0 -> 
-//      config1 -> 
-//      config2 -> 
-//      config3 -> 
-//      config4 -> 
-//      config5 -> 
-//  
-//  Analog Cab:
-// 
-//      config0 -> 
-//      config1 -> 
-//      config2 -> 
-//      config3 -> 
-//      config4 -> 
-//      config5 -> 
-//
-// The entries are accessed from the runtime NVM using the getAttr / setAttr
-// functions.
+// Cab data is stored in an 16-word entry. It contains the configured initial
+// data for the cab. The entries are accessed from the runtime NVM using the 
+// getAttr / setAttr functions.
 //
 // ??? actually, we do not really have a struct on the NVM. So, perhaps these
 // fields are just offsets...
 //
+// The following table shows the dictionary word layout for digital and analog
+// locomotives.
+//
+//              DCC Mode                            Analog Mode
+//
+//          :---------------------------:       :---------------------------:   
+//      0   :   cabId                   :       :   cabId                   :
+//          :---------------------------:       :---------------------------:
+//      1   :   flags                   :       :   flags                   :  
+//          :---------------------------:       :---------------------------:
+//      2   :                           :       :                           : 
+//          :---------------------------:       :---------------------------:
+//      3   :                           :       :                           : 
+//          :---------------------------:       :---------------------------:
+//      4   :                           :       :                           : 
+//          :---------------------------:       :---------------------------:
+//      5   :                           :       :                           : 
+//          :---------------------------:       :---------------------------:
+//      6   :                           :       :                           : 
+//          :---------------------------:       :---------------------------:
+//      7   :                           :       :                           : 
+//          :---------------------------:       :---------------------------:
+//      8   :   Speed map MIN,s1        :       :   Speed map MIN,s1        : 
+//          :---------------------------:       :---------------------------:
+//      9   :   Speed map s2, s3        :       :   Speed map s2, s3        : 
+//          :---------------------------:       :---------------------------:
+//     10   :   Speed map s4, MAX       :       :   Speed map s4, MAX       : 
+//          :---------------------------:       :---------------------------:
+//     11   :   DCC function map 0      :       :   PWM Frequency           : 
+//          :---------------------------:       :---------------------------:
+//     12   :   DCC function map 1      :       :                           : 
+//          :---------------------------:       :---------------------------:
+//     13   :   DCC function map 2      :       :                           : 
+//          :---------------------------:       :---------------------------:
+//     14   :   DCC function map 3      :       :                           : 
+//          :---------------------------:       :---------------------------:
+//     15   :   DCC function map 4      :       :                           : 
+//          :---------------------------:       :---------------------------:
+   
+// DCC function map 4 uses 4 bits for F64 ... F68, remaining 11 bits are used
+// for function group change flag.
+
+// PWM frequency is encoded ....
+
+// Speed map contains the MIN, s1, s2, s3, s4, MAX settings. In DCC mode this 
+// is a speed step, in analog a PWM width or also a speed setting encoded as
+// 128 steps...
+
+// still need type, and some other data ... ?
+// ??? need a word or two for block data, e.g. a block reports on the loco...
+
+// 
 
 
 //----------------------------------------------------------------------------------------
 struct LcsCabEntry {
+
+    // ??? build a union with a struct for each ?
+    // ??? just keep cabId and flags outside ... ?
 
     uint16_t  cabId               = NIL_CAB_ID;
     uint16_t  flags               = SME_DEFAULT_SETTING;
@@ -216,7 +244,6 @@ struct LcsCabEntry {
     uint8_t   nextRefreshStep     = 0;
     uint32_t  lastKeepAliveTime   = 0;
     uint8_t   functions[ MAX_DCC_FUNC_GROUP_ID ] = { 0 };
-
 
 };
 

@@ -35,6 +35,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 //----------------------------------------------------------------------------------------
 // Little common helper functions.

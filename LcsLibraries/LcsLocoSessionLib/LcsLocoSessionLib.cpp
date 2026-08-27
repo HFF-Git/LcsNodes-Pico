@@ -169,8 +169,7 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
 //
 // 
 //----------------------------------------------------------------------------------------
-
-const uint16_t NVM_CAB_MAP_OFS = 8192;  // ??? for now ...
+const uint16_t NVM_CAB_MAP_OFS = 256;  // ??? for now ... it is items !!!
 
 uint8_t getNvmCabCount( uint16_t *cabCount ) {
 
@@ -184,11 +183,28 @@ uint8_t putNvmCabCount( uint16_t cabCount ) {
     return ( LCS_OK );
 }
 
-// ??? we could use a routine that reads the attributes of the entry and 
-// return the MEM version of the data.
+//----------------------------------------------------------------------------------------
+// The  sort routine will need a comparison function.
+//
+//----------------------------------------------------------------------------------------
+int compareCabId( const void *a, const void *b ) {
 
-// ??? we could also use a routine to read a number of attributes in one go.
-// ??? -> put in runtime, only locally available.
+    const LcsCabEntry *x = (const LcsCabEntry *) a;
+    const LcsCabEntry *y = (const LcsCabEntry *) b;
+
+    if ( x -> cabId < y -> cabId ) return -1;
+    if ( x -> cabId > y -> cabId ) return 1;
+    return 0;
+}
+
+//----------------------------------------------------------------------------------------
+// Sort the cabMap. We simply use the C library sort function.
+//
+//----------------------------------------------------------------------------------------
+void sortCabMap( LcsCabEntry *map, uint16_t len ) {
+
+    qsort( map, len, sizeof( LcsCabEntry ), compareCabId );
+}
 
 
 }; // namespace
@@ -248,9 +264,10 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::loadCabMap( ) {
 
-    // ??? read NVM entries data and build the cabEntries. 
-    // ??? sort the array.
+    // ??? read NVM entries data into MEM. 
+   
 
+    sortCabMap( cabMap, cabCount );
     return( LCS_OK );
 }
 

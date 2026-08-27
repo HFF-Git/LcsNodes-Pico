@@ -8,7 +8,8 @@
 // item itself is a number. items are organized in ranges. Item 1 to 63 are
 // reserved for runtime library attribute and functions, items 64 to 127 are 
 // reserved for driver functions and items 128 to 255 are user defined items for
-// attributes and function.
+// attributes and function. In addition, there are global attributes, starting
+// at itemId 256 up to the capacity of the NVM chip.
 // 
 // This file contains the LCS runtime routines that implement attribute and
 // function access. Besides the item argument there is also the "npId" argument,
@@ -17,10 +18,6 @@
 // The port portion of the npId is used to determine the port the item refers to.
 // Finally, the channel portion of the npId is is used when the item is a driver
 // function request.
-//
-// In addition there are extended attributes for the node. They are also indexed 
-// by an item number. Item number 256 to NN are referring to them. "NN" depends
-// on the actual size of the NVM on the board. 
 //
 // Note that the routines offered in this module are blocking calls. The caller
 // will wait until the call is completed. The message system is responsible for
@@ -77,6 +74,10 @@ namespace LCS {
     extern uint8_t          rtNvmGetWord( uint32_t ofs, uint16_t *word );
 
     extern uint8_t          rtNvmPutBytes( uint32_t ofs, 
+                                           uint8_t *buf, 
+                                           uint32_t len );
+
+    extern uint8_t          rtNvmGetBytes( uint32_t ofs, 
                                            uint8_t *buf, 
                                            uint32_t len );
 };
@@ -137,6 +138,37 @@ uint8_t writeAttrMem( uint16_t port, uint16_t item, uint16_t arg ) {
     nodeData.map[ port ][ item - IR_ATTR_RANGE_START ] = arg;
     return ( NO_ERR );
 }
+
+
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+uint8_t readAttrRangeNvm( uint16_t port, 
+                          uint16_t startItem, 
+                          uint16_t len, 
+                          uint16_t *arg ) {
+
+    uint8_t  rStat;
+    uint16_t ofs;
+
+    if ( port != 0 ) {
+
+        uint16_t index  = startItem - IR_ATTR_RANGE_START;
+        ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
+            (( port * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+    }
+    else {
+
+        uint16_t index  = startItem - IR_GLOBAL_ATTR_START;
+        ofs    = NVM_EXT_NODE_DATA_OFS + sizeof( LcsNodeExtData ) + 
+                         ( index * sizeof( uint16_t ));
+    }
+
+    rStat = rtNvmGetBytes( ofs, (uint8_t *) arg, len * sizeof( uint16_t ));
+    return ( RET_STAT( rStat ));
+}
+
 
 //----------------------------------------------------------------------------------------
 // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
@@ -554,7 +586,7 @@ uint8_t drvItemRequest( uint16_t npId,
                         uint16_t *arg1, 
                         uint16_t *arg2 ) {
 
-    const int maxRetryCount = 100;
+    const int maxRetryCount = 100; // ??? for now ...
 
     uint16_t        index       = item - IR_DRV_CHAN_START;
     LcsPortMapEntry *pPtr       = & portMap.map[ portId( npId ) ];
@@ -658,27 +690,58 @@ uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "nodeGetRange" is used to locally read a range of attributes for performance
+// reasons. A npId of zero refers to the global attribute range, a npId with a
+// port Id will refer to the attribute range for the port.
 //
-//
+// ??? I am not sure we would really need this. the caller could also just 
+// do a loop reading a word at a time.... let's see...
 //----------------------------------------------------------------------------------------
 uint8_t nodeGetRange( uint16_t npId, 
                       uint16_t itemStart, 
                       uint16_t len, 
                       uint16_t *argArray ) {
 
-    return( RET_STAT( ERR_NOT_IMPLEMENTED ));
+    if ( itemDebugEnabled( )) {
+
+        printf( "nodeGetRange: npId: 0x%x, itemStart: %d, len:%d\n", 
+                npId, itemStart, len  );
+    }
+
+    uint8_t rStat;
+
+    // ??? better way to check this ... ?
+
+    if (( isInRangeU16( itemStart, 
+                        IR_ATTR_RANGE_START, IR_ATTR_RANGE_END )) &&
+        ( isInRangeU16( itemStart + len, 
+                        IR_ATTR_RANGE_START, IR_ATTR_RANGE_END ))) {
+
+
+    }
+    else if (( isInRangeU16( itemStart, 
+                             IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) &&
+             ( isInRangeU16( itemStart + len, 
+                             IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END ))) {
+
+    }
+    else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
+
+    rStat = readAttrRangeNvm( portId( npId ), itemStart, len, argArray );
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------
 //
-//
+// ??? I am not sure we would really need this. the caller could also just 
+// do a loop reading a word at a time.... let's see...
 //----------------------------------------------------------------------------------------
 uint8_t nodePutRange( uint16_t npId, 
                       uint16_t itemStart, 
                       uint16_t len, 
                       uint16_t *argArray ) {
 
-    return( RET_STAT( ERR_NOT_IMPLEMENTED ));
+    return( RET_STAT( ERR_NOT_IMPLEMENTED )); // ??? for now ...
 }
 
 //----------------------------------------------------------------------------------------
