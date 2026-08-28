@@ -48,6 +48,39 @@ namespace {
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
+// "setupDebugEnabled" and "retStat" are the debug support routines. We can 
+// easily check whether debug is enabled at all. The return status routine will
+// print out a return status message when debugging is enabled. The macro 
+// "RET_STAT" is a nice helper that adds the function name to the message.
+// 
+//----------------------------------------------------------------------------------------
+uint16_t debugMask;
+
+inline bool setupDebugEnabled( ) {
+
+    return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )); 
+}
+
+inline void enterFunc( char *name ) {
+
+    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
+}
+
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( setupDebugEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
+        else                    printf( "<-- %s: %d\n", name, errId );
+    }
+
+    return ( errId );
+}
+
+#define ENTER_FUNC() enterFunc((char *) __func__)
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
+
+//----------------------------------------------------------------------------------------
 // DCC packet definitions. A DCC packet payload is at most 10 bytes long, excluding
 // the checksum byte. This is true for XPOM support, otherwise it is according to
 // NMRA up to 6 bytes.
@@ -70,6 +103,7 @@ const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 //----------------------------------------------------------------------------------------
 // Utility routines.
 //
+// ??? what of that should actually be in the runtime lib ?
 //----------------------------------------------------------------------------------------
 bool validCabId( uint16_t cabId ) {
 
@@ -163,6 +197,8 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
     else                                    return ( 0 );
 }
 
+
+
 //----------------------------------------------------------------------------------------
 // 
 //  - need a routine to access the NVM cab count.
@@ -182,6 +218,10 @@ uint8_t putNvmCabCount( uint16_t cabCount ) {
     uint8_t rStat = nodeSet( 0, 0, cabCount ); // ??? for now ...
     return ( LCS_OK );
 }
+
+// ??? need a get Cab Mao header routine
+
+// ??? need a format Cab Map routine
 
 //----------------------------------------------------------------------------------------
 // The  sort routine will need a comparison function.
@@ -235,7 +275,7 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
     this -> options                 = options;
     this -> mainTrack               = mainTrack;
     this -> progTrack               = progTrack;
-    this -> flags                   = SM_F_DEFAULT_SETTING;
+    this -> flags                   = SM_F_NIL;
     this -> lastAliveCheckTime      = getMillis( );
     this -> refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;
     this -> cabCount                = 0;
@@ -264,11 +304,15 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::loadCabMap( ) {
 
-    // ??? read NVM entries data into MEM. 
-   
+    uint8_t rStat = LCS_OK;
 
-    sortCabMap( cabMap, cabCount );
-    return( LCS_OK );
+    // ??? read header 
+    // ??? if not valid -> format cab dictionary
+    // else read the cabMap
+
+
+    if ( rStat == LCS_OK ) ::sortCabMap( cabMap, cabCount );
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------
@@ -291,7 +335,7 @@ uint16_t LcsLocoSessions::getCabCount( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "addNvmCabEntry" is used to add a cab configuration to the the NVM cabMap.
+// "addCabEntry" is used to add a cab configuration to the the NVM cabMap.
 // We just add the entry to the NVM array and increment the NVM cab count.
 // The MEM data structure needs to be reloaded and sorted then. We can do this
 // also after all entries are added.
@@ -300,6 +344,7 @@ uint16_t LcsLocoSessions::getCabCount( ) {
 // NVM cabMap. ( an array of uint16_t words ?)
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::addCabEntry( LcsCabEntry *entry ) {
+
 
     uint8_t rStat = LCS_OK;
 
@@ -311,7 +356,7 @@ uint8_t LcsLocoSessions::addCabEntry( LcsCabEntry *entry ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "removeNvmCabEntry" removes an entry from the NVM cabMap.  Order of the cabMap
+// "removeCabEntry" removes an entry from the NVM cabMap.  Order of the cabMap
 // is not significant, so the last entry is moved into the position of the 
 // removed entry. The cabCount is decremented. The MEM data structure needs to
 // be reloaded and sorted then. We can do this also after all entries are added.
@@ -335,7 +380,7 @@ uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
 
-    for ( uint16_t i = 0; i < activeCabCount; ++i ) {
+    for ( uint16_t i = 0; i < activeCabCount; i++ ) {
 
         if ( activeCabList[ i ] == locoIndex ) return;
     }
@@ -354,7 +399,7 @@ void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::removeActiveCab( uint16_t locoIndex ) {
 
-    for ( uint16_t i = 0; i < activeCabCount; ++i ) {
+    for ( uint16_t i = 0; i < activeCabCount; i++ ) {
 
         if ( activeCabList[ i ] == locoIndex ) {
 
@@ -406,7 +451,7 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
     LcsCabEntry *entry = lookupCabEntry( cabId );
     if ( entry == nullptr ) return( nullptr );
 
-    if ( ! ( entry -> flags & SME_ACTIVE )) addActiveCab( entry - cabMap );
+    if ( ! ( entry -> flags & CMAP_F_ACTIVE )) addActiveCab( entry - cabMap );
     return( entry );
 }
 
@@ -422,7 +467,7 @@ void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
     LcsCabEntry *entry = lookupCabEntry( cabId );
     if ( entry == nullptr ) return;
 
-    if ( entry -> flags & SME_ACTIVE ) removeActiveCab( entry - cabMap );
+    if ( entry -> flags & CMAP_F_ACTIVE ) removeActiveCab( entry - cabMap );
 }
 
 //----------------------------------------------------------------------------------------
@@ -493,7 +538,7 @@ uint8_t LcsLocoSessions::markCabAlive( uint16_t cabId ) {
     LcsCabEntry *cPtr = activateCabEntry( cabId );                                    
     if ( cPtr == nullptr ) return( ERR_INVALID_CAB_ID );
 
-    cPtr -> lastKeepAliveTime = getMillis( );
+    cPtr -> flags |= CMAP_F_ALIVE;
     return ( LCS_OK );
 }
 
@@ -526,29 +571,29 @@ uint8_t LcsLocoSessions::setThrottle( LcsCabEntry *cPtr,
     uint8_t pBuf[ MAX_DCC_PACKET_SIZE ];
     uint8_t pLen = 0;
 
-    cPtr -> speed      = speed & 0x7F;
+    cPtr -> speedInfo  = speed & 0x7F;
     cPtr -> direction  = direction % 2;
 
     if ( cPtr -> cabId > 127 ) pBuf[pLen++] = highByte( cPtr -> cabId ) | 0xC0;
     pBuf[pLen++] = lowByte( cPtr -> cabId );
 
-    pBuf[pLen++] = (( cPtr -> flags & SME_COMBINED_REFRESH ) ? 0x3c : 0x3F );
+    pBuf[pLen++] = (( cPtr -> flags & CMAP_F_COMBINED_REFRESH ) ? 0x3c : 0x3F );
     pBuf[pLen++] = (( cPtr -> speed & 0x7F ) | (( cPtr -> direction ) ? 0x80 : 0 ));
 
-    if ( cPtr -> flags & SME_COMBINED_REFRESH ) {
+    if ( cPtr -> flags & CMAP_F_COMBINED_REFRESH ) {
 
-        pBuf[pLen++]  = ((( cPtr -> functions[0] & 0x10 ) >> 4 ) |
-                        (( cPtr -> functions[0] & 0x0F ) << 1 ) |
-                        (( cPtr -> functions[1] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( cPtr -> d.functions[0] & 0x10 ) >> 4 ) |
+                        (( cPtr -> d.functions[0] & 0x0F ) << 1 ) |
+                        (( cPtr -> d.functions[1] & 0x07 ) << 5 ));
 
-        pBuf[pLen++]  = ((( cPtr -> functions[1] & 0x0F ) >> 3 ) |
-                        (( cPtr -> functions[2] & 0x0F ) << 1 ) |
-                        (( cPtr -> functions[3] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( cPtr -> d.functions[1] & 0x0F ) >> 3 ) |
+                        (( cPtr -> d.functions[2] & 0x0F ) << 1 ) |
+                        (( cPtr -> d.functions[3] & 0x07 ) << 5 ));
 
-        pBuf[pLen++]  = ((( cPtr -> functions[3] & 0xf80 ) >> 3 ) |
-                        (( cPtr -> functions[4] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( cPtr -> d.functions[3] & 0xf80 ) >> 3 ) |
+                        (( cPtr -> d.functions[4] & 0x07 ) << 5 ));
 
-        pBuf[pLen++]  = (( cPtr -> functions[4] & 0xf80 ) >> 3 );
+        pBuf[pLen++]  = (( cPtr -> d.functions[4] & 0xf80 ) >> 3 );
     }
 
     mainTrack -> loadPacket( pBuf, pLen );
@@ -571,11 +616,11 @@ uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId,
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
-    setDccFuncBit( ptr -> functions, fNum, val );
+    setDccFuncBit( ptr -> d.functions, fNum, val );
 
     uint8_t fGroup = dccFunctionBitToGroup( fNum );
 
-    return ( setDccFunctionGroup( ptr, fGroup, ptr -> functions[ fGroup - 1 ] ));
+    return ( setDccFunctionGroup( ptr, fGroup, ptr -> d.functions[ fGroup - 1 ] ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -620,7 +665,7 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr,
                                               uint8_t dccByte ) {
 
     if ( ! validFunctionGroupId( fGroup )) return ( ERR_INVALID_FGROUP_ID );
-    setDccFuncGroupByte( cPtr -> functions, fGroup, dccByte );
+    setDccFuncGroupByte( cPtr -> d.functions, fGroup, dccByte );
 
     uint8_t pBuf[ MAX_DCC_PACKET_SIZE];
     uint8_t pLen = 0;
@@ -630,17 +675,17 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr,
 
     switch ( fGroup - 1 ) {
 
-        case 0: pBuf[pLen++] = ( cPtr -> functions[ 0 ] & 0x1F ) | 0x80; break;
-        case 1: pBuf[pLen++] = ( cPtr -> functions[ 1 ] & 0x0F ) | 0xB0; break;
-        case 2: pBuf[pLen++] = ( cPtr -> functions[ 2 ] & 0x0F ) | 0xA0; break;
+        case 0: pBuf[pLen++] = ( cPtr -> d.functions[ 0 ] & 0x1F ) | 0x80; break;
+        case 1: pBuf[pLen++] = ( cPtr -> d.functions[ 1 ] & 0x0F ) | 0xB0; break;
+        case 2: pBuf[pLen++] = ( cPtr -> d.functions[ 2 ] & 0x0F ) | 0xA0; break;
 
-        case 3: pBuf[pLen++] = 0xDE; pBuf[pLen++] = cPtr -> functions[ 3 ]; break;
-        case 4: pBuf[pLen++] = 0xDF; pBuf[pLen++] = cPtr -> functions[ 4 ]; break;
-        case 5: pBuf[pLen++] = 0xD8; pBuf[pLen++] = cPtr -> functions[ 5 ]; break;
-        case 6: pBuf[pLen++] = 0xD9; pBuf[pLen++] = cPtr -> functions[ 6 ]; break;
-        case 7: pBuf[pLen++] = 0xDA; pBuf[pLen++] = cPtr -> functions[ 7 ]; break;
-        case 8: pBuf[pLen++] = 0xDB; pBuf[pLen++] = cPtr -> functions[ 8 ]; break;
-        case 9: pBuf[pLen++] = 0xDC; pBuf[pLen++] = cPtr -> functions[ 9 ]; break;
+        case 3: pBuf[pLen++] = 0xDE; pBuf[pLen++] = cPtr -> d.functions[ 3 ]; break;
+        case 4: pBuf[pLen++] = 0xDF; pBuf[pLen++] = cPtr -> d.functions[ 4 ]; break;
+        case 5: pBuf[pLen++] = 0xD8; pBuf[pLen++] = cPtr -> d.functions[ 5 ]; break;
+        case 6: pBuf[pLen++] = 0xD9; pBuf[pLen++] = cPtr -> d.functions[ 6 ]; break;
+        case 7: pBuf[pLen++] = 0xDA; pBuf[pLen++] = cPtr -> d.functions[ 7 ]; break;
+        case 8: pBuf[pLen++] = 0xDB; pBuf[pLen++] = cPtr -> d.functions[ 8 ]; break;
+        case 9: pBuf[pLen++] = 0xDC; pBuf[pLen++] = cPtr -> d.functions[ 9 ]; break;
     }
 
     mainTrack -> loadPacket( pBuf, pLen, 4 );
@@ -1010,7 +1055,7 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr ) {
 
     for ( uint8_t i = 0; i < MAX_DCC_FUNC_GROUP_ID; i++ ) {
 
-      printf( " 0x%x ", cPtr -> functions[ i ] );
+      printf( " 0x%x ", cPtr -> d.functions[ i ] );
     }
 
     printf( " Flags: 0x%x", ( cPtr -> flags ));
