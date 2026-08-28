@@ -571,14 +571,13 @@ uint8_t LcsLocoSessions::setThrottle( LcsCabEntry *cPtr,
     uint8_t pBuf[ MAX_DCC_PACKET_SIZE ];
     uint8_t pLen = 0;
 
-    cPtr -> speedInfo  = speed & 0x7F;
-    cPtr -> direction  = direction % 2;
-
+    cPtr -> speedInfo  = (( speed & 0x7F ) | (( direction ) ? 0x80 : 0 ));
+   
     if ( cPtr -> cabId > 127 ) pBuf[pLen++] = highByte( cPtr -> cabId ) | 0xC0;
     pBuf[pLen++] = lowByte( cPtr -> cabId );
 
     pBuf[pLen++] = (( cPtr -> flags & CMAP_F_COMBINED_REFRESH ) ? 0x3c : 0x3F );
-    pBuf[pLen++] = (( cPtr -> speed & 0x7F ) | (( cPtr -> direction ) ? 0x80 : 0 ));
+    pBuf[pLen++] = (uint8_t) cPtr -> speedInfo & 0xFF;
 
     if ( cPtr -> flags & CMAP_F_COMBINED_REFRESH ) {
 
@@ -1048,8 +1047,9 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr ) {
 
     if ( cPtr == nullptr ) return;
 
-    printf( "CabId: %d,  speed: %d, ", cPtr -> cabId, cPtr -> speed );
-    printf( "%s, ", (( cPtr -> direction ) ? "Rev" : "Fwd" ));
+    printf( "CabId: %d, ", cPtr -> cabId );
+    // printf( "CabId: %d,  speed: %d, ", cPtr -> cabId, cPtr -> speed );
+    // printf( "%s, ", (( cPtr -> direction ) ? "Rev" : "Fwd" ));
    
     printf( "Functions: " );
 

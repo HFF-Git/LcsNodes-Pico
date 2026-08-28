@@ -139,12 +139,44 @@ uint8_t writeAttrMem( uint16_t port, uint16_t item, uint16_t arg ) {
     return ( NO_ERR );
 }
 
+//----------------------------------------------------------------------------------------
+// "attrNvmOffset" returns the NVM offset of the attribute item Id passed. The
+// "npId" parameter contains the portId if the item is referring to a port item 
+// range. The offset returned is the absolute byte offset into the NVM chip.
+// It can be used to, for example, copy a range of data based in the starting
+// item number.
+// 
+//----------------------------------------------------------------------------------------
+uint8_t attrNvmOffset( uint16_t npId, uint16_t item, uint16_t *ofs ) {
+
+    uint8_t  rStat = LCS_OK;
+    uint16_t port  = portId( npId );  
+    
+    if (( portId( npId ) != 0 ) &&
+        ( isInRangeU16( item, IR_ATTR_RANGE_START, IR_ATTR_RANGE_END ))) {
+
+        uint16_t index  = item - IR_ATTR_RANGE_START;
+        *ofs = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
+            (( port * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+    }
+    else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
+
+        uint16_t index  = item - IR_GLOBAL_ATTR_START;
+        *ofs = NVM_EXT_NODE_DATA_OFS + sizeof( LcsNodeExtData ) + 
+                         ( index * sizeof( uint16_t ));
+    }
+    else rStat = ERR_INVALID_ITEM_ID;
+
+    return ( RET_STAT( rStat ));
+}
 
 //----------------------------------------------------------------------------------------
-// 
+// "readAttrNvmRange" reads a range of attributes based on the starting item
+// from NVM. The routine is typically used to read a whole set of data at node 
+// startup.
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrRangeNvm( uint16_t port, 
+uint8_t readAttrNvmRange( uint16_t npId, 
                           uint16_t startItem, 
                           uint16_t len, 
                           uint16_t *arg ) {
@@ -152,23 +184,34 @@ uint8_t readAttrRangeNvm( uint16_t port,
     uint8_t  rStat;
     uint16_t ofs;
 
-    if ( port != 0 ) {
+    rStat = attrNvmOffset( npId, startItem, &ofs );
 
-        uint16_t index  = startItem - IR_ATTR_RANGE_START;
-        ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
-            (( port * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
-    }
-    else {
-
-        uint16_t index  = startItem - IR_GLOBAL_ATTR_START;
-        ofs    = NVM_EXT_NODE_DATA_OFS + sizeof( LcsNodeExtData ) + 
-                         ( index * sizeof( uint16_t ));
-    }
-
-    rStat = rtNvmGetBytes( ofs, (uint8_t *) arg, len * sizeof( uint16_t ));
+    if ( rStat == LCS_OK ) rStat = rtNvmGetBytes( ofs, 
+                                                  (uint8_t *) arg, 
+                                                  len * sizeof( uint16_t ));
     return ( RET_STAT( rStat ));
 }
 
+//----------------------------------------------------------------------------------------
+// "writeAttrNvmRange" writes a range of attributes based on the starting item
+// to NVM.
+//
+//----------------------------------------------------------------------------------------
+uint8_t writeAttrNvmRange( uint16_t npId, 
+                          uint16_t startItem, 
+                          uint16_t len, 
+                          uint16_t *arg ) {
+
+    uint8_t  rStat;
+    uint16_t ofs;
+
+    rStat = attrNvmOffset( npId, startItem, &ofs );
+
+    if ( rStat == LCS_OK ) rStat = rtNvmPutBytes( ofs, 
+                                                  (uint8_t *) arg, 
+                                                  len * sizeof( uint16_t ));
+    return ( RET_STAT( rStat ));
+}
 
 //----------------------------------------------------------------------------------------
 // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
@@ -193,14 +236,14 @@ uint8_t readAttrNvm( uint16_t port, uint16_t item, uint16_t *arg ) {
 // function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t writeAttrNvm( uint16_t block, uint16_t item, uint16_t arg ) {
+uint8_t writeAttrNvm( uint16_t port, uint16_t item, uint16_t arg ) {
 
     uint16_t index  = item - IR_ATTR_RANGE_START;
     uint16_t ofs    = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map ) + 
-        (( block * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+        (( port * MAX_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 
     uint8_t rStat = rtNvmPutWord( ofs, arg );
-    if ( rStat == NO_ERR ) rStat = writeAttrMem( block, item, arg );
+    if ( rStat == NO_ERR ) rStat = writeAttrMem( port, item, arg );
     return ( rStat );
 }
 
