@@ -40,9 +40,10 @@ namespace LCS {
     extern uint16_t             debugMask;
     extern uint16_t             runtimeOptions;
     extern LcsNodeMap           nodeMap;
-    extern LcsNodeData          nodeData;
     extern LcsPortMap           portMap;
-    extern LcsEventHashMap      eventHashMap;
+    extern LcsEventMap          eventMap;
+    extern LcsPortDataMap       portDataMap;
+    extern LcsPortDataMap       globalDataMap;
     extern LcsTaskMap           taskMap;
     extern LcsMsgBusCAN         *msgBus;
     extern CdcResourceDescMap   dMap;
@@ -404,8 +405,8 @@ void dumpMemNodeData( ) {
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         printf( "Port %d:\n", i );
-        dumpMemData((uint16_t *) &nodeData.map[ i ], 
-                    MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ), 8, true );
+        dumpMemData((uint16_t *) &portDataMap.map[ i ], 
+                    MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ), 8, true );
         printf( "\n" );
     }
 }
@@ -414,11 +415,11 @@ void dumpMemNodeData( ) {
 //
 //
 //----------------------------------------------------------------------------------------
-void dumpMemEventHashMap( ) {
+void dumpMemEventMap( ) {
 
-    printf( "MEM Event Hash Map: (Size: %d) \n\n", eventHashMap.numEntries );
-    dumpMemData(( uint16_t *) &eventHashMap.map, 
-                sizeof( eventHashMap.map ), 
+    printf( "MEM Event Map: (Hwm: %d) \n\n", eventMap.mapHwm );
+    dumpMemData(( uint16_t *) eventMap.map, 
+                sizeof( eventMap.mapHwm ), 
                 8, 
                 false,
                 true );
@@ -448,7 +449,7 @@ void dumpMemRuntimeArea( ) {
     dumpMemPortMap( );
     dumpMemNodeData( );
     dumpMemTaskMap( );
-    dumpMemEventHashMap( );
+    dumpMemEventMap( );
     printf( "\n" );
 }
 
@@ -483,18 +484,18 @@ void dumpNvmNodeData( ) {
 
     printf( "NVM Node Data Dump: \n\n");
     printf( "Header: " );
-    dumpNvmData( NVM_NODE_DATA_OFS, 12, 8, false );
+    dumpNvmData( NVM_PORT_DATA_OFS, 12, 8, false );
     printf( "\n" );
 
-     uint32_t start = NVM_NODE_DATA_OFS + offsetof( LcsNodeData, map );
+     uint32_t start = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        uint32_t adr = start + ( i * MAX_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
+        uint32_t adr = start + ( i * MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
 
         printf( "Port %d:, Adr: 0x%08x\n", i, adr );
 
-        dumpNvmData( adr, MAX_ATTR_MAP_ENTRIES * 2, 8, true );
+        dumpNvmData( adr, MAX_PORT_ATTR_MAP_ENTRIES * 2, 8, true );
         printf( "\n" );
     }
 
@@ -965,7 +966,7 @@ void listStatusCommand( char *s ) {
             case 3:     dumpMemNodeData( );             break;
             case 5:     dumpMemPortMap( );              break;
             case 6:     dumpMemTaskMap( );              break;
-            case 7:     dumpMemEventHashMap( );         break;
+            case 7:     dumpMemEventMap( );             break;
             case 8:     dumpMemRuntimeArea( );          break;
 
             case 21:    dumpNvmHeader( );               break;

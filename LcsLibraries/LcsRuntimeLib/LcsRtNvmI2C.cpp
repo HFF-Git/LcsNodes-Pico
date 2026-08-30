@@ -625,11 +625,11 @@ uint8_t nvmClearArea( uint8_t rNum,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "configNvm" will setup the module local variables. We also determine chip
+// "rtNvmConfig" will setup the module local variables. We also determine chip
 // capacity and buffer page size.
 //
 //----------------------------------------------------------------------------------------
-uint8_t configNvm(  uint8_t rIdNvm, uint32_t nvmSize ) {
+uint8_t rtNvmConfig(  uint8_t rIdNvm, uint32_t nvmSize ) {
 
     rNumNvm     = rIdNvm;
     nodeNvmSize = nvmSize;
@@ -643,7 +643,7 @@ uint8_t configNvm(  uint8_t rIdNvm, uint32_t nvmSize ) {
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "configNvm: rIdNvm: %d, size: %d, blockSize: %d\n",
+        printf( "rtNvmConfig: rIdNvm: %d, size: %d, blockSize: %d\n",
                 rIdNvm, nodeNvmSize, nodeNvmBlockSize ); 
     }
 

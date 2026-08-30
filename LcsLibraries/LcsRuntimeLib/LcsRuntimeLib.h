@@ -104,6 +104,7 @@ enum LcsEventId : uint16_t {
 // The firmware to manage a given hardware extension board will be associated 
 // with this info.
 //
+// ??? does his correspond to the SocketBoard Ids ? do we need it here ?
 //----------------------------------------------------------------------------------------
 enum LcsDrvTypeId: uint16_t {
 
@@ -131,6 +132,7 @@ enum DccLocoType : uint8_t {
     LOC_T_ELECTRIC  = 3
 };
 
+// ??? goes away...
 //----------------------------------------------------------------------------------------
 // The base station maintains the locomotive sessions. A session is assigned by
 // the base station and commands for the locomotive use this session number. 
@@ -439,16 +441,17 @@ enum LcsItems : uint8_t {
     
     ITEM_ID_ADD_EVENT                   = 30,   // REQ
     ITEM_ID_REMOVE_EVENT                = 31,   // REQ
-    ITEM_ID_LOOKUP_EVENT_ENTRY          = 32,   // REQ
+    ITEM_ID_UPDATE_EVENT_MAP            = 32,   // REQ
+    ITEM_ID_LOOKUP_EVENT_ENTRY          = 33,   // REQ
 
-    ITEM_ID_GET_EVENT_MAP_ENTRY         = 33,   // REQ
-    ITEM_ID_EVENT_DELAY_TICKS           = 34,   
-    ITEM_ID_ENABLE_EVENT_PROCESSING     = 35,   // REQ
+    ITEM_ID_GET_EVENT_MAP_ENTRY         = 34,   // REQ
+    ITEM_ID_EVENT_DELAY_TICKS           = 35,   
+    ITEM_ID_ENABLE_EVENT_PROCESSING     = 36,   // REQ
 
-    ITEM_ID_SET_ACTIVE_LED              = 36,   // REQ
+    ITEM_ID_SET_ACTIVE_LED              = 37,   // REQ
 
-    ITEM_ID_SYNC_TO_EXTENDED_MEM        = 37,   // REQ
-    ITEM_ID_SYNC_TO_EXTENDED_NVM        = 38,   // REQ
+    ITEM_ID_SYNC_TO_EXTENDED_MEM        = 38,   // REQ
+    ITEM_ID_SYNC_TO_EXTENDED_NVM        = 39,   // REQ
 
     ITEM_ID_FUNCTION_START              = 64,   // GET / SET / REQ
     ITEM_ID_FUNCTION_END                = 127,  // GET / SET / REQ
@@ -481,6 +484,7 @@ enum LcsItems : uint8_t {
 //----------------------------------------------------------------------------------------
 enum DebugOptions : uint16_t {
 
+    LCS_DBG_NIL             = 0,
     LCS_DBG_ENABLE          = 0x8000,
     LCS_DBG_SETUP           = 0x0100,
     LCS_DBG_NVM_ACCESS      = 0x0200,
@@ -600,12 +604,12 @@ enum LcsErrorCodes : uint8_t {
     ERR_CAN_SETUP                       = 8,
     ERR_CALLBACK_NOT_REGISTERED         = 9,
 
-    ERR_MWORD_NODE_HEADER               = 10,
-    ERR_MWORD_NODE_MAP                  = 11,
-    ERR_MWORD_PORT_MAP                  = 12,
-    ERR_MWORD_NODE_DATA                 = 13,
-    ERR_MWORD_EVENT_MAP                 = 14,
-    ERR_MWORD_NODE_EXT_DATA_MAP         = 15,
+    ERR_NVM_HEADER                      = 10,
+    ERR_NODE_MAP_HEADER                 = 11,
+ //   ERR_MWORD_PORT_MAP                  = 12,
+    ERR_PORT_DATA_HEADER                = 13,
+    ERR_EVENT_MAP_HEADER                = 14,
+    ERR_GLOBAL_DATA_HEADER              = 15,
 
     ERR_NVM_CHIP_SIZE_DETECT            = 16,
     ERR_NVM_NODE_MAP_CORRUPT            = 17,
@@ -775,6 +779,10 @@ uint8_t     nodePutRange( uint16_t npId,
                           uint16_t itemStart, 
                           uint16_t len, 
                           uint16_t *argArray );
+
+uint8_t     nodeGetItemPtr( uint16_t npId,
+                            uint16_t item,
+                            void **itemPtr );
 
 //----------------------------------------------------------------------------------------
 // Function registration routines for callbacks, tasks, driver types, etc.

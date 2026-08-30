@@ -9,11 +9,10 @@
 // an event callback. LCS runtime functions provide the management of the event
 // map and the search routines.
 //
-// The event map is a NVM structure that is accessed at node startup. We build 
-// a hand table based memory version from it. Adding, updating and removing 
-// entries in the event map are performed on the NVM and the hash table. All 
-// lookup is however done using the hash table.
-//
+// The event map is a NVM structure that is accessed at node startup. We will 
+// load the actual entries from the map into memory and sort the table for 
+// quick lookup.
+// 
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime Library Firmware Update. 
@@ -42,7 +41,7 @@
 namespace LCS {
 
     extern uint16_t         debugMask;
-    extern LcsEventHashMap  eventHashMap;
+    extern LcsEventMap      eventMap;
 
     extern uint8_t  rtNvmPutBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
     extern uint8_t  rtNvmGetBytes(uint32_t ofs, uint8_t *buf, uint32_t len);
@@ -82,351 +81,112 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define ENTER_FUNC() enterFunc((char *) __func__)
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
+
+#include <stdlib.h>
+
 //----------------------------------------------------------------------------------------
-// Fundamental constants. 
+// Comparison function for sorting event map entries.
 //
 //----------------------------------------------------------------------------------------
-const uint32_t  FETCH_CHUNK_SIZE = 8;
+int compareEventId( const void *a, const void *b ) {
+
+    const LcsEventMapEntry *x = (const LcsEventMapEntry *) a;
+    const LcsEventMapEntry *y = (const LcsEventMapEntry *) b;
+
+    if ( x -> eventId < y -> eventId ) return -1;
+    if ( x -> eventId > y -> eventId ) return  1;
+
+    return 0;
+}
 
 //----------------------------------------------------------------------------------------
-// Hash function.
+// Sort the active portion of the event map. "mapHwm" is a byte offset. qsort() 
+// requires the number of elements.
 //
 //----------------------------------------------------------------------------------------
-static inline uint32_t hash( uint16_t x ) {
+void sortEventMap( ) {
 
-    x ^= x >> 7;
-    x *= 0x9E37;
-    x ^= x >> 9;
-    return x;
+    qsort( eventMap.map,
+           eventMap.mapHwm / sizeof( LcsEventMapEntry ),
+           sizeof( LcsEventMapEntry ),
+           compareEventId );
 }
 
 //----------------------------------------------------------------------------------------
-// Little helper functions to access the event map high water mark and an event
-// map entry.
+// Look up an event in the sorted event map. A successful lookup returns a 
+// pointer to he entry. The search uses a half-open interval [first,last), 
+// where last points one entry beyond the current search range.
 //
 //----------------------------------------------------------------------------------------
-uint8_t getEventMapHwm( uint32_t *hwm ) {
+LcsEventMapEntry *lookupEventEntry( uint16_t eventId ) {
 
-    return ( rtNvmGetBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm ),
-                           (uint8_t *) hwm,
-                           sizeof(uint32_t)));
-}
+    size_t first = 0;
+    size_t last  = eventMap.mapHwm / sizeof( LcsEventMapEntry );
 
-uint8_t putEventMapHwm( uint32_t hwm ) {
+    while ( first < last ) {
 
-    return ( rtNvmPutBytes( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, mapHwm ),
-                           (uint8_t *) &hwm,
-                           sizeof(uint32_t)));
-}
+        size_t middle = first + ( last - first ) / 2;
 
-uint8_t getEventMapEntry( uint32_t index, LcsEventMapEntry *e ) {
+        if      ( eventMap.map[ middle ].eventId < eventId ) first = middle + 1;
+        else if ( eventMap.map[ middle ].eventId > eventId ) last = middle;
+        else return( &eventMap.map[ middle ]);
+    }
 
-    if ( index > MAX_EVENT_MAP_ENTRIES ) return ( ERR_INVALID_EVENT_MAP_INDEX );
-
-    uint32_t ofs = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
-                    index * sizeof(LcsEventMapEntry);
-
-    return( rtNvmGetBytes( ofs, (uint8_t*)e, sizeof(LcsEventMapEntry)));
-}
-
-uint8_t putEventMapEntry( uint32_t index, LcsEventMapEntry *e ) {
-
-    if ( index > MAX_EVENT_MAP_ENTRIES ) return ( ERR_INVALID_EVENT_MAP_INDEX );
-
-    uint32_t ofs = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ) +
-                    index * sizeof(LcsEventMapEntry);
-
-    return( rtNvmPutBytes( ofs, (uint8_t*)e, sizeof(LcsEventMapEntry)));
+    return( nullptr );
 }
 
 //----------------------------------------------------------------------------------------
-// "addEventEntryNvm" adds an event entry to the NVM eventMap. We check if there
-// is room and if so write the new entry at the HWM position and update the HWM.
-//
+// Add a new event map entry. If the event entry already exists, just update 
+// update the port mask. Otherwise, the new entry is appended and the map is 
+// then sorted.
 //----------------------------------------------------------------------------------------
-uint8_t addEventEntryNvm( uint16_t eventId, uint16_t eventMask ) {
+uint8_t addToEventMap( const LcsEventMapEntry *entry ) {
 
-    LcsEventMapEntry entry;
-    entry.eventId   = eventId;
-    entry.eventMask = eventMask;
+    if ( eventMap.mapHwm >= sizeof( eventMap.map ))
+        return( RET_STAT( ERR_EVENT_MAP_FULL ));
 
-    uint8_t  rStat;
-    uint32_t hwm;
-    uint32_t addr;
+    LcsEventMapEntry *e = lookupEventEntry( entry -> eventId );
 
-    rStat = getEventMapHwm( &hwm );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+    if ( e == nullptr ) {
 
-    if ( hwm > MAX_EVENT_MAP_ENTRIES ) return ( RET_STAT ( ERR_EVENT_MAP_FULL ));
+        size_t index = eventMap.mapHwm / sizeof( LcsEventMapEntry );
+        eventMap.map[ index ] = *entry;
 
-    rStat = putEventMapEntry( hwm, &entry );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+        eventMap.mapHwm += sizeof( LcsEventMapEntry );
+        sortEventMap( );
+    }
+    else {
 
-    hwm ++;
+        e -> eventMask = entry -> eventMask;
+    }
 
-    rStat = putEventMapHwm( hwm );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
-
-    return RET_STAT( LCS_OK );
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// Remove an entry from the NVM event map. We will search for the entry in the
-// NVM event map and if found, we will remove it by replacing the slot with the
-// last entry in the map and decreasing the HWM. This way we maintain a compact
-// event map without holes.
-//
+// Remove an event map entry. Since the map is sorted, find the entry and 
+// replace it with the last active entry. The map is then sorted again.
+// 
 //----------------------------------------------------------------------------------------
-uint8_t removeEventEntryNvm( uint16_t eventId ) {
+uint8_t removeFromEventMap( uint16_t eventId ) {
 
-    uint8_t  rStat;
-    uint32_t hwm;
-    uint32_t mapAddr = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map );
+    size_t count = eventMap.mapHwm / sizeof( LcsEventMapEntry );
 
-    rStat = getEventMapHwm( &hwm );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+    for ( size_t i = 0; i < count; i++ ) {
 
-    uint32_t i = 0;
-    int32_t foundIndex = -1;
+        if ( eventMap.map[ i ].eventId == eventId ) {
 
-    LcsEventMapEntry buffer[ FETCH_CHUNK_SIZE ];
+            if ( i < count - 1 ) eventMap.map[ i ] = eventMap.map[ count - 1 ];
+            eventMap.mapHwm -= sizeof( LcsEventMapEntry );
 
-    // --- 1. Search ---
-    while ( i < hwm ) {
-
-        uint32_t remaining = hwm - i;
-        uint32_t count = (remaining >= FETCH_CHUNK_SIZE) ? FETCH_CHUNK_SIZE : remaining;
-
-        uint32_t addr = mapAddr + i * sizeof(LcsEventMapEntry);
-
-        rStat = rtNvmGetBytes( addr, (uint8_t*)buffer, count * sizeof(LcsEventMapEntry));
-        if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
-
-        for ( uint32_t j = 0; j < count; j++) {
-
-            if ( buffer[j].eventId == eventId ) {
-
-                foundIndex = i + j;
-                break;
-            }
+            sortEventMap( );
+            return( LCS_OK );
         }
 
-        if ( foundIndex >= 0 ) break;
-
-        i += count;
+        if ( eventMap.map[ i ].eventId > eventId ) break;
     }
 
-    if ( foundIndex < 0 ) return( RET_STAT( LCS_OK ));
-
-    uint32_t lastIndex = hwm - 1;
-
-    // --- 2. If last entry, just shrink ---
-    if ((uint32_t)foundIndex == lastIndex) {
-
-        hwm--;
-        return( RET_STAT( putEventMapHwm( hwm )));
-    }
-
-    // --- 3. Read last entry ---
-    LcsEventMapEntry lastEntry;
-
-    rStat = getEventMapEntry( lastIndex, &lastEntry );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
-
-    // --- 4. Write last entry into removed slot ---
-    rStat = putEventMapEntry( foundIndex, &lastEntry );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
-
-    // --- 5. Decrease HWM ---
-    hwm--;
-   return( RET_STAT( putEventMapHwm( hwm )));
-}
-
-//----------------------------------------------------------------------------------------
-// "getEventEntryByIndex" gets an entry by its actual index in the event map.
-//
-//----------------------------------------------------------------------------------------
-uint8_t getEventEntryByIndex( uint32_t index, 
-                              uint16_t *eventId, 
-                              uint16_t *eventMask ) {
-
-    uint8_t          rStat;
-    uint32_t         hwm;
-    LcsEventMapEntry e;
-   
-    rStat = getEventMapHwm( &hwm );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
-
-    if ( index >= hwm ) return( RET_STAT( ERR_INVALID_EVENT_MAP_INDEX ));
-
-    rStat = getEventMapEntry( index, &e );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
-
-    *eventId   = e.eventId;
-    *eventMask = e.eventMask;
-    return( RET_STAT( LCS_OK ));
-}
-
-//----------------------------------------------------------------------------------------
-// Lookup an event in the hash table.
-//
-//----------------------------------------------------------------------------------------
-LcsEventMapEntry *lookupEventMapEntry( uint16_t eventId ) {
-
-    if ( eventId == NIL_EVENT_ID ) return ( nullptr );
-
-    uint32_t i = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-    uint32_t start = i;
-
-    printf( "lookupEventMapEntry, id: %d, hash: %d\n", eventId, i );
-
-    while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
-
-        if ( eventHashMap.map[ i ].eventId == eventId ) {
-
-            printf( "lookupEventMapEntry: FOUND\n" );
-            return ( &eventHashMap.map[ i ] );
-        }
-
-        i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-        if ( i == start ) return ( nullptr );
-    }
-
-    return ( nullptr );
-}
-
-//----------------------------------------------------------------------------------------
-// Insert into event hash table. Straightforward. There is a sanity check that
-// we do not loop forever when the table is full. The routine expects that a
-// lookup for the event was done, so we can assume the entry is not on the 
-// table so far.
-//
-//----------------------------------------------------------------------------------------
-void insertEventMapEntry( uint16_t eventId, uint16_t eventMask ) {
-
-    uint32_t i = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-    uint32_t start = i;
-
-    if ( eventsDebugEnabled( )) {
-
-        printf( "insertEventMapEntry, id: 0x%04x, mask: 0x%04x, hash: %d\n", 
-                eventId, eventMask, i  );
-    }
-
-    while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
-
-        i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-        if ( i == start ) return;
-    }
-
-    eventHashMap.map[ i ].eventId = eventId;
-    eventHashMap.map[ i ].eventMask = eventMask;
-
-    eventHashMap.numEntries ++;
-}
-
-//----------------------------------------------------------------------------------------
-// Remove from event hash table. We first try to find the entry. If found, we
-// invalidate the entry and then fix the hash chain. Each entry after the 
-// removed entry needs to be removed too and rehashed, so that we have valid 
-// chains again.
-//
-//----------------------------------------------------------------------------------------
-void removeEventMapEntry( uint16_t eventId ) {
-
-    uint32_t i      = hash( eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-    uint32_t start  = i;
-
-    while ( eventHashMap.map[ i ].eventId != NIL_EVENT_ID ) {
-
-        if ( eventHashMap.map [ i ].eventId == eventId ) break;
-        i = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-        if ( i == start ) return;
-    }
-
-    if ( eventHashMap.map[ i ].eventId == NIL_EVENT_ID ) return;
-
-    eventHashMap.map [ i ].eventId = NIL_CAB_ID;
-
-    uint32_t j = ( i + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-
-    while ( eventHashMap.map[ j ].eventId != NIL_EVENT_ID ) {
-
-        LcsEventMapEntry tmp = eventHashMap.map [ j ];
-        eventHashMap.map[ j ].eventId = NIL_EVENT_ID;
-
-        uint32_t k = hash( tmp.eventId ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-        uint32_t kstart = k;
-
-        while ( eventHashMap.map[ k ].eventId != NIL_EVENT_ID ) {
-
-            k = ( k + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-            if ( k == kstart ) break;
-        }
-
-        eventHashMap.map[ k ] = tmp;
-        j = ( j + 1 ) & ( MAX_CAB_HASH_TAB_ENTRIES - 1 );
-    }
-
-    eventHashMap.numEntries --;
-}
-
-//----------------------------------------------------------------------------------------
-// "loadEventMapFromNvm" fills the hash table with entries from the NVM event map.
-// The high water mark indicates how many entries are in the NVM event map. If
-// however the HWM is not valid, we examine each entry, load valid ones and 
-// set the HWM to a valid value. To speed up the load, we read the data entries
-// in chunks.
-//
-// ??? could remember highest loaded and patch up hwm ....
-// ??? what would we do about an eventMap with empty entries in between ?
-//----------------------------------------------------------------------------------------
-uint8_t loadEventMapFromNvm( uint32_t mapOfs, uint32_t hwm ) {
-
-    if ( eventsDebugEnabled( )) {
-
-        printf( "Load event map table, ofs: 0x%4x, hwm: %d\n", mapOfs, hwm  );
-    }
-
-    for ( int i = 0; i < MAX_CAB_HASH_TAB_ENTRIES; i++ ) {
-        
-        eventHashMap.map [ i ].eventId = NIL_EVENT_ID;
-        eventHashMap.map [ i ].eventMask = 0;
-    }
-
-    if ( hwm > MAX_EVENT_MAP_ENTRIES ) hwm = MAX_EVENT_MAP_ENTRIES;
-
-    uint8_t  rStat  = LCS_OK;
-    uint32_t i      = 0;
-    LcsEventMapEntry buffer[ FETCH_CHUNK_SIZE ];
-
-    while ( i < hwm ) {
-
-        uint32_t remaining = hwm - i;
-        uint32_t addr  = mapOfs + i * sizeof(LcsEventMapEntry);
-        uint32_t count = ( remaining >= FETCH_CHUNK_SIZE) ? 
-                         FETCH_CHUNK_SIZE : remaining;
-
-        rStat = rtNvmGetBytes( addr, 
-                               (uint8_t*)buffer, 
-                               count * sizeof(LcsEventMapEntry));
-
-        if ( rStat != LCS_OK ) return( RET_STAT( rStat ));
-
-        for ( int j = 0; j < count; j++ ) {
-
-            uint16_t eventId = buffer[ j ].eventId;
-
-            if ( eventId != NIL_EVENT_ID ) {
-
-                insertEventMapEntry( eventId, buffer[ j ].eventMask );
-            }
-        }
-
-        i += count;
-    }
-
-    return( RET_STAT( rStat ));
+    return( RET_STAT( LCS_OK  ));
 }
 
 } // namespace
@@ -439,34 +199,39 @@ uint8_t loadEventMapFromNvm( uint32_t mapOfs, uint32_t hwm ) {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// Setup event the event map from the NVM data. We will read the event map 
-// from NVM in chunks and insert all entries into the hash table. We read up 
-// to the HWM mark, which points right after the last element in the sorted 
-// NVM event map.
-// 
+// loadEventMap() loads the complete event map from NVM and validates the header.
+// The complete map is loaded because it is small and there is little benefit in
+// introducing additional complexity to load only the active portion. After 
+// loading, the active entries are sorted by event Id.
+//
 //----------------------------------------------------------------------------------------
 uint8_t loadEventMap( ) {
 
-    uint32_t hwm   = 0;
-    uint8_t  rStat = LCS_OK;
+    if ( eventsDebugEnabled( )) printf( "loadEventMap\n" );
 
-    rStat = getEventMapHwm( &hwm );
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+    uint8_t rStat = rtNvmGetBytes( NVM_EVENT_MAP_OFS,
+                                (uint8_t *) &eventMap,
+                                sizeof( LcsEventMap ));
+    if ( rStat != LCS_OK ) return( RET_STAT( rStat ));
 
-    rStat = loadEventMapFromNvm( NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map ),
-                                 hwm );
-    
-    return( rStat );
+    if (( eventMap.nvmOfs != NVM_EVENT_MAP_OFS )      ||
+        ( eventMap.nvmSize != sizeof( LcsEventMap )) ||
+        ( eventMap.mapHwm > sizeof( eventMap.map ))  ||
+        (( eventMap.mapHwm % sizeof( LcsEventMapEntry )) != 0 ))
+        return( RET_STAT( ERR_EVENT_MAP_HEADER ));
+
+    sortEventMap( );
+    return( RET_STAT( LCS_OK ));
 }
 
 //----------------------------------------------------------------------------------------
-// Lookup in hash table.
+// "lookupEvent" searches the event map.
 //
 //----------------------------------------------------------------------------------------
 LcsEventMapEntry *lookupEvent( uint16_t eventId ) {
 
     if ( eventId == NIL_EVENT_ID ) return ( nullptr );
-    return( lookupEventMapEntry( eventId ));
+    return( lookupEventEntry( eventId ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -485,20 +250,11 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
 
-    LcsEventMapEntry *e = lookupEvent( eventId );
-    if ( e == nullptr ) {
+    LcsEventMapEntry e;
+    e.eventId   = eventId;
+    e.eventMask = eventMask;
 
-        uint8_t rStat = addEventEntryNvm( eventId, eventMask );
-        if ( rStat == LCS_OK ) insertEventMapEntry( eventId, eventMask );
-        return ( RET_STAT( rStat ));
-    }
-    else {
-
-        uint8_t rStat = removeEventEntryNvm( eventId );
-        if ( rStat == LCS_OK ) rStat = addEventEntryNvm( eventId, eventMask );
-        if ( rStat == LCS_OK ) e -> eventMask = eventMask; 
-        return ( RET_STAT( LCS_OK ));  
-    }
+    return( RET_STAT( addToEventMap( &e )));
 }
 
 //----------------------------------------------------------------------------------------
@@ -514,30 +270,48 @@ uint8_t removeEvent( uint16_t eventId ) {
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
 
-    LcsEventMapEntry *l = lookupEvent( eventId );
-    if ( l == nullptr ) return ( RET_STAT( LCS_OK ));
-
-    uint8_t rStat = removeEventEntryNvm( eventId );
-    if ( rStat == LCS_OK ) removeEventMapEntry( eventId );
-    return( RET_STAT( rStat ));
+    return ( RET_STAT ( removeFromEventMap( eventId )));
 }
 
 //----------------------------------------------------------------------------------------
-// "getMemEmapEntry" returns the eventId and event mask pair from the MEM event map.
-// It is used by the console command interface and the LCS message request handler 
-// to obtain that data. The index starts at 0.
+// updateEventMap() writes the active portion of the event map back to NVM.
+// The header and unused map entries do not need to be written. Since mapHwm 
+// is a byte offset, it can be used directly as the number of bytes to write.
 //
+//---------------------------------------------------------------------------------------
+uint8_t updateEventMap( ) {
+
+    uint8_t rStat = rtNvmPutBytes( NVM_EVENT_MAP_OFS +
+                                   offsetof( LcsEventMap, map ),
+                                   (uint8_t *) eventMap.map,
+                                   eventMap.mapHwm );
+
+    return( rStat );
+}
+
 //----------------------------------------------------------------------------------------
-uint8_t getMemEmapEntry( uint16_t index, 
-                         uint16_t *eventId, 
-                         uint16_t *eventMask ) {
+// "getEventEntryByIndex" gets an entry by its actual index in the event map.
+//
+// The index is the logical entry number, not a byte offset.
+//----------------------------------------------------------------------------------------
+uint8_t getEventEntryByIndex( uint16_t index,
+                              uint16_t *eventId,
+                              uint16_t *eventMask ) {
 
-    if ( eventsDebugEnabled( )) printf( "Get Event Entry: %d\n", index );
+    if ( eventsDebugEnabled( )) {
 
-    if ( ! isInRangeU16( index, MIN_EVENT_ID, MAX_EVENT_ID )) 
-        return( RET_STAT ( ERR_INVALID_EVENT_MAP_INDEX ));
+        printf( "getEventEntryByIndex, index: %d\n", index );
+    }
 
-    return( RET_STAT( getEventEntryByIndex( index, eventId, eventMask )));
+    size_t nEntries = eventMap.mapHwm / sizeof( LcsEventMapEntry );
+
+    if ((size_t) index >= nEntries )
+        return( RET_STAT( ERR_INVALID_EVENT_MAP_INDEX ));
+
+    *eventId   = eventMap.map[index].eventId;
+    *eventMask = eventMap.map[index].eventMask;
+
+    return( LCS_OK );
 }
 
 } // namespace LCS

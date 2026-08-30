@@ -80,7 +80,7 @@ namespace LCS {
 //          :                                   :
 //          :-----------------------------------:   + sizeof( NodeMap )
 //          :                                   :
-//          :   Mode Map Data                   :
+//          :   Port Attribute Map              :
 //          :                                   :
 //          :-----------------------------------:   + sizeof( NodeMapData )
 //          :                                   :
@@ -90,7 +90,7 @@ namespace LCS {
 //          :                                   :
 //          :                                   :
 //          :                                   :
-//          :   Optional Ext Attribute Map      :
+//          :   Global Attribute Map            :
 //          :                                   :
 //          :                                   :
 //          :                                   :
@@ -107,8 +107,8 @@ namespace LCS {
 //----------------------------------------------------------------------------------------
 const uint16_t  MAX_PORT_MAP_ENTRIES            = 8;
 const uint16_t  MAX_CHANNEL_MAP_ENTRIES         = 8;
-const uint16_t  MAX_EVENT_MAP_ENTRIES           = 768;
-const uint16_t  MAX_ATTR_MAP_ENTRIES            = 128;
+const uint16_t  MAX_EVENT_MAP_ENTRIES           = 512;
+const uint16_t  MAX_PORT_ATTR_MAP_ENTRIES       = 128;
 const uint16_t  MAX_TASK_MAP_ENTRIES            = 16;
 
 //----------------------------------------------------------------------------------------
@@ -139,9 +139,9 @@ const uint32_t  NVM_MAIN_BOARD_DEF_SIZE         = 16 * 1024;
 //----------------------------------------------------------------------------------------
 const uint32_t  NVM_MWORD_NODE_HEADER           = ( 0xa5a5 << 16 ) | 1L;
 const uint32_t  NVM_MWORD_NODE_MAP              = ( 0xa5a5 << 16 ) | 2L;
-const uint32_t  NVM_MWORD_NODE_DATA_MAP         = ( 0xa5a5 << 16 ) | 3L;
-const uint32_t  NVM_MWORD_NODE_EXT_DATA_MAP     = ( 0xa5a5 << 16 ) | 4L;
-const uint32_t  NVM_MWORD_NODE_EVENT_MAP        = ( 0xa5a5 << 16 ) | 5L;
+const uint32_t  NVM_MWORD_NODE_EVENT_MAP        = ( 0xa5a5 << 16 ) | 3L;
+const uint32_t  NVM_MWORD_PORT_DATA_MAP         = ( 0xa5a5 << 16 ) | 4L;
+const uint32_t  NVM_MWORD_GLOBAL_DATA_MAP       = ( 0xa5a5 << 16 ) | 5L;
 
 //----------------------------------------------------------------------------------------
 // The node states. Essentially, the node runtime is a big state machine. The 
@@ -195,8 +195,8 @@ enum ItemRanges : uint16_t {
     IR_DRV_CHAN_START           = 64,
     IR_DRV_CHAN_END             = 127,
 
-    IR_ATTR_RANGE_START         = 128,
-    IR_ATTR_RANGE_END           = 255,
+    IR_PORT_ATTR_START          = 128,
+    IR_PORT_ATTR_END            = 255,
  
     IR_GLOBAL_ATTR_START        = 256,
     IR_GLOBAL_ATTR_END          = 32768
@@ -265,8 +265,8 @@ struct LcsNvmHeader {
 //----------------------------------------------------------------------------------------
 // The nodeMap is the heart of all data on the node. When bringing up a node, we 
 // first read in the NVM header to check the validity of the NVM data and then
-// the node map. Several validity checks for the nodeMap data are performed. T
-// he most important check is to compare the size of the various data structures
+// the node map. Several validity checks for the nodeMap data are performed. 
+// The most important check is to compare the size of the various data structures
 // with the runtime data size that we know from the compilation. That is the 
 // reason that each NVM area also starts with a magic word. Only when they match
 // can we somewhat trust the rest of the data maps.
@@ -313,35 +313,34 @@ struct LcsNodeMap {
 };
 
 //----------------------------------------------------------------------------------------
-// Node and ports each have an area of attributes that are in memory as well as
-// in the node NVM. Typical usage examples are configuration items such as a 
-// limit value. Upon power up the header structure is validated and the node 
-// data from the NVM area is copied to the MEM counterpart. 
+// Ports each have an area of attributes that are in memory as well as in the 
+// node NVM. Typical usage examples are configuration items such as a limit 
+// value. Upon power up the header structure is validated and the node data from
+// the NVM area is copied to the MEM counterpart. 
 //
 //----------------------------------------------------------------------------------------
-struct LcsNodeData {
+struct LcsPortDataMap {
 
     uint32_t    magicWord;
     uint32_t    nvmOfs;
     uint32_t    nvmSize;    
-    uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_ATTR_MAP_ENTRIES ];
+    uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_PORT_ATTR_MAP_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
-// A node offers an area of extended or global attributes. The sizeof this area
-// is the available space in the NVM minus the storage requirements of the 
-// runtime data. Upon power up the header structure is validated just like all
-// the other NVM areas. In contrast to node and port attributes, the extended 
-// attributes are directly accessed form the NVM. The idea us that these 
-// attributes are not modified very often and thus we can do with the slower 
-// access time of the NVM.
+// A node offers an area of global attributes. The sizeof this area depends on 
+// the remaining size in the NVM after the runtime data. Upon power up the header
+// structure is validated just like all the other NVM areas. Since we have no
+// idea how big this area actually will be, the memory map will be created 
+// dynamically on system start and filled with the corresponding NVM data.
 //
 //----------------------------------------------------------------------------------------
-struct LcsNodeExtData {
+struct LcsGlobalDataMap {
 
     uint32_t    magicWord;
     uint32_t    nvmOfs;
-    uint32_t    nvmSize;      
+    uint32_t    nvmSize;   
+    uint16_t    *map;   
 };
 
 //----------------------------------------------------------------------------------------
@@ -358,6 +357,10 @@ struct LcsEventMapEntry {
     uint16_t eventMask;
 };
 
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 struct LcsEventMap {
 
     uint32_t            magicWord;
@@ -365,19 +368,6 @@ struct LcsEventMap {
     uint32_t            nvmSize;
     uint32_t            mapHwm;
     LcsEventMapEntry    map[ MAX_EVENT_MAP_ENTRIES ];
-};
-
-//----------------------------------------------------------------------------------------
-// Events map entries are loaded into a memory map for faster access. The table
-// is a hash table.
-//
-//----------------------------------------------------------------------------------------
-const int              MAX_CAB_HASH_TAB_ENTRIES = 2048;
-
-struct LcsEventHashMap {
-
-    uint32_t           numEntries;
-    LcsEventMapEntry   map[ MAX_CAB_HASH_TAB_ENTRIES ];
 };
 
 //----------------------------------------------------------------------------------------
@@ -433,6 +423,12 @@ struct LcsPortMapEntry {
     uint16_t            channelMap; // ??? needed ?
 };
 
+//----------------------------------------------------------------------------------------
+// The port map. All we have here is the high water mark, i.e. how many ports
+// are actually configured and the array of port map entries. Since there is 
+// no NVM counter part, this is all we need.
+//
+//----------------------------------------------------------------------------------------
 struct LcsPortMap {
 
     uint32_t        mapHwm;
@@ -454,6 +450,12 @@ struct LcsPTaskMapEntry {
     uint32_t            interval;
 };
 
+//----------------------------------------------------------------------------------------
+// The task map. All we have here is the high water mark, i.e. how many tasks
+// are actually configured and the array of task map entries. Since there is 
+// no NVM counter part, this is all we need.
+// 
+//----------------------------------------------------------------------------------------
 struct LcsTaskMap {
 
     uint32_t            mapHwm;
@@ -468,7 +470,7 @@ struct LcsTaskMap {
 //----------------------------------------------------------------------------------------
 const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsNvmHeader );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
-const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsNodeData );
+const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsPortDataMap );
 const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
 
 const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_BOARD_DESC_SIZE + 
@@ -483,7 +485,7 @@ const uint32_t  NVM_HEADER_MAP_OFS          =   NVM_MAP_STORAGE_START;
 const uint32_t  NVM_NODE_MAP_OFS            =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE;
 
-const uint32_t  NVM_NODE_DATA_OFS           =   NVM_MAP_STORAGE_START + 
+const uint32_t  NVM_PORT_DATA_OFS           =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   +  
                                                 NVM_NODE_MAP_SIZE;
     
@@ -492,7 +494,7 @@ const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE;
     
-const uint32_t NVM_EXT_NODE_DATA_OFS        =   NVM_MAP_STORAGE_START +
+const uint32_t NVM_GLOBAL_DATA_OFS          =   NVM_MAP_STORAGE_START +
                                                 NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
                                                 NVM_NODE_DATA_SIZE    +
