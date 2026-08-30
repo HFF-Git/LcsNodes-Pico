@@ -812,7 +812,7 @@ void setNodeCommand( char *s ) {
 
      if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodeSet( tmpNpId, tmpItem, tmpVal );
+        ret = nodeSet( tmpNpId, tmpItem, &tmpVal );
         if ( ret != LCS_OK ) errStat((char *) "Node SET error", ret );
         else printf( "OK\n" );
     }

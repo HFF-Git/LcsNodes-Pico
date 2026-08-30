@@ -167,7 +167,7 @@ uint8_t setupAttribute( uint16_t npId,
 
         if ( ! isInRangeU16( val, min, max )) {
 
-            rStat = nodeSet( npId, item, def );
+            rStat = nodeSet( npId, item, &def );
             if ( rStat == NO_ERR ) {
 
                 rStat = nodeReq( npId, ITEM_ID_SYNC_TO_NVM, (uint16_t *) &lItem );

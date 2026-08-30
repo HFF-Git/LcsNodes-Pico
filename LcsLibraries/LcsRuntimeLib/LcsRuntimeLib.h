@@ -757,28 +757,27 @@ uint8_t     startRuntime( );
 // Local routines to access the node/port GET/SET/REQ items. These routines
 // return immediately to the caller with the requested data. All GET/SET/REQ
 // type messages use these calls below. A firmware should rather use the 
-// sendXXX calls. One exception is the support for reading and writing a range
-// of attributes. This functionality is quite useful for loading initial data
-// attributes.
+// sendXXX calls. 
+//
+// The "nodeGet" and "nodeSet" accept a range if items. This is useful for 
+// loading or storing a whole set of attributes. However, access to a remote
+// node is always one item at a time.
 //
 //----------------------------------------------------------------------------------------
-uint8_t     nodeGet( uint16_t npId, uint16_t item, uint16_t *arg );
-uint8_t     nodeSet( uint16_t npId, uint16_t item, uint16_t arg );
+uint8_t     nodeGet( uint16_t npId, 
+                     uint16_t item, 
+                     uint16_t *arg, 
+                     uint16_t len = 1 );
+
+uint8_t     nodeSet( uint16_t npId, 
+                     uint16_t item, 
+                     uint16_t *arg,
+                     uint16_t len = 1 );
 
 uint8_t     nodeReq( uint16_t npId, 
                      uint16_t item, 
                      uint16_t *arg1 = nullptr, 
                      uint16_t *arg2 = nullptr );
-
-uint8_t     nodeGetRange( uint16_t npId, 
-                          uint16_t itemStart, 
-                          uint16_t len, 
-                          uint16_t *argArray );
-
-uint8_t     nodePutRange( uint16_t npId, 
-                          uint16_t itemStart, 
-                          uint16_t len, 
-                          uint16_t *argArray );
 
 uint8_t     nodeGetItemPtr( uint16_t npId,
                             uint16_t item,

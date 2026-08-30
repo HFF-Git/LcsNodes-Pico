@@ -330,7 +330,7 @@ void handleMsgPutNode( uint16_t senderNpId, uint8_t *msg ) {
 
         uint16_t  item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-        uint8_t   ret   = nodeSet( npId, item, arg1 );
+        uint8_t   ret   = nodeSet( npId, item, &arg1 );
 
         sendAck( nodeMap.nodeId, ret );
     }

@@ -215,7 +215,7 @@ uint8_t getNvmCabCount( uint16_t *cabCount ) {
 
 uint8_t putNvmCabCount( uint16_t cabCount ) {
 
-    uint8_t rStat = nodeSet( 0, 0, cabCount ); // ??? for now ...
+    uint8_t rStat = nodeSet( 0, 0, &cabCount ); // ??? for now ...
     return ( LCS_OK );
 }
 
