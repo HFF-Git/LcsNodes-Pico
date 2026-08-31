@@ -188,7 +188,6 @@ uint8_t attrNvmOfs( uint16_t npId,
                     uint16_t len ) {
 
     uint8_t  rStat;
-    uint16_t ofs;
     uint16_t port = portId( npId );
 
     if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
