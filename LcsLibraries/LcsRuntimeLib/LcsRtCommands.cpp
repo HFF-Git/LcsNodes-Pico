@@ -393,14 +393,28 @@ void dumpMemPortMap( ) {
     
     printf( "\n" );
 }
- 
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-void dumpMemNodeData( ) {
 
-    printf( "MEM Node Data: \n\n" );
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+void dumpMemEventMap( ) {
+
+    printf( "MEM Event Map: (Hwm: %d) \n\n", eventMap.mapHwm );
+    dumpMemData(( uint16_t *) eventMap.map, 
+                sizeof( eventMap.mapHwm ), 
+                8, 
+                false,
+                true );
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+void dumpMemPortData( ) {
+
+    printf( "MEM Port Data: \n\n" );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
@@ -415,14 +429,14 @@ void dumpMemNodeData( ) {
 //
 //
 //----------------------------------------------------------------------------------------
-void dumpMemEventMap( ) {
+void dumpMemGlobalData( ) {
 
-    printf( "MEM Event Map: (Hwm: %d) \n\n", eventMap.mapHwm );
-    dumpMemData(( uint16_t *) eventMap.map, 
-                sizeof( eventMap.mapHwm ), 
-                8, 
-                false,
-                true );
+    printf( "MEM Global Data: \n\n" );
+
+   // dumpMemData((uint16_t *) &portDataMap.map[ i ], 
+   //                 MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ), 8, true );
+    
+   printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -447,7 +461,8 @@ void dumpMemRuntimeArea( ) {
     printf( "MEM Area Dump: \n\n" );
     dumpMemNodeMap( );
     dumpMemPortMap( );
-    dumpMemNodeData( );
+    dumpMemPortData( );
+    dumpMemGlobalData( );
     dumpMemTaskMap( );
     dumpMemEventMap( );
     printf( "\n" );
@@ -480,7 +495,7 @@ void dumpNvmNodeMap( ) {
 //
 //
 //----------------------------------------------------------------------------------------
-void dumpNvmNodeData( ) {
+void dumpNvmPortData( ) {
 
     printf( "NVM Node Data Dump: \n\n");
     printf( "Header: " );
@@ -499,6 +514,24 @@ void dumpNvmNodeData( ) {
         printf( "\n" );
     }
 
+    printf( "\n" );
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+void dumpNvmGlobalData( ) {
+
+    printf( "NVM Global Data Dump: \n\n");
+
+    printf( "Header: " );
+  //  dumpNvmData( NVM_PORT_DATA_OFS, 12, 8, false );
+  //  printf( "\n" );
+
+  //  uint32_t start = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map );
+
+  //  dumpNvmData( adr, MAX_PORT_ATTR_MAP_ENTRIES * 2, 8, true );
     printf( "\n" );
 }
 
@@ -764,7 +797,7 @@ void getNodeCommand( char *s ) {
 
      if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
-        ret = nodeGet( tmpNpId, tmpItem, &tmpArg );
+        ret = getItem( tmpNpId, tmpItem, &tmpArg );
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
         else printf( "Node: 0x%x, item: %d, arg1: 0x%x\n", 
                      tmpNpId, tmpItem, tmpArg );
@@ -812,7 +845,7 @@ void setNodeCommand( char *s ) {
 
      if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodeSet( tmpNpId, tmpItem, &tmpVal );
+        ret = setItem( tmpNpId, tmpItem, &tmpVal );
         if ( ret != LCS_OK ) errStat((char *) "Node SET error", ret );
         else printf( "OK\n" );
     }
@@ -860,7 +893,7 @@ void reqNodeCommand( char *s ) {
 
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
-        ret = nodeReq( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
+        ret = reqItem( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
         if ( ret != LCS_OK ) errStat((char *) "Node REQ error", ret );
         else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
                     tmpNpId, tmpItem, tmpVal1, tmpVal2 );
@@ -963,20 +996,22 @@ void listStatusCommand( char *s ) {
 
             case 0:     printSummary( );                break;
             case 2:     dumpMemNodeMap( );              break;
-            case 3:     dumpMemNodeData( );             break;
-            case 5:     dumpMemPortMap( );              break;
-            case 6:     dumpMemTaskMap( );              break;
-            case 7:     dumpMemEventMap( );             break;
+            case 3:     dumpMemPortMap( );              break;
+            case 4:     dumpMemEventMap( );             break;
+            case 5:     dumpMemPortData( );             break;
+            case 6:     dumpMemGlobalData( );           break;
+            case 7:     dumpMemTaskMap( );              break;
             case 8:     dumpMemRuntimeArea( );          break;
 
             case 21:    dumpNvmHeader( );               break;
             case 22:    dumpNvmNodeMap( );              break;
-            case 23:    dumpNvmNodeData( );             break;
             case 24:    dumpNvmEventMap( );             break;
+            case 25:    dumpNvmPortData( );             break;
+            case 26:    dumpNvmGlobalData( );           break;
             case 28:    dumpNvmRuntimeArea( );          break;
 
             case 42:    printMemNodeMap( );             break;
-            case 45:    printMemPortMap( );             break;
+            case 43:    printMemPortMap( );             break;
             case 46:    printMemTaskMap( );             break;
             
             case 50:    listDevicesI2C( );              break;   
@@ -1015,11 +1050,11 @@ void listCoreLibHelpCommand( ) {
     printf( "   " " -   0               - Board summary\n" );
     printf( "   " " -        21         - Node Header\n" );
     printf( "   " " -   2    22   42    - Node Map\n" );
-    printf( "   " " -   3    23         - Node Data\n" );
-    printf( "   " " -        24   44    - Event Map\n" );
-    printf( "   " " -   5         45    - Port Map\n" );
-    printf( "   " " -   6         46    - Task Map\n" );
-    printf( "   " " -   7               - Event Hash Map\n" );
+    printf( "   " " -   3    23   43    - Port Map\n" );
+    printf( "   " " -   4    24         - Event Map\n" );
+    printf( "   " " -   5    25         - Port Data\n" );
+    printf( "   " " -   6    26         - Global Data\n" );
+    printf( "   " " -   7         46    - Task Map\n" );
     printf( "   " " -   8    28         - Runtime Area\n" );
 
     printf( "   " " -  50  - Scan I2C Devices\n" );

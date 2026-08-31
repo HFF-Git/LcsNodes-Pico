@@ -656,32 +656,24 @@ uint8_t rtNvmConfig(  uint8_t rIdNvm, uint32_t nvmSize ) {
 // routines are prefixed with "rt".
 //
 //----------------------------------------------------------------------------------------
-uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
-
-    return ( nvmPutBytes( rNumNvm, 
-                          NVM_I2C_ADR_ROOT + 0, 
-                          ofs, 
-                          (uint8_t *) &word, 
-                          sizeof( uint16_t )));
-}
-
-uint8_t rtNvmGetWord( uint32_t ofs, uint16_t *word ) {
-
-    return ( nvmGetBytes( rNumNvm, 
-                          NVM_I2C_ADR_ROOT + 0, 
-                          ofs, 
-                          (uint8_t *) word, 
-                          sizeof( uint16_t )));
-}
-
 uint8_t rtNvmPutBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     return ( nvmPutBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
 }
 
+uint8_t rtNvmPutWord( uint32_t ofs, uint16_t word ) {
+
+    return( rtNvmPutBytes( ofs, (uint8_t *) &word, sizeof( uint16_t )));
+}
+
 uint8_t rtNvmGetBytes( uint32_t ofs, uint8_t *buf, uint32_t len ) {
 
     return ( nvmGetBytes( rNumNvm, NVM_I2C_ADR_ROOT + 0, ofs, buf, len ));
+}
+
+uint8_t rtNvmGetWord( uint32_t ofs, uint16_t *word ) {
+
+    return ( rtNvmGetBytes( ofs, (uint8_t *) word, sizeof( uint16_t )));
 }
 
 uint8_t rtNvmClearArea( uint32_t ofs, uint32_t len, uint8_t val ) {

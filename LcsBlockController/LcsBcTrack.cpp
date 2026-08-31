@@ -162,15 +162,15 @@ uint8_t setupAttribute( uint16_t npId,
     uint16_t val;
     uint16_t lItem = item;
 
-    uint8_t rStat = nodeGet( npId, item, &val );
+    uint8_t rStat = getItem( npId, item, &val );
     if ( rStat == NO_ERR ) {
 
         if ( ! isInRangeU16( val, min, max )) {
 
-            rStat = nodeSet( npId, item, &def );
+            rStat = setItem( npId, item, &def );
             if ( rStat == NO_ERR ) {
 
-                rStat = nodeReq( npId, ITEM_ID_SYNC_TO_NVM, (uint16_t *) &lItem );
+                rStat = reqItem( npId, ITEM_ID_SYNC_TO_NVM, (uint16_t *) &lItem );
             }
         }
     }

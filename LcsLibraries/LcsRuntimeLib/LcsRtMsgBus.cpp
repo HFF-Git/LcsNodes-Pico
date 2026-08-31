@@ -64,11 +64,108 @@ using namespace LCS;
 }; // namespace
 
 
+
+
 //----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
+
+//----------------------------------------------------------------------------------------
+// Utility functions for messages. Converting a message to a string and vice
+// versa. The binary version is an array of up to 8 bytes. The ASCII version
+// will be
+//
+//          "< 0xnn 0xnn ... >"
+//
+// The first byte contains both the message length and opcode:
+//
+//      bits 7..5 = total message length - 1
+//      bits 4..0 = opcode
+//
+// Therefore the message length can always be obtained from byte 0.
+//
+//----------------------------------------------------------------------------------------
+uint8_t lcsMsgToStr( char *msgStr, const uint8_t *dataBuf ) {
+
+    uint8_t msgLen = ( dataBuf[0] >> 5 ) + 1;
+    int len = snprintf( msgStr, MAX_LCS_MSG_SIZE, "< " );
+
+    for ( uint8_t i = 0; i < msgLen; i++ ) {
+
+        len += snprintf( msgStr + len,
+                         MAX_LCS_MSG_SIZE - len,
+                         "0x%02X ",
+                         dataBuf[i] );
+    }
+
+    snprintf( msgStr + len, MAX_LCS_MSG_SIZE - len, ">" );
+    return( LCS_OK );
+}
+
+//----------------------------------------------------------------------------------------
+// Convert an ASCII message of the form "< 0xnn 0xnn ... >" into its binary 
+// representation. The message length is obtained from the first byte after 
+// parsing it. The length encoded in the first byte is verified against the 
+// number of bytes supplied in the ASCII message.
+//
+//----------------------------------------------------------------------------------------
+uint8_t strToLcsMsg( uint8_t *dataBuf, char *msgStr ) {
+
+    char  *p       = msgStr;
+    uint8_t msgLen = 0;
+
+    while ( isspace( (unsigned char)*p ) ) p++;
+    if ( *p != '<' )  return( ERR_INVALID_MSG_FORMAT );
+    p++;
+
+    while ( true ) {
+       
+        while ( isspace( (unsigned char)*p ) ) p++;
+
+        if ( *p == '>' ) {
+            
+            p++;
+            break;
+        }
+
+        if ( msgLen >= 8 ) return( ERR_INVALID_MSG_FORMAT );
+
+        if (( p[ 0 ] != '0' || ( p[ 1 ] != 'x' && p[ 1 ] != 'X' ))) {
+
+            return( ERR_INVALID_MSG_FORMAT );
+        }
+
+        p += 2;
+
+        if (( ! isxdigit( (unsigned char)p[0] ) ||
+              ! isxdigit( (unsigned char)p[1] ) )) {
+
+            return( ERR_INVALID_MSG_FORMAT );
+        }
+
+        char hexStr[ 3 ];
+
+        hexStr[ 0 ] = p[ 0 ];
+        hexStr[ 1 ] = p[ 1 ];
+        hexStr[ 2 ] = '\0';
+
+        dataBuf[ msgLen++ ] = (uint8_t) strtoul( hexStr, NULL, 16 );
+
+        p += 2;
+    }
+
+    while ( isspace( (unsigned char)*p ) ) p++;
+
+    if ( *p != '\0' )   return( ERR_INVALID_MSG_FORMAT );
+    if ( msgLen == 0 )  return( ERR_INVALID_MSG_FORMAT );
+
+    uint8_t encodedLen = ( dataBuf[0] >> 5 ) + 1;
+
+    if ( encodedLen != msgLen ) return( ERR_INVALID_MSG_FORMAT );
+    return( LCS_OK );
+}
 
 //----------------------------------------------------------------------------------------
 // "sendLcsMsg" is the general method to send a message. It will accept the 

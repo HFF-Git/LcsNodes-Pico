@@ -118,11 +118,12 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// "validAttrRange" ensures that the specified range is a valid one. We accept
-// as valid item ranges only port and global attribute items.
+// "attrValidRange" ensures that the specified range is a valid for accessing
+// attributes. We accept as valid item ranges only port and global attribute 
+// items.
 //
 //----------------------------------------------------------------------------------------
-bool validItemRange( uint32_t item, uint32_t len ) {
+bool attrValidRange( uint32_t item, uint32_t len ) {
 
     uint32_t end = item + len;
 
@@ -140,75 +141,57 @@ bool validItemRange( uint32_t item, uint32_t len ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "readAttrMem" gets a range if items from the port attribute map or global
-// data map in MEM. 
+// "attrMemAdr" returns the memory address of the first item and also validates
+// that the range is actually valid memory.
 //
 //----------------------------------------------------------------------------------------
-uint8_t readAttrMem( uint16_t npId, 
-                     uint16_t item, 
-                     uint16_t *arg, 
-                     uint16_t len ) {
+uint8_t attrMemAdr( uint16_t npId, 
+                    uint16_t item, 
+                    uint16_t **adr, 
+                    uint16_t len ) {
 
-    if ( ! validItemRange( item, len )) return ( ERR_INVALID_ITEM_ID );
+    uint8_t  rStat;
+    uint16_t ofs;
+    uint16_t port = portId( npId );
 
-    if ( npId == 0 ) {
+    if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
 
-        memcpy((uint8_t *) arg,
-               (uint8_t *) &globalDataMap.map[ item - IR_GLOBAL_ATTR_START ],
-               len * sizeof( uint16_t ));
+     if (( port != 0 ) &&
+        ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
+
+        uint16_t index  = item - IR_PORT_ATTR_START;
+        *adr = & portDataMap.map[ port ] [ index ];
+    }
+    else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
+
+        uint16_t index  = item - IR_GLOBAL_ATTR_START;
+        *adr = & globalDataMap.map[ index ];
     }
     else {
-
-        uint16_t port = portId( npId );
-
-        memcpy((uint8_t *) arg, 
-               (uint8_t *) &portDataMap.map[ port ][ item - IR_PORT_ATTR_START ],
-               len * sizeof( uint16_t ));
+        
+        *adr = nullptr;
+        rStat = ERR_INVALID_ITEM_ID;
     }
-    
+
     return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// "writeAttrMem" stores a range if items to the port attribute map or global
-// data map in MEM.
-//
-//----------------------------------------------------------------------------------------
-uint8_t writeAttrMem( uint16_t npId, 
-                      uint16_t item, 
-                      uint16_t *arg, 
-                      uint16_t len  ) {
-
-    if ( ! validItemRange( item, len )) return ( ERR_INVALID_ITEM_ID );
-
-    if ( npId == 0 ) {
-
-        memcpy((uint8_t *) &globalDataMap.map[ item - IR_GLOBAL_ATTR_START ],
-               (uint8_t *) arg, 
-               len * sizeof( uint16_t ));
-    }
-    else {
-
-        uint16_t port = portId( npId );
-
-        memcpy((uint8_t *) &portDataMap.map[ port ][ item - IR_PORT_ATTR_START ],
-               (uint8_t *) arg, 
-               len * sizeof( uint16_t ));
-    }
-    
-    return ( LCS_OK );
-}
-
-//----------------------------------------------------------------------------------------
-// "attrNvmOffset" returns the absolute NVM offset of the attribute item Id 
-// passed. The "npId" parameter contains the portId if the item is referring 
-// to a port attribute. 
+// "attrNvmOfs" returns the absolute NVM offset of the attribute item Id passed.
+// The "npId" parameter contains the portId if the item is referring to a port
+// data attribute. 
 // 
 //----------------------------------------------------------------------------------------
-uint8_t attrNvmOffset( uint16_t npId, uint16_t item, uint16_t *ofs ) {
+uint8_t attrNvmOfs( uint16_t npId, 
+                    uint16_t item, 
+                    uint16_t *ofs, 
+                    uint16_t len ) {
 
-    uint8_t  rStat = LCS_OK;
-    uint16_t port  = portId( npId );  
+    uint8_t  rStat;
+    uint16_t ofs;
+    uint16_t port = portId( npId );
+
+    if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
 
     if (( port != 0 ) &&
         ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
@@ -229,6 +212,42 @@ uint8_t attrNvmOffset( uint16_t npId, uint16_t item, uint16_t *ofs ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "readAttrMem" gets a range if items from the port attribute map or global
+// data map in MEM. 
+//
+//----------------------------------------------------------------------------------------
+uint8_t readAttrMem( uint16_t npId, 
+                     uint16_t item, 
+                     uint16_t *arg, 
+                     uint16_t len ) {
+
+    uint16_t *adr;
+    uint8_t  rStat = attrMemAdr( npId, item, &adr, len );
+    if ( rStat != LCS_OK ) return( rStat );
+
+    memcpy((uint8_t *) arg, (uint8_t *) adr, len * sizeof( uint16_t ));
+    return ( LCS_OK );
+}
+
+//----------------------------------------------------------------------------------------
+// "writeAttrMem" stores a range if items to the port attribute map or global
+// data map in MEM.
+//
+//----------------------------------------------------------------------------------------
+uint8_t writeAttrMem( uint16_t npId, 
+                      uint16_t item, 
+                      uint16_t *arg, 
+                      uint16_t len  ) {
+
+    uint16_t *adr;
+    uint8_t  rStat = attrMemAdr( npId, item, &adr, len );
+    if ( rStat != LCS_OK ) return( rStat );
+
+    memcpy((uint8_t *) adr, (uint8_t *) arg, len * sizeof( uint16_t ));
+    return ( LCS_OK );
+}
+
+//----------------------------------------------------------------------------------------
 // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
 // from the NVM area. If successful, we also store it in the MEM counterpart 
 // and then return it. As an internal function, we expect validated arguments.
@@ -240,12 +259,10 @@ uint8_t readAttrNvm( uint16_t npId,
                      uint16_t len ) {
 
     uint8_t  rStat;
-    uint16_t ofs;
     uint16_t port = portId( npId );
+    uint16_t ofs;
 
-    if ( ! validItemRange( item, len )) return ( ERR_INVALID_ITEM_ID );
-
-    rStat = attrNvmOffset( npId, item, &ofs );
+    rStat = attrNvmOfs( npId, item, &ofs, len );
     if ( rStat != LCS_OK ) return ( ERR_INVALID_ITEM_ID );
 
     rStat = rtNvmGetBytes( ofs, (uint8_t *) arg, len * sizeof( uint16_t )); 
@@ -267,11 +284,10 @@ uint8_t writeAttrNvm( uint16_t npId,
                       uint16_t len  ) {
 
     uint8_t  rStat;
+    uint16_t port = portId( npId );
     uint16_t ofs;
 
-    if ( ! validItemRange( item, len )) return ( ERR_INVALID_ITEM_ID );
-
-    rStat = attrNvmOffset( npId, item, &ofs );
+    rStat = attrNvmOfs( npId, item, &ofs, len );
     if ( rStat != LCS_OK ) return ( ERR_INVALID_ITEM_ID );
 
     rStat = rtNvmPutBytes( ofs, (uint8_t *) arg, len * sizeof( uint16_t ));
@@ -289,7 +305,7 @@ uint8_t writeAttrNvm( uint16_t npId,
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToMem( uint16_t npId, uint16_t item, uint16_t len ) {
 
-    if ( ! validItemRange( item, len )) return ( ERR_INVALID_ITEM_ID );
+    if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
 
     for ( uint16_t i = 0; i < len; i++  ) {
 
@@ -309,7 +325,7 @@ uint8_t syncAttrToMem( uint16_t npId, uint16_t item, uint16_t len ) {
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToNvm( uint16_t npId, uint16_t item, uint16_t len ) {
 
-    if ( ! validItemRange( item, len )) return ( ERR_INVALID_ITEM_ID );
+    if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
 
     for ( uint16_t i = 0; i < len; i++  ) {
 
@@ -326,12 +342,12 @@ uint8_t syncAttrToNvm( uint16_t npId, uint16_t item, uint16_t len ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "libItemGet" handles all items that directly refer to the node and port map.
+// "getLibItem" handles all items that directly refer to the node and port map.
 // As an internal function, we expect validated arguments.
 //
 // ??? add new items for new nodeMap fields.
 //----------------------------------------------------------------------------------------
-uint8_t libItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
+uint8_t getLibItem( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     switch ( item ) {
 
@@ -379,12 +395,12 @@ uint8_t libItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "libItemSet" handles all items that directly refer to the node and port map.
+// "setLibItem" handles all items that directly refer to the node and port map.
 // As an internal function, we expect validated arguments.
 //
 // ??? add new items for new nodeMap fields.
 //----------------------------------------------------------------------------------------
-uint8_t libItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
+uint8_t setLibItem( uint16_t npId, uint16_t item, uint16_t val ) {
 
     switch ( item ) {
 
@@ -426,11 +442,11 @@ uint8_t libItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "libItemRequest" handles the request items for the runtime library itself.
+// "reqLibItem" handles the request items for the runtime library itself.
 // As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t libItemRequest( uint16_t npId, 
+uint8_t reqLibItem( uint16_t npId, 
                         uint16_t item, 
                         uint16_t *arg1, 
                         uint16_t *arg2 ) {
@@ -508,7 +524,7 @@ uint8_t libItemRequest( uint16_t npId,
 // validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t attrItemGet( int16_t  npId, 
+uint8_t getAttrItem( int16_t  npId, 
                      uint16_t item, 
                      uint16_t *arg, 
                      uint16_t len = 1  ) {
@@ -529,7 +545,7 @@ uint8_t attrItemGet( int16_t  npId,
 // to MEM or NVM. As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
-uint8_t attrItemSet( int16_t npId, 
+uint8_t setAttrItem( int16_t npId, 
                      uint16_t item, 
                      uint16_t *arg, 
                      uint16_t len = 1 ) {
@@ -544,34 +560,6 @@ uint8_t attrItemSet( int16_t npId,
     }
     else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
 }
-
-#if 0
-//----------------------------------------------------------------------------------------
-// Get a global attribute.
-//
-//----------------------------------------------------------------------------------------
-uint8_t glbItemGet( int16_t npId, uint16_t item, uint16_t *arg  ) {
-
-    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_INIT )) {
-
-        return ( RET_STAT( readAttrNvmExt( item, arg )));
-    }
-    else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
-}
-
-//----------------------------------------------------------------------------------------
-// Get an extended attribute.
-//
-//----------------------------------------------------------------------------------------
-uint8_t glbItemSet( int16_t npId, uint16_t item, uint16_t arg  ) {
-
-    if (( nodeMap.nodeState == NS_OPERATE ) || ( nodeMap.nodeState == NS_INIT )) {
-
-        return ( RET_STAT( writeAttrNvmExt( item, arg )));
-    }
-    else return ( RET_STAT( ERR_INVALID_OP_FOR_NODE_STATE ));
-}
-#endif
 
 //----------------------------------------------------------------------------------------
 // User callback function invocation routine. Items 128 to 255 are user defined
@@ -598,7 +586,7 @@ uint8_t userItemRequest( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// "drvItemGet" reads a word from the peripheral based on the I2C address for 
+// "getDrvItem" reads a word from the peripheral based on the I2C address for 
 // the port and channel passed. As an internal function, we expect validated 
 // arguments. The item id is passed in the range for drivers ( 64 .. 127 ) but
 // mapped to the driver board attribute numbers 0 .. 63.
@@ -609,7 +597,7 @@ uint8_t userItemRequest( uint16_t npId,
 //      R: i2cAdr, arg-h, arg-l
 //
 //----------------------------------------------------------------------------------------
-uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
+uint8_t getDrvItem( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
     uint8_t ofs     = item - IR_DRV_CHAN_START;
@@ -621,7 +609,7 @@ uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "drvItemSet" writes a word to the peripheral based on the I2C address for 
+// "setDrvItem" writes a word to the peripheral based on the I2C address for 
 // the port and channel passed. The item id is passed in the range for drivers
 // ( 64 .. 127 ) but mapped to the driver board attribute numbers 0 .. 63. As 
 // an internal function, we expect validated arguments. 
@@ -631,7 +619,7 @@ uint8_t drvItemGet( uint16_t npId, uint16_t item, uint16_t *arg ) {
 //      W: i2cAdr, item, arg-h, arg-l
 //
 //----------------------------------------------------------------------------------------
-uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
+uint8_t setDrvItem( uint16_t npId, uint16_t item, uint16_t val ) {
 
     uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
     uint8_t ofs     = item - IR_DRV_CHAN_START;
@@ -662,12 +650,12 @@ uint8_t drvItemSet( uint16_t npId, uint16_t item, uint16_t val ) {
 // check the status field. A code of 255 is the "busy" code.
 //
 //----------------------------------------------------------------------------------------
-uint8_t drvItemRequest( uint16_t npId, 
-                        uint16_t item, 
-                        uint16_t *arg1, 
-                        uint16_t *arg2 ) {
+uint8_t reqDrvItem( uint16_t npId, 
+                    uint16_t item, 
+                    uint16_t *arg1, 
+                    uint16_t *arg2 ) {
 
-    const int maxRetryCount = 100; // ??? for now ...
+    const int maxRetryCount = 20; // ??? for now ...
 
     uint16_t        index       = item - IR_DRV_CHAN_START;
     LcsPortMapEntry *pPtr       = & portMap.map[ portId( npId ) ];
@@ -709,11 +697,11 @@ namespace LCS {
 // The "npId" argument contains the node/port/channel Id. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg, uint16_t len ) {
+uint8_t getItem( uint16_t npId, uint16_t item, uint16_t *arg, uint16_t len ) {
 
     if ( itemDebugEnabled( )) {
 
-        printf( "nodeGet: npId: 0x%x, item: %d, len: %d", npId, item, len  );
+        printf( "getItem: npId: 0x%x, item: %d, len: %d", npId, item, len  );
         if ( arg != nullptr ) printf( ":%d", *arg ); else printf( "null" );
         printf( "\n" );
     }
@@ -722,19 +710,19 @@ uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg, uint16_t len ) {
 
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return ( RET_STAT( libItemGet( npId, item, arg )));
+        return ( RET_STAT( getLibItem( npId, item, arg )));
     }
     else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        return ( RET_STAT( drvItemGet( npId, item, arg ) ));
+        return ( RET_STAT( getDrvItem( npId, item, arg ) ));
     }
     else if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 
-        return ( RET_STAT ( attrItemGet( npId, item, arg, len )));
+        return ( RET_STAT ( getAttrItem( npId, item, arg, len )));
     }
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-        return ( RET_STAT ( attrItemGet( npId, item, arg, len )));
+        return ( RET_STAT ( getAttrItem( npId, item, arg, len )));
     }
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
@@ -744,138 +732,65 @@ uint8_t nodeGet( uint16_t npId, uint16_t item, uint16_t *arg, uint16_t len ) {
 // argument contains the node/port/channel Id. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodeSet( uint16_t npId, uint16_t item, uint16_t *val, uint16_t len ) {
+uint8_t setItem( uint16_t npId, uint16_t item, uint16_t *val, uint16_t len ) {
 
     if ( itemDebugEnabled( )) {
 
-        printf( "nodeSet: npId: 0x%x, item: %d, len:%d\n", npId, item, len  );
+        printf( "setItem: npId: 0x%x, item: %d, len:%d\n", npId, item, len  );
     }
 
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return ( RET_STAT( libItemSet( npId, item, *val )));
+        return ( RET_STAT( setLibItem( npId, item, *val )));
     }
     else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        return ( RET_STAT( drvItemSet( npId, item, *val ) ));
+        return ( RET_STAT( setDrvItem( npId, item, *val ) ));
     }
     else if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 
-        return ( RET_STAT ( attrItemSet( npId, item, val, 1 )));
+        return ( RET_STAT ( setAttrItem( npId, item, val, 1 )));
     } 
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-       return ( RET_STAT ( attrItemSet( npId, item, val, 1 )));
+       return ( RET_STAT ( setAttrItem( npId, item, val, 1 )));
     }
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeGetRange" is used to locally read a range of attributes for performance
-// reasons. A npId of zero refers to the global attribute range, a npId with a
-// port Id will refer to the attribute range for the port.
-//
-//----------------------------------------------------------------------------------------
-uint8_t nodeGetRange( uint16_t npId, 
-                      uint16_t itemStart, 
-                      uint16_t len, 
-                      uint16_t *argArray ) {
-
-    if ( itemDebugEnabled( )) {
-
-        printf( "nodeGetRange: npId: 0x%x, itemStart: %d, len:%d\n", 
-                npId, itemStart, len  );
-    }
-
-    uint8_t  rStat;
-    uint32_t end = itemStart + len;
-
-    if ( isInRangeU16( itemStart, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
-
-        if ( end > IR_PORT_ATTR_END ) return ( RET_STAT( ERR_INVALID_ITEM_ID ));
-    }
-    else if ( isInRangeU16( itemStart, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
-
-        if ( end > IR_GLOBAL_ATTR_END ) return ( RET_STAT( ERR_INVALID_ITEM_ID ));
-    }
-    else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
-
-    return ( rStat );
-}
-
-//----------------------------------------------------------------------------------------
-//
-// ??? I am not sure we would really need this. the caller could also just 
-// do a loop reading a word at a time.... let's see...
-//----------------------------------------------------------------------------------------
-uint8_t nodeSetRange( uint16_t npId, 
-                      uint16_t itemStart, 
-                      uint16_t len, 
-                      uint16_t *argArray ) {
-
-     if ( itemDebugEnabled( )) {
-
-        printf( "nodeSetRange: npId: 0x%x, itemStart: %d, len:%d\n", 
-                npId, itemStart, len  );
-    }
-
-    uint8_t rStat;
-    uint32_t end  = itemStart + len;
-
-    if ( isInRangeU16( itemStart, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
-
-        if ( end > IR_PORT_ATTR_END ) return ( RET_STAT( ERR_INVALID_ITEM_ID ));
-    }
-    else if ( isInRangeU16( itemStart, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
-
-        if ( end > IR_GLOBAL_ATTR_END ) return ( RET_STAT( ERR_INVALID_ITEM_ID ));
-    }
-    else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
-
-    return ( RET_STAT( ERR_NOT_IMPLEMENTED )); // ??? for now ...
-}
-
-//----------------------------------------------------------------------------------------
-// "nodeGetItemPtr" will return a void pointer to the MEM offset, where the
+// "getItemPtr" will return a void pointer to the MEM offset, where the
 // item can be found. This is a useful but also dangerous function. The pointer
 // returned is just the address of the item. When the function is used to get
 // the address in memory of a larger data structure implemented as a range of 
 // items, it is up to the firmware programmer to ensure that the accessed
-// memory is the valid one with the correct size.
-//
-// ??? perhaps we should insist on the intended range too so we can 
-// validate it ?
+// memory is the valid one with the correct size. We do however check that 
+// the intended range is actually valid memory.
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodeGetItemPtr( uint16_t npId,
-                        uint16_t item,
-                        void **itemPtr ) {
+uint8_t getItemPtr( uint16_t npId,
+                    uint16_t item,
+                    uint16_t **itemPtr,
+                    uint16_t len ) {
 
     if ( itemDebugEnabled( )) {
 
-        printf( "nodeGetItemPtr: npId: 0x%x, item: %d\n", npId, item  );
+        printf( "getItemPtr: npId: 0x%x, item: %d, len: %d\n", 
+                npId, item, len  );
     }
 
-    if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
-
-        return ( RET_STAT( ERR_NOT_IMPLEMENTED )); // ??? for now ... 
-    }
-    else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
-
-        return ( RET_STAT( ERR_NOT_IMPLEMENTED )); // ??? for now ... 
-    }
-    else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
+    return( attrMemAdr( npId, item, itemPtr, len ));
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeReq" will carry out a node, port or driver function request. The "npId"
+// "reqItem" will carry out a node, port or driver function request. The "npId"
 // argument contains the node/port/channel Id. The "item" argument indicates the
 // requested function. The "arg1" and "arg2" arguments are optional arguments 
 // for the requested function. The actual meaning of the arguments depends on 
 // the requested function.
 //
 //----------------------------------------------------------------------------------------
-uint8_t nodeReq( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) {
+uint8_t reqItem( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
     if ( itemDebugEnabled( )) {
 
@@ -893,11 +808,11 @@ uint8_t nodeReq( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) 
 
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
 
-        return ( RET_STAT( libItemRequest( npId, item, arg1, arg2 )));
+        return ( RET_STAT( reqLibItem( npId, item, arg1, arg2 )));
     } 
     else if ( isInRangeU16( item, IR_DRV_CHAN_START, IR_DRV_CHAN_END )) {
 
-        return ( RET_STAT( drvItemRequest( npId, item, arg1, arg2 )));
+        return ( RET_STAT( reqDrvItem( npId, item, arg1, arg2 )));
     } 
     else if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 

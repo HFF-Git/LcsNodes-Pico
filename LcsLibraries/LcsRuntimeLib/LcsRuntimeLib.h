@@ -606,7 +606,6 @@ enum LcsErrorCodes : uint8_t {
 
     ERR_NVM_HEADER                      = 10,
     ERR_NODE_MAP_HEADER                 = 11,
- //   ERR_MWORD_PORT_MAP                  = 12,
     ERR_PORT_DATA_HEADER                = 13,
     ERR_EVENT_MAP_HEADER                = 14,
     ERR_GLOBAL_DATA_HEADER              = 15,
@@ -630,6 +629,7 @@ enum LcsErrorCodes : uint8_t {
     ERR_INVALID_BOARD_ID                = 34,
     ERR_INVALID_DRV_ITEM                = 35,
     ERR_INVALID_ATTR_ARG                = 36,
+    ERR_INVALID_MSG_FORMAT              = 37,
 
     ERR_INVALID_EVENT_MAP_INDEX         = 51,
     ERR_EVENT_MAP_FULL                  = 52,
@@ -759,29 +759,30 @@ uint8_t     startRuntime( );
 // type messages use these calls below. A firmware should rather use the 
 // sendXXX calls. 
 //
-// The "nodeGet" and "nodeSet" accept a range if items. This is useful for 
+// The "getItem" and "setItem" accept a range if items. This is useful for 
 // loading or storing a whole set of attributes. However, access to a remote
 // node is always one item at a time.
 //
 //----------------------------------------------------------------------------------------
-uint8_t     nodeGet( uint16_t npId, 
+uint8_t     getItem( uint16_t npId, 
                      uint16_t item, 
                      uint16_t *arg, 
                      uint16_t len = 1 );
 
-uint8_t     nodeSet( uint16_t npId, 
+uint8_t     setItem( uint16_t npId, 
                      uint16_t item, 
                      uint16_t *arg,
                      uint16_t len = 1 );
 
-uint8_t     nodeReq( uint16_t npId, 
+uint8_t     reqItem( uint16_t npId, 
                      uint16_t item, 
                      uint16_t *arg1 = nullptr, 
                      uint16_t *arg2 = nullptr );
 
-uint8_t     nodeGetItemPtr( uint16_t npId,
-                            uint16_t item,
-                            void **itemPtr );
+uint8_t     getItemPtr( uint16_t npId,
+                        uint16_t item,
+                        uint16_t **itemPtr,
+                        uint16_t len = 1 );
 
 //----------------------------------------------------------------------------------------
 // Function registration routines for callbacks, tasks, driver types, etc.
@@ -1073,5 +1074,12 @@ uint8_t     sendEndLoad( uint16_t npId,
 //
 //----------------------------------------------------------------------------------------
 uint8_t     sendRawMsg( uint8_t *msgBuf );
+
+//----------------------------------------------------------------------------------------
+// Utility functions for messages. 
+//
+//----------------------------------------------------------------------------------------
+uint8_t strToLcsMsg( uint8_t *dataBuf, char *msgStr );
+uint8_t strToLcsMsg( uint8_t *dataBuf, char *msgStr ); 
 
 }; // LCS NameSpace

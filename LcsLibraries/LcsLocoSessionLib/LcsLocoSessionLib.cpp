@@ -209,13 +209,13 @@ const uint16_t NVM_CAB_MAP_OFS = 256;  // ??? for now ... it is items !!!
 
 uint8_t getNvmCabCount( uint16_t *cabCount ) {
 
-    uint8_t rStat = nodeGet( 0,0, cabCount ); // ??? for now ...
+    uint8_t rStat = getItem( 0,0, cabCount ); // ??? for now ...
     return ( LCS_OK );
 }
 
 uint8_t putNvmCabCount( uint16_t cabCount ) {
 
-    uint8_t rStat = nodeSet( 0, 0, &cabCount ); // ??? for now ...
+    uint8_t rStat = setItem( 0, 0, &cabCount ); // ??? for now ...
     return ( LCS_OK );
 }
 

@@ -310,7 +310,7 @@ void handleMsgGetNode( uint16_t senderNpId, uint8_t *msg ) {
 
         uint16_t  item  = msg[3];
         uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
-        uint8_t   ret   = nodeGet( npId, item, &arg );
+        uint8_t   ret   = getItem( npId, item, &arg );
 
         if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg ); // ??? fix
         else                  sendAck( nodeMap.nodeId, npId, ret );
@@ -330,7 +330,7 @@ void handleMsgPutNode( uint16_t senderNpId, uint8_t *msg ) {
 
         uint16_t  item  = msg[3];
         uint16_t  arg1  = ( msg[4] << 8 ) + msg[5];
-        uint8_t   ret   = nodeSet( npId, item, &arg1 );
+        uint8_t   ret   = setItem( npId, item, &arg1 );
 
         sendAck( nodeMap.nodeId, ret );
     }
@@ -378,7 +378,7 @@ void handleMsgReqNode( uint16_t senderNpId, uint8_t *msg ) {
 
         uint16_t  item  = msg[3];
         uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
-        uint8_t   ret   = nodeReq( npId, item, &arg );
+        uint8_t   ret   = reqItem( npId, item, &arg );
 
         if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg ); // ??? fix ...
         else                  sendAck( nodeMap.nodeId, npId, ret );
