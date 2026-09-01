@@ -67,7 +67,7 @@ inline bool eventsDebugEnabled(  ) {
     return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_EVENTS )); 
 }
 
-inline uint8_t retStat( char *name, uint8_t errId ) {
+inline uint8_t retStat( const char *name, uint8_t errId ) {
 
     if ( eventsDebugEnabled( )) {
 
@@ -78,14 +78,16 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
     return ( errId );
 }
 
-#define ENTER_FUNC() enterFunc((char *) __func__)
-#define RET_STAT(x) retStat((char *) __func__, ( x ))
+inline void enterFunc( const char *name ) {
 
+    if ( eventsDebugEnabled( )) printf( "--> %s\n", name );
+}
 
-#include <stdlib.h>
+#define ENTER_FUNC() enterFunc( __func__)
+#define RET_STAT(x) retStat( __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// Comparison function for sorting event map entries.
+// Comparison function for the event map entries sort.
 //
 //----------------------------------------------------------------------------------------
 int compareEventId( const void *a, const void *b ) {
@@ -100,8 +102,11 @@ int compareEventId( const void *a, const void *b ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Sort the active portion of the event map. "mapHwm" is a byte offset. qsort() 
-// requires the number of elements.
+// Sort the active portion of the event map.  The map is sorted by eventId.
+// "mapHwm" is a byte offset. The C library qsort() function requires the
+// number of elements. This routine expects that the parameters have been 
+// validated before calling it. 
+//
 //
 //----------------------------------------------------------------------------------------
 void sortEventMap( ) {
@@ -136,14 +141,14 @@ LcsEventMapEntry *lookupEventEntry( uint16_t eventId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Add a new event map entry. If the event entry already exists, just update 
-// update the port mask. Otherwise, the new entry is appended and the map is 
-// then sorted.
+// Add a new event map entry to the MEM event map. If the event entry already 
+// exists, we just update update the port mask. Otherwise, the new entry is 
+// appended and the map is sorted again.
+//
 //----------------------------------------------------------------------------------------
 uint8_t addToEventMap( const LcsEventMapEntry *entry ) {
 
-    if ( eventMap.mapHwm >= sizeof( eventMap.map ))
-        return( RET_STAT( ERR_EVENT_MAP_FULL ));
+    if ( eventMap.mapHwm > sizeof( eventMap.map )) return( ERR_EVENT_MAP_FULL );
 
     LcsEventMapEntry *e = lookupEventEntry( entry -> eventId );
 
@@ -155,17 +160,17 @@ uint8_t addToEventMap( const LcsEventMapEntry *entry ) {
         eventMap.mapHwm += sizeof( LcsEventMapEntry );
         sortEventMap( );
     }
-    else {
+    else e -> eventMask = entry -> eventMask;
 
-        e -> eventMask = entry -> eventMask;
-    }
-
-    return( LCS_OK );
+    return( LCS_OK  );
 }
 
 //----------------------------------------------------------------------------------------
 // Remove an event map entry. Since the map is sorted, find the entry and 
-// replace it with the last active entry. The map is then sorted again.
+// replace it with the last active entry. The map is then sorted again. We 
+// could also just move all entries above the HWM down by one, but since we
+// do add and remove only during configuration, we can keep it simple and
+// just sort the map again.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t removeFromEventMap( uint16_t eventId ) {
@@ -186,7 +191,7 @@ uint8_t removeFromEventMap( uint16_t eventId ) {
         if ( eventMap.map[ i ].eventId > eventId ) break;
     }
 
-    return( RET_STAT( LCS_OK  ));
+    return( LCS_OK  );
 }
 
 } // namespace
@@ -199,19 +204,18 @@ uint8_t removeFromEventMap( uint16_t eventId ) {
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// loadEventMap() loads the complete event map from NVM and validates the header.
-// The complete map is loaded because it is small and there is little benefit in
-// introducing additional complexity to load only the active portion. After 
-// loading, the active entries are sorted by event Id.
+// loadEventMap() loads the event map from NVM. The complete map is loaded 
+// and the header is validated. If the header is valid, the map is sorted for
+// quick lookup. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t loadEventMap( ) {
 
-    if ( eventsDebugEnabled( )) printf( "loadEventMap\n" );
+    ENTER_FUNC();
 
     uint8_t rStat = rtNvmGetBytes( NVM_EVENT_MAP_OFS,
-                                (uint8_t *) &eventMap,
-                                sizeof( LcsEventMap ));
+                                   (uint8_t *) &eventMap,
+                                   sizeof( LcsEventMap ));
     if ( rStat != LCS_OK ) return( RET_STAT( rStat ));
 
     if (( eventMap.nvmOfs != NVM_EVENT_MAP_OFS )      ||
@@ -230,8 +234,21 @@ uint8_t loadEventMap( ) {
 //----------------------------------------------------------------------------------------
 LcsEventMapEntry *lookupEvent( uint16_t eventId ) {
 
-    if ( eventId == NIL_EVENT_ID ) return ( nullptr );
-    return( lookupEventEntry( eventId ));
+    if ( eventsDebugEnabled( )) printf( "lookupEvent, eventId: %d\n", eventId );
+
+    if ( eventId != NIL_EVENT_ID ) {
+        
+        LcsEventMapEntry *entry = lookupEventEntry( eventId );
+
+        if ( eventsDebugEnabled( )) {
+
+            if ( entry != nullptr ) printf( "found\n" );
+            else                    printf( "not found\n" );
+        }
+        
+        return ( entry );
+    }
+    else return ( nullptr );
 }
 
 //----------------------------------------------------------------------------------------
@@ -258,15 +275,12 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Remove an event from the NVM event map. We also remove it from the hash table.
+// Remove an event from the NVM event map. We also remove it from the map.
 //
 //----------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId ) {
 
-    if ( eventsDebugEnabled( )) {
-
-        printf( "Remove event, eventId: %d\n", eventId );
-    }
+    if ( eventsDebugEnabled( )) printf( "Remove event, eventId: %d\n", eventId );
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
 
@@ -281,18 +295,20 @@ uint8_t removeEvent( uint16_t eventId ) {
 //---------------------------------------------------------------------------------------
 uint8_t updateEventMap( ) {
 
+   ENTER_FUNC();
+
     uint8_t rStat = rtNvmPutBytes( NVM_EVENT_MAP_OFS +
                                    offsetof( LcsEventMap, map ),
                                    (uint8_t *) eventMap.map,
                                    eventMap.mapHwm );
 
-    return( rStat );
+    return( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
 // "getEventEntryByIndex" gets an entry by its actual index in the event map.
+// The index is the logical entry number, not a byte offset. 
 //
-// The index is the logical entry number, not a byte offset.
 //----------------------------------------------------------------------------------------
 uint8_t getEventEntryByIndex( uint16_t index,
                               uint16_t *eventId,
@@ -311,7 +327,7 @@ uint8_t getEventEntryByIndex( uint16_t index,
     *eventId   = eventMap.map[index].eventId;
     *eventMask = eventMap.map[index].eventMask;
 
-    return( LCS_OK );
+    return( RET_STAT( LCS_OK ));
 }
 
 } // namespace LCS
