@@ -40,8 +40,8 @@
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
 
-// ??? idea: we could add a printf-like function, so that a firmware does not have
-// to deal with whether we have a console or not...
+// ??? idea: we could add a printf-like function, so that a firmware does not 
+// have to deal with whether we have a console or not...
 
 
 //----------------------------------------------------------------------------------------
@@ -256,10 +256,10 @@ uint8_t setupDefaultGlobalData( ) {
     globalDataMap.nvmOfs    = NVM_GLOBAL_DATA_OFS;
     globalDataMap.nvmSize   = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
 
-    if ( globalDataMap.map != nullptr ) delete [ ] globalDataMap.map; 
+    delete [ ] globalDataMap.map; 
 
-    globalDataMap.map = (uint16_t *)
-        new uint8_t ( globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
+    globalDataMap.map = new uint16_t[
+    (globalDataMap.nvmSize - sizeof(LcsGlobalDataMap)) / sizeof(uint16_t) ]( );
 
     return( RET_STAT( rtNvmPutBytes( NVM_GLOBAL_DATA_OFS,
                                      (uint8_t *) &globalDataMap,
@@ -709,10 +709,10 @@ uint8_t setupGlobalDataMap( ) {
         return( RET_STAT( ERR_GLOBAL_DATA_HEADER ));
     }
     
-    if ( globalDataMap.map != nullptr ) delete [ ] globalDataMap.map; 
+    delete [ ] globalDataMap.map; 
 
-    globalDataMap.map = (uint16_t *)
-        new uint8_t ( globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
+    globalDataMap.map = new uint16_t[
+    (globalDataMap.nvmSize - sizeof(LcsGlobalDataMap)) / sizeof(uint16_t) ]();
 
     rStat = rtNvmGetBytes( globalDataMap.nvmOfs,
                            (uint8_t *) globalDataMap.map, 
