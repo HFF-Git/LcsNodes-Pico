@@ -107,10 +107,11 @@ uint32_t    nodeNvmBlockSize    = DEF_BUFFER_BLOCK_SIZE;
 uint8_t     rNumNvm             = UNDEFINED_RES_ID;
 
 //----------------------------------------------------------------------------------------
-// "nvmDebugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all.
+// The return status routine will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the 
+// function name. The ENTER_FUNC macro is a helper to print out the function 
+// name when entering a routine.
 // 
 //----------------------------------------------------------------------------------------
 inline bool nvmDebugEnabled( ) {

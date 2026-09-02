@@ -56,10 +56,11 @@ namespace {
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// "eventsDebugEnabled" and "retStat" are the debug support routines. We can 
-// easily check whether debug is enabled at all. The return status routine will
-// print out a return status message when debugging is enabled. The macro 
-// "RET_STAT" is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all.
+// The return status routine will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the 
+// function name. The ENTER_FUNC macro is a helper to print out the function 
+// name when entering a routine.
 // 
 //----------------------------------------------------------------------------------------
 inline bool eventsDebugEnabled(  ) {
@@ -205,8 +206,8 @@ namespace LCS {
 
 //----------------------------------------------------------------------------------------
 // loadEventMap() loads the event map from NVM. The complete map is loaded 
-// and the header is validated. If the header is valid, the map is sorted for
-// quick lookup. 
+// and the header is validated. If the header as well as the entries are valid, 
+// the map is sorted for quick lookup. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t loadEventMap( ) {
@@ -221,8 +222,19 @@ uint8_t loadEventMap( ) {
     if (( eventMap.nvmOfs != NVM_EVENT_MAP_OFS )      ||
         ( eventMap.nvmSize != sizeof( LcsEventMap )) ||
         ( eventMap.mapHwm > sizeof( eventMap.map ))  ||
-        (( eventMap.mapHwm % sizeof( LcsEventMapEntry )) != 0 ))
+        (( eventMap.mapHwm % sizeof( LcsEventMapEntry )) != 0 )) {
+
         return( RET_STAT( ERR_EVENT_MAP_HEADER ));
+
+    }
+    
+    int hwmIndex = (int) ( eventMap.mapHwm / sizeof( LcsEventMapEntry ));
+
+    for ( int i = 0; i < hwmIndex; i++ ) {
+
+        if ( eventMap.map[ i ].eventId == NIL_EVENT_ID )
+            return( RET_STAT( ERR_EVENT_MAP_INVALID_ENTRY ));
+    }
 
     sortEventMap( );
     return( RET_STAT( LCS_OK ));

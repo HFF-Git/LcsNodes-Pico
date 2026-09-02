@@ -49,9 +49,6 @@ namespace LCS {
     extern CdcResourceDescMap   dMap;
 
     extern uint8_t              rtNvmGetWord( uint32_t ofs, uint16_t *word );
-    extern uint8_t              extNvmGetWord(  uint8_t boardId, 
-                                                uint32_t ofs, 
-                                                uint16_t *word );
 };
 
 //----------------------------------------------------------------------------------------
@@ -86,7 +83,7 @@ typedef struct {
 
     DumpSource  type;
     uint16_t    *memPtr;
-    uint32_t     nvmStart;
+    uint32_t    nvmStart;
 
 } DumpContext;
 
@@ -112,14 +109,15 @@ bool isZeroLine( uint16_t *line, bool *valid, uint16_t itemsPerLine ) {
 
     for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-        if ( valid[i] && line[i] != 0 ) return false;
+        if ( valid[ i ] && line[ i ] != 0 ) return false;
     }
 
     return true;
 }
 
 //----------------------------------------------------------------------------------------
-// Print a line. We list the content in hex and optional append an ASCII version.
+// Print a line of data. We list the content in hex and optional append an 
+//ASCII version.
 //
 //----------------------------------------------------------------------------------------
 void printLineBuf( uint32_t   address,
@@ -157,7 +155,9 @@ void printLineBuf( uint32_t   address,
 //----------------------------------------------------------------------------------------
 // "fetchLine" retrieves a line of data depending on the dump context. We are
 // passed the starting byte address, the buffer to which the data is written,
-// list options and the limit of the address range. 
+// list options and the limit of the address range. We also detect if a line
+// consists of all zeroes. The "valid" array indicates if the corresponding 
+// item is valid or not.
 //
 //----------------------------------------------------------------------------------------
 void fetchLine( const DumpContext *ctx,
@@ -167,7 +167,7 @@ void fetchLine( const DumpContext *ctx,
                 uint16_t itemsPerLine,
                 uint32_t limit ) {
 
-    if (ctx->type == DUMP_SRC_MEM) {
+    if ( ctx -> type == DUMP_SRC_MEM ) {
 
         uint32_t wordIndex = index / sizeof(uint16_t);
 
@@ -177,7 +177,7 @@ void fetchLine( const DumpContext *ctx,
 
             if ( addr < limit ) {
 
-                line[ i ]  = ctx->memPtr[wordIndex + i];
+                line[ i ]  = ctx -> memPtr[ wordIndex + i ];
                 valid[ i ] = true;
             } 
             else valid[ i ] = false;
@@ -201,15 +201,23 @@ void fetchLine( const DumpContext *ctx,
 
 //----------------------------------------------------------------------------------------
 // "dumpCore" is the work horse for listing data. We get the context, start and 
-// end address and a couple of options that control the printout.
+// end address and a couple of options that control the printout. "itemsPerLine"
+// and "byteStep" are used to control how many items per line and the data size 
+//in bytes of the itemLine shown.  
+//
+// For large data areas, we can compress lines of all zeroes. If the number of 
+// consecutive zero lines exceeds a threshold, we print the first and last line
+// of the run and indicate that there are lines in between that are not shown. 
+// The "printAscii" option will append an ASCII version of the data to the hex
+// printout. 
 //
 //----------------------------------------------------------------------------------------
 void dumpCore( const DumpContext *ctx,
                uint32_t start,
                uint32_t limit,
                uint16_t itemsPerLine,
-               bool printAscii,
                uint32_t byteStep,
+               bool printAscii,
                bool compressZeroes ) {
 
     const uint16_t zeroLinesThreshold = 4;
@@ -244,20 +252,20 @@ void dumpCore( const DumpContext *ctx,
                         uint32_t tmp = zeroRunStart + i * byteStep;
 
                         fetchLine( ctx, tmp, line, valid,
-                                itemsPerLine, limit );
+                                   itemsPerLine, limit );
 
                         printLineBuf( tmp, line, valid,
-                                    itemsPerLine, printAscii );
+                                      itemsPerLine, printAscii );
                     }
 
                 } 
                 else {
 
                     fetchLine( ctx, zeroRunStart, line, valid,
-                            itemsPerLine, limit );
+                               itemsPerLine, limit );
 
                     printLineBuf( zeroRunStart, line, valid,
-                                itemsPerLine, printAscii );
+                                  itemsPerLine, printAscii );
 
                     printf("...\n");
 
@@ -265,10 +273,10 @@ void dumpCore( const DumpContext *ctx,
                         zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
 
                     fetchLine( ctx, last, line, valid,
-                            itemsPerLine, limit );
+                                itemsPerLine, limit );
 
                     printLineBuf( last, line, valid,
-                                itemsPerLine, printAscii );
+                                  itemsPerLine, printAscii );
                 }
 
                 zeroRunLength = 0;
@@ -310,38 +318,31 @@ void dumpCore( const DumpContext *ctx,
 }
 
 //----------------------------------------------------------------------------------------
-// A simple Api to list our memory content.
+// A simple API to list our memory content with convenient defaults. We dump the
+// memory in 8 items per line, print an ASCII version and compress lines of all
+// zeroes.
 //
 //----------------------------------------------------------------------------------------
-void dumpMemData(uint16_t *area,
-                 uint16_t len,
-                 uint8_t itemsPerLine = 8,
-                 bool printAscii = true,
-                 bool compressZeroes = true )
+void dumpMemData( uint16_t *area,
+                  uint32_t len,
+                  uint8_t itemsPerLine = 8,
+                  bool printAscii = true,
+                  bool compressZeroes = true ) {
 
-{
-
-    DumpContext ctx = {
-
-        .type   = DUMP_SRC_MEM,
-        .memPtr = area
-    };
-
-    uint32_t start = 0;
-    uint32_t limit = len;
+    DumpContext ctx = { .type = DUMP_SRC_MEM, .memPtr = area };
 
     dumpCore( &ctx,
-              start,
-              limit,
+              0,
+              len,
               itemsPerLine,
-              printAscii,
               itemsPerLine * sizeof(uint16_t),
+              printAscii,
               compressZeroes );
-
 }
 
 //----------------------------------------------------------------------------------------
-// A simple Api to list our NVM content.
+// A simple Api to list our NVM content. We dump the NVM starting at the start
+// offset in 8 items per line, print an ASCII version and compress lines of all
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmData( uint32_t start,
@@ -349,35 +350,32 @@ void dumpNvmData( uint32_t start,
                   uint8_t itemsPerLine = 8,
                   bool printAscii = true,
                   bool compressZeroes = true ) {
-    DumpContext ctx = {
 
-        .type     = DUMP_SRC_NVM,
-        .nvmStart = start
-    };
+    DumpContext ctx = { .type = DUMP_SRC_NVM, .nvmStart = start };
 
     dumpCore( &ctx,
               start,
               start + len,
               itemsPerLine,
-              printAscii,
               itemsPerLine * sizeof(uint16_t),
+              printAscii,
               compressZeroes );
 }
 
 //----------------------------------------------------------------------------------------
-// Routines to list contents of the various memory areas. Right now, we just dump out 
-// hex data. It would be nice to show formatted data. Perhaps one day...
+// "DumpMemNodeMap" dumps the MEM node map.
 //
 //----------------------------------------------------------------------------------------
 void dumpMemNodeMap( ) {
 
     printf( "MEM Node Map: \n\n" );
-    dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap ), 8, true);
-    printf( "\n" );
+    dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap )) ;
+    printf( "\n" ); 
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "dumpMemPortMap" dumps the MEM port map structure in memory. The port map is
+// an array of port map entries. We dump each entry separately.
 //
 //----------------------------------------------------------------------------------------
 void dumpMemPortMap( ) {
@@ -395,7 +393,7 @@ void dumpMemPortMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "dumpMemEventMap" dumps the MEM event map structure in memory. 
 //
 //----------------------------------------------------------------------------------------
 void dumpMemEventMap( ) {
@@ -409,7 +407,8 @@ void dumpMemEventMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "dumpMemPortData" dumps the MEM port data structure in memory. The port data
+// map is an array of the items per port. We dump each port separately.
 //
 //----------------------------------------------------------------------------------------
 void dumpMemPortData( ) {
@@ -426,21 +425,25 @@ void dumpMemPortData( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "dumpMemGlobalData" dumps the MEM global data structure in memory. 
 //
 //----------------------------------------------------------------------------------------
 void dumpMemGlobalData( ) {
 
-    printf( "MEM Global Data: \n\n" );
+    printf( "MEM Global Data: ( Size: %d ) \n\n", globalDataMap.nvmSize );
 
-   // dumpMemData((uint16_t *) &portDataMap.map[ i ], 
-   //                 MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ), 8, true );
-    
-   printf( "\n" );
+    if ( globalDataMap.map == nullptr ) {
+
+        printf( "Global data map pointer is null.\n" );
+        return;
+    }
+
+    dumpMemData((uint16_t *) &globalDataMap.map, globalDataMap.nvmSize );
+    printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "dumpMemTaskMap" dumps the MEM task map structure in memory. 
 //
 //----------------------------------------------------------------------------------------
 void dumpMemTaskMap( ) {
@@ -453,7 +456,8 @@ void dumpMemTaskMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// And for the great finale, we dump the entire MEM runtime area. This is a 
+// combination of all the MEM areas. 
 //
 //----------------------------------------------------------------------------------------
 void dumpMemRuntimeArea( ) {
@@ -461,38 +465,65 @@ void dumpMemRuntimeArea( ) {
     printf( "MEM Area Dump: \n\n" );
     dumpMemNodeMap( );
     dumpMemPortMap( );
+    dumpMemEventMap( );
     dumpMemPortData( );
     dumpMemGlobalData( );
     dumpMemTaskMap( );
-    dumpMemEventMap( );
     printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
-// Routines to list contents of the various NVM areas. Right now, we just dump out hex 
-// data. It would be nice to also show formatted data. Perhaps one day...
+// "dumpNvmHeader" dumps the NVM header structure. 
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmHeader( ) {
 
     printf( "NVM Header: \n" );
-    dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsNvmHeader), 8, true );
+    dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsNvmHeader));
     printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
-//
+//  "dumpNvmNodeMap" dumps the NVM node map structure.
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmNodeMap( ) {
 
-    printf( "NVM Node Map Dump: \n\n" );
-    dumpNvmData( NVM_NODE_MAP_OFS, NVM_NODE_MAP_SIZE, 8, true );
+    printf( "NVM Node Map Dump: \n\n");
+    printf( "Header: " );
+    dumpNvmData( NVM_NODE_MAP_OFS, 12, 8, false );
+    printf( "\n" );
+
+    printf( "Data: \n\n" );
+    uint32_t start = NVM_NODE_MAP_OFS + 12;
+    dumpNvmData( start, NVM_NODE_MAP_SIZE );
     printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
+// "dumpNvmEventMap" dumps the NVM event map structure. For convenience, we also
+// lost the header separately, followed by the port entry data. The header size
+// portion is 12 bytes.
 //
+//----------------------------------------------------------------------------------------
+void dumpNvmEventMap( ) {
+
+    printf( "NVM Event Map Dump: \n\n");
+    printf( "Header: " );
+    dumpNvmData( NVM_EVENT_MAP_OFS, 12, 8, false );
+    printf( "\n" );
+
+    printf( "Data: \n\n" );
+    uint32_t start = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map );
+    dumpNvmData( start, NVM_EVENT_MAP_SIZE );
+    printf( "\n" );
+}
+
+//----------------------------------------------------------------------------------------
+// "dumpNvmPortMap" dumps the NVM port map structure. The port map is an array
+// of port map entries. We dump each entry separately. For convenience, we also
+// lost the header separately, followed by the port entry data. The header size
+// portion is 12 bytes.
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmPortData( ) {
@@ -502,15 +533,15 @@ void dumpNvmPortData( ) {
     dumpNvmData( NVM_PORT_DATA_OFS, 12, 8, false );
     printf( "\n" );
 
-     uint32_t start = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map );
+    uint32_t start = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        uint32_t adr = start + ( i * MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
+        uint32_t adr = 
+           start + ( i * MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
 
         printf( "Port %d:, Adr: 0x%08x\n", i, adr );
-
-        dumpNvmData( adr, MAX_PORT_ATTR_MAP_ENTRIES * 2, 8, true );
+        dumpNvmData( adr, MAX_PORT_ATTR_MAP_ENTRIES * 2 );
         printf( "\n" );
     }
 
@@ -518,7 +549,9 @@ void dumpNvmPortData( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "dumpNvmGlobalData" dumps the NVM global data structure. For convenience, we
+// also lost the header separately, followed by the global data.The header size
+// portion is 12 bytes.
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmGlobalData( ) {
@@ -526,47 +559,24 @@ void dumpNvmGlobalData( ) {
     printf( "NVM Global Data Dump: \n\n");
 
     printf( "Header: " );
-  //  dumpNvmData( NVM_PORT_DATA_OFS, 12, 8, false );
-  //  printf( "\n" );
+    dumpNvmData( NVM_GLOBAL_DATA_OFS, 12, 8, false );
+    printf( "\n" );
 
-  //  uint32_t start = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map );
+    uint32_t start = NVM_GLOBAL_DATA_OFS + offsetof( LcsGlobalDataMap, map );
 
-  //  dumpNvmData( adr, MAX_PORT_ATTR_MAP_ENTRIES * 2, 8, true );
+    dumpNvmData( start, globalDataMap.nvmSize );
     printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-void dumpNvmEventMap( ) {
-
-    printf( "NVM Node Event Dump: \n\n" );
-    dumpNvmData( NVM_EVENT_MAP_OFS, NVM_EVENT_MAP_SIZE );
-    printf( "\n" );
-}
-
-//----------------------------------------------------------------------------------------
-//
+// "dumpNvmRuntimeArea" dumps the entire NVM runtime area. This is a combination
+// of all the NVM areas except the global data area.
 //
 //----------------------------------------------------------------------------------------
 void dumpNvmRuntimeArea( ) {
 
     printf( "NVM Runtime Area Dump: \n\n" );
     dumpNvmData( NVM_MAP_STORAGE_START, NVM_RUNTIME_MAPS_SIZE, 8, true );
-    printf( "\n" );
-}
-
-//----------------------------------------------------------------------------------------
-//
-//
-//----------------------------------------------------------------------------------------
-void dumpNvmUserArea( ) {
-
-    // ??? given that this could be thousands... long list.
-
-    printf( "NVM Area Dump: \n\n" );
-    printf( "to do ...\n" );
     printf( "\n" );
 }
 
@@ -589,8 +599,9 @@ void printSummary( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "printMemNodeMap" prints the MEM node map structure in a formatted way.
 //
-//
+// ??? to be completed...
 //----------------------------------------------------------------------------------------
 void printMemNodeMap( ) {
 
@@ -612,8 +623,9 @@ void printMemNodeMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "printMemPortMap" prints the MEM port map structure in a formatted way.
 //
-//
+// ??? to be completed...
 //----------------------------------------------------------------------------------------
 void printMemPortMap( ) {
 
@@ -637,8 +649,9 @@ void printMemPortMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "printMemTaskMap" prints the MEM task map structure in a formatted way.
 //
-//
+// ??? to be completed...
 //----------------------------------------------------------------------------------------
 void printMemTaskMap( ) {
 
@@ -662,7 +675,8 @@ void listDevicesI2C( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// A little helper function to skip spaces in a string. We return a pointer to 
+// the first non-space character.
 //
 //----------------------------------------------------------------------------------------
 char *skipSpaces( char *s ) {
@@ -671,9 +685,9 @@ char *skipSpaces( char *s ) {
     return s;
 }
 
-
 //----------------------------------------------------------------------------------------
-// ??? we need a callback for replies...
+// When a command is sending message to another node where a reply is expected,
+// we need a callback function for handling those reply messages.
 //
 //----------------------------------------------------------------------------------------
 uint8_t repMsgCallback ( uint16_t npId, 
@@ -698,9 +712,7 @@ uint8_t fRepCallback( uint16_t npId,
     printf( "FREP callback: npId: 0x%4x, item: %d, arg1: %d, arg2: %d, ret: %d\n ",
             npId, item, arg1, arg2, ret );
     return( LCS_OK );
-
 }
-
 
 }; // namespace
 
@@ -768,11 +780,11 @@ void switchToOperationsCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "g" handles the node/port attribute query command. If the node is our node, 
-// we call the local access routines. Otherwise we send a message. Note that for 
-// a local access the result is returned right away. For a remote access, we 
-// just send the message, the result is returned in a callback when the reply 
-// message is received.
+// "g" handles the item GET command. If the node is our node, we call the 
+// local access routines. Otherwise we send a message. Note that for a local 
+//access the result is returned right away. For a remote access, we just send
+// the message, the result is returned in a callback when the reply message is
+// received.
 //
 //    <!g npId item>
 //
@@ -781,7 +793,7 @@ void switchToOperationsCommand( char *s ) {
 //    arg       - the argument.
 //
 //----------------------------------------------------------------------------------------
-void getNodeCommand( char *s ) {
+void getItemCommand( char *s ) {
 
     int     npId    = 0;
     int     item    = 0;
@@ -814,11 +826,11 @@ void getNodeCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "p" handles the node or port attribute value set command. If the node is our 
-// node, we call the local access routines. Otherwise we send a message. Note 
-// that for a local access the result is returned right away. For a remote access,
-// we just send the message, the acknowledge is returned in a callback when the
-// reply message is received.
+// "p" handles the item SET command. If the node is our node, we call the local
+// access routines. Otherwise we send a message. Note that for a local access
+// the result is returned right away. For a remote access, we just send the 
+// message, the acknowledge is returned in a callback when the reply message 
+// is received.
 //
 //    <!p npId item val>
 //
@@ -827,7 +839,7 @@ void getNodeCommand( char *s ) {
 //    val       - the item value 1
 //
 //----------------------------------------------------------------------------------------
-void setNodeCommand( char *s ) {
+void setItemCommand( char *s ) {
 
     int     npId    = 0;
     int     item    = 0;
@@ -857,12 +869,12 @@ void setNodeCommand( char *s ) {
                             tmpVal,
                             repMsgCallback, 
                             nullptr );
-        if ( ret != LCS_OK ) errStat((char *) "Remote Node GET error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Remote Node SET error", ret );
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "r" handles the node / port request command. If the node is our node, we call
+// "r" handles the item request command. If the node is our node, we call
 // the local access routine and return the result right away. Otherwise we send
 // a FREQ message.
 //
@@ -875,7 +887,7 @@ void setNodeCommand( char *s ) {
 //
 
 //----------------------------------------------------------------------------------------
-void reqNodeCommand( char *s ) {
+void reqItemCommand( char *s ) {
 
     int     npId    = 0;
     int     item    = 0;
@@ -894,7 +906,7 @@ void reqNodeCommand( char *s ) {
     if (( tmpNpId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
      
         ret = reqItem( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
-        if ( ret != LCS_OK ) errStat((char *) "Node REQ error", ret );
+        if ( ret != LCS_OK ) errStat((char *) "Item REQ error", ret );
         else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
                     tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
@@ -912,9 +924,7 @@ void reqNodeCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "e" will send an event. We will broadcast a message and also simulate receiving 
-// an event on the local node. Sending to ourselves is also quite useful for debug
-// event callback handlers.
+// "e" will send an event. 
 //
 //    e npId eventId mode [ arg ]
 //
@@ -950,9 +960,9 @@ void sendEventCommand( char *s ) {
 
 //----------------------------------------------------------------------------------------
 // "B" broadcasts a LCS message. Mainly used for low level debugging purposes. 
-// Although most commands in the LCS console interface can also send messages to 
-// other nodes, not all messages are covered. This command sends any kind of message,
-// even undefined ones. 
+// Although most commands in the LCS console interface can also send messages 
+// to other nodes, not all messages are covered. This command sends any kind 
+// of message, even undefined ones. 
 //
 //    B byte1 [ byte2 ... byte8 ]
 //
@@ -978,10 +988,10 @@ void broadcastLcsMsgCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "s" lists status information. The level argument specifies the what and the detail 
-// level.
+// "s" lists status information. There are many display options. The option 
+// argument specifies what part to display. 
 //
-//    s [ level ]
+//    s [ opt ]
 //
 //    returns:  NONE.
 //
@@ -1025,8 +1035,8 @@ void listStatusCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "?" lists core library help information. We just list the available commands and a 
-// short description.
+// "?" lists core library help information. We just list the available commands
+// and a short description. 
 //
 //    ?
 //
@@ -1063,8 +1073,9 @@ void listCoreLibHelpCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupSerialCommand" initializes the serial interface. We use the PICO USB as 
-// console IO. The CDC lib contains functions for reading and writing to the console.
+// "setupSerialCommand" initializes the serial interface. We use the PICO USB 
+// as console IO. The CDC lib contains functions for reading and writing to the
+// console.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
@@ -1073,9 +1084,10 @@ uint8_t setupSerialCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "executeCommand" is the single command handler. We decode the first character 
+// "executeCommand" is the command handler. We decode the first character and 
 // pass the rest of the command string to the actual handler routine. An unknown
-// command tries to pass the command to the optional callback routine.
+// command is passed to the user callback if it is defined. Otherwise we print
+// an error.
 //
 //----------------------------------------------------------------------------------------
 static void executeCommand( char *commandBuf ) {
@@ -1089,9 +1101,9 @@ static void executeCommand( char *commandBuf ) {
         case 'C': switchToConfigCommand(cmd + 1);     break;
         case 'O': switchToOperationsCommand(cmd + 1); break;
 
-        case 'g': getNodeCommand(cmd + 1);            break;
-        case 'p': setNodeCommand(cmd + 1);            break;
-        case 'r': reqNodeCommand(cmd + 1);            break;
+        case 'g': getItemCommand(cmd + 1);            break;
+        case 'p': setItemCommand(cmd + 1);            break;
+        case 'r': reqItemCommand(cmd + 1);            break;
         case 'e': sendEventCommand(cmd + 1);          break;
 
         case 'B': broadcastLcsMsgCommand(cmd + 1);    break;
@@ -1113,14 +1125,16 @@ static void executeCommand( char *commandBuf ) {
 
 //----------------------------------------------------------------------------------------
 // "handleSerialCommand" reads commands from the console. It is a simple command
-// executor with simple syntax, originally used on the DCC++ world. Note that this
-// routine is called as part of the runtime loop. Consequently, it cannot not block
-// for IO. The interface is designed in a way that it assembles the character input
-// when there are characters until a carriage return is received. A command line 
-// can optionally consist of multiple commands separated by a "/" character.
+// executor with simple syntax, originally used on the DCC++ world. Note that 
+// this routine is called as part of the runtime loop. Consequently, it cannot
+// not block for IO. The interface is designed in a way that it assembles the 
+// character input when there are characters until a carriage return is received. 
+// A command line can optionally consist of multiple commands separated by a 
+// "/" character.
 //
-// Since we are pretty basic on a character by character basis, we also add a bit
-// of luxury and echo back what was typed and also process the backspace character.
+// Since we are pretty basic on a character by character basis, we add a bit
+// of luxury and echo back what was typed and also process the backspace 
+// character.
 //
 //----------------------------------------------------------------------------------------
 uint8_t handleSerialCommand( void ) {

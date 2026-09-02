@@ -39,26 +39,18 @@
 //----------------------------------------------------------------------------------------
 #include "LcsRuntimeLib.h"
 #include "LcsRtLibInt.h"
-#include "LcsDrvOccDetectLib.h"
-#include "LcsDrvServoLib.h"
-
 
 // ??? idea: we could add a printf-like function, so that a firmware does not have
 // to deal with whether we have a console or not...
 
 
 //----------------------------------------------------------------------------------------
-// Runtime globals. This file contains all the global data structure declarations.
-// They are declared in the LCS name space. All other files in the runtime library
-// will declare them as "extern" if needed.
+// Runtime globals. This file contains all runtime data structure declarations.
+// They are declared in the LCS name space. All other runtime files will declare
+// them as "extern".
 //
-// There is also the debug mask. The idea is to have a debug mask where each major
-// part of the library has a bit. There could also be bits reserved for the firmware.
-// Then we have control items to set these bits. Wherever debugging or tracing is
-// needed, the bit mask will be used to determine whether to print debugging data 
-// or not. From a performance perspective, the test will take just a few of 
-// instructions. In other words we do not take out debugging code when going into
-// production. Never liked this approach of conditional debug code via "ifdefs".
+// There is also the debug mask. The idea is to have a debug flag where each 
+// major part of the library runtime. We have control items to set these bits. 
 //
 //----------------------------------------------------------------------------------------
 namespace LCS {
@@ -94,8 +86,8 @@ namespace LCS {
 }
 
 //----------------------------------------------------------------------------------------
-// The LcsCoreLibConfig implementation file local declarations and routines. They are
-// not visible to the other files.
+// The file local declarations and routines. They are not visible to the other 
+//files.
 //
 //----------------------------------------------------------------------------------------
 namespace {
@@ -104,10 +96,11 @@ using namespace CDC;
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// "setupDebugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all.
+// The return status routine will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the 
+// function name. The ENTER_FUNC macro is a helper to print out the function 
+// name when entering a routine.
 // 
 //----------------------------------------------------------------------------------------
 inline bool setupDebugEnabled( ) {
@@ -135,9 +128,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultNodeHeader" initializes the NVM header map. We fill in the data 
-// for the main board from the board descriptor map. The extension entries are 
-// just cleared. The new NVM Node Map header is stored to NVM.
+// "setupDefaultNodeHeader" initializes the NVM header map for a new NVM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeHeader( ) {
@@ -157,9 +148,8 @@ uint8_t setupDefaultNodeHeader( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setupDefaultNodeMap" builds the node map structure. We allocate the Node UID.
-// The newly created default node map is stored to its place in the NVM. We also
-// return the new map.
+// "setupDefaultNodeMap" builds the node map structure. The newly created 
+// default node map is stored to its place in the NVM. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultNodeMap( ) {
@@ -234,8 +224,6 @@ uint8_t setupDefaultEventMap( ) {
 
     ENTER_FUNC( );
 
-    LcsEventMap eventMap;
-
     eventMap.magicWord = NVM_MWORD_NODE_EVENT_MAP;
     eventMap.nvmOfs    = NVM_EVENT_MAP_OFS;
     eventMap.nvmSize   = NVM_EVENT_MAP_SIZE;
@@ -249,13 +237,15 @@ uint8_t setupDefaultEventMap( ) {
 
     return ( RET_STAT( rtNvmPutBytes( NVM_EVENT_MAP_OFS,
                                       (uint8_t *)&eventMap,
-                                      NVM_EVENT_MAP_SIZE)));
+                                      NVM_EVENT_MAP_SIZE )));
 }
 
 //----------------------------------------------------------------------------------------
 // "setupDefaultGlobalData" initializes the extended attribute map and writes
 // the header to NVM. The extended attribute map is just a block of attributes
-// words that fills the remaining NVM space after the runtime data. 
+// words that fills the remaining NVM space after the runtime data. We first
+// check whether the globalDataMap has a MEM area allocated from a previous use.
+// If so, we delete it and allocate a new one.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDefaultGlobalData( ) {
@@ -266,41 +256,14 @@ uint8_t setupDefaultGlobalData( ) {
     globalDataMap.nvmOfs    = NVM_GLOBAL_DATA_OFS;
     globalDataMap.nvmSize   = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
 
-    uint8_t rStat;
+    if ( globalDataMap.map != nullptr ) delete [ ] globalDataMap.map; 
 
-    rStat = rtNvmPutBytes( NVM_GLOBAL_DATA_OFS,
-                            (uint8_t *)&globalDataMap,
-                            sizeof( LcsGlobalDataMap ));
-    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+    globalDataMap.map = (uint16_t *)
+        new uint8_t ( globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
 
-    uint32_t numOfAttr = 
-        ( globalDataMap.nvmSize - sizeof( LcsGlobalDataMap )) / sizeof( uint16_t );
-
-    #define CHUNK_SIZE 64
-
-    uint8_t buf[ CHUNK_SIZE ];
-    memset( buf, 0, CHUNK_SIZE );
-
-    uint32_t offset = 0;
-    uint32_t total  = globalDataMap.nvmSize - sizeof(LcsGlobalDataMap);
-
-    while (offset < total) {
-
-        uint32_t size = 
-              (total - offset > CHUNK_SIZE) ? CHUNK_SIZE : (total - offset);
-
-        rStat = rtNvmPutBytes(
-                    NVM_GLOBAL_DATA_OFS + sizeof(LcsGlobalDataMap) + offset,
-                    buf,
-                    size
-                );
-
-        if (rStat != LCS_OK) return RET_STAT(rStat);
-
-        offset += size;
-    }
-
-    return ( RET_STAT( LCS_OK ));
+    return( RET_STAT( rtNvmPutBytes( NVM_GLOBAL_DATA_OFS,
+                                     (uint8_t *) &globalDataMap,
+                                     globalDataMap.nvmSize )));
 }
 
 //----------------------------------------------------------------------------------------
@@ -469,27 +432,25 @@ uint8_t initCanBus( ) {
     ENTER_FUNC( );
 
     uint8_t rStat = configureCanBus( CDC_RN_CAN_BUS );
+    if ( rStat != LCS_OK ) return ( RET_STAT( rStat )); 
+    
+    msgBus = new LcsMsgBusCAN( );
 
-    if ( rStat == LCS_OK ) {
+    rStat = msgBus->init( canGetRxPin( CDC_RN_CAN_BUS ),
+                          canGetTxPin( CDC_RN_CAN_BUS ),
+                          canGetBaudrate( CDC_RN_CAN_BUS ),
+                          canGetTwoCores( CDC_RN_CAN_BUS ));
 
-        msgBus = new LcsMsgBusCAN( );
+    if ( rStat != LCS_OK ) {
 
-        rStat = msgBus->init( canGetRxPin( CDC_RN_CAN_BUS ),
-                              canGetTxPin( CDC_RN_CAN_BUS ),
-                              canGetBaudrate( CDC_RN_CAN_BUS ),
-                              canGetTwoCores( CDC_RN_CAN_BUS ));
+        if ( setupDebugEnabled( )) {
 
-        if ( rStat != LCS_OK ) {
-
-            if ( setupDebugEnabled( )) {
-
-                printf( "Init Can Bus, CAN status: %d\n", rStat ); 
-            }
-
-            rStat = ERR_CAN_SETUP;
+            printf( "Init Can Bus, CAN status: %d\n", rStat ); 
         }
-    }
 
+        rStat = ERR_CAN_SETUP;
+    }
+    
     return ( RET_STAT( rStat ));
 }
 
@@ -512,6 +473,7 @@ uint8_t setupWatchdog( CdcResourceDescMap *map ) {
 // When power goes away, the falling edge on the pin will cause an interrupt 
 // and the power fail handler executes.
 //
+// ??? anything to remember or set from previous PFAIL state ?
 //----------------------------------------------------------------------------------------
 uint8_t setupPfail( CdcResourceDescMap *map ) {
 
@@ -618,8 +580,10 @@ uint8_t setupNodeMap( ) {
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
     if (( nodeMap.nvmOfs != NVM_NODE_MAP_OFS ) ||
-         ( nodeMap.nvmSize != sizeof ( LcsNodeMap )))
+        ( nodeMap.nvmSize != sizeof ( LcsNodeMap ))) {
+
         return( RET_STAT( ERR_NODE_MAP_HEADER ));
+    }
 
     if ( rStat == LCS_OK ) {
 
@@ -644,6 +608,7 @@ uint8_t setupNodeMap( ) {
 
 //----------------------------------------------------------------------------------------
 // "setupPortMap" will initialize the portMap. A node can have up to 8 ports.
+// PortMap is a memory only data structure.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupPortMap( ) {
@@ -651,6 +616,7 @@ uint8_t setupPortMap( ) {
     ENTER_FUNC( );
 
     portMap.mapHwm = 0;
+
     for ( uint16_t i = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         LcsPortMapEntry *pEntry = &portMap.map[ i ];
@@ -699,8 +665,10 @@ uint8_t setupPortDataMap( ) {
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
     if (( portDataMap.nvmOfs != NVM_PORT_DATA_OFS ) ||
-         ( portDataMap.nvmSize != sizeof ( LcsPortDataMap )))
+        ( portDataMap.nvmSize != sizeof ( LcsPortDataMap ))) {
+         
         return( RET_STAT( ERR_PORT_DATA_HEADER ));
+    }
 
     return ( RET_STAT( rStat ));
 }
@@ -729,17 +697,22 @@ uint8_t setupGlobalDataMap( ) {
     ENTER_FUNC( );
 
     uint8_t rStat = rtNvmGetBytes( NVM_GLOBAL_DATA_OFS,
-                                   (uint8_t *)&globalDataMap,
+                                   (uint8_t *) &globalDataMap,
                                    sizeof( LcsGlobalDataMap ));
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
+    uint32_t nvmSize = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
+
     if (( globalDataMap.nvmOfs != NVM_GLOBAL_DATA_OFS ) ||
-         ( globalDataMap.nvmSize != sizeof ( LcsGlobalDataMap )))
+        ( globalDataMap.nvmSize != nvmSize )) {
+
         return( RET_STAT( ERR_GLOBAL_DATA_HEADER ));
+    }
     
-    globalDataMap.map = 
-        (uint16_t * ) calloc( globalDataMap.nvmSize / sizeof( uint16_t ),
-                              sizeof( uint16_t ));
+    if ( globalDataMap.map != nullptr ) delete [ ] globalDataMap.map; 
+
+    globalDataMap.map = (uint16_t *)
+        new uint8_t ( globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
 
     rStat = rtNvmGetBytes( globalDataMap.nvmOfs,
                            (uint8_t *) globalDataMap.map, 
@@ -772,8 +745,9 @@ uint8_t setupTaskMap( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The runtime library will one day perhaps a set of internal functions to execute
-// periodically. They should be added here. Right now, this routine will do nothing.
+// The runtime library will one day perhaps a set of internal functions to 
+// execute periodically. They should be added here. Right now, this routine
+// will do nothing.
 //
 //----------------------------------------------------------------------------------------
 uint8_t registerInternalTasks( ) {
@@ -783,8 +757,8 @@ uint8_t registerInternalTasks( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "powerFailHandler" is the routine called when the hardware detects an imminent
-// loss of power. Our chance to save crucial data to NVM. Finally, the optionally
+// "powerFailHandler" is called when the hardware detects an imminent loss of 
+//power. Our chance to save crucial data to NVM. Finally, the optionally
 // registered firmware power fail callback is called. The node state becomes 
 // "PFAIL". Upon restart, we check this state and know that we came back after a
 // power fail.
@@ -812,8 +786,7 @@ uint8_t powerFailHandler( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "initRuntime" is the routine that takes a controller board and initializes 
-// the whole show. It is the very first thing to call in a node firmware program.
+// "initRuntime" is the very first thing to call in a node firmware program.
 // There is a lot to do. This routine will invoke the various initializers, one
 // at a time.
 //
@@ -880,7 +853,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
 
     if ( rStat == LCS_OK ) {
 
-       // ??? what would we do when we cam from a PFAIL or WATCHDOG ?
+       // ??? what would we do when we came from a PFAIL or WATCHDOG ?
 
         nodeMap.nodeState = NS_INIT;
     }

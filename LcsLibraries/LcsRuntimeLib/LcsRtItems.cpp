@@ -5,25 +5,25 @@
 //----------------------------------------------------------------------------------------
 // A key concept in the LCS runtime is the idea of items. An item is an entity
 // such as a data attribute of a port or a requested function to perform. The
-// item itself is a number. items are organized in ranges. Item 1 to 63 are
-// reserved for runtime library attribute and functions, items 64 to 127 are 
-// reserved for driver functions and items 128 to 255 are user defined items for
-// attributes and function. In addition, there are global attributes, starting
-// at itemId 256 up to the capacity of the NVM chip.
+// item itself is a number and organized in ranges. Item 1 to 63 are reserved 
+// for runtime library attribute and functions, items 64 to 127 are reserved 
+// for driver functions. Items 128 to 255 are port data items used for user 
+// defined attributes and functions. In addition, there are global attributes, 
+// starting at itemId 256 up to the capacity of the NVM chip.
 // 
 // This file contains the LCS runtime routines that implement attribute and
 // function access. Besides the item argument there is also the "npId" argument,
-// which indicates the node and port the item refers to. The node portion of the
-// npId is ignored, as the calls in this module always refer to the local node.
-// The port portion of the npId is used to determine the port the item refers to.
-// Finally, the channel portion of the npId is is used when the item is a driver
-// function request.
+// which indicates the node, port and channel the item refers to. The routines 
+// in this file implement the local access, the nodeId portion is ignored. The 
+// port and channel portion of the npId are used to determine the port and
+// channel if required. 
 //
-// Note that the routines offered in this module are blocking calls. The caller
-// will wait until the call is completed. The message system is responsible for
-// receiving a message, calling this blocking functions in this module and 
-// sending the reply back to the caller. 
-//
+// Note that the routines offered in this module are blocking calls and run to
+// completion. When we receive a request from another node, read and function
+// request items are started and the result is returned via a reply message. 
+// The "LcsCore.cpp" implementation file contains the routines that implement 
+// the message handling from other nodes.
+// 
 //----------------------------------------------------------------------------------------
 //
 // Layout Control System - Runtime items
@@ -93,10 +93,11 @@ namespace {
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// "debugEnabled" and "retStat" are the debug support routines. We can easily 
-// check whether debug is enabled at all. The return status routine will print 
-// out a return status message when debugging is enabled. The macro "RET_STAT" 
-// is a nice helper that adds the function name to the message.
+// Debug support routines. We can easily check whether debug is enabled at all.
+// The return status routine will print out a return status message when 
+// debugging is enabled. The macro "RET_STAT" is a nice helper that adds the 
+// function name. The ENTER_FUNC macro is a helper to print out the function 
+// name when entering a routine.
 // 
 //----------------------------------------------------------------------------------------
 inline bool itemDebugEnabled(  ) {
@@ -115,6 +116,12 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
     return ( errId );
 }
 
+inline void enterFunc( const char *name ) {
+
+    if ( itemDebugEnabled( )) printf( "--> %s\n", name );
+}
+
+#define ENTER_FUNC() enterFunc( __func__)
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
@@ -123,17 +130,15 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 // items.
 //
 //----------------------------------------------------------------------------------------
-bool attrValidRange( uint32_t item, uint32_t len ) {
+bool attrValidRange( uint16_t item, uint16_t len ) {
 
-    uint32_t end = item + len;
+    if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 
-    if ( isInRangeU32( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
-
-        if ( end > IR_PORT_ATTR_END ) return ( false );
+        if ( IR_PORT_ATTR_END - item + 1 < len ) return ( false );
     }
-    else if ( isInRangeU32( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
+    else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-        if ( end > IR_GLOBAL_ATTR_END ) return ( false );
+        if ( IR_GLOBAL_ATTR_END - item + 1 < len ) return ( false );
     }
     else return ( false );
 
@@ -151,29 +156,22 @@ uint8_t attrMemAdr( uint16_t npId,
                     uint16_t len ) {
 
     uint8_t  rStat;
-    uint16_t ofs;
     uint16_t port = portId( npId );
 
-    if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
-
      if (( port != 0 ) &&
-        ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
+         ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
 
         uint16_t index  = item - IR_PORT_ATTR_START;
         *adr = & portDataMap.map[ port ] [ index ];
+        return ( LCS_OK );
     }
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
         uint16_t index  = item - IR_GLOBAL_ATTR_START;
         *adr = & globalDataMap.map[ index ];
+        return ( LCS_OK );
     }
-    else {
-        
-        *adr = nullptr;
-        rStat = ERR_INVALID_ITEM_ID;
-    }
-
-    return ( LCS_OK );
+    else return ( ERR_INVALID_ITEM_ID );
 }
 
 //----------------------------------------------------------------------------------------
@@ -190,29 +188,30 @@ uint8_t attrNvmOfs( uint16_t npId,
     uint8_t  rStat;
     uint16_t port = portId( npId );
 
-    if ( ! attrValidRange( item, len )) return ( ERR_INVALID_ITEM_ID );
-
     if (( port != 0 ) &&
         ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
 
-        uint16_t index  = item - IR_PORT_ATTR_START;
+        uint16_t index = item - IR_PORT_ATTR_START;
         *ofs = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map ) + 
             (( port * MAX_PORT_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
+
+        return( LCS_OK );
     }
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
 
-        uint16_t index  = item - IR_GLOBAL_ATTR_START;
+        uint16_t index = item - IR_GLOBAL_ATTR_START;
         *ofs = NVM_GLOBAL_DATA_OFS + sizeof( LcsGlobalDataMap ) + 
                          ( index * sizeof( uint16_t ));
+        return( LCS_OK );
     }
-    else rStat = ERR_INVALID_ITEM_ID;
-
-    return ( RET_STAT( rStat ));
+    else return( ERR_INVALID_ITEM_ID );
 }
 
 //----------------------------------------------------------------------------------------
 // "readAttrMem" gets a range if items from the port attribute map or global
-// data map in MEM. 
+// data map in MEM. The "len" parameter indicates how many items to read. The 
+// "arg" parameter is a pointer to the buffer where the read items will be 
+// stored.
 //
 //----------------------------------------------------------------------------------------
 uint8_t readAttrMem( uint16_t npId, 
@@ -230,7 +229,9 @@ uint8_t readAttrMem( uint16_t npId,
 
 //----------------------------------------------------------------------------------------
 // "writeAttrMem" stores a range if items to the port attribute map or global
-// data map in MEM.
+// data map in MEM. The "len" parameter indicates how many items to write. The
+// "arg" parameter is a pointer to the buffer where the items to write are
+// stored.
 //
 //----------------------------------------------------------------------------------------
 uint8_t writeAttrMem( uint16_t npId, 
@@ -248,8 +249,8 @@ uint8_t writeAttrMem( uint16_t npId,
 
 //----------------------------------------------------------------------------------------
 // "readAttrNvm" gets an attribute from the NVM storage. We read the value 
-// from the NVM area. If successful, we also store it in the MEM counterpart 
-// and then return it. As an internal function, we expect validated arguments.
+// from the NVM area. If successful, we also store the value in the MEM 
+// counterpart and then return it.
 //
 //----------------------------------------------------------------------------------------
 uint8_t readAttrNvm( uint16_t npId, 
@@ -273,8 +274,7 @@ uint8_t readAttrNvm( uint16_t npId,
 
 //----------------------------------------------------------------------------------------
 // "writeAttrNvm" stores an attribute to the NVM storage. If the update is 
-// successful, we also update the corresponding MEM attribute. As an internal
-// function, we expect validated arguments.
+// successful, we also update the corresponding MEM attribute. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t writeAttrNvm( uint16_t npId, 
@@ -297,8 +297,8 @@ uint8_t writeAttrNvm( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// "syncAttrToMem" will copy the range of NVM attributes to their MEM counterpart. 
-// All we do is just reading an attribute from NVMat a time. As a side effect,
+// "syncAttrToMem" copies the range of NVM attributes to their MEM counterpart. 
+// All we do is just reading an attribute from NVM at a time. As a side effect,
 // it also copied to MEM.
 //
 //----------------------------------------------------------------------------------------
@@ -317,9 +317,7 @@ uint8_t syncAttrToMem( uint16_t npId, uint16_t item, uint16_t len ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "syncAttrToNvm" will takes the range of MEM attributes writes them to their
-// NVM counterpart. As an internal function, we expect a valid block and item 
-// argument.
+// "syncAttrToNvm" copies the range of MEM attributes to their NVM counterpart.
 //
 //----------------------------------------------------------------------------------------
 uint8_t syncAttrToNvm( uint16_t npId, uint16_t item, uint16_t len ) {
@@ -350,23 +348,82 @@ uint8_t getLibItem( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     switch ( item ) {
 
-        case ITEM_ID_DEBUG_MASK:            *arg = debugMask;               break;
-        case ITEM_ID_RUNTIME_OPTIONS:       *arg = runtimeOptions;          break;
-        case ITEM_ID_FIRMWARE_OPTIONS:      *arg = firmwareOptions;         break;
-        case ITEM_ID_RT_LIB_VERSION:        *arg = LCS_RT_LIB_VERSION;      break;
-        case ITEM_ID_RT_LIB_PATCH_LEVEL:    *arg = LCS_RT_LIB_PATCH_LEVEL;  break;
-        case ITEM_ID_NODE_STATE:            *arg = nodeMap.nodeState;       break;
-        case ITEM_ID_NODE_ID:               *arg = nodeMap.nodeId;          break;
-        case ITEM_ID_RESTART_COUNT:         *arg = nodeMap.nodeRestartCnt;  break;
-        case ITEM_ID_PORT_MAP_ENTRIES:      *arg = MAX_PORT_MAP_ENTRIES;    break;
-        case ITEM_ID_PORT_MAP_HWM:          *arg = portMap.mapHwm;          break;
-        case ITEM_ID_EVENT_MAP_ENTRIES:     *arg = MAX_EVENT_MAP_ENTRIES;   break;
-        case ITEM_ID_ATTR_MAP_ENTRIES:      *arg = MAX_PORT_ATTR_MAP_ENTRIES;    break;
+        case ITEM_ID_DEBUG_MASK: {
 
-         case ITEM_ID_EVENT_MAP_HWM: {
+            *arg = debugMask;           
+
+        } break;
+
+        case ITEM_ID_RUNTIME_OPTIONS: {       
             
-            *arg = 0; // ??? fix, we need to get from NVM.        
+            *arg = runtimeOptions;          
 
+        } break;
+        
+        case ITEM_ID_FIRMWARE_OPTIONS: {     
+            
+            *arg = firmwareOptions;        
+            
+        } break;
+
+        case ITEM_ID_RT_LIB_VERSION: {       
+            
+            *arg = LCS_RT_LIB_VERSION;      
+            
+        } break;
+
+        case ITEM_ID_RT_LIB_PATCH_LEVEL: {   
+            
+            *arg = LCS_RT_LIB_PATCH_LEVEL;  
+            
+        } break;
+
+        case ITEM_ID_NODE_STATE: {
+
+            *arg = nodeMap.nodeState;       
+            
+        } break;
+
+        case ITEM_ID_NODE_ID: {              
+            
+            *arg = nodeMap.nodeId;         
+        
+        } break;
+        
+        case ITEM_ID_RESTART_COUNT: {         
+            
+            *arg = nodeMap.nodeRestartCnt;  
+            
+        } break;
+        
+        case ITEM_ID_PORT_MAP_ENTRIES: {    
+            
+            *arg = MAX_PORT_MAP_ENTRIES; 
+        
+        } break;
+
+        case ITEM_ID_PORT_MAP_HWM: {           
+            
+            *arg = portMap.mapHwm;         
+        
+        }  break;
+        
+        case ITEM_ID_EVENT_MAP_ENTRIES: { 
+            
+            *arg = MAX_EVENT_MAP_ENTRIES;   
+            
+        } break;
+        
+        case ITEM_ID_ATTR_MAP_ENTRIES: {     
+            
+            *arg = MAX_PORT_ATTR_MAP_ENTRIES;   
+            
+        } break;
+
+         case ITEM_ID_EVENT_MAP_HWM: { 
+            
+            *arg = eventMap.mapHwm; 
+        
         } break;
 
         case ITEM_ID_FLAGS: { 
@@ -442,13 +499,12 @@ uint8_t setLibItem( uint16_t npId, uint16_t item, uint16_t val ) {
 
 //----------------------------------------------------------------------------------------
 // "reqLibItem" handles the request items for the runtime library itself.
-// As an internal function, we expect validated arguments.
 //
 //----------------------------------------------------------------------------------------
 uint8_t reqLibItem( uint16_t npId, 
-                        uint16_t item, 
-                        uint16_t *arg1, 
-                        uint16_t *arg2 ) {
+                    uint16_t item, 
+                    uint16_t *arg1, 
+                    uint16_t *arg2 ) {
 
     switch ( item ) {
 
@@ -474,12 +530,12 @@ uint8_t reqLibItem( uint16_t npId,
 
         case ITEM_ID_SYNC_TO_MEM: {
 
-            return ( syncAttrToMem( portId( npId ), *arg1, 1 ));
+            return ( syncAttrToMem( portId( npId ), *arg1, *arg2 ));
         }
 
         case ITEM_ID_SYNC_TO_NVM: {
 
-            return ( syncAttrToNvm( portId( npId ), *arg1, 1 ));
+            return ( syncAttrToNvm( portId( npId ), *arg1, *arg2 ));
         }
 
         case ITEM_ID_ADD_EVENT: {
@@ -518,7 +574,7 @@ uint8_t reqLibItem( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// Get a port of global attribute range. Depending on the node state, we will 
+// Get a port or global attribute range. Depending on the node state, we will 
 // read the attribute from MEM or NVM. As an internal function, we expect 
 // validated arguments.
 //
@@ -541,7 +597,7 @@ uint8_t getAttrItem( int16_t  npId,
 
 //----------------------------------------------------------------------------------------
 // Set a port attribute. Depending on the node state, we will write the attribute
-// to MEM or NVM. As an internal function, we expect validated arguments.
+// to MEM or NVM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setAttrItem( int16_t npId, 
@@ -566,10 +622,10 @@ uint8_t setAttrItem( int16_t npId,
 // arguments. 
 //
 //----------------------------------------------------------------------------------------
-uint8_t userItemRequest( uint16_t npId, 
-                         uint16_t item, 
-                         uint16_t *arg1, 
-                         uint16_t *arg2 ) {
+uint8_t userReqItemRequest( uint16_t npId, 
+                            uint16_t item, 
+                            uint16_t *arg1, 
+                            uint16_t *arg2 ) {
 
     LcsPortMapEntry *pPtr = & portMap.map[ portId( npId ) ];
 
@@ -586,54 +642,64 @@ uint8_t userItemRequest( uint16_t npId,
 
 //----------------------------------------------------------------------------------------
 // "getDrvItem" reads a word from the peripheral based on the I2C address for 
-// the port and channel passed. As an internal function, we expect validated 
-// arguments. The item id is passed in the range for drivers ( 64 .. 127 ) but
-// mapped to the driver board attribute numbers 0 .. 63.
+// the port and channel passed. The i2cAdr is calculated from the port and 
+// channel Id. The driver item range is 64 to 127, which we map to the peripheral
+// item range 0 to 63.
 //
 //  We send the following data:
 //
 //      W: i2cAdr, item
 //      R: i2cAdr, arg-h, arg-l
 //
+// ??? check transfer order to arg ...
 //----------------------------------------------------------------------------------------
 uint8_t getDrvItem( uint16_t npId, uint16_t item, uint16_t *arg ) {
 
     uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
-    uint8_t ofs     = item - IR_DRV_CHAN_START;
-    uint8_t rStat   = 0;
+    uint8_t index   = item - IR_DRV_CHAN_START;
+    uint8_t rStat   = LCS_OK;
     uint8_t buf[ 4 ];
 
-    rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, &ofs, 1, true );
-    return ( i2cRead( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) arg, 2, false ));
+    rStat = i2cWrite( CDC_RN_EXT_NVM, i2cAdr, &index, 1, true );
+    if ( rStat != LCS_OK ) return ( rStat );
+
+    rStat = i2cRead( CDC_RN_EXT_NVM, i2cAdr, buf, 2, false );
+    if ( rStat != LCS_OK ) return ( rStat );
+
+    *arg = ( buf[ 1 ] << 8 ) | buf[ 0 ];
+    return ( rStat );
 }
 
 //----------------------------------------------------------------------------------------
 // "setDrvItem" writes a word to the peripheral based on the I2C address for 
-// the port and channel passed. The item id is passed in the range for drivers
-// ( 64 .. 127 ) but mapped to the driver board attribute numbers 0 .. 63. As 
-// an internal function, we expect validated arguments. 
+// the port and channel passed. The i2cAdr is calculated from the port and 
+// channel Id. The driver item range is 64 to 127, which we map to the peripheral
+// item range 0 to 63.
 //
 // We send the following data:
 // 
 //      W: i2cAdr, item, arg-h, arg-l
 //
+// ??? check transfer order of val ...
 //----------------------------------------------------------------------------------------
 uint8_t setDrvItem( uint16_t npId, uint16_t item, uint16_t val ) {
 
     uint8_t i2cAdr  = ( portId( npId ) * 8 ) + chanId( npId ) + 8; 
-    uint8_t ofs     = item - IR_DRV_CHAN_START;
-    uint8_t rStat   = 0;
+    uint8_t index   = item - IR_DRV_CHAN_START;
+    uint8_t rStat   = LCS_OK;
     uint8_t buf[ 4 ];
 
-    buf[ 0 ] = ofs;
+    buf[ 0 ] = index;
     buf[ 1 ] = lowByte( val );
     buf[ 2 ] = highByte( val );
 
-    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, (uint8_t *) &val, 2, false ));
+    return ( i2cWrite( CDC_RN_EXT_NVM, i2cAdr, buf, 3, false ));
 }
 
 //----------------------------------------------------------------------------------------
-// Driver request submit. We fill in the command data in the device. There are
+// Driver request submit. The i2cAdr is calculated from the port and channel 
+// Id. The driver item range is 64 to 127, which we map to the peripheral
+// item range 0 to 63. We fill in the command data in the device. There are 
 // four fields, CMD, ARG1 and ARG2 and STATUS. 
 // 
 // We first send the request:
@@ -645,8 +711,8 @@ uint8_t setDrvItem( uint16_t npId, uint16_t item, uint16_t val ) {
 //      W: i2cAdr, item
 //      R: i2cAdr, stat, arg1-h, arg1-l, arg2-h, arg2-l
 //
-// The status field tells the outcome. We read the entire data fields and
-// check the status field. A code of 255 is the "busy" code.
+// The status field in the reply message tells the outcome. We read the entire 
+// data fields and check the status field. A code of 255 is the "busy" code.
 //
 //----------------------------------------------------------------------------------------
 uint8_t reqDrvItem( uint16_t npId, 
@@ -656,11 +722,10 @@ uint8_t reqDrvItem( uint16_t npId,
 
     const int maxRetryCount = 20; // ??? for now ...
 
-    uint16_t        index       = item - IR_DRV_CHAN_START;
-    LcsPortMapEntry *pPtr       = & portMap.map[ portId( npId ) ];
-    uint8_t         i2cAdr      = ( portId( npId ) * 8 ) + chanId( npId ) + 8;
-    uint8_t         rStat       = 0;
-    uint8_t         buf[ 16 ];
+    uint16_t    index       = item - IR_DRV_CHAN_START;
+    uint8_t     i2cAdr      = ( portId( npId ) * 8 ) + chanId( npId ) + 8;
+    uint8_t     rStat       = 0;
+    uint8_t     buf[ 16 ];
     
     buf[ 0 ] = lowByte( item );
     buf[ 1 ] = lowByte( *arg1 );
@@ -677,6 +742,12 @@ uint8_t reqDrvItem( uint16_t npId,
             if ( rStat != NO_ERR ) break;
             if ( buf[ 0 ] != 0xFF ) break;
         }
+
+        if ( rStat == LCS_OK ) {
+
+            *arg1 = ( buf[ 2 ] << 8 ) | buf[ 1 ];
+            *arg2 = ( buf[ 4 ] << 8 ) | buf[ 3 ];
+        }
     }
 
     return ( rStat );
@@ -692,7 +763,7 @@ uint8_t reqDrvItem( uint16_t npId,
 namespace LCS {
 
 //----------------------------------------------------------------------------------------
-// "nodeGet" will lookup a value from the various maps based on the item Id. 
+// "getItem" will lookup a value from the various maps based on the item Id. 
 // The "npId" argument contains the node/port/channel Id. 
 //
 //----------------------------------------------------------------------------------------
@@ -727,7 +798,7 @@ uint8_t getItem( uint16_t npId, uint16_t item, uint16_t *arg, uint16_t len ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "nodeSet" will write a value into one of the various maps. The "npId"
+// "setItem" will write a value into one of the various maps. The "npId"
 // argument contains the node/port/channel Id. 
 //
 //----------------------------------------------------------------------------------------
@@ -815,7 +886,7 @@ uint8_t reqItem( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) 
     } 
     else if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 
-        return ( RET_STAT( userItemRequest( npId, item, arg1, arg2 )));
+        return ( RET_STAT( userReqItemRequest( npId, item, arg1, arg2 )));
     } 
     else return ( RET_STAT( ERR_INVALID_ITEM_ID ));
 }

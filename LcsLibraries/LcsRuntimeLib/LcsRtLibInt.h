@@ -199,7 +199,7 @@ enum ItemRanges : uint16_t {
     IR_PORT_ATTR_END            = 255,
  
     IR_GLOBAL_ATTR_START        = 256,
-    IR_GLOBAL_ATTR_END          = 32768
+    IR_GLOBAL_ATTR_END          = 32767
 };
 
 //----------------------------------------------------------------------------------------

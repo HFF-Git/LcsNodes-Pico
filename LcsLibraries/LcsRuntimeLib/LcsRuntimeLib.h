@@ -633,8 +633,9 @@ enum LcsErrorCodes : uint8_t {
 
     ERR_INVALID_EVENT_MAP_INDEX         = 51,
     ERR_EVENT_MAP_FULL                  = 52,
-    ERR_PENDING_REQ_MAP_FULL            = 53,
-    ERR_REQ_TIMEOUT                     = 54,
+    ERR_EVENT_MAP_INVALID_ENTRY         = 53,
+    ERR_PENDING_REQ_MAP_FULL            = 54,
+    ERR_REQ_TIMEOUT                     = 55,
 
     ERR_INVALID_SESSION_ID              = 60,
     ERR_INVALID_CAB_ID                  = 61,
