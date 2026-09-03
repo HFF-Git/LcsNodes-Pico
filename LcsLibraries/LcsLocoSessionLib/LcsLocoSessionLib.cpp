@@ -28,11 +28,11 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS 
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
@@ -56,19 +56,19 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 uint16_t debugMask;
 
-inline bool setupDebugEnabled( ) {
+inline bool sessionDebugEnabled( ) {
 
     return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )); 
 }
 
 inline void enterFunc( char *name ) {
 
-    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
+    if ( sessionDebugEnabled( )) printf( "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
-    if ( setupDebugEnabled( )) {
+    if ( sessionDebugEnabled( )) {
 
         if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
         else                    printf( "<-- %s: %d\n", name, errId );
@@ -197,32 +197,6 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
     else                                    return ( 0 );
 }
 
-
-
-//----------------------------------------------------------------------------------------
-// 
-//  - need a routine to access the NVM cab count.
-//
-// 
-//----------------------------------------------------------------------------------------
-const uint16_t NVM_CAB_MAP_OFS = 256;  // ??? for now ... it is items !!!
-
-uint8_t getNvmCabCount( uint16_t *cabCount ) {
-
-    uint8_t rStat = getItem( 0,0, cabCount ); // ??? for now ...
-    return ( LCS_OK );
-}
-
-uint8_t putNvmCabCount( uint16_t cabCount ) {
-
-    uint8_t rStat = setItem( 0, 0, &cabCount ); // ??? for now ...
-    return ( LCS_OK );
-}
-
-// ??? need a get Cab Mao header routine
-
-// ??? need a format Cab Map routine
-
 //----------------------------------------------------------------------------------------
 // The  sort routine will need a comparison function.
 //
@@ -245,7 +219,6 @@ void sortCabMap( LcsCabEntry *map, uint16_t len ) {
 
     qsort( map, len, sizeof( LcsCabEntry ), compareCabId );
 }
-
 
 }; // namespace
 
@@ -298,21 +271,87 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
 }
 
 //----------------------------------------------------------------------------------------
-// "loadCabMap" ...
+// "formatCabMap" initializes the cab map data structure. It is called when the
+// cab map is not valid or we have a new NVM.
 //
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::formatCabMap( ) {
+
+    cabMapHead.magicWord         = CAB_MAP_MAGIC_WORD;
+    cabMapHead.flags             = SM_F_NIL;
+    cabMapHead.maxCabCount       = MAX_CAB_DICT_SESSIONS;
+    cabMapHead.currentCabCount   = 0;
+    cabMapHead.cabEntryItemCount = sizeof( LcsCabEntry ) / sizeof( uint16_t );
+
+    uint8_t rStat = LCS_OK;
+
+    rStat = setItem(  0, 
+                      CAB_ITEM_ID_HEADER_START, 
+                      (uint16_t *) & cabMapHead, 
+                      sizeof( LcsCabMapHead ) / sizeof( uint16_t ));
+
+    for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
+
+        LcsCabEntry *cPtr = & cabMap[ i ];
+
+        cPtr -> cabId = 0;
+        cPtr -> flags = 0;
+        cPtr -> speedInfo = 0;
+        cPtr -> rsv[ 0 ] = 0;
+        cPtr -> rsv[ 1 ] = 0;
+        cPtr -> rsv[ 2 ] = 0;     
+        cPtr -> d.dFlags = 0;   
+        for ( int j = 0; j < 6; j ++ ) { 
+            
+            cPtr -> speedMap[ j ] = 0;
+        }
+
+        for ( int j = 0; j < MAX_DCC_FUNC_GROUP_ID; j ++ ) { 
+            
+            cPtr -> d.funcMap[ j ] = 0; 
+        }
+    }
+
+    rStat = setItem( 0, 
+                     CAB_ITEM_ID_ARRAY_START,
+                     (uint16_t *) & cabMap, 
+                     sizeof( LcsCabEntry ) / sizeof( uint16_t ) * MAX_CAB_DICT_SESSIONS );
+
+    return ( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+// "loadCabMap" retrieves the cab map from NVM. The cab map is a NVM data 
+// structure, an array of cab entries, unsorted. If the cabId is not in this
+// roster, it does not exist. We first read the header and if valid, read 
+// the cab array data. Otherwise, we format the cap map.
+//
+// Adding or removing cab entries is solely done on the NVM structure, which 
+// is unsorted. After reading the NVM data, we sort the MEM structure.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::loadCabMap( ) {
 
+    ENTER_FUNC( );
+
     uint8_t rStat = LCS_OK;
 
-    // ??? read header 
-    // ??? if not valid -> format cab dictionary
-    // else read the cabMap
+    rStat = getItem( 0, 
+                     CAB_ITEM_ID_HEADER_START, 
+                     (uint16_t *) & cabMapHead, 
+                     sizeof( LcsCabMapHead ) / sizeof( uint16_t ));
 
+    if ( cabMapHead.magicWord != CAB_MAP_MAGIC_WORD ) {
 
-    if ( rStat == LCS_OK ) ::sortCabMap( cabMap, cabCount );
-    return( rStat );
+        if ( sessionDebugEnabled( )) 
+            printf( "Cab map not valid, formatting ...\n" );
+
+        rStat = formatCabMap( );
+    }
+
+    if ( rStat == LCS_OK ) sortCabMap( cabMap, cabCount );
+
+    return( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -448,11 +487,11 @@ LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 //----------------------------------------------------------------------------------------
 LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 
-    LcsCabEntry *entry = lookupCabEntry( cabId );
-    if ( entry == nullptr ) return( nullptr );
+    LcsCabEntry *cPtr = lookupCabEntry( cabId );
+    if ( cPtr == nullptr ) return( nullptr );
 
-    if ( ! ( entry -> flags & CMAP_F_ACTIVE )) addActiveCab( entry - cabMap );
-    return( entry );
+    if ( ! ( cPtr -> flags & CMAP_F_ACTIVE )) addActiveCab( cPtr - cabMap );
+    return( cPtr );
 }
 
 //----------------------------------------------------------------------------------------
@@ -464,10 +503,10 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 
-    LcsCabEntry *entry = lookupCabEntry( cabId );
-    if ( entry == nullptr ) return;
+    LcsCabEntry *cPtr = lookupCabEntry( cabId );
+    if ( cPtr == nullptr ) return;
 
-    if ( entry -> flags & CMAP_F_ACTIVE ) removeActiveCab( entry - cabMap );
+    if ( cPtr -> flags & CMAP_F_ACTIVE ) removeActiveCab( cPtr - cabMap );
 }
 
 //----------------------------------------------------------------------------------------
@@ -485,10 +524,13 @@ void LcsLocoSessions::emergencyStopAll( ) {
 
     mainTrack -> loadPacket( eStopDccPacketData, 2, 4 );
 
-    // for ( SessionMapEntry *smePtr = sessionMap; smePtr < sessionMapHwm; smePtr++ ) {
-    //
-    //    if ( smePtr -> cabId != NIL_CAB_ID ) smePtr -> speed = 1;
-    // }
+    for ( int i = 0; i < activeCabCount; i++ ) {
+
+        uint16_t locoIndex = activeCabList[ i ];
+        LcsCabEntry *cPtr = &cabMap[ locoIndex ];
+
+        cPtr -> speedInfo  = 1;
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -581,18 +623,18 @@ uint8_t LcsLocoSessions::setThrottle( LcsCabEntry *cPtr,
 
     if ( cPtr -> flags & CMAP_F_COMBINED_REFRESH ) {
 
-        pBuf[pLen++]  = ((( cPtr -> d.functions[0] & 0x10 ) >> 4 ) |
-                        (( cPtr -> d.functions[0] & 0x0F ) << 1 ) |
-                        (( cPtr -> d.functions[1] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( cPtr -> d.funcMap[0] & 0x10 ) >> 4 ) |
+                        (( cPtr -> d.funcMap[0] & 0x0F ) << 1 ) |
+                        (( cPtr -> d.funcMap[1] & 0x07 ) << 5 ));
 
-        pBuf[pLen++]  = ((( cPtr -> d.functions[1] & 0x0F ) >> 3 ) |
-                        (( cPtr -> d.functions[2] & 0x0F ) << 1 ) |
-                        (( cPtr -> d.functions[3] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( cPtr -> d.funcMap[1] & 0x0F ) >> 3 ) |
+                        (( cPtr -> d.funcMap[2] & 0x0F ) << 1 ) |
+                        (( cPtr -> d.funcMap[3] & 0x07 ) << 5 ));
 
-        pBuf[pLen++]  = ((( cPtr -> d.functions[3] & 0xf80 ) >> 3 ) |
-                        (( cPtr -> d.functions[4] & 0x07 ) << 5 ));
+        pBuf[pLen++]  = ((( cPtr -> d.funcMap[3] & 0xf80 ) >> 3 ) |
+                        (( cPtr -> d.funcMap[4] & 0x07 ) << 5 ));
 
-        pBuf[pLen++]  = (( cPtr -> d.functions[4] & 0xf80 ) >> 3 );
+        pBuf[pLen++]  = (( cPtr -> d.funcMap[4] & 0xf80 ) >> 3 );
     }
 
     mainTrack -> loadPacket( pBuf, pLen );
@@ -615,11 +657,11 @@ uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId,
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
-    setDccFuncBit( ptr -> d.functions, fNum, val );
+    setDccFuncBit( ptr -> d.funcMap, fNum, val );
 
     uint8_t fGroup = dccFunctionBitToGroup( fNum );
 
-    return ( setDccFunctionGroup( ptr, fGroup, ptr -> d.functions[ fGroup - 1 ] ));
+    return ( setDccFunctionGroup( ptr, fGroup, ptr -> d.funcMap[ fGroup - 1 ] ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -664,7 +706,7 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr,
                                               uint8_t dccByte ) {
 
     if ( ! validFunctionGroupId( fGroup )) return ( ERR_INVALID_FGROUP_ID );
-    setDccFuncGroupByte( cPtr -> d.functions, fGroup, dccByte );
+    setDccFuncGroupByte( cPtr -> d.funcMap, fGroup, dccByte );
 
     uint8_t pBuf[ MAX_DCC_PACKET_SIZE];
     uint8_t pLen = 0;
@@ -674,17 +716,17 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr,
 
     switch ( fGroup - 1 ) {
 
-        case 0: pBuf[pLen++] = ( cPtr -> d.functions[ 0 ] & 0x1F ) | 0x80; break;
-        case 1: pBuf[pLen++] = ( cPtr -> d.functions[ 1 ] & 0x0F ) | 0xB0; break;
-        case 2: pBuf[pLen++] = ( cPtr -> d.functions[ 2 ] & 0x0F ) | 0xA0; break;
+        case 0: pBuf[pLen++] = ( cPtr -> d.funcMap[ 0 ] & 0x1F ) | 0x80; break;
+        case 1: pBuf[pLen++] = ( cPtr -> d.funcMap[ 1 ] & 0x0F ) | 0xB0; break;
+        case 2: pBuf[pLen++] = ( cPtr -> d.funcMap[ 2 ] & 0x0F ) | 0xA0; break;
 
-        case 3: pBuf[pLen++] = 0xDE; pBuf[pLen++] = cPtr -> d.functions[ 3 ]; break;
-        case 4: pBuf[pLen++] = 0xDF; pBuf[pLen++] = cPtr -> d.functions[ 4 ]; break;
-        case 5: pBuf[pLen++] = 0xD8; pBuf[pLen++] = cPtr -> d.functions[ 5 ]; break;
-        case 6: pBuf[pLen++] = 0xD9; pBuf[pLen++] = cPtr -> d.functions[ 6 ]; break;
-        case 7: pBuf[pLen++] = 0xDA; pBuf[pLen++] = cPtr -> d.functions[ 7 ]; break;
-        case 8: pBuf[pLen++] = 0xDB; pBuf[pLen++] = cPtr -> d.functions[ 8 ]; break;
-        case 9: pBuf[pLen++] = 0xDC; pBuf[pLen++] = cPtr -> d.functions[ 9 ]; break;
+        case 3: pBuf[pLen++] = 0xDE; pBuf[pLen++] = cPtr -> d.funcMap[ 3 ]; break;
+        case 4: pBuf[pLen++] = 0xDF; pBuf[pLen++] = cPtr -> d.funcMap[ 4 ]; break;
+        case 5: pBuf[pLen++] = 0xD8; pBuf[pLen++] = cPtr -> d.funcMap[ 5 ]; break;
+        case 6: pBuf[pLen++] = 0xD9; pBuf[pLen++] = cPtr -> d.funcMap[ 6 ]; break;
+        case 7: pBuf[pLen++] = 0xDA; pBuf[pLen++] = cPtr -> d.funcMap[ 7 ]; break;
+        case 8: pBuf[pLen++] = 0xDB; pBuf[pLen++] = cPtr -> d.funcMap[ 8 ]; break;
+        case 9: pBuf[pLen++] = 0xDC; pBuf[pLen++] = cPtr -> d.funcMap[ 9 ]; break;
     }
 
     mainTrack -> loadPacket( pBuf, pLen, 4 );
@@ -1037,59 +1079,68 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
                         LCS_OK : (LcsErrorCodes) ERR_CV_OP_FAILED );
 }
 
-
 //----------------------------------------------------------------------------------------
-// "printCabInfo" lists a cab entry. 
+// "printCabInfo" lists a cab entry. We have two formats. The summary format
+// lists the cabId, speed info and flags. The detailed format adds the 
+// remainder of the cab entry data.
 //
-// ??? what is a good line format ?
 //----------------------------------------------------------------------------------------
-void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr ) {
+void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr, bool detail ) {
 
     if ( cPtr == nullptr ) return;
 
     printf( "CabId: %d, ", cPtr -> cabId );
-    // printf( "CabId: %d,  speed: %d, ", cPtr -> cabId, cPtr -> speed );
-    // printf( "%s, ", (( cPtr -> direction ) ? "Rev" : "Fwd" ));
-   
-    printf( "Functions: " );
-
-    for ( uint8_t i = 0; i < MAX_DCC_FUNC_GROUP_ID; i++ ) {
-
-      printf( " 0x%x ", cPtr -> d.functions[ i ] );
-    }
-
+    printf( "CabId: %d,  speed: %d, ", cPtr -> cabId, cPtr -> speedInfo & 0x7f );
+    printf( "%s, ", (( cPtr -> speedInfo & 0x80 ) ? "Rev" : "Fwd" ));
     printf( " Flags: 0x%x", ( cPtr -> flags ));
     printf( "\n" );
+
+    if ( detail ) {
+
+        printf( "   SpeedMap: " );
+        for ( int i = 0; i < 6; i++ ) printf( "%d ", cPtr -> speedMap[ i ]);
+        printf( "\n" );
+
+        // ??? how do we do dcc and analog ?
+
+        printf( "   FuncMap: " );
+        for ( int i = 0; i < 10; i++ ) printf( "0x%x ", cPtr -> d.funcMap[ i ]);
+        printf( "\n" );
+    }
 }
 
 //----------------------------------------------------------------------------------------
 //
-// ??? print the entire cabMap ?
-// ??? print just the active cab list ?
+//
 //----------------------------------------------------------------------------------------
-void  LcsLocoSessions::printCabMap( ) {
+void LcsLocoSessions::printCabMapHeader( ) {
 
-     // ??? to do ...
-    printf( "Active Cabs: \n" );
+    printf( "CabMap Header\n\n" );
 
+    printf( "Magic Word: 0x%x\n", cabMapHead.magicWord );
+    printf( "Flags: 0x%x\n", cabMapHead.flags );
+    printf( "Max Cab Count: %d\n", cabMapHead.maxCabCount );  
+    printf( "Current Cab Count: %d\n", cabMapHead.currentCabCount );
+    printf( "Cab Entry Item Count: %d\n", cabMapHead.cabEntryItemCount );
+    printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
+// "printActiveCabMap" lists the active cabs.
 // 
-// ??? print the entire cabMap ?
-// ??? print just the active cab list ?
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::printConfig( ) {
+void  LcsLocoSessions::printActiveCabMap( ) {
 
-    printf( "LocoSessions Config\n" );
-    printf( " Options: 0x%x\n", options );
-   
-    // ??? to do ...
+    printf( "Active Cabs: \n\n" );
 
+    for ( int i = 0; i < activeCabCount; i++ ) {
 
+        uint16_t locoIndex = activeCabList[ i ];
+        LcsCabEntry *cPtr = &cabMap[ locoIndex ];
+
+        printCabInfo( cPtr );
+    }
 }
-
-
 
 
 

@@ -30,15 +30,32 @@
 #include "LcsRuntimeLib.h"
 #include "LcsDccTrackLib.h"
 
+// ??? !!!! what is the impact of reading arrays of items for the byte order ?
+// ??? when we read an item, it is read as native little endian but transmitted
+// as big endian in a message. So, this should not concern us when we locally
+// read the array of items. The only time we need to worry about byte order is
+// when we send a message to the base station. 
+
 //----------------------------------------------------------------------------------------
-// 
+// Name spaces.
 //
 //----------------------------------------------------------------------------------------
 using namespace CDC;
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-const uint16_t NVM_CAB_MAP_OFS = 256;  // ??? for now ... it is items !!!
+// Fundamental constants for the loco session library. 
+// 
+//----------------------------------------------------------------------------------------
+const uint16_t  MAX_CAB_DICT_SESSIONS    = 128;
+const uint16_t  MAX_CAB_ACTIVE_SESSIONS  = 32;
+
+const uint16_t  CAB_ITEM_ID_HEADER_START = ITEM_ID_USER_START;
+const uint16_t  CAB_ITEM_ID_ARRAY_START  = ITEM_ID_USER_START + 32;
+
+const uint32_t  DCC_SESSION_TIMEOUT_MILLIS = 2000;
+
+const uint32_t  CAB_MAP_MAGIC_WORD = 0xC0DECAFE;
 
 //----------------------------------------------------------------------------------------
 // The base station maintains a set of debug flags. The overall concept is very 
@@ -72,19 +89,10 @@ enum LcsLocoSessionsDebugFlags : uint16_t {
 enum LcsLocoSessionErrors : uint8_t {
 
     LOCO_SESSIONS_ERR_BASE            = ERR_USER_SPECIFIC_BASE,
-
     ERR_NO_SVC_MODE                   = LOCO_SESSIONS_ERR_BASE + 1,
     ERR_CV_OP_FAILED                  = LOCO_SESSIONS_ERR_BASE + 2,
-
     ERR_SESSION_SETUP                 = LOCO_SESSIONS_ERR_BASE + 9,
 };
-
-//----------------------------------------------------------------------------------------
-// DCC Session timeout value. These timeouts are used to determine when a session
-// has timed out and needs to be removed from the session map.
-//
-//----------------------------------------------------------------------------------------
-const uint32_t  DCC_SESSION_TIMEOUT_MILLIS = 2000;
 
 //----------------------------------------------------------------------------------------
 // The session map options. These are options initially set when the base station 
@@ -132,14 +140,6 @@ enum SessionMapFlags : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Maximum number of cabMap entries. The maximum size size depends on the size
-// of the NVM chip on the base station board. 
-// 
-//----------------------------------------------------------------------------------------
-const uint16_t  MAX_CAB_DICT_SESSIONS   = 128;
-const uint16_t  MAX_CAB_ACTIVE_SESSIONS = 32;
-
-//----------------------------------------------------------------------------------------
 // Each cab map entry has a set of flags. 
 //
 //  CMAP_F_ACTIVE                - the cab is active and in the active list.
@@ -162,23 +162,20 @@ enum CabMapEntryFlags : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The Cab Map data structure is an array of cab entries. Cab entries are a set
-// of 16 attributes, i.e. the size is 32bytes. Entry number zero is the cab map 
-// header. The first 8 words are the NVM header info, which is also used in the 
-// runtime library. It contains the magic word, the NVM location and size, and
-// the current number of configured cabs in the array. 
+// The Cab Map data structure is a header and an array of cab entries. The
+// header has a magic word, so we know that the data structure is valid. The
+// data is stored in global items. On module initialization we just read the
+// items in a local data structure. To the outside world, we present the items.
+// We reserve the fist items for the "header".
 //
-// ??? we my keep also some other info here... convenient.
 //----------------------------------------------------------------------------------------
-struct LcsCabDictHead {
+struct LcsCabMapHead {
 
-    uint32_t    magicWord;                                      // word 0 - 1 
-    uint32_t    nvmOfs;                                         // word 2 - 3
-    uint32_t    nvmSize;                                        // word 4 - 5
-    uint32_t    rsv1;                                           // word 6 - 7
-    uint16_t    maxCabCount;                                    // word 8
-    uint16_t    currentCabCount;                                // word 9                    
-    uint16_t    rsv2[ 6 ];                                      // word 10 - 15 
+    uint32_t    magicWord;                                      // item 0 - 1
+    uint16_t    flags;                                          // item 2
+    uint16_t    maxCabCount;                                    // item 3
+    uint16_t    currentCabCount;                                // item 4  
+    uint16_t    cabEntryItemCount;                              // item 5                    
 };
 
 //----------------------------------------------------------------------------------------
@@ -186,7 +183,9 @@ struct LcsCabDictHead {
 // cabMap results in a sorted array of cabMap entries. Cab data is stored in a 
 // 16-word entry. It contains the configured initial data for the cab. The 
 // entries are accessed from the runtime NVM using the getAttr / setAttr 
-// functions.
+// functions. Just like the header, we will read the array of cab entries at 
+// module init and store it in a local data structure. To the outside world, 
+// we present the items. 
 //
 // The following table shows the dictionary word layout for digital and analog
 // locomotives.
@@ -198,21 +197,21 @@ struct LcsCabDictHead {
 //          :---------------------------:       :---------------------------:
 //      1   :   flags                   :       :   flags                   :  
 //          :---------------------------:       :---------------------------:
-//      2   :                           :       :                           : 
+//      2   :   speed info              :       :   speed info              : 
 //          :---------------------------:       :---------------------------:
 //      3   :                           :       :                           : 
 //          :---------------------------:       :---------------------------:
-//      4   :   SpeedInfo               :       :   SpeedInfo               : 
+//      4   :                           :       :                           : 
 //          :---------------------------:       :---------------------------:
-//      5   :   Speed map MIN,s1        :       :   Speed map MIN,s1        : 
+//      5   :                           :       :                           : 
 //          :---------------------------:       :---------------------------:
-//      6   :   Speed map s2, s3        :       :   Speed map s2, s3        : 
+//      6   :                           :       :                           : 
+//          :===========================:       :===========================:
+//      7   :   Speed map MIN,s1        :       :   Speed map MIN,s1        : 
 //          :---------------------------:       :---------------------------:
-//      7   :   Speed map s4, MAX       :       :   Speed map s4, MAX       : 
+//      8   :   Speed map s2, s3        :       :   Speed map s2, s3        : 
 //          :---------------------------:       :---------------------------:
-//      8   :                           :       :                           : 
-//          :---------------------------:       :---------------------------:
-//      9   :                           :       :                           : 
+//      9   :   Speed map s4, MAX       :       :   Speed map s4, MAX       :   
 //          :===========================:       :===========================:
 //     10   :   DCC Info.               :       :   Analog Info             : 
 //          :---------------------------:       :---------------------------:
@@ -238,38 +237,29 @@ struct LcsCabDictHead {
 //
 //  speedMap        -   a set of 8 speed values.
 //
-//  dFlags          -   DCC cab specific 
+//  DCC Info        -   DCC cab specific 
 //
 //  functions       -   the set of DCC function groups.
 // 
-//  aFlags          -   analog cab specific 
+//  Analog Info     -   analog cab specific 
 //
 //  PwmFrequency    -   the PWM option for the analog engine
-// 
-//                      
-// still need type, and some other data ... ?
-// ??? need a word or two for block data, e.g. a block reports on the loco...
 // 
 //----------------------------------------------------------------------------------------
 struct LcsCabEntry {
 
     uint16_t    cabId;                                          // word 0 
     uint16_t    flags;                                          // word 1
-    uint16_t    rsv1;                                           // word 2
-    uint16_t    rsv2;                                           // word 3
+    uint16_t    speedInfo;                                      // word 2
+    uint16_t    rsv[ 4 ];                                       // word 3 - 5
+    uint8_t     speedMap[ 6 ];                                  // word 7 - 9 
 
-    uint16_t    speedInfo;                                      // word 4
-    uint8_t     speedMap[ 6 ];                                  // word 5 - 7 
-
-    uint16_t    rsv3;                                           // word 8
-    uint16_t    rsv4;                                           // word 9
-    
     union {
 
         struct {
 
             uint16_t    dFlags;                                 // word 10
-            uint8_t     functions[ MAX_DCC_FUNC_GROUP_ID ];     // word 11 - 15
+            uint8_t     funcMap[ MAX_DCC_FUNC_GROUP_ID ];       // word 11 - 15
 
         } d;
 
@@ -361,10 +351,10 @@ struct LcsLocoSessions {
     uint8_t             markCabAlive( uint16_t cabId );
     uint8_t             refreshActiveSessions( );
     
-    void                printConfig( );
-    void                printCabInfo( LcsCabEntry *cePtr );
-    void                printCabMap( );
-
+    void                printCabMapHeader( );
+    void                printActiveCabMap( );
+    void                printCabInfo( LcsCabEntry *cePtr, bool detail = false );
+    
     private:
 
     uint16_t            debugMask               = 0;
@@ -381,7 +371,7 @@ struct LcsLocoSessions {
     uint16_t            activeCabCount          = 0;
     uint16_t            cabRefreshIndex         = 0;
 
-    LcsCabDictHead      cabMaphead;
+    LcsCabMapHead       cabMapHead;
     LcsCabEntry         cabMap[ MAX_CAB_DICT_SESSIONS ];
     int                 activeCabList[ MAX_CAB_ACTIVE_SESSIONS ];
 

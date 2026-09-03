@@ -103,19 +103,19 @@ using namespace LCS;
 // name when entering a routine.
 // 
 //----------------------------------------------------------------------------------------
-inline bool setupDebugEnabled( ) {
+inline bool sessionDebugEnabled( ) {
 
     return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )); 
 }
 
 inline void enterFunc( char *name ) {
 
-    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
+    if ( sessionDebugEnabled( )) printf( "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
-    if ( setupDebugEnabled( )) {
+    if ( sessionDebugEnabled( )) {
 
         if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
         else                    printf( "<-- %s: %d\n", name, errId );
@@ -443,7 +443,7 @@ uint8_t initCanBus( ) {
 
     if ( rStat != LCS_OK ) {
 
-        if ( setupDebugEnabled( )) {
+        if ( sessionDebugEnabled( )) {
 
             printf( "Init Can Bus, CAN status: %d\n", rStat ); 
         }
@@ -542,7 +542,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     if ( runtimeOptions & NPO_FORMAT_RUNTIME ) {
 
-        if ( setupDebugEnabled( )) printf ( "Runtime Option: FORMAT\n" );
+        if ( sessionDebugEnabled( )) printf ( "Runtime Option: FORMAT\n" );
 
         rStat = buildNvmRuntimeStructure( );
         if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
@@ -560,7 +560,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
                            sizeof( LcsNvmHeader ));
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
-    if ( setupDebugEnabled( )) printNvmHeader( &nvmHeader );
+    if ( sessionDebugEnabled( )) printNvmHeader( &nvmHeader );
     return ( RET_STAT( rStat ));
 }
 
