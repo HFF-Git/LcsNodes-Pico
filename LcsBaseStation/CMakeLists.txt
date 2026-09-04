@@ -16,7 +16,6 @@ if ( TARGET tinyusb_device )
         LcsBaseStation.h
         LcsBsCommand.cpp
         LcsBsDccTrack.cpp
-        LcsBsDictionary.cpp
         LcsBsLocoSession.cpp
         LcsBsMsgInterface.cpp 
         LcsDccSignalGen.pio
