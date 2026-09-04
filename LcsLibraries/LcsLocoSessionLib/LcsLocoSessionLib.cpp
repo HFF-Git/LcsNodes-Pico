@@ -256,6 +256,8 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
     if ( options & SM_OPT_ENABLE_REFRESH )      flags |= SM_F_ENABLE_REFRESH;
     if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) flags |= SM_F_KEEP_ALIVE_CHECKING;
 
+    // ??? staging entry ?
+
     for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
 
         // ??? clear the entry...
@@ -348,10 +350,47 @@ uint8_t LcsLocoSessions::loadCabMap( ) {
 
         rStat = formatCabMap( );
     }
+    else {
+
+        uint16_t numItems = sizeof( LcsCabEntry ) / sizeof( uint16_t );
+
+        rStat = getItem( 0, 
+                         CAB_ITEM_ID_ARRAY_START, 
+                         (uint16_t *) & cabMap, 
+                         cabMapHead.currentCabCount * numItems );
+    }
 
     if ( rStat == LCS_OK ) sortCabMap( cabMap, cabCount );
 
     return( RET_STAT( rStat ));
+}
+
+//----------------------------------------------------------------------------------------
+// "updateCabMap" will copy the cabbMap to NVM. We first write all entries
+// to the cabDict array and then correct the header cab count.
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::updateCabMap( ) {
+
+    uint8_t  rStat    = LCS_OK;
+    uint16_t numItems = sizeof( LcsCabEntry ) / sizeof( uint16_t );
+
+    rStat = getItem( 0, 
+                     CAB_ITEM_ID_ARRAY_START, 
+                     (uint16_t *) & cabMap, 
+                     cabCount * numItems );
+     if ( rStat != LCS_OK ) ;
+
+    cabMapHead.currentCabCount = cabCount;
+    
+    rStat = setItem( 0, 
+                     CAB_ITEM_ID_HEADER_START, 
+                     (uint16_t *) & cabMapHead, 
+                     sizeof( LcsCabMapHead ) / sizeof( uint16_t ));
+
+    if ( rStat != LCS_OK ) ;
+
+    return( rStat );
 }
 
 //----------------------------------------------------------------------------------------
@@ -373,43 +412,76 @@ uint16_t LcsLocoSessions::getCabCount( ) {
     return ( cabCount );
 }
 
-//----------------------------------------------------------------------------------------
-// "addCabEntry" is used to add a cab configuration to the the NVM cabMap.
-// We just add the entry to the NVM array and increment the NVM cab count.
-// The MEM data structure needs to be reloaded and sorted then. We can do this
-// also after all entries are added.
+// ??? we have a cab staging area since we cannot set all data at once. 
+// ??? going via LCS messages we can set an item at a time. When we have
+// the entry fully configured, it can be added to the dictionary.
 //
-// ??? we perhaps need a different signature. It will just add data to the 
-// NVM cabMap. ( an array of uint16_t words ?)
+// ??? via the command interface we can of course do it all at once.
+// 
+
+//----------------------------------------------------------------------------------------
+// "addCabEntry" is used to add a cab configuration to the cabMap. We first 
+// check whether the cab entry already exists. If so, we just update it.
+// Otherwise, we check for room in the cabMap and add the entry. 
+//
+// Note that we only update our memory structure for the cabMap. When we want
+// this permanently saved, we need to update the NVM image. Splitting the task
+// allows us however to do many updates to the memory image and then flush it
+// after all changes.
+//
+// ??? validate the entry first ?
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::addCabEntry( LcsCabEntry *entry ) {
 
+    LcsCabEntry *cPtr = lookupCabEntry( entry -> cabId );
+    if ( cPtr != nullptr ) {
+        
+        *cPtr = *entry;
+        return( LCS_OK );
+    }
 
-    uint8_t rStat = LCS_OK;
+    if ( cabCount >= MAX_CAB_DICT_SESSIONS ) return ( ERR_CAB_MAP_FULL );
 
-    // if room, append to NVM
-    // increment NVM cab count 
-   
-    
-    return ( rStat );
+    cabMap[ cabCount ] = *entry;
+    cabCount ++;
+
+    sortCabMap( cabMap, cabCount );
+    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// "removeCabEntry" removes an entry from the NVM cabMap.  Order of the cabMap
-// is not significant, so the last entry is moved into the position of the 
-// removed entry. The cabCount is decremented. The MEM data structure needs to
-// be reloaded and sorted then. We can do this also after all entries are added.
+// "removeCabEntry" removes an entry from the NVM cabMap. cabMap is sorted by 
+// cabId, therefore all entries following the removed entry are shifted down by
+// one position. The active cab list contains indices into cabMap and therefore
+// has to be adjusted too. This is done by removing the active entry and then 
+// decrementing each active cab entry index by one if it is above the index
+// that we removed.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
 
-    uint8_t rStat = LCS_OK;
+    LcsCabEntry *cPtr = lookupCabEntry( cabId );
+    if ( cPtr == nullptr ) return( LCS_OK );
 
-    // we have the index ?
-    // copy the entry at cabCount to this place
-    // decrement cabCount
+    uint16_t removeIndex = cPtr - cabMap;
 
-    return ( rStat );
+    if ( cPtr -> flags & CMAP_F_ACTIVE ) removeActiveCab( removeIndex );
+
+    for ( uint16_t i = 0; i < activeCabCount; i++ ) {
+
+        if ( activeCabList[ i ] > removeIndex ) activeCabList[ i ] --;
+    }
+
+    if ( removeIndex < cabCount - 1 ) {
+
+        memmove( &cabMap[ removeIndex ],
+                 &cabMap[ removeIndex + 1 ],
+                 ( cabCount - removeIndex - 1 ) * sizeof( LcsCabEntry ));
+    }
+
+    cabCount --;
+
+    return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -453,9 +525,8 @@ void LcsLocoSessions::removeActiveCab( uint16_t locoIndex ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "lookupCabEntry" looks for a cab entry in the sorted loco base.
-//
-// Returns a pointer to the entry if found, otherwise nullptr.
+// "lookupCabEntry" looks for a cab entry in the sorted loco base and returns 
+// a pointer to the entry if found, otherwise a nullptr.
 //
 //----------------------------------------------------------------------------------------
 LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
@@ -490,7 +561,12 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
     LcsCabEntry *cPtr = lookupCabEntry( cabId );
     if ( cPtr == nullptr ) return( nullptr );
 
-    if ( ! ( cPtr -> flags & CMAP_F_ACTIVE )) addActiveCab( cPtr - cabMap );
+    if ( ! ( cPtr -> flags & CMAP_F_ACTIVE )) { 
+        
+        addActiveCab( cPtr - cabMap );
+        cPtr -> flags |= CMAP_F_ALIVE;
+    }
+
     return( cPtr );
 }
 
@@ -498,15 +574,17 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 // "deallocateCabEntry" deactivates a cab entry and removes it from the active
 // loco list. The entry remains in the dictionary base.
 //
-// ??? i am not sure what else to do. Perhaps the refresh routine using this 
-// call will set some more flags ...
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 
     LcsCabEntry *cPtr = lookupCabEntry( cabId );
     if ( cPtr == nullptr ) return;
 
-    if ( cPtr -> flags & CMAP_F_ACTIVE ) removeActiveCab( cPtr - cabMap );
+    if ( cPtr -> flags & CMAP_F_ACTIVE ) { 
+        
+        removeActiveCab( cPtr - cabMap );
+        cPtr -> flags &= ~ CMAP_F_ALIVE;
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -518,7 +596,6 @@ void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 // ESTOP DCC broadcast packet and then set the speed value in each session to 
 // one, which is the value for emergency stop. All else is unchanged.
 //
-// 
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::emergencyStopAll( ) {
 
@@ -574,6 +651,11 @@ void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
 // station code to record the last time it touched the session. A caBId not
 // used in a certain time, is a candidate for removal from the active list.
 //
+// ??? may we do not need to do this ? If a cab is used, the active call will
+// mark it alive by definition.
+//
+// All we would need to do is to periodically sweep the list for "non-alive"
+// entries.....
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::markCabAlive( uint16_t cabId ) {
 
@@ -583,6 +665,8 @@ uint8_t LcsLocoSessions::markCabAlive( uint16_t cabId ) {
     cPtr -> flags |= CMAP_F_ALIVE;
     return ( LCS_OK );
 }
+
+// ??? a routine to check and remove "non-alive" cabs ?
 
 //----------------------------------------------------------------------------------------
 // "setThrottle" is perhaps the most used function. After all, we want to run 

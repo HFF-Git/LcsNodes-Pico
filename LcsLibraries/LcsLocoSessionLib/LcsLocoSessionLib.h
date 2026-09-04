@@ -47,15 +47,15 @@ using namespace LCS;
 // Fundamental constants for the loco session library. 
 // 
 //----------------------------------------------------------------------------------------
-const uint16_t  MAX_CAB_DICT_SESSIONS    = 128;
-const uint16_t  MAX_CAB_ACTIVE_SESSIONS  = 32;
+const uint16_t  MAX_CAB_DICT_SESSIONS       = 128;
+const uint16_t  MAX_CAB_ACTIVE_SESSIONS     = 32;
 
-const uint16_t  CAB_ITEM_ID_HEADER_START = ITEM_ID_USER_START;
-const uint16_t  CAB_ITEM_ID_ARRAY_START  = ITEM_ID_USER_START + 32;
+const uint32_t  CAB_MAP_MAGIC_WORD          = 0xC0DECAFE;
+const uint16_t  CAB_ITEM_ID_HEADER_START    = ITEM_ID_USER_START;
+const uint16_t  CAB_ITEM_ID_STAGING_START   = ITEM_ID_USER_START + 16;
+const uint16_t  CAB_ITEM_ID_ARRAY_START     = CAB_ITEM_ID_STAGING_START + 16;
 
-const uint32_t  DCC_SESSION_TIMEOUT_MILLIS = 2000;
-
-const uint32_t  CAB_MAP_MAGIC_WORD = 0xC0DECAFE;
+const uint32_t  DCC_SESSION_TIMEOUT_MILLIS  = 2000;
 
 //----------------------------------------------------------------------------------------
 // The base station maintains a set of debug flags. The overall concept is very 
@@ -88,10 +88,11 @@ enum LcsLocoSessionsDebugFlags : uint16_t {
 //----------------------------------------------------------------------------------------
 enum LcsLocoSessionErrors : uint8_t {
 
-    LOCO_SESSIONS_ERR_BASE            = ERR_USER_SPECIFIC_BASE,
-    ERR_NO_SVC_MODE                   = LOCO_SESSIONS_ERR_BASE + 1,
-    ERR_CV_OP_FAILED                  = LOCO_SESSIONS_ERR_BASE + 2,
-    ERR_SESSION_SETUP                 = LOCO_SESSIONS_ERR_BASE + 9,
+    LOCO_SESSIONS_ERR_BASE          = ERR_USER_SPECIFIC_BASE,
+    ERR_NO_SVC_MODE                 = LOCO_SESSIONS_ERR_BASE + 1,
+    ERR_CV_OP_FAILED                = LOCO_SESSIONS_ERR_BASE + 2,
+    ERR_SESSION_SETUP               = LOCO_SESSIONS_ERR_BASE + 9,
+    ERR_CAB_MAP_FULL                = LOCO_SESSIONS_ERR_BASE + 10,
 };
 
 //----------------------------------------------------------------------------------------
@@ -296,6 +297,7 @@ struct LcsLocoSessions {
 
     uint8_t             formatCabMap( );
     uint8_t             loadCabMap( );
+    uint8_t             updateCabMap( );
     uint8_t             addCabEntry( LcsCabEntry *entry );
     uint8_t             removeCabEntry( uint16_t cabId );
     LcsCabEntry         *lookupCabEntry( uint16_t cabId );
@@ -372,6 +374,7 @@ struct LcsLocoSessions {
     uint16_t            cabRefreshIndex         = 0;
 
     LcsCabMapHead       cabMapHead;
+    LcsCabEntry         cabStagingEntry;
     LcsCabEntry         cabMap[ MAX_CAB_DICT_SESSIONS ];
     int                 activeCabList[ MAX_CAB_ACTIVE_SESSIONS ];
 
