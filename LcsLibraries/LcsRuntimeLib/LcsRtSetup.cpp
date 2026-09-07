@@ -348,21 +348,22 @@ uint8_t initCdcLayer( ) {
 
     if ( usbIsConnected( )) {
 
-        printf( "Type '?' for help\n" );
+        sleepMillis(1000);
+
+        printf( "Runtime start, type '?' for help\n" );
+        printf( "=>" );
 
         while ( true ) {
 
-            printf( "=>" );
+            char ch = usbIoGetChar( 0 );
 
-            char ch = usbIoGetChar( 0, CONSOLE_TIMEOUT );
-
-            if ((ch == 'R') || (ch == 'r')) {
+            if (( ch == 'R' ) || ( ch == 'r' )) {
 
                 printf( "Starting - normal mode\n" );
 
                 debugMask &= ~LCS_DBG_ENABLE;
                 return ( RET_STAT( LCS_OK ));
-            } 
+            }
             else if (( ch == 'D' ) || ( ch == 'd' )) {
 
                 printf( "Starting - debug mode\n" );
@@ -384,8 +385,17 @@ uint8_t initCdcLayer( ) {
                 printf( "r, R -> start the node with debug initially disabled\n" );
                 printf( "d, D -> start the node with \"setup\" debug options enabled\n" );
                 printf( "f, F -> start the node with a newly formatted runtime map\n" );
-           
-            } else printf( "\n" );
+                printf( "=>" );
+            } 
+            else if ( ch == '\r' ) {
+                
+                printf( "\n=>" );
+            }
+            else if ( ch != 0 ) {
+
+                printf( "Invalid command, use help\n" );
+                printf( "=>" );
+            }
         }
     }
     else {

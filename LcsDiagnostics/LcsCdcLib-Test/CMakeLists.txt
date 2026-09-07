@@ -16,23 +16,22 @@ if ( TARGET tinyusb_device )
     )
 
     # Make sure TinyUSB uses your config at compile time
-    target_compile_definitions( tinyusb_device INTERFACE CFG_TUD_ENABLED=1)
+    # target_compile_definitions( tinyusb_device INTERFACE CFG_TUD_ENABLED=1)
 
-    # Ensure TinyUSB config in this directory is used
     target_include_directories(${PROJECT_NAME} PRIVATE
 
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    target_include_directories(tinyusb_device INTERFACE
+    # target_include_directories(tinyusb_device INTERFACE
 
-        ${CMAKE_CURRENT_SOURCE_DIR}
-    )
+      #  ${CMAKE_CURRENT_SOURCE_DIR}
+    # )
     
     target_link_libraries( ${PROJECT_NAME} 
 
         pico_stdlib
-        tinyusb_device
+       # tinyusb_device
         LcsCdcLib 
     )
 

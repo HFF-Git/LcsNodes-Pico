@@ -576,12 +576,12 @@ int main( ) {
     initCdcLib( );
 
     // testFatalErr( );
-    // testConsoleIO( );
+    testConsoleIO( );
     // testPfail( );
     // testOnboardLeds( );
     // testDioInput( );
     // testDioOutput( );
-    testDioOutputPair( );
+    // testDioOutputPair( );
     // testAdcBlockingRead( );
     // testTimer( );
     // testI2C( );

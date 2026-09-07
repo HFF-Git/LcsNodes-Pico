@@ -12,7 +12,7 @@ add_library( LcsCdcLib STATIC
     LcsCdcLib.h 
     LcsCdcLibInt.h
     LcsCdcLib.cpp
-    LcsCdcAuxUsbChannel.cpp
+   # LcsCdcAuxUsbChannel.cpp
     LcsCdcLibTimer.cpp
     LcsCdcLibGPIO.cpp
     LcsCdcLibADC.cpp
@@ -24,16 +24,17 @@ add_library( LcsCdcLib STATIC
 ) 
 
 # Make sure TinyUSB uses your config at compile time
-target_compile_definitions(tinyusb_device INTERFACE CFG_TUD_ENABLED=1)
+# target_compile_definitions( tinyusb_device INTERFACE CFG_TUD_ENABLED=1)
 
 target_include_directories( LcsCdcLib PUBLIC
+
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries( ${PROJECT_NAME} 
 
     pico_stdlib 
-    tinyusb_device
+   # tinyusb_device
     pico_unique_id
     hardware_gpio
     hardware_i2c 

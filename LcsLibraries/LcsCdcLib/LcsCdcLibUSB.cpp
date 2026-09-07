@@ -86,6 +86,9 @@ namespace CDC {
 //----------------------------------------------------------------------------------------
 uint8_t configureUsbIO( ) {
 
+    // ??? what to do for multi USB-CDC ?
+    // tusb_init( );
+
     stdio_init_all( );
     return ( NO_ERR );
 }
@@ -105,19 +108,29 @@ bool usbIsConnected( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Get a character from the USB console IO. The routine attempts to read a 
-// character from the USB console. If there is no character available, the routine 
-// will wait up to the specified timeout value in microseconds. If no character is
-// received within the timeout period, the routine returns 0. If timeoutVal is 0, 
-// the routine returns immediately.
+// "usbIoGetChar" attempts to read a character from the USB console. If there is
+// no character available, the routine returns 0. 
 //
 //----------------------------------------------------------------------------------------
-char usbIoGetChar( int chan, uint32_t timeoutVal ) {
+char usbIoGetChar( int chan ) {
 
-    // ??? initial test... we just read as before.
+    if ( ! usbIsConnected( )) return ( 0 );
 
-    int ch = getchar_timeout_us( timeoutVal );
-    return (( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
+    // tud_task();
+
+    if ( chan == 0 ) {
+
+        int ch = getchar_timeout_us( 0 );
+        return (( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
+    }
+    else if ( chan == 1 ) {
+
+        // ??? to do ...
+        // if ( ! tud_cdc_n_available( 1 )) return ( -1 );
+        // return ( tud_cdc_n_read_char( 1 ));
+        return( 0 ); // ??? for now ...
+    }
+    else return( 0 );
 }      
 
 //----------------------------------------------------------------------------------------
@@ -136,8 +149,20 @@ int usbIoPrintf( int chan, const char *fmt, ... ) {
 
     if ( len <= 0 ) return ( 0 );
 
-    printf( "%s", outBuffer );
+    if ( chan == 0 ) {
 
+        len = printf( "%s", outBuffer );
+    }
+    else {
+
+        // if ( ! tud_cdc_n_connected( 1 )) return( 0 );
+
+        // ???to do ...
+        // tud_cdc_n_write( 1, data, len );
+        // tud_cdc_n_write_flush( 1 );
+        // return( len );
+    }
+    
     return ( len );
 }
 

@@ -45,10 +45,10 @@
 //----------------------------------------------------------------------------------------
 #pragma once
 
-#include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <cstring>
+#include <stdio.h>
 
 //----------------------------------------------------------------------------------------
 // All definitions and functions are in the CDC name space.
@@ -57,11 +57,12 @@
 namespace CDC {
 
 //----------------------------------------------------------------------------------------
-// The debug mask. The library has a debug mask where each major part of the library
-// has a flag. Wherever debugging is needed, the bit mask will be used to determine 
-// whether to print debugging data or not. From a performance perspective, the test
-// will take just a few instructions. In other words we do not take out debugging 
-// code when going into production. Never liked this kind of conditional debug anyway.
+// The debug mask. The library has a debug mask where each major part of the 
+// library has a flag. Wherever debugging is needed, the bit mask will be used
+// to determine whether to print debugging data or not. From a performance 
+// perspective, the test will take just a few instructions. In other words we 
+// do not take out debugging code when going into production. Never liked this
+// kind of conditional debug anyway.
 //
 // The usage of the debug mask is generally: 
 //
@@ -69,10 +70,11 @@ namespace CDC {
 // 
 // The DBG_CONFIG bit allows for the entire debugging messages to be enabled or 
 // disabled. This feature will also be used when we test whether we even have a 
-// console to print to or not. If there is no console, all the print functions will 
-// not be executed.
+// console to print to or not. If there is no console, all the print functions 
+// will not be executed.
 //
-// The CDC debug flags occupy the right half of the 16-bit debug mask for the runtime.
+// The CDC debug flags occupy the right half of the 16-bit debug mask for the 
+// runtime.
 //
 //----------------------------------------------------------------------------------------
 enum DebugOptions : uint16_t {
@@ -90,9 +92,9 @@ enum DebugOptions : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Error status codes. The errors are used when setting up the Hal library. During 
-// operation, all routines validate the input for correctness. If they are not 
-// correct, the call is simply not performed and an error is returned.
+// Error status codes. The errors are used when setting up the CDC library. 
+// During operation, all routines validate the input for correctness. If they
+// are not correct, the call is simply not performed and an error is returned.
 //
 //----------------------------------------------------------------------------------------
 enum CdcStatus : uint8_t {
@@ -412,18 +414,19 @@ uint64_t        getSerialNum( );
 uint32_t        createUid( );
 
 //----------------------------------------------------------------------------------------
-// The console IO functions. We will provide a serial IO via the USB connector of
-// the PICO. The files need to be linked with the "tinyUSB" library and the cMake
-// file needs to set the option. Then we can use scanf and printf and so on. In 
-// addition, we need function  that just attempts to read a character and returns
-// immediately when there is none.
+// The console IO functions. We will provide a serial IO communication via the
+// USB connector of the PICO. The files need to be linked with the "tinyUSB" 
+// library and the cMake file needs to set the option. There is a really simple
+// interface. We provide a configuration interface, a check if USB us connected,
+// a non-blocking get a character and a printf alike write routine.
 //
 //----------------------------------------------------------------------------------------
 uint8_t         configureUsbIO( );
 bool            usbIsConnected( );
-char            usbIoGetChar( int chan, uint32_t timeoutVal = 0 );            
+char            usbIoGetChar( int chan );            
 int             usbIoPrintf( int chan, const char *fmt, ... );
 
+#if 0
 //----------------------------------------------------------------------------------------
 // The auxiliary USB channel. For some LCS Nodes, two USB channels are required.
 // The base station, for example, has the USB console and also an USB channel 
@@ -436,6 +439,7 @@ bool            auxUsbChannelAvailable( );
 int             auxUsbChannelReadChar( );
 uint32_t        auxUsbChannelWrite( const void *data, uint32_t len );
 uint32_t        auxUsbChannelPrintf( int chan, const char *fmt, ... );
+#endif
 
 //----------------------------------------------------------------------------------------
 // General controller and board info routines.

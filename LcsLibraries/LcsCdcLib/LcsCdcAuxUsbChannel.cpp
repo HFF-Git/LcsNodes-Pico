@@ -44,8 +44,8 @@
 #error "TinyUSB device stack is NOT enabled!"
 #endif
 
-#if CFG_TUD_CDC != 2
-#error "Expected exactly 2 CDC interfaces!"
+#if CFG_TUD_CDC != 1
+#error "Expected exactly 1 CDC interfaces!"
 #endif
 
 //----------------------------------------------------------------------------------------
@@ -269,9 +269,9 @@ bool auxChannelAvailable( ) {
 //----------------------------------------------------------------------------------------
 int  auxUsbChannelReadChar( ) {
 
-    if ( ! tud_cdc_available( )) return ( -1 );
+    if ( ! tud_cdc_n_available( 1 )) return ( -1 );
     
-    return ( tud_cdc_read_char( ));
+    return ( tud_cdc_n_read_char( 1 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -282,8 +282,8 @@ uint32_t  auxUsbChannelWrite( const void *data, uint32_t len ) {
 
     if ( tud_cdc_connected( )) {
 
-         tud_cdc_write( data, len );
-         tud_cdc_write_flush( );
+         tud_cdc_n_write( 1, data, len );
+         tud_cdc_n_write_flush( 1 );
     }
 
     return( len );
