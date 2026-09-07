@@ -29,7 +29,6 @@
 
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
-#include "LcsDrvOccDetectLib.h"
 #include "LcsBlockControllerBoardDesc.h"
 
 using namespace LCS;

@@ -7,11 +7,34 @@ project( LcsCdcLib-Test C CXX ASM )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsCdcLib pico_stdlib ) 
+   # include_directories( LcsCdcLib pico_stdlib ) 
 
-    add_executable( ${PROJECT_NAME} main.cpp LcsCdcLibTestBoardDesc.h )
+    add_executable( ${PROJECT_NAME} 
     
-    target_link_libraries( ${PROJECT_NAME} LcsCdcLib pico_stdlib )
+        main.cpp 
+        LcsCdcLibTestBoardDesc.h 
+    )
+
+    # Make sure TinyUSB uses your config at compile time
+    target_compile_definitions( tinyusb_device INTERFACE CFG_TUD_ENABLED=1)
+
+    # Ensure TinyUSB config in this directory is used
+    target_include_directories(${PROJECT_NAME} PRIVATE
+
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_include_directories(tinyusb_device INTERFACE
+
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    
+    target_link_libraries( ${PROJECT_NAME} 
+
+        pico_stdlib
+        tinyusb_device
+        LcsCdcLib 
+    )
 
     pico_add_extra_outputs( ${PROJECT_NAME} )
     pico_enable_stdio_usb( ${PROJECT_NAME} 1 )

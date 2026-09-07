@@ -12,6 +12,12 @@ add_library( ${PROJECT_NAME} STATIC
     LcsDccSignalGen.pio
 ) 
 
+pico_generate_pio_header( 
+        
+        ${PROJECT_NAME}  
+        ${CMAKE_CURRENT_SOURCE_DIR}/LcsDccSignalGen.pio
+)
+
 target_include_directories( ${PROJECT_NAME} INTERFACE 
 
     ${CMAKE_CURRENT_SOURCE_DIR} 

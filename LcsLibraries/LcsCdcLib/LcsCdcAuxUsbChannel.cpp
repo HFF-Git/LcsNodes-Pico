@@ -1,9 +1,15 @@
 //----------------------------------------------------------------------------------------
 //
-// LCS - RocRail Gateway - CanBus Message Interface
+// LCS - Controller dependent code Layer - Auxiliary USB Channel
 //
 //----------------------------------------------------------------------------------------
-// 
+// Some LCS applications need a second USB channel. The base station or gateways
+// may be connected to a computer to exchange data packets. While this is also 
+// possible via the USB console interface, leaving the console available for 
+// commands and debug options requires a second USB channel.
+//
+// The PICO uses the tinyUSB library for USB. We build the second channel also
+// using this library.
 // 
 //----------------------------------------------------------------------------------------
 //
@@ -14,17 +20,17 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //  GNU General Public License:  http://opensource.org/licenses/GPL-3.0
 //
 //----------------------------------------------------------------------------------------
-#include "LcsRocRailGateway.h"
-#include "tusb.h"
+#include "LcsCdcLib.h"
+#include "LcsCdcLibInt.h"
 
 //----------------------------------------------------------------------------------------
 // Compile-time checks ensuring TinyUSB is enabled and configured properly.
@@ -45,6 +51,20 @@
 #if CFG_TUD_CDC != 1
 #error "CDC is DISABLED!"
 #endif
+
+//----------------------------------------------------------------------------------------
+// Local name space. 
+//
+//----------------------------------------------------------------------------------------
+namespace {
+
+// using namespace CDC;
+
+//----------------------------------------------------------------------------------------
+// Buffer for incoming data (not yet used for message assembly)
+//
+//----------------------------------------------------------------------------------------
+char outBuffer [ 256 ];
 
 //----------------------------------------------------------------------------------------
 // USB Device Descriptor. This descriptor tells the host:
@@ -82,26 +102,22 @@ tusb_desc_device_t const desc_device = {
     .bNumConfigurations = 1                             // Only 1 configuration
 };
 
-// TinyUSB callback returning the Device Descriptor
-uint8_t const *tud_descriptor_device_cb(void) {
-
-    return ((uint8_t const *) &desc_device );
-}
-
 //----------------------------------------------------------------------------------------
 // USB Configuration Descriptor. This defines:
 //
 //   - Total size of the configuration
 //   - Number of interfaces
 //   - Power requirements
-//   - Interface descriptors (CDC control + CDC data)
-//   - Endpoint descriptors (IN, OUT, Notification)
+//   - Interface descriptors ( CDC control + CDC data )
+//   - Endpoint descriptors ( IN, OUT, Notification )
 //
 // This device exposes exactly ONE CDC channel.
+//
 //----------------------------------------------------------------------------------------
 
 // Interface numbers for the CDC function
 enum {
+
     ITF_NUM_CDC = 0,       // CDC control interface
     ITF_NUM_CDC_DATA,      // CDC data interface
     ITF_NUM_TOTAL          // Total number of interfaces
@@ -141,14 +157,6 @@ uint8_t const desc_configuration[ ] = {
         64)                     // Data endpoint packet size
 };
 
-
-// TinyUSB callback returning the Configuration Descriptor
-uint8_t const *tud_descriptor_configuration_cb(uint8_t index) {
-
-    (void) index;
-    return desc_configuration;
-}
-
 //----------------------------------------------------------------------------------------
 // USB String Descriptors. USB uses UTF-16 strings. TinyUSB wants an array of C 
 // strings, which it then converts to UTF-16 at runtime.
@@ -174,10 +182,40 @@ char const *string_desc_arr[ ] = {
 
 static uint16_t _desc_str[ 32 ];  // UTF-16 buffer for TinyUSB to return
 
-// TinyUSB callback converting ASCII to UTF-16 as needed
-uint16_t const *tud_descriptor_string_cb( uint8_t index, uint16_t langid ) {
-    (void) langid;
+} // namespace
 
+//----------------------------------------------------------------------------------------
+// The CDC name space routines declared in this file.
+//
+//----------------------------------------------------------------------------------------
+namespace CDC {
+
+//----------------------------------------------------------------------------------------
+// TinyUSB callback returning the Device Descriptor.
+//
+//----------------------------------------------------------------------------------------
+uint8_t const *tud_descriptor_device_cb( void ) {
+
+    return ((uint8_t const *) &desc_device );
+}
+
+//----------------------------------------------------------------------------------------
+// TinyUSB callback returning the Configuration Descriptor.
+//
+//----------------------------------------------------------------------------------------
+uint8_t const *tud_descriptor_configuration_cb( uint8_t index ) {
+
+    (void) index;
+    return desc_configuration;
+}
+
+//----------------------------------------------------------------------------------------
+// TinyUSB callback converting ASCII to UTF-16 as needed.
+//
+//----------------------------------------------------------------------------------------
+uint16_t const *tud_descriptor_string_cb( uint8_t index, uint16_t langid ) {
+
+    (void) langid;
     uint8_t chr_count;
 
     if ( index == 0 ) {
@@ -200,61 +238,77 @@ uint16_t const *tud_descriptor_string_cb( uint8_t index, uint16_t langid ) {
 }
 
 //----------------------------------------------------------------------------------------
-// USB Rocnet Channel Implementation
+// "configureAuxUsbChannel" sets up the USB channel.
+//
 //----------------------------------------------------------------------------------------
+uint8_t configureAuxUsbChannel( ) {
 
-// Buffer for incoming data (not yet used for message assembly)
-static uint8_t ch1_rx_buf[256];
-
-// Initialize TinyUSB device stack
-void usb_ch1_init(void) {
-    tusb_init();
+    tusb_init( );
+    return( NO_ERR );
 }
 
-// Poll TinyUSB engine
-void usb_ch1_task(void) {
-    tud_task();  // TinyUSB internal state machine
+//----------------------------------------------------------------------------------------
+// TinyUSB internal state machine. We need to call this routine often to advance
+// the USB state machine.
+//
+// ??? isn't that already done through the PICO USB console IO functions ?
+//----------------------------------------------------------------------------------------
+void auxUsbChannelTick( ) {
+ 
+    tud_task( );
 }
 
-// -------------------- CDC API --------------------
+//----------------------------------------------------------------------------------------
+// "auxChannelAvailable" checks if there is data available on the USB channel.
+//
+//----------------------------------------------------------------------------------------
+bool auxChannelAvailable( ) {
 
-// Returns number of bytes available to read
-bool usb_ch1_available(void) {
-    return (tud_cdc_available());
+    return ( tud_cdc_available( ));   
 }
 
-// Read one character (or -1 if none)
-int usb_ch1_read(void) {
-    if (tud_cdc_available()) return tud_cdc_read_char();
-    return (-1);
+//----------------------------------------------------------------------------------------
+// "auxUsbChannelReadChar" reads one character from the USB channel.
+//
+//----------------------------------------------------------------------------------------
+int  auxUsbChannelReadChar( ) {
+
+    if ( ! tud_cdc_available( )) return ( -1 );
+    
+    return ( tud_cdc_read_char( ));
 }
 
-// Write a block of bytes to the host
-void usb_ch1_write(const void *data, uint32_t len) {
-    if (tud_cdc_connected()) {
-        tud_cdc_write(data, len);
-        tud_cdc_write_flush();
+//----------------------------------------------------------------------------------------
+// "auxUsbChannelWrite" writes a data buffer to the USB channel.
+//
+//----------------------------------------------------------------------------------------
+uint32_t  auxUsbChannelWrite( const void *data, uint32_t len ) {
+
+    if ( tud_cdc_connected( )) {
+
+         tud_cdc_write( data, len );
+         tud_cdc_write_flush( );
     }
-}
 
-// Write a C string
-void usb_ch1_write_str(const char *s) {
-    usb_ch1_write(s, strlen(s));
+    return( len );
 }
 
 //----------------------------------------------------------------------------------------
-// NOTE for future implementation:
-//
-// RocNet protocol:
-//   - Messages begin with '@'
-//   - Followed by at least 8 *ASCII hex characters* = 4 binary bytes
-//   - The 8th byte describes the payload size
-//   - Continue reading ASCII hex pairs until complete
-//
-// You must add a state machine that:
-//   - Watches for '@'
-//   - Parses ASCII hex into binary bytes
-//   - Buffers until full packet is received
-//   - Calls a message callback handler
+// "auxUsbChannelPrintf" implements a printf style output function.
 //
 //----------------------------------------------------------------------------------------
+uint32_t auxUsbChannelPrintf( int chan, const char *fmt, ... ) {
+
+     if ( ! tud_cdc_connected( )) return( 0 );
+
+    va_list args;
+    va_start( args, fmt );
+    int len = vsnprintf( outBuffer, sizeof( outBuffer ), fmt, args );
+    va_end( args );
+
+    if ( len <= 0 ) return ( 0 );
+
+    return ( auxUsbChannelWrite( outBuffer, len ));
+}
+
+} // namespace CDC

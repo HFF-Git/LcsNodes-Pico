@@ -23,7 +23,7 @@ if ( TARGET tinyusb_device )
 
     pico_generate_pio_header( 
         
-        LcsBaseStation 
+        ${PROJECT_NAME}  
         ${CMAKE_CURRENT_SOURCE_DIR}/LcsDccSignalGen.pio
     )
 

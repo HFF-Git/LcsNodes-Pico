@@ -22,17 +22,6 @@ pico_sdk_init( )
 set( CMAKE_C_STANDARD 11 )
 set( CMAKE_CXX_STANDARD 17 )
 
-add_subdirectory( LcsDiagnostics/LcsCdcLib-Test )
-add_subdirectory( LcsDiagnostics/LcsRuntimeLib-Test )
-add_subdirectory( LcsDiagnostics/LcsOledTest )
-
-add_subdirectory( LcsBaseStation )
-add_subdirectory( LcsBlockController )
-add_subdirectory( LcsBasicThrottle )
-add_subdirectory( LcsDieselThrottle )
-add_subdirectory( LcsDccMonitor )
-add_subdirectory( LcsRocRailGateway)
-
 add_subdirectory( LcsLibraries/LcsUtilLib )
 add_subdirectory( LcsLibraries/LcsCdcLib )
 add_subdirectory( LcsLibraries/LcsDccPktFmtLib )
@@ -44,6 +33,13 @@ add_subdirectory( LcsLibraries/LcsOledDisplayLib )
 add_subdirectory( LcsLibraries/LcsDccTrackLib )
 add_subdirectory( LcsLibraries/LcsLocoSessionLib )
 
-# still needed ?
-add_subdirectory( LcsLibraries/LcsDrvOccDetectLib )
-add_subdirectory( LcsLibraries/LcsDrvServoLib )
+add_subdirectory( LcsDiagnostics/LcsCdcLib-Test )
+add_subdirectory( LcsDiagnostics/LcsRuntimeLib-Test )
+add_subdirectory( LcsDiagnostics/LcsOledTest )
+
+add_subdirectory( LcsBaseStation )
+add_subdirectory( LcsBlockController )
+add_subdirectory( LcsBasicThrottle )
+add_subdirectory( LcsDieselThrottle )
+add_subdirectory( LcsDccMonitor )
+

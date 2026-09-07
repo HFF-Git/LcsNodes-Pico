@@ -29,7 +29,7 @@
 #include "LcsMainControllerBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
-#include "LcsDrvOccDetectLib.h"
+// #include "LcsDrvOccDetectLib.h"
 
 using namespace LCS;
 using namespace CDC;
