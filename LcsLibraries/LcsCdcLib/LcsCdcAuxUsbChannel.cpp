@@ -36,20 +36,16 @@
 // Compile-time checks ensuring TinyUSB is enabled and configured properly.
 // These prevent subtle build errors when project configuration is wrong.
 //----------------------------------------------------------------------------------------
-#if !CFG_TUD_ENABLED
-#error "TinyUSB device stack is NOT enabled!"
-#endif
-
-#if !CFG_TUD_CDC
-#error "CDC is NOT enabled in TinyUSB!"
-#endif
-
 #ifndef CFG_TUD_CDC
 #error "tusb_config.h was NOT loaded!"
 #endif
 
-#if CFG_TUD_CDC != 1
-#error "CDC is DISABLED!"
+#if !CFG_TUD_ENABLED
+#error "TinyUSB device stack is NOT enabled!"
+#endif
+
+#if CFG_TUD_CDC != 2
+#error "Expected exactly 2 CDC interfaces!"
 #endif
 
 //----------------------------------------------------------------------------------------
