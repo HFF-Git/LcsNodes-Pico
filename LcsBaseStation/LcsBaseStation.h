@@ -49,14 +49,16 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 enum BaseStationDebugFlags : uint16_t {
 
-    DBG_BS_CONFIG                  = 1 << 15,   
+   // DBG_BS_CONFIG                  = 1 << 15,   
 
     DBG_BS_SESSION                 = 1 << 0,    
     DBG_BS_LCS_MSG_INTERFACE       = 1 << 1,    
     DBG_BS_TRACK_POWER_MGMT        = 1 << 2,        
     DBG_BS_DCC_ACK_DETECT          = 1 << 3,        
     DBG_BS_CHECK_ALIVE_SESSIONS    = 1 << 4,        
-    DBG_BS_RAILCOM                 = 1 << 5   
+    DBG_BS_RAILCOM                 = 1 << 5,
+    
+    DBG_BS_ENABLED                  = 1 << 15
 };
 
 //----------------------------------------------------------------------------------------
@@ -83,15 +85,6 @@ enum BaseStationErrors : uint8_t {
     ERR_NVM_HW_SETUP                  = BASE_STATION_ERR_BASE + 15,
     ERR_PIO_HW_SETUP                  = BASE_STATION_ERR_BASE + 16
 };
-
-//----------------------------------------------------------------------------------------
-// DCC packet payload data definitions we need often, so these constants come in 
-// handy.
-//
-//----------------------------------------------------------------------------------------
-const uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
-const uint8_t   resetDccPacketData[ ]   = { 0x00, 0x00 };
-const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 
 //----------------------------------------------------------------------------------------
 // The base station items for attributes and request LCS calls. 

@@ -1164,6 +1164,17 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
 }
 
 //----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::writeDccPacketMain( uint8_t *packet, uint8_t len ) {
+
+    // ??? to do ...
+
+    return( LCS_OK );
+}
+
+//----------------------------------------------------------------------------------------
 // "printCabInfo" lists a cab entry. We have two formats. The summary format
 // lists the cabId, speed info and flags. The detailed format adds the 
 // remainder of the cab entry data.

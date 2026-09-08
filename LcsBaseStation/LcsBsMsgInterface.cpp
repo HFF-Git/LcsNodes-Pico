@@ -42,7 +42,37 @@ extern uint16_t debugMask;
 //----------------------------------------------------------------------------------------
 namespace {
 
-// ??? debug support ....
+//----------------------------------------------------------------------------------------
+// "setupDebugEnabled" and "retStat" are the debug support routines. We can 
+// easily check whether debug is enabled at all. The return status routine will
+// print out a return status message when debugging is enabled. The macro 
+// "RET_STAT" is a nice helper that adds the function name to the message.
+// 
+//----------------------------------------------------------------------------------------
+inline bool msgDebugEnabled( ) {
+
+    return (( debugMask & DBG_BS_ENABLED ) && 
+            ( debugMask & DBG_BS_LCS_MSG_INTERFACE )); 
+}
+
+inline void enterFunc( char *name ) {
+
+    if ( msgDebugEnabled( )) printf( "--> %s\n", name );
+}
+
+inline uint8_t retStat( char *name, uint8_t errId ) {
+
+    if ( msgDebugEnabled( )) {
+
+        if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
+        else                    printf( "<-- %s: %d\n", name, errId );
+    }
+
+    return ( errId );
+}
+
+#define ENTER_FUNC() enterFunc((char *) __func__)
+#define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
 // Some helper functions.
@@ -58,7 +88,6 @@ void printLcsMsg( uint8_t *msg ) {
     printf( "]" ); 
 } 
 
-  
 }; // namespace
 
 //========================================================================================
@@ -110,11 +139,10 @@ uint8_t LcsBsMsgInterface::setupLcsMsgInterface(
 //----------------------------------------------------------------------------------------
 void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
-    if (( debugMask & DBG_BS_CONFIG ) && 
-        ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+    if ( msgDebugEnabled( )) {
 
         printf( "LCS-RECV: " );
-        for ( int i = 0; i < (( msg[ 0 ] >> 5 ) + 1 ); i++ ) printf( "0x%2x ");
+        printLcsMsg( msg );
         printf( "\n" );
     }
 
@@ -132,32 +160,28 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
             uint8_t   flags   = msg[ 3 ];
             uint8_t   rStat   = LCS_OK;
-           
-            // ??? refine debug msg...
-            #if 0
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+
+            if ( msgDebugEnabled( ))  {
                 
                 printf( "LCS_OP_REQ_LOC, cabId: %d, "
                         "Flags: 0x%x,  -> Ret: %d, sId: %d\n", 
-                        cabId, flags, ret , sId );
+                        cabId, flags, rStat );
             }
-            #endif
 
             if ( rStat != LCS_OK ) {
 
-                sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
-                                  highByte( cabId ), 
-                                  lowByte( cabId ));
+                sendDccAck( ERR_LOCO_SESSION_ALLOCATE, 
+                            highByte( cabId ), 
+                            lowByte( cabId ));
             }
 
             LcsCabEntry *cPtr = locoSessions -> lookupCabEntry( cabId );
 
             if ( cPtr == nullptr ) {
 
-                sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
-                                  highByte( cabId ), 
-                                  lowByte( cabId ));
+                sendDccAck( ERR_LOCO_SESSION_ALLOCATE, 
+                            highByte( cabId ), 
+                            lowByte( cabId ));
             }
 
             sendRepLoc( cabId,
@@ -167,31 +191,6 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
                         cPtr -> d.funcMap[ 2 ] );
 
         } break;
-
-        //--------------------------------------------------------------------------------
-        // LCS_OP_REL_LOC request. The session is released and the session map entry
-        // deallocated. If all works fine we broadcast the session cancelled message
-        // to other nodes.
-        //
-        //--------------------------------------------------------------------------------
-        case LCS_OP_REL_LOC: {
-
-            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
-            uint8_t   flags   = msg[ 3 ];
-            uint8_t   rStat   = LCS_OK;
-
-             LcsCabEntry *cPtr = locoSessions -> lookupCabEntry( cabId );
-
-            if ( cPtr == nullptr ) {
-
-                sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
-                                  highByte( cabId ), 
-                                  lowByte( cabId ));
-            }
-
-            // ??? send an ACK ?
-
-        }  break;
 
         //--------------------------------------------------------------------------------
         // LCS_OP_SET_LSPD request. Hopefully the most used message you will 
@@ -207,10 +206,12 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
             rStat = locoSessions -> setThrottle( cabId, spDir & 0x7f, 
                                                    ( spDir & 0x80 ) >> 7 );
 
-            if ( rStat != LCS_OK ) sendDccErr( rStat, 0 );
+            if ( rStat != LCS_OK ) {
+                
+                sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
+            }
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            if ( msgDebugEnabled( )) {
 
                 printf( "LCS_OP_SET_LSPD, cabId: %d, spDir: 0x%x -> Ret: %d\n", 
                         cabId, spDir, rStat );
@@ -224,21 +225,18 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_SET_LMOD: {
 
-            #if 0
-            uint8_t sId   = msg[ 1 ];
-            uint8_t flags = msg[ 2 ];
-           
+            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   flags   = msg[ 3 ];
+            uint8_t   rStat   = LCS_OK;
 
-            if ( ret == LCS_OK ) ret = locoSessions -> updateSession( sId, flags );
-            if ( ret != LCS_OK ) sendDccErr( ret, sId );
+            // ??? what to call ? 
+            // ??? return status
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            if ( msgDebugEnabled( )) {
 
                 printf( "LCS_OP_SET_LMOD, sId: %d, "
-                        "flags: 0x%x -> Ret: %d\n", sId, flags, ret );
+                        "flags: 0x%x -> Ret: %d\n", cabId, flags, rStat );
             }
-            #endif
 
       } break;
 
@@ -249,30 +247,30 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_LOC_FGRP: {
 
-            #if 0 
-            uint8_t sId     = msg[ 1 ];
-            uint8_t fGroup  = msg[ 2 ];
-            uint8_t dccByte = msg[ 3 ];
-            int     ret     = locoSessions -> markSessionAlive( sId );
+            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   fGroup  = msg[ 3 ];
+            uint8_t   dccByte = msg[ 4 ];
+            uint8_t   rStat   = LCS_OK;
 
-            if ( ret == LCS_OK ) 
-               ret = locoSessions -> setDccFunctionGroup( sId, fGroup, dccByte );
-            if ( ret != LCS_OK ) sendDccErr( ret, sId );
+            rStat = locoSessions -> setDccFunctionGroup( cabId, fGroup, dccByte );
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-
-                printf( "LCS_OP_LOC_FGRP, sId: %d, fGroup: %d, "
-                        "dccByte: 0x%x -> Ret: %d\n",
-                        sId, fGroup, dccByte, ret );
+            if ( rStat != LCS_OK ) {
+                
+                sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
             }
-            #endif
+
+            if ( msgDebugEnabled( )) {
+
+                printf( "LCS_OP_LOC_FGRP, cabId: %d, fGroup: %d, "
+                        "dccByte: 0x%x -> Ret: %d\n",
+                        cabId, fGroup, dccByte, rStat );
+            }
         
         } break;
 
         //--------------------------------------------------------------------------------
-        // LCS_OP_LOC_FON and LCS_OP_LOC_FOF request. These messages set or clear a
-        // function flag identified by the function number.
+        // LCS_OP_LOC_FON and LCS_OP_LOC_FOF request. These messages set or 
+        // clear a function flag identified by the function number.
         //
         //--------------------------------------------------------------------------------
         case LCS_OP_LOC_FON:
@@ -280,46 +278,68 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
             uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
             uint8_t   fNum    = msg[ 3 ];
-            uint8_t   spDir   = 0;
             uint8_t   rStat   = LCS_OK;
            
             rStat = locoSessions -> setDccFunctionBit( cabId, fNum, 
                                        (( msg[0] == LCS_OP_LOC_FON ) ? 1 : 0 ));
 
-            if ( rStat != LCS_OK ) sendDccErr( rStat, 0 );
+            if ( rStat != LCS_OK ) {
+                
+                sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
+            }
 
-            #if 0
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            if ( msgDebugEnabled( )) { 
 
                 printf( "LCS_OP_LOC_FON/FOF, sId: %d, fNum: %d -> "
-                        "Ret: %d\n", sId, fNum, ret ); 
+                        "Ret: %d\n", cabId, fNum, rStat ); 
             }
-            #endif
         
         } break;
 
         //--------------------------------------------------------------------------------
-        // LCS_OP_KEEP_LOC request. This command is send by the cab handheld on a 
-        // regular base to notify the  base station that the session is still alive,
-        // when no other DCC command is transmitted. Any other DCC command received
-        // from the handheld will set the flag.
+        // LCS_OP_KEEP_LOC request. This command is send by the cab handheld on
+        // a regular base to notify the base station that the session is still
+        // alive, when no other DCC command is transmitted. Any other DCC command
+        // received from the handheld will set the flag.
         //
+        // ??? not sure we keep this ?
         //--------------------------------------------------------------------------------
         case LCS_OP_KEEP_LOC: {
 
-            #if 0
-            uint8_t sId = msg[ 1 ];
-            int     ret = locoSessions -> markSessionAlive( sId );
+            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   rStat   = LCS_OK;
 
-            if ( ret != LCS_OK ) sendDccErr( ret, sId );
+            rStat = locoSessions ->markCabAlive( cabId );
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-
-                printf( "LCS_OP_KEEP_LOC, sId: %d -> ret: %d\n", sId, ret );
+            if ( rStat != LCS_OK ) {
+                
+                sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
             }
-            #endif
+
+            if ( msgDebugEnabled( )) { 
+
+                printf( "LCS_OP_KEEP_LOC, sId: %d -> ret: %d\n", cabId, rStat );
+            }
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_QRY_LCON: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_SET_LCON: {
+
+            // ??? to do ...
 
         } break;
 
@@ -331,29 +351,70 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_SET_CVM: {
 
-            #if 0
-            uint8_t   sId   = msg[ 1 ];
-            uint16_t  cvId  = msg[ 2 ] * 256 + msg[ 3 ];
-            uint8_t   mode  = msg[ 4 ];
-            uint8_t   val   = msg[ 5 ];
-            int       ret   = locoSessions -> markSessionAlive( sId );
+            uint16_t  cabId = msg[ 1 ] * 256 + msg[ 2 ];
+            uint16_t  cvId  = msg[ 3 ] * 256 + msg[ 4 ];
+            uint8_t   mode  = msg[ 5 ];
+            uint8_t   val   = msg[ 6 ];
+            uint8_t   rStat = LCS_OK;
 
-            if ( ret == LCS_OK ) 
-               ret = locoSessions -> writeCVMain( sId, cvId, mode, val );
-            if ( ret != LCS_OK ) sendDccErr( ret, sId );
-
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-
-                printf( "LCS_OP_SET_CVM, sId: %d -> ret: %d\n", sId, ret );
+            rStat = locoSessions -> writeCVMain( cabId, cvId, mode, val );
+            
+            if ( rStat != LCS_OK ) {
+                
+                sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
             }
-            #endif
+
+            if ( msgDebugEnabled( )) {
+
+                printf( "LCS_OP_SET_CVM, cabId: %d -> ret: %d\n", cabId, rStat );
+            }
             
         } break;
 
         //--------------------------------------------------------------------------------
-        // LCS_OP_SET_CVS request. This command writes a value to the CV in service 
-        // mode, a separate programming track. The session number is not used, any
+        // LCS_OP_SET_CVS request. This command writes a value to the CV in 
+        // service mode, a separate programming track. The session number is
+        // not used, any session number will do. The mode byte specifies the 
+        // service mode:
+        //
+        //  0 - Direct Byte
+        //  1 - Direct Bit
+        //  2 - Page Mode
+        //  3 - Register Mode
+        //  4 - Address Only Mode
+        //
+        // We only support mode 0 and 1. The rest is kind of deprecated and 
+        // should not be used in new designs. Mode 1 encodes the bit and the 
+        // bit position in the byte as ‘111CDBBB’ where C is here is always 1 
+        // as only ‘writes’ are possible in OTM programming. D is the bit value, 
+        // either  0 or 1 and BBB is the bit position in the CV byte. 000 to
+        // 111 for bits 0 to 7.
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_SET_CVS: {
+
+            uint16_t  cvId  = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   mode  = msg[ 3 ];
+            uint8_t   val   = msg[ 4 ];
+            uint8_t   rStat = LCS_OK;
+
+            rStat   = locoSessions -> writeCV( cvId, mode, val );
+
+            if ( rStat != LCS_OK ) {
+                
+                sendDccAck( rStat, highByte( cvId ), lowByte( cvId ) );
+            }
+
+            if ( msgDebugEnabled( )) {
+            
+                printf( "LCS_OP_SET_CVS, cvId: %d, ret: %d\n", cvId, rStat );
+            }
+            
+        } break;
+
+        //--------------------------------------------------------------------------------
+        // LCS_OP_REQ_CVS request. This command requests a CV read in service 
+        // mode on the programming track. The session number is not used, any 
         // session number will do. The mode byte specifies the service mode:
         //
         //  0 - Direct Byte
@@ -362,44 +423,7 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //  3 - Register Mode
         //  4 - Address Only Mode
         //
-        // We only support mode 0 and 1. The rest is kind of deprecated and should 
-        // not be used in new designs. Mode 1 encodes the bit and the bit position in
-        // the byte as ‘111CDBBB’ where C is here is always 1 as only ‘writes’ are
-        // possible in OTM programming. D is the bit value, either  0 or 1 and BBB is 
-        // the bit position in the CV byte. 000 to 111 for bits 0 to 7.
-        //
-        //--------------------------------------------------------------------------------
-        case LCS_OP_SET_CVS: {
-
-            #if 0
-            uint16_t  cvId  = msg[ 1 ] * 256 + msg[ 2 ];
-            uint8_t   mode  = msg[ 3 ];
-            uint8_t   val   = msg[ 4 ];
-            int       ret   = locoSessions -> writeCV( cvId, mode, val );
-
-            if ( ret != LCS_OK ) sendDccErr( ret );
-
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-
-                printf( "LCS_OP_SET_CVS, ret: %d\n", ret );
-            }
-            #endif
-            
-        } break;
-
-        //--------------------------------------------------------------------------------
-        // LCS_OP_REQ_CVS request. This command requests a CV read in service mode
-        // on the programming track. The session number is not used, any session 
-        // number will do. The mode byte specifies the service mode:
-        //
-        //  0 - Direct Byte
-        //  1 - Direct Bit
-        //  2 - Page Mode
-        //  3 - Register Mode
-        //  4 - Address Only Mode
-        //
-        // Upon successful execution, the base station will send a LCS_OP_REP_CVS 
+        // Upon successful execution, the base station sends a LCS_OP_REP_CVS 
         // command with the requested data.
         //
         //--------------------------------------------------------------------------------
@@ -408,88 +432,208 @@ void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
             uint16_t  cvId  = msg[ 1 ] * 256 + msg[ 2 ];
             uint8_t   mode  = msg[ 3 ];
             uint8_t   val   = 0;
-            int       ret   = locoSessions -> readCV( cvId, mode, &val );
+            uint8_t   rStat = LCS_OK;
 
-            if ( ret == LCS_OK )  sendRepLocCvProg( cvId, val );
-            else                  sendDccErr( ret );
+            rStat = locoSessions -> readCV( cvId, mode, &val );
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            if ( rStat == LCS_OK ) {
 
-                printf( "LCS_OP_REQ_CVS, ret: %d\n", ret );
+                rStat = sendRepLocCvProg( cvId, val );
+            }
+            else sendDccAck( rStat, highByte( cvId ), lowByte( cvId ) );
+            
+            if ( msgDebugEnabled( )) {
+            
+                printf( "LCS_OP_REQ_CVS, cvId: %d, val: 0x%2x, ret: %d\n", 
+                        cvId, val, rStat );
             }
 
-         } break;
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_SET_BACC: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_SET_EACC: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_SET_MPOM: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_REQ_MPOM: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_REP_MPOM: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_SET_APOM: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_REQ_APOM: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_REP_APOM: {
+
+            // ??? to do ...
+
+        } break;
 
         //--------------------------------------------------------------------------------
         // LCS_OP_SEND_DCCx request. This command sends a DCC packet exactly as 
-        // passed. There are three to six bytes in the package. As the base station
-        // will do no checking and just send out the byte sequence, care should thus
-        // be taken that it is a valid packet. Better put the DCC standard under your
-        // night pillow.
+        // passed. There are three to six bytes in the package. As the base 
+        // station does no checking and just send out the byte sequence, care 
+        // should thus be taken that it is a valid packet. Better put the DCC 
+        // standard under your night pillow.
         //
-        // NMRA defines a maximum packet size of 6 bytes. The RailCommunity defines
-        // up to ten data bytes plus a checksum byte. So far, the LCS bus does not
-        // offer a message type for this extended packet length.
+        // NMRA defines a maximum packet size of 6 bytes. The RailCommunity 
+        // defines up to ten data bytes plus a checksum byte. So far, the LCS
+        // bus does not offer a message type for this extended packet length.
         //
         //--------------------------------------------------------------------------------
         case LCS_OP_SEND_DCC3: {
+
+            uint8_t rStat = LCS_OK;
+
+            rStat = locoSessions -> writeDccPacketMain( msg, 3 );
+
+            if ( msgDebugEnabled( )) {
             
-            #if 0
-            uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 3, msg[ 1 ] ); 
-
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-
-                printf( "LCS_OP_SEND_DCC3, ret: %d\n", ret );
+                printf( "LCS_OP_SEND_DCC3, byte1: 0x%2x, byte2: 0x%2x, "
+                        "byte3: 0x%2x, rStat: %d\n", 
+                        msg[ 0 ], msg[ 1 ], msg[ 2 ], rStat );
             }
-            #endif
             
         } break;
 
         case LCS_OP_SEND_DCC4: {
             
-            #if 0
-            uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 4, msg[ 1 ] ); 
+            uint8_t rStat = LCS_OK;
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            rStat = locoSessions -> writeDccPacketMain( msg, 4 );
 
-                printf( "LCS_OP_SEND_DCC4, ret: %d\n", ret );
+            if ( msgDebugEnabled( )) {
+            
+                printf( "LCS_OP_SEND_DCC4, byte1: 0x%2x, byte2: 0x%2x, "
+                        "byte3: 0x%2x, byte4: 0x%2x, rStat: %d\n", 
+                        msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], rStat );
             }
-            #endif
             
         } break;
 
         case LCS_OP_SEND_DCC5: {
             
-            #if 0
-            uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 5, msg[ 1 ] ); 
+            uint8_t rStat = LCS_OK;
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            rStat = locoSessions -> writeDccPacketMain( msg, 5 );
 
-                printf( "LCS_OP_SEND_DCC5, ret: %d\n", ret );
+            if ( msgDebugEnabled( )) {
+            
+                printf( "LCS_OP_SEND_DCC5, byte1: 0x%2x, byte2: 0x%2x, "
+                        "byte3: 0x%2x, byte4: 0x%2x, byte5: 0x%2x, rStat: %d\n", 
+                        msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], msg[ 4 ], rStat );
             }
-            #endif
             
         } break;
 
-       
        case LCS_OP_SEND_DCC6: {
             
-            #if 0
-            uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 6, msg[ 1 ] ); 
+            uint8_t rStat = LCS_OK;
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
+            rStat = locoSessions -> writeDccPacketMain( msg, 6 );
 
-                printf( "LCS_OP_SEND_DCC6, ret: %d\n", ret );
+            if ( msgDebugEnabled( )) {
+            
+                printf( "LCS_OP_SEND_DCC6, byte1: 0x%2x, byte2: 0x%2x, "
+                        "byte3: 0x%2x, byte4: 0x%2x, byte5: 0x%2x, "
+                        "byte6: 0x%2x, rStat: %d\n", 
+                        msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], 
+                        msg[ 4 ], msg[ 5 ], rStat );
             }
-            #endif
             
         } break;
-    
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_TON: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_TOF: {
+
+            // ??? to do ...
+
+        } break;
+
+        //--------------------------------------------------------------------------------
+        //
+        //
+        //--------------------------------------------------------------------------------
+        case LCS_OP_ESTP: {
+
+            // ??? to do ...
+
+        } break;
+
         //--------------------------------------------------------------------------------
         // Node Item and Port Item cases.
         //

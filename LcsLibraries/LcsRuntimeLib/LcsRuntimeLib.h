@@ -1039,11 +1039,7 @@ uint8_t     sendDccPacket( uint8_t arg1,
                            uint8_t arg5, 
                            uint8_t arg6 );
 
-uint8_t     sendDccAck( );
-
-uint8_t     sendDccErr( int8_t errCode, 
-                        uint8_t arg1 = 0, 
-                        uint8_t arg2 = 0 );
+uint8_t     sendDccAck( uint8_t ackCode, uint8_t arg1 = 0, uint8_t arg2 = 0 );
 
 //----------------------------------------------------------------------------------------
 // Remote Update Messages. 

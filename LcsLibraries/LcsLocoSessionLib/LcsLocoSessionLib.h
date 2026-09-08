@@ -353,9 +353,8 @@ struct LcsLocoSessions {
     uint8_t             markCabAlive( uint16_t cabId );
     uint8_t             refreshActiveSessions( );
 
-    uint8_t             writeDccPacketMain( );
-    uint8_t             writeDccPacketProg( );
-    
+    uint8_t             writeDccPacketMain( uint8_t *packet, uint8_t len );
+
     void                printCabMapHeader( );
     void                printActiveCabMap( );
     void                printCabInfo( LcsCabEntry *cePtr, bool detail = false );

@@ -800,6 +800,9 @@ uint8_t registerDccMsgCallback( LcsMsgCallback functionId, void *uData ) {
     return ( LCS_OK );
 }
 
+
+// ??? do we need to introduce a channel when we have two USB ports ?
+
 uint8_t registerCmdCallback( LcsCmdCallback functionId, void *uData ) {
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
@@ -807,6 +810,7 @@ uint8_t registerCmdCallback( LcsCmdCallback functionId, void *uData ) {
     nodeMap.cmdLineCallback = functionId;
     return ( LCS_OK );
 }
+
 
 uint8_t registerEventCallback( LcsEventCallback functionId, 
                                uint16_t portMask, 

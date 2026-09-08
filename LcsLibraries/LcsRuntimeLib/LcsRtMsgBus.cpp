@@ -63,9 +63,6 @@ using namespace LCS;
 
 }; // namespace
 
-
-
-
 //----------------------------------------------------------------------------------------
 // The LCS name space routines declared in this file.
 //
@@ -166,6 +163,9 @@ uint8_t strToLcsMsg( uint8_t *dataBuf, char *msgStr ) {
     if ( encodedLen != msgLen ) return( ERR_INVALID_MSG_FORMAT );
     return( LCS_OK );
 }
+
+// ??? how about a formatted msg string ? We could decode the message and 
+// return a string in human readable form...
 
 //----------------------------------------------------------------------------------------
 // "sendLcsMsg" is the general method to send a message. It will accept the 
