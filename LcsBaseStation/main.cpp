@@ -34,8 +34,6 @@
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStationBoardDesc.h"
-#include "LcsCdcLib.h"
-#include "LcsRuntimeLib.h"
 #include "LcsBaseStation.h"
 
 using namespace LCS;
@@ -48,10 +46,10 @@ using namespace CDC;
 uint16_t                        debugMask;
 CdcResourceDescMap              dMap;
 LcsBaseStationCommand           serialCmd;
-LcsDccTrack          mainTrack;
-LcsDccTrack          progTrack;
-LcsBaseStationLocoSession       locoSessions;
-LcsBaseStationMsgInterface      msgInterface;
+LcsDccTrack                     *mainTrack;
+LcsDccTrack                     *progTrack;
+LcsLocoSessions                 *locoSessions;
+LcsBsMsgInterface      msgInterface;
 
 //----------------------------------------------------------------------------------------
 // Some little helper functions.
@@ -68,7 +66,7 @@ void printLcsMsg( uint8_t *msg ) {
 uint8_t printStatus (uint8_t status ) {
 
   printf( "Status: " );
-  if ( status == LCS::LCS_OK ) printf( "OK\n" );
+  if ( status == LCS_OK ) printf( "OK\n" );
   else printf ( "FAILED: %d\n", status );
   return ( status );
 }
@@ -76,16 +74,10 @@ uint8_t printStatus (uint8_t status ) {
 //----------------------------------------------------------------------------------------
 // The node and port initialization callback.
 //
-// ??? when we know what ports we actually need / use, disable the rest of the ports.
 //----------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId, void *uData ) {
 
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Init Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Init Callback: 0x%x\n", npId &  0xF   );
-    } 
-
+    printf( "Node Init Callback: 0x%4x\n" );
     return( NO_ERR );
 }
 
@@ -95,12 +87,7 @@ uint8_t lcsInitCallback( uint16_t npId, void *uData ) {
 //----------------------------------------------------------------------------------------
 uint8_t lcsPfailCallback( uint16_t npId, void *uData ) {
 
-    switch ( npId & 0xF ) {
-
-        case 0:     printf( "Node Power Fail Callback: 0x%x\n", npId >> 4     ); break;
-        default:    printf( "Port Power Fail Callback: 0x%x\n", npId &  0xF   );
-    } 
-
+    printf( "Node PFAIL Callback: 0x%4x\n" );
     return( NO_ERR );
 }
 
@@ -129,35 +116,9 @@ uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The LCS core library ends in a loop that manages its internal workings, invoking
-// the callbacks where needed. One set of callbacks are the periodic tasks. The 
-// base station needs to periodically run the DCC track state machine for power 
-// consumption measurement and so on.  Another periodic task is to refresh the 
-// active locomotive session entries.
-//
-//----------------------------------------------------------------------------------------
-uint8_t bsMainTrackCallback( void *uData ) {
-
-    mainTrack.runDccTrackStateMachine( );
-    return( NO_ERR );
-}
-
-uint8_t bsProgTrackCallback( void *uData ) {
-
-    progTrack.runDccTrackStateMachine( );
-    return( NO_ERR );
-}
-
-uint8_t bsRefreshActiveSessionCallback( void *uData ) {
-
-    locoSessions.refreshActiveSessions( );
-    return( NO_ERR );
-}
-
-//----------------------------------------------------------------------------------------
-// When the base station node receives a request with an item defined in the user
-// item range or the base station itself issues such a request, the defined callback
-// is invoked.
+// When the base station node receives a request with an item defined in the 
+// user item range or the base station itself issues such a request, the 
+// defined callback is invoked.
 //
 //----------------------------------------------------------------------------------------
 uint8_t lcsReqCallback( uint16_t npId, 
@@ -178,9 +139,11 @@ uint8_t lcsReqCallback( uint16_t npId,
 }
 
 //----------------------------------------------------------------------------------------
-// When the base station gets a reply message for a request previously sent, this
-// callback is invoked.
+// When the base station gets a reply message for a request previously sent, 
+// this callback is invoked.
 //
+// ??? this has changed, as each REQ call can specify its callback. For now,
+// this is just for debugging...
 //----------------------------------------------------------------------------------------
 uint8_t lcsRepCallback( uint16_t npId, 
                         uint16_t item,
@@ -198,6 +161,7 @@ uint8_t lcsRepCallback( uint16_t npId,
 // For any event on the LCS system that the base station is interested in, this 
 // callback is invoked.
 //
+// ??? generic version fro debugging...
 //----------------------------------------------------------------------------------------
 uint8_t lcsEventCallback( uint16_t npId, 
                           uint16_t eId, 
@@ -214,95 +178,104 @@ uint8_t lcsEventCallback( uint16_t npId,
 // Init the Runtime.
 //
 //----------------------------------------------------------------------------------------
-uint8_t initBlockNode( ) {
+uint8_t initRunTimeLib( ) {
 
     dMap = LCS_BASE_STATION_BOARD_DESC_B_01_00;
 
     uint8_t rStat = initRuntime( &dMap );
     printf( "LCS Base Station\n" );
     
-   printResourceDescMap( &dMap );
+    printResourceDescMap( &dMap );
     printResourceMap( );
 
-    printStatus( rStat );
-    return( rStat );
+    return( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// This routine initializes the Loco Session Map Object.
+// This routine initializes the LocoSessions Object.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupLocoSessions( ) {
 
-  LcsBaseStationSessionMapDesc sessionDesc;
+    printf( "Setup Loco Session Lib -> " );
 
-  sessionDesc.options     = SM_OPT_ENABLE_REFRESH;
-  sessionDesc.maxSessions = 16;
+    uint8_t  rStat   = LCS_OK;
+    uint16_t options = SM_OPT_DEFAULT_SETTING;
+   
+    rStat = locoSessions -> setupLocoSessions( options, mainTrack, progTrack );
 
-  printf( "Setup Session Map -> " );
-  return ( printStatus( locoSessions.setupSessionMap( &sessionDesc, 
-                                                      &mainTrack, 
-                                                      &progTrack )));
+    return ( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// This routine initializes the MAIN track object.
 //
-// ??? define constants such as: SENSE_0R1_OPAMP_11 to set the milliVolts per Amp.
+//
+//
 //----------------------------------------------------------------------------------------
-int setupDccTrackMain( ) {
+uint8_t setupDccTrackMain( ) {
 
-  LcsDccTrackDesc mainTrackDesc;
+    uint8_t         rStat;
+    LcsDccTrackDesc trackDescA;
 
-  mainTrackDesc.options                     = DT_OPT_RAILCOM | DT_OPT_CUTOUT;
+    trackDescA.options                  = DT_OPT_NIL;      
+    trackDescA.initTrackMode            = DT_M_NIL;
 
-  mainTrackDesc.overloadRestartThreshold    = RNUM_ENABLE_MAIN;
-  mainTrackDesc.rNumControl                 = RNUM_CONTROL_MAIN;
-  mainTrackDesc.rNumSense                   = RNUM_ADC_MAIN;
-  mainTrackDesc.rNumUartRx                  = RNUM_UART_RX_MAIN;
+    trackDescA.rNumTimer                = 0;
+    trackDescA.rNumEnable               = 0;
+    trackDescA.rNumControl              = 0;
+    trackDescA.rNumSense                = 0;
+    trackDescA.rNumUartRx               = 0;
 
-  mainTrackDesc.initCurrentMilliAmp         = 500;
-  mainTrackDesc.limitCurrentMilliAmp        = 1500;
-  mainTrackDesc.maxCurrentMilliAmp          = 2000;
-  mainTrackDesc.milliVoltPerAmp             = 100 * 11;  // ??? opAmp has Factor eleven ...
-  mainTrackDesc.startTimeThresholdMillis    = 1000;
-  mainTrackDesc.stopTimeThresholdMillis     = 500;
-  mainTrackDesc.overloadTimeThresholdMillis = 500;
-  mainTrackDesc.overloadEventThreshold      = 10;
-  mainTrackDesc.overloadRestartThreshold    = 5;
+    trackDescA.limitCurrentMilliAmp     = 0;
+    trackDescA.maxCurrentMilliAmp       = 0;
+    trackDescA.overloadEventThreshold   = 0;
 
-  printf( "Setup MAIN track -> " );
-  return ( printStatus( mainTrack.setupDccTrack( &mainTrackDesc )));
+    trackDescA.referenceMilliVolt       = 0;
+    trackDescA.shuntMilliOhm            = 0;
+    trackDescA.amplifierGain            = 0;
+    trackDescA.adcBitResolution         = 0;
+    trackDescA.adcZeroOffset            = 0;
+
+    mainTrack = LcsDccTrack::createTrackA( &trackDescA );
+    mainTrack -> printDccTrackConfig( );
+
+    return ( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// This routine initializes the PROG track object.
 //
-// ??? define constants such as: SENSE_0R1_OPAMP_11 to set the milliVolts per Amp.
+//
+//
 //----------------------------------------------------------------------------------------
 uint8_t setupDccTrackProg( ) {
 
-  LcsDccTrackDesc progTrackDesc;
+    printf( "Setup PROG track -> " );
 
-  progTrackDesc.options                     = DT_OPT_SERVICE_MODE_TRACK;
+    uint8_t         rStat;
+    LcsDccTrackDesc trackDesc;
 
-  progTrackDesc.overloadRestartThreshold    = RNUM_ENABLE_PROG;
-  progTrackDesc.rNumControl                 = RNUM_CONTROL_PROG;
-  progTrackDesc.rNumSense                   = RNUM_ADC_PROG;
-  progTrackDesc.rNumUartRx                  = RNUM_UART_RX_PROG;
+    trackDesc.options                   = DT_OPT_NIL;      
+    trackDesc.initTrackMode             = DT_M_NIL;
 
-  progTrackDesc.initCurrentMilliAmp         = 500;
-  progTrackDesc.limitCurrentMilliAmp        = 500;
-  progTrackDesc.maxCurrentMilliAmp          = 1000;
-  progTrackDesc.milliVoltPerAmp             = 100 * 11;  // ??? opAmp has Factor eleven ...
-  progTrackDesc.startTimeThresholdMillis    = 1000;
-  progTrackDesc.stopTimeThresholdMillis     = 500;
-  progTrackDesc.overloadTimeThresholdMillis = 500;
-  progTrackDesc.overloadEventThreshold      = 10;
-  progTrackDesc.overloadRestartThreshold    = 5;
+    trackDesc.rNumTimer                 = RNUM_TIMER_0;
+    trackDesc.rNumEnable                = RNUM_ENABLE_PROG;
+    trackDesc.rNumControl               = RNUM_CONTROL_PROG;
+    trackDesc.rNumSense                 = RNUM_ADC_PROG;
+    trackDesc.rNumUartRx                = RNUM_UART_RX_PROG;
 
-  printf( "Setup PROG track -> " );
-  return ( printStatus( progTrack.setupDccTrack( &progTrackDesc )));
+    trackDesc.limitCurrentMilliAmp      = 1500;
+    trackDesc.maxCurrentMilliAmp        = 2500;
+    trackDesc.overloadEventThreshold    = 10;
+
+    trackDesc.referenceMilliVolt        = 3300;
+    trackDesc.shuntMilliOhm             = 0;
+    trackDesc.amplifierGain             = 0;
+    trackDesc.adcBitResolution          = 12;
+    trackDesc.adcZeroOffset             = 0;
+
+    progTrack = LcsDccTrack::createTrackB( &trackDesc );
+    progTrack -> printDccTrackConfig( );
+    return ( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -312,9 +285,11 @@ uint8_t setupDccTrackProg( ) {
 uint8_t setupSerialCommand( ) {
 
   printf( "Setup Serial Command -> " );
-  return ( printStatus( serialCmd.setupSerialCommand( &locoSessions, 
-                                                      &mainTrack, 
-                                                      &progTrack )));
+
+  uint8_t rStat = serialCmd.setupSerialCommand( locoSessions, 
+                                                 mainTrack, 
+                                                 progTrack );
+  return ( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -326,9 +301,11 @@ uint8_t setupSerialCommand( ) {
 uint8_t setupMsgInterface( ) {
 
   printf( "Setup LCS Msg Interface -> " );
-  return ( printStatus( msgInterface.setupLcsMsgInterface( &locoSessions, 
-                                                           &mainTrack, 
-                                                           &progTrack )));
+
+  uint8_t rStat = msgInterface.setupLcsMsgInterface( locoSessions, 
+                                                     mainTrack, 
+                                                     progTrack );
+  return ( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -338,16 +315,14 @@ uint8_t setupMsgInterface( ) {
 uint8_t registerCallbacks( ) {
 
     printf( "Registering Callbacks\n" );
+
     registerLcsMsgCallback( lcsMsgCallback );
     registerCmdCallback( lcsCmdCallback );
     registerInitCallback( lcsInitCallback );
     registerPfailCallback( lcsPfailCallback );
     registerReqCallback( lcsReqCallback );
     registerEventCallback( lcsEventCallback );
-    registerTaskCallback( bsMainTrackCallback, MAIN_TRACK_STATE_TIME_INTERVAL );
-    registerTaskCallback( bsProgTrackCallback, PROG_TRACK_STATE_TIME_INTERVAL );
-    registerTaskCallback( bsRefreshActiveSessionCallback, SESSION_REFRESH_TASK_INTERVAL );
-
+    
     return( NO_ERR );
 }
 
@@ -362,30 +337,33 @@ uint8_t startBaseStation( ) {
 
     uint8_t rStat = NO_ERR; 
     
-    if ( rStat == NO_ERR ) rStat = setupSerialCommand( );
-    if ( rStat == NO_ERR ) rStat = setupMsgInterface( );
-    if ( rStat == NO_ERR ) rStat = setupLocoSessions( );
-    if ( rStat == NO_ERR ) rStat = setupDccTrackMain( );
-    if ( rStat == NO_ERR ) rStat = setupDccTrackProg( );
-
+    if ( rStat == LCS_OK ) rStat = setupSerialCommand( );
+    if ( rStat == LCS_OK ) rStat = setupMsgInterface( );
+    if ( rStat == LCS_OK ) rStat = setupDccTrackMain( );
+    if ( rStat == LCS_OK ) rStat = setupDccTrackProg( );
+    if ( rStat == LCS_OK ) rStat = setupLocoSessions( );
+   
     if ( rStat == NO_ERR ) {
 
-        LcsDccTrack::startDccProcessing( );
+        rStat = LcsDccTrack::startDccProcessing( );
 
-        mainTrack.powerStart( );
-        progTrack.powerStart( );
+        if ( usbIoIsConnected( )) {
 
-        if ( usbIsConnected( )) {
-
-            mainTrack.printDccTrackStatus( );
-            progTrack.printDccTrackStatus( );
+            mainTrack -> printDccTrackStatus( );
+            progTrack -> printDccTrackStatus( );
             printf( "Ready...\n" );
         }
     
         startRuntime( );
-  }
+    }
+    else {
 
-  return( NO_ERR );
+        // ??? a fatal error ?
+        // ??? if we do not start the runtime, we will not be able to 
+        // enter commands ?
+    }
+
+    return( NO_ERR );
 }
 
 //----------------------------------------------------------------------------------------
@@ -397,7 +375,7 @@ int main( ) {
 
     uint8_t rStat = NO_ERR;
 
-    if ( rStat == NO_ERR ) rStat = initBlockNode( );
+    if ( rStat == NO_ERR ) rStat = initRunTimeLib( );
     if ( rStat == NO_ERR ) rStat = registerCallbacks( );
     if ( rStat == NO_ERR ) return( startBaseStation( ));
 }

@@ -52,9 +52,10 @@ LcsBaseStationCommand::LcsBaseStationCommand( ) { }
 //----------------------------------------------------------------------------------------
 uint8_t LcsBaseStationCommand::setupSerialCommand(
 
-    LcsBaseStationLocoSession *locoSessions,
-    LcsDccTrack    *mainTrack,
-    LcsDccTrack    *progTrack ) {
+    LcsLocoSessions *locoSessions,
+    LcsDccTrack     *mainTrack,
+    LcsDccTrack     *progTrack 
+) {
 
     this -> locoSessions  = locoSessions;
     this -> mainTrack     = mainTrack;
@@ -95,9 +96,6 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
             case '>': {
 
                 switch ( cmdStr[ 0 ] ) {
-
-                    case 'O': openSessionCmd( cmdStr + 1 ); break;
-                    case 'K': closeSessionCmd( cmdStr + 1 ); break;
 
                     case 't': setThrottleCmd( cmdStr + 1 );  break;
                     case 'f': setFunctionGroupCmd( cmdStr + 1 ); break;
@@ -154,53 +152,6 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
             }
         }
     }
-}
-
-//----------------------------------------------------------------------------------------
-// "openSessionCmd" handles the session creation command. This command is used to
-// allocate a loco session. We are passed the cab ID and return a session Id.
-//
-//    <O cabId>
-//
-//    cabId      -  the requesting cab number, from 1 to MAX_CAB_ID.
-//
-//    returns: <O sId>
-//
-// ??? goes away ...
-//----------------------------------------------------------------------------------------
-void LcsBaseStationCommand::openSessionCmd( char *s ) {
-
-    uint16_t  cabId = NIL_CAB_ID;
-    uint8_t   sId   = 0;
-
-    if ( sscanf( s, "%hu", &cabId ) != 1 ) return;
-
-    int ret = locoSessions -> requestSession( cabId, LSM_NORMAL, &sId );
-
-    printf( "<O %d>", (( ret == LCS_OK ) ? sId : -1 ));
-}
-
-//----------------------------------------------------------------------------------------
-// "closeSessionCmd" handles the session release command. The return code is the
-// CabSession error code. A zero indicates a successful execution.
-//
-//    <K sId>
-//
-//    sId      -  the session number.
-//
-//    returns: <K status>
-//
-// ??? goes away...
-//----------------------------------------------------------------------------------------
-void LcsBaseStationCommand::closeSessionCmd( char *s ) {
-
-    uint8_t sId = NIL_LOCO_SESSION_ID;
-
-    if ( sscanf( s, "%hhu", &sId ) != 1 ) return;
-
-    int ret = locoSessions -> releaseSession( sId );
-
-    printf( "<K %d>", ret );
 }
 
 //----------------------------------------------------------------------------------------
@@ -330,29 +281,27 @@ void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
 
     if ( sscanf( s, "%hu %hhu %hhu", &cabId, &byte1, &byte2 ) < 2 ) return;
 
-    uint8_t sId = locoSessions -> getSessionIdByCabId( cabId );
-
-    if ( sId == NIL_LOCO_SESSION_ID ) return;
+    if ( cabId == NIL_CAB_ID ) return;
 
     if (( byte2 == 0 ) && ( byte1 >= 128 ) && ( byte1 < 160 )) {
 
-        locoSessions -> setDccFunctionGroup( sId, 1, byte1 );
+        locoSessions -> setDccFunctionGroup( cabId, 1, byte1 );
     }
     else if (( byte2 == 0 ) && ( byte1 >= 160 ) && ( byte1 < 176 )) {
 
-        locoSessions -> setDccFunctionGroup( sId, 3, byte1 );
+        locoSessions -> setDccFunctionGroup( cabId, 3, byte1 );
     }
     else if (( byte2 == 0 ) && ( byte1 >= 176 ) && ( byte1 < 192 )) {
 
-        locoSessions -> setDccFunctionGroup( sId, 2, byte1 );
+        locoSessions -> setDccFunctionGroup( cabId, 2, byte1 );
     }
-    else if ( byte1 == 0xde ) locoSessions -> setDccFunctionGroup( sId, 4, byte2 );
-    else if ( byte1 == 0xdf ) locoSessions -> setDccFunctionGroup( sId, 5, byte2 );
-    else if ( byte1 == 0xd8 ) locoSessions -> setDccFunctionGroup( sId, 6, byte2 );
-    else if ( byte1 == 0xd9 ) locoSessions -> setDccFunctionGroup( sId, 7, byte2 );
-    else if ( byte1 == 0xda ) locoSessions -> setDccFunctionGroup( sId, 8, byte2 );
-    else if ( byte1 == 0xdb ) locoSessions -> setDccFunctionGroup( sId, 9, byte2 );
-    else if ( byte1 == 0xdc ) locoSessions -> setDccFunctionGroup( sId, 10, byte2 );
+    else if ( byte1 == 0xde ) locoSessions -> setDccFunctionGroup( cabId, 4, byte2 );
+    else if ( byte1 == 0xdf ) locoSessions -> setDccFunctionGroup( cabId, 5, byte2 );
+    else if ( byte1 == 0xd8 ) locoSessions -> setDccFunctionGroup( cabId, 6, byte2 );
+    else if ( byte1 == 0xd9 ) locoSessions -> setDccFunctionGroup( cabId, 7, byte2 );
+    else if ( byte1 == 0xda ) locoSessions -> setDccFunctionGroup( cabId, 8, byte2 );
+    else if ( byte1 == 0xdb ) locoSessions -> setDccFunctionGroup( cabId, 9, byte2 );
+    else if ( byte1 == 0xdc ) locoSessions -> setDccFunctionGroup( cabId, 10, byte2 );
 }
 
 //----------------------------------------------------------------------------------------
@@ -482,8 +431,7 @@ void LcsBaseStationCommand::writeCVByteMainCmd( char *s ) {
 
     if ( sscanf( s, "%hu %hu %hhu", &cabId, &cvId, &val ) != 3 ) return;
 
-    locoSessions -> writeCVByteMain( 
-                        locoSessions -> getSessionIdByCabId( cabId ), cvId, val );
+    locoSessions -> writeCVByteMain( cabId, cvId, val );
 }
 
 //----------------------------------------------------------------------------------------
@@ -512,8 +460,7 @@ void LcsBaseStationCommand::writeCVBitMainCmd( char *s ) {
     if ( sscanf(s, "%hu %hu %hhu %hhu", 
                 &cabId, &cvId, &bitPos, &bitVal ) != 4 ) return;
 
-    locoSessions -> writeCVBitMain( 
-        locoSessions -> getSessionIdByCabId( cabId ), cvId, bitPos, bitVal );
+    locoSessions -> writeCVBitMain( cabId, cvId, bitPos, bitVal );
 }
 
 //----------------------------------------------------------------------------------------
@@ -537,8 +484,10 @@ void LcsBaseStationCommand::writeDccPacketMainCmd( char *s ) {
                     b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
                     b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
 
+    #if 0
     if ( nBytes >= 3 && nBytes <= 16 ) 
         locoSessions -> writeDccPacketMain( b, nBytes, 0 );
+    #endif
 }
 
 //----------------------------------------------------------------------------------------
@@ -562,8 +511,10 @@ void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
                     b, b + 1, b + 2, b + 3, b + 4, b + 5, b + 6, b + 7,
                     b + 8, b + 9, b + 10, b + 11, b + 12, b + 13, b + 14, b + 15 );
 
+    #if 0
     if ( nBytes >= 3 && nBytes <= 16 ) 
         locoSessions -> writeDccPacketProg( b, nBytes, 0 );
+    #endif
 }
 
 //----------------------------------------------------------------------------------------
@@ -593,27 +544,27 @@ void LcsBaseStationCommand::emergencyStopCmd( ) {
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::turnPowerOnAllCmd( ) {
 
-    mainTrack -> powerStart( );
-    progTrack -> powerStart( );
+    mainTrack -> powerEnable( true );
+    progTrack -> powerEnable( true );
     printf( "<p1>" );
 }
 
 void LcsBaseStationCommand::turnPowerOffAllCmd( ) {
 
-    mainTrack -> powerStop( );
-    progTrack -> powerStop( );
+    mainTrack -> powerEnable( false );
+    progTrack -> powerEnable( false );
     printf( "<p0>" );
 }
 
 void LcsBaseStationCommand::turnPowerOnMainCmd( ) {
 
-    mainTrack -> powerStart( );
+    mainTrack -> powerEnable( true );
     printf( "<p1 MAIN>" );
 }
 
 void LcsBaseStationCommand::turnPowerOnProgCmd( ) {
 
-    progTrack -> powerStart( );
+    progTrack -> powerEnable( true );
     printf( "<p1 PROG>" );
 }
 
@@ -644,13 +595,14 @@ void LcsBaseStationCommand::setTrackOptionCmd( char *s ) {
 
         switch ( option ) {
 
-            case 1: mainTrack -> cutoutOn( );   break;
-            case 2: mainTrack -> cutoutOff( );  break;
-            case 3: mainTrack -> railComOn( );  break;
-            case 4: mainTrack -> railComOff( ); break;
+            case 1: mainTrack -> setTrackMode( DT_M_CUTOUT ); break;
+            case 2: mainTrack -> setTrackMode( DT_M_PLAIN );  break;
+            case 3: mainTrack -> setTrackMode( DT_M_RAILCOM );  break;
+            case 4: mainTrack -> setTrackMode( DT_M_PLAIN ); break;
 
-            case 10: progTrack -> serviceModeOff( );  break;
-            case 11: progTrack -> serviceModeOn( ); break;
+        // ??? what is the mode ?
+         //   case 10: progTrack -> setTrackMode( );  break;
+         //   case 11: progTrack -> serviceModeOn( ); break;
         }
     }
 }
@@ -719,7 +671,7 @@ void LcsBaseStationCommand::printBaseStationConfigCmd( ) {
 void LcsBaseStationCommand::printConfiguration( ) {
 
     printVersionInfo( );
-    locoSessions -> printSessionMapConfig( );
+    locoSessions -> printActiveCabMap( );
     mainTrack -> printDccTrackConfig( );
     progTrack -> printDccTrackConfig( );
 }
@@ -739,7 +691,7 @@ void LcsBaseStationCommand::printVersionInfo( ) {
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::printSessionMap( ) {
 
-    locoSessions -> printSessionMapInfo( );
+    locoSessions -> printActiveCabMap( );
 }
 
 //----------------------------------------------------------------------------------------

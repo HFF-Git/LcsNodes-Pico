@@ -416,13 +416,13 @@ uint32_t        createUid( );
 //----------------------------------------------------------------------------------------
 // The console IO functions. We will provide a serial IO communication via the
 // USB connector of the PICO. The files need to be linked with the "tinyUSB" 
-// library and the cMake file needs to set the option. There is a really simple
-// interface. We provide a configuration interface, a check if USB us connected,
-// a non-blocking get a character and a printf alike write routine.
+// library and the cMake file needs to set the options. We implement a really 
+// simple interface. There is the configuration interface, a check if USB is 
+// connected, a non-blocking get a character and a printf alike write routine.
 //
 //----------------------------------------------------------------------------------------
 uint8_t         configureUsbIO( );
-bool            usbIsConnected( );
+bool            usbIoIsConnected( );
 char            usbIoGetChar( int chan );            
 int             usbIoPrintf( int chan, const char *fmt, ... );
 

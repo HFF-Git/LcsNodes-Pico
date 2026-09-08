@@ -228,6 +228,15 @@ struct LcsDccTrack {
 
     public:
 
+    static uint8_t      setupDccTrackLib( );
+    static LcsDccTrack  *createTrackA( LcsDccTrackDesc *desc );
+    static LcsDccTrack  *createTrackB( LcsDccTrackDesc *desc );
+    static LcsDccTrack  *getTrackA( );
+    static LcsDccTrack  *getTrackB( );
+    static uint8_t       startDccProcessing( );
+
+    public:
+
     void                loadPacket( const uint8_t *packet, 
                                     uint8_t len, 
                                     uint8_t repeat = 0 );
@@ -352,13 +361,4 @@ struct LcsDccTrack {
 
     LcsDccTrack( );
     bool                setupDccTrack( LcsDccTrackDesc* trackDesc );
-
-    public:
-
-    static void         setupDccTrackLib( );
-    static LcsDccTrack  *createTrackA( LcsDccTrackDesc *desc );
-    static LcsDccTrack  *createTrackB( LcsDccTrackDesc *desc );
-    static LcsDccTrack  *getTrackA( );
-    static LcsDccTrack  *getTrackB( );
-    static void         startDccProcessing( );
 };

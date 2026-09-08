@@ -253,7 +253,7 @@ void fatalError( uint8_t n, char *str, uint8_t rStat ) {
 
     if ( str != nullptr ) {
 
-        if ( usbIsConnected( )) { 
+        if ( usbIoIsConnected( )) { 
             
             printf( "Fatal Error: %d: %s, rStat: %d\n", n, str, rStat );
         }

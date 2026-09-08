@@ -7,7 +7,14 @@ project( LcsBaseStation C CXX ASM )
 
 if ( TARGET tinyusb_device )
 
-    include_directories( LcsRuntimeLib LcsCdcLib pico_stdlib ) 
+    include_directories( 
+        
+        LcsCdcLib
+        LcsRuntimeLib 
+        LcsDccTrackLib 
+        LcsLocoSessionLib
+        pico_stdlib 
+    ) 
 
     add_executable( ${PROJECT_NAME} 
     
@@ -15,20 +22,13 @@ if ( TARGET tinyusb_device )
         LcsBaseStationBoardDesc.h
         LcsBaseStation.h
         LcsBsCommand.cpp
-        LcsBsDccTrack.cpp
-        LcsBsLocoSession.cpp
         LcsBsMsgInterface.cpp 
-        LcsDccSignalGen.pio
-    )
-
-    pico_generate_pio_header( 
-        
-        ${PROJECT_NAME}  
-        ${CMAKE_CURRENT_SOURCE_DIR}/LcsDccSignalGen.pio
     )
 
     target_link_libraries( ${PROJECT_NAME} 
     
+        LcsDccTrackLib
+        LcsLocoSessionLib
         LcsRuntimeLib 
         LcsCdcLib 
         LcsUtilLib 

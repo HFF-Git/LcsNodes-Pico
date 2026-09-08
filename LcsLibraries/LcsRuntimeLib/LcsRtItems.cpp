@@ -462,7 +462,7 @@ uint8_t setLibItem( uint16_t npId, uint16_t item, uint16_t val ) {
 
         case ITEM_ID_DEBUG_MASK: {
 
-            if ( usbIsConnected( )) debugMask = val | LCS_DBG_ENABLE;           
+            if ( usbIoIsConnected( )) debugMask = val | LCS_DBG_ENABLE;           
             else                    debugMask = val & ~ LCS_DBG_ENABLE;
             
             return ( LCS_OK );

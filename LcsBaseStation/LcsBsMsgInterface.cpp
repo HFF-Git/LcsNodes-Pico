@@ -15,11 +15,11 @@
 // the terms of the GNU General Public License as published by the Free Software 
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
@@ -41,6 +41,8 @@ extern uint16_t debugMask;
 //
 //----------------------------------------------------------------------------------------
 namespace {
+
+// ??? debug support ....
 
 //----------------------------------------------------------------------------------------
 // Some helper functions.
@@ -71,25 +73,27 @@ void printLcsMsg( uint8_t *msg ) {
 //  The object constructor. Nothing really to do right now.
 //
 //----------------------------------------------------------------------------------------
-LcsBaseStationMsgInterface::LcsBaseStationMsgInterface( ) { }
+LcsBsMsgInterface::LcsBsMsgInterface( ) { }
 
 //----------------------------------------------------------------------------------------
 // Set up the base station LCS message interface. We store away the coreLib, 
 // locoSession and the two DCC track object references.
 //
 //----------------------------------------------------------------------------------------
-uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
+uint8_t LcsBsMsgInterface::setupLcsMsgInterface(
 
-    LcsBaseStationLocoSession   *locoSessions,
+    LcsLocoSessions  *locoSessions,
     LcsDccTrack      *mainTrack,
     LcsDccTrack      *progTrack
 
     ) {
 
     if (( locoSessions == nullptr ) || 
-        ( mainTrack == nullptr )  || 
-        ( progTrack == nullptr ))
+        ( mainTrack    == nullptr )  || 
+        ( progTrack    == nullptr )) {
+
         return ( ERR_MSG_INTERFACE_SETUP );
+    } 
 
     this -> locoSessions  = locoSessions;
     this -> mainTrack     = mainTrack;
@@ -100,11 +104,11 @@ uint8_t LcsBaseStationMsgInterface::setupLcsMsgInterface(
 
 //----------------------------------------------------------------------------------------
 // "handleLcsMsg" is the registered message handler for the LCS core library to 
-// invoke for an incoming LCS DCC type message. Essentially, this routine is a big
-// switch statement.
+// invoke for an incoming LCS DCC type message. Essentially, this routine is a 
+// big switch statement.
 //
 //----------------------------------------------------------------------------------------
-void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
+void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
     if (( debugMask & DBG_BS_CONFIG ) && 
         ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
@@ -117,23 +121,20 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
     switch ( msg[ 0 ] ) {
 
         //--------------------------------------------------------------------------------
-        // LCS_OP_REQ_LOC request.
+        // LCS_OP_REQ_LOC request. We will return the Loco Data from the base
+        // station dictionary, if the loco exists.
         //
-        // ??? The meaning will change if we auto-allocate a session. We should still
-        // add a session entry on behalf of the loco and return a REP_LOC message.
-        // One day, we could return data from a dictionary about default loco 
-        // settings. If the session entry already exist, we just return the actual
-        // data. That will do for SHARE and perhaps also STEAL.
-        //
-        // ??? need to implement a protocol between handhelds for STEAL and SHARE.
+        // ??? really no difference between REQ and QRY ?
         //--------------------------------------------------------------------------------
+        case LCS_OP_QRY_LOC: 
         case LCS_OP_REQ_LOC: {
 
             uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
             uint8_t   flags   = msg[ 3 ];
-            uint8_t   sId     = 0;
-            int       ret     = locoSessions -> requestSession( cabId, flags, &sId );
-
+            uint8_t   rStat   = LCS_OK;
+           
+            // ??? refine debug msg...
+            #if 0
             if (( debugMask & DBG_BS_CONFIG ) && 
                 ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
                 
@@ -141,69 +142,29 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                         "Flags: 0x%x,  -> Ret: %d, sId: %d\n", 
                         cabId, flags, ret , sId );
             }
+            #endif
 
-            if ( ret == LCS_OK ) {
+            if ( rStat != LCS_OK ) {
 
-                SessionMapEntry *smePtr = locoSessions -> getSessionMapEntryPtr( sId );
-
-                if ( smePtr != NULL ) {
-
-                    // ??? FIX ...
-
-                    #if 0
-                    sendRepLoc( sId,
-                                cabId,
-                                ((( smePtr -> direction ) ? 0x80 : 0 ) | 
-                                 ( smePtr -> speed & 0x7F )),
-                                smePtr -> functions[ 0 ],
-                                smePtr -> functions[ 1 ],
-                                smePtr -> functions[ 2 ] );
-                    #endif
-                }
-                else sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
+                sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
                                   highByte( cabId ), 
                                   lowByte( cabId ));
             }
-            else sendDccErr( ERR_LOCO_SESSION_ALLOCATE, 
-                             highByte( cabId ), 
-                             lowByte( cabId ));
 
-        } break;
+            LcsCabEntry *cPtr = locoSessions -> lookupCabEntry( cabId );
 
-        //--------------------------------------------------------------------------------
-        // LCS_OP_QRY_LOC request. The query request obtains the current session data. 
-        // The reply command is the REP-LOC command, which sends the current sessionId 
-        // and speed, direction and function data for F0 to F12.
-        //
-        //
-        // ??? we can combine this with an RLOC message. Since there are only
-        // sessions on demand, there is no point to query that data.
-        //
-        //--------------------------------------------------------------------------------
-        case LCS_OP_QRY_LOC: {
+            if ( cPtr == nullptr ) {
 
-            uint8_t         sId     = msg[ 1 ];
-            SessionMapEntry *smePtr = locoSessions -> getSessionMapEntryPtr( sId );
-
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-            
-                printf( "LCS_OP_QRY_LOC: %d\n", sId );
+                sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
+                                  highByte( cabId ), 
+                                  lowByte( cabId ));
             }
 
-            if ( smePtr != NULL ) {
-
-                #if 0 // ??? FIX .... 
-                sendRepLoc( sId,
-                            smePtr -> cabId,
-                            ((( smePtr -> direction ) ? 0x80 : 0 ) | 
-                             ( smePtr -> speed & 0x7F )),
-                            smePtr -> functions[ 0 ],
-                            smePtr -> functions[ 1 ],
-                            smePtr -> functions[ 2 ] );
-                #endif
-            }
-            else sendDccErr( ERR_SESSION_NOT_FOUND, sId );
+            sendRepLoc( cabId,
+                        cPtr -> speedInfo & 0xFF,
+                        cPtr -> d.funcMap[ 0 ],
+                        cPtr -> d.funcMap[ 1 ],
+                        cPtr -> d.funcMap[ 2 ] );
 
         } break;
 
@@ -215,42 +176,44 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_REL_LOC: {
 
-            uint8_t sId = msg[ 1 ];
-            int     ret = locoSessions -> releaseSession( sId );
+            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   flags   = msg[ 3 ];
+            uint8_t   rStat   = LCS_OK;
 
-            if (( debugMask & DBG_BS_CONFIG ) && 
-                ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
-                
-                printf( "LCS_OP_REL_LOC: %d -> Ret: %d\n", sId, ret );
+             LcsCabEntry *cPtr = locoSessions -> lookupCabEntry( cabId );
+
+            if ( cPtr == nullptr ) {
+
+                sendDccErr(  ERR_LOCO_SESSION_ALLOCATE, 
+                                  highByte( cabId ), 
+                                  lowByte( cabId ));
             }
 
-            if ( ret == LCS_OK ) sendDccErr( ERR_LOCO_SESSION_CANCELLED );
-            else                 sendDccErr( ERR_SESSION_NOT_FOUND, sId );
+            // ??? send an ACK ?
 
         }  break;
 
         //--------------------------------------------------------------------------------
-        // LCS_OP_SET_LSPD request. Hopefully the most used message you will see. After
-        // all, we want to control engines. :-)
+        // LCS_OP_SET_LSPD request. Hopefully the most used message you will 
+        // see. After all, we want to control engines. :-)
         //
         //--------------------------------------------------------------------------------
         case LCS_OP_SET_LSPD: {
 
-            uint8_t sId   = msg[ 1 ];
-            uint8_t spDir = msg[ 2 ];
-            int     ret   = locoSessions -> markSessionAlive( sId );
+            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   spDir   = 0;
+            uint8_t   rStat   = LCS_OK;
 
-            if ( ret == LCS_OK ) 
-                ret = locoSessions -> setThrottle( sId, spDir & 0x7f, 
+            rStat = locoSessions -> setThrottle( cabId, spDir & 0x7f, 
                                                    ( spDir & 0x80 ) >> 7 );
 
-            if ( ret != LCS_OK ) sendDccErr( ret, sId );
+            if ( rStat != LCS_OK ) sendDccErr( rStat, 0 );
 
             if (( debugMask & DBG_BS_CONFIG ) && 
                 ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
-                printf( "LCS_OP_SET_LSPD, sId: %d, spDir: 0x%x -> Ret: %d\n", 
-                        sId, spDir, ret );
+                printf( "LCS_OP_SET_LSPD, cabId: %d, spDir: 0x%x -> Ret: %d\n", 
+                        cabId, spDir, rStat );
             }
 
         } break;
@@ -261,9 +224,10 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_SET_LMOD: {
 
+            #if 0
             uint8_t sId   = msg[ 1 ];
             uint8_t flags = msg[ 2 ];
-            int     ret   = locoSessions -> markSessionAlive( sId );
+           
 
             if ( ret == LCS_OK ) ret = locoSessions -> updateSession( sId, flags );
             if ( ret != LCS_OK ) sendDccErr( ret, sId );
@@ -274,6 +238,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                 printf( "LCS_OP_SET_LMOD, sId: %d, "
                         "flags: 0x%x -> Ret: %d\n", sId, flags, ret );
             }
+            #endif
 
       } break;
 
@@ -284,6 +249,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_LOC_FGRP: {
 
+            #if 0 
             uint8_t sId     = msg[ 1 ];
             uint8_t fGroup  = msg[ 2 ];
             uint8_t dccByte = msg[ 3 ];
@@ -300,6 +266,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
                         "dccByte: 0x%x -> Ret: %d\n",
                         sId, fGroup, dccByte, ret );
             }
+            #endif
         
         } break;
 
@@ -311,22 +278,24 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         case LCS_OP_LOC_FON:
         case LCS_OP_LOC_FOFF: {
 
-            uint8_t sId   = msg[ 1 ];
-            uint8_t fNum  = msg[ 2 ];
-            int     ret   = locoSessions -> markSessionAlive( sId );
+            uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
+            uint8_t   fNum    = msg[ 3 ];
+            uint8_t   spDir   = 0;
+            uint8_t   rStat   = LCS_OK;
+           
+            rStat = locoSessions -> setDccFunctionBit( cabId, fNum, 
+                                       (( msg[0] == LCS_OP_LOC_FON ) ? 1 : 0 ));
 
-            if ( ret == LCS_OK )
-            ret = locoSessions -> setDccFunctionBit( sId, fNum, 
-                                            (( msg[0] == LCS_OP_LOC_FON ) ? 1 : 0 ));
+            if ( rStat != LCS_OK ) sendDccErr( rStat, 0 );
 
-            if ( ret != LCS_OK ) sendDccErr( ret, sId );
-
+            #if 0
             if (( debugMask & DBG_BS_CONFIG ) && 
                 ( debugMask & DBG_BS_LCS_MSG_INTERFACE )) {
 
                 printf( "LCS_OP_LOC_FON/FOF, sId: %d, fNum: %d -> "
                         "Ret: %d\n", sId, fNum, ret ); 
             }
+            #endif
         
         } break;
 
@@ -339,6 +308,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_KEEP_LOC: {
 
+            #if 0
             uint8_t sId = msg[ 1 ];
             int     ret = locoSessions -> markSessionAlive( sId );
 
@@ -349,6 +319,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_KEEP_LOC, sId: %d -> ret: %d\n", sId, ret );
             }
+            #endif
 
         } break;
 
@@ -360,6 +331,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_SET_CVM: {
 
+            #if 0
             uint8_t   sId   = msg[ 1 ];
             uint16_t  cvId  = msg[ 2 ] * 256 + msg[ 3 ];
             uint8_t   mode  = msg[ 4 ];
@@ -375,6 +347,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_SET_CVM, sId: %d -> ret: %d\n", sId, ret );
             }
+            #endif
             
         } break;
 
@@ -398,6 +371,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_SET_CVS: {
 
+            #if 0
             uint16_t  cvId  = msg[ 1 ] * 256 + msg[ 2 ];
             uint8_t   mode  = msg[ 3 ];
             uint8_t   val   = msg[ 4 ];
@@ -410,6 +384,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_SET_CVS, ret: %d\n", ret );
             }
+            #endif
             
         } break;
 
@@ -460,6 +435,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
         //--------------------------------------------------------------------------------
         case LCS_OP_SEND_DCC3: {
             
+            #if 0
             uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 3, msg[ 1 ] ); 
 
             if (( debugMask & DBG_BS_CONFIG ) && 
@@ -467,11 +443,13 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_SEND_DCC3, ret: %d\n", ret );
             }
+            #endif
             
         } break;
 
         case LCS_OP_SEND_DCC4: {
             
+            #if 0
             uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 4, msg[ 1 ] ); 
 
             if (( debugMask & DBG_BS_CONFIG ) && 
@@ -479,11 +457,13 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_SEND_DCC4, ret: %d\n", ret );
             }
+            #endif
             
         } break;
 
         case LCS_OP_SEND_DCC5: {
             
+            #if 0
             uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 5, msg[ 1 ] ); 
 
             if (( debugMask & DBG_BS_CONFIG ) && 
@@ -491,12 +471,14 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_SEND_DCC5, ret: %d\n", ret );
             }
+            #endif
             
         } break;
 
        
        case LCS_OP_SEND_DCC6: {
             
+            #if 0
             uint8_t ret = locoSessions -> writeDccPacketMain( &msg[ 2 ], 6, msg[ 1 ] ); 
 
             if (( debugMask & DBG_BS_CONFIG ) && 
@@ -504,6 +486,7 @@ void LcsBaseStationMsgInterface::handleLcsMsg( uint8_t *msg ) {
 
                 printf( "LCS_OP_SEND_DCC6, ret: %d\n", ret );
             }
+            #endif
             
         } break;
     

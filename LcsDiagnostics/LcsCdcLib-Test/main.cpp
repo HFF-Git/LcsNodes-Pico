@@ -60,7 +60,7 @@ void testConsoleIO ( ) {
     sleepMillis( 1000 );
 
     printf( "Test Console IO..\n" );
-    printf( "USB is connected: %d\n", usbIsConnected( ));
+    printf( "USB is connected: %d\n", usbIoIsConnected( ));
 
     printf( "->" );
 
@@ -73,7 +73,7 @@ void testConsoleIO ( ) {
       
             printf( "%c\n", c );
       
-            printf( "USB is connected: %d\n", usbIsConnected( ));
+            printf( "USB is connected: %d\n", usbIoIsConnected( ));
             printf( "->" );
         }
     }
@@ -93,7 +93,7 @@ void echoConsole( ) {
     sleepMillis( 1000 );
 
     printf( "Show Console IO input\n" );
-    printf( "USB is connected: %d\n", usbIsConnected( ));
+    printf( "USB is connected: %d\n", usbIoIsConnected( ));
 
     while ( true ) {
 

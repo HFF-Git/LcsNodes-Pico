@@ -346,7 +346,7 @@ uint8_t initCdcLayer( ) {
 
     rStat = configureDio( CDC_RN_ACTIVITY_LED );
 
-    if ( usbIsConnected( )) {
+    if ( usbIoIsConnected( )) {
 
         sleepMillis(1000);
 

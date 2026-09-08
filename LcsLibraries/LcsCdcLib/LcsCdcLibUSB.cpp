@@ -3,39 +3,20 @@
 // LCS - Controller dependent code Layer - TinyUSB Implementation
 //
 //----------------------------------------------------------------------------------------
-// Console IO section via UDB. We set up the stdio via the USB connector. As part 
-// of the cdcInit call, the console configure call should be done rather early, so
-// that we can print out debug messages. In normal LCS node operation there is no 
-// USB device connected. Detecting a connection helps to decide whether we can 
-// report an error or need to resort to a fatal error call at startup. 
+// Console IO section via USB. We set up the stdio via the USB connector. As 
+// part  of the cdcInit call, the console configure call should be done rather
+// early, so that we can print out debug messages. In normal LCS node operation
+// there is no  USB device connected. Detecting a connection helps to decide 
+// whether we can report an error or need to resort to a fatal error call at 
+// startup. 
 //
-// There are two basic ways to detect an USB connection. The first is to simply 
-// check if there is power on the USB port. The PICO features an internal GPIO pin
-// for this purpose. Using this method still does not mean that we have a computer 
-// connected to the USB, but just that there is a cable with power. Well, good 
-// enough for us. The second method truly detects that there is a USB host connected.
-// This check is provided via the PICO libraries which in turn use the tinyUSB 
-// library. However, there could be a timing problem where the USB stack is not 
-// ready yet and we conclude wrongly that there is no USB connection. For now, 
-// let's rather go with the crude approach to check if there is power on the VBUS
-// pin, at the risk that there is just power on the USB connector and no data.
-//
-// Finally, there is a routine to get a character for the command interfaces. Since 
-// the function just reads in a character, optionally with a timeout how long to 
-// wait for any input.
-//
-// PS: The USB check way would be implemented as "return ( stdio_usb_connected( ));" 
-// instead of the internal GPIO pin check.
-//
-// PS: Also, for a gateway style node, two USB channels would be quite useful. One for
-// debug and one for an ASCCI style interface, such as the RocNet ASCII interface. 
-// The key challenge is how the tinyUSB code is integrated into the PICO. Shielding 
-// two channels at the CDC library level is a nightmare, since the PICO stdio layer
-// expects a config file only defined at the program level. NOT the library level. 
-// It sounds like we need to rely on the CDC library handling channel zero, and do
-// some rather tinyUSB low level coding in a gateway. I had hoped to avoid this
-// ugly exposure of detail. Additional channels are handled in the firmware that
-// use it. Sigh.
+// The CDC library also supports two USB channels. One channel will always be 
+// the console port, which we connect to a terminal on a laptop, or so. The 
+// other channel is a port used for programs that send and receive text from
+// the LCS libraries. We will use this feature for the base station and other
+// gateways to connect a computer program to these components. There are many
+// layout control systems on the market, which communicate via USB with a 
+// base station.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -81,10 +62,17 @@ namespace CDC {
 //----------------------------------------------------------------------------------------
 // Configure the USB console IO. This routine sets up the stdio via the USB
 // connector. The routine needs to be called rather early during the setup
-// sequence so that debug messages can be printed out.
+// sequence so that debug messages can be printed out. For two USB ports, the
+// "tusb_init" routine from the tinyUSB library needs to be called. We also
+// initialize the internal GPIO pin as input pin, so we can detect that power
+// is present on the USB connector. This is of course not a guarantee that 
+// there is actually a console on the other side, but it is a simple test.
 //
 //----------------------------------------------------------------------------------------
 uint8_t configureUsbIO( ) {
+
+    gpio_init( PICO_VBUS_PIN );
+    gpio_set_dir( PICO_VBUS_PIN, GPIO_IN );
 
     // ??? what to do for multi USB-CDC ?
     // tusb_init( );
@@ -96,25 +84,27 @@ uint8_t configureUsbIO( ) {
 //----------------------------------------------------------------------------------------
 // Check whether there is a USB connection. The routine checks the VBUS pin
 // to see whether there is power on the USB connector. If yes, we assume there 
-// is a connection.
+// is a connection. Another way would be to ask tinyUSB, bit that may cause 
+// timing issues at controller start. We run the risk of just a USB power cable
+// and no USB data.
 //
 //----------------------------------------------------------------------------------------
-bool usbIsConnected( ) {
-
-    gpio_init( PICO_VBUS_PIN );
-    gpio_set_dir( PICO_VBUS_PIN, GPIO_IN );
+bool usbIoIsConnected( ) {
 
     return ( gpio_get( PICO_VBUS_PIN ));
 }
 
 //----------------------------------------------------------------------------------------
-// "usbIoGetChar" attempts to read a character from the USB console. If there is
-// no character available, the routine returns 0. 
+// "usbIoGetChar" attempts to read a character from the USB console. If there 
+// is no character available, the routine returns 0. When we run two USB ports
+// we also need to advance the tinyUSB state machines. In the shielded version
+// of just one USB port, the PICO SDK libraries take care of all this. Now it 
+// is our responsibility. Sigh.
 //
 //----------------------------------------------------------------------------------------
 char usbIoGetChar( int chan ) {
 
-    if ( ! usbIsConnected( )) return ( 0 );
+    if ( ! usbIoIsConnected( )) return ( 0 );
 
     // tud_task();
 
@@ -134,13 +124,14 @@ char usbIoGetChar( int chan ) {
 }      
 
 //----------------------------------------------------------------------------------------
-// Printf alike routine to the USB console IO. The routine prints formatted data
-// to the USB console. The routine returns the number of characters printed.
+// "usbIoPrintf" is a printf alike routine to the USB console IO. The routine 
+// prints formatted data to the USB console. The routine returns the number of 
+// characters printed.
 //
 //----------------------------------------------------------------------------------------
 int usbIoPrintf( int chan, const char *fmt, ... ) {
 
-    if ( ! usbIsConnected( )) return ( 0 );
+    if ( ! usbIoIsConnected( )) return ( 0 );
 
     va_list args;
     va_start( args, fmt );

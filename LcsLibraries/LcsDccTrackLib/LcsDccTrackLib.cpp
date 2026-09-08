@@ -38,33 +38,6 @@
 #include "LcsDccTrackLib.h"
 #include <math.h>
 
-using namespace CDC;
-using namespace LCS;
-
-//----------------------------------------------------------------------------------------
-// 
-// 
-//----------------------------------------------------------------------------------------
-inline bool dccTrackDebugEnabled(  ) {
-
-    return ( true ); // ??? for now ... 
-}
-
-inline bool dccTrackDebugAccDetect( ) {
-
-    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
-}
-
-inline bool dccTrackDebugRaiCom( ) {
-
-    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
-}
-
-inline bool dccTrackDebugPowerMgt( ) {
-
-    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
-}
-
 //----------------------------------------------------------------------------------------
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a 
 // debugging option to set the clock much slower so that the waveform can be seen.
@@ -98,6 +71,31 @@ using namespace LCS;
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
+// 
+// 
+//----------------------------------------------------------------------------------------
+inline bool dccTrackDebugEnabled(  ) {
+
+    return ( true ); // ??? for now ... 
+}
+
+inline bool dccTrackDebugAccDetect( ) {
+
+    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
+}
+
+inline bool dccTrackDebugRaiCom( ) {
+
+    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
+}
+
+inline bool dccTrackDebugPowerMgt( ) {
+
+    return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
+}
+
+
+//----------------------------------------------------------------------------------------
 // The DCC Base Station will allocate two DCC Track Objects and also a timer for
 // DCC signal generation. For the interrupt system to work, references to the 
 // objects must be static variables. The initialization sequence outside of this
@@ -107,9 +105,10 @@ using namespace CDC;
 // contains the resource Id of the timer, last descriptor wins.
 //
 //----------------------------------------------------------------------------------------
-uint8_t      rNumTimer  = 0;
-LcsDccTrack  *trackA    = nullptr;
-LcsDccTrack  *trackB    = nullptr;
+bool            libInit     = false;
+uint8_t         rNumTimer   = 0;
+LcsDccTrack     *trackA     = nullptr;
+LcsDccTrack     *trackB     = nullptr;
 
 //----------------------------------------------------------------------------------------
 // DCC packet definitions. A DCC packet payload is at most 15 bytes long, 
@@ -653,9 +652,6 @@ void initDccTrackProcessing( ) {
 
 }; // namespace
 
-using namespace CDC;
-using namespace LCS;
-
 //========================================================================================
 //========================================================================================
 //
@@ -663,6 +659,9 @@ using namespace LCS;
 //
 //========================================================================================
 //========================================================================================
+
+using namespace CDC;
+using namespace LCS;
 
 //----------------------------------------------------------------------------------------
 // The DCC tracks are initialized with a set of class routines. We first setup 
@@ -677,12 +676,12 @@ using namespace LCS;
 //
 //
 //----------------------------------------------------------------------------------------
-void LcsDccTrack::setupDccTrackLib( ) {
-
-
-}
-
 LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
+
+    if ( ! libInit ) {
+
+        libInit = true;
+    }
 
     trackA = new LcsDccTrack( );
     trackA -> setupDccTrack( desc );
@@ -690,6 +689,11 @@ LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
 }
 
 LcsDccTrack *LcsDccTrack::createTrackB( LcsDccTrackDesc *desc ) {
+
+    if ( ! libInit ) {
+
+        libInit = true;
+    }
 
     trackB = new LcsDccTrack( );
     trackB -> setupDccTrack( desc );
@@ -706,9 +710,17 @@ LcsDccTrack *LcsDccTrack::getTrackB( ) {
     return ( trackB );
 }
     
-void LcsDccTrack::startDccProcessing( ) {
+uint8_t LcsDccTrack::startDccProcessing( ) {
+
+    if (( ! libInit ) && ( trackA == nullptr ) && ( trackB == nullptr )) {
+
+        // ??? we are not read yet ...
+    }
+
+    // ??? where do we set the TIMER ?
 
     initDccTrackProcessing( );
+    return ( LCS_OK );
 }
 
 //========================================================================================
