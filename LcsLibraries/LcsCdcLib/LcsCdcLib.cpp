@@ -191,6 +191,11 @@ uint8_t cdcInit( CdcResourceDescMap *dMapPtr, uint16_t options, uint16_t dbgMask
         configureUsbIO( );
         setupAlarmPools( );
 
+        uint8_t ledPin = 25;
+        gpio_init( ledPin );
+        gpio_set_dir( ledPin, GPIO_OUT );
+        gpio_put( ledPin, true );
+
         initialized = true;
     }
 

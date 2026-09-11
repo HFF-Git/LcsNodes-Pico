@@ -5,7 +5,7 @@
 #define CFG_TUD_ENDPOINT0_SIZE    64
 
 // Enable CDC
-#define CFG_TUD_CDC               1
+#define CFG_TUD_CDC               2
 
 // Increase to 2 if you want more CDC ports (but we use 1 here)
 #define CFG_TUD_CDC_EP_BUFSIZE    64

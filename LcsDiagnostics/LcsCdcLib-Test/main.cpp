@@ -69,16 +69,44 @@ void testConsoleIO ( ) {
         char c = usbIoGetChar( 0 );
         if ( c != 0 ) {
 
-        if ( c == 'q' ) break;
+            if ( c == 'q' ) break;
       
             printf( "%c\n", c );
+
+            usbIoPrintf( 1, "X\n" );
       
-            printf( "USB is connected: %d\n", usbIoIsConnected( ));
-            printf( "->" );
         }
     }
 
     printf( "terminated ... \n" );
+}
+
+//----------------------------------------------------------------------------------------
+// Test the console IO and Channel 1 IO.
+//
+//----------------------------------------------------------------------------------------
+void testDualConsoleIO ( ) {
+
+    configureDio( CDC_RN_ACTIVITY_LED );
+    writeDio( CDC_RN_ACTIVITY_LED, true );
+    sleepMillis( 1000 );
+
+    usbIoPrintf( 0, "Test Dual Console IO..\n" );
+    usbIoPrintf( 0, "USB is connected: %d\n", usbIoIsConnected( ));
+
+    while ( true ) {
+
+        char c = usbIoGetChar( 0 );
+        if ( c != 0 ) {
+
+            if ( c == 'q' ) break;
+      
+            usbIoPrintf( 0, "%c", c );
+            usbIoPrintf( 1, "%c", c );
+        }
+    }
+
+    usbIoPrintf( 0, "terminated ... \n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -577,6 +605,7 @@ int main( ) {
 
     // testFatalErr( );
     testConsoleIO( );
+    // testDualConsoleIO( );
     // testPfail( );
     // testOnboardLeds( );
     // testDioInput( );

@@ -56,19 +56,19 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 uint16_t debugMask;
 
-inline bool sessionDebugEnabled( ) {
+inline bool setupDebugEnabled( ) {
 
     return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )); 
 }
 
 inline void enterFunc( char *name ) {
 
-    if ( sessionDebugEnabled( )) printf( "--> %s\n", name );
+    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
-    if ( sessionDebugEnabled( )) {
+    if ( setupDebugEnabled( )) {
 
         if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
         else                    printf( "<-- %s: %d\n", name, errId );
@@ -345,7 +345,7 @@ uint8_t LcsLocoSessions::loadCabMap( ) {
 
     if ( cabMapHead.magicWord != CAB_MAP_MAGIC_WORD ) {
 
-        if ( sessionDebugEnabled( )) 
+        if ( setupDebugEnabled( )) 
             printf( "Cab map not valid, formatting ...\n" );
 
         rStat = formatCabMap( );

@@ -528,7 +528,7 @@ void dumpNvmEventMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmPortData( ) {
 
-    printf( "NVM Node Data Dump: \n\n");
+    printf( "NVM Port Data Dump: \n\n");
     printf( "Header: " );
     dumpNvmData( NVM_PORT_DATA_OFS, 12, 8, false );
     printf( "\n" );
@@ -1123,6 +1123,12 @@ static void executeCommand( char *commandBuf ) {
     }
 }
 
+
+
+// ??? need a way to handle two USB channels with similar logic...
+
+
+
 //----------------------------------------------------------------------------------------
 // "handleSerialCommand" reads commands from the console. It is a simple command
 // executor with simple syntax, originally used on the DCC++ world. Note that 
@@ -1190,8 +1196,8 @@ uint8_t handleSerialCommand( void ) {
                     p++;
                 }
 
-                char *cmd = skipSpaces(start);
-                if ( *cmd ) executeCommand(cmd);
+                char *cmd = skipSpaces( start );
+                if ( *cmd ) executeCommand( cmd) ;
 
                 commandBuf[0] = '\0';
 

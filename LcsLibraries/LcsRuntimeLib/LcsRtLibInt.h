@@ -324,6 +324,8 @@ struct LcsPortDataMap {
     uint32_t    magicWord;
     uint32_t    nvmOfs;
     uint32_t    nvmSize;    
+    uint32_t    mapHwm;
+
     uint16_t    map[ MAX_PORT_MAP_ENTRIES ][ MAX_PORT_ATTR_MAP_ENTRIES ];
 };
 
@@ -340,6 +342,8 @@ struct LcsGlobalDataMap {
     uint32_t    magicWord;
     uint32_t    nvmOfs;
     uint32_t    nvmSize;   
+    uint32_t    mapHwm;
+
     uint16_t    *map;   
 };
 
@@ -470,12 +474,12 @@ struct LcsTaskMap {
 //----------------------------------------------------------------------------------------
 const uint32_t  NVM_BOARD_DESC_SIZE         =   sizeof( LcsNvmHeader );
 const uint32_t  NVM_NODE_MAP_SIZE           =   sizeof( LcsNodeMap );
-const uint32_t  NVM_NODE_DATA_SIZE          =   sizeof( LcsPortDataMap );
+const uint32_t  NVM_PORT_DATA_SIZE          =   sizeof( LcsPortDataMap );
 const uint32_t  NVM_EVENT_MAP_SIZE          =   sizeof( LcsEventMap );
 
 const uint32_t  NVM_RUNTIME_MAPS_SIZE       =   NVM_BOARD_DESC_SIZE + 
                                                 NVM_NODE_MAP_SIZE   +
-                                                NVM_NODE_DATA_SIZE  +
+                                                NVM_PORT_DATA_SIZE  +
                                                 NVM_EVENT_MAP_SIZE;
 
 const uint32_t  NVM_MAP_STORAGE_START       =   0;
@@ -492,12 +496,12 @@ const uint32_t  NVM_PORT_DATA_OFS           =   NVM_MAP_STORAGE_START +
 const uint32_t  NVM_EVENT_MAP_OFS           =   NVM_MAP_STORAGE_START + 
                                                 NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
-                                                NVM_NODE_DATA_SIZE;
+                                                NVM_PORT_DATA_SIZE;
     
 const uint32_t NVM_GLOBAL_DATA_OFS          =   NVM_MAP_STORAGE_START +
                                                 NVM_BOARD_DESC_SIZE   +
                                                 NVM_NODE_MAP_SIZE     +
-                                                NVM_NODE_DATA_SIZE    +
+                                                NVM_PORT_DATA_SIZE    +
                                                 NVM_EVENT_MAP_SIZE;
 
 } // namespace LCS

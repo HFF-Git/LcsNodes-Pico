@@ -43,6 +43,9 @@
 // ??? idea: we could add a printf-like function, so that a firmware does not 
 // have to deal with whether we have a console or not...
 
+// ??? to catch odd errors when not in debug mode, just print the progress on 
+// startup when a console is connected... then we see where we crashed...
+
 
 //----------------------------------------------------------------------------------------
 // Runtime globals. This file contains all runtime data structure declarations.
@@ -103,19 +106,19 @@ using namespace LCS;
 // name when entering a routine.
 // 
 //----------------------------------------------------------------------------------------
-inline bool sessionDebugEnabled( ) {
+inline bool setupDebugEnabled( ) {
 
     return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )); 
 }
 
 inline void enterFunc( char *name ) {
 
-    if ( sessionDebugEnabled( )) printf( "--> %s\n", name );
+    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
-    if ( sessionDebugEnabled( )) {
+    if ( setupDebugEnabled( )) {
 
         if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
         else                    printf( "<-- %s: %d\n", name, errId );
@@ -206,14 +209,15 @@ uint8_t setupDefaultPortData( ) {
 
     portDataMap.magicWord = NVM_MWORD_PORT_DATA_MAP;
     portDataMap.nvmOfs    = NVM_PORT_DATA_OFS;
-    portDataMap.nvmSize   = NVM_NODE_DATA_SIZE;
+    portDataMap.nvmSize   = NVM_PORT_DATA_SIZE;
+    portDataMap.mapHwm    = 0;
 
     memset( portDataMap.map, 0,
             MAX_PORT_MAP_ENTRIES * MAX_PORT_ATTR_MAP_ENTRIES * sizeof(uint16_t));
 
     return ( RET_STAT( rtNvmPutBytes( NVM_PORT_DATA_OFS,
                                      (uint8_t *)&portDataMap,
-                                     NVM_NODE_DATA_SIZE )));
+                                     NVM_PORT_DATA_SIZE )));
 }
 
 //----------------------------------------------------------------------------------------
@@ -255,6 +259,7 @@ uint8_t setupDefaultGlobalData( ) {
     globalDataMap.magicWord = NVM_MWORD_GLOBAL_DATA_MAP;   
     globalDataMap.nvmOfs    = NVM_GLOBAL_DATA_OFS;
     globalDataMap.nvmSize   = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
+    globalDataMap.mapHwm    = 0;
 
     delete [ ] globalDataMap.map; 
 
@@ -453,7 +458,7 @@ uint8_t initCanBus( ) {
 
     if ( rStat != LCS_OK ) {
 
-        if ( sessionDebugEnabled( )) {
+        if ( setupDebugEnabled( )) {
 
             printf( "Init Can Bus, CAN status: %d\n", rStat ); 
         }
@@ -552,7 +557,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     if ( runtimeOptions & NPO_FORMAT_RUNTIME ) {
 
-        if ( sessionDebugEnabled( )) printf ( "Runtime Option: FORMAT\n" );
+        if ( setupDebugEnabled( )) printf ( "Runtime Option: FORMAT\n" );
 
         rStat = buildNvmRuntimeStructure( );
         if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
@@ -560,6 +565,8 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
 
     rStat = checkMagicWords( );
     if ( rStat != LCS_OK ) {
+
+        if ( setupDebugEnabled( )) printf ( "Magic Word Check failed: FORMAT\n" );
 
         rStat = buildNvmRuntimeStructure( );
         if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
@@ -570,7 +577,7 @@ uint8_t setupNodeNvmHeader( CdcResourceDescMap *map ) {
                            sizeof( LcsNvmHeader ));
     if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
-    if ( sessionDebugEnabled( )) printNvmHeader( &nvmHeader );
+    if ( setupDebugEnabled( )) printNvmHeader( &nvmHeader );
     return ( RET_STAT( rStat ));
 }
 
@@ -835,7 +842,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
 
-    printf( "DebugMask: 0x%04x\n", debugMask );
+    if ( setupDebugEnabled( )) printf( "DebugMask: 0x%04x\n", debugMask );
   
     rStat = initI2cChannels( );
     if ( rStat != LCS_OK ) {
