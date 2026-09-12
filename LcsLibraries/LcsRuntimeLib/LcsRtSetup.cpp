@@ -260,15 +260,24 @@ uint8_t setupDefaultGlobalData( ) {
     globalDataMap.nvmOfs    = NVM_GLOBAL_DATA_OFS;
     globalDataMap.nvmSize   = rtNvmGetSize( ) - NVM_RUNTIME_MAPS_SIZE;
     globalDataMap.mapHwm    = 0;
+    globalDataMap.map       = nullptr;
 
-    delete [ ] globalDataMap.map; 
+    uint8_t rStat = rtNvmPutBytes( NVM_GLOBAL_DATA_OFS,
+                                   (uint8_t *) &globalDataMap,
+                                   sizeof(LcsGlobalDataMap) );
+    if ( rStat != LCS_OK ) return( RET_STAT( rStat ));
 
-    globalDataMap.map = new uint16_t[
-    (globalDataMap.nvmSize - sizeof(LcsGlobalDataMap)) / sizeof(uint16_t) ]( );
+    uint8_t *tmp = (uint8_t *) calloc( 
+        ( globalDataMap.nvmSize - sizeof(LcsGlobalDataMap)),
+        sizeof( uint16_t ));
 
-    return( RET_STAT( rtNvmPutBytes( NVM_GLOBAL_DATA_OFS,
-                                     (uint8_t *) &globalDataMap,
-                                     globalDataMap.nvmSize )));
+    rStat = rtNvmPutBytes( NVM_GLOBAL_DATA_OFS + sizeof( LcsGlobalDataMap ),
+                           tmp,
+                           globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
+
+    if( tmp != nullptr ) free( tmp );
+   
+    return( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -327,11 +336,12 @@ namespace LCS {
 // resources before calling any library setup code.
 //
 // There are two basic modes. The first is when we have a console connected. 
-// We will prompt and wait for a start command. There are several options for 
-// starting a node. The easiest is "R" which just starts the node. The "D" 
-// command will start with debugging enabled. We will set the setup debug flags
-// to check any issues during the startup phase. Finally, there is there "F" 
-// command, which will format the NVM runtime area. 
+// We will wait for the first input, typically a return. Then we will prompt 
+// and get for a start command. There are several options for starting a node.
+// The easiest is "R" which just starts the node. The "D" command will start 
+// with debugging enabled. We will set the setup debug flags to check any 
+// issues during the startup phase. Finally, there is there "F" command, which
+// will format the NVM runtime area. 
 //
 // The second mode is when there no console connected. In this case, Debug is 
 // disabled and we just setup the node. This mode should be the normal case for 
@@ -353,7 +363,7 @@ uint8_t initCdcLayer( ) {
 
     if ( usbIoIsConnected( )) {
 
-        sleepMillis(1000);
+        while ( usbIoGetChar( 0 ) == 0 ) { }
 
         printf( "Runtime start, type '?' for help\n" );
         printf( "=>" );
@@ -373,23 +383,23 @@ uint8_t initCdcLayer( ) {
 
                 printf( "Starting - debug mode\n" );
 
-                debugMask |= LCS_DBG_ENABLE | LCS_DBG_SETUP;
+                debugMask |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 return ( RET_STAT( LCS_OK ));
             } 
             else if (( ch == 'F' ) || ( ch == 'f' )) {
 
                 printf( "Starting - format mode\n" );
 
-                debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP;
+                debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 runtimeOptions |= NPO_FORMAT_RUNTIME;
                 return ( RET_STAT( LCS_OK ));
             } 
             else if ( ch == '?' ) {
 
                 printf( "Setup options:\n" );
-                printf( "r, R -> start the node with debug initially disabled\n" );
-                printf( "d, D -> start the node with \"setup\" debug options enabled\n" );
-                printf( "f, F -> start the node with a newly formatted runtime map\n" );
+                printf( "r, R -> start with debug initially disabled\n" );
+                printf( "d, D -> start with \"setup\" debug options enabled\n" );
+                printf( "f, F -> start with a newly formatted runtime map\n" );
                 printf( "=>" );
             } 
             else if ( ch == '\r' ) {
@@ -713,6 +723,8 @@ uint8_t setupGlobalDataMap( ) {
 
     ENTER_FUNC( );
 
+    if ( globalDataMap.map != nullptr ) free( globalDataMap.map );
+
     uint8_t rStat = rtNvmGetBytes( NVM_GLOBAL_DATA_OFS,
                                    (uint8_t *) &globalDataMap,
                                    sizeof( LcsGlobalDataMap ));
@@ -725,15 +737,14 @@ uint8_t setupGlobalDataMap( ) {
 
         return( RET_STAT( ERR_GLOBAL_DATA_HEADER ));
     }
-    
-    delete [ ] globalDataMap.map; 
 
-    globalDataMap.map = new uint16_t[
-    (globalDataMap.nvmSize - sizeof(LcsGlobalDataMap)) / sizeof(uint16_t) ]();
+    globalDataMap.map = (uint16_t *) calloc( 
+        ( globalDataMap.nvmSize - sizeof(LcsGlobalDataMap)) / sizeof(uint16_t),
+        sizeof( uint16_t ));
 
-    rStat = rtNvmGetBytes( globalDataMap.nvmOfs,
+    rStat = rtNvmGetBytes( globalDataMap.nvmOfs + sizeof( LcsGlobalDataMap ),
                            (uint8_t *) globalDataMap.map, 
-                           globalDataMap.nvmSize );
+                           globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
 
     return ( RET_STAT( rStat ));
 }

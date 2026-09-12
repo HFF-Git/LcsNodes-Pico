@@ -26,6 +26,8 @@
 #include "LcsCdcLibTestBoardDesc.h"
 #include "LcsCdcLib.h"
 
+#include "tusb.h"
+
 using namespace CDC;
 
 //----------------------------------------------------------------------------------------
@@ -57,28 +59,23 @@ void testConsoleIO ( ) {
 
     configureDio( CDC_RN_ACTIVITY_LED );
     writeDio( CDC_RN_ACTIVITY_LED, true );
-    sleepMillis( 1000 );
+  
+    while ( usbIoGetChar( 0 )) { }
 
-    printf( "Test Console IO..\n" );
-    printf( "USB is connected: %d\n", usbIoIsConnected( ));
-
-    printf( "->" );
-
+    usbIoPrintf( 0, "Test Console IO..\n" );
+    usbIoPrintf( 0, "USB is connected: %d\n", usbIoIsConnected( ));
+   
     while ( true ) {
 
         char c = usbIoGetChar( 0 );
         if ( c != 0 ) {
 
             if ( c == 'q' ) break;
-      
-            printf( "%c\n", c );
-
-            usbIoPrintf( 1, "X\n" );
-      
+            else            usbIoPrintf( 0, "%c\n", c );
         }
     }
 
-    printf( "terminated ... \n" );
+    usbIoPrintf( 0, "terminated ... \n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -89,11 +86,12 @@ void testDualConsoleIO ( ) {
 
     configureDio( CDC_RN_ACTIVITY_LED );
     writeDio( CDC_RN_ACTIVITY_LED, true );
-    sleepMillis( 1000 );
 
+    while ( usbIoGetChar( 0 ) == 0 ) usbIoTick( );
+    
     usbIoPrintf( 0, "Test Dual Console IO..\n" );
-    usbIoPrintf( 0, "USB is connected: %d\n", usbIoIsConnected( ));
-
+    usbIoPrintf( 0, "USB is connected: %d\n", usbIoIsConnected( 0 ));
+    
     while ( true ) {
 
         char c = usbIoGetChar( 0 );
@@ -101,33 +99,12 @@ void testDualConsoleIO ( ) {
 
             if ( c == 'q' ) break;
       
-            usbIoPrintf( 0, "%c", c );
-            usbIoPrintf( 1, "%c", c );
+            usbIoPrintf( 0, "%c\n", c );
+            usbIoPrintf( 1, "%c\n", c );
         }
     }
 
     usbIoPrintf( 0, "terminated ... \n" );
-}
-
-//----------------------------------------------------------------------------------------
-// "testEcho" simply echoes what is sent to the PICO via the USB console. We need 
-// it for RocRail testing of RocNet Messages...
-//
-//----------------------------------------------------------------------------------------
-void echoConsole( ) {
-
-    configureDio( CDC_RN_ACTIVITY_LED );
-    writeDio( CDC_RN_ACTIVITY_LED, true );
-    sleepMillis( 1000 );
-
-    printf( "Show Console IO input\n" );
-    printf( "USB is connected: %d\n", usbIoIsConnected( ));
-
-    while ( true ) {
-
-        char c = usbIoGetChar( 0 );
-        printf( "%c\n", c );
-    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -604,8 +581,8 @@ int main( ) {
     initCdcLib( );
 
     // testFatalErr( );
-    testConsoleIO( );
-    // testDualConsoleIO( );
+    // testConsoleIO( );
+    testDualConsoleIO( );
     // testPfail( );
     // testOnboardLeds( );
     // testDioInput( );

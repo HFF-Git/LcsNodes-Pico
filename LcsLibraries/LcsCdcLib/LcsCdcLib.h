@@ -422,24 +422,10 @@ uint32_t        createUid( );
 //
 //----------------------------------------------------------------------------------------
 uint8_t         configureUsbIO( );
-bool            usbIoIsConnected( );
-char            usbIoGetChar( int chan );            
-int             usbIoPrintf( int chan, const char *fmt, ... );
-
-#if 0
-//----------------------------------------------------------------------------------------
-// The auxiliary USB channel. For some LCS Nodes, two USB channels are required.
-// The base station, for example, has the USB console and also an USB channel 
-// for connecting a program that sends and receives commands via that channel.
-//
-//----------------------------------------------------------------------------------------
-uint8_t         configureAuxUsbChannel( );
-void            auxUsbChannelTick( );
-bool            auxUsbChannelAvailable( );
-int             auxUsbChannelReadChar( );
-uint32_t        auxUsbChannelWrite( const void *data, uint32_t len );
-uint32_t        auxUsbChannelPrintf( int chan, const char *fmt, ... );
-#endif
+bool            usbIoIsConnected( uint8_t chan = 0 );
+void            usbIoTick( );
+char            usbIoGetChar( uint8_t chan );            
+int             usbIoPrintf( uint8_t chan, const char *fmt, ... );
 
 //----------------------------------------------------------------------------------------
 // General controller and board info routines.

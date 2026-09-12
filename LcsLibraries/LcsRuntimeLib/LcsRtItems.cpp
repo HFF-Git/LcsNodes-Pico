@@ -155,14 +155,10 @@ uint8_t attrMemAdr( uint16_t npId,
                     uint16_t **adr, 
                     uint16_t len ) {
 
-    uint8_t  rStat;
-    uint16_t port = portId( npId );
-
-     if (( port != 0 ) &&
-         ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
+     if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 
         uint16_t index  = item - IR_PORT_ATTR_START;
-        *adr = & portDataMap.map[ port ] [ index ];
+        *adr = & portDataMap.map[ portId( npId ) ] [ index ];
         return ( LCS_OK );
     }
     else if ( isInRangeU16( item, IR_GLOBAL_ATTR_START, IR_GLOBAL_ATTR_END )) {
@@ -185,13 +181,11 @@ uint8_t attrNvmOfs( uint16_t npId,
                     uint16_t *ofs, 
                     uint16_t len ) {
 
-    uint8_t  rStat;
-    uint16_t port = portId( npId );
+    if ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END )) {
 
-    if (( port != 0 ) &&
-        ( isInRangeU16( item, IR_PORT_ATTR_START, IR_PORT_ATTR_END ))) {
-
+        uint16_t port = portId( npId );
         uint16_t index = item - IR_PORT_ATTR_START;
+
         *ofs = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map ) + 
             (( port * MAX_PORT_ATTR_MAP_ENTRIES ) + index  ) * sizeof( uint16_t );
 

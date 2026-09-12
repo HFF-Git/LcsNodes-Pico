@@ -290,17 +290,30 @@ uint8_t configureUsbIO( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Check whether there is a USB connection. The routine checks the VBUS pin
-// to see whether there is power on the USB connector. If yes, we assume there 
-// is a connection. Another way would be to ask tinyUSB, bit that may cause 
-// timing issues at controller start. We run the risk of just a USB power cable
-// and no USB data.
+// Check whether there is a USB connection. We do first a check whether we 
+// have an USB cable attached, and then if the channel is connected.
 //
-// ??? rather do a channel version ?
 //----------------------------------------------------------------------------------------
-bool usbIoIsConnected( ) {
+bool usbIoIsConnected( uint8_t chan ) {
 
-    return ( gpio_get( PICO_VBUS_PIN ));
+    if ( chan >= 2 ) return ( false );
+    if ( ! gpio_get( PICO_VBUS_PIN )) return( false );
+
+    bool test = tud_cdc_n_connected( chan );
+
+    return( true );
+}
+
+//----------------------------------------------------------------------------------------
+// "usbIoTick" is a Plan B when we do not do reading characters often enough.
+// Our IO logic is that there are non-blocking reads called in the runtime loop 
+// quite often. If this is for some reason not the case, we could also call
+// the required "tud_task".
+//
+//----------------------------------------------------------------------------------------
+void usbIoTick( ) {
+
+    tud_task( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -311,23 +324,15 @@ bool usbIoIsConnected( ) {
 // is our responsibility. Sigh.
 //
 //----------------------------------------------------------------------------------------
-char usbIoGetChar( int chan ) {
+char usbIoGetChar( uint8_t chan ) {
 
-    if ( ! usbIoIsConnected( )) return ( 0 );
+    if ( chan >= 2 ) return ( 0 );
 
     tud_task();
 
-    if ( chan == 0 ) {
-
-        int ch = getchar_timeout_us( 0 );
-        return (( ch == PICO_ERROR_TIMEOUT ) ? 0 : ch );
-    }
-    else if ( chan == 1 ) {
-
-        if ( ! tud_cdc_n_available( 1 )) return ( 0 );
-        return ( tud_cdc_n_read_char( 1 ));
-    }
-    else return( 0 );
+    if ( ! usbIoIsConnected( chan )) return ( 0 );
+    if ( ! tud_cdc_n_available( chan )) return ( 0 );
+    return ( tud_cdc_n_read_char( chan ));
 }      
 
 //----------------------------------------------------------------------------------------
@@ -336,11 +341,9 @@ char usbIoGetChar( int chan ) {
 // characters printed.
 //
 //----------------------------------------------------------------------------------------
-int usbIoPrintf( int chan, const char *fmt, ... ) {
+int usbIoPrintf( uint8_t chan, const char *fmt, ... ) {
 
-    if ( ! usbIoIsConnected( )) return ( 0 );
-
-    tud_task( );
+    tud_task();
 
     va_list args;
     va_start( args, fmt );
@@ -349,18 +352,21 @@ int usbIoPrintf( int chan, const char *fmt, ... ) {
 
     if ( len <= 0 ) return ( 0 );
 
-    if ( chan == 0 ) {
+    if ( ! tud_cdc_n_connected( chan )) return( 0 );
 
-        len = printf( "%s", outBuffer );
+    uint32_t available = tud_cdc_n_write_available(chan);
+
+    for ( int i = 0; i < len; ++i ) {
+
+        if ( outBuffer[ i ] == '\n' ) {
+
+            tud_cdc_n_write_char( chan, '\r' );
+        }
+
+        tud_cdc_n_write_char( chan, outBuffer[ i ] );
     }
-    else {
 
-        if ( ! tud_cdc_n_connected( 1 )) return( 0 );
-
-        tud_cdc_n_write( 1, outBuffer, len );
-        tud_cdc_n_write_flush( 1 );
-        return( len );
-    }
+    tud_cdc_n_write_flush( chan );
 
     return ( len );
 }

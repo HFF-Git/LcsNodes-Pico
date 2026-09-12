@@ -43,7 +43,7 @@ namespace LCS {
     extern LcsPortMap           portMap;
     extern LcsEventMap          eventMap;
     extern LcsPortDataMap       portDataMap;
-    extern LcsPortDataMap       globalDataMap;
+    extern LcsGlobalDataMap     globalDataMap;
     extern LcsTaskMap           taskMap;
     extern LcsMsgBusCAN         *msgBus;
     extern CdcResourceDescMap   dMap;
@@ -438,8 +438,10 @@ void dumpMemGlobalData( ) {
         return;
     }
 
-    dumpMemData((uint16_t *) &globalDataMap.map, globalDataMap.nvmSize );
-    printf( "\n" );
+    dumpMemData((uint16_t *) globalDataMap.map, 
+                 globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
+    
+                 printf( "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -558,13 +560,13 @@ void dumpNvmGlobalData( ) {
 
     printf( "NVM Global Data Dump: \n\n");
 
-    printf( "Header: " );
-    dumpNvmData( NVM_GLOBAL_DATA_OFS, 12, 8, false );
+    printf( "Header:\n" );
+    dumpNvmData( NVM_GLOBAL_DATA_OFS, sizeof( LcsGlobalDataMap), 8, false );
     printf( "\n" );
 
     uint32_t start = NVM_GLOBAL_DATA_OFS + offsetof( LcsGlobalDataMap, map );
 
-    dumpNvmData( start, globalDataMap.nvmSize );
+    dumpNvmData( start, globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
     printf( "\n" );
 }
 
@@ -810,6 +812,7 @@ void getItemCommand( char *s ) {
      if (( npId == 0 ) || ( nodeId( tmpNpId ) == nodeMap.nodeId )) {
 
         ret = getItem( tmpNpId, tmpItem, &tmpArg );
+        
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
         else printf( "Node: 0x%x, item: %d, arg1: 0x%x\n", 
                      tmpNpId, tmpItem, tmpArg );
