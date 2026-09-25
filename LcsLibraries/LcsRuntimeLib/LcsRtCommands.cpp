@@ -1128,10 +1128,193 @@ static void executeCommand( char *commandBuf ) {
 
 
 
+// ??? new approach....
+
+
 // ??? need a way to handle two USB channels with similar logic...
+// ??? channel 0 is always the console channel. We have modest editing
+// capabilities and a prompt.
+
+// ??? channel 1 should should just collect all characters up to the return
+// and then invoke a callback.
 
 
+constexpr uint8_t CDC_CONSOLE = 0;
+constexpr uint8_t CDC_COMMAND = 1;
+constexpr char COMMAND_SEPARATOR = ';';
 
+struct CommandLine {
+    char   buf[MAX_COMMAND_LINE_SIZE];
+    size_t len = 0;
+    bool   escaped = false;
+};
+
+CommandLine consoleLine;
+CommandLine remoteLine;
+
+
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+void printConsolePrompt( ) {
+
+    if      ( nodeMap.nodeState == NS_CONFIG )  usbIoPrintf(CDC_CONSOLE, "(C)->");
+    else if ( nodeMap.nodeState == NS_OPERATE ) usbIoPrintf(CDC_CONSOLE, "(O)->");
+    else                                        usbIoPrintf(CDC_CONSOLE, "->");
+}
+
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+bool appendCommandChar( CommandLine& line, char c ) {
+    
+    switch ( c ) {
+
+        case '\\': {
+
+            if ( line.escaped ) {
+
+                line.escaped = false;
+                break;
+            }
+
+            line.escaped = true;
+            return ( false );
+        
+        } break;
+
+        case '\r': { 
+
+            line.escaped = false;    
+            return ( true );
+        
+        } break;
+
+        default: {
+
+            line.escaped = false;
+
+        } break;
+    }
+
+    if ( line.len < MAX_COMMAND_LINE_SIZE - 1 ) {
+
+        line.buf[ line.len++ ] = c;
+        line.buf[ line.len ]   = '\0';
+    }
+
+    return ( false );
+}
+
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+void executeCommandLine( char *line ) {
+
+    char *p = line;
+    char *start = p;
+
+    while ( *p ) {
+
+        if (( *p == '/' ) &&
+            (( p == line ) || ( p[-1] != '\\' ))) {
+
+            *p = '\0';
+
+            char *cmd = skipSpaces(start);
+            if ( *cmd ) executeCommand(cmd);
+
+            start = p + 1;
+        }
+
+        ++p;
+    }
+
+    char *cmd = skipSpaces(start);
+    if ( *cmd ) executeCommand(cmd);
+}
+
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+void handleConsoleCommand( ) {
+    
+    char c;
+
+    while (( c = usbIoGetChar( CDC_CONSOLE )) > 0 ) {
+
+        switch ( c ) {
+
+            case '\b': {
+
+                if (consoleLine.len > 0) {
+
+                    --consoleLine.len;
+                    consoleLine.buf[consoleLine.len] = '\0';
+                    usbIoPrintf( CDC_CONSOLE, "\b \b");
+                }
+
+                consoleLine.escaped = false;
+            
+            } break;
+
+            case '\r': {
+
+                usbIoPrintf( CDC_CONSOLE, "\n");
+
+                executeCommandLine(consoleLine.buf);
+
+                consoleLine.len = 0;
+                consoleLine.buf[0] = '\0';
+                consoleLine.escaped = false;
+
+                printConsolePrompt();
+            
+            } break;
+
+            default: {
+
+                if ( consoleLine.len < MAX_COMMAND_LINE_SIZE - 1 ) {
+
+                    consoleLine.buf[consoleLine.len++] = c;
+                    consoleLine.buf[consoleLine.len] = '\0';
+
+                    usbIoPrintf( CDC_CONSOLE, "%c", c);
+                }
+
+                consoleLine.escaped = false;
+            
+            } break;
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+void handleCommandInput( ) {
+    
+    char c;
+
+    while (( c = usbIoGetChar( CDC_COMMAND )) > 0 ) {
+
+        if ( c == '\r' ) {
+
+            executeCommandLine( remoteLine.buf );
+
+            remoteLine.len = 0;
+            remoteLine.buf[0] = '\0';
+            remoteLine.escaped = false;
+
+            continue;
+        }
+
+        if (remoteLine.len < MAX_COMMAND_LINE_SIZE - 1) {
+
+            remoteLine.buf[remoteLine.len++] = c;
+            remoteLine.buf[remoteLine.len] = '\0';
+        }
+
+        remoteLine.escaped = false;
+    }
+}
+
+// ??? just  call the two handlers...
 //----------------------------------------------------------------------------------------
 // "handleSerialCommand" reads commands from the console. It is a simple command
 // executor with simple syntax, originally used on the DCC++ world. Note that 
@@ -1188,11 +1371,12 @@ uint8_t handleSerialCommand( void ) {
 
                 while ( *p ) {
 
-                    if (( *p == '/' ) && (( p == commandBuf ) || ( p[-1] != '\\' ))) {
+                    if (( *p == '/' ) && (( p == commandBuf ) || 
+                        ( p[-1] != '\\' ))) {
 
                         *p = '\0';
                         char *cmd = skipSpaces( start );
-                        if ( *cmd ) executeCommand(cmd);
+                        if ( *cmd ) executeCommand( cmd );
                         start = p + 1;
                     }
 
@@ -1233,5 +1417,6 @@ uint8_t handleSerialCommand( void ) {
 
     return ( LCS_OK );
 }
+
 
 }; // namespace LCS
