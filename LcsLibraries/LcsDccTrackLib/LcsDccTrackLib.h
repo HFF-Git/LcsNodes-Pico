@@ -69,11 +69,8 @@ enum DccTrackErrors : uint8_t {
     ERR_DCC_CONTROL_RNUM_ERR        = ERR_DCC_TRACK_ERR_BASE + 3,
     ERR_DCC_SENSE_RNUM_ERR          = ERR_DCC_TRACK_ERR_BASE + 4,
     ERR_DCC_UART_RNUM_ERR           = ERR_DCC_TRACK_ERR_BASE + 5,
-
-
-    ERR_DCC_TRACK_CONFIG            = ERR_DCC_TRACK_ERR_BASE + 1,
-
-
+    ERR_DCC_TRACK_CONFIG            = ERR_DCC_TRACK_ERR_BASE + 6,
+    ERR_DCC_TRACKS_NOT_READY        = ERR_DCC_TRACK_ERR_BASE + 7
 };
 
 //----------------------------------------------------------------------------------------
@@ -182,7 +179,6 @@ struct LcsDccTrackDesc {
     DccTrackOptions     options;      
     DccTrackMode        initTrackMode;
 
-    uint8_t             rNumTimer;
     uint8_t             rNumEnable;
     uint8_t             rNumControl;
     uint8_t             rNumSense;
@@ -233,7 +229,7 @@ struct LcsDccTrack {
     static LcsDccTrack  *createTrackB( LcsDccTrackDesc *desc );
     static LcsDccTrack  *getTrackA( );
     static LcsDccTrack  *getTrackB( );
-    static uint8_t       startDccProcessing( );
+    static uint8_t       startDccProcessing( uint8_t rNumTimer );
 
     public:
 

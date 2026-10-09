@@ -43,13 +43,13 @@ using namespace CDC;
 // Base station global data.
 //
 //----------------------------------------------------------------------------------------
-uint16_t                        debugMask;
-CdcResourceDescMap              dMap;
-LcsBaseStationCommand           serialCmd;
-LcsDccTrack                     *mainTrack;
-LcsDccTrack                     *progTrack;
-LcsLocoSessions                 *locoSessions;
-LcsBsMsgInterface      msgInterface;
+uint16_t                    debugMask;
+CdcResourceDescMap          dMap;
+LcsBaseStationCommand       serialCmd;
+LcsDccTrack                 *mainTrack;
+LcsDccTrack                 *progTrack;
+LcsLocoSessions             *locoSessions;
+LcsBsMsgInterface           msgInterface;
 
 //----------------------------------------------------------------------------------------
 // Some little helper functions.
@@ -220,7 +220,6 @@ uint8_t setupDccTrackMain( ) {
     trackDescA.options                  = DT_OPT_NIL;      
     trackDescA.initTrackMode            = DT_M_NIL;
 
-    trackDescA.rNumTimer                = 0;
     trackDescA.rNumEnable               = 0;
     trackDescA.rNumControl              = 0;
     trackDescA.rNumSense                = 0;
@@ -257,7 +256,6 @@ uint8_t setupDccTrackProg( ) {
     trackDesc.options                   = DT_OPT_NIL;      
     trackDesc.initTrackMode             = DT_M_NIL;
 
-    trackDesc.rNumTimer                 = RNUM_TIMER_0;
     trackDesc.rNumEnable                = RNUM_ENABLE_PROG;
     trackDesc.rNumControl               = RNUM_CONTROL_PROG;
     trackDesc.rNumSense                 = RNUM_ADC_PROG;
@@ -345,7 +343,7 @@ uint8_t startBaseStation( ) {
    
     if ( rStat == NO_ERR ) {
 
-        rStat = LcsDccTrack::startDccProcessing( );
+        rStat = LcsDccTrack::startDccProcessing( RNUM_TIMER_0 );
 
         if ( usbIoIsConnected( )) {
 

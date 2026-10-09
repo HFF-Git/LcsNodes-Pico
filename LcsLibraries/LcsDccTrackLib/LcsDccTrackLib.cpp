@@ -40,7 +40,8 @@
 
 //----------------------------------------------------------------------------------------
 // DCC Signal debugging. A tick is defined to last 29 microseconds. There is a 
-// debugging option to set the clock much slower so that the waveform can be seen.
+// debugging option to set the clock much slower so that the waveform can be 
+// seen.
 //
 //
 // ??? well, waveform is stable now, we could however look at the interrupt
@@ -267,12 +268,12 @@ enum LogId : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// RailCom decoder table. The Railcom communication will send raw bytes where only
-// four bits are "one" in a byte ( hamming weight 4 ). The first two bytes are 
-// labelled "channel1" and the remaining six bytes are labelled "channel2". The
-// actual data is then encode using the table below. Each raw byte will be translated
-// to a 6 bits of data for the datagram to assemble. In total there are therefore
-// a maximum of 48bits that are transmitted in a railcom message.
+// RailCom decoder table. The Railcom communication will send raw bytes where
+// only four bits are "one" in a byte ( hamming weight 4 ). The first two bytes 
+// are labelled "channel1" and the remaining six bytes are labelled "channel2". 
+// The actual data is then encode using the table below. Each raw byte will be 
+// translated to a 6 bits of data for the datagram to assemble. In total there 
+// are therefore a maximum of 48bits that are transmitted in a railcom message.
 //
 //----------------------------------------------------------------------------------------
 enum RailComDataBytes : uint8_t {
@@ -354,9 +355,9 @@ enum railComDatagramType : uint8_t {
 // channel 2. Since decoders answer on channel one for each DCC packet they 
 // receive, here is a good chance that channel 1 will contains nonsense data. 
 // This is different for channel two, where only the addressed decoder explicitly 
-// answers. To decide whether a railcom message is valid, you should perhaps ignore
-// channel 1 data and just check channel 2 for this purpose. A RC datagram starts 
-// with the 4-bit ID and an 8 to 32bit payload.     
+// answers. To decide whether a railcom message is valid, you should perhaps 
+// ignore channel 1 data and just check channel 2 for this purpose. A RailCom 
+// datagram starts with the 4-bit ID and an 8 to 32bit payload.     
 //
 //      RC_DG_MOB_ID_POM       ( 0  )  - 12bit
 //      RC_DG_MOB_ID_ADR_HIGH  ( 1  )  - 12bit
@@ -451,8 +452,9 @@ inline uint8_t mapDccAdrToRailComDatagramType( uint16_t adr ) {
 //  adcBits                 - ADC resolution
 //  zeroOffset              - ADC value at zero current
 //
-// We keep for our conversion routines "currentCountsPerMilliAmpTimes1000", which
-// contains ADC counts per mA, multiplied by 1000 for fixed-point precision.
+// We keep for our conversion routines "currentCountsPerMilliAmpTimes1000", 
+// which contains ADC counts per mA, multiplied by 1000 for fixed-point 
+// precision.
 //
 // Formulas:
 //
@@ -582,18 +584,6 @@ inline void followUpDccTrackWork( uint8_t followUp,
 // the interrupt handler runs part two of its work. See "followUpDccTrackWork"
 // what needs to be done.
 //
-// 
-// ??? we need a way to ensure that the signal interrupts for both tacks stay
-// in sync. The cutout introduces a 29 us tick but gets us back to a 58us
-// baseline after the cutout. But what if a track mode is set with exactly 
-// 1 tick, i.e. 29us, off ? Then we would have a lot of interrupts at 29us
-// time marks. Is just more load .....
-//
-// Idea: introduce a "SYNC" state. If one track is not at a 58us boundary while
-// switching modes, a delay of 1 tick is inserted. 
-// 
-// ??? how to know we are at that 58us boundary ?
-//
 //----------------------------------------------------------------------------------------
 void timerCallback( uint32_t timerVal ) {
 
@@ -638,7 +628,7 @@ void timerCallback( uint32_t timerVal ) {
 // signals will run.
 //
 //----------------------------------------------------------------------------------------
-void initDccTrackProcessing( ) {
+uint8_t initDccTrackProcessing( ) {
 
     rNumTimer           = 0;
     timeToInterrupt     = 0;
@@ -646,9 +636,10 @@ void initDccTrackProcessing( ) {
     timeLeftProgTrack   = 0;
     
     uint8_t rStat = configureTimer( rNumTimer, timerCallback );
-    startRepeatingTimer( rNumTimer, TICKS_58_MICROS );
+    if ( rStat != LCS_OK ) return( rStat );
+        
+    return( startRepeatingTimer( rNumTimer, TICKS_58_MICROS ));
 }   
-
 
 }; // namespace
 
@@ -659,29 +650,18 @@ void initDccTrackProcessing( ) {
 //
 //========================================================================================
 //========================================================================================
-
 using namespace CDC;
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// The DCC tracks are initialized with a set of class routines. We first setup 
-// the class, create the two DCC track objects based on the descriptor data and
-// then kick off the DCC timer for the track signal processing.
-//
-// The idea is that the program first creates all the DCC track objects, does 
-// whatever else needs to be initialized and then starts the signal generation 
-// with this routine.
-//
-//----------------------------------------------------------------------------------------
-//
+// The DCC tracks are initialized with a set of class routines. The create track
+// class routines create the track object and perform the setup. The creation 
+// status is recoreded in the error field of the the track object.
 //
 //----------------------------------------------------------------------------------------
 LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
 
-    if ( ! libInit ) {
-
-        libInit = true;
-    }
+    if ( ! libInit ) libInit = true;
 
     trackA = new LcsDccTrack( );
     trackA -> setupDccTrack( desc );
@@ -690,11 +670,8 @@ LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
 
 LcsDccTrack *LcsDccTrack::createTrackB( LcsDccTrackDesc *desc ) {
 
-    if ( ! libInit ) {
-
-        libInit = true;
-    }
-
+    if ( ! libInit ) libInit = true;
+    
     trackB = new LcsDccTrack( );
     trackB -> setupDccTrack( desc );
     return( trackB );
@@ -709,18 +686,21 @@ LcsDccTrack *LcsDccTrack::getTrackB( ) {
 
     return ( trackB );
 }
-    
-uint8_t LcsDccTrack::startDccProcessing( ) {
+
+//----------------------------------------------------------------------------------------
+// Start the DCC processing. The DCC signal generation is done through a state
+// machine that is invoked when the DCC timer interrupts. The idea is that the 
+// program first creates all the DCC track objects, does whatever else needs to 
+// be initialized and then starts the signal generation with this routine.
+//----------------------------------------------------------------------------------------
+uint8_t LcsDccTrack::startDccProcessing( uint8_t rNumTimerIn ) {
 
     if (( ! libInit ) && ( trackA == nullptr ) && ( trackB == nullptr )) {
 
-        // ??? we are not read yet ...
+        return( ERR_DCC_TRACKS_NOT_READY );
     }
 
-    // ??? where do we set the TIMER ?
-
-    initDccTrackProcessing( );
-    return ( LCS_OK );
+    return (  initDccTrackProcessing( ));
 }
 
 //========================================================================================
@@ -738,11 +718,11 @@ uint8_t LcsDccTrack::startDccProcessing( ) {
 LcsDccTrack::LcsDccTrack( ) { }
 
 //----------------------------------------------------------------------------------------
-// "setupDccTrack" performs the setup tasks for the DCC track.  We will configure 
-// the hardware, the DCC packet options such as preamble and postamble length, the
-// initial state machine state current consumption limit and load the initial packet
-// into the active buffer. There is quite a list of parameters and options that 
-// can be set. 
+// "setupDccTrack" performs the setup tasks for the DCC track.  We configure 
+// the hardware, the DCC packet options such as preamble and postamble length, 
+// the initial state machine state current consumption limit and load the initial
+// packet into the active buffer. There is quite a list of parameters and options 
+// that can be set. 
 //
 // This routine does the parameter checking, and ensures consistency, except
 // when critical parameters are wrong. The error is returned via a flag in the
@@ -821,27 +801,20 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
         }
     }
 
-    limitCurrentMilliAmp    = clampU16( limitCurrentMilliAmp, 0, maxCurrentMilliAmp );
-    overloadEventThreshold  = clampU16( overloadEventThreshold, 0, MAX_OVERLOAD_EVENT_COUNT );
+    limitCurrentMilliAmp    = clampU16( limitCurrentMilliAmp, 
+                                        0, 
+                                        maxCurrentMilliAmp );
+
+    overloadEventThreshold  = clampU16( overloadEventThreshold, 
+                                        0, 
+                                        MAX_OVERLOAD_EVENT_COUNT );
+
     limitCurrentDigitValue  = milliAmpToAdcDigits( limitCurrentMilliAmp );
     ackThresholdDigitValue  = milliAmpToAdcDigits( ACK_TRESHOLD_VAL );
     actualCurrentDigitValue = 0;
     dccPacketsSend          = 0;
 
     setTrackMode( trackMode );
-
-    // ??? how to best say which track this is ?
-
-    if ( options & DT_OPT_SERVICE_MODE_TRACK )  trackB = this;
-    else                                        trackA = this;
-
-    // ??? we could also fire up the timer here ... if rNumTimer != 0 then 
-    // we already did it ...
-
-    // the usage would be 
-    //
-    //    ???
-
     return ( true );
 }
 
@@ -1578,8 +1551,10 @@ uint16_t LcsDccTrack::getRMSCurrent( ) {
 // the pending buffer, compute the checksum and set the pending flag.
 //
 // ??? For a high number of session we may want to think about a queuing approach. 
-// Right now, this routine waits when there is a packet already queued, i.e. pending. 
-// This may cause issues in delaying other tasks such as receiving a CAN bus message.
+// Right now, this routine waits when there is a packet already queued, i.e. 
+// pending. This may cause issues in delaying other tasks such as receiving a 
+// CAN bus message.
+//
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::loadPacket( const uint8_t *packet, 
                                          uint8_t len, 
@@ -1822,10 +1797,10 @@ void LcsDccTrack::printDccTrackStatus( ) {
     
     if ( flags & DT_F_POWER_ON         ) printf( "PowerOn " );
     if ( flags & DT_F_POWER_OVERLOAD   ) printf( "PowerOverload " );
-    if ( flags & DT_F_ACC_DETECT_ON ) printf( "AccDetectOn " );
-    if ( flags & DT_F_CUTOUT_ON   ) printf( "CutoutOn " );
-    if ( flags & DT_F_RAILCOM_ON  ) printf( "RailcomOn " );
-    if ( flags & DT_F_SETUP_ERROR     ) printf( "ConfigError " );
+    if ( flags & DT_F_ACC_DETECT_ON    ) printf( "AccDetectOn " );
+    if ( flags & DT_F_CUTOUT_ON        ) printf( "CutoutOn " );
+    if ( flags & DT_F_RAILCOM_ON       ) printf( "RailcomOn " );
+    if ( flags & DT_F_SETUP_ERROR      ) printf( "ConfigError " );
     printf( "\n" );
 
     printf( "Packets Send: %d\n", dccPacketsSend );
