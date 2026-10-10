@@ -179,14 +179,31 @@ struct LcsBaseStationCommand {
     void writeDccPacketMainCmd( char *s );
     void writeDccPacketProgCmd( char *s );
 
+    void turnPowerOnOffCmd( char *s );
     void setTrackOptionCmd( char *s );
-    void turnPowerOnAllCmd( );
-    void turnPowerOnMainCmd( );
-    void turnPowerOnProgCmd( );
-    void turnPowerOffAllCmd( );
+
+    void handleDCmd( char *s );
+    void handleQCmd( char *s );
+    void handleSCmd( char *s );
+    void handleICmd( char *s );
+    void handleJCmd( char *s );
+    void handleTCmd( char *s );
+    void handleEQCmd( char * );
+    void handleSlashCmd( char *s );
+
+    void handleDccAccessoriesCmd( char *s );
+    
+
+    void printTrackActualCurrentCmd( char *s );
+    void printTrackMaxCurrentCmd( char *s );
+   
+
+
+
+
 
     void printStatusCmd( char *s );
-    void printTrackCurrentCmd( char *s );
+   
     void printBaseStationConfigCmd( );
     void printHelpCmd( );
     void printVersionInfo( );

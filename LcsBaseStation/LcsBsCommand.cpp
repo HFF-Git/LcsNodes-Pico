@@ -4,13 +4,26 @@
 //
 //----------------------------------------------------------------------------------------
 // The serial command interface is used to directly send commands to the session 
-// and DCC track objects. The command syntax is patterned after the DCC++ ( DCC_EX )
-// command syntax. Available commands that have a DCC++ ( DCC-EX ) counter part
-// are implemented exactly as specified. The main motivation is to use this 
-// interface for testing and debugging as well as third party tools that also 
-// implement the command set to send commands to this base station as well when
-// calling the serial IO interface. For the layout control system, the approach
-// would rather be to send LCS messages for all tasks.
+// and DCC track objects. The command syntax is patterned after the DCC++ 
+// ( DCC_EX ) command syntax. Available commands that have a DCC++ ( DCC-EX ) 
+// counter part are implemented exactly as specified. The main motivation is to
+// support applications that DCC++ ( DCC-EX ) commands to control parts of a 
+// layout by sending commands to this base station.
+//
+// Note that only layout commands concerning track power and locomotive control
+// are implemented. In particular, DCC-EX commands to define and manage 
+// accessories such as turnouts and signalsare not implmented. For our layout 
+// control system, the approach would rather be to send LCS messages from a 
+// layout management application to the base station to control accessories. 
+//
+// ??? the DCC-EX commands probably evolved, teh syntax is a bit strange. 
+// Right now, we just do implement what we actually need ( track management, 
+// loco control, CV programming, and a few selected ones. ). The primary
+// motivation for using DCC-EX ist historically I used DCC++ and also the
+// idea to connec RocRail via these commands. 
+//
+// ??? as the syntax is not really regular, it becomes harder and harder to 
+// just sscanf as the parser. Sigh.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -55,6 +68,7 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
     LcsLocoSessions *locoSessions,
     LcsDccTrack     *mainTrack,
     LcsDccTrack     *progTrack 
+
 ) {
 
     this -> locoSessions  = locoSessions;
@@ -73,9 +87,6 @@ uint8_t LcsBaseStationCommand::setupSerialCommand(
 // configuration tool to be used. The command handler supports command sequences
 // "<" ... ">" in one line which are processed once the carriage return is hit.
 //
-//
-// ??? cross check with the DDC-EX folks, they interface to RocRail...
-// ??? good news: most of this matches... old DCCC++ stuff...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 
@@ -98,8 +109,8 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
                 switch ( cmdStr[ 0 ] ) {
 
                     case 't': setThrottleCmd( cmdStr + 1 );  break;
+                    case 'F': setFunctionBitCmd( cmdStr + 1 ); break;
                     case 'f': setFunctionGroupCmd( cmdStr + 1 ); break;
-                    case 'v': setFunctionBitCmd( cmdStr + 1 ); break;
 
                     case 'R': readCVCmd( cmdStr + 1 ); break;
                     case 'W': writeCVByteCmd( cmdStr + 1 ); break;
@@ -110,34 +121,40 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
                     case 'M': writeDccPacketMainCmd( cmdStr + 1 ); break;
                     case 'P': writeDccPacketProgCmd( cmdStr + 1 ); break;
 
-                    case 'C': setTrackOptionCmd( cmdStr + 1 ); break;
-                    case 'Y': printDccLogCommand( cmdStr + 1 ); break;
+                    case '0': turnPowerOnOffCmd( cmdStr + 1 ); break;
+                    case '1': turnPowerOnOffCmd( cmdStr + 1); break;
+                    case '!': emergencyStopCmd( ); break;
 
-                    case 'X': emergencyStopCmd( ); break;
-                    case '0': turnPowerOffAllCmd( ); break;
-                    case '1': turnPowerOnAllCmd( ); break;
-                    case '2': turnPowerOnMainCmd( ); break;
-                    case '3': turnPowerOnProgCmd( ); break;
+                    case 'D': handleDCmd( cmdStr + 1 ); break;
+                    case 'J': handleJCmd( cmdStr + 1 ); break;
+                    case 'I': handleICmd( cmdStr + 1 ); break;
+                    case 'T': handleTCmd( cmdStr + 1 ); break;
+                    case 'Q': handleQCmd( cmdStr + 1 ); break;
+                    case '=': handleEQCmd( cmdStr + 1 ); break;
+                    case '\\': handleSlashCmd( cmdStr + 1 ); break;
+
+                    case 'c': printTrackActualCurrentCmd( cmdStr + 1 ); break;
+                    case '#': printTrackMaxCurrentCmd( cmdStr + 1 ); break;
+
+                    case 'a':
+                    case 'A': handleDccAccessoriesCmd( cmdStr + 1 ); break;
 
                     case 's': printStatusCmd( cmdStr + 1 ); break;
                     case 'S': printBaseStationConfigCmd( ); break;
                     case 'L': printSessionMap( ); break;
 
-                    case 'a': printTrackCurrentCmd( cmdStr + 1 ); break;
-
                     case '?': printHelpCmd( ); break;
+
+                    case 'C': setTrackOptionCmd( cmdStr + 1 ); break;
+                    case 'Y': printDccLogCommand( cmdStr + 1 ); break;
 
                     case ' ': printf( "\n" ); break;
 
                     case 'e':
                     case 'E':
-                    case 'D':
-                    case 'T':
-                    case 'Z':
-                    case 'Q':
-                    case 'F': printf( "<Not implemented>\n" ); break;
+                    case 'Z': printf( "<Not implemented>\n" ); break;
 
-                    default: printf( "<Unknown command, use '?' for help>\n" );
+                    default:  printf( "<Unknown command, use '?' for help>\n" );
                 }
 
                 charIndex ++;
@@ -161,36 +178,56 @@ void LcsBaseStationCommand::handleSerialCommand( char *s ) {
 //
 //    cabId     -   the Cab Id. 
 //
+//.   regId     -   register id, deprecated, not used.
+//
 //    speed     -   throttle speed from 0-126, or -1 for emergency stop 
-//                  (resets SPEED to 0)
+//                  ( resets speed to 0 )
 //
 //    direction -   the direction: 1=forward, 0=reverse. Setting direction when 
 //                  speed=0 only effects direction of cab lighting for a stopped 
 //                  train.
 //
-//    returns: <t speed direction >
+//    returns: none
+//
+// DCC-EX states that as a result of any Loco Command this will be broadcasted.
+// What exactly is this broadcast good for?
+// 
+//    <l cab reg seedByte functMap>   
 //
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setThrottleCmd( char *s ) {
 
-    uint16_t  cabId       = NIL_CAB_ID;
-    uint8_t   speed       = 0;
-    uint8_t   direction   = 0;
+    uint16_t  cabId         = NIL_CAB_ID;
+    uint8_t   regId         = 0;
+    uint8_t   speed         = 0;
+    uint8_t   direction     = 0;
+    int       args          = 0;
 
-    if ( sscanf( s, "%hu %hhu %hhu", &cabId, &speed, &direction ) < 1 ) 
-        return;
+    args = sscanf( s, "%hu %hhu %hhu %hhu", &cabId, &regId, &speed, &direction );
+    
+    if ( args < 1 ) return;
 
-    // ??? how to just send a refresh of cabId ? 
-    // locoSessions -> setThrottle( 0, speed, direction ); // FIX...
+    if ( args < 4 ) {
 
-    printf( "<t %d %d>", speed, direction );
+        args = sscanf( s, "%hu %hhu %hhu", &cabId, &speed, &direction );  
+    }
+
+    if (( cabId >= MIN_CAB_ID ) && ( cabId <= MAX_CAB_ID )) {
+
+        uint8_t rStat = locoSessions -> setThrottle( cabId, speed, direction );
+        if ( rStat != LCS_OK ) printf( "<X>" );
+    }
+    else if ( cabId == 0 ) {
+
+        // ??? communicatet a refresh ...
+    }
 }
 
 //----------------------------------------------------------------------------------------
-// "setFunctionBitCmd" turns on and off the engine decoder functions F0-F68 (F0 is 
-// sometimes called FL). This new command directly transmits the function setting 
-// to the engine decoder. The command interface is handling one function number at
-// a time. The base station will handle the DCC byte generation.
+// "setFunctionBitCmd" turns on and off the engine decoder functions F0-F68. 
+// This command directly transmits the function setting to the engine decoder. 
+// The command interface is handling one function number at a time. The base 
+// station will handle the DCC byte generation.
 //
 //    <F cabId funcId val >
 //
@@ -200,7 +237,6 @@ void LcsBaseStationCommand::setThrottleCmd( char *s ) {
 //
 //    returns: NONE.
 //
-// ??? changes... session not needed ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 
@@ -210,7 +246,8 @@ void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 
     if ( sscanf( s, "%hu %hhu %hhu", &cabId, &funcNum, &val ) != 3 ) return;
 
-    locoSessions -> setDccFunctionBit( 0, funcNum, val ); // FIX ...
+    uint8_t rStat = locoSessions -> setDccFunctionBit( 0, funcNum, val );
+    if ( rStat != LCS_OK ) printf( "<X>" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -219,6 +256,11 @@ void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 // shown in the list below. This command directly transmits the command to the 
 // engine decoder. This function requires some user math, and is only there for 
 // the DCC++ command interface compatibility.
+//
+// NOTE: this command is deprecated. We just keep it for compatibility with the 
+// DCC++ command set. The preferred way to set functions is to use the 
+// "setFunctionBitCmd" command which is easier to use and does not require the
+// user to do any math.
 //
 //    <f cabId byte1 [ byte2 ] >
 //
@@ -271,13 +313,13 @@ void LcsBaseStationCommand::setFunctionBitCmd( char *s ) {
 //      BYTE2: (FN)*1 + (FN+1)*2 + (FN+2)*4 + (FN+3)*8 + (FN+4)*16 + 
 //             (FN+5)*32 + (FN+6)*64 + (FN+7)*128
 //
-// ??? changes... session not needed ...
 //----------------------------------------------------------------------------------------
 void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
 
   uint16_t  cabId   = NIL_CAB_ID;
   uint8_t   byte1   = 0;
   uint8_t   byte2   = 0;
+  uint8_t   rStat   = LCS_OK;
 
     if ( sscanf( s, "%hu %hhu %hhu", &cabId, &byte1, &byte2 ) < 2 ) return;
 
@@ -285,23 +327,46 @@ void LcsBaseStationCommand::setFunctionGroupCmd( char *s ) {
 
     if (( byte2 == 0 ) && ( byte1 >= 128 ) && ( byte1 < 160 )) {
 
-        locoSessions -> setDccFunctionGroup( cabId, 1, byte1 );
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 1, byte1 );
     }
     else if (( byte2 == 0 ) && ( byte1 >= 160 ) && ( byte1 < 176 )) {
 
-        locoSessions -> setDccFunctionGroup( cabId, 3, byte1 );
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 3, byte1 );
     }
     else if (( byte2 == 0 ) && ( byte1 >= 176 ) && ( byte1 < 192 )) {
 
-        locoSessions -> setDccFunctionGroup( cabId, 2, byte1 );
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 2, byte1 );
     }
-    else if ( byte1 == 0xde ) locoSessions -> setDccFunctionGroup( cabId, 4, byte2 );
-    else if ( byte1 == 0xdf ) locoSessions -> setDccFunctionGroup( cabId, 5, byte2 );
-    else if ( byte1 == 0xd8 ) locoSessions -> setDccFunctionGroup( cabId, 6, byte2 );
-    else if ( byte1 == 0xd9 ) locoSessions -> setDccFunctionGroup( cabId, 7, byte2 );
-    else if ( byte1 == 0xda ) locoSessions -> setDccFunctionGroup( cabId, 8, byte2 );
-    else if ( byte1 == 0xdb ) locoSessions -> setDccFunctionGroup( cabId, 9, byte2 );
-    else if ( byte1 == 0xdc ) locoSessions -> setDccFunctionGroup( cabId, 10, byte2 );
+    else if ( byte1 == 0xde ) { 
+        
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 4, byte2 );
+    }
+    else if ( byte1 == 0xdf ) { 
+
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 5, byte2 );
+    }
+    else if ( byte1 == 0xd8 ) { 
+
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 6, byte2 );
+    }
+    else if ( byte1 == 0xd9 ) { 
+
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 7, byte2 );
+    }
+    else if ( byte1 == 0xda ) { 
+
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 8, byte2 );
+    }
+    else if ( byte1 == 0xdb ) { 
+
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 9, byte2 );
+    }
+    else if ( byte1 == 0xdc ) { 
+
+        rStat = locoSessions -> setDccFunctionGroup( cabId, 10, byte2 );
+    }
+
+    if ( rStat != LCS_OK ) printf( "<X>" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -376,7 +441,7 @@ void LcsBaseStationCommand::writeCVByteCmd( char *s ) {
 // and then verifies the operation. The callbacknum and callbacksub parameter are 
 // ignored and just passed back to the caller for identification purposes.
 //
-//    <B cvId bitPos bitVal callbacknum callbacksub>
+//    <B cvId bitPos bitVal [ callbacknum callbacksub ]>
 //
 //    cvId          -  the configuration variable ID, 1 ... 1024.
 //    bitPos        -  the bit position of the bit, 0 .. 7.
@@ -521,7 +586,7 @@ void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
 // "emergencyStopCmd" handles the emergencyStop command. This new command causes 
 // the base station to send out the emergency stop broadcast DCC command.
 //
-//    <X>
+//    <!>
 //
 //    returns: <X>
 //
@@ -529,43 +594,71 @@ void LcsBaseStationCommand::writeDccPacketProgCmd( char *s ) {
 void LcsBaseStationCommand::emergencyStopCmd( ) {
 
     locoSessions -> emergencyStopAll( );
-    printf( "<X>" );
+    printf( "<!>" );
 }
 
 //----------------------------------------------------------------------------------------
-// "turnPowerOnXXX" and "turnPowerOff" enables/disables the main and/or the 
-// programming track.
+// "turnPowerOnOff" enables/disables the main and/or the programming track.
+// The JOIN option will turn on the programming track if the main track is on. 
+// The JOIN option is ignored if the main track is off. The JOIN option is used
+// to allow programming of decoders on the programming track while the main 
+// track is powered on.
 //
-//    <0> - turn operations and programming track power off
-//    <1> - turn operations and programming track power on
-//    <2> - turn operations track power on
-//    <3> - turn programming track power on
+// <1 [ MAIM | PROG ]> - turn operations and programming track power on.
+// <0 [ MAIM | PROG | JOIN ]> - turn operations and programming track power off.
+//
+// returns: < cmd arg >
 //
 //----------------------------------------------------------------------------------------
-void LcsBaseStationCommand::turnPowerOnAllCmd( ) {
+void LcsBaseStationCommand::turnPowerOnOffCmd( char *s ) {
 
-    mainTrack -> powerEnable( true );
-    progTrack -> powerEnable( true );
-    printf( "<p1>" );
-}
+    uint8_t  powerOnOff   = 0;
+    char     trackStr[ 16 ] = { 0 };
 
-void LcsBaseStationCommand::turnPowerOffAllCmd( ) {
+    if ( sscanf( s, "%hhu %s", &powerOnOff, trackStr ) < 1 ) return;
 
-    mainTrack -> powerEnable( false );
-    progTrack -> powerEnable( false );
-    printf( "<p0>" );
-}
+    if ( powerOnOff == 1 ) {
 
-void LcsBaseStationCommand::turnPowerOnMainCmd( ) {
+        if ( strcmp( trackStr, "MAIN" ) == 0 ) {
 
-    mainTrack -> powerEnable( true );
-    printf( "<p1 MAIN>" );
-}
+            mainTrack -> powerEnable( true );
+            printf( "<1 MAIN>" );
+        }
+        else if ( strcmp( trackStr, "PROG" ) == 0 ) {
 
-void LcsBaseStationCommand::turnPowerOnProgCmd( ) {
+            progTrack -> powerEnable( true );
+            printf( "<1 PROG>" );
+        }
+        else if ( strcmp( trackStr, "JOIN" ) == 0 ) {
 
-    progTrack -> powerEnable( true );
-    printf( "<p1 PROG>" );
+           // ??? how to best handle this ?
+        }
+        else {
+
+            mainTrack -> powerEnable( true );
+            progTrack -> powerEnable( true );
+            printf( "<1>" );
+        }
+    }
+    else {
+
+        if ( strcmp( trackStr, "MAIN" ) == 0 ) {
+            
+            mainTrack -> powerEnable( false );
+            printf( "<0 MAIN>" );
+        }
+        else if ( strcmp( trackStr, "PROG" ) == 0 ) {
+            
+            progTrack -> powerEnable( false );
+            printf( "<0 PROG>" );
+        }
+        else {
+            
+            mainTrack -> powerEnable( false );
+            progTrack -> powerEnable( false );
+            printf( "<0>" );
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -606,6 +699,175 @@ void LcsBaseStationCommand::setTrackOptionCmd( char *s ) {
         }
     }
 }
+
+//----------------------------------------------------------------------------------------
+// Configure track manager.
+//
+//  <= trackleter mode [ cab ] >
+// ??? we do not support track manager ? 
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleEQCmd( char *s ) {
+
+    char argStr[ 16 ] = { 0 };
+
+    if ( sscanf( s, "%s", argStr ) < 1 ) return;
+
+    printf( "<X>" );
+}
+
+//----------------------------------------------------------------------------------------
+// The "Q" command lists the status of all sensors.
+//
+//  <Q>
+//
+//  response: <q id> or so .... I am not sure of this evenb refers to track
+//  occupancy...
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleQCmd( char *s ) {
+
+
+}
+
+//----------------------------------------------------------------------------------------
+// The "S" command requests a lists of all sensors.
+//
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleSCmd( char *s ){
+
+
+}
+
+//----------------------------------------------------------------------------------------
+// The "D" command is the entry point to a lot of commands in DCC-EX. We 
+// implemented a subset of these commands.
+// 
+//  <D option args>>
+//
+// returns: commadn sepcific
+//
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleDCmd( char *s ) {
+
+    char argStr[ 16 ] = { 0 };
+
+    if ( sscanf( s, "%s", argStr ) < 1 ) return;
+
+    if ( strcmp( argStr, "RESET" ) == 0 ) {
+
+        // ??? reset the base station ...
+    }
+    else {
+
+        // ??? speed steps could be handled with the D command.
+        // ??? we do not support the option requested...
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// "I" command refers to turntables and traverses. We do not support that yet.
+//
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleICmd( char *s ) {
+
+    printf( "<X>" );
+}
+
+//----------------------------------------------------------------------------------------
+// "/" command refers to EXRAIL sequences. We do not that.
+//
+// ??? also to sognal control 
+//
+// </ RED   signalId> 
+// </ AMBER signalId> 
+// </ GREEN signalId> 
+//
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleSlashCmd( char *s ) {
+
+    printf( "<X>" );
+}
+
+//----------------------------------------------------------------------------------------
+// "a", "A" commands handle DCC accesories commands. We do not that.
+//
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleDccAccessoriesCmd( char *s ) {
+
+    printf( "<X>" );
+}
+
+
+//----------------------------------------------------------------------------------------
+// 
+//
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleJCmd( char *s ) {
+
+    char argStr[ 16 ] = { 0 };
+
+    if ( sscanf( s, "%s", argStr ) < 1 ) return;
+
+    if ( strcmp( argStr, "I" ) == 0 ) {
+
+        // ??? report current values 
+    }
+    else if ( strcmp( argStr, "G" ) == 0 ) {
+
+        // ??? report limit values 
+    }
+    else if ( strcmp( argStr, "R" ) == 0 ) {
+
+        printf( "<X>" );
+    }
+     else if ( strcmp( argStr, "I" ) == 0 ) {
+
+        printf( "<X>" );
+    }
+     else if ( strcmp( argStr, "A" ) == 0 ) {
+
+        printf( "<X>" );
+    }
+    else if ( strcmp( argStr, "T" ) == 0 ) {
+
+        // <J T>
+        // <J T id>
+
+        printf( "<X>" );
+    }
+    else {
+
+        printf( "<X>" );
+    }
+}
+
+//----------------------------------------------------------------------------------------
+// Turnout commands. The base station will send them as an LCS message to the 
+// defined turnout.
+// 
+//  <T>             - request a list of trunouts, the list is a series of 
+//                    "<H id state>" strings.
+//
+//  <T id state>    - set a turnout. State can be "0, 1, O, C, X".
+//
+//
+// ??? it is becoming awkward to handle these options with sccanf...
+//----------------------------------------------------------------------------------------
+void LcsBaseStationCommand::handleTCmd( char *s ) {
+
+    uint16_t turnoutId  = 0;
+    uint8_t  state      = 0;
+
+    if ( sscanf( s, "%hu %hhu", &turnoutId, &state ) < 2 ) return;
+
+    printf( "<X>" ); // ??? for now ...
+}
+
+
+
+
+
+
+
 
 //----------------------------------------------------------------------------------------
 // "printStatusCmd" list information about the base station. Using just a "s" for
@@ -723,7 +985,7 @@ void LcsBaseStationCommand::printTrackStatusProg( ) {
 //    returns: <a current>, the actual power consumption in milliAmps.
 //
 //----------------------------------------------------------------------------------------
-void LcsBaseStationCommand::printTrackCurrentCmd( char *s ) {
+void LcsBaseStationCommand::printTrackActualCurrentCmd( char *s ) {
 
     int opt = -1;
 
@@ -747,6 +1009,11 @@ void LcsBaseStationCommand::printTrackCurrentCmd( char *s ) {
     }
 
     printf( ">" );
+}
+
+void LcsBaseStationCommand::printTrackMaxCurrentCmd( char *s ) {
+
+
 }
 
 //----------------------------------------------------------------------------------------

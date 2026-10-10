@@ -73,8 +73,7 @@ const CdcResourceDescMap LCS_BASE_STATION_BOARD_DESC_B_01_00 = {
     // Controller configuration and common data.
     //
     //------------------------------------------------------------------------------------
-     .boardType      = CDC_BT_BASE_STATION, // fix ...
-   // .boardCtrlInfo  = CDC_CF_RP_PICO,
+    .boardType      = CDC_BT_BASE_STATION,
     .boardVersion   = (( 1U << 8 ) | 0 ),  
 
     //------------------------------------------------------------------------------------
