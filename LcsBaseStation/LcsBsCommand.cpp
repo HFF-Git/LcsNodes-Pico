@@ -1167,3 +1167,95 @@ void LcsBaseStationCommand::printHelpCmd( ) {
 
     printf( "\n" );
 }
+
+
+// ??? all this needs some cleanup. We should only do teh commands necessary
+// for out base station and perhaps the rocrail stuff.
+
+
+// ??? RASCII format of RocRail:
+
+// use RoRail Protocl Version 2 for Function Id 0 .. 28.
+
+// all bytes are two hex digits in ASCII.
+
+// "@" <len> <cmd/type> <payload> 
+
+// loco comand
+// "@" <len=nn> <cmd=01> <highAdr=nn> <lowAdr=00> <speed=nn> <dir=nn> 
+//                      <F0_F4> <F5_F12> <F13_F20> <F21_F28> ...
+// ( len=number of payload + cmd )
+// ( len depends on function map )
+// ( speed 0 -- 127, dir 0 or 1 )
+
+// track occupancy command
+// "@" <len=04> <cmd=05> <module=nnn> <port=nnn> <state=nn> 
+// ( only 255 modules, 255 port )#
+// ( 0 - free, 1 - occupied ) 
+
+// turnout command
+// "@" <len=05> <cmd=02> <highAdr=nn> <lowAdr=nn> <port=nn> <stata=nn>
+// ( adr is 16-bit address, port on address )(red)
+// ( state=0 is normal, state=1 is thrown )(green)
+
+#if 0
+
+void loop() { 
+    
+    // Überprüfe den spezifischen USB-Kanal deiner Base Station 
+    if (Serial1.available() > 0) { 
+        
+        char startChar = Serial1.read(); 
+        if (startChar == '@') { 
+            
+            // 1. Lese das Längen-Byte (2 Hex-Zeichen) 
+            while(Serial1.available() < 2); 
+            char lenStr[3] = { (char)Serial1.read(), (char)Serial1.read(), '\0' }; 
+            uint8_t dataLength = strtol(lenStr, NULL, 16); 
+            
+            // 2. Warte, bis die komplette Payload im Puffer ist 
+            // Jedes Byte besteht aus 2 Hex-Zeichen (z.B. Länge 06 = 12 Zeichen) 
+            while(Serial1.available() < (dataLength * 2)); 
+            uint8_t payloadBytes[32]; 
+            
+            // Buffer für die Binärdaten 
+            char hexPair[3] = {0, 0, 0}; 
+            for (int i = 0; i < dataLength; i++) { 
+
+                hexPair[0] = (char)Serial1.read(); 
+                hexPair[1] = (char)Serial1.read(); 
+                payloadBytes[i] = strtol(hexPair, NULL, 16); 
+            } 
+                
+            // 3. Auswertung des Befehlstyps 
+            uint8_t cmdType = payloadBytes[0]; 
+            if (cmdType == 0x01) { 
+                // LOK-BEFEHL 
+                uint16_t dccAddr = (payloadBytes[1] << 8) | payloadBytes[2]; 
+                uint8_t speed = payloadBytes[3]; 
+                uint8_t direction = payloadBytes[4];
+                
+                // Funktionen dynamisch auslesen, je nachdem wie lang die Nachricht ist 
+                uint8_t f0_f4 = (dataLength >= 6) ? payloadBytes[5] : 0; 
+                uint8_t f5_f12 = (dataLength >= 7) ? payloadBytes[6] : 0; 
+                uint8_t f13_f20 = (dataLength >= 8) ? payloadBytes[7] : 0; 
+                uint8_t f21_f28 = (dataLength>= 9) ? payloadBytes[8] : 0; 
+                
+                // JETZT: Generiere DCC-Pakete für das Gleis!
+                updateDccSignal(dccAddr, speed, direction, f0_f4, f5_f12, f13_f20, f21_f28); 
+            
+            } else if(cmdType == 0x02) { 
+                
+                // WEICHE / SIGNAL (An deinen CAN-Bus weiterleiten) 
+                uint16_taccessoryAddr = (payloadBytes[1] << 8) | payloadBytes[2]; 
+                uint8_t port = payloadBytes[3];
+                uint8_t state = payloadBytes[4]; 
+                sendToCanBus(accessoryAddr, port, state); 
+            } 
+        } 
+    } 
+}
+
+
+// ??? on Occ Detect Event send OccCDetect Command.
+#endif
