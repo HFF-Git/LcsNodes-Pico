@@ -23,6 +23,7 @@ if ( TARGET tinyusb_device )
         LcsBaseStation.h
         LcsBsCommand.cpp
         LcsBsMsgInterface.cpp 
+        LcsBsRocNetInterface.cpp
     )
 
     target_link_libraries( ${PROJECT_NAME} 

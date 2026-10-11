@@ -350,11 +350,16 @@ struct LcsLocoSessions {
     uint8_t             writeCVByte( uint16_t cvId, uint8_t val );
     uint8_t             writeCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val );
 
+    uint8_t             verifyCV( uint16_t cvId, uint8_t mode, uint8_t val );
+    uint8_t             verifyCVByte( uint16_t cvId, uint8_t val );
+    uint8_t             verifyCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val );
+
     uint8_t             markCabAlive( uint16_t cabId );
     uint8_t             refreshActiveSessions( );
 
     uint8_t             writeDccPacketMain( uint8_t *packet, uint8_t len );
-
+    uint8_t             writeDccPacketProg( uint8_t *packet, uint8_t len );
+    
     void                printCabMapHeader( );
     void                printActiveCabMap( );
     void                printCabInfo( LcsCabEntry *cePtr, bool detail = false );

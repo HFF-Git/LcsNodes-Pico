@@ -1167,7 +1167,48 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
 //
 //
 //----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::verifyCV( uint16_t cvId, uint8_t mode, uint8_t val ) {
+
+    if ( mode == 0 ) 
+        return ( verifyCVByte( cvId, val ));
+    else if ( mode == 1 )  
+        return ( verifyCVBit( cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
+    else                     
+        return ( ERR_INVALID_CV_MODE );
+}
+
+uint8_t LcsLocoSessions::verifyCVByte( uint16_t cvId, uint8_t val ) {
+
+    // ??? to do ...
+
+    return( LCS_OK );
+}
+
+uint8_t LcsLocoSessions::verifyCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val ) {
+
+    // ??? to do ...
+
+    return( LCS_OK );
+}
+
+
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeDccPacketMain( uint8_t *packet, uint8_t len ) {
+
+    // ??? to do ...
+
+    return( LCS_OK );
+}
+
+//----------------------------------------------------------------------------------------
+//
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::writeDccPacketProg( uint8_t *packet, uint8_t len ) {
 
     // ??? to do ...
 

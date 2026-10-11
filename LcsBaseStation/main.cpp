@@ -45,7 +45,6 @@ using namespace CDC;
 //----------------------------------------------------------------------------------------
 uint16_t                    debugMask;
 CdcResourceDescMap          dMap;
-LcsBaseStationCommand       serialCmd;
 LcsDccTrack                 *mainTrack;
 LcsDccTrack                 *progTrack;
 LcsLocoSessions             *locoSessions;
@@ -98,7 +97,7 @@ uint8_t lcsPfailCallback( uint16_t npId, void *uData ) {
 //----------------------------------------------------------------------------------------
 uint8_t lcsCmdCallback( char *cmdLine, void *uData ) {
 
-    serialCmd.handleSerialCommand( cmdLine );
+    handleSerialCommand( cmdLine );
     return( NO_ERR );
 }
 
@@ -284,9 +283,7 @@ uint8_t setupSerialCommand( ) {
 
   printf( "Setup Serial Command -> " );
 
-  uint8_t rStat = serialCmd.setupSerialCommand( locoSessions, 
-                                                 mainTrack, 
-                                                 progTrack );
+  uint8_t rStat = initSerialCommand(  );
   return ( printStatus( rStat ));
 }
 

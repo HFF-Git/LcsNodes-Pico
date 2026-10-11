@@ -71,6 +71,8 @@ enum BaseStationErrors : uint8_t {
 
     BASE_STATION_ERR_BASE             = ERR_USER_SPECIFIC_BASE,
 
+    ERR_BASE_STATION_CMD_INIT         = BASE_STATION_ERR_BASE + 1,
+
    
     ERR_LOCO_NOT_FOUND                = BASE_STATION_ERR_BASE + 4,
     ERR_SESSION_NOT_FOUND             = BASE_STATION_ERR_BASE + 5,
@@ -148,75 +150,5 @@ struct LcsBsMsgInterface {
 // which support the DCC++ style command interface.
 //
 //----------------------------------------------------------------------------------------
-struct LcsBaseStationCommand {
-
-    public:
-
-    LcsBaseStationCommand( );
-
-    uint8_t setupSerialCommand( LcsLocoSessions *locoSessions,
-                                LcsDccTrack     *mainTrack,
-                                LcsDccTrack     *progTrack );
-
-    void handleSerialCommand( char *s );
-
-    private:
-
-    void openSessionCmd( char *s );
-    void closeSessionCmd( char *s );
-
-    void setThrottleCmd( char *s );
-    void setFunctionBitCmd( char *s );
-    void setFunctionGroupCmd( char *s );
-    void emergencyStopCmd( );
-
-    void readCVCmd( char *s );
-    void writeCVByteCmd( char *s );
-    void writeCVBitCmd( char *s );
-    void writeCVByteMainCmd( char *s );
-    void writeCVBitMainCmd( char *s );
-
-    void writeDccPacketMainCmd( char *s );
-    void writeDccPacketProgCmd( char *s );
-
-    void turnPowerOnOffCmd( char *s );
-    void setTrackOptionCmd( char *s );
-
-    void handleDCmd( char *s );
-    void handleQCmd( char *s );
-    void handleSCmd( char *s );
-    void handleICmd( char *s );
-    void handleJCmd( char *s );
-    void handleTCmd( char *s );
-    void handleEQCmd( char * );
-    void handleSlashCmd( char *s );
-
-    void handleDccAccessoriesCmd( char *s );
-    
-
-    void printTrackActualCurrentCmd( char *s );
-    void printTrackMaxCurrentCmd( char *s );
-   
-
-
-
-
-
-    void printStatusCmd( char *s );
-   
-    void printBaseStationConfigCmd( );
-    void printHelpCmd( );
-    void printVersionInfo( );
-    void printConfiguration( );
-    void printSessionMap( );
-    void printTrackStatusMain( );
-    void printTrackStatusProg( );
-
-    void printDccLogCommand( char *s ); 
-
-    private:
-
-    LcsLocoSessions *locoSessions = nullptr;
-    LcsDccTrack     *mainTrack    = nullptr;
-    LcsDccTrack     *progTrack    = nullptr;
-};
+extern uint8_t initSerialCommand( );
+extern void    handleSerialCommand( char *s );

@@ -30,7 +30,7 @@
 #include <pico/stdio.h>
 #include <pico/stdlib.h>
 
-///---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // The local namespace contains the routines that actually produce most of the 
 // formatted string. The routines are all built with the "sprintf" function and 
 // return the numbers of characters generated in the passed line buffer.
@@ -40,8 +40,8 @@ namespace {
 
 ///---------------------------------------------------------------------------------------
 // A DCC packets is at least two bytes long. The maximum size is 12 bytes for an
-// XPOM packet. The NMRA folks currently set a maximum of 6 bytes though, which was 
-// the limit before XPOM support.
+// XPOM packet. The NMRA folks currently set a maximum of 6 bytes though, which 
+// was the limit before XPOM support.
 //
 ///---------------------------------------------------------------------------------------
 const uint8_t     MIN_DCC_PACKET_SIZE = 2;
@@ -50,8 +50,8 @@ const uint8_t     MAX_DCC_PACKET_SIZE = 12;
 ///---------------------------------------------------------------------------------------
 // The string buffer needs to be large enough to accommodate the string produced. 
 // A DCC packet can be up to 11 bytes long, including the checksum. We will just 
-// check that the buffer is large enough using the maximum sizes possible, although
-// the maximum size is rarely needed.
+// check that the buffer is large enough using the maximum sizes possible, 
+// although the maximum size is rarely needed.
 //
 //  HEX packet format:        11 * 5 chars + 3 = 58 chars
 //  BIN packet format:        11 * 9 chars + 3 = 102 chars
