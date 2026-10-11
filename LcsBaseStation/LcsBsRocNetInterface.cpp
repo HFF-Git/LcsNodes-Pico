@@ -13,6 +13,8 @@
 //
 //  "@" <len> <cmd/type> <payload> 
 //
+// ??? this a bit more complex. There are headers !!!!!!!
+//
 // The commands supported so far: 
 // 
 //  Loco command:
@@ -91,7 +93,7 @@ uint8_t initRocNetInterface( ) {
 //----------------------------------------------------------------------------------------
 //
 //
-//
+// ??? this a bit more complex. There are headers !!!!!!!
 //----------------------------------------------------------------------------------------
 uint8_t handleRocNetCommand( const char *msg ) {
 
