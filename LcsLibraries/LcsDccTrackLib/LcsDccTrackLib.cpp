@@ -656,7 +656,7 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 // The DCC tracks are initialized with a set of class routines. The create track
 // class routines create the track object and perform the setup. The creation 
-// status is recoreded in the error field of the the track object.
+// status is recorded in the error field of the the track object.
 //
 //----------------------------------------------------------------------------------------
 LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {

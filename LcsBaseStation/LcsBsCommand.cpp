@@ -12,7 +12,7 @@
 //
 // Note that only layout commands concerning track power and locomotive control
 // are implemented. In particular, DCC-EX commands to define and manage 
-// accessories such as turnouts and signalsare not implmented. For our layout 
+// accessories such as turnouts and signals are not implemented. For our layout 
 // control system, the approach would rather be to send LCS messages from a 
 // layout management application to the base station to control accessories. 
 //
@@ -37,8 +37,6 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
 
-using namespace LCS;
-
 //----------------------------------------------------------------------------------------
 // External global variables.
 //
@@ -57,6 +55,16 @@ extern LcsDccTrack      *progTrack;
 namespace {
 
 //----------------------------------------------------------------------------------------
+// "printVersionInfo" list out the Arduino type and software version of this program.
+//
+//----------------------------------------------------------------------------------------
+void printVersionInfo( ) {
+
+    printf( "<\nLCS Base Station / Version: tbd / %s %s >\n", 
+            __DATE__, __TIME__  );
+}
+
+//----------------------------------------------------------------------------------------
 // "turnPowerOnOff" enables/disables the main and/or the programming track.
 // The JOIN option will turn on the programming track if the main track is on. 
 // The JOIN option is ignored if the main track is off. The JOIN option is used
@@ -68,8 +76,8 @@ namespace {
 //
 // returns: < cmd arg >
 //
-// ??? the JOIN option controls the settinhg of the PROG track. It switches to 
-// MAIN mode. Any loco command, t or F, will reset th ePROG track back to 
+// ??? the JOIN option controls the setting of the PROG track. It switches to 
+// MAIN mode. Any loco command, t or F, will reset the PROG track back to 
 // service track mode. To do ...
 //
 //----------------------------------------------------------------------------------------
@@ -140,7 +148,7 @@ void turnPowerOnOffCmd( char *s ) {
 //    returns: NONE
 //
 // Note: this is not a DCC-EX command. I use it for my options. Perhaps one
-// day, we replace it by an atribute setting in the base station.
+// day, we replace it by an attribute setting in the base station.
 //
 //----------------------------------------------------------------------------------------
 void setTrackOptionCmd( char *s ) {
@@ -185,7 +193,7 @@ void setTrackOptionCmd( char *s ) {
 // DCC-EX states that as a result of any Loco Command this will be broadcasted.
 // What exactly is this broadcast good for?
 // 
-//    <l cab reg speedByte functMap>   
+//    <l cab reg speedByte functionMap>   
 //
 //----------------------------------------------------------------------------------------
 void setThrottleCmd( char *s ) {
@@ -212,7 +220,7 @@ void setThrottleCmd( char *s ) {
     }
     else if ( cabId == 0 ) {
 
-        // ??? communicatet a refresh ...
+        // ??? communicate a refresh ...
     }
 }
 
@@ -546,7 +554,7 @@ void writeCVBitCmd( char *s ) {
 //  <v cvId val>
 //
 //  cvId          -  the configuration variable ID, 1 ... 1024.
-//  val           -  the data data value to exepect.
+//  val           -  the data data value to expect.
 //
 //  returns: 
 //
@@ -669,8 +677,8 @@ void handleDCmd( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printDccLogCommandCommand" is the command to manage the DCC log for tracing
-// and debugging purposes.
+// "dccLogCommand" is the command to manage the DCC log for tracing and debugging
+// purposes.
 //
 //  <Y [ opt ]> where "opt" is the command to execute from the DCC Log function.
 //
@@ -697,7 +705,7 @@ void handleDCmd( char *s ) {
 // Note: this is not a DDC-EX command.
 //
 //----------------------------------------------------------------------------------------
-void printDccLogCommand( char *s ) {
+void dccLogCommand( char *s ) {
 
     int opt = -1;
 
@@ -737,111 +745,25 @@ void printDccLogCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printVersionInfo" list out the Arduino type and software version of this program.
-//
-//----------------------------------------------------------------------------------------
-void printVersionInfo( ) {
-
-    printf( "<\nLCS Base Station / Version: tbd / %s %s >\n", __DATE__, __TIME__  );
-}
-
-//----------------------------------------------------------------------------------------
-// "printConfiguration" lists out the key hardware and software settings. Also very
-// useful as the first trouble shooting task.
-//
-//----------------------------------------------------------------------------------------
-void printConfiguration( ) {
-
-    printVersionInfo( );
-    locoSessions -> printActiveCabMap( );
-    mainTrack -> printDccTrackConfig( );
-    progTrack -> printDccTrackConfig( );
-}
-
-//----------------------------------------------------------------------------------------
-// "printBaseStationConfigCmd" list information about the base in a DCC++ 
-// compatible way.
-//
-//    <S> - the basestation configuration.
-//
-//    returns:  series of status information that can be read by an interface 
-//              to determine status of the base station and important settings
-//
-//----------------------------------------------------------------------------------------
-void printBaseStationConfigCmd( ) {
-
-    printConfiguration( );
-}
-
-
-
-//----------------------------------------------------------------------------------------
-// "printSessionMap" list out the active session table content.
-//
-//----------------------------------------------------------------------------------------
-void printSessionMap( ) {
-
-    locoSessions -> printActiveCabMap( );
-}
-
-//----------------------------------------------------------------------------------------
-// "printTrackStatusMain" lists out the current MAIN track status
-//
-//----------------------------------------------------------------------------------------
-void printTrackStatusMain( ) {
-
-    mainTrack -> printDccTrackStatus( );
-}
-
-//----------------------------------------------------------------------------------------
-// "printTrackStatusProg" lists out the current PROG track status
-//
-//----------------------------------------------------------------------------------------
-void printTrackStatusProg( ) {
-
-    progTrack -> printDccTrackStatus( );
-}
-
-//----------------------------------------------------------------------------------------
 // "printTrackCurrentCmd" reads the actual current being drawn on the DCC main 
-// operations track.    
+// operations track. 
 //
-//    <a [ track ]>
+//    <c>
 //
-// where "track" == 0 or omitted is the MAIN track, "track" == 1 is the PROG track.
-//
-//    returns: <a current>, the actual power consumption in milliAmps.
-//
+//    returns:  <c "CurrentMAIN" current C "Milli" "0" max_ma "1" trip_ma>
+//              ( "CurrentMAIN" - text for software like JMRI )
+//              ( current - current in milliAmps )
+//              ( C - signifies this is a current meter )
+//              ( "0" - first parameter )
+//              ( max_ma - maximum current handling of the track )
+//              ( "1" - first parameter )
+//              ( trip_ma - over current value configured )
+//              
 //----------------------------------------------------------------------------------------
-void printTrackActualCurrentCmd( char *s ) {
+void currentOnTrackCmd( char *s ) {
 
-    int opt = -1;
-
-    sscanf( s, "%d", &opt );
-
-    printf( "<a " );
-
-    switch ( opt ) {
-
-        case 0: printf( "%d", mainTrack -> getActualCurrent( ));    break;
-        case 1: printf( "%d", progTrack -> getActualCurrent( ));    break;
-        case 2: printf( "%d %d", mainTrack -> getActualCurrent( ), 
-                        progTrack -> getActualCurrent( ));          break;
-
-        case 10: printf( "%d", mainTrack -> getRMSCurrent( ));      break;
-        case 11: printf( "%d", progTrack -> getRMSCurrent( ));      break;
-        case 12: printf( "%d %d", mainTrack -> getRMSCurrent( ), 
-                         progTrack -> getRMSCurrent( ));            break;
-
-        default: printf( "%d", mainTrack -> getRMSCurrent( ));
-    }
-
-    printf( ">" );
-}
-
-void printTrackMaxCurrentCmd( char *s ) {
-
-
+    printf( "CurrentMAIN %d C Milli 0 %d 1 %d>",
+            mainTrack -> getActualCurrent( ), 0, 0 );  // ??? fix ...
 }
 
 //----------------------------------------------------------------------------------------
@@ -865,24 +787,37 @@ void printStatusCmd( char *s ) {
 
         switch ( opt ) {
 
-            case 0: printVersionInfo( );      break;
-            case 1: printConfiguration( );    break;
+            case 1: {
+
+                printVersionInfo( );
+                locoSessions -> printActiveCabMap( );
+                mainTrack -> printDccTrackConfig( );
+                progTrack -> printDccTrackConfig( );
+            
+            } break;
            
-            case 3: printTrackStatusMain( );  break;
-            case 4: printTrackStatusProg( );  break;
+            case 2: { 
+                
+                mainTrack -> printDccTrackStatus( );  
+                
+            } break;
 
-            case 9: {
+            case 3: { 
+                
+                progTrack -> printDccTrackStatus( );  
+                
+            } break;
 
-                printConfiguration( );
-                printSessionMap( );
-                printTrackStatusMain( );
-                printTrackStatusProg( );
+            case 4: {
+
+                locoSessions -> printActiveCabMap( );
 
             } break;
 
             default: printVersionInfo( );
         }
-    } else printVersionInfo( );
+    } 
+    else printVersionInfo( );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1037,17 +972,14 @@ void handleSerialCommand( char *s ) {
                     case '0': turnPowerOnOffCmd( cmdStr + 1 ); break;
                     case '1': turnPowerOnOffCmd( cmdStr + 1); break;
                     case '!': emergencyStopCmd( ); break;
+                    case 'c': currentOnTrackCmd( cmdStr + 1 ); break;
 
                     case '?': printHelpCmd( ); break;
-
                     case 's': printStatusCmd( cmdStr + 1 ); break;
-                    case 'S': printBaseStationConfigCmd( ); break;
-                    case 'L': printSessionMap( ); break;
+                 
                     case 'C': setTrackOptionCmd( cmdStr + 1 ); break;
-                    case 'Y': printDccLogCommand( cmdStr + 1 ); break;
-                    case 'c': printTrackActualCurrentCmd( cmdStr + 1 ); break;   
-                    case '#': printTrackMaxCurrentCmd( cmdStr + 1 ); break;
-
+                    case 'Y': dccLogCommand( cmdStr + 1 ); break;
+                    
                     case ' ': printf( "\n" ); break;
 
                     default:  printf( "<Unknown command, use '?' for help>\n" );
@@ -1066,3 +998,19 @@ void handleSerialCommand( char *s ) {
         }
     }
 }
+
+//----------------------------------------------------------------------------------------
+// ??? "handleSerialCommand" implements the commands the base station command
+// interface supports. We stick to DCC-EX as best as we can. In addition there
+// needs to be a "handleDccEXCommand" routine that offers the DCC-EX commands
+// used by RocRail. The command set is a subset of the general commands of the 
+// base station plus some additional commands from the DCC-EX set to support.
+//
+// The command handler supports the same command sequences "<" ... ">" in one 
+// line which are processed once the carriage return is hit.
+
+void handleDccExCommands( char *s ) {
+
+
+}
+

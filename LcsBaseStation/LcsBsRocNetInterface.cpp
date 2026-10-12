@@ -4,7 +4,7 @@
 //
 //----------------------------------------------------------------------------------------
 // The base station supports a RocRail connection. There are quite a few options
-// what RocRail accepts as a base station. One popular one is DCC-EX commans. 
+// what RocRail accepts as a base station. One popular one is DCC-EX commands. 
 // Another one is the RocNet message format and its ASCCII cousin RASCII. This
 // file implements the latter. RocRail Protocol Version 2 is required. 
 //
@@ -25,7 +25,7 @@
 //      ( speed 0 -- 127, dir 0 or 1 )
 //
 // Turnout command:
-//      "@" <len=05> <cmd=02> <highAdr=nn> <lowAdr=nn> <port=nn> <stata=nn>
+//      "@" <len=05> <cmd=02> <highAdr=nn> <lowAdr=nn> <port=nn> <stat=nn>
 //      ( adr is 16-bit address, port on address )(red)
 //      ( state=0 is normal, state=1 is thrown )(green)
 //
@@ -57,8 +57,6 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
 
-using namespace LCS;
-
 //----------------------------------------------------------------------------------------
 // External global variables.
 //
@@ -76,9 +74,47 @@ extern LcsDccTrack      *progTrack;
 //----------------------------------------------------------------------------------------
 namespace {
 
+//----------------------------------------------------------------------------------------
+// A little helper, convert HEX ASCII to int.
+//
+//----------------------------------------------------------------------------------------
+int hexToBin( char c ) {
 
-
+    if (c >= '0' && c <= '9') return ( c - '0' );
+    if (c >= 'A' && c <= 'F') return ( c - 'A' + 10 );
+    if (c >= 'a' && c <= 'f') return ( c - 'a' + 10 );
+    return -1;
 }
+
+//----------------------------------------------------------------------------------------
+// RocNet messages start with a "@" followed by a series of bytes encoded as 
+// two ASCII hex numbers each. This routines returns a byte array of the message
+// and its length.
+// 
+//----------------------------------------------------------------------------------------
+uint8_t convertRocNetMsg( const char *msg, uint8_t *bMsg, size_t bLen ) {
+
+    if (( bMsg == nullptr ) || ( bMsg[ 0 ] != '@' )) return( -1 );
+    msg ++;
+
+    size_t count = 0;
+
+    while ( *msg != '\0' ) {
+
+        if (( msg[ 1 ] == '\0' ) || ( count >= bLen )) return( -1 );;
+
+        int hi = hexToBin(msg[ 0 ]);
+        int lo = hexToBin(msg[ 1 ]);
+        if (( hi < 0 ) || ( lo < 0 )) return( -1 );
+
+        bMsg[ count++ ] = static_cast<uint8_t>(( hi << 4 ) | lo );
+        msg += 2;
+    }
+
+    return( count );
+}
+
+} // namespace
 
 //----------------------------------------------------------------------------------------
 //
@@ -89,6 +125,31 @@ uint8_t initRocNetInterface( ) {
 
     return ( LCS_OK );
 }
+
+//----------------------------------------------------------------------------------------
+//
+//
+//
+//----------------------------------------------------------------------------------------
+void handleRocNetMsg( const char *msg  ) {
+
+    uint8_t rocNetMsg[ 128 ];
+    uint8_t msgLen;
+
+    msgLen = convertRocNetMsg( msg, rocNetMsg, sizeof( rocNetMsg ));
+
+    // ??? now we have the message. first 8 bytes are the header.
+    // rest is payload.
+
+
+
+   
+    return;
+}
+
+
+
+
 
 //----------------------------------------------------------------------------------------
 //

@@ -72,6 +72,7 @@ enum BaseStationErrors : uint8_t {
     BASE_STATION_ERR_BASE             = ERR_USER_SPECIFIC_BASE,
 
     ERR_BASE_STATION_CMD_INIT         = BASE_STATION_ERR_BASE + 1,
+    ERR_BASE_STATION_MSG_INIT         = BASE_STATION_ERR_BASE + 2,
 
    
     ERR_LOCO_NOT_FOUND                = BASE_STATION_ERR_BASE + 4,
@@ -116,39 +117,11 @@ enum BaseStationItems : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// One of the key duties of the base station is to listen and react to DCC commands
-// coming via the LCS bus. The interface works very closely with the loco session 
-// management and the two DCC track objects.
+// 
 //
 //----------------------------------------------------------------------------------------
-struct LcsBsMsgInterface {
+extern uint8_t  initSerialCommand( );
+extern void     handleSerialCommand( char *s );
 
-    public:
-
-    LcsBsMsgInterface( );
-
-    uint8_t setupLcsMsgInterface( LcsLocoSessions  *locoSessions,
-                                  LcsDccTrack      *mainTrack,
-                                  LcsDccTrack      *progTrack
-                                );
-
-    void handleLcsMsg( uint8_t *msg );
-
-    private:
-
-    LcsLocoSessions  *locoSessions   = nullptr;
-    LcsDccTrack      *mainTrack      = nullptr;
-    LcsDccTrack      *progTrack      = nullptr;
-
-};
-
-//----------------------------------------------------------------------------------------
-// The base station implements a serial IO command interface. The command interface
-// uses the classic DCC++ syntax ( updated according to the DCC-EX syntax ) of a 
-// command line and where it is a original DCC++ command it implements them in a 
-// compatible way. The idea is to one day connect to the programs of the JMRI world,
-// which support the DCC++ style command interface.
-//
-//----------------------------------------------------------------------------------------
-extern uint8_t initSerialCommand( );
-extern void    handleSerialCommand( char *s );
+extern uint8_t  initLcsMsgInterface( );
+extern void     handleLcsMsg( uint8_t *msg );

@@ -48,7 +48,6 @@ CdcResourceDescMap          dMap;
 LcsDccTrack                 *mainTrack;
 LcsDccTrack                 *progTrack;
 LcsLocoSessions             *locoSessions;
-LcsBsMsgInterface           msgInterface;
 
 //----------------------------------------------------------------------------------------
 // Some little helper functions.
@@ -297,9 +296,7 @@ uint8_t setupMsgInterface( ) {
 
   printf( "Setup LCS Msg Interface -> " );
 
-  uint8_t rStat = msgInterface.setupLcsMsgInterface( locoSessions, 
-                                                     mainTrack, 
-                                                     progTrack );
+  uint8_t rStat = initLcsMsgInterface( );
   return ( printStatus( rStat ));
 }
 

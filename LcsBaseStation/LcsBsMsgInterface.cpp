@@ -25,16 +25,13 @@
 #include "LcsBaseStation.h"
 
 //----------------------------------------------------------------------------------------
-// Namespaces.
-//
-//----------------------------------------------------------------------------------------
-using namespace LCS;
-
-//----------------------------------------------------------------------------------------
 // External global variables.
 //
 //----------------------------------------------------------------------------------------
 extern uint16_t debugMask;
+extern LcsLocoSessions  *locoSessions;
+extern LcsDccTrack      *mainTrack;
+extern LcsDccTrack      *progTrack; 
 
 //----------------------------------------------------------------------------------------
 // The base station message interface local declarations.
@@ -90,46 +87,20 @@ void printLcsMsg( uint8_t *msg ) {
 
 }; // namespace
 
-//========================================================================================
-//========================================================================================
-//
-// Object part.
-//
-//========================================================================================
-//========================================================================================
 
 //----------------------------------------------------------------------------------------
-//  The object constructor. Nothing really to do right now.
+// "initLcsMsgInterface" initializes the LCS message interface. Right now, we only 
+// make sure that session and track objects have been created.
 //
 //----------------------------------------------------------------------------------------
-LcsBsMsgInterface::LcsBsMsgInterface( ) { }
+uint8_t initLcsMsgInterface( ) {
 
-//----------------------------------------------------------------------------------------
-// Set up the base station LCS message interface. We store away the coreLib, 
-// locoSession and the two DCC track object references.
-//
-//----------------------------------------------------------------------------------------
-uint8_t LcsBsMsgInterface::setupLcsMsgInterface(
-
-    LcsLocoSessions  *locoSessions,
-    LcsDccTrack      *mainTrack,
-    LcsDccTrack      *progTrack
-
-    ) {
-
-    if (( locoSessions == nullptr ) || 
-        ( mainTrack    == nullptr )  || 
-        ( progTrack    == nullptr )) {
-
-        return ( ERR_MSG_INTERFACE_SETUP );
-    } 
-
-    this -> locoSessions  = locoSessions;
-    this -> mainTrack     = mainTrack;
-    this -> progTrack     = progTrack;
+    if (( locoSessions == nullptr ) ||
+        ( mainTrack    == nullptr ) ||
+        ( progTrack    == nullptr )) return( ERR_BASE_STATION_MSG_INIT );
 
     return ( LCS_OK );
-} 
+}
 
 //----------------------------------------------------------------------------------------
 // "handleLcsMsg" is the registered message handler for the LCS core library to 
@@ -137,7 +108,7 @@ uint8_t LcsBsMsgInterface::setupLcsMsgInterface(
 // big switch statement.
 //
 //----------------------------------------------------------------------------------------
-void LcsBsMsgInterface::handleLcsMsg( uint8_t *msg ) {
+void handleLcsMsg( uint8_t *msg ) {
 
     if ( msgDebugEnabled( )) {
 
