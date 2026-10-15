@@ -148,11 +148,14 @@ extern "C" {
 // Common constants.
 // 
 //----------------------------------------------------------------------------------------
-const int       MAX_RES_DESC_ENTRIES    = 64;
-const int       MAX_RES_NAME_SIZE       = 64;
-const uint8_t   UNDEFINED_RES_ID        = 255;
-const uint8_t   UNDEFINED_PIN           = 255;
-const uint8_t   ILLEGAL_PIN             = 254;
+constexpr int       MAX_RES_DESC_ENTRIES    = 64;
+constexpr int       MAX_RES_NAME_SIZE       = 64;
+constexpr uint8_t   UNDEFINED_RES_ID        = 255;
+constexpr uint8_t   UNDEFINED_PIN           = 255;
+constexpr uint8_t   ILLEGAL_PIN             = 254;
+
+constexpr uint8_t   CDC_USB_CONSOLE         = 0;
+constexpr uint8_t   CDC_USB_COMMAND         = 1;
 
 //----------------------------------------------------------------------------------------
 // The defined board types. When the runtime is initialized, the firmware will 

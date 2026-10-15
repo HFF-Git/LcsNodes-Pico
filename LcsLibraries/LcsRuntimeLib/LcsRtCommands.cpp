@@ -65,6 +65,18 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------  
 char commandBuf [ MAX_COMMAND_LINE_SIZE ];
 
+constexpr char COMMAND_SEPARATOR = ';';
+
+struct CommandLine {
+
+    char   buf[MAX_COMMAND_LINE_SIZE];
+    size_t len      = 0;
+    bool   escaped  = false;
+};
+
+CommandLine consoleLine;
+CommandLine remoteLine;
+
 //----------------------------------------------------------------------------------------
 // We can dump memory or NVM content. The routines to list the data are very
 // similar. We print a line of up to n items and several lines of all zeroes
@@ -1087,6 +1099,22 @@ uint8_t setupSerialCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Console prompt for the console IO. We show in which mode we are.
+// 
+//----------------------------------------------------------------------------------------
+void printConsolePrompt( ) {
+
+    if ( nodeMap.nodeState == NS_CONFIG )  
+        usbIoPrintf( CDC_USB_CONSOLE, "(C)->" );
+
+    else if ( nodeMap.nodeState == NS_OPERATE ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "(O)->" );
+    
+    else                                        
+        usbIoPrintf( CDC_USB_CONSOLE, "->") ;
+}
+
+//----------------------------------------------------------------------------------------
 // "executeCommand" is the command handler. We decode the first character and 
 // pass the rest of the command string to the actual handler routine. An unknown
 // command is passed to the user callback if it is defined. Otherwise we print
@@ -1126,43 +1154,12 @@ static void executeCommand( char *commandBuf ) {
     }
 }
 
-
-
-// ??? new approach....
-
-
-// ??? need a way to handle two USB channels with similar logic...
-// ??? channel 0 is always the console channel. We have modest editing
-// capabilities and a prompt.
-
-// ??? channel 1 should should just collect all characters up to the return
-// and then invoke a callback.
-
-
-constexpr uint8_t CDC_CONSOLE = 0;
-constexpr uint8_t CDC_COMMAND = 1;
-constexpr char COMMAND_SEPARATOR = ';';
-
-struct CommandLine {
-    char   buf[MAX_COMMAND_LINE_SIZE];
-    size_t len = 0;
-    bool   escaped = false;
-};
-
-CommandLine consoleLine;
-CommandLine remoteLine;
-
+#if 0
 
 //----------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------
-void printConsolePrompt( ) {
-
-    if      ( nodeMap.nodeState == NS_CONFIG )  usbIoPrintf(CDC_CONSOLE, "(C)->");
-    else if ( nodeMap.nodeState == NS_OPERATE ) usbIoPrintf(CDC_CONSOLE, "(O)->");
-    else                                        usbIoPrintf(CDC_CONSOLE, "->");
-}
-
-//----------------------------------------------------------------------------------------
+// Add the new character to the command line. If it is the escape character,
+// we remember that for the next character to read in.
+//
 //----------------------------------------------------------------------------------------
 bool appendCommandChar( CommandLine& line, char c ) {
     
@@ -1205,21 +1202,25 @@ bool appendCommandChar( CommandLine& line, char c ) {
 }
 
 //----------------------------------------------------------------------------------------
+// Execute the command line input. We got a complete command line. Multiple 
+// commands, each terminated by a CR could be in this line. We allow for a
+// command list, separated by "/".
+//
 //----------------------------------------------------------------------------------------
 void executeCommandLine( char *line ) {
 
-    char *p = line;
+    char *p     = line;
     char *start = p;
 
-    while ( *p ) {
+    while ( *p != '\0' ) {
 
-        if (( *p == '/' ) &&
-            (( p == line ) || ( p[-1] != '\\' ))) {
+        if (( *p == COMMAND_SEPARATOR ) && 
+            (( p == line ) || ( p[ -1 ] != '\\' ))) {
 
             *p = '\0';
 
-            char *cmd = skipSpaces(start);
-            if ( *cmd ) executeCommand(cmd);
+            char *cmd = skipSpaces( start );
+            if ( *cmd ) executeCommand( cmd );
 
             start = p + 1;
         }
@@ -1227,11 +1228,15 @@ void executeCommandLine( char *line ) {
         ++p;
     }
 
-    char *cmd = skipSpaces(start);
-    if ( *cmd ) executeCommand(cmd);
+    char *cmd = skipSpaces( start );
+    if ( *cmd ) executeCommand( cmd );
 }
 
 //----------------------------------------------------------------------------------------
+// "handleConsoleCommand" assembles a command line for the console channel.
+// Being an interactive channel, we allow for a little luxury and handle a
+// backspace.
+//
 //----------------------------------------------------------------------------------------
 void handleConsoleCommand( ) {
     
@@ -1239,14 +1244,16 @@ void handleConsoleCommand( ) {
 
     while (( c = usbIoGetChar( CDC_CONSOLE )) > 0 ) {
 
+        printf("char got: %d (0x%02x)\n", (int)c, (unsigned char)c);
+
         switch ( c ) {
 
             case '\b': {
 
-                if (consoleLine.len > 0) {
+                if ( consoleLine.len > 0 ) {
 
-                    --consoleLine.len;
-                    consoleLine.buf[consoleLine.len] = '\0';
+                    consoleLine.len --;
+                    consoleLine.buf[ consoleLine.len ] = '\0';
                     usbIoPrintf( CDC_CONSOLE, "\b \b");
                 }
 
@@ -1258,13 +1265,13 @@ void handleConsoleCommand( ) {
 
                 usbIoPrintf( CDC_CONSOLE, "\n");
 
-                executeCommandLine(consoleLine.buf);
+              //  executeCommandLine(consoleLine.buf);
 
                 consoleLine.len = 0;
                 consoleLine.buf[0] = '\0';
                 consoleLine.escaped = false;
 
-                printConsolePrompt();
+                printConsolePrompt( );
             
             } break;
 
@@ -1285,7 +1292,13 @@ void handleConsoleCommand( ) {
     }
 }
 
+#else
+
 //----------------------------------------------------------------------------------------
+// "handleCommandInput" manages the other command input channel. This channel
+// is not interactive and hence is a bit easier. It follows however the same
+// character assembly logic.
+// 
 //----------------------------------------------------------------------------------------
 void handleCommandInput( ) {
     
@@ -1295,26 +1308,27 @@ void handleCommandInput( ) {
 
         if ( c == '\r' ) {
 
-            executeCommandLine( remoteLine.buf );
+            //  executeCommandLine( remoteLine.buf );
+            // ??? for testing...
+            usbIoPrintf( CDC_COMMAND, "%s\n", remoteLine.buf );
 
-            remoteLine.len = 0;
-            remoteLine.buf[0] = '\0';
-            remoteLine.escaped = false;
+            remoteLine.len      = 0;
+            remoteLine.buf[ 0 ] = '\0';
+            remoteLine.escaped  = false;
 
             continue;
         }
 
         if (remoteLine.len < MAX_COMMAND_LINE_SIZE - 1) {
 
-            remoteLine.buf[remoteLine.len++] = c;
-            remoteLine.buf[remoteLine.len] = '\0';
+            remoteLine.buf[ remoteLine.len++ ] = c;
+            remoteLine.buf[ remoteLine.len ] = '\0';
         }
 
         remoteLine.escaped = false;
     }
 }
 
-// ??? just  call the two handlers...
 //----------------------------------------------------------------------------------------
 // "handleSerialCommand" reads commands from the console. It is a simple command
 // executor with simple syntax, originally used on the DCC++ world. Note that 
@@ -1329,7 +1343,7 @@ void handleCommandInput( ) {
 // character.
 //
 //----------------------------------------------------------------------------------------
-uint8_t handleSerialCommand( void ) {
+uint8_t handleConsoleCommand( void ) {
 
     char c;
     bool escaped = false;
@@ -1355,8 +1369,8 @@ uint8_t handleSerialCommand( void ) {
             case '\b': {
 
                 escaped = false;
-                printf("\b \b");
-                size_t len = strlen(commandBuf);
+                usbIoPrintf( 0, "\b \b");
+                size_t len = strlen( commandBuf );
                 if ( len > 0 ) commandBuf[len - 1] = '\0';
             
             } break;
@@ -1364,7 +1378,7 @@ uint8_t handleSerialCommand( void ) {
             case '\r': {
 
                 escaped = false;
-                printf( "\n" );
+                usbIoPrintf( 0, "\n" );
 
                 char *p = commandBuf;
                 char *start = p;
@@ -1387,10 +1401,7 @@ uint8_t handleSerialCommand( void ) {
                 if ( *cmd ) executeCommand( cmd) ;
 
                 commandBuf[0] = '\0';
-
-                if      (nodeMap.nodeState == NS_CONFIG)  printf( "(C)->" );
-                else if (nodeMap.nodeState == NS_OPERATE) printf( "(O)->" );
-                else                                      printf( "->" );
+                printConsolePrompt( );
 
             } break;
 
@@ -1404,7 +1415,7 @@ uint8_t handleSerialCommand( void ) {
 
         if ( append ) {
 
-            printf( "%c", c );
+            usbIoPrintf( 0, "%c", c );
             size_t len = strlen( commandBuf );
 
             if ( len < MAX_COMMAND_LINE_SIZE - 1 ) {
@@ -1418,5 +1429,6 @@ uint8_t handleSerialCommand( void ) {
     return ( LCS_OK );
 }
 
+#endif
 
 }; // namespace LCS

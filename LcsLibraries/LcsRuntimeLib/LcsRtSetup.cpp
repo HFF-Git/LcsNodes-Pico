@@ -365,8 +365,8 @@ uint8_t initCdcLayer( ) {
 
         while ( usbIoGetChar( 0 ) == 0 ) { }
 
-        printf( "Runtime start, type '?' for help\n" );
-        printf( "=>" );
+        usbIoPrintf( 0, "Runtime start, type '?' for help\n" );
+        usbIoPrintf( 0, "=>" );
 
         while ( true ) {
 
@@ -374,21 +374,21 @@ uint8_t initCdcLayer( ) {
 
             if (( ch == 'R' ) || ( ch == 'r' )) {
 
-                printf( "Starting - normal mode\n" );
+               usbIoPrintf( 0, "Starting - normal mode\n" );
 
                 debugMask &= ~LCS_DBG_ENABLE;
                 return ( RET_STAT( LCS_OK ));
             }
             else if (( ch == 'D' ) || ( ch == 'd' )) {
 
-                printf( "Starting - debug mode\n" );
+                usbIoPrintf( 0, "Starting - debug mode\n" );
 
                 debugMask |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 return ( RET_STAT( LCS_OK ));
             } 
             else if (( ch == 'F' ) || ( ch == 'f' )) {
 
-                printf( "Starting - format mode\n" );
+                usbIoPrintf( 0, "Starting - format mode\n" );
 
                 debugMask    |= LCS_DBG_ENABLE | LCS_DBG_SETUP | LCS_DBG_NVM_ACCESS;
                 runtimeOptions |= NPO_FORMAT_RUNTIME;
@@ -396,20 +396,20 @@ uint8_t initCdcLayer( ) {
             } 
             else if ( ch == '?' ) {
 
-                printf( "Setup options:\n" );
-                printf( "r, R -> start with debug initially disabled\n" );
-                printf( "d, D -> start with \"setup\" debug options enabled\n" );
-                printf( "f, F -> start with a newly formatted runtime map\n" );
-                printf( "=>" );
+                usbIoPrintf( 0, "Setup options:\n" );
+                usbIoPrintf( 0, "r, R -> start with debug initially disabled\n" );
+                usbIoPrintf( 0, "d, D -> start with \"setup\" debug options enabled\n" );
+                usbIoPrintf( 0, "f, F -> start with a newly formatted runtime map\n" );
+                usbIoPrintf( 0, "=>" );
             } 
             else if ( ch == '\r' ) {
                 
-                printf( "\n=>" );
+                usbIoPrintf( 0, "\n=>" );
             }
             else if ( ch != 0 ) {
 
-                printf( "Invalid command, use help\n" );
-                printf( "=>" );
+                usbIoPrintf( 0, "Invalid command, use help\n" );
+                usbIoPrintf( 0, "=>" );
             }
         }
     }
