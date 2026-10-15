@@ -64,18 +64,9 @@ using namespace LCS;
 //
 //----------------------------------------------------------------------------------------  
 char commandBuf [ MAX_COMMAND_LINE_SIZE ];
+char remoteCmdBuf [ MAX_COMMAND_LINE_SIZE ];
 
 constexpr char COMMAND_SEPARATOR = ';';
-
-struct CommandLine {
-
-    char   buf[MAX_COMMAND_LINE_SIZE];
-    size_t len      = 0;
-    bool   escaped  = false;
-};
-
-CommandLine consoleLine;
-CommandLine remoteLine;
 
 //----------------------------------------------------------------------------------------
 // We can dump memory or NVM content. The routines to list the data are very
@@ -1127,7 +1118,7 @@ static void executeCommand( char *commandBuf ) {
 
     if ( *cmd == '\0' ) return;
 
-    switch ( cmd[0] ) {
+    switch ( cmd[ 0 ] ) {
 
         case 'C': switchToConfigCommand(cmd + 1);     break;
         case 'O': switchToOperationsCommand(cmd + 1); break;
@@ -1144,7 +1135,7 @@ static void executeCommand( char *commandBuf ) {
 
         default: {
     
-            if (nodeMap.cmdLineCallback != nullptr) {
+            if ( nodeMap.cmdLineCallback != nullptr ) {
 
                 nodeMap.cmdLineCallback( cmd, nodeMap.cmdLineCallBackUdata );
             } 
@@ -1154,57 +1145,10 @@ static void executeCommand( char *commandBuf ) {
     }
 }
 
-#if 0
-
-//----------------------------------------------------------------------------------------
-// Add the new character to the command line. If it is the escape character,
-// we remember that for the next character to read in.
-//
-//----------------------------------------------------------------------------------------
-bool appendCommandChar( CommandLine& line, char c ) {
-    
-    switch ( c ) {
-
-        case '\\': {
-
-            if ( line.escaped ) {
-
-                line.escaped = false;
-                break;
-            }
-
-            line.escaped = true;
-            return ( false );
-        
-        } break;
-
-        case '\r': { 
-
-            line.escaped = false;    
-            return ( true );
-        
-        } break;
-
-        default: {
-
-            line.escaped = false;
-
-        } break;
-    }
-
-    if ( line.len < MAX_COMMAND_LINE_SIZE - 1 ) {
-
-        line.buf[ line.len++ ] = c;
-        line.buf[ line.len ]   = '\0';
-    }
-
-    return ( false );
-}
-
 //----------------------------------------------------------------------------------------
 // Execute the command line input. We got a complete command line. Multiple 
 // commands, each terminated by a CR could be in this line. We allow for a
-// command list, separated by "/".
+// command list, separated by "/". This routine passed each command separately.
 //
 //----------------------------------------------------------------------------------------
 void executeCommandLine( char *line ) {
@@ -1233,110 +1177,49 @@ void executeCommandLine( char *line ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleConsoleCommand" assembles a command line for the console channel.
-// Being an interactive channel, we allow for a little luxury and handle a
-// backspace.
-//
-//----------------------------------------------------------------------------------------
-void handleConsoleCommand( ) {
-    
-    char c;
-
-    while (( c = usbIoGetChar( CDC_CONSOLE )) > 0 ) {
-
-        printf("char got: %d (0x%02x)\n", (int)c, (unsigned char)c);
-
-        switch ( c ) {
-
-            case '\b': {
-
-                if ( consoleLine.len > 0 ) {
-
-                    consoleLine.len --;
-                    consoleLine.buf[ consoleLine.len ] = '\0';
-                    usbIoPrintf( CDC_CONSOLE, "\b \b");
-                }
-
-                consoleLine.escaped = false;
-            
-            } break;
-
-            case '\r': {
-
-                usbIoPrintf( CDC_CONSOLE, "\n");
-
-              //  executeCommandLine(consoleLine.buf);
-
-                consoleLine.len = 0;
-                consoleLine.buf[0] = '\0';
-                consoleLine.escaped = false;
-
-                printConsolePrompt( );
-            
-            } break;
-
-            default: {
-
-                if ( consoleLine.len < MAX_COMMAND_LINE_SIZE - 1 ) {
-
-                    consoleLine.buf[consoleLine.len++] = c;
-                    consoleLine.buf[consoleLine.len] = '\0';
-
-                    usbIoPrintf( CDC_CONSOLE, "%c", c);
-                }
-
-                consoleLine.escaped = false;
-            
-            } break;
-        }
-    }
-}
-
-#else
-
-//----------------------------------------------------------------------------------------
-// "handleCommandInput" manages the other command input channel. This channel
-// is not interactive and hence is a bit easier. It follows however the same
-// character assembly logic.
+// "handleCommandInput" manages the remote command input channel. This channel
+// is not interactive and hence is a bit simpler. We just accumulate all input
+// characters until CR, and pass it to the callback, if registered.
 // 
 //----------------------------------------------------------------------------------------
 void handleCommandInput( ) {
     
     char c;
 
-    while (( c = usbIoGetChar( CDC_COMMAND )) > 0 ) {
+    while (( c = usbIoGetChar( CDC_USB_COMMAND )) > 0 ) {
 
         if ( c == '\r' ) {
 
-            //  executeCommandLine( remoteLine.buf );
-            // ??? for testing...
-            usbIoPrintf( CDC_COMMAND, "%s\n", remoteLine.buf );
+            usbIoPrintf( CDC_USB_COMMAND, "%s\n", remoteCmdBuf ); // ??? test ...
 
-            remoteLine.len      = 0;
-            remoteLine.buf[ 0 ] = '\0';
-            remoteLine.escaped  = false;
+            if ( nodeMap.cmdLineCallback != nullptr ) {
 
-            continue;
+                // invoke command callback ....
+            }
+
+            remoteCmdBuf[ 0 ] = '\0';
         }
+        else {
 
-        if (remoteLine.len < MAX_COMMAND_LINE_SIZE - 1) {
+            size_t len = strlen( remoteCmdBuf );
 
-            remoteLine.buf[ remoteLine.len++ ] = c;
-            remoteLine.buf[ remoteLine.len ] = '\0';
+            if ( len < MAX_COMMAND_LINE_SIZE - 1 ) {
+
+                remoteCmdBuf[ len ] = c;
+                remoteCmdBuf[ len + 1 ] = '\0';
+            }
         }
-
-        remoteLine.escaped = false;
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "handleSerialCommand" reads commands from the console. It is a simple command
-// executor with simple syntax, originally used on the DCC++ world. Note that 
-// this routine is called as part of the runtime loop. Consequently, it cannot
-// not block for IO. The interface is designed in a way that it assembles the 
-// character input when there are characters until a carriage return is received. 
+// "handleConsoleCommand" reads commands from the console input channel. It is 
+// a simple command executor with simple syntax. Note that this routine is called
+// as part of the runtime loop. Consequently, it cannot not block for IO. The 
+// interface is designed in a way that it assembles the character input when 
+// there are characters until a carriage return is received. 
 // A command line can optionally consist of multiple commands separated by a 
-// "/" character.
+// ";" character.
 //
 // Since we are pretty basic on a character by character basis, we add a bit
 // of luxury and echo back what was typed and also process the backspace 
@@ -1398,7 +1281,7 @@ uint8_t handleConsoleCommand( void ) {
                 }
 
                 char *cmd = skipSpaces( start );
-                if ( *cmd ) executeCommand( cmd) ;
+                if ( *cmd ) executeCommandLine( cmd) ;
 
                 commandBuf[0] = '\0';
                 printConsolePrompt( );
@@ -1420,15 +1303,13 @@ uint8_t handleConsoleCommand( void ) {
 
             if ( len < MAX_COMMAND_LINE_SIZE - 1 ) {
      
-                commandBuf[len]     = c;
-                commandBuf[len + 1] = '\0';
+                commandBuf[ len ]     = c;
+                commandBuf[ len + 1 ] = '\0';
             }
         }
     }
 
     return ( LCS_OK );
 }
-
-#endif
 
 }; // namespace LCS
