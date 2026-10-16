@@ -715,7 +715,7 @@ extern "C" {
     typedef uint8_t ( *LcsInitCallback ) ( uint16_t npId, void *uData );
     typedef uint8_t ( *LcsPfailCallback ) ( uint16_t npId, void *uData );
     typedef uint8_t ( *LcsMsgCallback ) ( uint8_t *msg, void *uData );
-    typedef uint8_t ( *LcsCmdCallback ) ( char *cmdLine, void *uData );
+    typedef uint8_t ( *LcsCmdCallback ) ( uint8_t chan, char *cmdLine, void *uData );
     typedef uint8_t ( *LcsTaskCallback ) ( void *uData );
 
     typedef uint8_t ( *LcsEventCallback ) ( uint16_t npId, 

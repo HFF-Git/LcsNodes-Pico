@@ -126,9 +126,6 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( canBusDebugEnabled( )) {
 
-       // if ( errId == LCS_OK )  printf( "%s: OK\n", name )
-       //  else                    printf( "%s: %d\n", name, errId );
-
        if (( errId != LCS_OK ) && ( errId != ERR_CAN_MSG_NO_MSG )) 
             printf( "%s: %d\n", name, errId );
     }
@@ -173,11 +170,11 @@ void CanBusPIOIrqHandler( ) {
 // callback allows to react to a message sent, a message received and an internal 
 // buffer overflow error.
 //
-// The callback could be used to filter messages at this stage. Only messages that 
-// concern this node should be processed. Easy said, but perhaps no so easy to do. 
-// We can basically to filtering at the higher message bus level or at the lower 
-// layers. The benefit for doing it here is that when we run at the other core, the 
-// main core is relieved even further. To think about one day.
+// The callback could be used to filter messages at this stage. Only messages 
+// that concern this node should be processed. Easy said, but perhaps no so easy
+// to do. We can basically to filtering at the higher message bus level or at the
+// lower layers. The benefit for doing it here is that when we run at the other
+// core, the main core is relieved even further. To think about one day.
 // 
 // ??? idea: we could group the LCS messages in a way that we can filter out.
 //
@@ -187,6 +184,7 @@ void CanBusPIOIrqHandler( ) {
 //  GET/PUT - foreign node data access are filtered.
 //  REQ - foreign node request is filtered.
 // ...
+//
 //----------------------------------------------------------------------------------------
 void canBusEventCallback( struct can2040 *cd, 
                           uint32_t notify, 
@@ -213,12 +211,12 @@ void canBusEventCallback( struct can2040 *cd,
 }
 
 //----------------------------------------------------------------------------------------
-// "canBusCore" is the routine that encapsulates the can2040 setup and launch work. 
-// For the multi-core version it needs to be a routine that can be called from the 
-// current core or be launched on the other core. The routine communicates the 
-// successful setup with a boolean flag in the configuration descriptor. Note that 
-// the setup routine must be a void procedure with no parameters. This is expected 
-// by the launch routine in the PICO C++ SDK.
+// "canBusCore" is the routine that encapsulates the can2040 setup and launch 
+// work. For the multi-core version it needs to be a routine that can be called
+// from the current core or be launched on the other core. We communicate the 
+// successful setup with a boolean flag in the configuration descriptor. Note 
+// that the setup routine must be a void procedure with no parameters. This is
+// expected by the launch routine in the PICO C++ SDK.
 //
 //----------------------------------------------------------------------------------------
 void canBusCore( ) {
@@ -324,8 +322,8 @@ void LcsMsgBusCAN::setNodeId( uint8_t nodeId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "sendLcsMsg" will send a data packet. We are passed the message buffer and the 
-// message priority. The message length is encoded in the first message byte, 
+// "sendLcsMsg" will send a data packet. We are passed the message buffer and 
+// the message priority. The message length is encoded in the first message byte, 
 // which represents the LCS message opCode as well as the length of the message. 
 //
 // There are two main cases. When the message is targeted to a remote node, we

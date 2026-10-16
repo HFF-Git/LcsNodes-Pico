@@ -29,7 +29,6 @@
 #include "LcsMainControllerBoardDesc.h"
 #include "LcsCdcLib.h"
 #include "LcsRuntimeLib.h"
-// #include "LcsDrvOccDetectLib.h"
 
 using namespace LCS;
 using namespace CDC;
@@ -57,7 +56,7 @@ uint8_t setupPinsForExtBoardTests( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Callbacks. All we do is to list their invocation.
+// Callbacks for testing runtime lib. All we do is to list their invocation.
 //
 //----------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
@@ -68,9 +67,15 @@ uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
     return( NO_ERR );
 }
 
-uint8_t lcsCmdCallback( char *cmdLine, void *uData  ) {
+uint8_t lcsCmdCallback( uint8_t chan, char *cmdLine, void *uData  ) {
 
-    printf( "Command Line Callback: %s\n", cmdLine );
+    if ( chan == CDC_USB_CONSOLE ) 
+        printf( "Console Command Callback: %s\n", cmdLine );
+     else if ( chan == CDC_USB_COMMAND ) 
+        printf( "Command Callback: %s\n", cmdLine );
+    else 
+        printf( "Cmd Callback, invalid channel: %d\n", chan );
+
     return( NO_ERR );
 }
 
@@ -169,19 +174,22 @@ uint8_t registerLcsCallbacks( ) {
 //----------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-    uint8_t rStat = initRuntime( &dMap, 
-                                 ( NPO_SKIP_NODE_ID_CONFIG | NPO_DISABLE_WATCHDOG ),
-                                 ( LCS_DBG_ENABLE 
-                                    | CDC_DBG_ENABLE 
-                                    | LCS_DBG_SETUP 
-                                    | LCS_DBG_ITEMS
-                                    | LCS_DBG_EVENTS
-                                    // | LCS_DBG_CAN_BUS
-                                    | LCS_DBG_MSG_BUS
-                                    // | LCS_DBG_NVM_ACCESS 
-                                    // | CDC_DBG_I2C 
-                                   
-                                 ));
+    uint16_t debugMask  = LCS_DBG_ENABLE;
+    uint16_t options    = NPO_NIL;
+
+    options     |= NPO_SKIP_NODE_ID_CONFIG;
+    options     |= NPO_DISABLE_WATCHDOG;
+
+    debugMask   |= CDC_DBG_ENABLE;
+    debugMask   |= LCS_DBG_SETUP;
+    debugMask   |= LCS_DBG_ITEMS;
+    debugMask   |= LCS_DBG_EVENTS;
+    debugMask   |= LCS_DBG_CAN_BUS;
+    debugMask   |= LCS_DBG_MSG_BUS;
+    debugMask   |= LCS_DBG_NVM_ACCESS;
+    debugMask   |= CDC_DBG_I2C;
+
+    uint8_t rStat = initRuntime( &dMap, options, debugMask );
 
     printf( "LCS Runtime Lib Test Program Setup ==============================\n" );
     return( rStat );
@@ -193,10 +201,10 @@ uint8_t initLcsRuntime( ) {
 // return.
 //
 //----------------------------------------------------------------------------------------
-void startLcsRuntime( ) {
+uint8_t startLcsRuntime( ) {
 
     printf( "LCS Runtime Lib Test Program Start Runtime ======================\n" );
-    startRuntime( );
+    return( startRuntime( ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -207,6 +215,6 @@ int main( ) {
 
     uint8_t rStat = initLcsRuntime( );
     if ( rStat == NO_ERR ) rStat = registerLcsCallbacks( );
-    if ( rStat == NO_ERR ) startLcsRuntime( );
+    if ( rStat == NO_ERR ) rStat = startLcsRuntime( );
     return( NO_ERR );
 }

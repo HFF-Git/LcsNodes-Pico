@@ -51,24 +51,20 @@ inline uint16_t roundupPow2( uint16_t value, uint16_t align ) {
     return (( value + align - 1 ) & ~( align - 1 ));
 }
 
-#if 0
-
-// ??? perhaps put some of the inline functions to the rLib.
 inline bool validNodeId ( uint16_t arg  ) {
 
-    return ( arg <= MAX_NODE_ID );
+    return ( arg <= 0x3FF );
 }
 
 inline bool validPortId ( uint16_t arg  ) {
 
-    return ( arg <= MAX_PORT_ID );
+    return ( arg <= 0x7 );
 }
 
 inline bool validChanId ( uint16_t arg  ) {
 
-    return ( arg <= MAX_CHAN_ID );
+    return ( arg <= 0x7 );
 }
-#endif
 
 inline uint16_t nodeId( uint16_t npId ) {
 

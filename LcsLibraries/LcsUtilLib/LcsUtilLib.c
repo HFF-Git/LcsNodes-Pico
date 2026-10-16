@@ -53,7 +53,8 @@ int lcsMsgStr( uint8_t *msg, uint8_t *buf, int bufLen ) {
 void printLcsMsg( uint8_t *msg ) {
 
     uint8_t msgStr[ 128 ];
-    printf( "%s\n", msgStr, sizeof( msgStr ));
+    int len = lcsMsgStr( msg, msgStr, sizeof ( msgStr ));
+    printf( "%s\n", msgStr );
 }
 
 

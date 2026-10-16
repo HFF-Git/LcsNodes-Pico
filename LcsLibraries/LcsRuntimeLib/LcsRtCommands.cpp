@@ -270,7 +270,7 @@ void dumpCore( const DumpContext *ctx,
                     printLineBuf( zeroRunStart, line, valid,
                                   itemsPerLine, printAscii );
 
-                    printf("...\n");
+                    printf( "...\n" );
 
                     uint32_t last =
                         zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
@@ -435,16 +435,14 @@ void dumpMemGlobalData( ) {
 
     printf( "MEM Global Data: ( Size: %d ) \n\n", globalDataMap.nvmSize );
 
-    if ( globalDataMap.map == nullptr ) {
+    if ( globalDataMap.map != nullptr ) {
 
-        printf( "Global data map pointer is null.\n" );
-        return;
-    }
-
-    dumpMemData((uint16_t *) globalDataMap.map, 
-                 globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
+        dumpMemData((uint16_t *) globalDataMap.map, 
+                    globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
     
-                 printf( "\n" );
+        printf( "\n" );
+    }
+    else printf( "Global data map pointer is null.\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1120,26 +1118,28 @@ static void executeCommand( char *commandBuf ) {
 
     switch ( cmd[ 0 ] ) {
 
-        case 'C': switchToConfigCommand(cmd + 1);     break;
-        case 'O': switchToOperationsCommand(cmd + 1); break;
+        case 'C': switchToConfigCommand( cmd + 1 );     break;
+        case 'O': switchToOperationsCommand( cmd + 1 ); break;
 
-        case 'g': getItemCommand(cmd + 1);            break;
-        case 'p': setItemCommand(cmd + 1);            break;
-        case 'r': reqItemCommand(cmd + 1);            break;
-        case 'e': sendEventCommand(cmd + 1);          break;
+        case 'g': getItemCommand( cmd + 1 );            break;
+        case 'p': setItemCommand( cmd + 1 );            break;
+        case 'r': reqItemCommand( cmd + 1 );            break;
+        case 'e': sendEventCommand( cmd + 1 );          break;
 
-        case 'B': broadcastLcsMsgCommand(cmd + 1);    break;
+        case 'B': broadcastLcsMsgCommand( cmd + 1 );    break;
 
-        case 's': listStatusCommand(cmd + 1);         break;
-        case '?': listCoreLibHelpCommand();           break;
+        case 's': listStatusCommand( cmd + 1 );         break;
+        case '?': listCoreLibHelpCommand( );            break;
 
         default: {
     
             if ( nodeMap.cmdLineCallback != nullptr ) {
 
-                nodeMap.cmdLineCallback( cmd, nodeMap.cmdLineCallBackUdata );
+                nodeMap.cmdLineCallback( CDC_USB_CONSOLE, 
+                                         cmd, 
+                                         nodeMap.cmdLineCallBackUdata );
             } 
-            else printf("<Unknown command, use '?' for help>");
+            else printf( "<Unknown command, use '?' for help>" );
             
         } break;
     }
@@ -1194,7 +1194,9 @@ void handleCommandInput( ) {
 
             if ( nodeMap.cmdLineCallback != nullptr ) {
 
-                // invoke command callback ....
+                nodeMap.cmdLineCallback( CDC_USB_COMMAND, 
+                                         remoteCmdBuf, 
+                                         nodeMap.cmdLineCallBackUdata );
             }
 
             remoteCmdBuf[ 0 ] = '\0';
