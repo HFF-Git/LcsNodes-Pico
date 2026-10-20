@@ -127,7 +127,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
     if ( canBusDebugEnabled( )) {
 
        if (( errId != LCS_OK ) && ( errId != ERR_CAN_MSG_NO_MSG )) 
-            printf( "%s: %d\n", name, errId );
+            usbIoPrintf( CDC_USB_CONSOLE, "%s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -223,11 +223,12 @@ void canBusCore( ) {
 
     if ( canBusDebugEnabled( )) {
 
-        printf( "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d,"
-                 "txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
-                cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
-                cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
-                cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "canBusSetup -> pio: %d, clk: %d, bitRate: %d, rxPin: %d,"
+                     "txPin: %d, cb: %u, rxQS: %d, MC: %d\n",
+                     cfg.mcPioNum, cfg.mcSysClock, cfg.mcBitRate,
+                     cfg.mcRxPin, cfg.mcTxPin, cfg.mcRxCallback,
+                     cfg.mcRxQueueSize, cfg.mcRunOnCore1 );
     }
 
     queue_init( &rxQueue, sizeof( can2040_msg ), cfg.mcRxQueueSize );
@@ -254,7 +255,9 @@ void canBusCore( ) {
 
     if ( canBusDebugEnabled( )) {
 
-        printf( "CAN Bus Initialized, runs on Core: %d\n", get_core_num( ));
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "CAN Bus Initialized, runs on Core: %d\n", 
+                     get_core_num( ));
     }
 
     if ( cfg.mcRunOnCore1 ) {
@@ -284,8 +287,10 @@ uint8_t LcsMsgBusCAN::init( uint8_t  rxPin,
 
     if ( canBusDebugEnabled( )) {
 
-        printf( "Init Can Bus -> rxPin: %d, txPin: %d, BaudRate: %d, twoCores: %d\n", 
-                rxPin, txPin, baudRate, twoCores );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "Init Can Bus -> rxPin: %d, txPin: %d, "
+                     "BaudRate: %d, twoCores: %d\n", 
+                     rxPin, txPin, baudRate, twoCores );
     }
 
     if (( rxPin == UNDEFINED_PIN ) || ( txPin == UNDEFINED_PIN )) {
@@ -353,10 +358,16 @@ uint8_t LcsMsgBusCAN::sendLcsMsg ( uint16_t sendingNpId,
 
     if ( canBusDebugEnabled( )) {
 
-        printf( "CAN Send (TS: 0x%x)(S-Id: 0x%x, Pri: %d)(Data: ", 
-                getMillis( ), sendingNpId, msgPri );
-        for ( int i = 0; i < msg.dlc; i++ ) printf( " 0x%x", msgBuf[ i ] );
-        printf( ")\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "CAN Send (TS: 0x%x)(S-Id: 0x%x, Pri: %d)(Data: ", 
+                     getMillis( ), sendingNpId, msgPri );
+
+        for ( int i = 0; i < msg.dlc; i++ ) { 
+            
+            usbIoPrintf( CDC_USB_CONSOLE, " 0x%x", msgBuf[ i ] );
+        }
+
+        usbIoPrintf( CDC_USB_CONSOLE, ")\n" );
     }
 
     uint8_t msgOp = msgBuf[ 0 ];
@@ -443,13 +454,14 @@ uint8_t LcsMsgBusCAN::receiveLcsMsg( uint16_t *senderNpId, uint8_t *msgBuf ) {
 
         if ( canBusDebugEnabled( )) {
 
-            printf( "CAN Recv (TS: 0x%x)( Id: 0x%x, len: %d)(Data: ", 
-                    getMillis( ), msg.id, msg.dlc );
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "CAN Recv (TS: 0x%x)( Id: 0x%x, len: %d)(Data: ", 
+                         getMillis( ), msg.id, msg.dlc );
 
             for ( uint32_t i = 0; i < msg.dlc; i++ ) 
-                printf( " 0x%x", msg.data[ i ] );
+                usbIoPrintf( CDC_USB_CONSOLE, " 0x%x", msg.data[ i ] );
 
-            printf( ")\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, ")\n" );
         }
 
         bool      rtrFlag     = ( msg.id & 0x40000000 );

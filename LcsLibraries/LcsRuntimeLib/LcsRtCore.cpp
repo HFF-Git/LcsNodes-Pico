@@ -381,8 +381,11 @@ void handleMsgReqNode( uint16_t senderNpId, uint8_t *msg ) {
         uint16_t  arg   = ( msg[4] << 8 ) + msg[5];
         uint8_t   ret   = reqItem( npId, item, &arg );
 
-        if ( ret == NO_ERR )  sendRepNode( nodeMap.nodeId, npId, item, arg ); // ??? fix ...
-        else                  sendAck( nodeMap.nodeId, npId, ret );
+        if ( ret == NO_ERR ) { 
+            
+            sendRepNode( nodeMap.nodeId, npId, item, arg ); // ??? fix ...
+        }
+        else sendAck( nodeMap.nodeId, npId, ret );
     }
 }
 
@@ -423,18 +426,18 @@ void handleMsgEvent( uint16_t senderNpId, uint8_t *msg ) {
                 ( pPtr -> portFlags & NPF_PORT_EVENT_HANDLING_ENABLED   ) &&
                 ( pPtr -> eventCallback != nullptr                  )) {
 
-                printf( "handleMsgEvent: port: %d\n", i );
+                usbIoPrintf( CDC_USB_CONSOLE, "handleMsgEvent: port: %d\n", i );
 
                 if ( eventMask & ( 1 << i )) {
 
-                    printf( "handleMsgEvent: fire\n" );
+                    usbIoPrintf( CDC_USB_CONSOLE, "handleMsgEvent: fire\n" );
 
                     pPtr -> eventNpId       = senderNpId;
                     pPtr -> eventId         = eventId;
                     pPtr -> eventAction     = eventAction;
                     pPtr -> eventValue      = eventData;
                     pPtr -> eventTimeStamp  = ts + 
-                                ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
+                            ( pPtr -> eventDelayTime * EVENT_DELAY_TICK_MILLIS );
                     pPtr -> portFlags       |= NPF_EVENT_PENDING;
                 }
             }
@@ -584,9 +587,9 @@ void handleNodeStateCollision( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Node State HALTED. The LCS communication bus was halted for all nodes. Note that
-// the bus is still there, just not active. We just listen to the BON or RESET message
-// to get going again.
+// Node State HALTED. The LCS communication bus was halted for all nodes. Note 
+// that the bus is still there, just not active. We just listen to the BON or 
+// RESET message to get going again.
 //
 // ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
@@ -637,9 +640,10 @@ void handleNodeStateConfig( ) {
 
 //----------------------------------------------------------------------------------------
 // Node State OPERATIONS. Most of the time the node state is in operations mode. 
-// We process any LCS message,  handle the periodic tasks registered and port events
-// that may have been received. Note that we just listen to messages valid for that
-// mode and invoke the respective handler. All other messages are ignored.
+// We process any LCS message,  handle the periodic tasks registered and port 
+// events that may have been received. Note that we just listen to messages 
+// valid for that mode and invoke the respective handler. All other messages 
+// are ignored.
 //
 // ??? need to pass senderNpId to all handlers ?
 //----------------------------------------------------------------------------------------
@@ -702,10 +706,11 @@ void handleNodeStateOperations( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleNodeState" is the main routine of the node activity processing. It is the 
-// method called after all setup is done. Running in a loop, the primary function is
-// to handle the activities according to the node state. The run loop also processes 
-// the serial commands. Note that this function will not return.
+// "handleNodeState" is the main routine of the node activity processing. It is
+// the method called after all setup is done. Running in a loop, the primary 
+// function is to handle the activities according to the node state. The run 
+// loop also processes the serial commands. Note that this function will not 
+// return.
 //
 //----------------------------------------------------------------------------------------
 void handleNodeState( ) {
@@ -889,7 +894,7 @@ uint8_t localMsgEvent( uint16_t senderNpid, uint8_t *msg ) {
 uint8_t startRuntime( ) {
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP ))
-        printf( "Start LCS runtime\n");
+        usbIoPrintf( CDC_USB_CONSOLE, "Start LCS runtime\n");
 
     if ( nodeMap.nodeState != NS_INIT ) return ( ERR_LIB_NOT_INITIALIZED );
     

@@ -54,15 +54,15 @@ inline bool msgDebugEnabled( ) {
 
 inline void enterFunc( char *name ) {
 
-    if ( msgDebugEnabled( )) printf( "--> %s\n", name );
+    if ( msgDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( msgDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
-        else                    printf( "<-- %s: %d\n", name, errId );
+        if ( errId == LCS_OK ) usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: OK\n", name );
+        else            usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -79,10 +79,14 @@ void printLcsMsg( uint8_t *msg ) {
 
     int msgLen = (( msg[ 0 ] >> 5 ) + 1 ) % 8;
 
-    printf( "[" ); 
+    usbIoPrintf( CDC_USB_CONSOLE, "[" ); 
 
-    for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[ i ] );
-    printf( "]" ); 
+    for ( int i = 0; i < msgLen; i++ ) { 
+        
+        usbIoPrintf( CDC_USB_CONSOLE, "0x%x ", msg[ i ] );
+    }
+
+    usbIoPrintf( CDC_USB_CONSOLE, "]" ); 
 } 
 
 }; // namespace
@@ -112,9 +116,9 @@ void handleLcsMsg( uint8_t *msg ) {
 
     if ( msgDebugEnabled( )) {
 
-        printf( "LCS-RECV: " );
+        usbIoPrintf( CDC_USB_CONSOLE, "LCS-RECV: " );
         printLcsMsg( msg );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 
     switch ( msg[ 0 ] ) {
@@ -134,7 +138,7 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( ))  {
                 
-                printf( "LCS_OP_REQ_LOC, cabId: %d, "
+                usbIoPrintf( CDC_USB_CONSOLE, "LCS_OP_REQ_LOC, cabId: %d, "
                         "Flags: 0x%x,  -> Ret: %d, sId: %d\n", 
                         cabId, flags, rStat );
             }
@@ -184,8 +188,9 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
 
-                printf( "LCS_OP_SET_LSPD, cabId: %d, spDir: 0x%x -> Ret: %d\n", 
-                        cabId, spDir, rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SET_LSPD, cabId: %d, spDir: 0x%x -> Ret: %d\n", 
+                             cabId, spDir, rStat );
             }
 
         } break;
@@ -205,7 +210,7 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
 
-                printf( "LCS_OP_SET_LMOD, sId: %d, "
+                usbIoPrintf( CDC_USB_CONSOLE, "LCS_OP_SET_LMOD, sId: %d, "
                         "flags: 0x%x -> Ret: %d\n", cabId, flags, rStat );
             }
 
@@ -232,9 +237,10 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
 
-                printf( "LCS_OP_LOC_FGRP, cabId: %d, fGroup: %d, "
-                        "dccByte: 0x%x -> Ret: %d\n",
-                        cabId, fGroup, dccByte, rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_LOC_FGRP, cabId: %d, fGroup: %d, "
+                             "dccByte: 0x%x -> Ret: %d\n",
+                             cabId, fGroup, dccByte, rStat );
             }
         
         } break;
@@ -261,8 +267,9 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) { 
 
-                printf( "LCS_OP_LOC_FON/FOF, sId: %d, fNum: %d -> "
-                        "Ret: %d\n", cabId, fNum, rStat ); 
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_LOC_FON/FOF, sId: %d, fNum: %d -> "
+                             "Ret: %d\n", cabId, fNum, rStat ); 
             }
         
         } break;
@@ -289,7 +296,9 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) { 
 
-                printf( "LCS_OP_KEEP_LOC, sId: %d -> ret: %d\n", cabId, rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_KEEP_LOC, sId: %d -> ret: %d\n", 
+                             cabId, rStat );
             }
 
         } break;
@@ -337,7 +346,9 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
 
-                printf( "LCS_OP_SET_CVM, cabId: %d -> ret: %d\n", cabId, rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SET_CVM, cabId: %d -> ret: %d\n", 
+                             cabId, rStat );
             }
             
         } break;
@@ -378,7 +389,9 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
             
-                printf( "LCS_OP_SET_CVS, cvId: %d, ret: %d\n", cvId, rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SET_CVS, cvId: %d, ret: %d\n", 
+                             cvId, rStat );
             }
             
         } break;
@@ -415,8 +428,9 @@ void handleLcsMsg( uint8_t *msg ) {
             
             if ( msgDebugEnabled( )) {
             
-                printf( "LCS_OP_REQ_CVS, cvId: %d, val: 0x%2x, ret: %d\n", 
-                        cvId, val, rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_REQ_CVS, cvId: %d, val: 0x%2x, ret: %d\n", 
+                             cvId, val, rStat );
             }
 
         } break;
@@ -521,9 +535,10 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
             
-                printf( "LCS_OP_SEND_DCC3, byte1: 0x%2x, byte2: 0x%2x, "
-                        "byte3: 0x%2x, rStat: %d\n", 
-                        msg[ 0 ], msg[ 1 ], msg[ 2 ], rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SEND_DCC3, byte1: 0x%2x, byte2: 0x%2x, "
+                             "byte3: 0x%2x, rStat: %d\n", 
+                             msg[ 0 ], msg[ 1 ], msg[ 2 ], rStat );
             }
             
         } break;
@@ -536,9 +551,10 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
             
-                printf( "LCS_OP_SEND_DCC4, byte1: 0x%2x, byte2: 0x%2x, "
-                        "byte3: 0x%2x, byte4: 0x%2x, rStat: %d\n", 
-                        msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SEND_DCC4, byte1: 0x%2x, byte2: 0x%2x, "
+                             "byte3: 0x%2x, byte4: 0x%2x, rStat: %d\n", 
+                             msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], rStat );
             }
             
         } break;
@@ -551,9 +567,10 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
             
-                printf( "LCS_OP_SEND_DCC5, byte1: 0x%2x, byte2: 0x%2x, "
-                        "byte3: 0x%2x, byte4: 0x%2x, byte5: 0x%2x, rStat: %d\n", 
-                        msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], msg[ 4 ], rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SEND_DCC5, byte1: 0x%2x, byte2: 0x%2x, "
+                             "byte3: 0x%2x, byte4: 0x%2x, byte5: 0x%2x, rStat: %d\n", 
+                             msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], msg[ 4 ], rStat );
             }
             
         } break;
@@ -566,11 +583,12 @@ void handleLcsMsg( uint8_t *msg ) {
 
             if ( msgDebugEnabled( )) {
             
-                printf( "LCS_OP_SEND_DCC6, byte1: 0x%2x, byte2: 0x%2x, "
-                        "byte3: 0x%2x, byte4: 0x%2x, byte5: 0x%2x, "
-                        "byte6: 0x%2x, rStat: %d\n", 
-                        msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], 
-                        msg[ 4 ], msg[ 5 ], rStat );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "LCS_OP_SEND_DCC6, byte1: 0x%2x, byte2: 0x%2x, "
+                             "byte3: 0x%2x, byte4: 0x%2x, byte5: 0x%2x, "
+                             "byte6: 0x%2x, rStat: %d\n", 
+                             msg[ 0 ], msg[ 1 ], msg[ 2 ], msg[ 3 ], 
+                             msg[ 4 ], msg[ 5 ], rStat );
             }
             
         } break;

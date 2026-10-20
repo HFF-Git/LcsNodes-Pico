@@ -51,7 +51,7 @@ uint8_t setupPinsForExtBoardTests( ) {
     if ( rStat == NO_ERR ) writeDio( RNUM_DIO_0, false  );
     if ( rStat == NO_ERR ) writeDio( RNUM_DIO_1, true );
 
-    printf( "Setup DIO pins 0 and 1 for Extension Board Test, stat: %d \n", rStat );
+    usbIoPrintf( CDC_USB_CONSOLE, "Setup DIO pins 0 and 1 for Extension Board Test, stat: %d \n", rStat );
     return( rStat );
 }
 
@@ -61,44 +61,44 @@ uint8_t setupPinsForExtBoardTests( ) {
 //----------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
 
-    printf( "MsgCallback: " );
-    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "MsgCallback: " );
+    for ( int i = 0; i < 8; i++ ) usbIoPrintf( CDC_USB_CONSOLE, "0x%2x ");
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return( NO_ERR );
 }
 
 uint8_t lcsCmdCallback( uint8_t chan, char *cmdLine, void *uData  ) {
 
     if ( chan == CDC_USB_CONSOLE ) 
-        printf( "Console Command Callback: %s\n", cmdLine );
+        usbIoPrintf( CDC_USB_CONSOLE, "Console Command Callback: %s\n", cmdLine );
      else if ( chan == CDC_USB_COMMAND ) 
-        printf( "Command Callback: %s\n", cmdLine );
+        usbIoPrintf( CDC_USB_CONSOLE, "Command Callback: %s\n", cmdLine );
     else 
-        printf( "Cmd Callback, invalid channel: %d\n", chan );
+        usbIoPrintf( CDC_USB_CONSOLE, "Cmd Callback, invalid channel: %d\n", chan );
 
     return( NO_ERR );
 }
 
 uint8_t lcsTaskCallback1( void *uData ) {
 
-    // printf( "Task Callback1...\n" );
+    // usbIoPrintf( CDC_USB_CONSOLE, "Task Callback1...\n" );
     return( NO_ERR );    
 }
 uint8_t lcsTaskCallback2( void *uData ) {
 
-    //printf( "Task Callback2...\n" );
+    //usbIoPrintf( CDC_USB_CONSOLE, "Task Callback2...\n" );
     return( NO_ERR );    
 }
 
 uint8_t lcsInitCallback( uint16_t npId, void *uData  ) {
 
-    printf( "Init Callback: 0x%x\n", npId );
+    usbIoPrintf( CDC_USB_CONSOLE, "Init Callback: 0x%x\n", npId );
     return( NO_ERR );
 }
 
 uint8_t lcsPfailCallback( uint16_t npId, void *uData  ) {
 
-    printf( "Pfail Callback: 0x%x\n", npId );
+    usbIoPrintf( CDC_USB_CONSOLE, "Pfail Callback: 0x%x\n", npId );
     return( NO_ERR );
 }
 
@@ -108,12 +108,12 @@ uint8_t lcsReqCallback( uint16_t npId,
                         uint16_t *arg2, 
                         void *uData  ) {
 
-    printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
-    if ( arg1 != nullptr )  printf( ", arg1: 0x%x, ", *arg1 ); 
-    else                    printf( ", arg1: null" );
-    if ( arg2 != nullptr )  printf( ", arg2: 0x%x, ", *arg2 ); 
-    else                    printf( ", arg2: null" );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "REQ callback: npId: 0x%x, item: %d", npId, item );
+    if ( arg1 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, ", arg1: 0x%x, ", *arg1 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, ", arg1: null" );
+    if ( arg2 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, ", arg2: 0x%x, ", *arg2 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, ", arg2: null" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return( NO_ERR );
 }
 
@@ -124,7 +124,7 @@ uint8_t lcsRepCallback( uint16_t npId,
                         uint8_t ret,
                         void *uData ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d",
+    usbIoPrintf( CDC_USB_CONSOLE, "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d",
              npId, item, arg1, arg2, ret );
     return( NO_ERR );
 }
@@ -135,16 +135,16 @@ uint8_t lcsEventCallback( uint16_t npId,
                           uint16_t eData,
                           void *uData ) {
 
-    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
             npId, eId, eAction, eData );
     return( NO_ERR );
 }
 
 uint8_t lcsDccMsgCallback( uint8_t *msg, void *uData ) {
 
-    printf( "DCC MsgCallback: " );
-    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "DCC MsgCallback: " );
+    for ( int i = 0; i < 8; i++ ) usbIoPrintf( CDC_USB_CONSOLE, "0x%2x ");
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return( NO_ERR );
 }
 
@@ -155,7 +155,6 @@ uint8_t lcsDccMsgCallback( uint8_t *msg, void *uData ) {
 //----------------------------------------------------------------------------------------
 uint8_t registerLcsCallbacks( ) {
 
-    printf( "Registering Callbacks\n" );
     registerLcsMsgCallback( lcsMsgCallback );
     registerDccMsgCallback( lcsDccMsgCallback );
     registerCmdCallback( lcsCmdCallback );
@@ -174,12 +173,13 @@ uint8_t registerLcsCallbacks( ) {
 //----------------------------------------------------------------------------------------
 uint8_t initLcsRuntime( ) {
 
-    uint16_t debugMask  = LCS_DBG_ENABLE;
+    uint16_t debugMask  =LCS_DBG_NIL;
     uint16_t options    = NPO_NIL;
 
     options     |= NPO_SKIP_NODE_ID_CONFIG;
     options     |= NPO_DISABLE_WATCHDOG;
 
+    debugMask   |= LCS_DBG_ENABLE;
     debugMask   |= CDC_DBG_ENABLE;
     debugMask   |= LCS_DBG_SETUP;
     debugMask   |= LCS_DBG_ITEMS;
@@ -187,11 +187,11 @@ uint8_t initLcsRuntime( ) {
     debugMask   |= LCS_DBG_CAN_BUS;
     debugMask   |= LCS_DBG_MSG_BUS;
     debugMask   |= LCS_DBG_NVM_ACCESS;
-    debugMask   |= CDC_DBG_I2C;
+   // debugMask   |= CDC_DBG_I2C;
 
     uint8_t rStat = initRuntime( &dMap, options, debugMask );
 
-    printf( "LCS Runtime Lib Test Program Setup ==============================\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "LCS Runtime Lib Test Program Setup ==============================\n" );
     return( rStat );
     
 }
@@ -203,7 +203,7 @@ uint8_t initLcsRuntime( ) {
 //----------------------------------------------------------------------------------------
 uint8_t startLcsRuntime( ) {
 
-    printf( "LCS Runtime Lib Test Program Start Runtime ======================\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "LCS Runtime Lib Test Program Start Runtime ======================\n" );
     return( startRuntime( ));
 }
 

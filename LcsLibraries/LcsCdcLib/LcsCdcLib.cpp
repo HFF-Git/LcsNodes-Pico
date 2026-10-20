@@ -260,7 +260,9 @@ void fatalError( uint8_t n, char *str, uint8_t rStat ) {
 
         if ( usbIoIsConnected( )) { 
             
-            printf( "Fatal Error: %d: %s, rStat: %d\n", n, str, rStat );
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "Fatal Error: %d: %s, rStat: %d\n", 
+                         n, str, rStat );
         }
     }
 
@@ -434,7 +436,7 @@ uint8_t watchDogCausedReboot( bool *reboot ) {
 //----------------------------------------------------------------------------------------
 uint8_t scanI2CBus( uint8_t rNum ) {
 
-    printf ( "scanI2CBus, rNum: %d\n ", rNum );
+    usbIoPrintf( CDC_USB_CONSOLE, "scanI2CBus, rNum: %d\n ", rNum );
 
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
     if ( rPtr == nullptr ) return ( RES_NUM_ERR );
@@ -450,13 +452,16 @@ uint8_t scanI2CBus( uint8_t rNum ) {
         
         if ( rStat == 0 ) {
 
-            printf( "I2C device found at i2cAdr 0x%x\n", i2cAdr );
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "I2C device found at i2cAdr 0x%x\n", 
+                         i2cAdr );
+
             nDevices ++;
         }
     }
 
-    if ( nDevices == 0 )  printf( "No I2C devices found\n" );
-    else                  printf( "Scan done\n" );
+    if ( nDevices == 0 )  usbIoPrintf( CDC_USB_CONSOLE, "No I2C devices found\n" );
+    else                  usbIoPrintf( CDC_USB_CONSOLE, "Scan done\n" );
 
     return ( NO_ERR );
 }
@@ -467,11 +472,12 @@ uint8_t scanI2CBus( uint8_t rNum ) {
 //----------------------------------------------------------------------------------------
 void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
-    printf( "CDC Resource Descriptor Map:" );
+    usbIoPrintf( CDC_USB_CONSOLE, "CDC Resource Descriptor Map:" );
  
-    printf( "Board Type: 0x%4x\n", dMap -> boardType );
-    printf( "Board Version: %d.%d\n", ( dMap -> boardVersion >> 8 ) & 0xff,
-                                      ( dMap -> boardVersion & 0xFF ));
+    usbIoPrintf( CDC_USB_CONSOLE, "Board Type: 0x%4x\n", dMap -> boardType );
+    usbIoPrintf( CDC_USB_CONSOLE, "Board Version: %d.%d\n", 
+                                  ( dMap -> boardVersion >> 8 ) & 0xff,
+                                  ( dMap -> boardVersion & 0xFF ));
     
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
@@ -481,82 +487,86 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 
             case CDC_RT_TIMER: {
 
-                printf( "rNum: %2d, Timer: val: %d, pri: %d\n", 
-                        dPtr -> resId, 
-                        dPtr -> timer.timerVal,
-                        dPtr -> timer.highPri );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, Timer: val: %d, pri: %d\n", 
+                             dPtr -> resId, 
+                             dPtr -> timer.timerVal,
+                             dPtr -> timer.highPri );
 
             } break;
 
             case CDC_RT_ADC: {
 
-                printf( "rNum: %2d, ADC: pin: %d, select: %d\n", 
-                        dPtr -> resId, dPtr -> adc.adcPin, dPtr -> adc.adcNum );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, ADC: pin: %d, select: %d\n", 
+                             dPtr -> resId, 
+                             dPtr -> adc.adcPin, 
+                             dPtr -> adc.adcNum );
             } break;
 
             case CDC_RT_GPIO: {
 
-                printf( "rNum: %2d, GPIO: pinA: %d, pinB: %d, mode: %d\n", 
-                        dPtr -> resId,
-                        dPtr -> gpio.pinA, 
-                        dPtr -> gpio.pinB, 
-                        dPtr -> gpio.pinMode );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                             dPtr -> resId,
+                             dPtr -> gpio.pinA, 
+                             dPtr -> gpio.pinB, 
+                            dPtr -> gpio.pinMode );
             } break;
 
             case CDC_RT_PWM: {
 
-                printf( "rNum: %2d, PWM: pinA: %d, pinB: %d, fPwm: %d\n",
-                        dPtr -> resId,
-                        dPtr ->pwm.pinA, 
-                        dPtr ->pwm.pinB,  
-                        dPtr ->pwm.frequency );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, PWM: pinA: %d, pinB: %d, fPwm: %d\n",
+                             dPtr -> resId,
+                             dPtr ->pwm.pinA, 
+                             dPtr ->pwm.pinB,  
+                            dPtr ->pwm.frequency );
             } break;
 
             case CDC_RT_UART: {
 
-                printf( "rNum: %2d, UART: rxPin: %d, txPin: %d, baudRate: %d\n",
-                    dPtr -> resId,
-                    dPtr -> uart.rxPin,  
-                    dPtr -> uart.txPin,  
-                    dPtr -> uart.baudRate );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, UART: rxPin: %d, txPin: %d, baudRate: %d\n",
+                             dPtr -> resId,
+                             dPtr -> uart.rxPin,  
+                             dPtr -> uart.txPin,  
+                             dPtr -> uart.baudRate );
             } break;
 
             case CDC_RT_I2C: {
 
-                printf( "rNum: %2d, I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
-                        "i2cRoot: 0x2x, timeout(MS): %d\n",
-                        dPtr -> resId,
-                        dPtr -> i2c.sclPin, 
-                        dPtr -> i2c.sdaPin, 
-                        dPtr -> i2c.baudRate, 
-                        dPtr -> i2c.i2cTimeoutMs );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
+                             "i2cRoot: 0x2x, timeout(MS): %d\n",
+                             dPtr -> resId,
+                             dPtr -> i2c.sclPin, 
+                             dPtr -> i2c.sdaPin, 
+                             dPtr -> i2c.baudRate, 
+                            dPtr -> i2c.i2cTimeoutMs );
             } break;
 
             case CDC_RT_CAN_BUS: {
 
-                printf( "rNum: %2d, CAN: rxPin: %d, txPin: %d, "
-                        "baudRate: %d, twoCores: %d\n",
-                        dPtr -> resId,
-                        dPtr -> can.rxPin, 
-                        dPtr -> can.txPin, 
-                        dPtr -> can.baudRate, 
-                        dPtr -> can.twoCores );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %2d, CAN: rxPin: %d, txPin: %d, "
+                             "baudRate: %d, twoCores: %d\n",
+                             dPtr -> resId,
+                             dPtr -> can.rxPin, 
+                             dPtr -> can.txPin, 
+                             dPtr -> can.baudRate, 
+                             dPtr -> can.twoCores );
             } break;
 
             case CDC_RT_UNDEFINED: {
                 
             } break;
 
-            default: printf( "Unknown type: %d\n", i );
+            default: usbIoPrintf( CDC_USB_CONSOLE, "Unknown type: %d\n", i );
         }
     }
 
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 } 
 
 //----------------------------------------------------------------------------------------
@@ -565,19 +575,21 @@ void printResourceDescMap( CdcResourceDescMap *dMap ) {
 //----------------------------------------------------------------------------------------
 void printResourceMap( ) {
 
-    printf( "CDC Resource Map for:" );
-    printf( "%s\n", rMap.name );
+    usbIoPrintf( CDC_USB_CONSOLE, "CDC Resource Map for:" );
+    usbIoPrintf( CDC_USB_CONSOLE, "%s\n", rMap.name );
 
-    printf( "Options: 0x%04x\n", options );
-    printf( "Debug Mask: 0x%04x\n", debugMask );
+    usbIoPrintf( CDC_USB_CONSOLE, "Options: 0x%04x\n", options );
+    usbIoPrintf( CDC_USB_CONSOLE, "Debug Mask: 0x%04x\n", debugMask );
 
-    printf( "Controller Family: %d\n", dMap.boardType ); // ??? fix .... use family only...
-    printf( "Controller Cores: %d, Mem: %d, EEPROM: %d\n", 
-            rMap.cpuCores, rMap.memorySize, rMap.eepromSize );
+    usbIoPrintf( CDC_USB_CONSOLE, "Controller Family: %d\n", dMap.boardType );
+    usbIoPrintf( CDC_USB_CONSOLE, "Controller Cores: %d, Mem: %d, EEPROM: %d\n", 
+                 rMap.cpuCores, rMap.memorySize, rMap.eepromSize );
             
-    printf( "WatchDog Interval (MS): %d\n", rMap.watchDogIntervallMillis );
-    printf( "ADC Ref Voltage: %d, Digit range: %d\n", 
-            rMap.adcRefVoltageMillis, rMap.adcDigitRange ); 
+    usbIoPrintf( CDC_USB_CONSOLE, "WatchDog Interval (MS): %d\n", 
+                 rMap.watchDogIntervallMillis );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "ADC Ref Voltage: %d, Digit range: %d\n", 
+                 rMap.adcRefVoltageMillis, rMap.adcDigitRange ); 
 
     for ( int i = 0; i < MAX_RESOURCE_ENTRIES; i++ ) {
 
@@ -587,103 +599,96 @@ void printResourceMap( ) {
 
             case CDC_RT_TIMER: {
 
-                printf( "rNum: %d, Timer: val: %d, pri: %d\n", 
-                         rPtr -> resId, 
-                         rPtr -> timer.timerVal, 
-                         rPtr -> timer.timerHighPri );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, Timer: val: %d, pri: %d\n", 
+                             rPtr -> resId, 
+                             rPtr -> timer.timerVal, 
+                             rPtr -> timer.timerHighPri );
             } break;
 
             case CDC_RT_ADC: {
 
-                printf( "rNum: %d, ADC: pin: %d, select: %d\n", 
-                        rPtr -> resId, 
-                        rPtr -> adc.adcPin, 
-                        rPtr -> adc.adcNum );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, ADC: pin: %d, select: %d\n", 
+                             rPtr -> resId, 
+                             rPtr -> adc.adcPin, 
+                            rPtr -> adc.adcNum );
             } break;
 
             case CDC_RT_GPIO: {
 
-                printf( "rNum: %d, GPIO: pinA: %d, pinB: %d, mode: %d\n", 
-                        rPtr -> resId,
-                        rPtr -> gpio.pinA, 
-                        rPtr -> gpio.pinB, 
-                        rPtr -> gpio.pinMode );
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, GPIO: pinA: %d, pinB: %d, mode: %d\n", 
+                             rPtr -> resId,
+                             rPtr -> gpio.pinA, 
+                             rPtr -> gpio.pinB, 
+                             rPtr -> gpio.pinMode );
 
             } break;
 
             case CDC_RT_PWM: {
 
-                uint8_t     pwmPinA;
-                uint8_t     pwmPinB;
-                uint32_t    frequency;
-                uint        wrap;
-                uint        sliceNum;
-                bool        inverted;
-                bool        phaseCorrect;
-
-                printf( "rNum: %d, PWM: pinA: %d, pinB: %d, fPwm: %d, wrap: %d, "
-                        "slice: %d, invert: %d, phase: %d\n",
-                        rPtr -> resId,
-                        rPtr ->pwm.pinA,  
-                        rPtr ->pwm.pinB,  
-                        rPtr ->pwm.frequency,
-                        rPtr -> pwm.sliceNum, 
-                        rPtr -> pwm.inverted, 
-                        rPtr -> pwm.phaseCorrect );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, PWM: pinA: %d, pinB: %d, fPwm: %d, wrap: %d, "
+                             "slice: %d, invert: %d, phase: %d\n",
+                             rPtr -> resId,
+                             rPtr ->pwm.pinA,  
+                             rPtr ->pwm.pinB,  
+                             rPtr ->pwm.frequency,
+                             rPtr -> pwm.sliceNum, 
+                             rPtr -> pwm.inverted, 
+                            rPtr -> pwm.phaseCorrect );
             } break;
 
             case CDC_RT_UART: {
 
-                printf( "rNum: %d, UART: rxPin: %d, txPin: %d, baudRate: %d, "
-                        "dataBits: %d, parity: %d, stopBits: %d\n",
-                        rPtr -> resId,
-                        rPtr -> uart.rxPin,  
-                        rPtr -> uart.txPin, 
-                        rPtr -> uart.baudSetting,
-                        rPtr -> uart.dataBits, 
-                        rPtr -> uart.parityMode, 
-                        rPtr -> uart.stopBits );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, UART: rxPin: %d, txPin: %d, baudRate: %d, "
+                             "dataBits: %d, parity: %d, stopBits: %d\n",
+                             rPtr -> resId,
+                             rPtr -> uart.rxPin,  
+                             rPtr -> uart.txPin, 
+                             rPtr -> uart.baudSetting,
+                             rPtr -> uart.dataBits, 
+                             rPtr -> uart.parityMode, 
+                             rPtr -> uart.stopBits );
             } break;
 
             case CDC_RT_I2C: {
 
-                printf( "rNum: %d, I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
-                        "i2cRoot: 0x2x, timeout(MS): %d\n",
-                        rPtr -> resId,
-                        rPtr -> i2c.sclPin, 
-                        rPtr -> i2c.sdaPin, 
-                        rPtr -> i2c.baudRate, 
-                        rPtr -> i2c.i2cAdrRoot, 
-                        rPtr -> i2c.timeoutValMs );
-
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, I2C: sclPin: %d, sdaPin: %d, baudRate: %d, "
+                             "i2cRoot: 0x2x, timeout(MS): %d\n",
+                             rPtr -> resId,
+                             rPtr -> i2c.sclPin, 
+                             rPtr -> i2c.sdaPin, 
+                             rPtr -> i2c.baudRate, 
+                             rPtr -> i2c.i2cAdrRoot, 
+                             rPtr -> i2c.timeoutValMs );
             } break;
 
             case CDC_RT_CAN_BUS: {
 
-                printf( "rNum: %d, CAN: rxPin: %d, txPin: %d, baudRate: %d, "
-                        "canId: 0x4x, twoCores: %d\n",
-                        rPtr -> resId,
-                        rPtr -> can.canPinRx, 
-                        rPtr -> can.canPinTx, 
-                        rPtr -> can.baudRate, 
-                        rPtr -> can.canId, 
-                        rPtr -> can.twoCores );
-            
+                usbIoPrintf( CDC_USB_CONSOLE, 
+                             "rNum: %d, CAN: rxPin: %d, txPin: %d, baudRate: %d, "
+                             "canId: 0x4x, twoCores: %d\n",
+                             rPtr -> resId,
+                             rPtr -> can.canPinRx, 
+                             rPtr -> can.canPinTx, 
+                             rPtr -> can.baudRate, 
+                             rPtr -> can.canId, 
+                            rPtr -> can.twoCores );
             } break;
 
             case CDC_RT_UNDEFINED: {
             
             } break;
 
-            default: printf( "Unknown type: %d\n", i );
+            default: usbIoPrintf( CDC_USB_CONSOLE, "Unknown type: %d\n", i );
         }
     }
 
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 }; // namespace CDC

@@ -46,6 +46,13 @@ extern LcsLocoSessions  *locoSessions;
 extern LcsDccTrack      *mainTrack;
 extern LcsDccTrack      *progTrack; 
 
+
+// ??? if we make the commands to be called from the console callback and the DCC-EX
+// command callback we need a way to say which channel to use for printf....
+
+
+
+
 //----------------------------------------------------------------------------------------
 // The local namespace contains the routines that actually produce most of the 
 // formatted string. The routines are all built with the "sprintf" function and 

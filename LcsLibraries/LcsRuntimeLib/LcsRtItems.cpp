@@ -109,8 +109,8 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( itemDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-        else                    printf( "%s: %d\n", name, errId );
+        if ( errId == LCS_OK )  usbIoPrintf( CDC_USB_CONSOLE, "%s: OK\n", name );
+        else             usbIoPrintf( CDC_USB_CONSOLE, "%s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -118,7 +118,7 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
 inline void enterFunc( const char *name ) {
 
-    if ( itemDebugEnabled( )) printf( "--> %s\n", name );
+    if ( itemDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
 }
 
 #define ENTER_FUNC() enterFunc( __func__)
@@ -765,9 +765,13 @@ uint8_t getItem( uint16_t npId, uint16_t item, uint16_t *arg, uint16_t len ) {
 
     if ( itemDebugEnabled( )) {
 
-        printf( "getItem: npId: 0x%x, item: %d, len: %d", npId, item, len  );
-        if ( arg != nullptr ) printf( ":%d", *arg ); else printf( "null" );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "getItem: npId: 0x%x, item: %d, len: %d", 
+                     npId, item, len  );
+
+        if ( arg != nullptr ) usbIoPrintf( CDC_USB_CONSOLE, ":%d", *arg ); 
+        else                  usbIoPrintf( CDC_USB_CONSOLE, "null" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 
     if ( arg == nullptr ) return ( RET_STAT( ERR_INVALID_ATTR_ARG )); 
@@ -800,7 +804,9 @@ uint8_t setItem( uint16_t npId, uint16_t item, uint16_t *val, uint16_t len ) {
 
     if ( itemDebugEnabled( )) {
 
-        printf( "setItem: npId: 0x%x, item: %d, len:%d\n", npId, item, len  );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "setItem: npId: 0x%x, item: %d, len:%d\n", 
+                     npId, item, len  );
     }
 
     if ( isInRangeU16( item, IR_LIB_MAP_RANGE_START, IR_LIB_MAP_RANGE_END )) {
@@ -839,8 +845,9 @@ uint8_t getItemPtr( uint16_t npId,
 
     if ( itemDebugEnabled( )) {
 
-        printf( "getItemPtr: npId: 0x%x, item: %d, len: %d\n", 
-                npId, item, len  );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "getItemPtr: npId: 0x%x, item: %d, len: %d\n", 
+                     npId, item, len  );
     }
 
     return( attrMemAdr( npId, item, itemPtr, len ));
@@ -858,10 +865,15 @@ uint8_t reqItem( uint16_t npId, uint16_t item, uint16_t *arg1, uint16_t *arg2 ) 
 
     if ( itemDebugEnabled( )) {
 
-        printf( "nodeReq: 0x%x:%d", npId, item  );
-        if ( arg1 != nullptr ) printf( ":%d", *arg1 ); else printf( "null" );
-        if ( arg2 != nullptr ) printf( ":%d", *arg2 ); else printf( "null" );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "nodeReq: 0x%x:%d", npId, item  );
+
+        if ( arg1 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, ":%d", *arg1 ); 
+        else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+        if ( arg2 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, ":%d", *arg2 ); 
+        else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+        
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 
     if (( nodeMap.nodeState != NS_OPERATE ) && 

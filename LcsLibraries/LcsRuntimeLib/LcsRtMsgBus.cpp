@@ -224,12 +224,14 @@ uint8_t receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg ) {
 
         if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_MSG_BUS )) {
             
-            printf( "Can Msg Received (OpCode): 0x%x\n", msg[ 0 ] );
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "Can Msg Received (OpCode): 0x%x\n", 
+                         msg[ 0 ] );
 
             for ( uint32_t i = 0; i < ( msg[ 0 ] >> 5 ) + 1; i++ ) 
-                printf( " 0x%x", msg[ i ] );
+                usbIoPrintf( CDC_USB_CONSOLE, " 0x%x", msg[ i ] );
 
-            printf( ")\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, ")\n" );
         }
 
         if (( msg[ 0 ] == LCS_OP_NODE_REP ) || 

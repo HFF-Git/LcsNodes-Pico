@@ -1412,7 +1412,7 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
     if ( dccTrackDebugAccDetect( )) {
 
-        printf( "\nDecoder Ack setup: ( " );
+        usbIoPrintf( CDC_USB_CONSOLE, "\nDecoder Ack setup: ( " );
     }
 
     uint16_t sum = 0;
@@ -1425,7 +1425,7 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
         if ( dccTrackDebugAccDetect( )) {
        
-            printf( "%d ", highWaterMarkDigitValue );
+            usbIoPrintf( CDC_USB_CONSOLE, "%d ", highWaterMarkDigitValue );
         }
 
         sum += highWaterMarkDigitValue;
@@ -1433,7 +1433,7 @@ uint16_t LcsDccTrack::decoderAckBaseline( uint8_t resetPacketsToSend ) {
 
     if ( dccTrackDebugAccDetect( )) {
 
-        printf( ") -> %d\n", sum / resetPacketsToSend );
+        usbIoPrintf( CDC_USB_CONSOLE, ") -> %d\n", sum / resetPacketsToSend );
     }
 
     return ( sum  / resetPacketsToSend );
@@ -1463,7 +1463,7 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
 
     if ( dccTrackDebugAccDetect( )) {
 
-        printf( "Decoder Ack detect: ( %d : %d : ( ", 
+        usbIoPrintf( CDC_USB_CONSOLE, "Decoder Ack detect: ( %d : %d : ( ", 
                 baseDigitValue, ackThresholdDigitValue );
     }
 
@@ -1474,7 +1474,7 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
 
         if ( dccTrackDebugAccDetect( )) {
 
-            printf( "%d ", highWaterMarkDigitValue );
+            usbIoPrintf( CDC_USB_CONSOLE, "%d ", highWaterMarkDigitValue );
         }
 
         if (( highWaterMarkDigitValue >= baseDigitValue ) &&
@@ -1482,7 +1482,7 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
 
             if ( dccTrackDebugAccDetect( )) {
 
-                printf( "[ %d ] ) -> OK\n", 
+                usbIoPrintf( CDC_USB_CONSOLE, "[ %d ] ) -> OK\n", 
                         abs( highWaterMarkDigitValue - baseDigitValue ));
             }
 
@@ -1490,7 +1490,7 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
         }
     }
 
-    if ( dccTrackDebugAccDetect( )) printf( ") -> FAILED" );
+    if ( dccTrackDebugAccDetect( )) usbIoPrintf( CDC_USB_CONSOLE, ") -> FAILED" );
     return ( false );
 }
 
@@ -1683,18 +1683,21 @@ void LcsDccTrack::printLogTimeStamp( uint16_t ofs ) {
     ts = ( ts << 8 ) | logBuf[ ofs + 1 ];
     ts = ( ts << 8 ) | logBuf[ ofs + 2 ];
     ts = ( ts << 8 ) | logBuf[ ofs + 3 ];
-    printf( "0x%x", ts );
+    usbIoPrintf( CDC_USB_CONSOLE, "0x%x", ts );
 }
 
 void LcsDccTrack::printLogVal( uint16_t ofs ) {
 
     uint16_t val = logBuf[ ofs ] << 8 | logBuf[ ofs + 1 ];
-    printf( "0x%04x", val );
+    usbIoPrintf( CDC_USB_CONSOLE, "0x%04x", val );
 }
 
 void LcsDccTrack::printLogData( uint16_t ofs, uint8_t len ) {
 
-    for ( int i = 0; i < len; i++ ) printf( "0x%02x ", logBuf[ ofs + i ] );
+    for ( int i = 0; i < len; i++ ) {
+        
+        usbIoPrintf( CDC_USB_CONSOLE, "0x%02x ", logBuf[ ofs + i ] );
+    }
 }
 
 uint8_t LcsDccTrack::printLogEntry( uint16_t ofs ) {
@@ -1706,16 +1709,19 @@ uint8_t LcsDccTrack::printLogEntry( uint16_t ofs ) {
 
         switch ( logEntryId ) {
 
-            case LOG_NIL:      printf( "NIL        " ); break;
-            case LOG_BEGIN:    printf( "BEGIN      " ); break;
-            case LOG_END:      printf( "END        " ); break;
-            case LOG_TSTAMP:   printf( "TSTAMP     " ); break;
-            case LOG_DCC_IDL:  printf( "DCC_IDLE   " ); break;
-            case LOG_DCC_RST:  printf( "DCC_RESET  " ); break;
-            case LOG_DCC_PKT:  printf( "DCC_PKT    " ); break;
-            case LOG_DCC_RCM:  printf( "DCC_RCOM   " ); break;
-            case LOG_VAL:      printf( "VAL        " ); break;
-            default:           printf( "INVALID ( 0x%02 )", logBuf[ ofs ] >> 4 );
+            case LOG_NIL:      usbIoPrintf( CDC_USB_CONSOLE, "NIL        " ); break;
+            case LOG_BEGIN:    usbIoPrintf( CDC_USB_CONSOLE, "BEGIN      " ); break;
+            case LOG_END:      usbIoPrintf( CDC_USB_CONSOLE, "END        " ); break;
+            case LOG_TSTAMP:   usbIoPrintf( CDC_USB_CONSOLE, "TSTAMP     " ); break;
+            case LOG_DCC_IDL:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_IDLE   " ); break;
+            case LOG_DCC_RST:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_RESET  " ); break;
+            case LOG_DCC_PKT:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_PKT    " ); break;
+            case LOG_DCC_RCM:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_RCOM   " ); break;
+            case LOG_VAL:      usbIoPrintf( CDC_USB_CONSOLE, "VAL        " ); break;
+            default: {
+                
+                usbIoPrintf( CDC_USB_CONSOLE, "INVALID ( 0x%02 )", logBuf[ ofs ] >> 4 );
+            }
         }
 
         if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( ofs + 1 );
@@ -1733,7 +1739,7 @@ void LcsDccTrack::printLog( ) {
 
         if ( logBufOfs > 0 ) {
 
-            printf( "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
             uint16_t entryIndex  = 0;
             uint8_t  entryLen    = 0;
@@ -1741,15 +1747,15 @@ void LcsDccTrack::printLog( ) {
             while ( entryIndex < logBufOfs ) {
 
                 entryLen = printLogEntry( entryIndex );
-                printf( "\n" );
+                usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
                 if ( entryLen > 0 ) entryIndex += entryLen;
                 else                break;
             }
         }
-        else printf( "DCC Log Buf: Nothing recorded\n" );
+        else usbIoPrintf( CDC_USB_CONSOLE, "DCC Log Buf: Nothing recorded\n" );
     }
-    else printf( "DCC Log disabled or active\n" );
+    else usbIoPrintf( CDC_USB_CONSOLE, "DCC Log disabled or active\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1758,28 +1764,41 @@ void LcsDccTrack::printLog( ) {
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::printDccTrackConfig( ) {
 
-    printf( "DccTrack Config: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "DccTrack Config: " );
 
-    if ( options & DT_OPT_SERVICE_MODE_TRACK ) printf( "PROG \n" );
-    else                                       printf( "MAIN \n" );
+    if ( options & DT_OPT_SERVICE_MODE_TRACK ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "PROG \n" );
+    else                                       
+        usbIoPrintf( CDC_USB_CONSOLE, "MAIN \n" );
 
-    printf( " Config options: ( 0x%x ) -> ", flags );
+    usbIoPrintf( CDC_USB_CONSOLE, " Config options: ( 0x%x ) -> ", flags );
     
-    if ( options &  DT_OPT_SERVICE_MODE_TRACK ) printf( "SvcMode Track " );
-    printf( "\n" );
+    if ( options &  DT_OPT_SERVICE_MODE_TRACK ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "SvcMode Track " );
 
-    printf( " Current Limit(mA): %d Current Max(mA): %d\n",
-            getLimitCurrent( ), getMaxCurrent( ));
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 " Current Limit(mA): %d Current Max(mA): %d\n",
+                 getLimitCurrent( ), getMaxCurrent( ));
     
 
-    printf( " Limit Digit Value: %d\n", limitCurrentDigitValue );
-    printf( " Ack Threshold Digit Value:%d\n", ackThresholdDigitValue );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 " Limit Digit Value: %d\n", 
+                 limitCurrentDigitValue );
 
-    printf( " CDC enable rNum: %d, DCC control rNum: %d, "
-            "Sensor nRum: %d, RailCom rNum: %d\n",
-            rNumEnable, rNumControl, rNumSense, rNumUartRx );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 " Ack Threshold Digit Value:%d\n", 
+                 ackThresholdDigitValue );
 
-    printf( " PreambleLen: %d, PostambleLen: %d\n", preambleLen, postambleLen );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 " CDC enable rNum: %d, DCC control rNum: %d, "
+                 "Sensor nRum: %d, RailCom rNum: %d\n",
+                 rNumEnable, rNumControl, rNumSense, rNumUartRx );
+
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 " PreambleLen: %d, PostambleLen: %d\n", 
+                 preambleLen, postambleLen );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1788,22 +1807,32 @@ void LcsDccTrack::printDccTrackConfig( ) {
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::printDccTrackStatus( ) {
 
-    printf( "DccTrack: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "DccTrack: " );
 
-    if ( options & DT_OPT_SERVICE_MODE_TRACK )  printf( "PROG" );
-    else                                        printf( "MAIN" );
+    if ( options & DT_OPT_SERVICE_MODE_TRACK )  usbIoPrintf( CDC_USB_CONSOLE, "PROG" );
+    else                                        usbIoPrintf( CDC_USB_CONSOLE, "MAIN" );
 
-    printf( ", Track Status: ( 0x%x ) -> ", flags );
+    usbIoPrintf( CDC_USB_CONSOLE, ", Track Status: ( 0x%x ) -> ", flags );
     
-    if ( flags & DT_F_POWER_ON         ) printf( "PowerOn " );
-    if ( flags & DT_F_POWER_OVERLOAD   ) printf( "PowerOverload " );
-    if ( flags & DT_F_ACC_DETECT_ON    ) printf( "AccDetectOn " );
-    if ( flags & DT_F_CUTOUT_ON        ) printf( "CutoutOn " );
-    if ( flags & DT_F_RAILCOM_ON       ) printf( "RailcomOn " );
-    if ( flags & DT_F_SETUP_ERROR      ) printf( "ConfigError " );
-    printf( "\n" );
+    if ( flags & DT_F_POWER_ON         ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "PowerOn " );
+    if ( flags & DT_F_POWER_OVERLOAD   ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "PowerOverload " );
+    if ( flags & DT_F_ACC_DETECT_ON    ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "AccDetectOn " );
+    if ( flags & DT_F_CUTOUT_ON        ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "CutoutOn " );
+    if ( flags & DT_F_RAILCOM_ON       ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "RailcomOn " );
+    if ( flags & DT_F_SETUP_ERROR      ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "ConfigError " );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
-    printf( "Packets Send: %d\n", dccPacketsSend );
-    printf( "Power consumption (RMS): %d\n", getRMSCurrent( ));
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Packets Send: %d\n", dccPacketsSend );
+
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "Power consumption (RMS): %d\n", 
+                 getRMSCurrent( ));
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }

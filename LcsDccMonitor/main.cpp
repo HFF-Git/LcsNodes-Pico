@@ -112,10 +112,10 @@ volatile bool     cutoutDetected = false;
 // DCC Packet buffer declarations. During a time period, identical packets are 
 // remembered. This way, we only see new packets added. This has the not so nice 
 // effect that identical packets are not shown again. For example, turning F1 ON, 
-// then OFF, and then ON again in a period will not show the second turning ON. The
-// same is true for for the loco speed up or down. Although correct, it looks a 
-// bit erratic on the screen, giving you the impression that the command was not
-// sent. Once the time period expired, the buffer is reset.
+// then OFF, and then ON again in a period will not show the second turning ON. 
+// The same is true for for the loco speed up or down. Although correct, it looks
+// a bit erratic on the screen, giving you the impression that the command was 
+// not sent. Once the time period expired, the buffer is reset.
 //
 //----------------------------------------------------------------------------------------
 uint8_t           dccPacketBufferSize       = DEFAULT_DCC_PACKETS;
@@ -178,8 +178,8 @@ void setupConfigInfo( ) {
 // reading the signal value in the timer interrupt routine should do. If low we 
 // are in DCC "one" bit situation, if not, it is as DCC "zero" bit situation. On 
 // detecting an edge we record the system time ( micros ( )) on a high signal value.
-// On the next edge we we compare the delta system time against our threshold of 80
-// microseconds.
+// On the next edge we we compare the delta system time against our threshold of 
+// 80 microseconds.
 //
 // The bits are stored in the bit buffer. From there the bits are consumed to 
 // assemble a DCC packet. DCC Packets are zeroes and ones, with a one having a 58 
@@ -198,8 +198,8 @@ volatile uint32_t lastFallingTs  = 0;
 // the threshold of 80 micro seconds is a DCC "one", else a DCC "zero".
 //
 // ??? I tried to measure the signal windows on AVR... but the numbers are really
-// not good. The Scope shows them ranges precisely what they should be, the measured 
-// timing window with "micros" is really not good. 
+// not good. The Scope shows them ranges precisely what they should be, the 
+// measured timing window with "micros" is really not good. 
 //
 // ??? check again for the PICO.
 //
@@ -250,8 +250,8 @@ void dccEdgeChange( uint8_t pin, uint8_t event ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Attach an interrupt handler to the HW pin to detect a changing edge in the signal.
-// We read in the signal from EXT_INT_PIN from the CDC configuration.
+// Attach an interrupt handler to the HW pin to detect a changing edge in the 
+// signal. We read in the signal from EXT_INT_PIN from the CDC configuration.
 //
 //----------------------------------------------------------------------------------------
 void startBitDetection( ) {
@@ -297,8 +297,9 @@ uint8_t getBit( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "checkForPreamble" is the routine that makes sure we have seen a valid preamble.
-// This means at least DCC_MIN_PREAMBLE_BITS bits ONE followed by a ZERO bit.
+// "checkForPreamble" is the routine that makes sure we have seen a valid 
+// preamble. This means at least DCC_MIN_PREAMBLE_BITS bits ONE followed by
+// a ZERO bit.
 //
 //----------------------------------------------------------------------------------------
 void checkForPreamble( ) {
@@ -319,7 +320,7 @@ void checkForPreamble( ) {
 
             if ( preambleReadAttempts > MAX_PREAMBLE_READ_ATTEMPTS ) {
 
-                printf( "Failed to get a valid preamble..." );
+                usbIoPrintf( CDC_USB_CONSOLE, "Failed getting a valid preamble..." );
                 preambleReadAttempts  = 0;
             }
         }
@@ -333,11 +334,12 @@ void checkForPreamble( ) {
 
 //----------------------------------------------------------------------------------------
 // "getPacket" is the routine finally assembles a DCC packet from the bit stream 
-// and verifies that the packet has a valid checksum. Exclusive ORing all bytes of
-// the DCC packet should result in a zero value. The first byte of the packet 
+// and verifies that the packet has a valid checksum. Exclusive ORing all bytes 
+// of the DCC packet should result in a zero value. The first byte of the packet 
 // contains the packet length. We also do some of the statistics for valid, error,
 // reset and idle packets. For testing the packet formatter routines, the DEBUG 
-// option fills the Dcc Packet buffer with valid packets from a list of test packets.
+// option fills the Dcc Packet buffer with valid packets from a list of test 
+// packets.
 //
 // ?? what if there is garbage ? how do we stop after a preamble the reading of 
 // bits that don't make sense ?
@@ -393,8 +395,8 @@ bool getPacket( ) {
 //----------------------------------------------------------------------------------------
 // "isNewPacket" searches the DCC packet buffer. It uses the packet length, the 
 // first two bytes and the checksum to build a packet key. If the packet is not 
-// found and there is still room in the buffer we add it to the buffer and indicate
-// a new packet.
+// found and there is still room in the buffer we add it to the buffer and 
+// indicate a new packet.
 //
 //----------------------------------------------------------------------------------------
 bool isNewPacket( uint8_t *dccPkt ) {
@@ -431,26 +433,30 @@ void showStatistics( ) {
 
     if ( showFlags & SHOW_VERBOSE ) {
 
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
-        printf( "---> (%d), Packets: %d:%d, reset: $d, idle: %d, cut: %d", 
-                intervalCount, packetsDetected, errPacketsDetected, 
-                resetPacketsDetected, idlePacketsDetected, cutoutDetected );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "---> (%d), Packets: %d:%d, reset: $d, idle: %d, cut: %d", 
+                    intervalCount, packetsDetected, errPacketsDetected, 
+                    resetPacketsDetected, idlePacketsDetected, cutoutDetected );
 
         #if 0
-        // ??? take them out for now, the numbers are just horrible... need a better method to capture time ...
-        printf( ", Signal lengths: BELOW (%d:%d, ONE (%d:%d), ZERO (%d:%d)), ABOVE (%d:%d)",  
-                belowSignal.getLow( ), 
-                belowSignal.getHigh( ),
-                oneBitSignal.getLow( ),
-                oneBitSignal.getHigh( ),
-                zeroBitSignal.getLow( ),
-                zeroBitSignal.getHigh( ),
-                aboveSignal.getLow( ),
-                aboveSignal.getHigh( ));
+        // ??? take them out for now, the numbers are just horrible... 
+        // need a better method to capture time ...
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     ", Signal lengths: BELOW (%d:%d, ONE (%d:%d), "
+                     "ZERO (%d:%d)), ABOVE (%d:%d)",  
+                     belowSignal.getLow( ), 
+                     belowSignal.getHigh( ),
+                     oneBitSignal.getLow( ),
+                     oneBitSignal.getHigh( ),
+                     zeroBitSignal.getLow( ),
+                     zeroBitSignal.getHigh( ),
+                     aboveSignal.getLow( ),
+                     aboveSignal.getHigh( ));
         #endif
 
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 }
 
@@ -485,15 +491,21 @@ void showPackets( ) {
             if ((( showFlags & SHOW_IDLE_RESET ) && isResetPacket( dccPacket )) ||
                 (( showFlags & SHOW_IDLE_RESET ) && isIdlePacket( dccPacket ))) {
 
-                numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
+                numChars = formatDccPacketOpsMode( lineBuf, 
+                                                   sizeof( lineBuf ), 
+                                                   dccPacket );
             }
             else if ( showFlags & SHOW_SVC_MODE ) {
 
-                numChars = formatDccPacketSvcMode( lineBuf, sizeof( lineBuf ), dccPacket );
+                numChars = formatDccPacketSvcMode( lineBuf, 
+                                                   sizeof( lineBuf ), 
+                                                   dccPacket );
             }
             else {
 
-                numChars = formatDccPacketOpsMode( lineBuf, sizeof( lineBuf ), dccPacket );
+                numChars = formatDccPacketOpsMode( lineBuf, 
+                                                   sizeof( lineBuf ), 
+                                                   dccPacket );
             }
 
             if ( showFlags & SHOW_HEX ) {
@@ -510,15 +522,15 @@ void showPackets( ) {
                                                 dccPacket );
             }
 
-            if ( numChars > 0 ) printf( lineBuf );
+            if ( numChars > 0 ) usbIoPrintf( CDC_USB_CONSOLE, lineBuf );
         }
     }
 }
 
 //----------------------------------------------------------------------------------------
 // DCC Packet buffer section. There is the idea of an interval in which packets 
-// are observed. Identical packets need not be printed out again. At refresh time 
-// the array is cleared and the collection starts again.
+// are observed. Identical packets need not be printed out again. At refresh 
+// time the array is cleared and the collection starts again.
 //
 //----------------------------------------------------------------------------------------
 void refreshBuffer( ) {
@@ -551,8 +563,11 @@ void refreshBuffer( ) {
 //----------------------------------------------------------------------------------------
 void printWelcome( ) {
 
-    printf( "DCC Packet Analyzer\n" );
-    printf( "Updates every %d seconds\n", refreshTimeInMillis / 1000 );
+    usbIoPrintf( CDC_USB_CONSOLE, "DCC Packet Analyzer\n" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "Updates every %d seconds\n", 
+                 refreshTimeInMillis / 1000 );
 }
 
 //----------------------------------------------------------------------------------------
@@ -582,80 +597,98 @@ void checkUserInput( ) {
 
         case '1': {
 
-            printf( "Refresh Time = 1s\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Refresh Time = 1s\n" );
             refreshTimeInMillis = 1000;
 
         } break;
 
         case '2': {
 
-            printf( "Refresh Time = 2s\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Refresh Time = 2s\n" );
             refreshTimeInMillis = 2000;
 
         } break;
 
         case '3': {
 
-            printf( "Refresh Time = 4s\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Refresh Time = 4s\n" );
             refreshTimeInMillis = 4000;
 
         } break;
 
         case '4': {
 
-            printf( "Refresh Time = 8s\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Refresh Time = 8s\n" );
             refreshTimeInMillis = 8000;
 
         } break;
 
         case '5': {
 
-            printf( "Refresh Time = 16s\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Refresh Time = 16s\n" );
             refreshTimeInMillis = 16000;
 
         } break;
 
         case '6': {
 
-            printf( "Buffer Size = 16\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Buffer Size = 16\n" );
             dccPacketBufferSize = 16;
         
         } break;
 
         case '7': {
 
-            printf( "Buffer Size = 32\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Buffer Size = 32\n" );
             dccPacketBufferSize = 32;
         
         } break;
 
         case '8': {
 
-            printf( "Buffer Size = 64\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Buffer Size = 64\n" );
             dccPacketBufferSize = 64;
         
         } break;
 
         case '9': {
 
-            printf( "Buffer Size = 128\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Buffer Size = 128\n" );
             dccPacketBufferSize = 128;
         
         } break;
 
         case 's': {
 
-            printf( "Status -> " );
-            printf( "Verbose: %d, ", (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
-            printf( "Svc Mode: %d, ", (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
-            printf( "Loc: %d, ", (( showFlags & SHOW_LOC ) ? 1 : 0 ));
-            printf( "Acc: %d, ", (( showFlags & SHOW_ACC ) ? 1 : 0 ));
-            printf( "Hex: %d, ", (( showFlags & SHOW_HEX ) ? 1 : 0 ));
-            printf( "Bin: %d, ", (( showFlags & SHOW_BIN ) ? 1 : 0 ));
-            printf( "Idle-Reset: %d ", (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
-            printf( "Refresh-Time: %d, ", refreshTimeInMillis );
-            printf( "DccPktBuf Size: %d ", dccPacketBufferSize );
-            printf( "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Status -> " );
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Verbose: %d, ", 
+                         (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Svc Mode: %d, ", 
+                         (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Loc: %d, ", 
+                         (( showFlags & SHOW_LOC ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Acc: %d, ", 
+                         (( showFlags & SHOW_ACC ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Hex: %d, ",  
+                         (( showFlags & SHOW_HEX ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Bin: %d, ", 
+                         (( showFlags & SHOW_BIN ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Idle-Reset: %d ", 
+                         (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Refresh-Time: %d, ", 
+                         refreshTimeInMillis );
+            usbIoPrintf( CDC_USB_CONSOLE, "DccPktBuf Size: %d ", 
+                         dccPacketBufferSize );
+
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
         } break;
 
@@ -663,7 +696,10 @@ void checkUserInput( ) {
             
             if ( showFlags & SHOW_VERBOSE ) 
                 showFlags &= ~SHOW_VERBOSE; else showFlags |= SHOW_VERBOSE;
-            printf( "show verbose = %d\n", (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "show verbose = %d\n", 
+                         (( showFlags & SHOW_VERBOSE ) ? 1 : 0 ));
         
         } break;
 
@@ -671,8 +707,9 @@ void checkUserInput( ) {
 
             if ( showFlags & SHOW_IDLE_RESET ) 
                showFlags &= ~SHOW_IDLE_RESET; else showFlags |= SHOW_IDLE_RESET;
-            printf( "show idle/reset packets = %d\n", 
-                    (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
+
+            usbIoPrintf( CDC_USB_CONSOLE, "show idle/reset packets = %d\n", 
+                         (( showFlags & SHOW_IDLE_RESET ) ? 1 : 0 ));
         
         } break;
 
@@ -681,8 +718,8 @@ void checkUserInput( ) {
         if ( showFlags & SHOW_ACC ) 
             showFlags &= ~SHOW_ACC; else showFlags |= SHOW_ACC;
         
-        printf( "show acc packets = %d\n", 
-                (( showFlags & SHOW_ACC ) ? 1 : 0 ));
+        usbIoPrintf( CDC_USB_CONSOLE, "show acc packets = %d\n", 
+                     (( showFlags & SHOW_ACC ) ? 1 : 0 ));
             
         } break;
 
@@ -691,8 +728,8 @@ void checkUserInput( ) {
             if ( showFlags & SHOW_LOC ) 
                 showFlags &= ~SHOW_LOC; else showFlags |= SHOW_LOC;
 
-            printf( "show loc packets = %d\n", 
-                    (( showFlags & SHOW_LOC ) ? 1 : 0 ));
+            usbIoPrintf( CDC_USB_CONSOLE, "show loc packets = %d\n", 
+                         (( showFlags & SHOW_LOC ) ? 1 : 0 ));
             
         } break;
 
@@ -701,8 +738,8 @@ void checkUserInput( ) {
             if ( showFlags & SHOW_HEX ) 
                 showFlags &= ~SHOW_HEX; else showFlags |= SHOW_HEX;
 
-            printf( "show packet data in hexadecimal = %d\n", 
-                    (( showFlags & SHOW_HEX ) ? 1 : 0 ));
+            usbIoPrintf( CDC_USB_CONSOLE, "show packet data in hexadecimal = %d\n", 
+                         (( showFlags & SHOW_HEX ) ? 1 : 0 ));
         
         } break;
 
@@ -711,8 +748,8 @@ void checkUserInput( ) {
             if ( showFlags & SHOW_BIN ) 
                 showFlags &= ~SHOW_BIN; else showFlags |= SHOW_BIN;
 
-            printf( "show packet data in binary = %d\n", 
-                    (( showFlags & SHOW_BIN ) ? 1 : 0 ));
+            usbIoPrintf( CDC_USB_CONSOLE, "show packet data in binary = %d\n", 
+                         (( showFlags & SHOW_BIN ) ? 1 : 0 ));
         
         } break;
 
@@ -721,43 +758,43 @@ void checkUserInput( ) {
             if ( showFlags & SHOW_SVC_MODE ) 
                 showFlags &= ~SHOW_SVC_MODE; else showFlags |= SHOW_SVC_MODE;
 
-            printf( "show service mode = %d\n", 
-                    (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
+            usbIoPrintf( CDC_USB_CONSOLE, "show service mode = %d\n", 
+                         (( showFlags & SHOW_SVC_MODE ) ? 1 : 0 ));
             
         } break;
 
         case '?': {
 
-            printf( "Available keyboard commands:" );
-            printf( "  0 = reset, defaults" );
-            printf( "  1 = 1s refresh time" );
-            printf( "  2 = 2s" );
-            printf( "  3 = 4s (default)" );
-            printf( "  4 = 8s" );
-            printf( "  5 = 16s" );
-            printf( "\n" );
-            printf( "  6 = 16 DCC packet buffer size" );
-            printf( "  7 = 32" );
-            printf( "  8 = 64 (default)" );
-            printf( "  9 = 128" );
-            printf( "\n" );
-            printf( "  a = accessory packets display on / off toggle" );
-            printf( "  l = locomotive packets display on / off toggle" );
-            printf( "  i = idle packet display on / off toggle" );
-            printf( "\n" );
-            printf( "  h = hexadecimal output of packet data on / off toggle" );
-            printf( "  b = binary output of packet data on / off toggle" );
-            printf( "\n" );
-            printf( "  s = show configuration" );
-            printf( "  v = show verbose packet format" );
-            printf( "  p = show service mode packet format" );
-            printf( "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Available keyboard commands:" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  0 = reset, defaults" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  1 = 1s refresh time" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  2 = 2s" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  3 = 4s (default)" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  4 = 8s" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  5 = 16s" );
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  6 = 16 DCC packet buffer size" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  7 = 32" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  8 = 64 (default)" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  9 = 128" );
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  a = accessory packets display on / off toggle" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  l = locomotive packets display on / off toggle" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  i = idle packet display on / off toggle" );
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  h = hexadecimal output of packet data on / off toggle" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  b = binary output of packet data on / off toggle" );
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  s = show configuration" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  v = show verbose packet format" );
+            usbIoPrintf( CDC_USB_CONSOLE, "  p = show service mode packet format" );
+            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
         } break;
 
         case '\r':  break;
         case '\n':  break;
-        default:    printf( "Invalid command, use '?' for help\n" );
+        default:    usbIoPrintf( CDC_USB_CONSOLE, "Invalid command, use '?' for help\n" );
     }
 }
 

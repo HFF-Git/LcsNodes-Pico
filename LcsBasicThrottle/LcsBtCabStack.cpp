@@ -5,9 +5,9 @@
 //----------------------------------------------------------------------------------------
 // The cab stack of cab entries and the current cab are the central structure to 
 // manage the engines known to the cab handheld. Most of cab handheld functions 
-// apply to the current cab. The current cab can be saved and restored form a stack
-// of cab entries. Finally, engine descriptions can be loaded from and stored to a
-// central place such as the base station.
+// apply to the current cab. The current cab can be saved and restored form a 
+// stack of cab entries. Finally, engine descriptions can be loaded from and 
+// stored to a central place such as the base station.
 //
 //----------------------------------------------------------------------------------------
 //
@@ -67,10 +67,10 @@ uint8_t setupCabStack( ) {
 // Cab Stack Entry Methods.
 //
 //----------------------------------------------------------------------------------------
-// The cab entry is the central structure to describe a cab. It contains the engine
-// address, its speed and direction, all the function settings and some other flags
-// and data. The structure is organized in a set of 16 bit aligned data fields to 
-// allow for an easy transfer of items to and from a basestation.
+// The cab entry is the central structure to describe a cab. It contains the 
+// engine address, its speed and direction, all the function settings and some
+// other flags and data. The structure is organized in a set of 16 bit aligned 
+// data fields to allow for an easy transfer of items to and from a basestation.
 //
 //----------------------------------------------------------------------------------------
 void CabEntry::reset( uint16_t cabId ) {
@@ -252,9 +252,9 @@ void  CabEntry::setSessionState( uint8_t state ) {
 }
 
 //----------------------------------------------------------------------------------------
-// A cab entry needs to be set and saved from a central structure kept at for example 
-// the base station. The methods below allow to get the data from the cab entry in 
-// the defined number of 16-bit words.
+// A cab entry needs to be set and saved from a central structure kept at for 
+// example the base station. The methods below allow to get the data from the 
+// cab entry in the defined number of 16-bit words.
 //
 //----------------------------------------------------------------------------------------
 uint8_t CabEntry::getDataByItem( uint8_t item, uint16_t *arg ) {
@@ -277,25 +277,27 @@ uint8_t CabEntry::setDataByItem( uint8_t item, uint16_t arg ) {
 //----------------------------------------------------------------------------------------
 void CabEntry::printCabEntry( ) {
 
-    printf( "Cab Id: %d, %c, sId: %d, sState: %d, speed: %d, dir: %d \n", 
-    cabId, getEngineTypeChar( ), sessionId, sessionState, speed, direction );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "Cab Id: %d, %c, sId: %d, sState: %d, speed: %d, dir: %d \n", 
+                 cabId, getEngineTypeChar( ), 
+                 sessionId, sessionState, speed, direction );
 
-    printf( "DccFunc: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "DccFunc: " );
 
     for ( int i = 0; i < MAX_FUNC_STATE_SIZE; i++ ) {
 
-        printf( "0x%x ", dccFuncState[ i ] );
+        usbIoPrintf( CDC_USB_CONSOLE, "0x%x ", dccFuncState[ i ] );
     }
 
-    printf( "\n" );
-    printf( "CabFunc Id: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "CabFunc Id: " );
 
     for ( int i = 0; i < MAX_CAB_FUNC_ENTRIES; i++ ) {
 
-        printf( "%d: 0x%x ", cabFuncIdMap[ i ] );
+        usbIoPrintf( CDC_USB_CONSOLE, "%d: 0x%x ", cabFuncIdMap[ i ] );
     }
 
-    printf( "\n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -305,10 +307,10 @@ void CabEntry::printCabEntry( ) {
 //
 //----------------------------------------------------------------------------------------
 // A cab handheld can manage a set of cab entries. One entry is the active cab, 
-// the others are in a list of cab entries. The slots are numbered from one to MAX.
-// Each entry describe an engine and its specific settings. The cabEntry stack is
-// restored from the NVM at handheld start. An entry is updated when we change the
-// config data for a cab.
+// the others are in a list of cab entries. The slots are numbered from one to 
+// MAX. Each entry describe an engine and its specific settings. The cabEntry 
+// stack is restored from the NVM at handheld start. An entry is updated when 
+// we change the config data for a cab.
 //
 //----------------------------------------------------------------------------------------
 CabStack::CabStack( ) {

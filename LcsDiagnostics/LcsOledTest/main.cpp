@@ -60,7 +60,7 @@ int main( ) {
     uint8_t rStat = initCdcLib( );
     if ( rStat != NO_ERR ) {
 
-        printf( "Error in CDC init: %d\n", rStat );
+        usbIoPrintf( CDC_USB_CONSOLE, "Error in CDC init: %d\n", rStat );
         sleepMillis( 5000 );
         return( -1 );
     }

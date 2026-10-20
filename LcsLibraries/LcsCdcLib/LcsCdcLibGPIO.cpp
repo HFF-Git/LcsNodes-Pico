@@ -206,8 +206,9 @@ uint8_t configureDio( uint8_t rNum, uint8_t pinA, uint8_t pinB, uint8_t mode ) {
 
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_GPIO )) {
 
-        printf( "configureDio-detail: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", 
-                rNum, pinA, pinB, mode );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "configureDio-detail: rNum: %d, pinA: %d, pinB: %d, mode: %d\n", 
+                     rNum, pinA, pinB, mode );
     }
 
     CdcResource *rPtr = allocateResourceType( rNum, CDC_RT_GPIO );

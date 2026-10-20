@@ -271,7 +271,8 @@ uint8_t setupHw( uint8_t rNumI2C, uint8_t rNumRST ) {
         sleepMillis( 10 );
     }
 
-    if ( rStat != NO_ERR ) printf( "setupHw Error: %d\n", rStat );
+    if ( rStat != NO_ERR ) 
+       usbIoPrintf( CDC_USB_CONSOLE, "setupHw Error: %d\n", rStat );
 
     return( rStat );
 }
@@ -308,8 +309,9 @@ uint8_t LcsOledDisplay::begin(  uint8_t devType,
 
     // ??? into a debug bracket ?
     #if 1
-    printf( "Oled Display begin: rNumI2C: %d, i2cAdr: 0x%x, rNumRST: %d\n ", 
-            rNumI2C, i2cAdr, rNumRST );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "Oled Display begin: rNumI2C: %d, i2cAdr: 0x%x, rNumRST: %d\n ", 
+                 rNumI2C, i2cAdr, rNumRST );
     #endif
 
     uint8_t rStat = setupHw( rNumI2C, rNumRST );
@@ -715,5 +717,6 @@ void LcsOledDisplay::writeDisplay( uint8_t b, uint8_t mode ) {
    uint8_t rStat = i2cWrite( rNumI2C, i2cAdr, buf, 2, false );
 
     // ??? into a debug bracket ?
-   if ( rStat != NO_ERR ) printf( "Error in writing to display: %d\n", rStat );
+   if ( rStat != NO_ERR ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "Error writing to display: %d\n", rStat );
 }

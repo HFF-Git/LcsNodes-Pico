@@ -113,15 +113,15 @@ inline bool setupDebugEnabled( ) {
 
 inline void enterFunc( char *name ) {
 
-    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
+    if ( setupDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( setupDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
-        else                    printf( "<-- %s: %d\n", name, errId );
+        if ( errId == LCS_OK )  usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: OK\n", name );
+        else                    usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -310,15 +310,15 @@ void printNvmHeader( LcsNvmHeader *head ) {
     uint16_t *ptr  = (uint16_t *) head;
     size_t   words = sizeof(LcsNvmHeader) / 2;
 
-    printf( "NVM Header ( %zu words ):\n", words );
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Header ( %zu words ):\n", words );
 
     for ( size_t j = 0; j < words; j++ ) {
     
-        printf( "0x%04x ", ptr[j] );
-        if ((( j + 1 ) % 8 ) == 0 ) printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "0x%04x ", ptr[j] );
+        if ((( j + 1 ) % 8 ) == 0 ) usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 
-    if (( words % 8 ) != 0 ) printf( "\n" );
+    if (( words % 8 ) != 0 ) usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 }; // namespace
@@ -470,7 +470,7 @@ uint8_t initCanBus( ) {
 
         if ( setupDebugEnabled( )) {
 
-            printf( "Init Can Bus, CAN status: %d\n", rStat ); 
+            usbIoPrintf( CDC_USB_CONSOLE, "Init Can Bus, CAN status: %d\n", rStat ); 
         }
 
         rStat = ERR_CAN_SETUP;
@@ -853,7 +853,7 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
 
-    if ( setupDebugEnabled( )) printf( "DebugMask: 0x%04x\n", debugMask );
+    if ( setupDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "DebugMask: 0x%04x\n", debugMask );
   
     rStat = initI2cChannels( );
     if ( rStat != LCS_OK ) {

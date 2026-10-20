@@ -92,8 +92,9 @@ uint8_t configureI2C( uint8_t  rNum,
 
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
-        printf( "configureI2C: rNum: %d, scl: %d, sda: %d, baud: %d, tVal: %d\n",
-                rNum, sclPin, sdaPin, baudRate, timeoutVal  );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                    "configureI2C: rNum: %d, scl: %d, sda: %d, baud: %d, tVal: %d\n",
+                    rNum, sclPin, sdaPin, baudRate, timeoutVal  );
     }
 
     if ( rNum >= MAX_RESOURCE_ENTRIES ) return ( RES_NUM_ERR );
@@ -152,19 +153,19 @@ uint8_t i2cRead( uint8_t  rNum,
                             // ??? temp...
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
-        printf( "i2cRead: rNum: %d, i2c: 0x%x, buf: %p, "
-                "buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
-                rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+        usbIoPrintf( CDC_USB_CONSOLE, "i2cRead: rNum: %d, i2c: 0x%x, buf: %p, "
+                     "buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+                     rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
 
         if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
             
             if ( ret == PICO_ERROR_GENERIC ) { 
                 
-                printf( "I2C read, PICO generic error\n" );
+                usbIoPrintf( CDC_USB_CONSOLE, "I2C read, PICO generic error\n" );
             }
             else if ( ret == PICO_ERROR_TIMEOUT ) { 
                 
-                printf( "I2C read, PICO timeout error\n" );
+                usbIoPrintf( CDC_USB_CONSOLE, "I2C read, PICO timeout error\n" );
             }
         }
     }
@@ -189,9 +190,10 @@ uint8_t i2cWrite( uint8_t  rNum,
 
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
         
-        printf( "i2cWrite: rNum: %d, i2cAdr: 0x%x, buf: %p, "
-                "buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
-                rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "i2cWrite: rNum: %d, i2cAdr: 0x%x, buf: %p, "
+                     "buf[0] %x, buf[1] %x, len: %d, stop: %d\n", 
+                     rNum, i2cAdr, buf, buf[0], buf[1], len, stopBit );
     }
 
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );
@@ -215,11 +217,11 @@ uint8_t i2cWrite( uint8_t  rNum,
 
         if ( ret == PICO_ERROR_GENERIC ){
             
-            printf( "I2C write, PICO generic error\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "I2C write, PICO generic error\n" );
         }
         else if ( ret == PICO_ERROR_TIMEOUT ) { 
             
-            printf( "I2C write, PICO timeout error\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "I2C write, PICO timeout error\n" );
         }
     }
     
@@ -238,7 +240,7 @@ uint8_t i2cBusreset( uint8_t rNum ) {
 
     if (( debugMask & CDC_DBG_ENABLE ) && ( debugMask & CDC_DBG_I2C )) {
 
-        printf( "I2C Bus reset, rNum: %d\n", rNum );
+        usbIoPrintf( CDC_USB_CONSOLE, "I2C Bus reset, rNum: %d\n", rNum );
     }
 
     CdcResource *rPtr = lookupResource( rNum, CDC_RT_I2C );

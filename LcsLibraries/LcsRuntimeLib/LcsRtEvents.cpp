@@ -72,8 +72,8 @@ inline uint8_t retStat( const char *name, uint8_t errId ) {
 
     if ( eventsDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-        else                    printf( "%s: %d\n", name, errId );
+        if ( errId == LCS_OK ) usbIoPrintf( CDC_USB_CONSOLE, "%s: OK\n", name );
+        else            usbIoPrintf( CDC_USB_CONSOLE, "%s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -81,7 +81,7 @@ inline uint8_t retStat( const char *name, uint8_t errId ) {
 
 inline void enterFunc( const char *name ) {
 
-    if ( eventsDebugEnabled( )) printf( "--> %s\n", name );
+    if ( eventsDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
 }
 
 #define ENTER_FUNC() enterFunc( __func__)
@@ -246,7 +246,10 @@ uint8_t loadEventMap( ) {
 //----------------------------------------------------------------------------------------
 LcsEventMapEntry *lookupEvent( uint16_t eventId ) {
 
-    if ( eventsDebugEnabled( )) printf( "lookupEvent, eventId: %d\n", eventId );
+    if ( eventsDebugEnabled( )){ 
+        
+        usbIoPrintf( CDC_USB_CONSOLE, "lookupEvent, eventId: %d\n", eventId );
+    }
 
     if ( eventId != NIL_EVENT_ID ) {
         
@@ -254,8 +257,8 @@ LcsEventMapEntry *lookupEvent( uint16_t eventId ) {
 
         if ( eventsDebugEnabled( )) {
 
-            if ( entry != nullptr ) printf( "found\n" );
-            else                    printf( "not found\n" );
+            if ( entry != nullptr ) usbIoPrintf( CDC_USB_CONSOLE, "found\n" );
+            else                usbIoPrintf( CDC_USB_CONSOLE, "not found\n" );
         }
         
         return ( entry );
@@ -274,7 +277,9 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 
     if ( eventsDebugEnabled( )) {
 
-        printf( "Add event, eventId: %d, mask: 0x%04x\n", eventId, eventMask );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "Add event, eventId: %d, mask: 0x%04x\n", 
+                     eventId, eventMask );
     }
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
@@ -292,7 +297,10 @@ uint8_t addEvent( uint16_t eventId, uint16_t eventMask ) {
 //----------------------------------------------------------------------------------------
 uint8_t removeEvent( uint16_t eventId ) {
 
-    if ( eventsDebugEnabled( )) printf( "Remove event, eventId: %d\n", eventId );
+    if ( eventsDebugEnabled( )) {
+        
+        usbIoPrintf( CDC_USB_CONSOLE, "Remove event, eventId: %d\n", eventId );
+    } 
 
     if ( eventId == NIL_EVENT_ID ) return ( RET_STAT( ERR_INVALID_EVENT_ID ));
 
@@ -328,7 +336,7 @@ uint8_t getEventEntryByIndex( uint16_t index,
 
     if ( eventsDebugEnabled( )) {
 
-        printf( "getEventEntryByIndex, index: %d\n", index );
+        usbIoPrintf( CDC_USB_CONSOLE, "getEventEntryByIndex, index: %d\n", index );
     }
 
     size_t nEntries = eventMap.mapHwm / sizeof( LcsEventMapEntry );

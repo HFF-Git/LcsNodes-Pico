@@ -63,15 +63,17 @@ inline bool setupDebugEnabled( ) {
 
 inline void enterFunc( char *name ) {
 
-    if ( setupDebugEnabled( )) printf( "--> %s\n", name );
+    if ( setupDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( setupDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "<-- %s: OK\n", name );
-        else                    printf( "<-- %s: %d\n", name, errId );
+        if ( errId == LCS_OK )  
+            usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: OK\n", name );
+        else        
+            usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -346,7 +348,7 @@ uint8_t LcsLocoSessions::loadCabMap( ) {
     if ( cabMapHead.magicWord != CAB_MAP_MAGIC_WORD ) {
 
         if ( setupDebugEnabled( )) 
-            printf( "Cab map not valid, formatting ...\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Cab map not valid, formatting ...\n" );
 
         rStat = formatCabMap( );
     }
@@ -1225,23 +1227,37 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr, bool detail ) {
 
     if ( cPtr == nullptr ) return;
 
-    printf( "CabId: %d, ", cPtr -> cabId );
-    printf( "CabId: %d,  speed: %d, ", cPtr -> cabId, cPtr -> speedInfo & 0x7f );
-    printf( "%s, ", (( cPtr -> speedInfo & 0x80 ) ? "Rev" : "Fwd" ));
-    printf( " Flags: 0x%x", ( cPtr -> flags ));
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "CabId: %d, ", cPtr -> cabId );
+
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "CabId: %d,  speed: %d, ", 
+                 cPtr -> cabId, cPtr -> speedInfo & 0x7f );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "%s, ", 
+                 (( cPtr -> speedInfo & 0x80 ) ? "Rev" : "Fwd" ));
+
+    usbIoPrintf( CDC_USB_CONSOLE, " Flags: 0x%x", ( cPtr -> flags ));
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
     if ( detail ) {
 
-        printf( "   SpeedMap: " );
-        for ( int i = 0; i < 6; i++ ) printf( "%d ", cPtr -> speedMap[ i ]);
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "   SpeedMap: " );
+        for ( int i = 0; i < 6; i++ ) { 
+            
+            usbIoPrintf( CDC_USB_CONSOLE, "%d ", cPtr -> speedMap[ i ]);
+        }
+
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
         // ??? how do we do dcc and analog ?
 
-        printf( "   FuncMap: " );
-        for ( int i = 0; i < 10; i++ ) printf( "0x%x ", cPtr -> d.funcMap[ i ]);
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "   FuncMap: " );
+        for ( int i = 0; i < 10; i++ ) {
+            
+            usbIoPrintf( CDC_USB_CONSOLE, "0x%x ", cPtr -> d.funcMap[ i ]);
+        }
+
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 }
 
@@ -1251,14 +1267,19 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr, bool detail ) {
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::printCabMapHeader( ) {
 
-    printf( "CabMap Header\n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "CabMap Header\n\n" );
 
-    printf( "Magic Word: 0x%x\n", cabMapHead.magicWord );
-    printf( "Flags: 0x%x\n", cabMapHead.flags );
-    printf( "Max Cab Count: %d\n", cabMapHead.maxCabCount );  
-    printf( "Current Cab Count: %d\n", cabMapHead.currentCabCount );
-    printf( "Cab Entry Item Count: %d\n", cabMapHead.cabEntryItemCount );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Magic Word: 0x%x\n", cabMapHead.magicWord );
+    usbIoPrintf( CDC_USB_CONSOLE, "Flags: 0x%x\n", cabMapHead.flags );
+    usbIoPrintf( CDC_USB_CONSOLE, "Max Cab Count: %d\n", cabMapHead.maxCabCount );  
+
+    usbIoPrintf( CDC_USB_CONSOLE, "Current Cab Count: %d\n", 
+                                  cabMapHead.currentCabCount );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "Cab Entry Item Count: %d\n", 
+                                  cabMapHead.cabEntryItemCount );
+                                  
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1267,7 +1288,7 @@ void LcsLocoSessions::printCabMapHeader( ) {
 //----------------------------------------------------------------------------------------
 void  LcsLocoSessions::printActiveCabMap( ) {
 
-    printf( "Active Cabs: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Active Cabs: \n\n" );
 
     for ( int i = 0; i < activeCabCount; i++ ) {
 
@@ -1324,7 +1345,7 @@ void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
                 if (( debugMask & DBG_BS_CONFIG ) && 
                     ( debugMask & DBG_BS_CHECK_ALIVE_SESSIONS )) {
 
-                    printf( "Session: %d expired\n", smePtr - sessionMap );
+                    usbIoPrintf( CDC_USB_CONSOLE, "Session: %d expired\n", smePtr - sessionMap );
                 }
 
                 deallocateSessionEntry( smePtr );

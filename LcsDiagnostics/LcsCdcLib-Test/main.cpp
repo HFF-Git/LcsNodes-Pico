@@ -46,7 +46,7 @@ void initCdcLib( ) {
     cdcInit( &dMap );
     configureUsbIO( );
     sleepMillis( 2000 );
-    printf( "Test LCS Controller dependent code library\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Test LCS Controller dependent code library\n" );
     printResourceDescMap( &dMap );
     sleepMillis( 2000 );
 }
@@ -113,8 +113,8 @@ void testDualConsoleIO ( ) {
 //----------------------------------------------------------------------------------------
 void pfailCallback( uint8_t pin, uint8_t event ) {
 
-  printf( "PFAIL..\n" );
-  while ( true )  printf( "%d\n", CDC::getMillis( ));
+  usbIoPrintf( CDC_USB_CONSOLE, "PFAIL..\n" );
+  while ( true )  usbIoPrintf( CDC_USB_CONSOLE, "%d\n", CDC::getMillis( ));
 }
 
 void testPfail( ) {
@@ -125,7 +125,7 @@ void testPfail( ) {
   configureDio( CDC_RN_ACTIVITY_LED );
   writeDio( CDC_RN_ACTIVITY_LED, true );
   
-  printf( "testPfail -> unplug the power cord \n" );
+  usbIoPrintf( CDC_USB_CONSOLE, "testPfail -> unplug the power cord \n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ void testPfail( ) {
 //----------------------------------------------------------------------------------------
 void testOnboardLeds( ) {
 
-  printf( "Active Led Test\n" );
+  usbIoPrintf( CDC_USB_CONSOLE, "Active Led Test\n" );
   uint8_t rStat = configureDio( CDC_RN_ACTIVITY_LED );
   if ( rStat != NO_ERR ) fatalError( 4 );
   
@@ -154,7 +154,7 @@ void testOnboardLeds( ) {
 //----------------------------------------------------------------------------------------
 void testFatalErr( ) {
 
-  printf( "Fatal Error Test\n" );
+  usbIoPrintf( CDC_USB_CONSOLE, "Fatal Error Test\n" );
   fatalError( 4 );
 }
 
@@ -174,7 +174,7 @@ void configureDioInPinA( uint8_t rNum ) {
 
 void testDioInput( ) {
 
-    printf( "DIO input test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "DIO input test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
     configureDioInPinA( RNUM_DIO_0 );
@@ -195,28 +195,28 @@ void testDioInput( ) {
         uint8_t rStat;
 
         rStat = readDio( RNUM_DIO_0, &val );
-        printf( "Econ Dio In 0: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 0: %d\n", val );
 
         rStat = readDio( RNUM_DIO_1, &val );
-        printf( "Econ Dio In 1: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 1: %d\n", val );
 
         rStat = readDio( RNUM_DIO_2, &val );
-        printf( "Econ Dio In 2: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 2: %d\n", val );
 
         rStat = readDio( RNUM_DIO_3, &val );
-        printf( "Econ Dio In 3: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 3: %d\n", val );
 
         rStat = readDio( RNUM_DIO_4, &val );
-        printf( "Econ Dio In 4: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 4: %d\n", val );
 
         rStat = readDio( RNUM_DIO_5, &val );
-        printf( "Econ Dio In 5: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 5: %d\n", val );
 
         rStat = readDio( RNUM_DIO_6, &val );
-        printf( "Econ Dio In 6: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 6: %d\n", val );
 
         rStat = readDio( RNUM_DIO_7, &val );
-        printf( "Econ Dio In 7: %d\n", val );
+        usbIoPrintf( CDC_USB_CONSOLE, "Econ Dio In 7: %d\n", val );
     }
 }
 
@@ -237,7 +237,7 @@ void configureDioOutPinA( uint8_t rNum ) {
 
 void testDioOutput( ) {
 
-    printf( "DIO output test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "DIO output test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
     configureDioOutPinA( RNUM_DIO_0 );
@@ -313,7 +313,7 @@ void configureDioOutPinPair( uint8_t rNum ) {
 
 void testDioOutputPair( ) {
 
-    printf( "DIO output pair test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "DIO output pair test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
     configureDioOutPinPair( RNUM_DIO_P_0 );
@@ -378,7 +378,7 @@ void testAdcBlockingRead( ) {
 
   float digitToVolt = (float) 3300 / 1024 / 1000; // quick hack ...
 
-  printf( "ADC read test\n" );
+  usbIoPrintf( CDC_USB_CONSOLE, "ADC read test\n" );
 
   configureDio( CDC_RN_ACTIVITY_LED );
   configureAdc( RNUM_ADC_0 );
@@ -389,13 +389,13 @@ void testAdcBlockingRead( ) {
     uint16_t    val;
     uint8_t     rStat = readAdc( RNUM_ADC_0, &val );
 
-    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", 
             RNUM_ADC_0, val, val * digitToVolt );
     sleepMillis( 1000 );
 
     rStat = readAdc( RNUM_ADC_1, &val );
 
-    printf( "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "ADC -> ( rNum: %d, val: %d, Volt: %d )\n", 
             RNUM_ADC_1, val, val * digitToVolt );
     sleepMillis( 1000 );
   }
@@ -408,17 +408,17 @@ void testAdcBlockingRead( ) {
 //----------------------------------------------------------------------------------------
 void timerCallback0( uint32_t timerVal ) {
 
-    printf( "Timer 0 fired: %d\n", getMillis( ));
+    usbIoPrintf( CDC_USB_CONSOLE, "Timer 0 fired: %d\n", getMillis( ));
 }
 
 void timerCallback1( uint32_t timerVal ) {
 
-    printf( "Timer 1 fired: %d\n", getMillis( ));
+    usbIoPrintf( CDC_USB_CONSOLE, "Timer 1 fired: %d\n", getMillis( ));
 }
 
 void testTimer( ) {
 
-    printf( "Timer test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Timer test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
     writeDio( CDC_RN_ACTIVITY_LED, true );
@@ -427,17 +427,17 @@ void testTimer( ) {
 
     while ( true ) {
     
-        printf( "Configure Timers \n");
+        usbIoPrintf( CDC_USB_CONSOLE, "Configure Timers \n");
         rStat = configureTimer( RNUM_TIMER_0, timerCallback0 );
         rStat = configureTimer( RNUM_TIMER_1, timerCallback1, true );
 
-        printf( "Start Timers \n");
+        usbIoPrintf( CDC_USB_CONSOLE, "Start Timers \n");
         startRepeatingTimer( RNUM_TIMER_0, 500000 );
         startRepeatingTimer( RNUM_TIMER_1, 250000 );
 
         sleepMillis( 10000 );
 
-        printf( "Stop Timers \n");
+        usbIoPrintf( CDC_USB_CONSOLE, "Stop Timers \n");
         stopRepeatingTimer( RNUM_TIMER_0 );
         stopRepeatingTimer( RNUM_TIMER_1 );
     }
@@ -451,7 +451,7 @@ void testTimer( ) {
 //----------------------------------------------------------------------------------------
 void testI2C( ) {
 
-    printf( "List I2C channels test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "List I2C channels test\n" );
 
     uint8_t rStat = NO_ERR;
 
@@ -459,10 +459,10 @@ void testI2C( ) {
     writeDio( CDC_RN_ACTIVITY_LED, true );
 
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_NVM );
-    if ( rStat != NO_ERR ) printf( "Error configuring NVM I2C channel: %d\n", rStat );
+    if ( rStat != NO_ERR ) usbIoPrintf( CDC_USB_CONSOLE, "Error configuring NVM I2C channel: %d\n", rStat );
 
     if ( rStat == NO_ERR ) rStat = configureI2C( CDC_RN_EXT_NVM );
-    if ( rStat != NO_ERR ) printf( "Error configuring EXT I2C channel: %d\n", rStat );
+    if ( rStat != NO_ERR ) usbIoPrintf( CDC_USB_CONSOLE, "Error configuring EXT I2C channel: %d\n", rStat );
 
     if ( rStat != NO_ERR );
 
@@ -470,15 +470,15 @@ void testI2C( ) {
   
     while( true ) {
 
-        printf( "Scanning (%d) ... \n", scanCount );
+        usbIoPrintf( CDC_USB_CONSOLE, "Scanning (%d) ... \n", scanCount );
 
-        printf( "Scanning NVM I2C Bus\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "Scanning NVM I2C Bus\n" );
         scanI2CBus( CDC_RN_NVM );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
-        printf( "Scanning EXT I2C Bus\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "Scanning EXT I2C Bus\n" );
         scanI2CBus( CDC_RN_EXT_NVM );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
         scanCount++;
         sleepMillis( 5000 );
@@ -504,7 +504,7 @@ void configurePwmPins( uint8_t rNum ) {
 
 void testPWMFixed( ) {
 
-    printf( "PWM fixed frequency test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "PWM fixed frequency test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
     configurePwmPins( RNUM_PWM_P_0 );
@@ -532,7 +532,7 @@ void testPWMFixed( ) {
 //----------------------------------------------------------------------------------------
 void testPWMWithAnalogInput( ) {
 
-    printf( "PWM with analog input test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "PWM with analog input test\n" );
 
     configureDio( CDC_RN_ACTIVITY_LED );
 
@@ -562,12 +562,12 @@ void testPWMWithAnalogInput( ) {
 //----------------------------------------------------------------------------------------
 void testUIDGen( ) {
 
-    printf( "UID generation test\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "UID generation test\n" );
     sleepMillis( 1000 );
 
     for ( int i = 0; i < 20; i++ ) {
 
-        printf( "UID -> %d\n ", createUid( ));
+        usbIoPrintf( CDC_USB_CONSOLE, "UID -> %d\n ", createUid( ));
         sleepMillis( 100 );
     }
 }

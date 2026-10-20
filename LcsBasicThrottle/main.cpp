@@ -71,8 +71,8 @@ extern uint8_t      setupCabStack( );
 //----------------------------------------------------------------------------------------
 uint8_t errStat( uint8_t errId, char *msg ) {
 
-    if ( errId == 0 ) printf( "%s -> OK\n", msg );
-    else              printf( "%s -> %d\n", msg, errId );
+    if ( errId == 0 ) usbIoPrintf( CDC_USB_CONSOLE, "%s -> OK\n", msg );
+    else              usbIoPrintf( CDC_USB_CONSOLE, "%s -> %d\n", msg, errId );
     return ( errId );
 }
 
@@ -120,7 +120,7 @@ uint8_t initThrottle( ) {
 //----------------------------------------------------------------------------------------
 void startThrottle( ) {
 
-    printf( "start throttle\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "start throttle\n" );
     startRuntime( );
 }
 

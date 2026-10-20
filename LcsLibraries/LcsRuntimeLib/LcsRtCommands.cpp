@@ -96,12 +96,12 @@ typedef struct {
 //----------------------------------------------------------------------------------------
 void errArgList( ) {
 
-    printf( "Argument list error, use \"?\" for help\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Argument list error, use \"?\" for help\n" );
 }
 
 void errStat( char *msg, uint8_t ret ) {
 
-    printf( "Error: %s ( %d )\n", msg, ret );
+    usbIoPrintf( CDC_USB_CONSOLE, "Error: %s ( %d )\n", msg, ret );
 }
 
 //----------------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ bool isZeroLine( uint16_t *line, bool *valid, uint16_t itemsPerLine ) {
 
 //----------------------------------------------------------------------------------------
 // Print a line of data. We list the content in hex and optional append an 
-//ASCII version.
+// ASCII version.
 //
 //----------------------------------------------------------------------------------------
 void printLineBuf( uint32_t   address,
@@ -129,30 +129,33 @@ void printLineBuf( uint32_t   address,
                    uint16_t   itemsPerLine,
                    bool       printAscii ) {
 
-    printf( "0x%08x: ", address );
+    usbIoPrintf( CDC_USB_CONSOLE, "0x%08x: ", address );
 
     for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
 
-        if ( valid[ i ]) printf( "0x%04x ", line[ i ]);
-        else             printf( "     " );
+        if ( valid[ i ]) usbIoPrintf( CDC_USB_CONSOLE, "0x%04x ", line[ i ]);
+        else             usbIoPrintf( CDC_USB_CONSOLE, "       " );
     }
 
     if ( printAscii ) {
 
-        printf( "  " );
+        usbIoPrintf( CDC_USB_CONSOLE, "  " );
  
         for ( uint16_t i = 0; i < itemsPerLine; i++ ) {
             
             if ( valid[ i ] ) {
 
-                uint16_t v = line[i];
-                printf("%c", isprint( v >> 8 ) ? v >> 8 : '.' );
-                printf("%c ", isprint( v & 0xff ) ? v & 0xff : '.' );
+                uint16_t v = line[ i ];
+                usbIoPrintf( CDC_USB_CONSOLE, "%c", 
+                             isprint( v >> 8 ) ? ( v >> 8 ) : '.' );
+
+                usbIoPrintf( CDC_USB_CONSOLE, "%c ", 
+                             isprint( v & 0xff ) ? ( v & 0xff ) : '.' );
             }
         }
     }
 
-    printf("\n");
+   usbIoPrintf( CDC_USB_CONSOLE, "\n");
 }
 
 //----------------------------------------------------------------------------------------
@@ -270,7 +273,7 @@ void dumpCore( const DumpContext *ctx,
                     printLineBuf( zeroRunStart, line, valid,
                                   itemsPerLine, printAscii );
 
-                    printf( "...\n" );
+                    usbIoPrintf( CDC_USB_CONSOLE, "...\n" );
 
                     uint32_t last =
                         zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
@@ -310,7 +313,7 @@ void dumpCore( const DumpContext *ctx,
             fetchLine( ctx, zeroRunStart, line, valid, itemsPerLine, limit );
             printLineBuf( zeroRunStart, line, valid, itemsPerLine, printAscii );
 
-            printf( "...\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "...\n" );
 
             uint32_t last = zeroRunStart + ( zeroRunLength - 1 ) * byteStep;
 
@@ -371,9 +374,9 @@ void dumpNvmData( uint32_t start,
 //----------------------------------------------------------------------------------------
 void dumpMemNodeMap( ) {
 
-    printf( "MEM Node Map: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Node Map: \n\n" );
     dumpMemData((uint16_t *) &nodeMap, sizeof( LcsNodeMap )) ;
-    printf( "\n" ); 
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" ); 
 }
 
 //----------------------------------------------------------------------------------------
@@ -383,16 +386,16 @@ void dumpMemNodeMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemPortMap( ) {
 
-    printf( "MEM Port Map: (Hwm: %d)\n\n", portMap.mapHwm );
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Port Map: (Hwm: %d)\n\n", portMap.mapHwm );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        printf( "Port %d:\n", i );
+        usbIoPrintf( CDC_USB_CONSOLE, "Port %d:\n", i );
         dumpMemData((uint16_t *) &portMap.map[ i ], sizeof( LcsPortMapEntry ));
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
     
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -401,7 +404,10 @@ void dumpMemPortMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemEventMap( ) {
 
-    printf( "MEM Event Map: (Hwm: %d) \n\n", eventMap.mapHwm );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "MEM Event Map: (Hwm: %d) \n\n", 
+                 eventMap.mapHwm );
+
     dumpMemData(( uint16_t *) eventMap.map, 
                 sizeof( eventMap.mapHwm ), 
                 8, 
@@ -416,14 +422,14 @@ void dumpMemEventMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemPortData( ) {
 
-    printf( "MEM Port Data: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Port Data: \n\n" );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
-        printf( "Port %d:\n", i );
+        usbIoPrintf( CDC_USB_CONSOLE, "Port %d:\n", i );
         dumpMemData((uint16_t *) &portDataMap.map[ i ], 
                     MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ), 8, true );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 }
 
@@ -433,16 +439,18 @@ void dumpMemPortData( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemGlobalData( ) {
 
-    printf( "MEM Global Data: ( Size: %d ) \n\n", globalDataMap.nvmSize );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "MEM Global Data: ( Size: %d ) \n\n", 
+                 globalDataMap.nvmSize );
 
     if ( globalDataMap.map != nullptr ) {
 
         dumpMemData((uint16_t *) globalDataMap.map, 
                     globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
     
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
-    else printf( "Global data map pointer is null.\n" );
+    else usbIoPrintf( CDC_USB_CONSOLE, "Global data map pointer is null.\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -451,11 +459,11 @@ void dumpMemGlobalData( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemTaskMap( ) {
 
-    printf( "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Task Map: (Size: %d, Hwm: %d) \n\n", 
             MAX_TASK_MAP_ENTRIES, taskMap.mapHwm );
 
     dumpMemData((uint16_t *) &taskMap.map, sizeof( LcsTaskMap ) - 4 );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -465,14 +473,14 @@ void dumpMemTaskMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpMemRuntimeArea( ) {
 
-    printf( "MEM Area Dump: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Area Dump: \n\n" );
     dumpMemNodeMap( );
     dumpMemPortMap( );
     dumpMemEventMap( );
     dumpMemPortData( );
     dumpMemGlobalData( );
     dumpMemTaskMap( );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -481,9 +489,9 @@ void dumpMemRuntimeArea( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmHeader( ) {
 
-    printf( "NVM Header: \n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Header: \n" );
     dumpNvmData( NVM_HEADER_MAP_OFS, sizeof(LcsNvmHeader));
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -492,15 +500,15 @@ void dumpNvmHeader( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmNodeMap( ) {
 
-    printf( "NVM Node Map Dump: \n\n");
-    printf( "Header: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Node Map Dump: \n\n");
+    usbIoPrintf( CDC_USB_CONSOLE, "Header: " );
     dumpNvmData( NVM_NODE_MAP_OFS, 12, 8, false );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
-    printf( "Data: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Data: \n\n" );
     uint32_t start = NVM_NODE_MAP_OFS + 12;
     dumpNvmData( start, NVM_NODE_MAP_SIZE );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -511,15 +519,15 @@ void dumpNvmNodeMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmEventMap( ) {
 
-    printf( "NVM Event Map Dump: \n\n");
-    printf( "Header: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Event Map Dump: \n\n");
+    usbIoPrintf( CDC_USB_CONSOLE, "Header: " );
     dumpNvmData( NVM_EVENT_MAP_OFS, 12, 8, false );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
-    printf( "Data: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Data: \n\n" );
     uint32_t start = NVM_EVENT_MAP_OFS + offsetof( LcsEventMap, map );
     dumpNvmData( start, NVM_EVENT_MAP_SIZE );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -531,10 +539,10 @@ void dumpNvmEventMap( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmPortData( ) {
 
-    printf( "NVM Port Data Dump: \n\n");
-    printf( "Header: " );
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Port Data Dump: \n\n");
+    usbIoPrintf( CDC_USB_CONSOLE, "Header: " );
     dumpNvmData( NVM_PORT_DATA_OFS, 12, 8, false );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
     uint32_t start = NVM_PORT_DATA_OFS + offsetof( LcsPortDataMap, map );
 
@@ -543,12 +551,12 @@ void dumpNvmPortData( ) {
         uint32_t adr = 
            start + ( i * MAX_PORT_ATTR_MAP_ENTRIES * sizeof( uint16_t ));
 
-        printf( "Port %d:, Adr: 0x%08x\n", i, adr );
+        usbIoPrintf( CDC_USB_CONSOLE, "Port %d:, Adr: 0x%08x\n", i, adr );
         dumpNvmData( adr, MAX_PORT_ATTR_MAP_ENTRIES * 2 );
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -559,16 +567,16 @@ void dumpNvmPortData( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmGlobalData( ) {
 
-    printf( "NVM Global Data Dump: \n\n");
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Global Data Dump: \n\n");
 
-    printf( "Header:\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Header:\n" );
     dumpNvmData( NVM_GLOBAL_DATA_OFS, sizeof( LcsGlobalDataMap), 8, false );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
     uint32_t start = NVM_GLOBAL_DATA_OFS + offsetof( LcsGlobalDataMap, map );
 
     dumpNvmData( start, globalDataMap.nvmSize - sizeof( LcsGlobalDataMap ));
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -578,27 +586,27 @@ void dumpNvmGlobalData( ) {
 //----------------------------------------------------------------------------------------
 void dumpNvmRuntimeArea( ) {
 
-    printf( "NVM Runtime Area Dump: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "NVM Runtime Area Dump: \n\n" );
     dumpNvmData( NVM_MAP_STORAGE_START, NVM_RUNTIME_MAPS_SIZE, 8, true );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
-// Print memory structures in a formatted way. Note that not all memory structures 
-// are printed. Some of the maps contain dynamic data, which changes rapidly. There
-// is no point in showing that kind of data.
+// Print memory structures in a formatted way. Note that not all memory 
+// structures are printed. Some of the maps contain dynamic data, which changes
+// rapidly. There is no point in showing that kind of data.
 //
 //----------------------------------------------------------------------------------------
 void printSummary( ) {
 
-    printf( "LCS Node: \n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "LCS Node: \n" );
      
-    printf( "Library Version: %d.%d, Patch Level: %d\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "Library Version: %d.%d, Patch Level: %d\n", 
             highByte( LCS_RT_LIB_VERSION ),
             lowByte( LCS_RT_LIB_VERSION ), 
             LCS_RT_LIB_PATCH_LEVEL );  
 
-    printf( "Git Branch: %s\n", LCS_RT_LIB_GIT_BRANCH );
+    usbIoPrintf( CDC_USB_CONSOLE, "Git Branch: %s\n", LCS_RT_LIB_GIT_BRANCH );
 }
 
 //----------------------------------------------------------------------------------------
@@ -608,21 +616,21 @@ void printSummary( ) {
 //----------------------------------------------------------------------------------------
 void printMemNodeMap( ) {
 
-    printf( "MEM Node Map: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Node Map: \n\n" );
 
-    printf( "NodeId: %d, nodeUID: %d\n",
+    usbIoPrintf( CDC_USB_CONSOLE, "NodeId: %d, nodeUID: %d\n",
             nodeMap.nodeId,
             nodeMap.nodeUID );
 
-    printf( "RtLib SW Version: %d.%d.%d\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "RtLib SW Version: %d.%d.%d\n", 
             highByte( LCS_RT_LIB_VERSION ), 
             lowByte( LCS_RT_LIB_VERSION ),
             LCS_RT_LIB_PATCH_LEVEL );
 
-    printf( "Options: 0x%04x\n", runtimeOptions );
-    printf( "Restart Count: %d\n", nodeMap.nodeRestartCnt );
-    printf( "Node State: %d\n", nodeMap.nodeState );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Options: 0x%04x\n", runtimeOptions );
+    usbIoPrintf( CDC_USB_CONSOLE, "Restart Count: %d\n", nodeMap.nodeRestartCnt );
+    usbIoPrintf( CDC_USB_CONSOLE, "Node State: %d\n", nodeMap.nodeState );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -632,14 +640,14 @@ void printMemNodeMap( ) {
 //----------------------------------------------------------------------------------------
 void printMemPortMap( ) {
 
-    printf( "MEM Port Map (Size: %d, Hwm: %d): \n\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "MEM Port Map (Size: %d, Hwm: %d): \n\n", 
             MAX_PORT_MAP_ENTRIES, portMap.mapHwm );
 
     for ( int i  = 0; i < MAX_PORT_MAP_ENTRIES; i++ ) {
 
         LcsPortMapEntry *ptr = &portMap.map[ i ];
 
-        printf( "Port %02d: Type: %02d, Flags: 0x%04x\n", 
+        usbIoPrintf( CDC_USB_CONSOLE, "Port %02d: Type: %02d, Flags: 0x%04x\n", 
                 i + 1,  
                 ptr -> portType,
                 ptr -> portFlags );
@@ -647,7 +655,7 @@ void printMemPortMap( ) {
         dumpMemData((uint16_t *) &portMap.map[ i ], 
                     sizeof( LcsPortMapEntry ), 8, true );
 
-        printf( "\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     }
 }
 
@@ -658,7 +666,7 @@ void printMemPortMap( ) {
 //----------------------------------------------------------------------------------------
 void printMemTaskMap( ) {
 
-    printf( "Task Map (Size: %d, Hwm: %d): \n\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "Task Map (Size: %d, Hwm: %d): \n\n", 
             MAX_TASK_MAP_ENTRIES, taskMap.mapHwm );
 
     // ??? to do ...
@@ -671,10 +679,10 @@ void printMemTaskMap( ) {
 void listDevicesI2C( ) {
 
     scanI2CBus( CDC_RN_NVM );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
     scanI2CBus( CDC_RN_EXT_NVM );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -700,8 +708,11 @@ uint8_t repMsgCallback ( uint16_t npId,
                          uint8_t ret, 
                          void *uData ) {
 
-    printf( "REP callback: npId: 0x%4x, item: %d, arg1: %d, arg2: %d, ret: %d\n ",
-            npId, item, arg1, arg2, ret);
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "REP callback: npId: 0x%4x, item: %d, "
+                 "arg1: %d, arg2: %d, ret: %d\n ",
+                 npId, item, arg1, arg2, ret);
+            
     return( LCS_OK );
 }
 
@@ -712,8 +723,11 @@ uint8_t fRepCallback( uint16_t npId,
                       uint8_t ret, 
                       void *uData ) {
 
-    printf( "FREP callback: npId: 0x%4x, item: %d, arg1: %d, arg2: %d, ret: %d\n ",
-            npId, item, arg1, arg2, ret );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "FREP callback: npId: 0x%4x, item: %d, "
+                 "arg1: %d, arg2: %d, ret: %d\n ",
+                 npId, item, arg1, arg2, ret );
+
     return( LCS_OK );
 }
 
@@ -756,9 +770,9 @@ void switchToConfigCommand( char *s ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "O" switches the nodes to OPS mode. For a local node command, we construct the 
-// LCS_OP_OPS message payload data and invoke the msg handler for switching the node 
-// mode. For any other node, we will just send a LCS message.
+// "O" switches the nodes to OPS mode. For a local node command, we construct 
+// the LCS_OP_OPS message payload data and invoke the msg handler for switching
+// the node mode. For any other node, we will just send a LCS message.
 //
 //    O [ npId ]
 //
@@ -815,7 +829,7 @@ void getItemCommand( char *s ) {
         ret = getItem( tmpNpId, tmpItem, &tmpArg );
         
         if ( ret != LCS_OK ) errStat((char *) "Node GET error", ret );
-        else printf( "Node: 0x%x, item: %d, arg1: 0x%x\n", 
+        else usbIoPrintf( CDC_USB_CONSOLE, "Node: 0x%x, item: %d, arg1: 0x%x\n", 
                      tmpNpId, tmpItem, tmpArg );
     }
     else {
@@ -863,7 +877,7 @@ void setItemCommand( char *s ) {
      
         ret = setItem( tmpNpId, tmpItem, &tmpVal );
         if ( ret != LCS_OK ) errStat((char *) "Node SET error", ret );
-        else printf( "OK\n" );
+        else usbIoPrintf( CDC_USB_CONSOLE, "OK\n" );
     }
     else {
 
@@ -911,8 +925,9 @@ void reqItemCommand( char *s ) {
      
         ret = reqItem( tmpNpId, tmpItem, &tmpVal1, &tmpVal2 );
         if ( ret != LCS_OK ) errStat((char *) "Item REQ error", ret );
-        else printf( "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
-                    tmpNpId, tmpItem, tmpVal1, tmpVal2 );
+        else usbIoPrintf( CDC_USB_CONSOLE, 
+                          "Node: 0x%x, item: %d, val1: 0x%x, val2: 0x%x\n", 
+                          tmpNpId, tmpItem, tmpVal1, tmpVal2 );
     }
     else {
 
@@ -1032,7 +1047,8 @@ void listStatusCommand( char *s ) {
             case 51:    printResourceDescMap( &dMap );  break;
             case 52:    printResourceMap( );            break;
 
-            default: printf( "Unknown help option, use '?' for help\n" );
+            default: usbIoPrintf( CDC_USB_CONSOLE, 
+                                  "Unknown help option, use '?' for help\n" );
         }
     } 
     else printSummary( );
@@ -1047,33 +1063,33 @@ void listStatusCommand( char *s ) {
 //----------------------------------------------------------------------------------------
 void listCoreLibHelpCommand( ) {
 
-    printf( "Commands: \n\n" );
-    printf( "c [ npId ] - enter config mode\n" );
-    printf( "o [ npId ] - enter operations mode\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Commands: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "c [ npId ] - enter config mode\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "o [ npId ] - enter operations mode\n" );
 
-    printf( "g npId item [ val1 ]         - gets a node attribute\n" );
-    printf( "p npId item val1             - puts a node attribute\n" );
-    printf( "r npId item [ val1 [ val2 ]] - request a node function\n" );
-    printf( "e npId eventId mode [ arg ]  - simulate sending an event"
+    usbIoPrintf( CDC_USB_CONSOLE, "g npId item [ val1 ]         - gets a node attribute\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "p npId item val1             - puts a node attribute\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "r npId item [ val1 [ val2 ]] - request a node function\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "e npId eventId mode [ arg ]  - simulate sending an event"
             " ( mode: 0 - ON, 1 - OFF, 2 - EVT )\n" );
 
-    printf( "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "B byte1 [ byte2 ... byte8 ] - broadcast a raw LCS message\n" );
 
-    printf( "s [ level ] - list status, default is summary\n" );
-    printf( "   " " -   MEM  NVM  FMT   - what\n" );
-    printf( "   " " -   0               - Board summary\n" );
-    printf( "   " " -        21         - Node Header\n" );
-    printf( "   " " -   2    22   42    - Node Map\n" );
-    printf( "   " " -   3    23   43    - Port Map\n" );
-    printf( "   " " -   4    24         - Event Map\n" );
-    printf( "   " " -   5    25         - Port Data\n" );
-    printf( "   " " -   6    26         - Global Data\n" );
-    printf( "   " " -   7         46    - Task Map\n" );
-    printf( "   " " -   8    28         - Runtime Area\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "s [ level ] - list status, default is summary\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   MEM  NVM  FMT   - what\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   0               - Board summary\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -        21         - Node Header\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   2    22   42    - Node Map\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   3    23   43    - Port Map\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   4    24         - Event Map\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   5    25         - Port Data\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   6    26         - Global Data\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   7         46    - Task Map\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -   8    28         - Runtime Area\n" );
 
-    printf( "   " " -  50  - Scan I2C Devices\n" );
-    printf( "   " " -  51  - CDC Resource Desc Map\n");
-    printf( "   " " -  52  - CDC Resource Map\n");
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -  50  - Scan I2C Devices\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -  51  - CDC Resource Desc Map\n");
+    usbIoPrintf( CDC_USB_CONSOLE, "   " " -  52  - CDC Resource Map\n");
 }
 
 //----------------------------------------------------------------------------------------
@@ -1139,7 +1155,8 @@ static void executeCommand( char *commandBuf ) {
                                          cmd, 
                                          nodeMap.cmdLineCallBackUdata );
             } 
-            else printf( "<Unknown command, use '?' for help>" );
+            else usbIoPrintf( CDC_USB_CONSOLE, 
+                              "<Unknown command, use '?' for help>" );
             
         } break;
     }
@@ -1215,10 +1232,10 @@ void handleCommandInput( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleConsoleCommand" reads commands from the console input channel. It is 
-// a simple command executor with simple syntax. Note that this routine is called
-// as part of the runtime loop. Consequently, it cannot not block for IO. The 
-// interface is designed in a way that it assembles the character input when 
+// "handleConsoleCommand" reads commands from the console input channel. It 
+// is a simple command executor with simple syntax. Note that this routine is 
+// called as part of the runtime loop. Consequently, it cannot not block for IO. 
+// The interface is designed in a way that it assembles the character input when 
 // there are characters until a carriage return is received. 
 // A command line can optionally consist of multiple commands separated by a 
 // ";" character.
@@ -1254,7 +1271,7 @@ uint8_t handleConsoleCommand( void ) {
             case '\b': {
 
                 escaped = false;
-                usbIoPrintf( 0, "\b \b");
+                usbIoPrintf( CDC_USB_CONSOLE, "\b \b");
                 size_t len = strlen( commandBuf );
                 if ( len > 0 ) commandBuf[len - 1] = '\0';
             
@@ -1263,7 +1280,7 @@ uint8_t handleConsoleCommand( void ) {
             case '\r': {
 
                 escaped = false;
-                usbIoPrintf( 0, "\n" );
+                usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
                 char *p = commandBuf;
                 char *start = p;
@@ -1300,7 +1317,7 @@ uint8_t handleConsoleCommand( void ) {
 
         if ( append ) {
 
-            usbIoPrintf( 0, "%c", c );
+            usbIoPrintf( CDC_USB_CONSOLE, "%c", c );
             size_t len = strlen( commandBuf );
 
             if ( len < MAX_COMMAND_LINE_SIZE - 1 ) {

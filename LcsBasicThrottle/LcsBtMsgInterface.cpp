@@ -39,8 +39,12 @@ void printLcsMsg( uint8_t *msg ) {
 
     int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
 
-    for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[i] );
-    printf( "\n" );
+    for ( int i = 0; i < msgLen; i++ ) {
+
+        usbIoPrintf( CDC_USB_CONSOLE, "0x%x ", msg[i] );
+    } 
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 }; // nameSpace
@@ -68,7 +72,7 @@ uint8_t setupMsgBus( ) {
 //----------------------------------------------------------------------------------------
 uint8_t initCallback ( uint16_t npId, uint16_t flags ) {
 
-    printf( "initCallback -> npId: 0x%x\n", npId );
+    usbIoPrintf( CDC_USB_CONSOLE, "initCallback -> npId: 0x%x\n", npId );
     return ( NO_ERR );
 }
 
@@ -78,11 +82,18 @@ uint8_t initCallback ( uint16_t npId, uint16_t flags ) {
 //----------------------------------------------------------------------------------------
 uint8_t nodeGetCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    printf( "nodeGetCallback -> npId: 0x%x, item: %d, ", npId, item );
-    if ( arg1 != nullptr ) printf( "%d", *arg1 ); else printf( "null" );
-    printf( ":" );
-    if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "nodeGetCallback -> npId: 0x%x, item: %d, ", 
+                 npId, item );
+
+    if ( arg1 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg1 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+    
+    usbIoPrintf( CDC_USB_CONSOLE, ":" );
+    if ( arg2 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg2 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return ( NO_ERR );
 }
 
@@ -92,11 +103,19 @@ uint8_t nodeGetCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
 //----------------------------------------------------------------------------------------
 uint8_t nodePutCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    printf( "nodePutCallback -> npId: 0x%x, item: %d, ", npId, item );
-    if ( arg1 != nullptr ) printf( "%d", *arg1 ); else printf( "null" );
-    printf( ":" );
-    if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "nodePutCallback -> npId: 0x%x, item: %d, ", 
+                 npId, item );
+
+    if ( arg1 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg1 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+    
+    usbIoPrintf( CDC_USB_CONSOLE, ":" );
+
+    if ( arg2 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg2 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return ( NO_ERR );
 }
 
@@ -106,11 +125,19 @@ uint8_t nodePutCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
 //----------------------------------------------------------------------------------------
 uint8_t nodeReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    printf( "nodeReqCallback -> npId: 0x%x, item: %d, ", npId, item );
-    if ( arg1 != nullptr ) printf( "%d", *arg1 ); else printf( "null" );
-    printf( ":" );
-    if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "nodeReqCallback -> npId: 0x%x, item: %d, ", 
+                 npId, item );
+
+    if ( arg1 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg1 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, ":" );
+
+    if ( arg2 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg2 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return ( NO_ERR );
 }
 
@@ -120,11 +147,19 @@ uint8_t nodeReqCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *a
 //----------------------------------------------------------------------------------------
 uint8_t nodeRepCallback( uint8_t npId, uint8_t item, uint16_t *arg1, uint16_t *arg2 ) {
 
-    printf( "nodeRepCallback -> npId: 0x%x, item: %d, ", npId, item );
-    if ( arg1 != nullptr ) printf( "%d", *arg1 ); else printf( "null" );
-    printf( ":" );
-    if ( arg2 != nullptr ) printf( "%d", *arg2 ); else printf( "null" );
-    printf( "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "nodeRepCallback -> npId: 0x%x, item: %d, ", 
+                 npId, item );
+
+    if ( arg1 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg1 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, ":" );
+
+    if ( arg2 != nullptr )  usbIoPrintf( CDC_USB_CONSOLE, "%d", *arg2 ); 
+    else                    usbIoPrintf( CDC_USB_CONSOLE, "null" );
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return ( NO_ERR );
 }
 
@@ -136,8 +171,9 @@ void eventCallback( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData
 
   // ?? what events would a can be interested in ...
 
-    printf( "EventCallback -> npId: 0x%x, eId: %d, action: %d, data: %d\n", 
-            npId, eId, eAction, eData );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "EventCallback -> npId: 0x%x, eId: %d, action: %d, data: %d\n", 
+                 npId, eId, eAction, eData );
 }
 
 //----------------------------------------------------------------------------------------
@@ -146,7 +182,7 @@ void eventCallback( uint16_t npId, uint8_t eAction, uint16_t eId, uint16_t eData
 //----------------------------------------------------------------------------------------
 void busMgtCallback( uint8_t *msg ) {
 
-    printf( "busMgtCallback -> " );
+    usbIoPrintf( CDC_USB_CONSOLE, "busMgtCallback -> " );
     printLcsMsg( msg );
 
     switch ( msg[ 0 ] ) {
@@ -171,7 +207,7 @@ void busMgtCallback( uint8_t *msg ) {
 //----------------------------------------------------------------------------------------
 void dccMsgCallback( uint8_t *msg ) {
 
-    printf( "DCC Msg Callback -> " );
+    usbIoPrintf( CDC_USB_CONSOLE, "DCC Msg Callback -> " );
     printLcsMsg( msg );
 
     switch ( msg[ 0 ] ) {

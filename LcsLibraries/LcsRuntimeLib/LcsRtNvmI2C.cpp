@@ -123,8 +123,8 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 
     if ( nvmDebugEnabled( )) {
 
-        if ( errId == LCS_OK )  printf( "%s: OK\n", name );
-        else                    printf( "%s: %d\n", name, errId );
+        if ( errId == LCS_OK )  usbIoPrintf( CDC_USB_CONSOLE, "%s: OK\n", name );
+        else             usbIoPrintf( CDC_USB_CONSOLE, "%s: %d\n", name, errId );
     }
 
     return ( errId );
@@ -189,8 +189,9 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "determineNvmChipMemorySize: rNum: %d, i2cAdr: 0x%02x\n",
-            rNum, i2cAdr );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "determineNvmChipMemorySize: rNum: %d, i2cAdr: 0x%02x\n",
+                     rNum, i2cAdr );
     }
 
     uint32_t nvmSize    = M24LC512_MAX_SIZE;
@@ -211,10 +212,11 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
        if ( nvmDebugEnabled( )) {
 
-            printf( "Testing Size=%lu, testAdr=%04lX, mirrorAdr=%04lX\n", 
-                    (unsigned long) nvmSize,
-                    (unsigned long) testAdr, 
-                    (unsigned long) mirrorAdr );
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "Testing Size=%lu, testAdr=%04lX, mirrorAdr=%04lX\n", 
+                         (unsigned long) nvmSize,
+                         (unsigned long) testAdr, 
+                         (unsigned long) mirrorAdr );
         }
 
         // Read original at A
@@ -294,7 +296,9 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
         if ( nvmDebugEnabled( )) {
 
-            printf( "Read back A=%02X A2=%02X\n", readA, readA2 );
+            usbIoPrintf( CDC_USB_CONSOLE, 
+                         "Read back A=%02X A2=%02X\n", 
+                         readA, readA2 );
         }
 
         if (( readA == testValue ) && ( readA2 == testValue )) {
@@ -331,7 +335,7 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
             if ( nvmDebugEnabled( )) {
 
-                printf( "Size computed: %d\n", nvmSize );
+                usbIoPrintf( CDC_USB_CONSOLE, "Size computed: %d\n", nvmSize );
             }
             
             return ( nvmSize );
@@ -359,7 +363,9 @@ uint32_t determineNvmChipMemorySize( uint8_t rNum, uint8_t i2cAdr ) {
 
     if (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )) {
 
-        printf( "testNvmChipMemorySize: Size computed: %d\n", nvmSize );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "testNvmChipMemorySize: Size computed: %d\n", 
+                     nvmSize );
     }
 
     return ( nvmSize );
@@ -389,7 +395,9 @@ uint32_t determineBufferBlockSize( uint32_t size ) {
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "determineBufferBlockSize: Size computed: %d\n", bufSize );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "determineBufferBlockSize: Size computed: %d\n", 
+                     bufSize );
     }
 
     return ( bufSize );
@@ -412,9 +420,10 @@ uint8_t nvmGetBytesFromPage( uint8_t  rNum,
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "nvmGetBytesFromPage: rNum: %d, i2cAdr: 0x%x," 
-                " ofs: 0x%x, buf: %p, len: %d\n", 
-                rNum, i2cAdr, ofs, buf, len );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "nvmGetBytesFromPage: rNum: %d, i2cAdr: 0x%x," 
+                     " ofs: 0x%x, buf: %p, len: %d\n", 
+                     rNum, i2cAdr, ofs, buf, len );
     }
 
     uint8_t rStat = NO_ERR;
@@ -449,8 +458,10 @@ uint8_t nvmPutBytesInPage( uint8_t  rNum,
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
-                "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "nvmPutBytesInPage: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
+                     "bufAdr: %p, len: %d\n", 
+                     rNum, i2cAdr, ofs, buf, len );
     }
 
     dataBuf[ 0 ] = ( ofs  >> 8 ) & 0xFF;
@@ -478,8 +489,10 @@ uint8_t nvmGetBytes( uint8_t rNum,
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "nvmGetBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
-                "bufAdr: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "nvmGetBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x, "
+                     "bufAdr: %p, len: %d\n", 
+                     rNum, i2cAdr, ofs, buf, len );
     }
 
     if ( ofs + len > nodeNvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
@@ -536,8 +549,10 @@ uint8_t nvmPutBytes( uint8_t rNum,
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "nvmPutBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x,"
-                " buf: %p, len: %d\n", rNum, i2cAdr, ofs, buf, len );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "nvmPutBytes: rNum: %d, i2cAdr: 0x%x, ofs: 0x%x,"
+                     " buf: %p, len: %d\n", 
+                     rNum, i2cAdr, ofs, buf, len );
     }
 
     if ( ofs + len > nodeNvmSize ) return ( RET_STAT( ERR_NVM_SIZE_EXCEEDED ));
@@ -587,8 +602,10 @@ uint8_t nvmClearArea( uint8_t rNum,
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "nvmClearArea: rNum: %d, i2c: 0x%x, ofs: 0x%x, len: %d, val: %d\n", 
-                rNum, i2cAdr, ofs, len, val );
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "nvmClearArea: rNum: %d, i2c: 0x%x, "
+                     "ofs: 0x%x, len: %d, val: %d\n", 
+                     rNum, i2cAdr, ofs, len, val );
     }
 
     uint8_t     tmpBuf[ DEF_BUFFER_BLOCK_SIZE ];
@@ -644,8 +661,9 @@ uint8_t rtNvmConfig(  uint8_t rIdNvm, uint32_t nvmSize ) {
 
     if ( nvmDebugEnabled( )) {
 
-        printf( "rtNvmConfig: rIdNvm: %d, size: %d, blockSize: %d\n",
-                rIdNvm, nodeNvmSize, nodeNvmBlockSize ); 
+        usbIoPrintf( CDC_USB_CONSOLE, 
+                     "rtNvmConfig: rIdNvm: %d, size: %d, blockSize: %d\n",
+                     rIdNvm, nodeNvmSize, nodeNvmBlockSize ); 
     }
 
     return ( LCS_OK );
