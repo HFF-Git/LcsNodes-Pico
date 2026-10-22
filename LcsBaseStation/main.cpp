@@ -91,25 +91,27 @@ uint8_t lcsPfailCallback( uint16_t npId, void *uData ) {
 
 //----------------------------------------------------------------------------------------
 // The base station has also a command line interpreter. The callback is invoked 
-// by the core library when there is a console command that it does not handle
-// or a remote command on the USB command channel.
+// by the core library when there is a command that it does not handle.
 //
 //----------------------------------------------------------------------------------------
 uint8_t lcsCmdCallback( uint8_t chan, char *cmdLine, void *uData ) {
 
     if ( chan == CDC_USB_CONSOLE ) {
 
-         handleSerialCommand( cmdLine );
-
+        return ( handleSerialCommand( chan, cmdLine ));
     }
     else if ( chan == CDC_USB_COMMAND ) {
 
-        // ??? need to invoke command nahdler...
+        if ( cmdLine[ 0 ] == '<' ) {
 
+            return ( handleSerialCommand( chan, cmdLine ));
+        }
+        else if ( cmdLine[ 0 ] == '@' ) {
+
+            return ( ERR_INVALID_COMMAND );
+        }
     }
-    else ;
-
-    return( NO_ERR );
+    else return ( ERR_INVALID_CHAN );
 }
 
 //----------------------------------------------------------------------------------------

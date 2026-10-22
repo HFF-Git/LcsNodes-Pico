@@ -69,24 +69,26 @@ enum BaseStationDebugFlags : uint16_t {
 //----------------------------------------------------------------------------------------
 enum BaseStationErrors : uint8_t {
 
-    BASE_STATION_ERR_BASE             = ERR_USER_SPECIFIC_BASE,
+    BASE_STATION_ERR_BASE           = ERR_USER_SPECIFIC_BASE,
 
-    ERR_BASE_STATION_CMD_INIT         = BASE_STATION_ERR_BASE + 1,
-    ERR_BASE_STATION_MSG_INIT         = BASE_STATION_ERR_BASE + 2,
+    ERR_BASE_STATION_CMD_INIT       = BASE_STATION_ERR_BASE + 1,
+    ERR_BASE_STATION_MSG_INIT       = BASE_STATION_ERR_BASE + 2,
 
-   
-    ERR_LOCO_NOT_FOUND                = BASE_STATION_ERR_BASE + 4,
-    ERR_SESSION_NOT_FOUND             = BASE_STATION_ERR_BASE + 5,
-    ERR_LOCO_SESSION_ALLOCATE         = BASE_STATION_ERR_BASE + 6,
-    ERR_LOCO_SESSION_CANCELLED        = BASE_STATION_ERR_BASE + 7,
+    ERR_LOCO_NOT_FOUND              = BASE_STATION_ERR_BASE + 4,
+    ERR_SESSION_NOT_FOUND           = BASE_STATION_ERR_BASE + 5,
+    ERR_LOCO_SESSION_ALLOCATE       = BASE_STATION_ERR_BASE + 6,
+    ERR_LOCO_SESSION_CANCELLED      = BASE_STATION_ERR_BASE + 7,
 
     
-    ERR_MSG_INTERFACE_SETUP           = BASE_STATION_ERR_BASE + 10,
+    ERR_MSG_INTERFACE_SETUP         = BASE_STATION_ERR_BASE + 10,
   
-    ERR_DCC_PIN_CONFIG                = BASE_STATION_ERR_BASE + 12,
+    ERR_DCC_PIN_CONFIG              = BASE_STATION_ERR_BASE + 12,
 
-    ERR_NVM_HW_SETUP                  = BASE_STATION_ERR_BASE + 15,
-    ERR_PIO_HW_SETUP                  = BASE_STATION_ERR_BASE + 16
+    ERR_NVM_HW_SETUP                = BASE_STATION_ERR_BASE + 15,
+    ERR_PIO_HW_SETUP                = BASE_STATION_ERR_BASE + 16,
+
+    ERR_INVALID_COMMAND             = BASE_STATION_ERR_BASE + 17,
+    ERR_INVALID_CHAN                = BASE_STATION_ERR_BASE + 17,
 };
 
 //----------------------------------------------------------------------------------------
@@ -121,7 +123,7 @@ enum BaseStationItems : uint8_t {
 //
 //----------------------------------------------------------------------------------------
 extern uint8_t  initSerialCommand( );
-extern void     handleSerialCommand( char *s );
+extern uint8_t  handleSerialCommand( uint8_t chan, char *s );
 
 extern uint8_t  initLcsMsgInterface( );
 extern void     handleLcsMsg( uint8_t *msg );

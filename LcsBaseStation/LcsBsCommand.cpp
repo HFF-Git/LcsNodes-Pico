@@ -65,9 +65,9 @@ namespace {
 // "printVersionInfo" list out the Arduino type and software version of this program.
 //
 //----------------------------------------------------------------------------------------
-void printVersionInfo( ) {
+void printVersionInfo( uint8_t chan ) {
 
-    printf( "<\nLCS Base Station / Version: tbd / %s %s >\n", 
+    usbIoPrintf( chan, "<\nLCS Base Station / Version: tbd / %s %s >\n", 
             __DATE__, __TIME__  );
 }
 
@@ -88,7 +88,7 @@ void printVersionInfo( ) {
 // service track mode. To do ...
 //
 //----------------------------------------------------------------------------------------
-void turnPowerOnOffCmd( char *s ) {
+void turnPowerOnOffCmd( uint8_t chan, char *s ) {
 
     uint8_t  powerOnOff   = 0;
     char     trackStr[ 16 ] = { 0 };
@@ -100,12 +100,12 @@ void turnPowerOnOffCmd( char *s ) {
         if ( strcmp( trackStr, "MAIN" ) == 0 ) {
 
             mainTrack -> powerEnable( true );
-            printf( "<1 MAIN>" );
+            usbIoPrintf( chan, "<1 MAIN>" );
         }
         else if ( strcmp( trackStr, "PROG" ) == 0 ) {
 
             progTrack -> powerEnable( true );
-            printf( "<1 PROG>" );
+            usbIoPrintf( chan, "<1 PROG>" );
         }
         else if ( strcmp( trackStr, "JOIN" ) == 0 ) {
 
@@ -115,7 +115,7 @@ void turnPowerOnOffCmd( char *s ) {
 
             mainTrack -> powerEnable( true );
             progTrack -> powerEnable( true );
-            printf( "<1>" );
+            usbIoPrintf( chan,  "<1>" );
         }
     }
     else {
@@ -123,18 +123,18 @@ void turnPowerOnOffCmd( char *s ) {
         if ( strcmp( trackStr, "MAIN" ) == 0 ) {
             
             mainTrack -> powerEnable( false );
-            printf( "<0 MAIN>" );
+            usbIoPrintf( chan, "<0 MAIN>" );
         }
         else if ( strcmp( trackStr, "PROG" ) == 0 ) {
             
             progTrack -> powerEnable( false );
-            printf( "<0 PROG>" );
+            usbIoPrintf( chan, "<0 PROG>" );
         }
         else {
             
             mainTrack -> powerEnable( false );
             progTrack -> powerEnable( false );
-            printf( "<0>" );
+            usbIoPrintf( chan, "<0>" );
         }
     }
 }
@@ -158,7 +158,7 @@ void turnPowerOnOffCmd( char *s ) {
 // day, we replace it by an attribute setting in the base station.
 //
 //----------------------------------------------------------------------------------------
-void setTrackOptionCmd( char *s ) {
+void setTrackOptionCmd( uint8_t chan, char *s ) {
 
     uint8_t option = 0;
 
@@ -203,7 +203,7 @@ void setTrackOptionCmd( char *s ) {
 //    <l cab reg speedByte functionMap>   
 //
 //----------------------------------------------------------------------------------------
-void setThrottleCmd( char *s ) {
+void setThrottleCmd( uint8_t chan, char *s ) {
 
     uint16_t  cabId         = NIL_CAB_ID;
     uint8_t   regId         = 0;
@@ -223,7 +223,7 @@ void setThrottleCmd( char *s ) {
     if (( cabId >= MIN_CAB_ID ) && ( cabId <= MAX_CAB_ID )) {
 
         uint8_t rStat = locoSessions -> setThrottle( cabId, speed, direction );
-        if ( rStat != LCS_OK ) printf( "<X>" );
+        if ( rStat != LCS_OK ) usbIoPrintf( chan, "<X>" );
     }
     else if ( cabId == 0 ) {
 
@@ -246,7 +246,7 @@ void setThrottleCmd( char *s ) {
 //    returns: NONE.
 //
 //----------------------------------------------------------------------------------------
-void setFunctionBitCmd( char *s ) {
+void setFunctionBitCmd( uint8_t chan, char *s ) {
 
     uint16_t cabId      = NIL_CAB_ID;
     uint8_t  funcNum    = 0;
@@ -255,7 +255,7 @@ void setFunctionBitCmd( char *s ) {
     if ( sscanf( s, "%hu %hhu %hhu", &cabId, &funcNum, &val ) != 3 ) return;
 
     uint8_t rStat = locoSessions -> setDccFunctionBit( 0, funcNum, val );
-    if ( rStat != LCS_OK ) printf( "<X>" );
+    if ( rStat != LCS_OK ) usbIoPrintf( chan, "<X>" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -322,7 +322,7 @@ void setFunctionBitCmd( char *s ) {
 //             (FN+5)*32 + (FN+6)*64 + (FN+7)*128
 //
 //----------------------------------------------------------------------------------------
-void setFunctionGroupCmd( char *s ) {
+void setFunctionGroupCmd( uint8_t chan, char *s ) {
 
   uint16_t  cabId   = NIL_CAB_ID;
   uint8_t   byte1   = 0;
@@ -374,7 +374,7 @@ void setFunctionGroupCmd( char *s ) {
         rStat = locoSessions -> setDccFunctionGroup( cabId, 10, byte2 );
     }
 
-    if ( rStat != LCS_OK ) printf( "<X>" );
+    if ( rStat != LCS_OK ) usbIoPrintf( chan, "<X>" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -386,10 +386,53 @@ void setFunctionGroupCmd( char *s ) {
 //    returns: <X>
 //
 //----------------------------------------------------------------------------------------
-void emergencyStopCmd( ) {
+void emergencyStopCmd( uint8_t chan ) {
 
     locoSessions -> emergencyStopAll( );
-    printf( "<!>" );
+    usbIoPrintf( chan, "<!>" );
+}
+
+//----------------------------------------------------------------------------------------
+// Turnout command. 
+//
+//  <T id state>
+//
+//  returns: "H id state"
+//----------------------------------------------------------------------------------------
+void turnoutCmd( uint8_t chan, char *s ) {
+
+
+    uint16_t id = 0;
+    char state[ 2 ];
+    int args = sscanf( s, "%hu %s", &id, state );
+
+    if ( args == 0 ) {
+
+    }
+    else if ( args == 2 ) {
+
+        if ( strlen( state ) != 1 ) return;
+
+        if (( state[ 0 ] == '1' ) or ( state[ 0 ] == 'T' )) {
+
+            // set turnout to thrown ...
+            // response: "H id state"
+        }
+        else if (( state[ 0 ] == '0' ) or ( state[ 0 ] == 'C' )) {
+
+            // set turnout to close ...
+            // response: "H id state"
+        }
+        else if ( state[ 0 ] == 'X' ) {
+
+            // examine...
+            // response: "H id state"
+        }
+        else {
+
+            usbIoPrintf( chan, "<X>" );
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -406,7 +449,7 @@ void emergencyStopCmd( ) {
 //    returns: NONE
 //
 //----------------------------------------------------------------------------------------
-void writeCVByteMainCmd( char *s ) {
+void writeCVByteMainCmd( uint8_t chan, char *s ) {
 
     uint16_t  cabId = NIL_CAB_ID;
     uint16_t  cvId  = NIL_DCC_CV_ID;
@@ -432,7 +475,7 @@ void writeCVByteMainCmd( char *s ) {
 //    returns: NONE
 //
 //----------------------------------------------------------------------------------------
-void writeCVBitMainCmd( char *s ) {
+void writeCVBitMainCmd( uint8_t chan, char *s ) {
 
     uint16_t  cabId = NIL_CAB_ID;
     uint16_t  cvId    = NIL_DCC_CV_ID;
@@ -465,7 +508,7 @@ void writeCVBitMainCmd( char *s ) {
 // ??? callback is deprecated. Cross check and take it out ?
 //
 //----------------------------------------------------------------------------------------
-void readCVCmd( char *s ) {
+void readCVCmd( uint8_t chan, char *s ) {
 
     uint16_t  cvId          = NIL_DCC_CV_ID;
     uint8_t   val           = 0;
@@ -477,7 +520,7 @@ void readCVCmd( char *s ) {
 
     ret = locoSessions -> readCV( cvId, 0, &val );
 
-    printf( "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, 
+    usbIoPrintf( chan, "<R %d|%d|%d %d>", callbacknum, callbacksub, cvId, 
             (( ret == LCS_OK ) ? val : -1 ));
 }
 
@@ -486,35 +529,28 @@ void readCVCmd( char *s ) {
 // track and then verifies it. The callbacknum and callbacksub parameter are 
 // ignored and just passed back to the caller for identification purposes.
 //
-//    <W cvId val [ callbacknum callbacksub ]>
+//    <W cvId val>
+//    <W address>
 //
 //    cvId          -  the configuration variable ID, 1 ... 1024.
 //    val           -  the data byte.
-//    callbacknum   -  a number echoed back, ignored by the base station
-//    callbacksub   -  a number echoed back, ignored by the base station
+//    address       -  the decoder address.
 //
-//    returns: <W callbacknum|callbacksub|cvId Value>
-//
-//    where Value is 0 - 255 of the CV variable or -1 if the verification failed.
-//
-// ??? callback is deprecated. Cross check and take it out ?
+//    returns: <w cvId value> or  <w cvId -1>
+//    returns: <w address> or <w -1>
 //
 //----------------------------------------------------------------------------------------
-void writeCVByteCmd( char *s ) {
+void writeCVByteCmd( uint8_t chan, char *s ) {
 
     uint16_t  cvId          = NIL_DCC_CV_ID;
     uint8_t   val           = 0;
-    int       callbacknum   = 0;
-    int       callbacksub   = 0;
     int       ret           = 0;
 
-    if ( sscanf( s, "%hu %hhu %d %d", 
-                 &cvId, &val, &callbacknum, &callbacksub ) < 2 ) return;
+    if ( sscanf( s, "%hu %hhu %d %d", &cvId, &val ) < 2 ) return;
 
     ret = locoSessions -> writeCVByte( cvId, val );
 
-    printf( "<W %d|%d|%d %d>", callbacknum, callbacksub, cvId, 
-           (( ret == LCS_OK ) ? val : -1 ));
+    usbIoPrintf( chan, "<W %d %d>", cvId, (( ret == LCS_OK ) ? val : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -537,7 +573,7 @@ void writeCVByteCmd( char *s ) {
 // ??? callback is deprecated. Cross check and take it out ?
 //
 //----------------------------------------------------------------------------------------
-void writeCVBitCmd( char *s ) {
+void writeCVBitCmd( uint8_t chan, char *s ) {
 
     uint16_t  cvId          = NIL_DCC_CV_ID;
     uint8_t   bitPos        = 0;
@@ -552,46 +588,26 @@ void writeCVBitCmd( char *s ) {
 
     ret = locoSessions -> writeCVBit( cvId, bitPos, bitVal );
 
-    printf( "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, 
+    usbIoPrintf( chan, "<B %d|%d|%d|%d %d>", callbacknum, callbacksub, cvId, bitPos, 
            (( ret == LCS_OK ) ? bitVal : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
 //
-//  <v cvId val>
-//
-//  cvId          -  the configuration variable ID, 1 ... 1024.
-//  val           -  the data data value to expect.
-//
-//  returns: 
-//
-//      
-//----------------------------------------------------------------------------------------
-void verifyCvCmd( char *s ) {
-
-    uint16_t  cvId      = NIL_DCC_CV_ID;
-    uint8_t   testVal   = 0;
-    int       ret       = 0;
-
-    if ( sscanf( s, "%hu %hhu", &cvId, &testVal ) != 2 )  return;
-
-    // ret = locoSessions -> verifyCv( cvId, bitPos, bitVal );
-
-}
-
-//----------------------------------------------------------------------------------------
-//
 //  <V cvId bitPos bitVal>
+//  <V cvId val>
 //
 //  cvId          -  the configuration variable ID, 1 ... 1024.
 //  bitPos        -  the bit position of the bit, 0 .. 7.
 //  bitVal        -  the data bit.
+//  val           - the CV value.
 //
-//  returns: 
+//  returns: 0 | 1 or <V -1>
+//  returns: <v cvId val> or <v cv -1>
 //
 //
 //----------------------------------------------------------------------------------------
-void verifyCvBitCmd( char *s ) {
+void verifyCvCmd( uint8_t chan, char *s ) {
 
     uint16_t    cvId    = NIL_DCC_CV_ID;
     uint8_t     bitPos  = 0;
@@ -600,7 +616,8 @@ void verifyCvBitCmd( char *s ) {
 
     if ( sscanf( s, "%hu  %hhu %hhu", &cvId, &bitPos, &testVal ) != 3 )  return;
 
-    // ret = locoSessions -> verifyCvBit( cvId, bitPos, bitVal );
+    // ret = locoSessions -> verifyCvVal( cvId, testVal );
+    // ret = locoSessions -> verifyCvBit( cvId, bitPos, testVal );
 
 }
 
@@ -616,7 +633,7 @@ void verifyCvBitCmd( char *s ) {
 //    returns: NONE
 //
 //----------------------------------------------------------------------------------------
-void writeDccPacketMainCmd( char *s ) {
+void writeDccPacketMainCmd( uint8_t chan, char *s ) {
 
     uint8_t b[ 16 ] = { 0 };
     uint8_t nBytes  = sscanf( s,
@@ -642,7 +659,7 @@ void writeDccPacketMainCmd( char *s ) {
 //    returns: NONE
 //
 //----------------------------------------------------------------------------------------
-void writeDccPacketProgCmd( char *s ) {
+void writeDccPacketProgCmd( uint8_t chan, char *s ) {
 
     uint8_t b[ 16 ] = { 0 };
     uint8_t nBytes  = sscanf( s,
@@ -667,7 +684,7 @@ void writeDccPacketProgCmd( char *s ) {
 // we only recognize the base station reset.
 //
 //----------------------------------------------------------------------------------------
-void handleDCmd( char *s ) {
+void handleDCmd( uint8_t chan, char *s ) {
 
     char argStr[ 16 ] = { 0 };
 
@@ -712,7 +729,7 @@ void handleDCmd( char *s ) {
 // Note: this is not a DDC-EX command.
 //
 //----------------------------------------------------------------------------------------
-void dccLogCommand( char *s ) {
+void dccLogCommand( uint8_t chan, char *s ) {
 
     int opt = -1;
 
@@ -740,8 +757,8 @@ void dccLogCommand( char *s ) {
 
             mainTrack -> getRailComMsg( buf, sizeof( buf ));
 
-            printf( "RC: " );
-            for ( uint8_t i = 0; i < 8; i++ ) printf( "0x%x ", buf[ i ]);
+            usbIoPrintf( chan, "RC: " );
+            for ( uint8_t i = 0; i < 8; i++ ) usbIoPrintf( chan, "0x%x ", buf[ i ]);
 
         } break;
 
@@ -767,9 +784,9 @@ void dccLogCommand( char *s ) {
 //              ( trip_ma - over current value configured )
 //              
 //----------------------------------------------------------------------------------------
-void currentOnTrackCmd( char *s ) {
+void currentOnTrackCmd( uint8_t chan, char *s ) {
 
-    printf( "CurrentMAIN %d C Milli 0 %d 1 %d>",
+    usbIoPrintf( chan, "CurrentMAIN %d C Milli 0 %d 1 %d>",
             mainTrack -> getActualCurrent( ), 0, 0 );  // ??? fix ...
 }
 
@@ -785,8 +802,9 @@ void currentOnTrackCmd( char *s ) {
 //              to determine status of the base station and important settings
 //
 // ??? changes... some prints change...
+// ??? What does DCC-EX expect as output ? 
 //----------------------------------------------------------------------------------------
-void printStatusCmd( char *s ) {
+void printStatusCmd( uint8_t chan, char *s ) {
 
     uint8_t opt = 0;
 
@@ -796,7 +814,7 @@ void printStatusCmd( char *s ) {
 
             case 1: {
 
-                printVersionInfo( );
+                printVersionInfo( chan );
                 locoSessions -> printActiveCabMap( );
                 mainTrack -> printDccTrackConfig( );
                 progTrack -> printDccTrackConfig( );
@@ -821,105 +839,161 @@ void printStatusCmd( char *s ) {
 
             } break;
 
-            default: printVersionInfo( );
+            default: printVersionInfo( chan );
         }
     } 
-    else printVersionInfo( );
+    else printVersionInfo( chan );
 }
 
 //----------------------------------------------------------------------------------------
 // "printHelp" lists a short version of all the command.
 //
 // ??? cleanup ...
+// ??? better way to print, perhaps in two calls...
 //----------------------------------------------------------------------------------------
-void printHelpCmd( ) {
+void printHelpCmd( uint8_t chan ) {
 
-    printf( "\nCommands:\n" );
+    usbIoPrintf( chan, "%24s", "\nCommands:\n" );
 
-    printf( "<t cabId speed dir>                "
-            "- set cab speed / direction\n" );
-    printf( "<f cabId funcId val >                  "
-            "- set cab function value, group DCC format\n" );
-    printf( "<F cabId funcId val >                    "
-            "- set cab function value, individual\n" );
-    printf( "<R cvId callbacknum callbacksub >      "
-            "- read CV byte\n" );
-    printf( "<W cvId val callbacknum callbacksub>   "
-            "- write CV byte on programming track\n" );
-    printf( "<B cvId bitPos bitVal callbacknum callbacksub> "
-            "- write CV bit on programming track\n" );
-    printf( "<w cabId cvId val > "
-            "- write CV byte on operations track\n" );
-    printf( "<b cabId cvId bitPos bitVal > "
-            "- write CV bit on operations track\n" );
-    printf( "<M sId byte1 byte2 [ byte3 ... byte10 ]> "
-            "- send DCC packet on operations track to Reg n\n" );
-    printf( "<P sId byte1 byte2 [ byte3 ... byte10 ]> "
-            "- send DCC packet on programming track to Reg n\n" );
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<0> MAIN | PROG", 
+                 "turn track power off\n" );
 
-    printf( "<C track [option] "
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<1> MAIN | PROG", 
+                 "turn track power off\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<1> JOIN", 
+                 "join MAIN and PROG track\n" );            
+
+    usbIoPrintf( chan, "%24s-%32s", 
+                 "<t cabId speed dir>"
+                 "set cab speed / direction\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<f cabId funcId val>"
+                "set cab function value, group DCC format\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<F cabId funcId val>"
+                 "set cab function value, individual\n" );
+
+    usbIoPrintf( chan, "%24s-%32s", "<!>", "emergency stop all\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<T id state>"
+                 "set Turnout ( state = 0, 1, T, C, X )\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<R cvId>"
+                 "read CV byte\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<R>"
+                 "read decoder address\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<W cvId val>"
+                 "write CV byte on programming track\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<W address>"
+                 "write decoder address\n" );
+    
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<B cvId bitPos bitVal> "
+                 "write CV bit on programming track\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<V cvId bitPos bitVal> "
+                 "verify CV bit on programming track\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<V cvId cvVal> "
+                 "verify CV value on programming track\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<w cabId cvId val > "
+                 "write CV byte on operations track\n" );
+    
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<b cabId cvId bitPos bitVal > "
+                 "write CV bit on operations track\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<M byte1 byte2 [ byte3 ... byte10 ]>",
+                 "send DCC packet on operations track\n" );
+
+    usbIoPrintf( chan, "%24s-%32s",
+                 "<P byte1 byte2 [ byte3 ... byte10 ]> "
+                 "send DCC packet on programming track\n" );
+
+
+
+
+
+
+
+    usbIoPrintf( chan, "<C track [option] "
             "- set track option, track = 0 -> MAIN, track = 1 -> PROG\n" );
-    printf( "            " " - 1  - set main track cutout on\n" );
-    printf( "            " " - 2  - set main track cutout off\n" );
-    printf( "            " " - 3  - set main track RailCom on\n" );
-    printf( "            " " - 4  - set main track RailCom off\n" );
-    printf( "            " " - 10 - set prog track in operations mode\n" );
-    printf( "            " " - 11 - set prog track in service mode\n" );
+    usbIoPrintf( chan, "            " " - 1  - set main track cutout on\n" );
+    usbIoPrintf( chan, "            " " - 2  - set main track cutout off\n" );
+    usbIoPrintf( chan, "            " " - 3  - set main track RailCom on\n" );
+    usbIoPrintf( chan, "            " " - 4  - set main track RailCom off\n" );
+    usbIoPrintf( chan, "            " " - 10 - set prog track in operations mode\n" );
+    usbIoPrintf( chan, "            " " - 11 - set prog track in service mode\n" );
 
-    printf( "<X>  - emergency stop all\n" );
+   
+   
 
-    printf( "<0> - turn operations and programming track power off\n" );
-    printf( "<1> - turn operations and programming track power on\n" );
-    printf( "<2> - turn operations track power on\n" );
-    printf( "<3> - turn programming track power on\n" );
-
-    printf( "<a [ opt ]>  " 
+    usbIoPrintf( chan, "<a [ opt ]>  " 
             " - list current consumption, default is RMS for MAIN\n" );
 
-    printf( "             " "   - opt 0  - actual - MAIN\n" );
-    printf( "             " "   - opt 1  - actual - PROG\n" );
-    printf( "             " "   - opt 2  - actual - both\n" );
-    printf( "             " "   - opt 10 - RMS - MAIN\n" );
-    printf( "             " "   - opt 11 - RMS - PROG\n" );
-    printf( "             " "   - opt 12 - RMS - both\n" );
+    usbIoPrintf( chan, "             " "   - opt 0  - actual - MAIN\n" );
+    usbIoPrintf( chan, "             " "   - opt 1  - actual - PROG\n" );
+    usbIoPrintf( chan, "             " "   - opt 2  - actual - both\n" );
+    usbIoPrintf( chan, "             " "   - opt 10 - RMS - MAIN\n" );
+    usbIoPrintf( chan, "             " "   - opt 11 - RMS - PROG\n" );
+    usbIoPrintf( chan, "             " "   - opt 12 - RMS - both\n" );
 
-    printf( "<C <option>> "
+    usbIoPrintf( chan, "<C <option>> "
             "- turn on/off the Railcom option on the main track( 0 - off, 1 - on)\n" );
 
-    printf( "<s [ level ]>" " - list status at detail level, default is summary\n" );
-    printf( "             " "   - level 0 - summary\n" );
-    printf( "             " "   - level 1 - configuration\n" );
-    printf( "             " "   - level 2 - session map\n" );
-    printf( "             " "   - level 3 - main track current\n" );
-    printf( "             " "   - level 4 - prog track current\n" );
-    printf( "             " "   - level 9 - all of the above\n" );
+    usbIoPrintf( chan, "<s [ level ]>" " - list status at detail level, default is summary\n" );
+    usbIoPrintf( chan, "             " "   - level 0 - summary\n" );
+    usbIoPrintf( chan, "             " "   - level 1 - configuration\n" );
+    usbIoPrintf( chan, "             " "   - level 2 - session map\n" );
+    usbIoPrintf( chan, "             " "   - level 3 - main track current\n" );
+    usbIoPrintf( chan, "             " "   - level 4 - prog track current\n" );
+    usbIoPrintf( chan, "             " "   - level 9 - all of the above\n" );
 
-    printf( "<S> - list base station configuration\n" );
-    printf( "<L> - list base station session table" );
+    usbIoPrintf( chan, "<S> - list base station configuration\n" );
+    usbIoPrintf( chan, "<L> - list base station session table" );
 
-    printf( "<Y [ opt ]> - DCC log options ( used for debugging and tracing )\n" );
-    printf( "             " "   - 0  - disable main track logging\n" );
-    printf( "             " "   - 1  - enable main track logging\n" );
-    printf( "             " "   - 2  - begin main track logging\n" );
-    printf( "             " "   - 3  - end main track logging\n" );
-    printf( "             " "   - 4  - print main track logging data\n" );
-    printf( "             " "   - 10 - disable prog track logging\n" );
-    printf( "             " "   - 11 - enable prog track logging\n" );
-    printf( "             " "   - 12 - begin prog track logging\n" );
-    printf( "             " "   - 13 - end prog track logging\n" );
-    printf( "             " "   - 14 - print prog track logging data\n" );
+    usbIoPrintf( chan, "<Y [ opt ]> - DCC log options ( used for debugging and tracing )\n" );
+    usbIoPrintf( chan, "             " "   - 0  - disable main track logging\n" );
+    usbIoPrintf( chan, "             " "   - 1  - enable main track logging\n" );
+    usbIoPrintf( chan, "             " "   - 2  - begin main track logging\n" );
+    usbIoPrintf( chan, "             " "   - 3  - end main track logging\n" );
+    usbIoPrintf( chan, "             " "   - 4  - print main track logging data\n" );
+    usbIoPrintf( chan, "             " "   - 10 - disable prog track logging\n" );
+    usbIoPrintf( chan, "             " "   - 11 - enable prog track logging\n" );
+    usbIoPrintf( chan, "             " "   - 12 - begin prog track logging\n" );
+    usbIoPrintf( chan, "             " "   - 13 - end prog track logging\n" );
+    usbIoPrintf( chan, "             " "   - 14 - print prog track logging data\n" );
 
-    printf( "<?> - list this help\n" );
+    usbIoPrintf( chan, "<?> - list this help\n" );
 
-    printf( "\n" );
+    usbIoPrintf( chan, "\n" );
 }
 
 } // namespace
 
 
 //----------------------------------------------------------------------------------------
-// "initSerialCommand" initializes the command interface. Right now, we only make
-// sure that session and track objects have been created.
+// "initSerialCommand" initializes the command interface. Right now, we only 
+// ensure that session and track objects have been created.
 //
 //----------------------------------------------------------------------------------------
 uint8_t initSerialCommand( ) {
@@ -932,16 +1006,68 @@ uint8_t initSerialCommand( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleSerialCommand" analyzes the command line and invokes the respective 
-// command handler. The first character in a command is the command letter. The 
-// command is followed by the arguments. For compatibility with the DCC++ original
-// command set, each command that is also a DCC++ command is implemented exactly 
-// as the original. This allows external tools, such as the JMRI Decoder Pro 
-// configuration tool to be used. The command handler supports command sequences
-// "<" ... ">" in one line which are processed once the carriage return is hit.
+// "executeSerialCommand" ....
+//
 //
 //----------------------------------------------------------------------------------------
-void handleSerialCommand( char *s ) {
+uint8_t executeSerialCommand( uint8_t chan, char *cmdStr ) {
+
+    switch ( cmdStr[ 0 ] ) {
+
+        case 't': setThrottleCmd( chan, cmdStr + 1 );  break;
+        case 'F': setFunctionBitCmd( chan, cmdStr + 1 ); break;
+        case 'f': setFunctionGroupCmd( chan, cmdStr + 1 ); break;
+
+        case 'T': turnoutCmd( chan, cmdStr + 1 ); break;
+
+        case 'R': readCVCmd( chan, cmdStr + 1 ); break;
+        case 'W': writeCVByteCmd( chan, cmdStr + 1 ); break;
+        case 'B': writeCVBitCmd( chan, cmdStr + 1 ); break;
+        case 'V': verifyCvCmd( chan, cmdStr + 1 ); break;
+        case 'w': writeCVByteMainCmd( chan, cmdStr + 1 ); break;
+        case 'b': writeCVBitMainCmd( chan, cmdStr + 1 ); break;
+        case 'v': verifyCvBitCmd( chan, cmdStr + 1 ); break;
+
+        case 'M': writeDccPacketMainCmd( chan, cmdStr + 1 ); break;
+        case 'P': writeDccPacketProgCmd( chan, cmdStr + 1 ); break;
+
+        case '0': turnPowerOnOffCmd( chan, cmdStr + 1 ); break;
+        case '1': turnPowerOnOffCmd( chan, cmdStr + 1); break;
+        case '!': emergencyStopCmd( chan ); break;
+        case 'c': currentOnTrackCmd( chan, cmdStr + 1 ); break;
+
+        case '?': printHelpCmd( chan ); break;
+        case 's': printStatusCmd( chan, cmdStr + 1 ); break;
+
+        case 'C': setTrackOptionCmd( chan, cmdStr + 1 ); break;
+        case 'Y': dccLogCommand( chan, cmdStr + 1 ); break;
+        
+        case ' ': usbIoPrintf( chan, "\n" ); break;
+
+        default:   usbIoPrintf( chan, 
+                            "<Unknown command, use '?' for help>\n" );
+    }
+
+    return( LCS_OK );
+}
+
+
+//----------------------------------------------------------------------------------------
+// "handleSerialCommand" analyzes the command line and invokes the respective 
+// command handler. The first character in a command is the command letter. The 
+// command is followed by the arguments. 
+//
+// For compatibility with the DCC++ original command set, each command that is 
+// also a DCC++ / DCC-EX command is implemented exactly as the original. This 
+// allows external tools, such as the JMRI Decoder Pro configuration tool to be
+// used. 
+//
+// The command handler supports command sequences "<" ... ">" in one line which
+// are processed once the carriage return is hit. The channel parameter defines
+// to which USB channel the output is sent.
+//
+//----------------------------------------------------------------------------------------
+uint8_t handleSerialCommand( uint8_t chan, char *s ) {
 
     int     charIndex       = 0;
     char    cmdStr[ 256 ]   = { 0 };
@@ -959,39 +1085,7 @@ void handleSerialCommand( char *s ) {
 
             case '>': {
 
-                switch ( cmdStr[ 0 ] ) {
-
-                    case 't': setThrottleCmd( cmdStr + 1 );  break;
-                    case 'F': setFunctionBitCmd( cmdStr + 1 ); break;
-                    case 'f': setFunctionGroupCmd( cmdStr + 1 ); break;
-
-                    case 'R': readCVCmd( cmdStr + 1 ); break;
-                    case 'W': writeCVByteCmd( cmdStr + 1 ); break;
-                    case 'B': writeCVBitCmd( cmdStr + 1 ); break;
-                    case 'V': verifyCvCmd( cmdStr + 1 ); break;
-                    case 'w': writeCVByteMainCmd( cmdStr + 1 ); break;
-                    case 'b': writeCVBitMainCmd( cmdStr + 1 ); break;
-                    case 'v': verifyCvBitCmd( cmdStr + 1 ); break;
-
-                    case 'M': writeDccPacketMainCmd( cmdStr + 1 ); break;
-                    case 'P': writeDccPacketProgCmd( cmdStr + 1 ); break;
-
-                    case '0': turnPowerOnOffCmd( cmdStr + 1 ); break;
-                    case '1': turnPowerOnOffCmd( cmdStr + 1); break;
-                    case '!': emergencyStopCmd( ); break;
-                    case 'c': currentOnTrackCmd( cmdStr + 1 ); break;
-
-                    case '?': printHelpCmd( ); break;
-                    case 's': printStatusCmd( cmdStr + 1 ); break;
-                 
-                    case 'C': setTrackOptionCmd( cmdStr + 1 ); break;
-                    case 'Y': dccLogCommand( cmdStr + 1 ); break;
-                    
-                    case ' ': printf( "\n" ); break;
-
-                    default:  printf( "<Unknown command, use '?' for help>\n" );
-                }
-
+                executeSerialCommand( chan, cmdStr + 1 );
                 charIndex ++;
             
             } break;
@@ -1004,20 +1098,7 @@ void handleSerialCommand( char *s ) {
             }
         }
     }
-}
 
-//----------------------------------------------------------------------------------------
-// ??? "handleSerialCommand" implements the commands the base station command
-// interface supports. We stick to DCC-EX as best as we can. In addition there
-// needs to be a "handleDccEXCommand" routine that offers the DCC-EX commands
-// used by RocRail. The command set is a subset of the general commands of the 
-// base station plus some additional commands from the DCC-EX set to support.
-//
-// The command handler supports the same command sequences "<" ... ">" in one 
-// line which are processed once the carriage return is hit.
-
-void handleDccExCommands( char *s ) {
-
-
+    return( LCS_OK );
 }
 

@@ -1194,12 +1194,12 @@ void executeCommandLine( char *line ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "handleCommandInput" manages the remote command input channel. This channel
+// "handleInputCommand" manages the remote command input channel. This channel
 // is not interactive and hence is a bit simpler. We just accumulate all input
 // characters until CR, and pass it to the callback, if registered.
 // 
 //----------------------------------------------------------------------------------------
-void handleCommandInput( ) {
+void handleInputCommand( ) {
     
     char c;
 

@@ -44,7 +44,7 @@ namespace LCS {
     extern LcsTaskMap       taskMap;
 
     extern uint8_t          handleConsoleCommand( );
-    extern uint8_t          handleCommandInput( );
+    extern uint8_t          handleInputCommand( );
     LcsEventMapEntry        *lookupEvent( uint16_t eventId );
     extern uint8_t          rtNvmPutWord( uint32_t ofs, uint16_t word );
     extern uint8_t          receiveLcsMsg( uint16_t *senderNpId, uint8_t *msg );
@@ -719,7 +719,7 @@ void handleNodeState( ) {
 
         watchDogUpdate( ); 
         handleConsoleCommand( );
-        handleCommandInput( );
+        handleInputCommand( );
 
         switch ( nodeMap.nodeState ) {
 
