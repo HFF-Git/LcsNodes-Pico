@@ -352,6 +352,7 @@ namespace LCS {
 // Especially the debug mask would be a candidate.
 //
 // ??? what is the initial debug mask ?
+//
 //----------------------------------------------------------------------------------------
 uint8_t initCdcLayer( ) {
 
@@ -786,7 +787,7 @@ uint8_t registerInternalTasks( ) {
 
 //----------------------------------------------------------------------------------------
 // "powerFailHandler" is called when the hardware detects an imminent loss of 
-//power. Our chance to save crucial data to NVM. Finally, the optionally
+// power. Our chance to save crucial data to NVM. Finally, the optionally
 // registered firmware power fail callback is called. The node state becomes 
 // "PFAIL". Upon restart, we check this state and know that we came back after a
 // power fail.
@@ -853,7 +854,8 @@ uint8_t initRuntime( CdcResourceDescMap  *descMap,
         fatalError( 1, (char *) "Fatal: CDC Layer Setup failed", rStat );
     }
 
-    if ( setupDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "DebugMask: 0x%04x\n", debugMask );
+    if ( setupDebugEnabled( )) 
+        usbIoPrintf( CDC_USB_CONSOLE, "DebugMask: 0x%04x\n", debugMask );
   
     rStat = initI2cChannels( );
     if ( rStat != LCS_OK ) {

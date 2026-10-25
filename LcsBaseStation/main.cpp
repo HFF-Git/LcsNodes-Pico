@@ -26,11 +26,11 @@
 // the terms of the GNU General Public License as published by the Free Software
 // Foundation, either version 3 of the License, or any later version.
 //
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY 
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
-// PARTICULAR PURPOSE.  See the GNU General Public License for more details. You 
-// should have received a copy of the GNU General Public License along with this 
-// program. If not, see <http://www.gnu.org/licenses/>.
+// This program is distributed in the hope that it will be useful, but WITHOUT 
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License along with 
+// this program. If not, see <http://www.gnu.org/licenses/>.
 //
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStationBoardDesc.h"
@@ -57,14 +57,14 @@ void printLcsMsg( uint8_t *msg ) {
 
   int msgLen = (( msg[0] >> 5 ) + 1 ) % 8;
 
-  for ( int i = 0; i < msgLen; i++ ) printf( "0x%x ", msg[i] );
-  printf( "\n" );
+  for ( int i = 0; i < msgLen; i++ ) usbIoPrintf( CDC_USB_CONSOLE, "0x%x ", msg[i] );
+  usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 }
 
 uint8_t printStatus (uint8_t status ) {
 
-  printf( "Status: " );
-  if ( status == LCS_OK ) printf( "OK\n" );
+  usbIoPrintf( CDC_USB_CONSOLE, "Status: " );
+  if ( status == LCS_OK ) usbIoPrintf( CDC_USB_CONSOLE, "OK\n" );
   else printf ( "FAILED: %d\n", status );
   return ( status );
 }
@@ -75,7 +75,7 @@ uint8_t printStatus (uint8_t status ) {
 //----------------------------------------------------------------------------------------
 uint8_t lcsInitCallback( uint16_t npId, void *uData ) {
 
-    printf( "Node Init Callback: 0x%4x\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Node Init Callback: 0x%4x\n" );
     return( NO_ERR );
 }
 
@@ -85,7 +85,7 @@ uint8_t lcsInitCallback( uint16_t npId, void *uData ) {
 //----------------------------------------------------------------------------------------
 uint8_t lcsPfailCallback( uint16_t npId, void *uData ) {
 
-    printf( "Node PFAIL Callback: 0x%4x\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Node PFAIL Callback: 0x%4x\n" );
     return( NO_ERR );
 }
 
@@ -120,10 +120,10 @@ uint8_t lcsCmdCallback( uint8_t chan, char *cmdLine, void *uData ) {
 //----------------------------------------------------------------------------------------
 uint8_t lcsMsgCallback( uint8_t *msg, void *uData ) {
 
-    printf( "MsgCallback: ", msg  );
+    usbIoPrintf( CDC_USB_CONSOLE, "MsgCallback: ", msg  );
 
-    for ( int i = 0; i < 8; i++ ) printf( "0x%2x ");
-    printf( "\n" );
+    for ( int i = 0; i < 8; i++ ) usbIoPrintf( CDC_USB_CONSOLE, "0x%2x ");
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
     return( NO_ERR );
 }
 
@@ -139,13 +139,13 @@ uint8_t lcsReqCallback( uint16_t npId,
                         uint16_t *arg2, 
                         void *uData ) {
 
-    printf( "REQ callback: npId: 0x%x, item: %d", npId, item );
+    usbIoPrintf( CDC_USB_CONSOLE, "REQ callback: npId: 0x%x, item: %d", npId, item );
     
-    if ( arg1 != nullptr ) printf( ", arg1: %d, ", *arg1 ); 
-    else printf( ", arg1: null" );
+    if ( arg1 != nullptr ) usbIoPrintf( CDC_USB_CONSOLE, ", arg1: %d, ", *arg1 ); 
+    else usbIoPrintf( CDC_USB_CONSOLE, ", arg1: null" );
     
-    if ( arg2 != nullptr ) printf( ", arg2: %d, ", *arg2 ); 
-    else printf( ", arg2: null" );
+    if ( arg2 != nullptr ) usbIoPrintf( CDC_USB_CONSOLE, ", arg2: %d, ", *arg2 ); 
+    else usbIoPrintf( CDC_USB_CONSOLE, ", arg2: null" );
     
     return( NO_ERR );
 }
@@ -164,8 +164,9 @@ uint8_t lcsRepCallback( uint16_t npId,
                         uint8_t ret,
                         void *uData ) {
 
-    printf( "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ",
-            npId, item , arg1, arg2, ret );
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "REP callback: npId: 0x%x, item: %d, arg1: %d, arg2: %d, ret: %d ",
+                 npId, item , arg1, arg2, ret );
     return( NO_ERR );
 }
 
@@ -181,7 +182,7 @@ uint8_t lcsEventCallback( uint16_t npId,
                           uint16_t eData,
                           void *uData ) {
 
-    printf( "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "Event: npId: 0x%x, eId: %d, eAction: %d, eData: %d\n", 
             npId, eId, eAction, eData );
     return( NO_ERR );
 }
@@ -195,7 +196,7 @@ uint8_t initRunTimeLib( ) {
     dMap = LCS_BASE_STATION_BOARD_DESC_B_01_00;
 
     uint8_t rStat = initRuntime( &dMap );
-    printf( "LCS Base Station\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "LCS Base Station\n" );
     
     printResourceDescMap( &dMap );
     printResourceMap( );
@@ -209,7 +210,7 @@ uint8_t initRunTimeLib( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupLocoSessions( ) {
 
-    printf( "Setup Loco Session Lib -> " );
+    usbIoPrintf( CDC_USB_CONSOLE, "Setup Loco Session Lib -> " );
 
     uint8_t  rStat   = LCS_OK;
     uint16_t options = SM_OPT_DEFAULT_SETTING;
@@ -260,7 +261,7 @@ uint8_t setupDccTrackMain( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupDccTrackProg( ) {
 
-    printf( "Setup PROG track -> " );
+    usbIoPrintf( CDC_USB_CONSOLE, "Setup PROG track -> " );
 
     uint8_t         rStat;
     LcsDccTrackDesc trackDesc;
@@ -294,7 +295,7 @@ uint8_t setupDccTrackProg( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
 
-  printf( "Setup Serial Command -> " );
+  usbIoPrintf( CDC_USB_CONSOLE, "Setup Serial Command -> " );
 
   uint8_t rStat = initSerialCommand(  );
   return ( printStatus( rStat ));
@@ -308,7 +309,7 @@ uint8_t setupSerialCommand( ) {
 //----------------------------------------------------------------------------------------
 uint8_t setupMsgInterface( ) {
 
-  printf( "Setup LCS Msg Interface -> " );
+  usbIoPrintf( CDC_USB_CONSOLE, "Setup LCS Msg Interface -> " );
 
   uint8_t rStat = initLcsMsgInterface( );
   return ( printStatus( rStat ));
@@ -320,7 +321,7 @@ uint8_t setupMsgInterface( ) {
 //----------------------------------------------------------------------------------------
 uint8_t registerCallbacks( ) {
 
-    printf( "Registering Callbacks\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Registering Callbacks\n" );
 
     registerLcsMsgCallback( lcsMsgCallback );
     registerCmdCallback( lcsCmdCallback );
@@ -337,6 +338,9 @@ uint8_t registerCallbacks( ) {
 // the DCC tac signal generation is enabled, i.e. the interrupt driven DCC packet 
 // broadcasting starts. Finally, the track power is turned on and we give control 
 // to the LCS runtime for processing events and requests.
+//
+// ??? should we do this rather in the init callback ?
+// ??? also, should we have an indicator for power fail startup ?
 //
 //----------------------------------------------------------------------------------------
 uint8_t startBaseStation( ) {
@@ -357,7 +361,7 @@ uint8_t startBaseStation( ) {
 
             mainTrack -> printDccTrackStatus( );
             progTrack -> printDccTrackStatus( );
-            printf( "Ready...\n" );
+            usbIoPrintf( CDC_USB_CONSOLE, "Ready...\n" );
         }
     
         startRuntime( );
