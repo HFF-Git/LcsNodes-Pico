@@ -581,7 +581,6 @@ void writeCVBitCmd( uint8_t chan, char *s ) {
 //  bitVal        -  the data bit.
 //  val           - the CV value.
 //
-//  returns: 0 | 1 or <V -1>
 //  returns: <v cvId val> or <v cv -1>
 //
 //----------------------------------------------------------------------------------------
@@ -591,13 +590,22 @@ void verifyCvCmd( uint8_t chan, char *s ) {
     uint8_t     bitPos  = 0;
     uint8_t     testVal = 0;
     int         ret     = 0;
+    int         len     = sscanf( s, "%hu  %hhu %hhu", &cvId, &bitPos, &testVal );
 
-    if ( sscanf( s, "%hu  %hhu %hhu", &cvId, &bitPos, &testVal ) != 3 )  return;
+    if ( len == 2 ) {
 
-    // ??? to do ....
+        ret = locoSessions -> verifyCVByte( cvId, testVal );
+        usbIoPrintf( chan, "<v %d %d>", cvId, ( ret == 0 ? testVal : -1 ));
+    }
+    else if ( len == 3 ) {
 
-    // ret = locoSessions -> verifyCvVal( cvId, testVal );
-    // ret = locoSessions -> verifyCvBit( cvId, bitPos, testVal );
+        ret = locoSessions -> verifyCVBit( cvId, bitPos, testVal );
+        usbIoPrintf( chan, "<v %d %d>", cvId, ( ret == 0 ? testVal : -1 ));
+    } 
+    else {
+
+        usbIoPrintf( chan, "<v %d %d>", cvId, -1 );
+    }
 }
 
 //----------------------------------------------------------------------------------------
