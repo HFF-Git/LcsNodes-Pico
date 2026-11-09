@@ -222,6 +222,35 @@ void sortCabMap( LcsCabEntry *map, uint16_t len ) {
     qsort( map, len, sizeof( LcsCabEntry ), compareCabId );
 }
 
+//----------------------------------------------------------------------------------------
+// "initCabEntry" initializes a cab entry. It is used to initialize the staging
+// entry as well as the cab map entries. 
+//
+//----------------------------------------------------------------------------------------
+void initCabEntry( LcsCabEntry *e ) {
+    
+    e -> cabId = 0;
+    e -> flags = 0;
+    e -> speedInfo = 0;
+    e -> rsv[ 0 ] = 0;
+    e -> rsv[ 1 ] = 0;
+    e -> rsv[ 2 ] = 0;     
+    e -> d.dFlags = 0;   
+
+    for ( int j = 0; j < 6; j ++ ) { 
+        
+        e -> speedMap[ j ] = 0;
+    }
+
+    for ( int j = 0; j < MAX_DCC_FUNC_GROUP_ID; j ++ ) { 
+        
+        e -> d.funcMap[ j ] = 0; 
+    }
+
+    e -> locoName[ 0 ] = 0;
+    e -> trainName[ 0 ] = 0;
+}
+
 }; // namespace
 
 //----------------------------------------------------------------------------------------
@@ -236,7 +265,6 @@ LcsLocoSessions::LcsLocoSessions( ) { }
 //
 // ??? add debug info ...
 //
-// ??? confusing index 0 ???
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options, 
                                             LcsDccTrack *mainTrack,
@@ -258,12 +286,11 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
     if ( options & SM_OPT_ENABLE_REFRESH )      flags |= SM_F_ENABLE_REFRESH;
     if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) flags |= SM_F_KEEP_ALIVE_CHECKING;
 
-    // ??? staging entry ?
+    initCabEntry ( &cabStagingEntry );
 
     for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
 
-        // ??? clear the entry...
-
+        initCabEntry( &cabMap[ i ] );
     }
 
     for ( int i = 0; i < MAX_CAB_ACTIVE_SESSIONS; i ++ ) {
@@ -297,29 +324,14 @@ uint8_t LcsLocoSessions::formatCabMap( ) {
     for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
 
         LcsCabEntry *cPtr = & cabMap[ i ];
-
-        cPtr -> cabId = 0;
-        cPtr -> flags = 0;
-        cPtr -> speedInfo = 0;
-        cPtr -> rsv[ 0 ] = 0;
-        cPtr -> rsv[ 1 ] = 0;
-        cPtr -> rsv[ 2 ] = 0;     
-        cPtr -> d.dFlags = 0;   
-        for ( int j = 0; j < 6; j ++ ) { 
-            
-            cPtr -> speedMap[ j ] = 0;
-        }
-
-        for ( int j = 0; j < MAX_DCC_FUNC_GROUP_ID; j ++ ) { 
-            
-            cPtr -> d.funcMap[ j ] = 0; 
-        }
+        initCabEntry( cPtr );
     }
 
     rStat = setItem( 0, 
                      CAB_ITEM_ID_ARRAY_START,
                      (uint16_t *) & cabMap, 
-                     sizeof( LcsCabEntry ) / sizeof( uint16_t ) * MAX_CAB_DICT_SESSIONS );
+                     sizeof( LcsCabEntry ) / 
+                                sizeof( uint16_t ) * MAX_CAB_DICT_SESSIONS );
 
     return ( RET_STAT( rStat ));
 }
@@ -414,12 +426,17 @@ uint16_t LcsLocoSessions::getCabCount( ) {
     return ( cabCount );
 }
 
+
+//----------------------------------------------------------------------------------------
+//
 // ??? we have a cab staging area since we cannot set all data at once. 
 // ??? going via LCS messages we can set an item at a time. When we have
 // the entry fully configured, it can be added to the dictionary.
 //
 // ??? via the command interface we can of course do it all at once.
-// 
+//
+//---------------------------------------------------------------------------------------- 
+
 
 //----------------------------------------------------------------------------------------
 // "addCabEntry" is used to add a cab configuration to the cabMap. We first 
@@ -487,11 +504,13 @@ uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "addActiveLoco" adds a cab entry index to the active cab list. The index is
+// "addActiveCab" adds a cab entry index to the active cab list. The index is
 // only added if it is not already in the list.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
+
+    if ( locoIndex > MAX_CAB_DICT_SESSIONS ) return;
 
     for ( uint16_t i = 0; i < activeCabCount; i++ ) {
 
@@ -505,12 +524,14 @@ void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "removeActiveLoco" removes a cab entry index from the active cab list. Order
+// "removeActiveCab" removes a cab entry index from the active cab list. Order
 // of the active list is not significant, so the last entry is moved into the 
 // position of the removed entry.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::removeActiveCab( uint16_t locoIndex ) {
+
+    if ( locoIndex > MAX_CAB_DICT_SESSIONS ) return;
 
     for ( uint16_t i = 0; i < activeCabCount; i++ ) {
 
@@ -552,10 +573,11 @@ LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "allocateCabEntry" activates the cab entry. The entry already exists in the 
-// loco dictionary. If it is found, it is added to the active loco list if it 
-// isn't already active. Returns a pointer to the entry, or nullptr if the cab 
-// does not exist.
+// "activateCabEntry" activates the cab entry. It is used by all routines that 
+// need to manipulate a cab and does all the housekeeping. The entry must already 
+// exists in the loco dictionary. If it is found, it is added to the active loco
+// list if it isn't already active. Returns a pointer to the entry, or nullptr 
+// if the cab does not exist.
 //
 //----------------------------------------------------------------------------------------
 LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
@@ -566,6 +588,7 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
     if ( ! ( cPtr -> flags & CMAP_F_ACTIVE )) { 
         
         addActiveCab( cPtr - cabMap );
+        cPtr -> flags |= CMAP_F_ACTIVE;
         cPtr -> flags |= CMAP_F_ALIVE;
     }
 
@@ -573,7 +596,7 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "deallocateCabEntry" deactivates a cab entry and removes it from the active
+// "deactivateCabEntry" deactivates a cab entry and removes it from the active
 // loco list. The entry remains in the dictionary base.
 //
 //----------------------------------------------------------------------------------------
@@ -585,6 +608,7 @@ void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
     if ( cPtr -> flags & CMAP_F_ACTIVE ) { 
         
         removeActiveCab( cPtr - cabMap );
+        cPtr -> flags &= ~ CMAP_F_ACTIVE;
         cPtr -> flags &= ~ CMAP_F_ALIVE;
     }
 }
@@ -613,10 +637,32 @@ void LcsLocoSessions::emergencyStopAll( ) {
 }
 
 //----------------------------------------------------------------------------------------
+// "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
+// for an active loco DCC packets to refresh the decoder settings. 
+//
+//----------------------------------------------------------------------------------------
+void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
+
+    if ( cab == nullptr ) return;
+
+    if ( ! ( cab -> flags & CMAP_F_ACTIVE ))  return;
+   
+    if ( cab -> flags & CMAP_F_ALIVE ) {
+
+        setThrottle( cab, (uint8_t) cab -> speedInfo & 0x7F, 
+                           (uint8_t) (( cab -> speedInfo & 0x80 ) ? 1 : 0 ));
+    }
+    else {
+
+        removeActiveCab( cab - cabMap );
+    }   
+}
+
+//----------------------------------------------------------------------------------------
 // "refreshActiveCabs" manages the cab refresh task. We need to send to an
 // active cab the DCC throttle commands to refresh the decoder settings. Since
 // we have also other things to do in a base station, we will only refresh one
-// can at a time and go round robin though the active cab list.
+// cab at a time and go round robin though the active cab list.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::refreshActiveCabs( ) {
@@ -633,42 +679,26 @@ void LcsLocoSessions::refreshActiveCabs( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
-// for an active loco DCC packets to refresh the decoder settings. 
+// "markCabsNotAlive" sweeps the active cab list and marks all cabs non-active.
 // 
-// ??? do it in one step ? or also split in several steps...
-// ??? the send speed/function is very attractive if the decoder supports it ...
-// ??? if not: send speed dir, send from the ten function groups only the ones
-// that have been modified...
+// ??? racing condition ? need a flag to say this is pending... and only done 
+// at the next refresh cycle...
 //
+// ??? we need a better way. I want to mark a cab as not alive pending and 
+// remove on the second round around...
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
+uint8_t LcsLocoSessions::markCabsNotAlive( ) {
 
+    for ( int i = 0; i < activeCabCount; i++ ) {
 
+        uint16_t locoIndex = activeCabList[ i ];
+        LcsCabEntry *cPtr = &cabMap[ locoIndex ];
 
-}
+        cPtr -> flags &= ~ CMAP_F_ALIVE;
+    }
 
-//----------------------------------------------------------------------------------------
-// "markCabAlive" will set the cab active timestamp. It is used by the base 
-// station code to record the last time it touched the session. A caBId not
-// used in a certain time, is a candidate for removal from the active list.
-//
-// ??? may we do not need to do this ? If a cab is used, the active call will
-// mark it alive by definition.
-//
-// All we would need to do is to periodically sweep the list for "non-alive"
-// entries.....
-//----------------------------------------------------------------------------------------
-uint8_t LcsLocoSessions::markCabAlive( uint16_t cabId ) {
-
-    LcsCabEntry *cPtr = activateCabEntry( cabId );                                    
-    if ( cPtr == nullptr ) return( ERR_INVALID_CAB_ID );
-
-    cPtr -> flags |= CMAP_F_ALIVE;
     return ( LCS_OK );
 }
-
-// ??? a routine to check and remove "non-alive" cabs ?
 
 //----------------------------------------------------------------------------------------
 // "setThrottle" is perhaps the most used function. After all, we want to run 

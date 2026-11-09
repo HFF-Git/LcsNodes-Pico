@@ -55,6 +55,9 @@ const uint16_t  CAB_ITEM_ID_HEADER_START    = ITEM_ID_USER_START;
 const uint16_t  CAB_ITEM_ID_STAGING_START   = ITEM_ID_USER_START + 16;
 const uint16_t  CAB_ITEM_ID_ARRAY_START     = CAB_ITEM_ID_STAGING_START + 16;
 
+const uint16_t  CAB_ITEM_LOCO_NAME_LEN      = 16;
+const uint16_t  CAB_ITEM_TRAIN_NAME_LEN     = 16;
+
 const uint32_t  DCC_SESSION_TIMEOUT_MILLIS  = 2000;
 
 //----------------------------------------------------------------------------------------
@@ -226,7 +229,14 @@ struct LcsCabMapHead {
 //          :---------------------------:       :---------------------------:
 //     15   :   DCC function map 4      :       :                           : 
 //          :---------------------------:       :---------------------------:
-//
+//     16   :                           :       :                           :
+//          :   Loco Name               :       :   Loco Name               :
+//          :                           :       :                           :
+//          :---------------------------:       :---------------------------:
+//     24   :                           :       :                           :
+//          :   Train Name              :       :   Train Name              :
+//          :                           :       :                           :
+//          :---------------------------:       :---------------------------:
 //
 //  cabId           -   the cab assigned number. This is typically the DCC 
 //                      address. Analog cabs also get a number, as well as 
@@ -245,6 +255,10 @@ struct LcsCabMapHead {
 //  Analog Info     -   analog cab specific 
 //
 //  PwmFrequency    -   the PWM option for the analog engine
+//
+//  Loco Name       -   a string of 15 characters plus a zero byte.
+// 
+//  Train Name       -   a string of 15 characters plus a zero byte.
 // 
 //----------------------------------------------------------------------------------------
 struct LcsCabEntry {
@@ -275,6 +289,9 @@ struct LcsCabEntry {
 
         } a;
     };
+
+    char locoName[ CAB_ITEM_LOCO_NAME_LEN ];                    // word 16 - 23
+    char trainName[ CAB_ITEM_TRAIN_NAME_LEN ];                  // word 24 - 31
 };
 
 //----------------------------------------------------------------------------------------
@@ -354,9 +371,9 @@ struct LcsLocoSessions {
     uint8_t             verifyCVByte( uint16_t cvId, uint8_t val );
     uint8_t             verifyCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val );
 
-    uint8_t             markCabAlive( uint16_t cabId );
     uint8_t             refreshActiveSessions( );
-
+    uint8_t             markCabsNotAlive( );
+    
     uint8_t             writeDccPacketMain( uint8_t *packet, uint8_t len );
     uint8_t             writeDccPacketProg( uint8_t *packet, uint8_t len );
     
