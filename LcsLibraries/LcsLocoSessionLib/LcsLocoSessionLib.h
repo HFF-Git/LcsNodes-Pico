@@ -221,13 +221,13 @@ struct LcsCabMapHead {
 //          :---------------------------:       :---------------------------:
 //     11   :   DCC function map 0      :       :   PWM Frequency           : 
 //          :---------------------------:       :---------------------------:
-//     12   :   DCC function map 1      :       :                           : 
+//     12   :   DCC function map 1      :       :   0                       : 
 //          :---------------------------:       :---------------------------:
-//     13   :   DCC function map 2      :       :                           : 
+//     13   :   DCC function map 2      :       :   0                       : 
 //          :---------------------------:       :---------------------------:
-//     14   :   DCC function map 3      :       :                           : 
+//     14   :   DCC function map 3      :       :   0                       : 
 //          :---------------------------:       :---------------------------:
-//     15   :   DCC function map 4      :       :                           : 
+//     15   :   DCC function map 4      :       :   0                       : 
 //          :---------------------------:       :---------------------------:
 //     16   :                           :       :                           :
 //          :   Loco Name               :       :   Loco Name               :
@@ -242,7 +242,7 @@ struct LcsCabMapHead {
 //                      address. Analog cabs also get a number, as well as 
 //                      cab engine consists. 
 // 
-//  flags           -   ...
+//  flags           -   flags for the cab entry.
 //
 //  speedInfo       -   the speed and direction. 
 //
@@ -372,8 +372,7 @@ struct LcsLocoSessions {
     uint8_t             verifyCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val );
 
     uint8_t             refreshActiveSessions( );
-    uint8_t             markCabsNotAlive( );
-    
+
     uint8_t             writeDccPacketMain( uint8_t *packet, uint8_t len );
     uint8_t             writeDccPacketProg( uint8_t *packet, uint8_t len );
     

@@ -638,19 +638,30 @@ void LcsLocoSessions::emergencyStopAll( ) {
 
 //----------------------------------------------------------------------------------------
 // "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
-// for an active loco DCC packets to refresh the decoder settings. 
-//
+// for an active loco DCC packets to refresh the decoder settings. There are
+// two flags. The ACTOVE flag indicates that this loco is active and maintained 
+// in the cabList stack. The ALIVE flag indicates that we have received a command
+// for the loco recently. If the ALIVE flag is set, we send a refresh command 
+// and clear the flag. The next time we come around, if the ALIVE flag is not 
+// set, we remove the loco from the active list. This is a simple way to manage
+// the active loco list. SInce we do a round robin on the active list, it could
+// happen that we just refreshed, set the ACTIVE flag false, and then the 
+// round robin index hits this entry, removing this entry. No harm done, since
+// if the loco is still an active one, it will be re-added to the active list 
+// when the next command is received. 
+// 
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
 
     if ( cab == nullptr ) return;
-
     if ( ! ( cab -> flags & CMAP_F_ACTIVE ))  return;
    
     if ( cab -> flags & CMAP_F_ALIVE ) {
 
         setThrottle( cab, (uint8_t) cab -> speedInfo & 0x7F, 
                            (uint8_t) (( cab -> speedInfo & 0x80 ) ? 1 : 0 ));
+
+        cab -> flags &= ~ CMAP_F_ALIVE;
     }
     else {
 
@@ -662,7 +673,12 @@ void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
 // "refreshActiveCabs" manages the cab refresh task. We need to send to an
 // active cab the DCC throttle commands to refresh the decoder settings. Since
 // we have also other things to do in a base station, we will only refresh one
-// cab at a time and go round robin though the active cab list.
+// cab at a time and go round robin though the active cab list. The refresh 
+// interval is set by the base station. The interval is computed from the 
+// maximum time between two refresh commands, DCC demands at least two seconds, 
+// and the number of active cabs.
+// 
+//   taskPeriod = refresh interval / MAX_ACTIVE_CAB_SESSIONS
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::refreshActiveCabs( ) {
@@ -676,28 +692,6 @@ void LcsLocoSessions::refreshActiveCabs( ) {
     cabRefreshIndex ++;
 
     if ( cabRefreshIndex >= activeCabCount ) cabRefreshIndex = 0;
-}
-
-//----------------------------------------------------------------------------------------
-// "markCabsNotAlive" sweeps the active cab list and marks all cabs non-active.
-// 
-// ??? racing condition ? need a flag to say this is pending... and only done 
-// at the next refresh cycle...
-//
-// ??? we need a better way. I want to mark a cab as not alive pending and 
-// remove on the second round around...
-//----------------------------------------------------------------------------------------
-uint8_t LcsLocoSessions::markCabsNotAlive( ) {
-
-    for ( int i = 0; i < activeCabCount; i++ ) {
-
-        uint16_t locoIndex = activeCabList[ i ];
-        LcsCabEntry *cPtr = &cabMap[ locoIndex ];
-
-        cPtr -> flags &= ~ CMAP_F_ALIVE;
-    }
-
-    return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1124,9 +1118,9 @@ uint8_t LcsLocoSessions::writeCV( uint16_t cvId, uint8_t mode, uint8_t val ) {
 //
 // ??? This command may take a long time, a lot of packets are sent. While this 
 // not an issue with the signal generation, which is done via interrupt handlers,
-// it may be an issue with any other work of the base station. This code needs 
-// to be redesigned to use a kind of state machine that sends a packet at a time
-// so other work can interleave.
+// it may be an issue with any other work of the base station. If so, this code 
+// needs to be redesigned to use a kind of state machine that sends a packet at
+// a time so other work can interleave.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeCVByte( uint16_t cvId, uint8_t val ) {
@@ -1161,11 +1155,11 @@ uint8_t LcsLocoSessions::writeCVByte( uint16_t cvId, uint8_t val ) {
 // bit position in bits 0 - 2 and the bit value in bit 3. The packet sequence 
 // follows the DCC standard, similar to the byte write operation.
 //
-// ??? This command may take a long time, a lot of packets are sent. While this
+// ??? This command may take a long time, a lot of packets are sent. While this 
 // not an issue with the signal generation, which is done via interrupt handlers,
-// it may be an issue with any other work of the base station. This code needs
-// to be redesigned to use a kind of state machine that sends a packet at a time
-// so other work can interleave.
+// it may be an issue with any other work of the base station. If so, this code 
+// needs to be redesigned to use a kind of state machine that sends a packet at
+// a time so other work can interleave.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId, 
@@ -1196,7 +1190,8 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
 }
 
 //----------------------------------------------------------------------------------------
-//
+// The verify family of functions is used to verify that a CV value has been 
+// written correctly. 
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::verifyCV( uint16_t cvId, uint8_t mode, uint8_t val ) {
@@ -1226,24 +1221,22 @@ uint8_t LcsLocoSessions::verifyCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val
 
 
 //----------------------------------------------------------------------------------------
-//
+// "writeDccPacketMain" just emits a raw DCC packet for the MAIN track.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeDccPacketMain( uint8_t *packet, uint8_t len ) {
 
-    // ??? to do ...
-
+    mainTrack -> loadPacket( packet, len );
     return( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-//
+// "writeDccPacketProg" just emits a raw DCC packet for the PROGRAMMING track.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeDccPacketProg( uint8_t *packet, uint8_t len ) {
 
-    // ??? to do ...
-
+    progTrack -> loadPacket( packet, len );
     return( LCS_OK );
 }
 
@@ -1267,6 +1260,9 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr, bool detail ) {
                  (( cPtr -> speedInfo & 0x80 ) ? "Rev" : "Fwd" ));
 
     usbIoPrintf( CDC_USB_CONSOLE, " Flags: 0x%x", ( cPtr -> flags ));
+
+    usbIoPrintf( CDC_USB_CONSOLE, " %16s", cPtr -> locoName );
+    usbIoPrintf( CDC_USB_CONSOLE , ":%16s", cPtr -> trainName );
     usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
     if ( detail ) {
