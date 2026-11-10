@@ -322,6 +322,7 @@ struct LcsLocoSessions {
     uint16_t            getOptions( );
     uint16_t            getFlags( );
     uint16_t            getCabCount( );
+    uint16_t            getMaxCabCount( );
 
     void                emergencyStopAll( );
 

@@ -426,6 +426,10 @@ uint16_t LcsLocoSessions::getCabCount( ) {
     return ( cabCount );
 }
 
+uint16_t LcsLocoSessions::getMaxCabCount( ) {
+
+    return ( cabMapHead.maxCabCount );
+}
 
 //----------------------------------------------------------------------------------------
 //

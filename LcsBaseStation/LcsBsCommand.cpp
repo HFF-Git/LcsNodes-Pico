@@ -512,8 +512,9 @@ void readCVCmd( uint8_t chan, char *s ) {
 
 //----------------------------------------------------------------------------------------
 // "writeCVByteCmd" writes a data byte to the engine decoder on the programming 
-// track and then verifies it. The callbacknum and callbacksub parameter are 
-// ignored and just passed back to the caller for identification purposes.
+// track and then verifies it. The W address command will write the address to 
+// the DCC CVs, automatically clearing any consist info, and setting long and
+// short address mode accordingly.
 //
 //    <W cvId val>
 //    <W address>
@@ -525,6 +526,7 @@ void readCVCmd( uint8_t chan, char *s ) {
 //    returns: <w cvId value> or  <w cvId -1>
 //    returns: <w address> or <w -1>
 //
+// ??? how do we pass the second command option for address setting ?
 //----------------------------------------------------------------------------------------
 void writeCVByteCmd( uint8_t chan, char *s ) {
 
@@ -535,7 +537,7 @@ void writeCVByteCmd( uint8_t chan, char *s ) {
     if ( sscanf( s, "%hu %hhu %d %d", &cvId, &val ) < 2 ) return;
 
     ret = locoSessions -> writeCVByte( cvId, val );
-    usbIoPrintf( chan, "<W %d %d>", cvId, (( ret == LCS_OK ) ? val : -1 ));
+    usbIoPrintf( chan, "<w %d %d>", cvId, (( ret == LCS_OK ) ? val : -1 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -671,7 +673,7 @@ void writeDccPacketProgCmd( uint8_t chan, char *s ) {
 // we only recognize the base station reset.
 //
 // Note: this is a rather complex command, we perhaps need to read in string 
-// and analyze hen, vs. let sscanf handle it. 
+// and analyze it, vs. let sscanf handle it. 
 //
 //----------------------------------------------------------------------------------------
 void handleDCmd( uint8_t chan, char *s ) {
@@ -679,7 +681,6 @@ void handleDCmd( uint8_t chan, char *s ) {
     char argStr1[ 16 ] = { 0 };
     char argStr2[ 16 ] = { 0 };
     char argStr3[ 16 ] = { 0 };
-
 
     if ( sscanf( s, "%s %s %s", argStr1, argStr2, argStr3 ) < 1 ) return;
 
@@ -689,11 +690,12 @@ void handleDCmd( uint8_t chan, char *s ) {
     }
     else if ( strcmp( argStr1, "ACK" ) == 0 ) {
 
-
+        // ??? we do not support this option.
         printf( "<X>" );
     }
     else if ( strcmp( argStr1, "PROGBOOST" ) == 0 ) {
 
+        // ??? we do not support this option.
         printf( "<X>" );
     }
 }
@@ -709,10 +711,8 @@ void handleDCmd( uint8_t chan, char *s ) {
 //----------------------------------------------------------------------------------------
 void handleJCmd( uint8_t chan, char *s ) {
 
-
-    
-
-    printf( "<X>" ); // for now ...
+    // ??? we do not support this option.
+    printf( "<X>" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -728,18 +728,17 @@ void handleJCmd( uint8_t chan, char *s ) {
 //----------------------------------------------------------------------------------------
 void statusOfSensorsCmd( uint8_t chan, char *s ) {
 
-     printf( "<X>" ); // for now ...
+    printf( "<X>" ); 
 }
 
 //----------------------------------------------------------------------------------------
 // The "S" command request a list of all defined sensors.
 // 
-// Unclear what to return ...
-//
+// ??? Unclear what to return for now.
 //----------------------------------------------------------------------------------------
 void numOfDefinedSensorsCmd( uint8_t chan, char *s ) {
 
-     printf( "<X>" ); // for now ...
+     printf( "<X>" );
 }
 
 //----------------------------------------------------------------------------------------
@@ -808,7 +807,10 @@ void baseStationOptCmd( uint8_t chan, char *s ) {
             mainTrack -> getRailComMsg( buf, sizeof( buf ));
 
             usbIoPrintf( chan, "RC: " );
-            for ( uint8_t i = 0; i < 8; i++ ) usbIoPrintf( chan, "0x%x ", buf[ i ]);
+            for ( uint8_t i = 0; i < 8; i++ ) {
+
+                usbIoPrintf( chan, "0x%x ", buf[ i ]);
+            }
 
         } break;
 
@@ -846,11 +848,10 @@ void currentOnTrackCmd( uint8_t chan, char *s ) {
 // The "#" command returns the number of supported cabs. We do not have such a 
 // concept.
 //
-//
 //----------------------------------------------------------------------------------------
 void numOfCabSupportedCmd ( uint8_t chan, char *s ) {
 
-    // ??? what to return ? The number of our cache ?
+    usbIoPrintf( chan, "<# %d>", locoSessions -> getMaxCabCount( ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -909,8 +910,6 @@ void printStatusCmd( uint8_t chan, char *s ) {
 //----------------------------------------------------------------------------------------
 // "printHelp" lists a short version of all the command.
 //
-// ??? cleanup ...
-// ??? better way to print, perhaps in two calls...
 //----------------------------------------------------------------------------------------
 void printHelpCmd( uint8_t chan ) {
 
@@ -1088,7 +1087,7 @@ uint8_t executeSerialCommand( uint8_t chan, char *cmdStr ) {
         case ' ': usbIoPrintf( chan, "\n" ); break;
 
         default:  usbIoPrintf( chan, 
-                            "<Unknown command, use '?' for help>\n" );
+                               "<Unknown command, use '?' for help>\n" );
     }
 
     return( LCS_OK );

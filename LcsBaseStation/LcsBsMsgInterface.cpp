@@ -274,31 +274,26 @@ void handleLcsMsg( uint8_t *msg ) {
         
         } break;
 
+        // ??? perhaps we do not need it, instead send the throttle command.
         //--------------------------------------------------------------------------------
         // LCS_OP_KEEP_LOC request. This command is send by the cab handheld on
         // a regular base to notify the base station that the session is still
         // alive, when no other DCC command is transmitted. Any other DCC command
         // received from the handheld will set the flag.
         //
-        // ??? not sure we keep this ?
         //--------------------------------------------------------------------------------
         case LCS_OP_KEEP_LOC: {
 
             uint16_t  cabId   = msg[ 1 ] * 256 + msg[ 2 ];
             uint8_t   rStat   = LCS_OK;
 
-            rStat = locoSessions ->markCabAlive( cabId );
-
-            if ( rStat != LCS_OK ) {
-                
-                sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
-            }
+            sendDccAck( rStat, highByte( cabId ), lowByte( cabId ) );
 
             if ( msgDebugEnabled( )) { 
 
                 usbIoPrintf( CDC_USB_CONSOLE, 
-                             "LCS_OP_KEEP_LOC, sId: %d -> ret: %d\n", 
-                             cabId, rStat );
+                             "LCS_OP_KEEP_LOC, cabId: %d\n", 
+                             cabId );
             }
 
         } break;
