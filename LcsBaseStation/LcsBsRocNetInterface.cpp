@@ -57,6 +57,9 @@
 //----------------------------------------------------------------------------------------
 #include "LcsBaseStation.h"
 
+// ??? I am not sure to pursue this protocol. There are alternatives such as 
+// MQTT which may be a better fit for the future... To be decided.
+
 //----------------------------------------------------------------------------------------
 // External global variables.
 //
@@ -141,15 +144,8 @@ void handleRocNetMsg( const char *msg  ) {
     // ??? now we have the message. first 8 bytes are the header.
     // rest is payload.
 
-
-
-   
     return;
 }
-
-
-
-
 
 //----------------------------------------------------------------------------------------
 //
