@@ -39,26 +39,6 @@
 #include <math.h>
 
 //----------------------------------------------------------------------------------------
-// DCC Signal debugging. A tick is defined to last 29 microseconds. There is a 
-// debugging option to set the clock much slower so that the waveform can be 
-// seen.
-//
-//
-// ??? well, waveform is stable now, we could however look at the interrupt
-// timing. Idea: use the ACTIVE LED pin to set high on timer interrupt entry
-// and off on exit. In addition, select only intervals that are 29us to see
-// if this happens often and how much CPU is consumed ...
-//
-//----------------------------------------------------------------------------------------
-#define DEBUG_WAVE_FORM 0               
-
-#if DEBUG_WAVE_FORM == 1
-#define TICK_IN_MICROSECONDS  400000
-#else
-#define TICK_IN_MICROSECONDS  29
-#endif
-
-//----------------------------------------------------------------------------------------
 // The DccTrack Object local definitions. The DCC track object is a bit special. 
 // There are exactly two object instances created, MAIN and PROG. Both however 
 // share the global mechanism for generating the DCC hardware signals. There are
@@ -95,7 +75,6 @@ inline bool dccTrackDebugPowerMgt( ) {
     return(( dccTrackDebugEnabled ) &&  false ); // ???? for now ...
 }
 
-
 //----------------------------------------------------------------------------------------
 // The DCC Base Station will allocate two DCC Track Objects and also a timer for
 // DCC signal generation. For the interrupt system to work, references to the 
@@ -106,7 +85,6 @@ inline bool dccTrackDebugPowerMgt( ) {
 // contains the resource Id of the timer, last descriptor wins.
 //
 //----------------------------------------------------------------------------------------
-bool            libInit     = false;
 uint8_t         rNumTimer   = 0;
 LcsDccTrack     *trackA     = nullptr;
 LcsDccTrack     *trackB     = nullptr;
@@ -122,30 +100,30 @@ LcsDccTrack     *trackB     = nullptr;
 // the cutout overlays the first ONE bits the preamble. 
 //
 //----------------------------------------------------------------------------------------
-const uint8_t   MAIN_PACKET_PREAMBLE_BIT_LEN    = 17;
-const uint8_t   MAIN_PACKET_POSTAMBLE_BIT_LEN   = 1;
-const uint8_t   PROG_PACKET_PREAMBLE_BIT_LEN    = 22;
-const uint8_t   PROG_PACKET_POSTAMBLE_BIT_LEN   = 1;
-const uint8_t   DCC_PACKET_CUTOUT_BIT_LEN       = 4;
-const uint8_t   MIN_DCC_PACKET_SIZE             = 2;
-const uint8_t   MAX_DCC_PACKET_SIZE             = 16;
-const uint8_t   MIN_DCC_PACKET_REPEATS          = 0;
-const uint8_t   MAX_DCC_PACKET_REPEATS          = 8;
-const uint8_t   RAILCOM_BUFFER_SIZE             = 8;
+constexpr uint8_t   MAIN_PACKET_PREAMBLE_BIT_LEN    = 17;
+constexpr uint8_t   MAIN_PACKET_POSTAMBLE_BIT_LEN   = 1;
+constexpr uint8_t   PROG_PACKET_PREAMBLE_BIT_LEN    = 22;
+constexpr uint8_t   PROG_PACKET_POSTAMBLE_BIT_LEN   = 1;
+constexpr uint8_t   DCC_PACKET_CUTOUT_BIT_LEN       = 4;
+constexpr uint8_t   MIN_DCC_PACKET_SIZE             = 2;
+constexpr uint8_t   MAX_DCC_PACKET_SIZE             = 16;
+constexpr uint8_t   MIN_DCC_PACKET_REPEATS          = 0;
+constexpr uint8_t   MAX_DCC_PACKET_REPEATS          = 8;
+constexpr uint8_t   RAILCOM_BUFFER_SIZE             = 8;
 
 //----------------------------------------------------------------------------------------
 // Constant values definition. We need the RESET and IDLE packet as well as a bit
 // mask for a quick bit select in the data byte.
 //
 //----------------------------------------------------------------------------------------
-const uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
-const uint8_t   resetDccPacketData[ ]   = { 0x00, 0x00 };
-const uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
+constexpr uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
+constexpr uint8_t   resetDccPacketData[ ]   = { 0x00, 0x00 };
+constexpr uint8_t   eStopDccPacketData[ ]   = { 0x00, 0x01 };
 
-DccPacket       idleDccPacket           = { 3, 0, { 0xFF, 0x00, 0xFF }};
-DccPacket       resetDccPacket          = { 3, 0, { 0x00, 0x00, 0x00 }};
-const uint8_t   bitMask9[ ]             = { 0x00, 0x80, 0x40, 0x20, 0x10, 
-                                            0x08, 0x04, 0x02, 0x01 };
+DccPacket           idleDccPacket           = { 3, 0, { 0xFF, 0x00, 0xFF }};
+DccPacket           resetDccPacket          = { 3, 0, { 0x00, 0x00, 0x00 }};
+constexpr uint8_t   bitMask9[ ]             = { 0x00, 0x80, 0x40, 0x20, 0x10, 
+                                                0x08, 0x04, 0x02, 0x01 };
 
 //----------------------------------------------------------------------------------------
 // Programming decoders require to detect a short rise in power consumption. The
@@ -155,22 +133,22 @@ const uint8_t   bitMask9[ ]             = { 0x00, 0x80, 0x40, 0x20, 0x10,
 // some decoders. 
 //
 //----------------------------------------------------------------------------------------
-const uint8_t ACK_TRESHOLD_VAL          = 100;
+constexpr uint8_t ACK_TRESHOLD_VAL          = 100;
 
 //----------------------------------------------------------------------------------------
 // The DCC signal generator thinks in ticks. With a DCC ONE based on 58 micro
-// seconds and a DCC ZERO based on 116 microseconds half period, we define a tick
-// as a 29 microsecond interval. Although, ONE and ZERO bit signals could be 
-// implemented using a multiple of 58 microseconds, the cutout function requires
-// a signal length of 29 microseconds at the beginning of the period, right after
-// the packet end bit of the previous packet. Luckily 2 * 29 is 58, 2 * 58 is 116. 
-// Perfect for DCC packets.
+// seconds and a DCC ZERO based on 116 microseconds half period, we define a 
+// tick as a 29 microsecond interval. Although, ONE and ZERO bit signals could 
+// be implemented using a multiple of 58 microseconds, the cutout function 
+// requires a signal length of 29 microseconds at the beginning of the period, 
+// right after the packet end bit of the previous packet. Luckily 2 * 29 is 58, 
+// 2 * 58 is 116. Perfect for DCC packets.
 //
 //----------------------------------------------------------------------------------------
-const uint32_t TICKS_29_MICROS         =  1;
-const uint32_t TICKS_58_MICROS         =  TICKS_29_MICROS * 2;
-const uint32_t TICKS_116_MICROS        =  TICKS_29_MICROS * 4;
-const uint32_t TICKS_CUTOUT_MICROS     =  TICKS_29_MICROS * 16;
+constexpr uint32_t  TICKS_29_MICROS         =  29;
+constexpr uint32_t  TICKS_58_MICROS         =  TICKS_29_MICROS * 2;
+constexpr uint32_t  TICKS_116_MICROS        =  TICKS_29_MICROS * 4;
+constexpr uint32_t  TICKS_CUTOUT_MICROS     =  TICKS_29_MICROS * 16;
 
 //----------------------------------------------------------------------------------------
 // Current measurement is done via measuring the voltage over a shunt resistor.
@@ -189,7 +167,9 @@ static uint16_t currentZeroOffset;
 // down.
 //
 //----------------------------------------------------------------------------------------
-const uint16_t MAX_OVERLOAD_EVENT_COUNT = 10;
+constexpr uint16_t MAX_OVERLOAD_EVENT_COUNT = 10;
+constexpr uint16_t SAMPLE_SIZE              = 64;
+constexpr uint16_t SAMPLE_INTERVAL_SIZE     = 16;
 
 //----------------------------------------------------------------------------------------
 // DCC Track signal state machine states. See the DCC signal state machine 
@@ -198,6 +178,7 @@ const uint16_t MAX_OVERLOAD_EVENT_COUNT = 10;
 //----------------------------------------------------------------------------------------
 enum DccSignalState : uint8_t {
 
+    DCC_SIG_NIL                 = 0,
     DCC_SIG_CUTOUT_START        = 1,
     DCC_SIG_CUTOUT_1            = 2,
     DCC_SIG_CUTOUT_2            = 3,
@@ -239,18 +220,18 @@ enum DccSignalStateFollowup : uint8_t {
 // for the track will run.
 //
 //----------------------------------------------------------------------------------------
-volatile uint8_t timeToInterrupt    = 0;
-volatile uint8_t timeLeftMainTrack  = 0;
-volatile uint8_t timeLeftProgTrack  = 0;
+volatile uint16_t timeToInterrupt    = 0;
+volatile uint16_t timeLeftMainTrack  = 0;
+volatile uint16_t timeLeftProgTrack  = 0;
 
 //----------------------------------------------------------------------------------------
-// The DCC track object maintains an internal log facility for test and debugging 
-// purposes. During operation a set of log entries can be recorded to a log buffer. 
-// A log entry consist of the header byte, which contains in the first byte the 
-// 4-bit log id and the 4-bit length of the log data. A log entry can therefore 
-// record up to 16 bytes of payload. When writing to the log buffer, the index 
-// will always point to the next available position. Once the buffer is full, 
-// no further data can be added.
+// The DCC track object maintains an internal log facility for test and 
+// debugging purposes. During operation a set of log entries can be recorded to
+// a log buffer. A log entry consist of the header byte, which contains in the 
+// first byte the 4-bit log id and the 4-bit length of the log data. A log entry
+// can therefore record up to 16 bytes of payload. When writing to the log buffer,
+// the index will always point to the next available position. Once the buffer
+// is full, no further data can be added.
 //
 //----------------------------------------------------------------------------------------
 enum LogId : uint8_t {
@@ -350,14 +331,14 @@ enum railComDatagramType : uint8_t {
 };
 
 //----------------------------------------------------------------------------------------
-// Each mobile decoder railcom datagram will start with an ID field of four bits.
-// Channel one will use only the ADR_HIG and ADR_LOW Ids. All IDs can be used for
-// channel 2. Since decoders answer on channel one for each DCC packet they 
-// receive, here is a good chance that channel 1 will contains nonsense data. 
-// This is different for channel two, where only the addressed decoder explicitly 
-// answers. To decide whether a railcom message is valid, you should perhaps 
-// ignore channel 1 data and just check channel 2 for this purpose. A RailCom 
-// datagram starts with the 4-bit ID and an 8 to 32bit payload.     
+// Each mobile decoder railcom datagram will start with an ID field of four 
+// bits. Channel one will use only the ADR_HIG and ADR_LOW Ids. All IDs can be
+// used for channel 2. Since decoders answer on channel one for each DCC packet 
+// they receive, here is a good chance that channel 1 will contains nonsense 
+// data. This is different for channel two, where only the addressed decoder 
+// explicitly answers. To decide whether a railcom message is valid, you should
+// perhaps ignore channel 1 data and just check channel 2 for this purpose. A 
+// RailCom datagram starts with the 4-bit ID and an 8 to 32bit payload.     
 //
 //      RC_DG_MOB_ID_POM       ( 0  )  - 12bit
 //      RC_DG_MOB_ID_ADR_HIGH  ( 1  )  - 12bit
@@ -568,15 +549,15 @@ inline void followUpDccTrackWork( uint8_t followUp,
 //----------------------------------------------------------------------------------------
 // The DccTrack timer interrupt handler routine implements the heartbeat of the 
 // DCC system. The two DCC track signal generators state machines MAIN and PROG 
-// use the same timer interrupt handler. Upon the timer interrupt, we first will 
+// use the same timer interrupt handler. Upon the timer interrupt, we first  
 // update the time left counters. If a counter falls to zero, the signal state 
 // machine for that track will run and set the DCC signal levels. The state 
-// machine returns the next time interval it expects to be called again and a 
+// machine returns the time interval it expects to be called again and a 
 // possible follow up action code. 
 //
 // After handling both state machines, the timer is set to the smaller new 
 // remaining minimum time interval of both state machines. This is the time when 
-// the next state machine in one of the  signal generators needs to run. It is 
+// the next state machine in one of the signal generators needs to run. It is 
 // important to always have the timer running, so we keep decrementing the ticks
 // to interrupt values.
 //
@@ -606,7 +587,7 @@ void timerCallback( uint32_t timerVal ) {
     timeToInterrupt = (( timeLeftMainTrack < timeLeftProgTrack ) ? 
                         timeLeftMainTrack : timeLeftProgTrack );
 
-    setRepeatingTimerLimit( rNumTimer, timeToInterrupt * TICK_IN_MICROSECONDS );
+    setRepeatingTimerLimit( rNumTimer, timeToInterrupt * TICKS_29_MICROS );
 
     if ( followUpMain != DCC_SIG_FOLLOW_UP_NONE ) {
 
@@ -616,16 +597,14 @@ void timerCallback( uint32_t timerVal ) {
     if ( followUpProg != DCC_SIG_FOLLOW_UP_NONE ) {
 
         followUpDccTrackWork( followUpProg, trackB );
-    } 
-   
-} // timerCallback
+    }  
+} 
 
 //----------------------------------------------------------------------------------------
 // When all DCC track objects are initialized, the last thing to do before 
 // operation is to  start the timer heartbeat. We start by firing up the timer 
-// with a first short delay, so when it expires the timer routine will be called. 
-// The current time tick of zero and no ticks left, so the state machine for the 
-// signals will run.
+// with a first short delay, so when it expires the timer interrupt routine 
+// runs the state machines.
 //
 //----------------------------------------------------------------------------------------
 uint8_t initDccTrackProcessing( ) {
@@ -661,8 +640,6 @@ using namespace LCS;
 //----------------------------------------------------------------------------------------
 LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
 
-    if ( ! libInit ) libInit = true;
-
     trackA = new LcsDccTrack( );
     trackA -> setupDccTrack( desc );
     return( trackA );
@@ -670,8 +647,6 @@ LcsDccTrack *LcsDccTrack::createTrackA( LcsDccTrackDesc *desc ) {
 
 LcsDccTrack *LcsDccTrack::createTrackB( LcsDccTrackDesc *desc ) {
 
-    if ( ! libInit ) libInit = true;
-    
     trackB = new LcsDccTrack( );
     trackB -> setupDccTrack( desc );
     return( trackB );
@@ -692,10 +667,13 @@ LcsDccTrack *LcsDccTrack::getTrackB( ) {
 // machine that is invoked when the DCC timer interrupts. The idea is that the 
 // program first creates all the DCC track objects, does whatever else needs to 
 // be initialized and then starts the signal generation with this routine.
+//
+// We make sure that both objects have been created before starting the timer.
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsDccTrack::startDccProcessing( uint8_t rNumTimerIn ) {
 
-    if (( ! libInit ) && ( trackA == nullptr ) && ( trackB == nullptr )) {
+    if (( trackA == nullptr ) && ( trackB == nullptr )) {
 
         return( ERR_DCC_TRACKS_NOT_READY );
     }
@@ -718,15 +696,15 @@ uint8_t LcsDccTrack::startDccProcessing( uint8_t rNumTimerIn ) {
 LcsDccTrack::LcsDccTrack( ) { }
 
 //----------------------------------------------------------------------------------------
-// "setupDccTrack" performs the setup tasks for the DCC track.  We configure 
-// the hardware, the DCC packet options such as preamble and postamble length, 
-// the initial state machine state current consumption limit and load the initial
-// packet into the active buffer. There is quite a list of parameters and options 
+// "setupDccTrack" performs the setup tasks for the DCC track. We configure 
+// hardware, DCC packet options such as preamble and postamble length, initial
+// state machine state current consumption limit and load the initial packet 
+// into the active buffer. There is quite a list of parameters and options 
 // that can be set. 
 //
 // This routine does the parameter checking, and ensures consistency, except
 // when critical parameters are wrong. The error is returned via a flag in the
-// flag variable. 
+// flag variable and the error code field.
 //
 // Once the DCC track object is initialized, the last thing to do is to remember 
 // the object instance in the file static variables. This is necessary for the 
@@ -748,6 +726,13 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
     maxCurrentMilliAmp          = tDesc -> maxCurrentMilliAmp;
     overloadEventThreshold      = tDesc -> overloadEventThreshold;
 
+    sampleCount                 = 0;
+    sampleSize                  = SAMPLE_SIZE;
+    sampleSum                   = 0;
+
+    sampleIntervalCount         = 0;
+    sampleIntervalSize          = SAMPLE_INTERVAL_SIZE;
+
     referenceMilliVolt          = tDesc -> referenceMilliVolt;
     shuntMilliOhm               = tDesc -> shuntMilliOhm;
     amplifierGain               = tDesc -> amplifierGain;
@@ -757,32 +742,37 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 
     if ((  rNumEnable   == CDC_RN_UNDEFINED )   ||
         (  rNumControl  == CDC_RN_UNDEFINED )   ||
-        (  rNumSense    == CDC_RN_UNDEFINED )   ||
-        (( trackMode    == DT_M_RAILCOM     )   && 
-         ( rNumUartRx   == CDC_RN_UNDEFINED )))  {
+        (  rNumSense    == CDC_RN_UNDEFINED )) {
 
-        flags = DT_F_SETUP_ERROR;
+        flags   = DT_F_SETUP_ERROR;
+        errCode = ERR_DCC_RNUM_CONFIG_ERR;
+        return( false );
+    }
+
+    if (( trackMode == DT_M_RAILCOM ) && ( rNumUartRx == CDC_RN_UNDEFINED )) {
+
+        flags   = DT_F_SETUP_ERROR;
         errCode = ERR_DCC_RNUM_CONFIG_ERR;
         return( false );
     }
 
     if ( configureDio( rNumEnable ) != LCS_OK ) {
 
-        flags = DT_F_SETUP_ERROR;
+        flags   = DT_F_SETUP_ERROR;
         errCode = ERR_DCC_ENABLE_RNUM_ERR;
         return( false );
     }
     
     if ( configureDio( rNumControl ) != LCS_OK ) {
 
-        flags = DT_F_SETUP_ERROR;
+        flags   = DT_F_SETUP_ERROR;
         errCode = ERR_DCC_CONTROL_RNUM_ERR;
         return( false );
     }
 
     if ( configureAdc( rNumSense ) != LCS_OK ) {
 
-        flags = DT_F_SETUP_ERROR;
+        flags   = DT_F_SETUP_ERROR;
         errCode = ERR_DCC_SENSE_RNUM_ERR;
         return( false );
     }
@@ -792,10 +782,9 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 
     if ( trackMode == DT_M_RAILCOM ) {
 
-        uint8_t rStat = configureUart( rNumUartRx );
-        if ( rStat != LCS_OK ) {
-
-            flags = DT_F_SETUP_ERROR;
+        if ( configureUart( rNumUartRx ) != LCS_OK ) { 
+       
+            flags   = DT_F_SETUP_ERROR;
             errCode = ERR_DCC_UART_RNUM_ERR;
             return ( false );
         }
@@ -821,40 +810,42 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 //----------------------------------------------------------------------------------------
 // DCC signal generation is done through a state machine that is invoked when 
 // the DCC timer interrupts. The interrupt timer thinks in multiples of 29us, 
-// which we will just call a "tick" in the description below. It runs as part of
-// the timer interrupt handler, so we need to be short and quick. First, the HW 
-// signals are set. This keeps the track signals in their timing. Next, the new
-// signal state, time to run again and any other follow up action of this 
-// invocation are set. The idea is to separate HW signal generation and follow 
-// up actions. The timer interrupt handler will first call both state machines, 
-// MAIN and PROG, and then work on the optional follow-up actions. 
+// which we call a "tick" in the description below. It runs as part of the timer
+// interrupt handler, so we need to be short and quick. First, the HW signals
+// are set, to keep the track signals in their timing. 
+//
+// Next, the new signal state, time to run again and any other follow up action 
+// of this invocation are set. The idea is to separate HW signal generation and
+// follow up actions. The timer interrupt handler will first call both state 
+// machines, MAIN and PROG, and then work on the optional follow-up actions. 
 //
 // The state machine has the following states:
 //
 //  DCC_SIG_TRACK_OFF: The tack is turned off. We stay in this state until 
 //  the state machine is set to DCC_SIG_CUTOUT_START or DCC_SIG_START_BIT.
 //
-//  DCC_SIG_CUTOUT_START: if the cutout option is on, a new DCC packet starts with 
-//  this signal state. The DCC signal goes HIGH for one tick and the signal state
-//  advances to signal state DCC_SIG_CUTOUT_1.
+//  DCC_SIG_CUTOUT_START: if the cutout option is on, a new DCC packet starts 
+//  with this signal state. The DCC signal goes HIGH for one tick and the signal
+//  state advances to signal state DCC_SIG_CUTOUT_1.
 //
-//  DCC_SIG_CUTOUT_1: this stage sets the signal to CUTOUT for cutout period ticks. 
-//  Also, if the RailCom is enabled, there is a follow up request to start the 
-//  serial IO read function. The signal state advances to state DCC_SIG_CUTOUT_2.
+//  DCC_SIG_CUTOUT_1: this stage sets the signal to CUTOUT for cutout period 
+//  ticks. Also, if the RailCom is enabled, there is a follow up request to 
+//  start the serial IO read function. The signal state advances to state 
+//  DCC_SIG_CUTOUT_2.
 //
 //  DCC_SIG_CUTOUT_2: this stage sets the signal to LOW for the cutout end tick.
 //  The signal state advances to signal state DCC_SIG_CUTOUT_3.
 //
 //  DC_SIG_CUTOUT_3: the DC_SIG_CUTOUT_3 and DC_SIG_END_CUTOUT states represent 
 //  the first DCC "One" after the cutout. The DCC signal is set to HIGH and the 
-//  next period is two ticks. The follow-up request is to disable the UART receiver. 
-//  The signal state advances to DC_SIG_CUTOUT_END. 
+//  next period is two ticks. The follow-up request is to disable the UART 
+//  receiver. The signal state advances to DC_SIG_CUTOUT_END. 
 //
-//  DC_SIG_CUTOUT_END: The DC_SIG_END_CUTOUT state is the second half of the DCC 
-//  one. The signal is set to low and the next period to two ticks. If RailCom is
-//  enabled, this is the state where a follow up to handle the RailCom data takes 
-//  place. The next state is then DCC_SIG_START_BIT to handle the next packet, 
-//  starting with the preamble of DCC ones.
+//  DC_SIG_CUTOUT_END: The DC_SIG_END_CUTOUT state is the second half of the 
+//  DCC one. The signal is set to low and the next period to two ticks. If 
+//  RailCom is enabled, this is the state where a follow up to handle the 
+//  RailCom data takes place. The next state is then DCC_SIG_START_BIT to handle
+//  the next packet, starting with the preamble of DCC ones.
 //
 //  DCC_SIG_START_BIT: this stage is the start of the DCC packet bits, which are 
 //  preamble, the data bytes with separators and postamble. If the cutout option 
@@ -866,36 +857,24 @@ bool LcsDccTrack::setupDccTrack( LcsDccTrackDesc* tDesc ) {
 //  DCC_SIG_TEST_BIT: coming from signal state DCC_SIG_START_BIT, we need to see 
 //  if the current bit is a ONE or ZERO bit. If a ONE bit, the signal needs to 
 //  become LOW, the next period is 2 ticks and the next state is state 
-//  DCC_SIG_START_BIT. If it is the last ONE bit of the postamble, the next packet
-//  and signal state needs to be determined. For a CUTOUT enabled track this is 
-//  state DCC_SIG_START_CUTOUT, else DCC_SIG_START_BIT. If a ZERO bit, the signal
-//  is kept HIGH for another two ticks and the state is DCC_SIG_ZERO_SECOND_HALF.
-//
-//  The first half ZERO bit case is also a good place to do a current measurement 
-//  and short circuit detection. The H-Bridge offers a method to signal that a 
-//  short circuit was detected and the bridge was shut down. However, after a 
-//  short period the bridge turns on after a short time, in the order of 
-//  microseconds. For the L6205 chip, we have a dedicated input GPIO pin that we
-//  will check on every second half of the zero bit transmitted. When set, we set
-//  a flag in the  DCC track flag word.
-//
-//  The current measurement is also a task done while we transmit a zero bit.
-//  The measurement is used in detecting circuits and also recording the power
-//  consumption. 
-//
-//  Once a H-Bridge is turned off, it needs to be enabled manually. Note that
-//  this object does not send a notification. The user is expected to periodically
-//  check the track state.
+//  DCC_SIG_START_BIT. If a ZERO bit, the signal is kept HIGH for another two 
+//  ticks and the state is DCC_SIG_ZERO_SECOND_HALF. If it is the last ONE bit
+//  of the postamble, the next packet and signal state needs to be determined. 
+//  For a CUTOUT enabled track this is state DCC_SIG_START_CUTOUT, else 
+//  DCC_SIG_START_BIT. The first half ZERO bit case is also a good place to do
+//  a current measurement and short circuit detection. We set a follow up action
+//  to do that.
 //
 //  DCC_SIG_ZERO_SECOND_HALF: coming from signal state DCC_SIG_TEST_BIT, we need 
 //  to transmit the second half of the ZERO bit. The signal is set to LOW for 
 //  four ticks and set the next stage is signal state to DCC_SIG_START_BIT.
 //
+//  This routine is part of the interrupt code path. 
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::runDccTrackStateMachine(
 
-    volatile uint8_t  *timeToInterrupt,
-    uint8_t           *followUpAction
+    volatile uint16_t  *timeToInterrupt,
+    uint8_t            *followUpAction
 
     ) {
 
@@ -974,8 +953,8 @@ void LcsDccTrack::runDccTrackStateMachine(
                 if ( postambleSent >= postambleLen ) {
 
                     *followUpAction = DCC_SIG_FOLLOW_UP_GET_PACKET;
-                    trackState      = (( flags & DT_F_CUTOUT_ON ) ? 
-                                        DCC_SIG_CUTOUT_START : DCC_SIG_START_BIT );
+                    trackState = (( flags & DT_F_CUTOUT_ON ) ? 
+                                  DCC_SIG_CUTOUT_START : DCC_SIG_START_BIT );
                 }
                 else {
 
@@ -985,8 +964,8 @@ void LcsDccTrack::runDccTrackStateMachine(
             }
             else {
 
-                *followUpAction     = DCC_SIG_FOLLOW_UP_MEASURE_CURRENT;
-                trackState          = DCC_SIG_ZERO_SECOND_HALF;
+                *followUpAction = DCC_SIG_FOLLOW_UP_MEASURE_CURRENT;
+                trackState      = DCC_SIG_ZERO_SECOND_HALF;
             }
 
             *timeToInterrupt  = TICKS_58_MICROS;
@@ -1025,6 +1004,7 @@ void LcsDccTrack::runDccTrackStateMachine(
 // the data byte separator, which is always a zero. We run from 0 to 8 through 
 // the bit mask, the first bit being the ZERO bit.
 //
+// This routine is part of the interrupt code path. 
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::getNextBit( ) {
 
@@ -1076,9 +1056,10 @@ void LcsDccTrack::getNextBit( ) {
 //
 // This routine is the central place to submit a DCC packet to the track and 
 // therefore a good place to write a DCC_LOG record. We distinguish between a 
-// RESET, an IDLE and a data packet. Note that these records will only be written
-// when DCC logging is enabled.
+// RESET, an IDLE and a data packet. Note that these records will only be 
+// written when DCC logging is enabled.
 //
+// This routine is part of the interrupt code path. 
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::getNextPacket( ) {
 
@@ -1134,6 +1115,8 @@ void LcsDccTrack::getNextPacket( ) {
 // ??? we could store the channel 2 datagram in the corresponding session.
 // ??? still, both pieces of data needs to go somewhere before the next message
 //  is received...
+//
+// This routine is part of the interrupt code path. 
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::startRailComIO( ) {
 
@@ -1157,9 +1140,15 @@ uint8_t LcsDccTrack::handleRailComMsg( ) {
 
         uint8_t dataByte = railComDecode[ railComMsgBuf[ i ]];
 
-        if      ( dataByte == ACK ) ;
-        else if ( dataByte == NACK ) ;
-        else if ( dataByte == BUSY ) ;
+        if ( dataByte == ACK ) {
+
+        }
+        else if ( dataByte == NACK ) {
+
+        }
+        else if ( dataByte == BUSY ) {
+
+        }
         else if ( dataByte < 64 ) {
 
             // ??? valid
@@ -1171,7 +1160,8 @@ uint8_t LcsDccTrack::handleRailComMsg( ) {
         }
         else {
 
-            // ??? invalid packet ... if this is channel2, discard the entire message.
+            // ??? invalid packet ... 
+            // if this is channel2, discard the entire message.
         }
 
         railComMsgBuf[ i ] = dataByte;
@@ -1182,7 +1172,7 @@ uint8_t LcsDccTrack::handleRailComMsg( ) {
 }
 
 // ??? not very useful, but good for debugging and initial testing .... 
-// and it works like a champ :-)
+// and railcom works like a champ :-)
 
 uint8_t LcsDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
 
@@ -1203,55 +1193,22 @@ uint8_t LcsDccTrack::getRailComMsg( uint8_t *buf, uint8_t bufLen ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Some getter functions. Straightforward.
-//
-//----------------------------------------------------------------------------------------
-uint16_t LcsDccTrack::getFlags( ) {
-
-    return ( flags );
-}
-
-uint16_t LcsDccTrack::getOptions( ) {
-
-    return ( options );
-}
-
-uint32_t LcsDccTrack::getDccPacketsSend( ) {
-
-    return ( dccPacketsSend );
-}
-
-bool LcsDccTrack::isPowerOn( ) {
-
-    return ( flags & DT_F_POWER_ON );
-}
-
-bool LcsDccTrack::isPowerOverload( ) {
-
-    return ( flags & DT_F_POWER_OVERLOAD );
-}
-
-uint8_t LcsDccTrack::getErrCode( ) {
-
-    return ( errCode );
-}
-
-//----------------------------------------------------------------------------------------
 // DCC track power management functions. 
 //
-// ??? check what calls to offer .... 
-// 
+// ??? combine with set track mode ? 
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::powerEnable( bool enable ) {
 
-
-    // ??? clear all flags and threshold counters on ON....
-
-    flags &= ~ DT_F_POWER_OVERLOAD;
-
     if ( enable ) {
 
-    
+        actualCurrentDigitValue             = 0;
+        highWaterMarkDigitValue             = 0;
+        overloadEventCount                  = 0;
+        sampleIntervalCount                 = 0;
+        sampleSum                           = 0; 
+        sampleCount                         = 0;
+
+        flags &= ~ DT_F_POWER_OVERLOAD;
         flags |= DT_F_POWER_ON;
     }
     else {
@@ -1263,15 +1220,17 @@ void LcsDccTrack::powerEnable( bool enable ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "setTrackMode" is the entry point to manage the track. For the different 
+// "setTrackMode" is the entry point to set the track type. For the different 
 // modes, we set the packet characteristics and point the track state machine
-// at the respective start.
+// at the respective start. 
 //
-// ??? perhaps a bit tricky if we are interrupted in the middle....
+// ??? do we need to stop the state machine first ?
+// ??? do we need to clear any pending packet ?
 //----------------------------------------------------------------------------------------
 void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
 
-    trackMode = mode;
+    trackMode  = mode;
+    trackState = DCC_SIG_NIL;
 
     switch ( trackMode ) {
 
@@ -1331,15 +1290,10 @@ void  LcsDccTrack::setTrackMode( DccTrackMode mode ) {
     }
 }
 
-DccTrackMode LcsDccTrack::getTrackMode( ) {
-
-    return( trackMode );
-}
- 
 //----------------------------------------------------------------------------------------
 // This function is called by the DCC signal state machine to analyze the 
-// H-Bridge power consumption. It is invoked on a zero bit, the second half
-// of the signal. The sample is taken at the middle of this part of the 
+// H-Bridge power consumption. It is invoked on the second half of a ZERO bit.
+// The sample is taken at the middle of this part of the 
 // signal, to have a stable measurement.
 // 
 // If the sample is higher than the current limit, we count N of such samples
@@ -1348,10 +1302,11 @@ DccTrackMode LcsDccTrack::getTrackMode( ) {
 // For supporting ACC detect, we keep a high water value mark, which is updated
 // if the current sample is higher than the high water mark.
 //
-// Finally, we add the square of every Nth sample to a sum, keeping track how 
-// many sample we took. When the caller wants to know the current consumption
-// it is a matter of diving the sum by the number of samples and taking the 
-// square root.
+// Finally, we add the square of every Nth sample ( sampleIntervalCount) to a 
+// sum. When we have "sampleCount" samples, we set the power sample pending flag
+// to indicate that we have a representative sample. When the caller wants to 
+// know the current consumption it is a matter of dividing the sum by the number
+// of samples and taking the square root.
 //
 // This routine runs as part of the interrupt request handler!
 //----------------------------------------------------------------------------------------
@@ -1478,7 +1433,8 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
         }
 
         if (( highWaterMarkDigitValue >= baseDigitValue ) &&
-            ( highWaterMarkDigitValue - baseDigitValue >= ackThresholdDigitValue )) {
+            ( highWaterMarkDigitValue - baseDigitValue 
+                                            >= ackThresholdDigitValue )) {
 
             if ( dccTrackDebugAccDetect( )) {
 
@@ -1495,9 +1451,44 @@ bool LcsDccTrack::decoderAckDetect( uint16_t baseDigitValue, uint8_t  retries ) 
 }
 
 //----------------------------------------------------------------------------------------
-// Power Consumption Management. The external world thinks in milliAmps.
+// Some getter / setter functions. Straightforward.
 //
 //----------------------------------------------------------------------------------------
+uint16_t LcsDccTrack::getFlags( ) {
+
+    return ( flags );
+}
+
+uint16_t LcsDccTrack::getOptions( ) {
+
+    return ( options );
+}
+
+uint32_t LcsDccTrack::getDccPacketsSend( ) {
+
+    return ( dccPacketsSend );
+}
+
+bool LcsDccTrack::isPowerOn( ) {
+
+    return ( flags & DT_F_POWER_ON );
+}
+
+bool LcsDccTrack::isPowerOverload( ) {
+
+    return ( flags & DT_F_POWER_OVERLOAD );
+}
+
+uint8_t LcsDccTrack::getErrCode( ) {
+
+    return ( errCode );
+}
+
+DccTrackMode LcsDccTrack::getTrackMode( ) {
+
+    return( trackMode );
+}
+
 uint16_t LcsDccTrack::getActualCurrent( ) {
 
     return ( adcDigitsToMilliAmp( actualCurrentDigitValue ));
@@ -1557,11 +1548,16 @@ uint16_t LcsDccTrack::getRMSCurrent( ) {
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::loadPacket( const uint8_t *packet, 
-                                         uint8_t len, 
-                                         uint8_t repeat ) {
+                              uint8_t len, 
+                              uint8_t repeat ) {
 
-    if ( ! isInRangeU( len, MIN_DCC_PACKET_SIZE, MAX_DCC_PACKET_SIZE )) return;
-    if ( ! isInRangeU( repeat, MIN_DCC_PACKET_REPEATS, MAX_DCC_PACKET_REPEATS )) return;
+    if ( ! isInRangeU( len, 
+                       MIN_DCC_PACKET_SIZE, 
+                       MAX_DCC_PACKET_SIZE )) return;
+
+    if ( ! isInRangeU( repeat, 
+                       MIN_DCC_PACKET_REPEATS, 
+                       MAX_DCC_PACKET_REPEATS )) return;
 
     while ( flags & DT_F_DCC_PACKET_PENDING );
 
@@ -1589,6 +1585,7 @@ void LcsDccTrack::loadPacket( const uint8_t *packet,
 // the recording process could be controlled from a command line setting or so.
 // "beginLog" and "endLog" start and end a recording sequence.
 //
+// This routine is part of the interrupt code path. 
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::enableLog( bool enable ) {
 
@@ -1626,9 +1623,9 @@ void LcsDccTrack::endLog( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// There are a couple of routines to write the log data when the logging is active. 
+// There are a couple of routines to write the log data when logging is active. 
 // The order of data entry for numeric types is big endian, i.e. most significant
-// byte first.
+// byte first. The maximum buffer size is 16 bytes.
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::writeLogData( uint8_t id, uint8_t *buf, uint8_t len ) {
@@ -1702,64 +1699,69 @@ void LcsDccTrack::printLogData( uint16_t ofs, uint8_t len ) {
 
 uint8_t LcsDccTrack::printLogEntry( uint16_t ofs ) {
 
-    if ( ofs < LOG_BUF_SIZE ) {
+    if ( ofs >= LOG_BUF_SIZE ) return( 0 );
 
-        uint8_t logEntryId  = logBuf[ ofs ] >> 4;
-        uint8_t logEntryLen = logBuf[ ofs ] & 0x0F;
+    uint8_t logEntryId  = logBuf[ ofs ] >> 4;
+    uint8_t logEntryLen = logBuf[ ofs ] & 0x0F;
 
-        switch ( logEntryId ) {
+    switch ( logEntryId ) {
 
-            case LOG_NIL:      usbIoPrintf( CDC_USB_CONSOLE, "NIL        " ); break;
-            case LOG_BEGIN:    usbIoPrintf( CDC_USB_CONSOLE, "BEGIN      " ); break;
-            case LOG_END:      usbIoPrintf( CDC_USB_CONSOLE, "END        " ); break;
-            case LOG_TSTAMP:   usbIoPrintf( CDC_USB_CONSOLE, "TSTAMP     " ); break;
-            case LOG_DCC_IDL:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_IDLE   " ); break;
-            case LOG_DCC_RST:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_RESET  " ); break;
-            case LOG_DCC_PKT:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_PKT    " ); break;
-            case LOG_DCC_RCM:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_RCOM   " ); break;
-            case LOG_VAL:      usbIoPrintf( CDC_USB_CONSOLE, "VAL        " ); break;
-            default: {
-                
-                usbIoPrintf( CDC_USB_CONSOLE, "INVALID ( 0x%02 )", logBuf[ ofs ] >> 4 );
-            }
+        case LOG_NIL:      usbIoPrintf( CDC_USB_CONSOLE, "NIL        " ); break;
+        case LOG_BEGIN:    usbIoPrintf( CDC_USB_CONSOLE, "BEGIN      " ); break;
+        case LOG_END:      usbIoPrintf( CDC_USB_CONSOLE, "END        " ); break;
+        case LOG_TSTAMP:   usbIoPrintf( CDC_USB_CONSOLE, "TSTAMP     " ); break;
+        case LOG_DCC_IDL:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_IDLE   " ); break;
+        case LOG_DCC_RST:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_RESET  " ); break;
+        case LOG_DCC_PKT:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_PKT    " ); break;
+        case LOG_DCC_RCM:  usbIoPrintf( CDC_USB_CONSOLE, "DCC_RCOM   " ); break;
+        case LOG_VAL:      usbIoPrintf( CDC_USB_CONSOLE, "VAL        " ); break;
+        default: {
+            
+            usbIoPrintf( CDC_USB_CONSOLE, "INVALID ( 0x%02 )", logBuf[ ofs ] >> 4 );
         }
-
-        if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( ofs + 1 );
-        else if ( logEntryId == LOG_VAL     )  printLogVal( ofs + 1 );
-        else                                   printLogData( ofs + 1, logEntryLen );
-
-        return ( logEntryLen + 1 );
     }
-    else return ( 0 );
+
+    if      ( logEntryId == LOG_TSTAMP  )  printLogTimeStamp( ofs + 1 );
+    else if ( logEntryId == LOG_VAL     )  printLogVal( ofs + 1 );
+    else                                   printLogData( ofs + 1, logEntryLen );
+
+    return ( logEntryLen + 1 );
 }
 
 void LcsDccTrack::printLog( ) {
 
-    if (( flags & DT_F_LOG_ENABLED ) && ( ! ( flags & DT_F_LOG_ACTIVE ))) {
+    if ( flags & ( ~ DT_F_LOG_ENABLED )) {
 
-        if ( logBufOfs > 0 ) {
-
-            usbIoPrintf( CDC_USB_CONSOLE, "\n" );
-
-            uint16_t entryIndex  = 0;
-            uint8_t  entryLen    = 0;
-
-            while ( entryIndex < logBufOfs ) {
-
-                entryLen = printLogEntry( entryIndex );
-                usbIoPrintf( CDC_USB_CONSOLE, "\n" );
-
-                if ( entryLen > 0 ) entryIndex += entryLen;
-                else                break;
-            }
-        }
-        else usbIoPrintf( CDC_USB_CONSOLE, "DCC Log Buf: Nothing recorded\n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "DCC Log disabled\n" );
     }
-    else usbIoPrintf( CDC_USB_CONSOLE, "DCC Log disabled or active\n" );
+
+    if ( flags & ( ~ DT_F_LOG_ACTIVE )) {
+
+        usbIoPrintf( CDC_USB_CONSOLE, "DCC not active\n" );
+    }
+
+    if ( logBufOfs == 0 ) {
+
+        usbIoPrintf( CDC_USB_CONSOLE, "DCC Log Buf: Nothing recorded\n" );
+    }
+
+    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+
+    uint16_t entryIndex  = 0;
+    uint8_t  entryLen    = 0;
+
+    while ( entryIndex < logBufOfs ) {
+
+        entryLen = printLogEntry( entryIndex );
+        usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+
+        if ( entryLen > 0 ) entryIndex += entryLen;
+        else                break;
+    }
 }
 
 //----------------------------------------------------------------------------------------
-// Print out the DCC Track configuration data. For debugging purposes.
+// Print out the DCC Track configuration data.
 //
 //----------------------------------------------------------------------------------------
 void LcsDccTrack::printDccTrackConfig( ) {
@@ -1767,37 +1769,37 @@ void LcsDccTrack::printDccTrackConfig( ) {
     usbIoPrintf( CDC_USB_CONSOLE, "DccTrack Config: " );
 
     if ( options & DT_OPT_SERVICE_MODE_TRACK ) 
-        usbIoPrintf( CDC_USB_CONSOLE, "PROG \n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "PROG\n" );
     else                                       
-        usbIoPrintf( CDC_USB_CONSOLE, "MAIN \n" );
+        usbIoPrintf( CDC_USB_CONSOLE, "MAIN\n" );
 
-    usbIoPrintf( CDC_USB_CONSOLE, " Config options: ( 0x%x ) -> ", flags );
-    
-    if ( options &  DT_OPT_SERVICE_MODE_TRACK ) 
-        usbIoPrintf( CDC_USB_CONSOLE, "SvcMode Track " );
-
-    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
-
+    usbIoPrintf( CDC_USB_CONSOLE, "  Config options: 0x%x\n", options );
+    usbIoPrintf( CDC_USB_CONSOLE, "  Config flags: 0x%x\n", flags );
+    usbIoPrintf( CDC_USB_CONSOLE, "  Track mode: 0x%x\n", trackMode );
+   
     usbIoPrintf( CDC_USB_CONSOLE, 
-                 " Current Limit(mA): %d Current Max(mA): %d\n",
+                 "  Current Limit(mA): %d Current Max(mA): %d\n",
                  getLimitCurrent( ), getMaxCurrent( ));
     
-
     usbIoPrintf( CDC_USB_CONSOLE, 
-                 " Limit Digit Value: %d\n", 
+                 "  Limit Digit Value: %d\n", 
                  limitCurrentDigitValue );
 
     usbIoPrintf( CDC_USB_CONSOLE, 
-                 " Ack Threshold Digit Value:%d\n", 
+                 "  Ack Threshold Digit Value:%d\n", 
                  ackThresholdDigitValue );
 
     usbIoPrintf( CDC_USB_CONSOLE, 
-                 " CDC enable rNum: %d, DCC control rNum: %d, "
-                 "Sensor nRum: %d, RailCom rNum: %d\n",
+                 "  Sample Size: %d, Sample Interval: %d\n",
+                 sampleCount, sampleIntervalCount );             
+
+    usbIoPrintf( CDC_USB_CONSOLE, 
+                 "  CDC enable rNum: %d, DCC control rNum: %d, "
+                 " Sensor nRum: %d, RailCom rNum: %d\n",
                  rNumEnable, rNumControl, rNumSense, rNumUartRx );
 
     usbIoPrintf( CDC_USB_CONSOLE, 
-                 " PreambleLen: %d, PostambleLen: %d\n", 
+                 "  PreambleLen: %d, PostambleLen: %d\n", 
                  preambleLen, postambleLen );
 }
 
@@ -1809,23 +1811,49 @@ void LcsDccTrack::printDccTrackStatus( ) {
 
     usbIoPrintf( CDC_USB_CONSOLE, "DccTrack: " );
 
-    if ( options & DT_OPT_SERVICE_MODE_TRACK )  usbIoPrintf( CDC_USB_CONSOLE, "PROG" );
-    else                                        usbIoPrintf( CDC_USB_CONSOLE, "MAIN" );
+    if ( options & DT_OPT_SERVICE_MODE_TRACK )  
+        usbIoPrintf( CDC_USB_CONSOLE, "PROG\n" );
+    else                                        
+        usbIoPrintf( CDC_USB_CONSOLE, "MAIN\n" );
 
-    usbIoPrintf( CDC_USB_CONSOLE, ", Track Status: ( 0x%x ) -> ", flags );
+    usbIoPrintf( CDC_USB_CONSOLE, ", Track flags: ( 0x%x ) -> ", flags );
+
+    if ( flags & DT_F_SETUP_ERROR ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "SetupError " );
     
     if ( flags & DT_F_POWER_ON         ) 
         usbIoPrintf( CDC_USB_CONSOLE, "PowerOn " );
-    if ( flags & DT_F_POWER_OVERLOAD   ) 
+
+    if ( flags & DT_F_POWER_OVERLOAD ) 
         usbIoPrintf( CDC_USB_CONSOLE, "PowerOverload " );
-    if ( flags & DT_F_ACC_DETECT_ON    ) 
+
+    if ( flags & DT_F_ACC_DETECT_ON ) 
         usbIoPrintf( CDC_USB_CONSOLE, "AccDetectOn " );
-    if ( flags & DT_F_CUTOUT_ON        ) 
+
+    if ( flags & DT_F_CUTOUT_ON ) 
         usbIoPrintf( CDC_USB_CONSOLE, "CutoutOn " );
-    if ( flags & DT_F_RAILCOM_ON       ) 
+    
+    if ( flags & DT_F_RAILCOM_ON ) 
         usbIoPrintf( CDC_USB_CONSOLE, "RailcomOn " );
-    if ( flags & DT_F_SETUP_ERROR      ) 
+    
+    if ( flags & DT_F_SETUP_ERROR ) 
         usbIoPrintf( CDC_USB_CONSOLE, "ConfigError " );
+
+    if ( flags & DT_F_POWER_SAMPLE_PENDING ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "SamplePending " );
+
+    if ( flags & DT_F_DCC_PACKET_PENDING ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "PacketPending " );
+
+    if ( flags & DT_F_RAILCOM_MSG_PENDING ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "RailComMsgPending " );
+
+    if ( flags & DT_F_LOG_ENABLED ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "LogEnabled " );
+
+    if ( flags & DT_F_LOG_ACTIVE ) 
+        usbIoPrintf( CDC_USB_CONSOLE, "LogActive " );
+
     usbIoPrintf( CDC_USB_CONSOLE, "\n" );
 
     usbIoPrintf( CDC_USB_CONSOLE, "Packets Send: %d\n", dccPacketsSend );

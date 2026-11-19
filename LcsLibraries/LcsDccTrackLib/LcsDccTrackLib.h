@@ -3,7 +3,8 @@
 // LCS - DCC Track Manager - Include file
 //
 ///---------------------------------------------------------------------------------------
-//
+// DCC track manager is a library used by the base station for generating DCC
+// track signals.
 //
 ///---------------------------------------------------------------------------------------
 //
@@ -30,7 +31,7 @@
 #include "LcsRuntimeLib.h"
 
 //----------------------------------------------------------------------------------------
-//
+// Namespaces.
 //
 //----------------------------------------------------------------------------------------
 using namespace CDC;
@@ -75,11 +76,11 @@ enum DccTrackErrors : uint8_t {
 
 //----------------------------------------------------------------------------------------
 // DCC packet definition. A DCC packet is the payload data without the checksum. 
-// Besides the length in bytes and the buffer, there is a repeat counter to specify
-// how often this packet will be repeatedly transmitted after the first transmission.
-// Currently, a DCC packet is at most 15 bytes long, excluding the checksum byte. 
-// This is true for XPOM and DCC-A support, otherwise it is historically a maximum 
-// of 6 bytes.
+// Besides the length in bytes and the buffer, there is a repeat counter to 
+// specify how often this packet will be repeatedly transmitted after the first 
+// transmission. Currently, a DCC packet is at most 15 bytes long, excluding the
+// checksum byte. This is true for XPOM and DCC-A support, otherwise it is
+// historically a maximum of 6 bytes.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t DCC_PACKET_SIZE = 16;
@@ -105,8 +106,8 @@ enum DccTrackOptions : uint16_t {
     DT_OPT_NIL                  = 0,
 
     DT_OPT_SERVICE_MODE_TRACK   = 1 << 0,
-    
-    DT_OPT_ACC_DETECT           = 1 << 3
+    DT_OPT_CUTOUT               = 1 << 1,
+    DT_OPT_RAILCOM              = 2 << 2
 };
 
 //----------------------------------------------------------------------------------------
@@ -170,8 +171,8 @@ enum DccTrackFlags : uint16_t {
 //----------------------------------------------------------------------------------------
 // For creating the DCC track objects, the tracks are described by the data 
 // structure below. In addition to the hardware resources, there are the limits
-// for current consumption values, all specified in milliAmps. Mostly, the 
-// hardware is described by this structure.
+// for current consumption values, all specified in milliAmps. Furthermore,
+// the hardware used for power measurements needs to be described too. 
 //
 //----------------------------------------------------------------------------------------
 struct LcsDccTrackDesc {
@@ -207,14 +208,14 @@ struct LcsDccTrackDesc {
 // invoked every 29 microseconds via a hardware timer interrupt. It creates the
 // actual DCC signal on the track output pins.
 //
-// After the generating the track signals, the timer interrupt handler invokes
-// follow up actions that fetch the next DCC bit or packet, measure the actual 
-// power consumption, read in a railcom message and so on. Internal events are 
-// recorded for testing and debugging in an internal log.
-//
-
-// ??? text ....
-
+// There will be exactly two objects in a base station. The main track and the
+// prog track, we call them trackA and trackB. Once they are created and 
+// configured, a class method creates the timer and get the show on the road.
+// The timer triggers the state machine for both track objects, which generate
+// signals and power measurements.
+// 
+// The DCC track class features a simple log facility for testing and debugging.
+// This allows for example, to see a RAILCOM packet received. 
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   RAILCOM_BUF_SIZE = 8;
@@ -258,7 +259,8 @@ struct LcsDccTrack {
     bool                decoderAckDetect( uint16_t baseValue, uint8_t retries );
    
     void                runDccTrackStateMachine( 
-                            volatile uint8_t *timeToInterrupt, 
+
+                            volatile uint16_t *timeToInterrupt, 
                             uint8_t *followUpAction 
                         );
 
@@ -279,6 +281,7 @@ struct LcsDccTrack {
     void                enableLog( bool arg );
     void                beginLog( );
     void                endLog( );
+
     void                printLog( );
     uint8_t             printLogEntry( uint16_t ofs );
     void                printLogTimeStamp( uint16_t ofs );
