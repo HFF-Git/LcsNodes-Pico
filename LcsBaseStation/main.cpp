@@ -110,6 +110,7 @@ uint8_t lcsCmdCallback( uint8_t chan, char *cmdLine, void *uData ) {
 
             return ( ERR_INVALID_COMMAND );
         }
+        else return( 0 ); // ??? fix 
     }
     else return ( ERR_INVALID_CHAN );
 }
@@ -221,11 +222,12 @@ uint8_t setupLocoSessions( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
-//
+// Setup the MAIN track.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupDccTrackMain( ) {
+
+    usbIoPrintf( CDC_USB_CONSOLE, "Setup MAIN track -> " );
 
     uint8_t         rStat;
     LcsDccTrackDesc trackDescA;
@@ -255,7 +257,7 @@ uint8_t setupDccTrackMain( ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// Setup the PROG track.
 //
 //
 //----------------------------------------------------------------------------------------
@@ -286,11 +288,13 @@ uint8_t setupDccTrackProg( ) {
 
     progTrack = LcsDccTrack::createTrackB( &trackDesc );
     progTrack -> printDccTrackConfig( );
+
     return ( printStatus( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// The base station has also a command interpreter, primarily for the DCC++ commands.
+// The base station has also a command interpreter, primarily for the DCC++ 
+// commands.
 //
 //----------------------------------------------------------------------------------------
 uint8_t setupSerialCommand( ) {
@@ -334,10 +338,10 @@ uint8_t registerCallbacks( ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Fire up the base station. First all base station modules are initialized. If OK,
-// the DCC tac signal generation is enabled, i.e. the interrupt driven DCC packet 
-// broadcasting starts. Finally, the track power is turned on and we give control 
-// to the LCS runtime for processing events and requests.
+// Fire up the base station. First all base station modules are initialized. 
+// If OK, the DCC tac signal generation is enabled, i.e. the interrupt driven 
+// DCC packet broadcasting starts. Finally, the track power is turned on and 
+// we give control to the LCS runtime for processing events and requests.
 //
 // ??? should we do this rather in the init callback ?
 // ??? also, should we have an indicator for power fail startup ?

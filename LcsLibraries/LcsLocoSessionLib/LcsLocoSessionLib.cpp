@@ -3,14 +3,22 @@
 // LCS - Loco Session Lib
 //
 ///---------------------------------------------------------------------------------------
-// This source file contains functions to manage the locomotives in the layout.
-// The basic idea is that there is a cab dictionary. It will hold all cabs 
-// entered as our "roster". This is a NVM data structure, an array of cab 
-// entries, unsorted. If the cabId is not in this roster, it does not exist.
+// The library contains the locomotive dictionary which is a simple array of 
+// locomotive descriptors. The dictionary is stored in the global NVM attribute 
+// range. An entry is therefore carefully mapped to items and alignment. If
+// the locomotive cabId is not in this roster, it does not exist.
 //
-// At system startup, the entries are copied to a MEM structure. This is our
-// cab base. It is a sorted table. Adding and removing an entry will be done
-// at NVM level and then we re-sort the MEM table.
+// Commands for a locomotive trigger the ad hoc creation of a locomotive session.
+// Although we can store hundreds of locomotive in the dictionary, we cannot
+// keep track of so many active sessions. A session is defined as a locomotive
+// receiving commands. These engines are refreshed, i.e. their last command is
+// repeated according to the DCC standard. When no commands are received in a 
+// given time period, the locomotive is removed from the active list. 
+//
+// At system startup, the dictionary entries are copied to a MEM structure. This
+// is our cab data base. It is a sorted table. Adding and removing an entry will
+// be done at NVM level and then we re-sort the MEM table. The NVM data is 
+// not sorted.
 //
 // An auxiliary structure contains the entry index of the currently active
 // cabs. Looking up a cab in the cabMap result in adding the index to the list.
@@ -159,23 +167,47 @@ void bitWrite( uint8_t *arg, uint8_t pos, bool val ) {
 //----------------------------------------------------------------------------------------
 bool getDccFuncBit( uint8_t *funcFlags, uint8_t fNum ) {
 
-    if      ( fNum == 0 )                 return ( bitRead( funcFlags[ 0 ], 4 ));
-    else if ( isInRangeU( fNum, 1, 4 ))   return ( bitRead( funcFlags[ 0 ], fNum - 1 ));
-    else if ( isInRangeU( fNum, 5, 8 ))   return ( bitRead( funcFlags[ 1 ], fNum - 5 ));
-    else if ( isInRangeU( fNum, 9, 12 ))  return ( bitRead( funcFlags[ 2 ], fNum - 9 ));
+    if ( fNum == 0 ) {
+
+        return ( bitRead( funcFlags[ 0 ], 4 ));
+    }
+    else if ( isInRangeU( fNum, 1, 4 )) {
+
+        return ( bitRead( funcFlags[ 0 ], fNum - 1 ));
+    }
+    else if ( isInRangeU( fNum, 5, 8 )) {
+
+        return ( bitRead( funcFlags[ 1 ], fNum - 5 ));
+    }
+    else if ( isInRangeU( fNum, 9, 12 )) {
+
+        return ( bitRead( funcFlags[ 2 ], fNum - 9 ));
+    }
     else if ( isInRangeU( fNum, 13, 68 )) {
 
         return ( bitRead( funcFlags[ ( fNum - 13 ) / 8 + 3 ], ( fNum - 13 ) % 8 ));
     }   
-    else return false;
+    else return ( false );
 }
 
 void setDccFuncBit( uint8_t *funcFlags, uint8_t fNum, bool val ) {
 
-    if      ( fNum == 0 )                 bitWrite( &funcFlags[ 0 ], 4, val );
-    else if ( isInRangeU( fNum, 1, 4 ))   bitWrite( &funcFlags[ 0 ], fNum - 1, val );
-    else if ( isInRangeU( fNum, 5, 8 ))   bitWrite( &funcFlags[ 1 ], fNum - 5, val );
-    else if ( isInRangeU( fNum, 9, 12 ))  bitWrite( &funcFlags[ 2 ], fNum - 9, val );
+    if ( fNum == 0 ) {
+                        
+        bitWrite( &funcFlags[ 0 ], 4, val );
+    }
+    else if ( isInRangeU( fNum, 1, 4 )) {
+
+        bitWrite( &funcFlags[ 0 ], fNum - 1, val );
+    }
+    else if ( isInRangeU( fNum, 5, 8 )) {   
+        
+        bitWrite( &funcFlags[ 1 ], fNum - 5, val );
+    }
+    else if ( isInRangeU( fNum, 9, 12 )) {
+        
+        bitWrite( &funcFlags[ 2 ], fNum - 9, val );
+    }
     else if ( isInRangeU( fNum, 13, 68 )) {
 
         bitWrite( &funcFlags[ ( fNum - 13 ) / 8 + 3 ], ( fNum - 13 ) % 8, val );
@@ -184,10 +216,10 @@ void setDccFuncBit( uint8_t *funcFlags, uint8_t fNum, bool val ) {
 
 void setDccFuncGroupByte( uint8_t *funcFlags, uint8_t fGroup, uint8_t dccByte ) {
 
-    if       ( fGroup == 1 )                  funcFlags[ 0 ] = dccByte & 0x1F;
-    else if  ( fGroup == 2 )                  funcFlags[ 1 ] = dccByte & 0x0F;
-    else if  ( fGroup == 3 )                  funcFlags[ 2 ] = dccByte & 0x0F;
-    else if  ( isInRangeU( fGroup, 4, 10 ))   funcFlags[ fGroup - 1 ] = dccByte;
+    if       ( fGroup == 1 )                funcFlags[ 0 ] = dccByte & 0x1F;
+    else if  ( fGroup == 2 )                funcFlags[ 1 ] = dccByte & 0x0F;
+    else if  ( fGroup == 3 )                funcFlags[ 2 ] = dccByte & 0x0F;
+    else if  ( isInRangeU( fGroup, 4, 10 )) funcFlags[ fGroup - 1 ] = dccByte;
 }
 
 uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
@@ -200,7 +232,7 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// The  sort routine will need a comparison function.
+// Cab Map utility routines.
 //
 //----------------------------------------------------------------------------------------
 int compareCabId( const void *a, const void *b ) {
@@ -213,42 +245,43 @@ int compareCabId( const void *a, const void *b ) {
     return 0;
 }
 
-//----------------------------------------------------------------------------------------
-// Sort the cabMap. We simply use the C library sort function.
-//
-//----------------------------------------------------------------------------------------
 void sortCabMap( LcsCabEntry *map, uint16_t len ) {
 
     qsort( map, len, sizeof( LcsCabEntry ), compareCabId );
 }
 
-//----------------------------------------------------------------------------------------
-// "initCabEntry" initializes a cab entry. It is used to initialize the staging
-// entry as well as the cab map entries. 
-//
-//----------------------------------------------------------------------------------------
 void initCabEntry( LcsCabEntry *e ) {
+
+    uint16_t *ePtr = (uint16_t *) e;
+    for ( int i = 0; i < sizeof(LcsCabEntry) / 2; i++ ) ePtr[ i ] = 0;
+}
+
+void initCabMap( LcsCabMap *cMap ) {
+
+    cMap -> magicWord           = CAB_MAP_MAGIC_WORD;
+    cMap -> flags               = 0;
+    cMap -> maxCabCount         = MAX_CAB_DICT_SESSIONS;           
+    cMap -> currentCabCount     = 0;                           
+    cMap -> cabEntryItemSize    = CAB_ENTRY_ITEM_SIZE;  
     
-    e -> cabId = 0;
-    e -> flags = 0;
-    e -> speedInfo = 0;
-    e -> rsv[ 0 ] = 0;
-    e -> rsv[ 1 ] = 0;
-    e -> rsv[ 2 ] = 0;     
-    e -> d.dFlags = 0;   
-
-    for ( int j = 0; j < 6; j ++ ) { 
+    for ( int i = 0; i < 26; i++ ) cMap -> filler[ i ] = 0; 
+    
+    for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
         
-        e -> speedMap[ j ] = 0;
+        initCabEntry( &cMap -> map[ i ] );
     }
+}
 
-    for ( int j = 0; j < MAX_DCC_FUNC_GROUP_ID; j ++ ) { 
+void initActiveCabMap( LcsActiveCabMap *aMap ) {
+
+    aMap -> activeCabCount = 0;
+    aMap -> refreshIndex   = 0;
+
+    for ( int i = 0; i < MAX_CAB_ACTIVE_SESSIONS; i ++ ) {
         
-        e -> d.funcMap[ j ] = 0; 
+        aMap -> tsMap[ i ] = 0;
+        aMap -> map[ i ] = -1;
     }
-
-    e -> locoName[ 0 ] = 0;
-    e -> trainName[ 0 ] = 0;
 }
 
 }; // namespace
@@ -260,87 +293,73 @@ void initCabEntry( LcsCabEntry *e ) {
 LcsLocoSessions::LcsLocoSessions( ) { }
 
 //----------------------------------------------------------------------------------------
-// "setupLocoSessions" gets the show on the road. We will keep a local copy of
-// the two tracks for MAIN and PROG. 
-//
-// ??? add debug info ...
+// "setupLocoSessions" initializes the session data. We are passed the options
+// as well as the two DCC tracks.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options, 
                                             LcsDccTrack *mainTrack,
                                             LcsDccTrack *progTrack ) {
 
+    if ( setupDebugEnabled( )) {
+            
+        usbIoPrintf( CDC_USB_CONSOLE, "Setup Loco Sessions...\n" );
+    }
+
     if (( mainTrack == nullptr ) || ( progTrack == nullptr )) {
 
-        return ( ERR_SESSION_SETUP );
+        return ( RET_STAT( ERR_SESSION_SETUP ));
     } 
         
     this -> options                 = options;
     this -> mainTrack               = mainTrack;
     this -> progTrack               = progTrack;
     this -> flags                   = SM_F_NIL;
-    this -> lastAliveCheckTime      = getMillis( );
-    this -> refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;
-    this -> cabCount                = 0;
 
-    if ( options & SM_OPT_ENABLE_REFRESH )      flags |= SM_F_ENABLE_REFRESH;
-    if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) flags |= SM_F_KEEP_ALIVE_CHECKING;
-
-    initCabEntry ( &cabStagingEntry );
-
-    for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
-
-        initCabEntry( &cabMap[ i ] );
+    if ( options & SM_OPT_ENABLE_REFRESH ) {
+             
+        flags |= SM_F_ENABLE_REFRESH;
     }
 
-    for ( int i = 0; i < MAX_CAB_ACTIVE_SESSIONS; i ++ ) {
+    if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) { 
         
-        activeCabList[ i ] = -1;
+        flags |= SM_F_KEEP_ALIVE_CHECKING;
     }
 
-    return( LCS_OK );
+    initCabMap( &cabMap );
+    initActiveCabMap( &activeCabMap );
+
+    return( RET_STAT( loadCabMap( )));
 }
 
 //----------------------------------------------------------------------------------------
 // "formatCabMap" initializes the cab map data structure. It is called when the
-// cab map is not valid or we have a new NVM.
+// cab map is not valid or we have a new board. The data structure is build in 
+// memory and then written in one swoop to the NVM.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::formatCabMap( ) {
 
-    cabMapHead.magicWord         = CAB_MAP_MAGIC_WORD;
-    cabMapHead.flags             = SM_F_NIL;
-    cabMapHead.maxCabCount       = MAX_CAB_DICT_SESSIONS;
-    cabMapHead.currentCabCount   = 0;
-    cabMapHead.cabEntryItemCount = sizeof( LcsCabEntry ) / sizeof( uint16_t );
+    ENTER_FUNC( );
 
     uint8_t rStat = LCS_OK;
 
-    rStat = setItem(  0, 
-                      CAB_ITEM_ID_HEADER_START, 
-                      (uint16_t *) & cabMapHead, 
-                      sizeof( LcsCabMapHead ) / sizeof( uint16_t ));
-
-    for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
-
-        LcsCabEntry *cPtr = & cabMap[ i ];
-        initCabEntry( cPtr );
-    }
+    initCabMap( &cabMap );
 
     rStat = setItem( 0, 
-                     CAB_ITEM_ID_ARRAY_START,
-                     (uint16_t *) & cabMap, 
-                     sizeof( LcsCabEntry ) / 
-                                sizeof( uint16_t ) * MAX_CAB_DICT_SESSIONS );
+                     CAB_MAP_ITEM_ID_START,
+                     (uint16_t *) &cabMap, 
+                     sizeof( LcsCabMap ) / sizeof( uint16_t ));
 
-    return ( RET_STAT( rStat ));
+    return( RET_STAT( rStat ));    
 }
 
 //----------------------------------------------------------------------------------------
 // "loadCabMap" retrieves the cab map from NVM. The cab map is a NVM data 
 // structure, an array of cab entries, unsorted. If the cabId is not in this
-// roster, it does not exist. We first read the header and if valid, read 
-// the cab array data. Otherwise, we format the cap map.
+// roster, it does not exist. We first read the header portion and if valid, 
+// read the remaining cab array data. Otherwise, we format the cap map and
+// have a vanilla cabMap.
 //
 // Adding or removing cab entries is solely done on the NVM structure, which 
 // is unsorted. After reading the NVM data, we sort the MEM structure.
@@ -352,59 +371,72 @@ uint8_t LcsLocoSessions::loadCabMap( ) {
 
     uint8_t rStat = LCS_OK;
 
-    rStat = getItem( 0, 
-                     CAB_ITEM_ID_HEADER_START, 
-                     (uint16_t *) & cabMapHead, 
-                     sizeof( LcsCabMapHead ) / sizeof( uint16_t ));
+    initCabMap( &cabMap );
 
-    if ( cabMapHead.magicWord != CAB_MAP_MAGIC_WORD ) {
+    if ( setupDebugEnabled( )) {
+            
+            usbIoPrintf( CDC_USB_CONSOLE, "Read Cab map head ...\n" );
+    }
 
-        if ( setupDebugEnabled( )) 
-            usbIoPrintf( CDC_USB_CONSOLE, "Cab map not valid, formatting ...\n" );
+    rStat = getItem( NIL_NODE_ID, 
+                     CAB_MAP_ITEM_ID_START, 
+                     (uint16_t *) &cabMap, 
+                     CAB_ENTRY_ITEM_SIZE );
+
+    if ( rStat != LCS_OK ) {
+
+        if ( setupDebugEnabled( )) {
+            
+            usbIoPrintf( CDC_USB_CONSOLE, "Not valid, formatting ...\n" );
+        }
 
         rStat = formatCabMap( );
     }
-    else {
 
-        uint16_t numItems = sizeof( LcsCabEntry ) / sizeof( uint16_t );
+    if ( rStat == LCS_OK ) {
 
-        rStat = getItem( 0, 
-                         CAB_ITEM_ID_ARRAY_START, 
-                         (uint16_t *) & cabMap, 
-                         cabMapHead.currentCabCount * numItems );
+        if ( setupDebugEnabled( )) {
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Load Cab map entries ...\n" );
+        }
+
+        rStat = getItem( NIL_NODE_ID, 
+                         CAB_MAP_ITEM_ID_MAP_START, 
+                         (uint16_t *) &cabMap.map, 
+                         cabMap.currentCabCount * cabMap.cabEntryItemSize );
     }
 
-    if ( rStat == LCS_OK ) sortCabMap( cabMap, cabCount );
+    if ( rStat == LCS_OK ) { 
+
+        if ( setupDebugEnabled( )) {
+
+            usbIoPrintf( CDC_USB_CONSOLE, "Sort Cab map ...\n" );
+        }
+        
+        sortCabMap( cabMap.map, cabMap.currentCabCount );
+    }
 
     return( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
-// "updateCabMap" will copy the cabbMap to NVM. We first write all entries
-// to the cabDict array and then correct the header cab count.
+// "updateCabMap" will copy the entire MEM cabMap to the NVM. We only write 
+// up to the currently used entries. This method is typically used when we 
+// added or removed entries from the cab dictionary.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::updateCabMap( ) {
 
-    uint8_t  rStat    = LCS_OK;
-    uint16_t numItems = sizeof( LcsCabEntry ) / sizeof( uint16_t );
+    ENTER_FUNC( );
 
-    rStat = getItem( 0, 
-                     CAB_ITEM_ID_ARRAY_START, 
-                     (uint16_t *) & cabMap, 
-                     cabCount * numItems );
-     if ( rStat != LCS_OK ) ;
+    uint8_t  rStat = LCS_OK;
+   
+    rStat = setItem( NIL_NODE_ID, 
+                     CAB_MAP_ITEM_ID_START, 
+                     (uint16_t *) &cabMap, 
+                     cabMap.currentCabCount * cabMap.cabEntryItemSize );
 
-    cabMapHead.currentCabCount = cabCount;
-    
-    rStat = setItem( 0, 
-                     CAB_ITEM_ID_HEADER_START, 
-                     (uint16_t *) & cabMapHead, 
-                     sizeof( LcsCabMapHead ) / sizeof( uint16_t ));
-
-    if ( rStat != LCS_OK ) ;
-
-    return( rStat );
+    return( RET_STAT( rStat ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -423,28 +455,42 @@ uint16_t LcsLocoSessions::getFlags( ) {
 
 uint16_t LcsLocoSessions::getCabCount( ) {
 
-    return ( cabCount );
+    return ( cabMap.currentCabCount );
 }
 
 uint16_t LcsLocoSessions::getMaxCabCount( ) {
 
-    return ( cabMapHead.maxCabCount );
+    return ( cabMap.maxCabCount );
 }
 
 //----------------------------------------------------------------------------------------
+// "lookupCabEntry" looks for a cab entry in the sorted loco base and returns 
+// a pointer to the entry if found, otherwise a nullptr.
 //
-// ??? we have a cab staging area since we cannot set all data at once. 
-// ??? going via LCS messages we can set an item at a time. When we have
-// the entry fully configured, it can be added to the dictionary.
-//
-// ??? via the command interface we can of course do it all at once.
-//
-//---------------------------------------------------------------------------------------- 
+//----------------------------------------------------------------------------------------
+LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 
+    uint16_t low  = 0;
+    uint16_t high = cabMap.currentCabCount;
+
+    while ( low < high ) {
+
+        uint16_t mid = low + ( high - low ) / 2;
+
+        if ( cabMap.map[ mid ].cabId < cabId )
+            low = mid + 1;
+        else if ( cabMap.map[ mid ].cabId > cabId )
+            high = mid;
+        else
+            return( &cabMap.map[ mid ] );
+    }
+
+    return( nullptr );
+}
 
 //----------------------------------------------------------------------------------------
 // "addCabEntry" is used to add a cab configuration to the cabMap. We first 
-// check whether the cab entry already exists. If so, we just update it.
+// check whether the cab entry already exists. If so, we just update the entry.
 // Otherwise, we check for room in the cabMap and add the entry. 
 //
 // Note that we only update our memory structure for the cabMap. When we want
@@ -463,22 +509,29 @@ uint8_t LcsLocoSessions::addCabEntry( LcsCabEntry *entry ) {
         return( LCS_OK );
     }
 
-    if ( cabCount >= MAX_CAB_DICT_SESSIONS ) return ( ERR_CAB_MAP_FULL );
+    if ( cabMap.currentCabCount >= MAX_CAB_DICT_SESSIONS ) {
+        
+        return ( ERR_CAB_MAP_FULL );
+    }
 
-    cabMap[ cabCount ] = *entry;
-    cabCount ++;
+    cabMap.map[ cabMap.currentCabCount ] = *entry;
+    cabMap.currentCabCount ++;
 
-    sortCabMap( cabMap, cabCount );
+    sortCabMap( cabMap.map, cabMap.currentCabCount );
     return ( LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
-// "removeCabEntry" removes an entry from the NVM cabMap. cabMap is sorted by 
-// cabId, therefore all entries following the removed entry are shifted down by
-// one position. The active cab list contains indices into cabMap and therefore
-// has to be adjusted too. This is done by removing the active entry and then 
-// decrementing each active cab entry index by one if it is above the index
-// that we removed.
+// "removeCabEntry" removes an entry from the cabMap and perhaps also from the
+// active cab map. We first get the index in the cab map array. If the entry
+// is active, we need to remove it also from the active cab map. cabMap is 
+// sorted by cabId, therefore all entries following the removed entry are 
+// shifted down by one position. 
+//
+// As a last step we just rebuild the active cab map. Since entries in the 
+// canMap shifted around, it is the safest approach to just rebuild. Removing
+// is a task most likely done during configuration, so performance of removal
+// is traded for safety.
 // 
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
@@ -486,23 +539,23 @@ uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
     LcsCabEntry *cPtr = lookupCabEntry( cabId );
     if ( cPtr == nullptr ) return( LCS_OK );
 
-    uint16_t removeIndex = cPtr - cabMap;
+    uint16_t cabMapIndex = cPtr - cabMap.map;
 
-    if ( cPtr -> flags & CMAP_F_ACTIVE ) removeActiveCab( removeIndex );
+    for ( uint16_t i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
-    for ( uint16_t i = 0; i < activeCabCount; i++ ) {
-
-        if ( activeCabList[ i ] > removeIndex ) activeCabList[ i ] --;
+        if ( activeCabMap.map[ i ] > cabMapIndex ) activeCabMap.map[ i ] --;
     }
 
-    if ( removeIndex < cabCount - 1 ) {
+    if ( cabMapIndex < cabMap.currentCabCount - 1 ) {
 
-        memmove( &cabMap[ removeIndex ],
-                 &cabMap[ removeIndex + 1 ],
-                 ( cabCount - removeIndex - 1 ) * sizeof( LcsCabEntry ));
+        memmove( &cabMap.map[ cabMapIndex ],
+                 &cabMap.map[ cabMapIndex + 1 ],
+                 ( cabMap.currentCabCount - cabMapIndex - 1 ) * sizeof( LcsCabEntry ));
     }
 
-    cabCount --;
+    cabMap.currentCabCount --;
+
+    rebuildActiveCabMap( );
 
     return( LCS_OK );
 }
@@ -512,19 +565,19 @@ uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
 // only added if it is not already in the list.
 //
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
+void LcsLocoSessions::addActiveCab( uint16_t cabMapIndex ) {
 
-    if ( locoIndex > MAX_CAB_DICT_SESSIONS ) return;
+    if ( cabMapIndex > MAX_CAB_DICT_SESSIONS ) return;
 
-    for ( uint16_t i = 0; i < activeCabCount; i++ ) {
+    for ( uint16_t i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
-        if ( activeCabList[ i ] == locoIndex ) return;
+        if ( activeCabMap.map[ i ] == cabMapIndex ) return;
     }
 
-    if ( activeCabCount >= MAX_CAB_ACTIVE_SESSIONS ) return;
+    if ( activeCabMap.activeCabCount >= MAX_CAB_ACTIVE_SESSIONS ) return;
 
-    activeCabList[ activeCabCount ] = locoIndex;
-    ++activeCabCount;
+    activeCabMap.map[ activeCabMap.activeCabCount ] = cabMapIndex;
+    activeCabMap.activeCabCount ++;
 }
 
 //----------------------------------------------------------------------------------------
@@ -533,18 +586,20 @@ void LcsLocoSessions::addActiveCab( uint16_t locoIndex ) {
 // position of the removed entry.
 //
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::removeActiveCab( uint16_t locoIndex ) {
+void LcsLocoSessions::removeActiveCab( uint16_t cabMapIndex ) {
 
-    if ( locoIndex > MAX_CAB_DICT_SESSIONS ) return;
+    if ( cabMapIndex > MAX_CAB_DICT_SESSIONS ) return;
 
-    for ( uint16_t i = 0; i < activeCabCount; i++ ) {
+    for ( uint16_t i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
-        if ( activeCabList[ i ] == locoIndex ) {
+        if ( activeCabMap.map[ i ] == cabMapIndex ) {
 
-            activeCabCount --;
+            activeCabMap.activeCabCount --;
 
-            if ( i != activeCabCount )
-                activeCabList[ i ] = activeCabList[ activeCabCount ];
+            if ( i != activeCabMap.activeCabCount ) {
+
+                activeCabMap.map[ i ] = activeCabMap.map[ activeCabMap.activeCabCount ];
+            }
 
             return;
         }
@@ -552,28 +607,19 @@ void LcsLocoSessions::removeActiveCab( uint16_t locoIndex ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "lookupCabEntry" looks for a cab entry in the sorted loco base and returns 
-// a pointer to the entry if found, otherwise a nullptr.
+// "rebuildActiveCabMap" is used to scan the cab map and add all active cab 
+// entries are. It is typically used when we removed an entry from the cab map 
+// and entry indices shifted. 
 //
 //----------------------------------------------------------------------------------------
-LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
+void LcsLocoSessions::rebuildActiveCabMap( ) {
 
-    uint16_t low  = 0;
-    uint16_t high = cabCount;
+    initActiveCabMap( &activeCabMap );
 
-    while ( low < high ) {
+    for ( uint16_t i = 0; i < cabMap.currentCabCount; i ++ ) {
 
-        uint16_t mid = low + ( high - low ) / 2;
-
-        if ( cabMap[ mid ].cabId < cabId )
-            low = mid + 1;
-        else if ( cabMap[ mid ].cabId > cabId )
-            high = mid;
-        else
-            return( &cabMap[ mid ] );
+        if ( cabMap.map[ i ].flags & CMAP_F_ACTIVE ) addActiveCab( i );
     }
-
-    return( nullptr );
 }
 
 //----------------------------------------------------------------------------------------
@@ -591,9 +637,8 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 
     if ( ! ( cPtr -> flags & CMAP_F_ACTIVE )) { 
         
-        addActiveCab( cPtr - cabMap );
+        addActiveCab( cPtr - cabMap.map );
         cPtr -> flags |= CMAP_F_ACTIVE;
-        cPtr -> flags |= CMAP_F_ALIVE;
     }
 
     return( cPtr );
@@ -611,9 +656,8 @@ void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 
     if ( cPtr -> flags & CMAP_F_ACTIVE ) { 
         
-        removeActiveCab( cPtr - cabMap );
+        removeActiveCab( cPtr - cabMap.map );
         cPtr -> flags &= ~ CMAP_F_ACTIVE;
-        cPtr -> flags &= ~ CMAP_F_ALIVE;
     }
 }
 
@@ -631,46 +675,26 @@ void LcsLocoSessions::emergencyStopAll( ) {
 
     mainTrack -> loadPacket( eStopDccPacketData, 2, 4 );
 
-    for ( int i = 0; i < activeCabCount; i++ ) {
+    for ( int i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
-        uint16_t locoIndex = activeCabList[ i ];
-        LcsCabEntry *cPtr = &cabMap[ locoIndex ];
-
+        LcsCabEntry *cPtr = &cabMap.map[ activeCabMap.map[ i ] ];
         cPtr -> speedInfo  = 1;
     }
 }
 
 //----------------------------------------------------------------------------------------
-// "refreshActiveCabEntry" manages the refresh tasks of a cab. We need to send
-// for an active loco DCC packets to refresh the decoder settings. There are
-// two flags. The ACTOVE flag indicates that this loco is active and maintained 
-// in the cabList stack. The ALIVE flag indicates that we have received a command
-// for the loco recently. If the ALIVE flag is set, we send a refresh command 
-// and clear the flag. The next time we come around, if the ALIVE flag is not 
-// set, we remove the loco from the active list. This is a simple way to manage
-// the active loco list. SInce we do a round robin on the active list, it could
-// happen that we just refreshed, set the ACTIVE flag false, and then the 
-// round robin index hits this entry, removing this entry. No harm done, since
-// if the loco is still an active one, it will be re-added to the active list 
-// when the next command is received. 
+// "refreshActiveCabEntry" manages the refresh tasks of a cab. We just send
+// a speed/dir packet.
 // 
+// ??? what about functions ? read the standard again ...
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
 
     if ( cab == nullptr ) return;
-    if ( ! ( cab -> flags & CMAP_F_ACTIVE ))  return;
    
-    if ( cab -> flags & CMAP_F_ALIVE ) {
-
-        setThrottle( cab, (uint8_t) cab -> speedInfo & 0x7F, 
-                           (uint8_t) (( cab -> speedInfo & 0x80 ) ? 1 : 0 ));
-
-        cab -> flags &= ~ CMAP_F_ALIVE;
-    }
-    else {
-
-        removeActiveCab( cab - cabMap );
-    }   
+    setThrottle( cab, 
+                 (uint8_t) cab -> speedInfo & 0x7F, 
+                 (uint8_t) (( cab -> speedInfo & 0x80 ) ? 1 : 0 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -678,24 +702,37 @@ void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
 // active cab the DCC throttle commands to refresh the decoder settings. Since
 // we have also other things to do in a base station, we will only refresh one
 // cab at a time and go round robin though the active cab list. The refresh 
-// interval is set by the base station. The interval is computed from the 
-// maximum time between two refresh commands, DCC demands at least two seconds, 
-// and the number of active cabs.
-// 
-//   taskPeriod = refresh interval / MAX_ACTIVE_CAB_SESSIONS
+// interval is set by the base station. 
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::refreshActiveCabs( ) {
 
-    if ( activeCabCount == 0 ) return;
+    if ( activeCabMap.activeCabCount == 0 ) return;
 
-    uint16_t locoIndex = activeCabList[ cabRefreshIndex ];
+    uint16_t cabMapIndex = activeCabMap.map[ activeCabMap.refreshIndex ];
+   
+    if ( cabMapIndex == -1 ) return;
 
-    LcsCabEntry *cab = &cabMap[ locoIndex ];
-    refreshActiveCabEntry( cab );
-    cabRefreshIndex ++;
+    LcsCabEntry *cab        = &cabMap.map[ cabMapIndex ];
+    uint32_t    currentTs   = getMillis( );
 
-    if ( cabRefreshIndex >= activeCabCount ) cabRefreshIndex = 0;
+    if (( currentTs -  activeCabMap.tsMap[ cabMapIndex ] <= 
+                                        DCC_SESSION_TIMEOUT_MILLIS )) { 
+
+        refreshActiveCabEntry( cab );
+        activeCabMap.tsMap[ cabMapIndex ] = currentTs;
+    } 
+    else {
+     
+        setThrottle( cab, 1, 1 );
+        removeActiveCab( cabMapIndex );
+    }
+    
+    activeCabMap.refreshIndex ++;
+    if ( activeCabMap.refreshIndex >= activeCabMap.activeCabCount ) {
+        
+        activeCabMap.refreshIndex = 0;
+    }
 }
 
 //----------------------------------------------------------------------------------------
@@ -705,8 +742,8 @@ void LcsLocoSessions::refreshActiveCabs( ) {
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setThrottle( uint16_t cabId, 
-                                      uint8_t speed, 
-                                      uint8_t direction ) {
+                                      uint8_t  speed, 
+                                      uint8_t  direction ) {
 
     LcsCabEntry *ptr = activateCabEntry( cabId );                                    
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
@@ -767,10 +804,11 @@ uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId,
                                             uint8_t fNum, 
                                             uint8_t val ) {
 
+    if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
+    
     LcsCabEntry *ptr = activateCabEntry( cabId );                                    
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
-    if ( ! validFunctionId( fNum )) return ( ERR_INVALID_FUNC_ID );
     setDccFuncBit( ptr -> d.funcMap, fNum, val );
 
     uint8_t fGroup = dccFunctionBitToGroup( fNum );
@@ -783,13 +821,12 @@ uint8_t LcsLocoSessions::setDccFunctionBit( uint16_t cabId,
 // will first find the session entry, do the argument checks and the invoke the 
 // internal signature.
 //
-// ??? keep track which group was modified ? ( for refresh logic )
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setDccFunctionGroup( uint16_t cabId, 
                                               uint8_t fGroup, 
                                               uint8_t dccByte ) {
 
-   LcsCabEntry *ptr = activateCabEntry( cabId );                                    
+    LcsCabEntry *ptr = activateCabEntry( cabId );                                    
     if ( ptr == nullptr ) return( ERR_INVALID_CAB_ID );
 
     return ( setDccFunctionGroup( ptr, fGroup, dccByte ));
@@ -862,7 +899,6 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr,
 //    3 Register Mode
 //    4 Address Only Mode
 //
-//
 // Note on the MAIN track, there is no way for the decoder to answer via a raise 
 // in power consumption. The command shown here is just sent. If however RailCom 
 // is available, the decoder can answer with the CV value in a following cutout. 
@@ -874,12 +910,18 @@ uint8_t LcsLocoSessions::writeCVMain( uint16_t cabId,
                                       uint8_t mode, 
                                       uint8_t val ) {
 
-    if ( mode == 0 )  
+    if ( mode == 0 ) {
+
         return ( writeCVByteMain( cabId, cvId, val ));
-    else if ( mode == 1 )  
-        return ( writeCVBitMain( cabId, cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
-    else         
-        return ( ERR_INVALID_CV_MODE );
+    }
+    else if ( mode == 1 ) {
+
+        return ( writeCVBitMain( cabId, 
+                                 cvId, 
+                                 ( val & 0x07 ), 
+                                 (( val & 0x08 ) >> 3 )));
+    }
+    else  return ( ERR_INVALID_CV_MODE );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1033,7 +1075,7 @@ uint8_t LcsLocoSessions::readCVByte( uint16_t cvId, uint8_t *val ) {
 // bit and then ask if the bit read is the one just read. We first try to 
 // validate a "zero" bit. If that succeeds, fine. Otherwise we try to validate a 
 // "one" bit. If that succeeds, fine. Otherwise we have a CV read error. 
-
+//
 // The general packet sequence is according to DCC standard 3 or more RESET 
 // packets, 5 or more identical READ packets and then RESET packages until 
 // acknowledge or timeout. The RESET packet preamble and postamble are sent 
@@ -1195,34 +1237,64 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
 
 //----------------------------------------------------------------------------------------
 // The verify family of functions is used to verify that a CV value has been 
-// written correctly. 
+// written correctly. They are convenience functions. We just read the CV
+// value and compare it.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::verifyCV( uint16_t cvId, uint8_t mode, uint8_t val ) {
 
-    if ( mode == 0 ) 
+    if ( mode == 0 ) {
+
         return ( verifyCVByte( cvId, val ));
-    else if ( mode == 1 )  
+    }
+    else if ( mode == 1 ) {
+
         return ( verifyCVBit( cvId, ( val & 0x07 ), (( val & 0x08 ) >> 3 )));
-    else                     
-        return ( ERR_INVALID_CV_MODE );
+    }
+    else return ( ERR_INVALID_CV_MODE );
 }
 
+//----------------------------------------------------------------------------------------
+// "verifyCVByte" reads the CV byte and compares it to the test value.
+// 
+//----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::verifyCVByte( uint16_t cvId, uint8_t val ) {
 
-    // ??? to do ...
+    uint8_t rStat   = LCS_OK;
+    uint8_t cvVal   = 0;
+
+    rStat = readCVByte( cvId, &cvVal );
+    if ( rStat != LCS_OK ) return( rStat );
+
+    if ( cvVal != val ) {
+
+
+    }
 
     return( LCS_OK );
 }
 
-uint8_t LcsLocoSessions::verifyCVBit( uint16_t cvId, uint8_t bitPos, uint8_t val ) {
+//----------------------------------------------------------------------------------------
+// "verifyCVBit" reads the CV bit at bitPos and compares it to the test value.
+//
+//----------------------------------------------------------------------------------------
+uint8_t LcsLocoSessions::verifyCVBit( uint16_t cvId, 
+                                      uint8_t  bitPos, 
+                                      uint8_t  val ) {
 
-    // ??? to do ...
+    uint8_t rStat   = LCS_OK;
+    uint8_t cvVal   = 0;         
+    
+    rStat = readCVBit( cvId, bitPos, &cvVal );
+    if ( rStat != LCS_OK ) return( rStat );
+
+    if ( cvVal != val ) {
+
+
+    }
 
     return( LCS_OK );
 }
-
-
 
 //----------------------------------------------------------------------------------------
 // "writeDccPacketMain" just emits a raw DCC packet for the MAIN track.
@@ -1245,15 +1317,16 @@ uint8_t LcsLocoSessions::writeDccPacketProg( uint8_t *packet, uint8_t len ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "printCabInfo" lists a cab entry. We have two formats. The summary format
+// "printCabEntry" lists a cab entry. We have two formats. The summary format
 // lists the cabId, speed info and flags. The detailed format adds the 
 // remainder of the cab entry data.
 //
 //----------------------------------------------------------------------------------------
-void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr, bool detail ) {
+void  LcsLocoSessions::printCabMapEntry( LcsCabEntry *cPtr, bool detail ) {
 
     if ( cPtr == nullptr ) return;
 
+    usbIoPrintf( CDC_USB_CONSOLE, "Entry: %d", cPtr - cabMap.map );
     usbIoPrintf( CDC_USB_CONSOLE, "CabId: %d, ", cPtr -> cabId );
 
     usbIoPrintf( CDC_USB_CONSOLE, 
@@ -1292,50 +1365,55 @@ void  LcsLocoSessions::printCabInfo( LcsCabEntry *cPtr, bool detail ) {
 }
 
 //----------------------------------------------------------------------------------------
-//
+// Print out the cab map.
 //
 //----------------------------------------------------------------------------------------
-void LcsLocoSessions::printCabMapHeader( ) {
+void LcsLocoSessions::printCabMap( ) {
 
-    usbIoPrintf( CDC_USB_CONSOLE, "CabMap Header\n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "CabMap\n\n" );
 
-    usbIoPrintf( CDC_USB_CONSOLE, "Magic Word: 0x%x\n", cabMapHead.magicWord );
-    usbIoPrintf( CDC_USB_CONSOLE, "Flags: 0x%x\n", cabMapHead.flags );
-    usbIoPrintf( CDC_USB_CONSOLE, "Max Cab Count: %d\n", cabMapHead.maxCabCount );  
+    usbIoPrintf( CDC_USB_CONSOLE, "Magic Word: 0x%x\n", cabMap.magicWord );
+    usbIoPrintf( CDC_USB_CONSOLE, "Flags: 0x%x\n", cabMap.flags );
+    usbIoPrintf( CDC_USB_CONSOLE, "Max Cab Count: %d\n", cabMap.maxCabCount );  
 
     usbIoPrintf( CDC_USB_CONSOLE, "Current Cab Count: %d\n", 
-                                  cabMapHead.currentCabCount );
+                                  cabMap.currentCabCount );
 
     usbIoPrintf( CDC_USB_CONSOLE, "Cab Entry Item Count: %d\n", 
-                                  cabMapHead.cabEntryItemCount );
+                                  cabMap.cabEntryItemSize );
                                   
-    usbIoPrintf( CDC_USB_CONSOLE, "\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "\n\n" );
+
+    for ( int i = 0; i < cabMap.currentCabCount; i++ ) {
+
+        printCabMapEntry( &cabMap.map[ i ] );
+    }
 }
 
 //----------------------------------------------------------------------------------------
-// "printActiveCabMap" lists the active cabs.
+// Print out the active cab map.
 // 
 //----------------------------------------------------------------------------------------
 void  LcsLocoSessions::printActiveCabMap( ) {
 
-    usbIoPrintf( CDC_USB_CONSOLE, "Active Cabs: \n\n" );
+    usbIoPrintf( CDC_USB_CONSOLE, "Active Cab Map \n\n" );
 
-    for ( int i = 0; i < activeCabCount; i++ ) {
+    usbIoPrintf( CDC_USB_CONSOLE, "Active cab count: %d\n", 
+                 activeCabMap.activeCabCount );
 
-        uint16_t locoIndex = activeCabList[ i ];
-        LcsCabEntry *cPtr = &cabMap[ locoIndex ];
+    for ( int i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
-        printCabInfo( cPtr );
+        uint16_t locoIndex = activeCabMap.map[ i ];
+        LcsCabEntry *cPtr = &cabMap.map[ locoIndex ];
+
+        printCabMapEntry( cPtr );
     }
 }
 
 
 
-
+// ??? not sure what to salvage from here...
 #if 0
-
- 
-
 // There
 // is one state for speed and direction and steps to refresh the function groups 
 // 1 to 5. If the function refresh option is set, we use the DCC command that sets

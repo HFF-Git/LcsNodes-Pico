@@ -1,11 +1,12 @@
-///---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Loco Session Lib
 //
-///---------------------------------------------------------------------------------------
-// 
+//----------------------------------------------------------------------------------------
+// The loc session library contains the code for the base station locomotive
+// session functionality. 
 //
-///---------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //
 // LCS - Controller Dependent Code - Include File
 // Copyright (C) 2020 - 2026  Helmut Fieres
@@ -30,12 +31,6 @@
 #include "LcsRuntimeLib.h"
 #include "LcsDccTrackLib.h"
 
-// ??? !!!! what is the impact of reading arrays of items for the byte order ?
-// ??? when we read an item, it is read as native little endian but transmitted
-// as big endian in a message. So, this should not concern us when we locally
-// read the array of items. The only time we need to worry about byte order is
-// when we send a message to the base station. 
-
 //----------------------------------------------------------------------------------------
 // Name spaces.
 //
@@ -47,22 +42,23 @@ using namespace LCS;
 // Fundamental constants for the loco session library. 
 // 
 //----------------------------------------------------------------------------------------
-const uint16_t  MAX_CAB_DICT_SESSIONS       = 128;
-const uint16_t  MAX_CAB_ACTIVE_SESSIONS     = 32;
+constexpr uint16_t  MAX_CAB_DICT_SESSIONS       = 128;
+constexpr uint16_t  MAX_CAB_ACTIVE_SESSIONS     = 32;
 
-const uint32_t  CAB_MAP_MAGIC_WORD          = 0xC0DECAFE;
-const uint16_t  CAB_ITEM_ID_HEADER_START    = ITEM_ID_USER_START;
-const uint16_t  CAB_ITEM_ID_STAGING_START   = ITEM_ID_USER_START + 16;
-const uint16_t  CAB_ITEM_ID_ARRAY_START     = CAB_ITEM_ID_STAGING_START + 16;
+constexpr uint16_t  CAB_ENTRY_ITEM_SIZE         = 32;
+constexpr uint16_t  CAB_ITEM_LOCO_NAME_LEN      = 16;
+constexpr uint16_t  CAB_ITEM_TRAIN_NAME_LEN     = 16;
 
-const uint16_t  CAB_ITEM_LOCO_NAME_LEN      = 16;
-const uint16_t  CAB_ITEM_TRAIN_NAME_LEN     = 16;
+constexpr uint32_t  CAB_MAP_MAGIC_WORD          = 0xC0DECAFE;
+constexpr uint16_t  CAB_MAP_ITEM_ID_START       = ITEM_ID_USER_START;
+constexpr uint16_t  CAB_MAP_ITEM_ID_MAP_START   = CAB_MAP_ITEM_ID_START + 
+                                                  CAB_ENTRY_ITEM_SIZE;
 
-const uint32_t  DCC_SESSION_TIMEOUT_MILLIS  = 2000;
+constexpr uint32_t  DCC_SESSION_TIMEOUT_MILLIS  = 2000;
 
 //----------------------------------------------------------------------------------------
 // The base station maintains a set of debug flags. The overall concept is very 
-// similar to the LCS runtime library debug mask. Then following debug flags are 
+// similar to the LCS runtime library debug mask. The following debug flags are 
 // defined:
 //
 //      DBG_LS_CONFIG                   -   DEBUG base station enabled
@@ -73,7 +69,6 @@ const uint32_t  DCC_SESSION_TIMEOUT_MILLIS  = 2000;
 //
 //      if (( debugMask & DBG_BS_CONFIG ) && ( debugMask & DBG_BS_SESSION )) 
 //
-// ??? should have a command to set the debug mask on the fly...
 //----------------------------------------------------------------------------------------
 enum LcsLocoSessionsDebugFlags : uint16_t {
 
@@ -85,36 +80,31 @@ enum LcsLocoSessionsDebugFlags : uint16_t {
 
 //----------------------------------------------------------------------------------------
 // Base station errors. Note that they need to be in the assigned to the user 
-// number range of errors defined in the LCS runtime library. The first 128 error 
-// codes are reserved for the LCS library.
+// number range of errors defined in the LCS runtime library. 
 //
 //----------------------------------------------------------------------------------------
 enum LcsLocoSessionErrors : uint8_t {
 
     LOCO_SESSIONS_ERR_BASE          = ERR_USER_SPECIFIC_BASE,
+    ERR_SESSION_SETUP               = LOCO_SESSIONS_ERR_BASE + 0,
     ERR_NO_SVC_MODE                 = LOCO_SESSIONS_ERR_BASE + 1,
     ERR_CV_OP_FAILED                = LOCO_SESSIONS_ERR_BASE + 2,
-    ERR_SESSION_SETUP               = LOCO_SESSIONS_ERR_BASE + 9,
-    ERR_CAB_MAP_FULL                = LOCO_SESSIONS_ERR_BASE + 10,
+    ERR_CAB_MAP_FULL                = LOCO_SESSIONS_ERR_BASE + 3
 };
 
 //----------------------------------------------------------------------------------------
-// The session map options. These are options initially set when the base station 
-// starts. They are used to set the flags, which are then used for processing the 
-// the actual settings. 
+// The session map options. These are options initially set when the base 
+// station starts. They are used to set the flags, which are then used for
+// processing the the actual settings. 
 //
-//  SM_KEEP_ALIVE_CHECKING  -   enable keep alive checking. When enabled, the engine
-//                              session need to receive a keep alive LCS message 
-//                              periodically.
-//  SM_ENABLE_REFRESH       -   refresh the session data. This will send the engine
-//                              speed and direction as well as the function flags
-//                              periodically in a round robin processing of the
-//
-//  SM_SESSION_AUTO_CREATE  -   when an engine command comes in and there is no 
-//                              session assigned to the engine, we will create a 
-//                              session. If there is no room in the session table,
-//                              the oldest entry that is not currently active will
-//                              be removed to make room for the new session.
+//  SM_KEEP_ALIVE_CHECKING  -   enable keep alive checking. When enabled, the 
+//                              engine session need to receive a keep alive LCS 
+//                              message periodically.
+//                              
+//  SM_ENABLE_REFRESH       -   refresh the session data. This will send the 
+//                              engine speed and direction as well as the
+//                              function flags periodically in a round robin 
+//                              processing of the
 //
 //----------------------------------------------------------------------------------------
 enum SessionMapOptions : uint16_t {
@@ -125,61 +115,49 @@ enum SessionMapOptions : uint16_t {
 };
 
 //----------------------------------------------------------------------------------------
-// The session map flags. The apply to all sessions in the session map. The initial
-// values are copied from session option initial values.
+// The session map flags. The apply to all sessions in the session map. The 
+// initial values are copied from session option initial values.
 //
-//  SM_F_KEEP_ALIVE_CHECKING  - enable keep alive checking. When enabled, the engine
-//                              session need to receive a keep alive LCS message 
-//                              periodically.
-//  SM_F_ENABLE_REFRESH       - refresh the session data. This will send the engine
-//                              speed and direction as well as the function flags 
-//                              periodically in a round robin fashion.
+//  SM_F_CAB_MAP_VALID        - the NVM cab map is a valid structure.
+//
+//  SM_F_KEEP_ALIVE_CHECKING  - enable keep alive checking. When enabled, the 
+//                              engine session need to receive a keep alive LCS
+//                              message periodically.
+//
+//  SM_F_ENABLE_REFRESH       - refresh the session data. This will send the 
+//                              engine speed and direction as well as the 
+//                              function flags periodically in a round robin 
+//                              fashion.
 //
 //----------------------------------------------------------------------------------------
-enum SessionMapFlags : uint16_t {
+enum CabMapFlags : uint16_t {
 
     SM_F_NIL                    = 0,
-    SM_F_KEEP_ALIVE_CHECKING    = 1 << 0,
-    SM_F_ENABLE_REFRESH         = 1 << 1
+    SM_F_CAB_MAP_VALID          = 1 << 0, 
+    SM_F_KEEP_ALIVE_CHECKING    = 1 << 1,
+    SM_F_ENABLE_REFRESH         = 1 << 2
 };
 
 //----------------------------------------------------------------------------------------
 // Each cab map entry has a set of flags. 
 //
-//  CMAP_F_ACTIVE                - the cab is active and in the active list.
-//  CMAP_F_ALIVE                 - the cab is marked alive.
-//  CMAP_F_COMBINED_REFRESH      - a DCC cab support the combined refresh option. 
-//  CMAP_F_SPDIR_REFRESH         - a DCC cab refreshes speed/dir.
-//  CMAP_F_FUNC_REFRESH          - a DCC cab refreshes functions. 
-// 
+//  CMAP_F_ACTIVE             - the cab is in the active list.
+//
+//  CMAP_F_COMBINED_REFRESH   - a DCC cab supports the combined refresh option.
+//                              There is a DCC packet code for this. 
+//
+//  CMAP_F_SPDIR_REFRESH      - a DCC cab only refreshes speed/dir.
+//
+//  CMAP_F_FUNC_REFRESH       - a DCC cab also refreshes functions. 
 // 
 //----------------------------------------------------------------------------------------
 enum CabMapEntryFlags : uint16_t {
 
     CMAP_F_NIL                      = 0,
     CMAP_F_ACTIVE                   = 1 << 0,
-    CMAP_F_ALIVE                    = 1 << 1,
-    CMAP_F_COMBINED_REFRESH         = 1 << 2,
-    CMAP_F_SPDIR_REFRESH            = 1 << 3,
-    SME_FUNC_REFRESH                = 1 << 4,
-   
-};
-
-//----------------------------------------------------------------------------------------
-// The Cab Map data structure is a header and an array of cab entries. The
-// header has a magic word, so we know that the data structure is valid. The
-// data is stored in global items. On module initialization we just read the
-// items in a local data structure. To the outside world, we present the items.
-// We reserve the fist items for the "header".
-//
-//----------------------------------------------------------------------------------------
-struct LcsCabMapHead {
-
-    uint32_t    magicWord;                                      // item 0 - 1
-    uint16_t    flags;                                          // item 2
-    uint16_t    maxCabCount;                                    // item 3
-    uint16_t    currentCabCount;                                // item 4  
-    uint16_t    cabEntryItemCount;                              // item 5                    
+    CMAP_F_COMBINED_REFRESH         = 1 << 1,
+    CMAP_F_SPDIR_REFRESH            = 1 << 2,
+    SME_FUNC_REFRESH                = 1 << 3
 };
 
 //----------------------------------------------------------------------------------------
@@ -240,7 +218,7 @@ struct LcsCabMapHead {
 //
 //  cabId           -   the cab assigned number. This is typically the DCC 
 //                      address. Analog cabs also get a number, as well as 
-//                      cab engine consists. 
+//                      cab engine consists. A NIL cab entry is a a zero.
 // 
 //  flags           -   flags for the cab entry.
 //
@@ -295,11 +273,48 @@ struct LcsCabEntry {
 };
 
 //----------------------------------------------------------------------------------------
-// The loco sessions object is the central data structure for the base station 
-// loco management. 
+// The Cab Map data structure is a header and an array of cab entries. The
+// header has a magic word, so we know that the data structure is valid. The
+// data is stored in global items. On module initialization we just read the
+// items in a local data structure. To the outside world, we present the items.
+// We reserve the first items for the "header". The header has the same size
+// as a cab entry.
+//----------------------------------------------------------------------------------------
+struct LcsCabMap {
+
+    uint32_t        magicWord;                                  // item 0 - 1
+    uint16_t        flags;                                      // item 2
+    uint16_t        maxCabCount;                                // item 3
+    uint16_t        currentCabCount;                            // item 4  
+    uint16_t        cabEntryItemSize;                           // item 5   
+    uint16_t        filler[ 26 ];                               // item 6 - 31
+
+    LcsCabEntry     map[ MAX_CAB_DICT_SESSIONS ];               // item 31 - nn
+};
+
+//----------------------------------------------------------------------------------------
+// Active cabs are maintained the active cab map. This a simple array of cabId
+// and a timestamp when it was last refreshed. There is no order in the map,
+// the active cab count is the high water mark. The DCC standard requires to 
+// periodically refresh the DCC command. The refresh index is a round robin
+// index that we use to do the refresh one locomotive at a time. We cannot 
+// refresh all at once, since then the LCS system would be non-responsive for
+// a considerable while.
 //
-// 
-// ??? some rework... 
+//----------------------------------------------------------------------------------------
+struct LcsActiveCabMap {
+
+     uint16_t   activeCabCount;
+     uint16_t   refreshIndex;
+     int        map[ MAX_CAB_ACTIVE_SESSIONS ];
+     uint32_t   tsMap[ MAX_CAB_ACTIVE_SESSIONS ];
+};
+
+//----------------------------------------------------------------------------------------
+// The loco sessions object is the central data structure for the base station 
+// loco management. The base station creates exactly one instance. The session
+// object works closely with the DCC track objects.
+//
 //----------------------------------------------------------------------------------------
 struct LcsLocoSessions {
 
@@ -315,6 +330,7 @@ struct LcsLocoSessions {
     uint8_t             formatCabMap( );
     uint8_t             loadCabMap( );
     uint8_t             updateCabMap( );
+
     uint8_t             addCabEntry( LcsCabEntry *entry );
     uint8_t             removeCabEntry( uint16_t cabId );
     LcsCabEntry         *lookupCabEntry( uint16_t cabId );
@@ -330,7 +346,7 @@ struct LcsLocoSessions {
                                      uint8_t speed, 
                                      uint8_t direction );
 
-    uint8_t             setThrottle( LcsCabEntry *cePtr, 
+    uint8_t             setThrottle( LcsCabEntry *cPtr, 
                                      uint8_t speed, 
                                      uint8_t direction );
 
@@ -342,9 +358,9 @@ struct LcsLocoSessions {
                                              uint8_t fGroup, 
                                              uint8_t dccByte );
 
-    uint8_t             setDccFunctionGroup( LcsCabEntry *cePtr, 
-                                              uint8_t fGroup, 
-                                              uint8_t dccByte );
+    uint8_t             setDccFunctionGroup( LcsCabEntry *cPtr, 
+                                             uint8_t fGroup, 
+                                             uint8_t dccByte );
 
     uint8_t             writeCVMain( uint16_t cabId, 
                                      uint16_t cvId, 
@@ -377,36 +393,29 @@ struct LcsLocoSessions {
     uint8_t             writeDccPacketMain( uint8_t *packet, uint8_t len );
     uint8_t             writeDccPacketProg( uint8_t *packet, uint8_t len );
     
-    void                printCabMapHeader( );
+    void                printCabMap( );
     void                printActiveCabMap( );
-    void                printCabInfo( LcsCabEntry *cePtr, bool detail = false );
+    void                printActiveMapCabEntry( LcsCabEntry *aPtr, bool detail = false );
+    void                printCabMapEntry( LcsCabEntry *cPtr, bool detail = false );
     
     private:
 
     uint16_t            debugMask               = 0;
     uint16_t            options                 = DT_OPT_NIL;
     uint16_t            flags                   = DT_F_NIL;
-    uint32_t            lastAliveCheckTime      = 0L;
-    uint32_t            refreshAliveTimeOutVal  = DCC_SESSION_TIMEOUT_MILLIS;
 
     LcsDccTrack         *mainTrack              = nullptr;
     LcsDccTrack         *progTrack              = nullptr;
 
-    
-    uint16_t            cabCount                = 0;
-    uint16_t            activeCabCount          = 0;
-    uint16_t            cabRefreshIndex         = 0;
-
-    LcsCabMapHead       cabMapHead;
-    LcsCabEntry         cabStagingEntry;
-    LcsCabEntry         cabMap[ MAX_CAB_DICT_SESSIONS ];
-    int                 activeCabList[ MAX_CAB_ACTIVE_SESSIONS ];
+    LcsCabMap           cabMap;
+    LcsActiveCabMap     activeCabMap;
 
     LcsCabEntry         *activateCabEntry( uint16_t cabId );
     void                deactivateCabEntry( uint16_t cabId );
 
     void                addActiveCab( uint16_t locoIndex );
     void                removeActiveCab( uint16_t locoIndex );
+    void                rebuildActiveCabMap( );
     void                refreshActiveCabs( );
     void                refreshActiveCabEntry( LcsCabEntry *cab );
 };
