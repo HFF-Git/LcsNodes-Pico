@@ -1110,11 +1110,10 @@ void LcsDccTrack::getNextPacket( ) {
 //
 // The received datagrams are also recorded in the DCC_LOG, if enabled.
 //
-// ??? under construction....
-// ??? we could store the last loco address in some global variable.
-// ??? we could store the channel 2 datagram in the corresponding session.
-// ??? still, both pieces of data needs to go somewhere before the next message
-//  is received...
+// ??? under construction.... we could store the last loco address in some 
+// global variable. We could store the channel 2 datagram in the corresponding
+// session. Still, both pieces of data needs to go somewhere before the next 
+// message is received...
 //
 // This routine is part of the interrupt code path. 
 //----------------------------------------------------------------------------------------
@@ -1151,8 +1150,7 @@ uint8_t LcsDccTrack::handleRailComMsg( ) {
         }
         else if ( dataByte < 64 ) {
 
-            // ??? valid
-            // ??? a railCom message can have multiple datagrams
+            // ??? valid packet. A railCom message can have multiple datagrams
             // we would need to handle each datagram, one at a time or fill them 
             // into a kind of structure
             // that has a slot for the up to maximum 4 datagrams per railCom

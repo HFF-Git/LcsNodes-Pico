@@ -5,11 +5,11 @@
 ///---------------------------------------------------------------------------------------
 // The library contains the locomotive dictionary which is a simple array of 
 // locomotive descriptors. The dictionary is stored in the global NVM attribute 
-// range. An entry is therefore carefully mapped to items and alignment. If
-// the locomotive cabId is not in this roster, it does not exist.
+// range. An entry is therefore carefully mapped to item numbers and alignment.
+// If the locomotive cabId is not in this roster, it does not exist.
 //
 // Commands for a locomotive trigger the ad hoc creation of a locomotive session.
-// Although we can store hundreds of locomotive in the dictionary, we cannot
+// Although we can store hundreds of locomotives in the dictionary, we cannot
 // keep track of so many active sessions. A session is defined as a locomotive
 // receiving commands. These engines are refreshed, i.e. their last command is
 // repeated according to the DCC standard. When no commands are received in a 
@@ -56,27 +56,28 @@ namespace {
 using namespace LCS;
 
 //----------------------------------------------------------------------------------------
-// "setupDebugEnabled" and "retStat" are the debug support routines. We can 
-// easily check whether debug is enabled at all. The return status routine will
-// print out a return status message when debugging is enabled. The macro 
-// "RET_STAT" is a nice helper that adds the function name to the message.
+// Debug support. The following routines control the printing of debug messages.
 // 
+//  ENTER_FUNC - a macro to just print that we are entering the function.
+//  REET_STAT  - a macro that prints we are leaving along with status code.
+// 
+// ??? need a concept to share the RtLib debug mask...
 //----------------------------------------------------------------------------------------
 uint16_t debugMask;
 
-inline bool setupDebugEnabled( ) {
+inline bool sLibDebugEnabled( ) {
 
     return (( debugMask & LCS_DBG_ENABLE ) && ( debugMask & LCS_DBG_SETUP )); 
 }
 
 inline void enterFunc( char *name ) {
 
-    if ( setupDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
+    if ( sLibDebugEnabled( )) usbIoPrintf( CDC_USB_CONSOLE, "--> %s\n", name );
 }
 
 inline uint8_t retStat( char *name, uint8_t errId ) {
 
-    if ( setupDebugEnabled( )) {
+    if ( sLibDebugEnabled( )) {
 
         if ( errId == LCS_OK )  
             usbIoPrintf( CDC_USB_CONSOLE, "<-- %s: OK\n", name );
@@ -91,9 +92,9 @@ inline uint8_t retStat( char *name, uint8_t errId ) {
 #define RET_STAT(x) retStat((char *) __func__, ( x ))
 
 //----------------------------------------------------------------------------------------
-// DCC packet definitions. A DCC packet payload is at most 10 bytes long, excluding
-// the checksum byte. This is true for XPOM support, otherwise it is according to
-// NMRA up to 6 bytes.
+// DCC packet definitions. A DCC packet payload is at most 10 bytes long, 
+// excluding the checksum byte. This is true for XPOM support, otherwise it 
+// is according to NMRA up to 6 bytes.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   MIN_DCC_PACKET_SIZE         = 2;
@@ -102,8 +103,8 @@ const uint8_t   MIN_DCC_PACKET_REPEATS      = 0;
 const uint8_t   MAX_DCC_PACKET_REPEATS      = 8;
 
 //----------------------------------------------------------------------------------------
-// Constant values definition. We need the RESET and IDLE packet as well as a bit
-// mask for a quick bit select in the data byte.
+// Constant values definition. We need the RESET and IDLE packet as well as a 
+// bit mask for a quick bit select in the data byte.
 //
 //----------------------------------------------------------------------------------------
 const uint8_t   idleDccPacketData[ ]    = { 0xFF, 0x00 };
@@ -127,7 +128,7 @@ bool validCvId( uint16_t cvId ) {
 
 bool validFunctionId( uint8_t fId ) {
 
-    return ( isInRangeU( fId, MIN_DCC_FUNC_ID, MAX_DCC_FUNC_ID ));
+    return ( fId <= MAX_DCC_FUNC_ID );
 }
 
 bool validFunctionGroupId( uint8_t fGroup ) {
@@ -137,12 +138,12 @@ bool validFunctionGroupId( uint8_t fGroup ) {
 
 bool validDccPacketlen( uint8_t len ) {
 
-    return ( isInRangeU( len, MIN_DCC_PACKET_SIZE, MAX_DCC_PACKET_SIZE ));
+    return ( len <= MAX_DCC_PACKET_SIZE );
 }
 
 bool validDccPacketRepeatCnt( uint8_t nRepeat ) {
 
-    return ( isInRangeU( nRepeat, MIN_DCC_PACKET_REPEATS, MAX_DCC_PACKET_REPEATS ));
+    return ( nRepeat <= MAX_DCC_PACKET_REPEATS );
 }
 
 uint8_t bitRead( uint8_t arg, uint8_t pos ) {
@@ -157,12 +158,13 @@ void bitWrite( uint8_t *arg, uint8_t pos, bool val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// DDC function flags. The DCC function flags F0 .. F68 are stored in ten groups. 
-// Group 0 contains F0 .. F4 stored in DCC command byte format. Group 1 contains 
-// F5 .. F8, Group 2 contains F9 .. F12 in DCC command byte format. The remainder 
-// F13 .. F68 are stored in 8 bits groups also in DCC command byte format. The
-// routines support the get/set of an individual bit as well as setting an entire 
-// function group. A DCC function group is labelled starting with index 1.
+// DDC function flags. The DCC function flags F0 .. F68 are stored in ten 
+// groups.  A DCC function group is labelled starting with index 1. Group 1 
+// contains F0 .. F4, group 2 contains F5 .. F8, Group 3 contains F9 .. F12 
+// in DCC command byte format. The remainder F13 .. F68 are stored in 8 bits
+// groups also in DCC command byte format. The routines support the get/set 
+// of an individual bit as well as setting an entire function group. 
+//
 //
 //----------------------------------------------------------------------------------------
 bool getDccFuncBit( uint8_t *funcFlags, uint8_t fNum ) {
@@ -232,7 +234,7 @@ uint8_t dccFunctionBitToGroup( uint8_t fNum ) {
 }
 
 //----------------------------------------------------------------------------------------
-// Cab Map utility routines.
+// CabId sort support.
 //
 //----------------------------------------------------------------------------------------
 int compareCabId( const void *a, const void *b ) {
@@ -250,10 +252,13 @@ void sortCabMap( LcsCabEntry *map, uint16_t len ) {
     qsort( map, len, sizeof( LcsCabEntry ), compareCabId );
 }
 
+//----------------------------------------------------------------------------------------
+// Cab data structures initialization routines.
+//
+//----------------------------------------------------------------------------------------
 void initCabEntry( LcsCabEntry *e ) {
 
-    uint16_t *ePtr = (uint16_t *) e;
-    for ( int i = 0; i < sizeof(LcsCabEntry) / 2; i++ ) ePtr[ i ] = 0;
+    memset( e, 0, sizeof(LcsCabEntry));
 }
 
 void initCabMap( LcsCabMap *cMap ) {
@@ -263,12 +268,12 @@ void initCabMap( LcsCabMap *cMap ) {
     cMap -> maxCabCount         = MAX_CAB_DICT_SESSIONS;           
     cMap -> currentCabCount     = 0;                           
     cMap -> cabEntryItemSize    = CAB_ENTRY_ITEM_SIZE;  
-    
-    for ( int i = 0; i < 26; i++ ) cMap -> filler[ i ] = 0; 
+    cMap -> rsv1                = 0;
+    cMap -> rsv2                = 0;
     
     for ( int i = 0; i < MAX_CAB_DICT_SESSIONS; i ++ ) {
         
-        initCabEntry( &cMap -> map[ i ] );
+        initCabEntry( & (cMap -> map[ i ] ));
     }
 }
 
@@ -286,6 +291,9 @@ void initActiveCabMap( LcsActiveCabMap *aMap ) {
 
 }; // namespace
 
+//========================================================================================
+//========================================================================================
+
 //----------------------------------------------------------------------------------------
 // "LocoSession" constructor. Nothing to do here.
 //
@@ -296,15 +304,13 @@ LcsLocoSessions::LcsLocoSessions( ) { }
 // "setupLocoSessions" initializes the session data. We are passed the options
 // as well as the two DCC tracks.
 //
+// ??? use options to also pass the debug flag ?
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options, 
                                             LcsDccTrack *mainTrack,
                                             LcsDccTrack *progTrack ) {
 
-    if ( setupDebugEnabled( )) {
-            
-        usbIoPrintf( CDC_USB_CONSOLE, "Setup Loco Sessions...\n" );
-    }
+    ENTER_FUNC( );
 
     if (( mainTrack == nullptr ) || ( progTrack == nullptr )) {
 
@@ -319,11 +325,6 @@ uint8_t LcsLocoSessions::setupLocoSessions( uint16_t options,
     if ( options & SM_OPT_ENABLE_REFRESH ) {
              
         flags |= SM_F_ENABLE_REFRESH;
-    }
-
-    if ( options & SM_OPT_KEEP_ALIVE_CHECKING ) { 
-        
-        flags |= SM_F_KEEP_ALIVE_CHECKING;
     }
 
     initCabMap( &cabMap );
@@ -342,24 +343,22 @@ uint8_t LcsLocoSessions::formatCabMap( ) {
 
     ENTER_FUNC( );
 
-    uint8_t rStat = LCS_OK;
-
     initCabMap( &cabMap );
 
-    rStat = setItem( 0, 
-                     CAB_MAP_ITEM_ID_START,
-                     (uint16_t *) &cabMap, 
-                     sizeof( LcsCabMap ) / sizeof( uint16_t ));
+    uint8_t rStat = setItem( NIL_NODE_ID, 
+                             CAB_MAP_ITEM_ID_START,
+                             (uint16_t *) &cabMap, 
+                             sizeof( LcsCabMap ) / sizeof( uint16_t ));
 
     return( RET_STAT( rStat ));    
 }
 
 //----------------------------------------------------------------------------------------
 // "loadCabMap" retrieves the cab map from NVM. The cab map is a NVM data 
-// structure, an array of cab entries, unsorted. If the cabId is not in this
-// roster, it does not exist. We first read the header portion and if valid, 
-// read the remaining cab array data. Otherwise, we format the cap map and
-// have a vanilla cabMap.
+// structure, with an array of cab entries, unsorted. If the cabId is not in 
+// this dictionary, it does not exist. We first read the header portion and if 
+// valid, read the remaining cab array data. Otherwise, we format the cap map 
+// and have a vanilla cabMap. In either case we have a valid cab map.
 //
 // Adding or removing cab entries is solely done on the NVM structure, which 
 // is unsorted. After reading the NVM data, we sort the MEM structure.
@@ -369,53 +368,57 @@ uint8_t LcsLocoSessions::loadCabMap( ) {
 
     ENTER_FUNC( );
 
-    uint8_t rStat = LCS_OK;
-
     initCabMap( &cabMap );
 
-    if ( setupDebugEnabled( )) {
+    if ( sLibDebugEnabled( )) {
             
             usbIoPrintf( CDC_USB_CONSOLE, "Read Cab map head ...\n" );
     }
 
+    uint8_t rStat = LCS_OK;
+
     rStat = getItem( NIL_NODE_ID, 
                      CAB_MAP_ITEM_ID_START, 
                      (uint16_t *) &cabMap, 
-                     CAB_ENTRY_ITEM_SIZE );
+                     CAB_DICT_HEADER_SIZE );
+    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
-    if ( rStat != LCS_OK ) {
+    if (( cabMap.magicWord != CAB_MAP_MAGIC_WORD ) ||
+        ( cabMap.cabEntryItemSize != CAB_ENTRY_ITEM_SIZE ) ||
+        ( cabMap.currentCabCount > MAX_CAB_DICT_SESSIONS )) {
 
-        if ( setupDebugEnabled( )) {
+        if ( sLibDebugEnabled( )) {
             
             usbIoPrintf( CDC_USB_CONSOLE, "Not valid, formatting ...\n" );
         }
 
         rStat = formatCabMap( );
-    }
-
-    if ( rStat == LCS_OK ) {
-
-        if ( setupDebugEnabled( )) {
-
-            usbIoPrintf( CDC_USB_CONSOLE, "Load Cab map entries ...\n" );
-        }
+        if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
 
         rStat = getItem( NIL_NODE_ID, 
-                         CAB_MAP_ITEM_ID_MAP_START, 
-                         (uint16_t *) &cabMap.map, 
-                         cabMap.currentCabCount * cabMap.cabEntryItemSize );
+                     CAB_MAP_ITEM_ID_START, 
+                     (uint16_t *) &cabMap, 
+                     CAB_DICT_HEADER_SIZE );
+        if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
     }
 
-    if ( rStat == LCS_OK ) { 
+    if ( sLibDebugEnabled( )) {
 
-        if ( setupDebugEnabled( )) {
+        usbIoPrintf( CDC_USB_CONSOLE, "Load Cab map entries ...\n" );
+    }
 
-            usbIoPrintf( CDC_USB_CONSOLE, "Sort Cab map ...\n" );
-        }
+    rStat = getItem( NIL_NODE_ID, 
+                     CAB_MAP_ITEM_ID_MAP_START, 
+                     (uint16_t *) &cabMap.map, 
+                     cabMap.currentCabCount * cabMap.cabEntryItemSize );
+    if ( rStat != LCS_OK ) return ( RET_STAT( rStat ));
+
+    if ( sLibDebugEnabled( )) {
+
+        usbIoPrintf( CDC_USB_CONSOLE, "Sort Cab map ...\n" );
+    }
         
-        sortCabMap( cabMap.map, cabMap.currentCabCount );
-    }
-
+    sortCabMap( cabMap.map, cabMap.currentCabCount );
     return( RET_STAT( rStat ));
 }
 
@@ -430,11 +433,15 @@ uint8_t LcsLocoSessions::updateCabMap( ) {
     ENTER_FUNC( );
 
     uint8_t  rStat = LCS_OK;
+
+    if ( cabMap.currentCabCount <= MAX_CAB_DICT_SESSIONS ) {
    
-    rStat = setItem( NIL_NODE_ID, 
-                     CAB_MAP_ITEM_ID_START, 
-                     (uint16_t *) &cabMap, 
-                     cabMap.currentCabCount * cabMap.cabEntryItemSize );
+        rStat = setItem( NIL_NODE_ID, 
+                         CAB_MAP_ITEM_ID_START, 
+                         (uint16_t *) &cabMap, 
+                         cabMap.currentCabCount * cabMap.cabEntryItemSize );
+    }
+    else rStat = ERR_CAB_MAP_INVALID_COUNT;
 
     return( RET_STAT( rStat ));
 }
@@ -463,6 +470,11 @@ uint16_t LcsLocoSessions::getMaxCabCount( ) {
     return ( cabMap.maxCabCount );
 }
 
+uint16_t LcsLocoSessions::getActiveCabCount( ) {
+
+    return ( activeCabMap.activeCabCount );
+}
+
 //----------------------------------------------------------------------------------------
 // "lookupCabEntry" looks for a cab entry in the sorted loco base and returns 
 // a pointer to the entry if found, otherwise a nullptr.
@@ -477,12 +489,9 @@ LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 
         uint16_t mid = low + ( high - low ) / 2;
 
-        if ( cabMap.map[ mid ].cabId < cabId )
-            low = mid + 1;
-        else if ( cabMap.map[ mid ].cabId > cabId )
-            high = mid;
-        else
-            return( &cabMap.map[ mid ] );
+        if      ( cabMap.map[ mid ].cabId < cabId ) low  = mid + 1;
+        else if ( cabMap.map[ mid ].cabId > cabId ) high = mid;
+        else return( &cabMap.map[ mid ] );
     }
 
     return( nullptr );
@@ -496,7 +505,7 @@ LcsCabEntry *LcsLocoSessions::lookupCabEntry( uint16_t cabId ) {
 // Note that we only update our memory structure for the cabMap. When we want
 // this permanently saved, we need to update the NVM image. Splitting the task
 // allows us however to do many updates to the memory image and then flush it
-// after all changes.
+// after all changes are done.
 //
 // ??? validate the entry first ?
 //----------------------------------------------------------------------------------------
@@ -541,22 +550,17 @@ uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
 
     uint16_t cabMapIndex = cPtr - cabMap.map;
 
-    for ( uint16_t i = 0; i < activeCabMap.activeCabCount; i++ ) {
-
-        if ( activeCabMap.map[ i ] > cabMapIndex ) activeCabMap.map[ i ] --;
-    }
-
     if ( cabMapIndex < cabMap.currentCabCount - 1 ) {
 
         memmove( &cabMap.map[ cabMapIndex ],
                  &cabMap.map[ cabMapIndex + 1 ],
-                 ( cabMap.currentCabCount - cabMapIndex - 1 ) * sizeof( LcsCabEntry ));
+                 ( cabMap.currentCabCount - cabMapIndex - 1 ) * 
+                                                    sizeof( LcsCabEntry ));
     }
 
     cabMap.currentCabCount --;
 
     rebuildActiveCabMap( );
-
     return( LCS_OK );
 }
 
@@ -564,42 +568,46 @@ uint8_t LcsLocoSessions::removeCabEntry( uint16_t cabId ) {
 // "addActiveCab" adds a cab entry index to the active cab list. The index is
 // only added if it is not already in the list.
 //
+// ??? what do we do when the table is full ?
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::addActiveCab( uint16_t cabMapIndex ) {
 
-    if ( cabMapIndex > MAX_CAB_DICT_SESSIONS ) return;
+    if ( cabMapIndex >= MAX_CAB_DICT_SESSIONS ) return;
 
     for ( uint16_t i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
         if ( activeCabMap.map[ i ] == cabMapIndex ) return;
     }
 
-    if ( activeCabMap.activeCabCount >= MAX_CAB_ACTIVE_SESSIONS ) return;
+    if ( activeCabMap.activeCabCount < MAX_CAB_ACTIVE_SESSIONS ) {
 
-    activeCabMap.map[ activeCabMap.activeCabCount ] = cabMapIndex;
-    activeCabMap.activeCabCount ++;
+        activeCabMap.map[ activeCabMap.activeCabCount ] = cabMapIndex;
+        activeCabMap.activeCabCount ++;
+    }
 }
 
 //----------------------------------------------------------------------------------------
 // "removeActiveCab" removes a cab entry index from the active cab list. Order
 // of the active list is not significant, so the last entry is moved into the 
-// position of the removed entry.
+// position of the removed entry, and the total count decremented.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::removeActiveCab( uint16_t cabMapIndex ) {
 
-    if ( cabMapIndex > MAX_CAB_DICT_SESSIONS ) return;
+    if ( cabMapIndex >= MAX_CAB_DICT_SESSIONS ) return;
+    if ( activeCabMap.activeCabCount == 0 ) return;
 
     for ( uint16_t i = 0; i < activeCabMap.activeCabCount; i++ ) {
 
         if ( activeCabMap.map[ i ] == cabMapIndex ) {
 
-            activeCabMap.activeCabCount --;
+            if ( i != activeCabMap.activeCabCount - 1 ) {
 
-            if ( i != activeCabMap.activeCabCount ) {
-
-                activeCabMap.map[ i ] = activeCabMap.map[ activeCabMap.activeCabCount ];
+                activeCabMap.map[ i ] = 
+                        activeCabMap.map[ activeCabMap.activeCabCount ];
             }
+
+             activeCabMap.activeCabCount --;
 
             return;
         }
@@ -609,7 +617,9 @@ void LcsLocoSessions::removeActiveCab( uint16_t cabMapIndex ) {
 //----------------------------------------------------------------------------------------
 // "rebuildActiveCabMap" is used to scan the cab map and add all active cab 
 // entries are. It is typically used when we removed an entry from the cab map 
-// and entry indices shifted. 
+// and entry indices shifted. This is a linear search and may take a while.
+// However, it is only done when deleting entries, which we do not do during
+// operations.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::rebuildActiveCabMap( ) {
@@ -624,10 +634,10 @@ void LcsLocoSessions::rebuildActiveCabMap( ) {
 
 //----------------------------------------------------------------------------------------
 // "activateCabEntry" activates the cab entry. It is used by all routines that 
-// need to manipulate a cab and does all the housekeeping. The entry must already 
-// exists in the loco dictionary. If it is found, it is added to the active loco
-// list if it isn't already active. Returns a pointer to the entry, or nullptr 
-// if the cab does not exist.
+// need to manipulate a cab and does all the active list housekeeping. The entry
+// must already exists in the loco dictionary. If it is found, it is added to 
+// the active loco list if it isn't already active. Returns a pointer to the 
+// entry, or nullptr if the cab does not exist.
 //
 //----------------------------------------------------------------------------------------
 LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
@@ -646,7 +656,7 @@ LcsCabEntry *LcsLocoSessions::activateCabEntry( uint16_t cabId ) {
 
 //----------------------------------------------------------------------------------------
 // "deactivateCabEntry" deactivates a cab entry and removes it from the active
-// loco list. The entry remains in the dictionary base.
+// loco list. The entry remains of course in the dictionary base.
 //
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
@@ -670,6 +680,7 @@ void LcsLocoSessions::deactivateCabEntry( uint16_t cabId ) {
 // ESTOP DCC broadcast packet and then set the speed value in each session to 
 // one, which is the value for emergency stop. All else is unchanged.
 //
+// ??? still not clear what to really send...
 //----------------------------------------------------------------------------------------
 void LcsLocoSessions::emergencyStopAll( ) {
 
@@ -680,21 +691,6 @@ void LcsLocoSessions::emergencyStopAll( ) {
         LcsCabEntry *cPtr = &cabMap.map[ activeCabMap.map[ i ] ];
         cPtr -> speedInfo  = 1;
     }
-}
-
-//----------------------------------------------------------------------------------------
-// "refreshActiveCabEntry" manages the refresh tasks of a cab. We just send
-// a speed/dir packet.
-// 
-// ??? what about functions ? read the standard again ...
-//----------------------------------------------------------------------------------------
-void LcsLocoSessions::refreshActiveCabEntry( LcsCabEntry *cab ) {
-
-    if ( cab == nullptr ) return;
-   
-    setThrottle( cab, 
-                 (uint8_t) cab -> speedInfo & 0x7F, 
-                 (uint8_t) (( cab -> speedInfo & 0x80 ) ? 1 : 0 ));
 }
 
 //----------------------------------------------------------------------------------------
@@ -710,7 +706,6 @@ void LcsLocoSessions::refreshActiveCabs( ) {
     if ( activeCabMap.activeCabCount == 0 ) return;
 
     uint16_t cabMapIndex = activeCabMap.map[ activeCabMap.refreshIndex ];
-   
     if ( cabMapIndex == -1 ) return;
 
     LcsCabEntry *cab        = &cabMap.map[ cabMapIndex ];
@@ -719,7 +714,10 @@ void LcsLocoSessions::refreshActiveCabs( ) {
     if (( currentTs -  activeCabMap.tsMap[ cabMapIndex ] <= 
                                         DCC_SESSION_TIMEOUT_MILLIS )) { 
 
-        refreshActiveCabEntry( cab );
+        setThrottle( cab, 
+                 (uint8_t) cab -> speedInfo & 0x7F, 
+                 (uint8_t) (( cab -> speedInfo & 0x80 ) ? 1 : 0 ));
+
         activeCabMap.tsMap[ cabMapIndex ] = currentTs;
     } 
     else {
@@ -833,8 +831,8 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( uint16_t cabId,
 }
 
 //----------------------------------------------------------------------------------------
-// "setDccFunctionGroup" sets an entire group of function flags.The DCC function
-// flags F0 .. F68 are stored in ten groups.
+// "setDccFunctionGroup" sets an entire group of function flags.The DCC 
+// function flags F0 .. F68 are stored in ten groups.
 //
 //      Group 1:  F0, F4, F3, F2, F1      DCC Command Format: 100DDDDD
 //      Group 2:  F8, F7, F6, F5          DCC Command Format: 1011DDDD
@@ -847,9 +845,9 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( uint16_t cabId,
 //      Group 9:  F60 .. F53              DCC Command Format: 0xDB DDDDDDDD
 //      Group 10: F68 .. F61              DCC Command Format: 0xDC DDDDDDDD
 //
-// The routines updates the entire function group byte in the loco session entry, 
-// so we can keep track of the values. The function command is repeated 4 times to
-// the track.
+// The routines updates the entire function group byte in the loco session
+// entry, so we can keep track of the values. The function command is repeated 
+// 4 times to the track.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr, 
@@ -886,12 +884,12 @@ uint8_t LcsLocoSessions::setDccFunctionGroup( LcsCabEntry *cPtr,
 
 //----------------------------------------------------------------------------------------
 // "writeCVMain" writes a CV value to the decoder on the main track. CV numbers 
-// range from 1 to 1024, but are encoded from 0 to 1023. The DCC standard defines 
-// various modes for retrieving CV values. This function implements CV write mode 
-// mode 0 and 1, by calling the respective method. The other modes are not 
-// supported. For bit mode access, the bit position and bit value are encoded 
-// in the "val" parameter with bit 3 containing the data and bit 0 ..2 the bit 
-// offset.
+// range from 1 to 1024, but are encoded from 0 to 1023. The DCC standard 
+// defines various modes for retrieving CV values. This function implements CV
+// write mode mode 0 and 1, by calling the respective method. The other modes 
+// are not supported. For bit mode access, the bit position and bit value are 
+// encoded in the "val" parameter with bit 3 containing the data and bit 0 ..2
+// the bit offset.
 //
 //    0 Direct Byte
 //    1 Direct Bit
@@ -925,11 +923,11 @@ uint8_t LcsLocoSessions::writeCVMain( uint16_t cabId,
 }
 
 //----------------------------------------------------------------------------------------
-// "writeCVByteMain" writes a byte to the CV while the loco is on the main track. 
-// The CV numbers range from 1 to 1024, but are encoded from 0 to 1023. This 
-// function implements CV write mode mode 0, which is write a byte at a time. 
-// There is no way to validate our operation, only writes are possible. The 
-// packet is sent four times.
+// "writeCVByteMain" writes a byte to the CV while the loco is on the main 
+// track. The CV numbers range from 1 to 1024, but are encoded from 0 to 1023. 
+// This function implements CV write mode mode 0, which is write a byte at a 
+// time. There is no way to validate our operation, only writes are possible. 
+// The packet is sent four times.
 //
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeCVByteMain( uint16_t cabId, 
@@ -1015,19 +1013,19 @@ uint8_t LcsLocoSessions::readCV( uint16_t cvId, uint8_t mode, uint8_t *val ) {
 }
 
 //----------------------------------------------------------------------------------------
-// "readCVByte" will retrieve a complete byte from the decoder. CV numbers range 
-// from 1 to 1024, but are encoded from 0 to 1023. This command is only available 
-// in service mode, i.e. on a programming track. Reading a CV value where the 
-// decoder can only respond with a "yes" or "no" is a tedious matter. We are 
-// actually reading the CV value bit by bit and then ask if the assembled byte 
-// read is the one just read. The general packet sequence is a according to DCC 
-// standard standard 3 or more RESET packets, 5 or more identical READ packets 
-// and then RESET packages until acknowledge or timeout. The RESET packet preamble
-// and postamble series are sent during the decoder ack setup and detect call to 
-// the DCC track object. During the preamble we figure out the base current 
-// consumption of the decoder, during the postamble packets we measure to get 
-// the decoder acknowledge, which is a short raise in power consumption to 
-// indicate an ACK.
+// "readCVByte" will retrieve a complete byte from the decoder. CV numbers 
+// range from 1 to 1024, but are encoded from 0 to 1023. This command is only 
+// available in service mode, i.e. on a programming track. Reading a CV value 
+// where the decoder can only respond with a "yes" or "no" is a tedious matter. 
+// We are actually reading the CV value bit by bit and then ask if the assembled
+// byte read is the one just read. The general packet sequence is a according 
+// to DCC standard standard 3 or more RESET packets, 5 or more identical READ
+// packets and then RESET packages until acknowledge or timeout. The RESET 
+// packet preamble and postamble series are sent during the decoder ack setup 
+// and detect call to the DCC track object. During the preamble we figure out 
+// the base current consumption of the decoder, during the postamble packets 
+// we measure to get the decoder acknowledge, which is a short raise in power
+// consumption to indicate an ACK.
 //
 //
 // ??? This command may take a long time, a lot of packets are sent. While this 
@@ -1035,11 +1033,15 @@ uint8_t LcsLocoSessions::readCV( uint16_t cvId, uint8_t mode, uint8_t *val ) {
 // it may be an issue with any other work of the base station. This code needs 
 // to be redesigned to use a kind of state machine that sends a packet at a time
 // so other work can interleave.
+//
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::readCVByte( uint16_t cvId, uint8_t *val ) {
 
-    // ???
-    // if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( progTrack -> getTrackMode( ) != DT_M_ACC_DETECT ) {
+        
+        return ( ERR_NO_SVC_MODE );
+    }
+
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
     cvId--;
 
@@ -1071,10 +1073,11 @@ uint8_t LcsLocoSessions::readCVByte( uint16_t cvId, uint8_t *val ) {
 // "readCVBit" will retrieve one bit from a CV variable from the decoder. CV 
 // numbers range from 1 to 1024, but are encoded from 0 to 1023. This command 
 // is only available in service mode, i.e. on a programming track. The "val" 
-// parameter encodes the bit position in bits 0 - 2. We are reading the CV value
-// bit and then ask if the bit read is the one just read. We first try to 
-// validate a "zero" bit. If that succeeds, fine. Otherwise we try to validate a 
-// "one" bit. If that succeeds, fine. Otherwise we have a CV read error. 
+// parameter encodes the bit position in bits 0 - 2. We are reading the CV 
+// value bit and then ask if the bit read is the one just read. We first try 
+// to validate a "zero" bit. If that succeeds, fine. Otherwise we try to 
+// validate a "one" bit. If that succeeds, fine. Otherwise we have a CV read
+// error. 
 //
 // The general packet sequence is according to DCC standard 3 or more RESET 
 // packets, 5 or more identical READ packets and then RESET packages until 
@@ -1095,8 +1098,10 @@ uint8_t LcsLocoSessions::readCVBit( uint16_t cvId,
                                     uint8_t bitPos, 
                                     uint8_t *val ) {
 
-    // ???
-    // if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( progTrack -> getTrackMode( ) != DT_M_ACC_DETECT ) {
+        
+        return ( ERR_NO_SVC_MODE );
+    }
 
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
     cvId--;
@@ -1128,10 +1133,10 @@ uint8_t LcsLocoSessions::readCVBit( uint16_t cvId,
 //----------------------------------------------------------------------------------------
 // "writeCV" writes a CV value to the decoder. CV numbers range from 1 to 1024,
 // but are encoded from 0 to 1023. This command is only available in service 
-// mode, i.e. on a programming track. The DCC standard defines various modes for
-// accessing CV values. For bit mode access, the bit position and bit value are
-// encoded in the "val" parameter with bit 3 containing the data and bit 0 .. 2
-// the bit offset.
+// mode, i.e. on a programming track. The DCC standard defines various modes 
+// for accessing CV values. For bit mode access, the bit position and bit value
+// are encoded in the "val" parameter with bit 3 containing the data and bit 
+// 0 .. 2 the bit offset.
 //
 //    0 Direct Byte
 //    1 Direct Bit
@@ -1171,8 +1176,10 @@ uint8_t LcsLocoSessions::writeCV( uint16_t cvId, uint8_t mode, uint8_t val ) {
 //----------------------------------------------------------------------------------------
 uint8_t LcsLocoSessions::writeCVByte( uint16_t cvId, uint8_t val ) {
 
-    // ???
-    // if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( progTrack -> getTrackMode( ) != DT_M_ACC_DETECT ) {
+        
+        return ( ERR_NO_SVC_MODE );
+    }
 
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
     cvId--;
@@ -1212,8 +1219,10 @@ uint8_t LcsLocoSessions::writeCVBit( uint16_t cvId,
                                      uint8_t bitPos, 
                                      uint8_t val ) {
 
-    // ???
-    // if ( ! ( progTrack -> isServiceModeOn( ))) return ( ERR_NO_SVC_MODE );
+    if ( progTrack -> getTrackMode( ) != DT_M_ACC_DETECT ) {
+        
+        return ( ERR_NO_SVC_MODE );
+    }
 
     if ( ! validCvId( cvId )) return ( ERR_INVALID_CV_ID );
     cvId--;
@@ -1266,12 +1275,7 @@ uint8_t LcsLocoSessions::verifyCVByte( uint16_t cvId, uint8_t val ) {
     rStat = readCVByte( cvId, &cvVal );
     if ( rStat != LCS_OK ) return( rStat );
 
-    if ( cvVal != val ) {
-
-
-    }
-
-    return( LCS_OK );
+    return(( cvVal != val ) ? ERR_CV_VAL_VERIFY_MATCH : LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1288,12 +1292,7 @@ uint8_t LcsLocoSessions::verifyCVBit( uint16_t cvId,
     rStat = readCVBit( cvId, bitPos, &cvVal );
     if ( rStat != LCS_OK ) return( rStat );
 
-    if ( cvVal != val ) {
-
-
-    }
-
-    return( LCS_OK );
+   return(( cvVal != val ) ? ERR_CV_VAL_VERIFY_MATCH : LCS_OK );
 }
 
 //----------------------------------------------------------------------------------------
@@ -1326,17 +1325,14 @@ void  LcsLocoSessions::printCabMapEntry( LcsCabEntry *cPtr, bool detail ) {
 
     if ( cPtr == nullptr ) return;
 
-    usbIoPrintf( CDC_USB_CONSOLE, "Entry: %d", cPtr - cabMap.map );
+    usbIoPrintf( CDC_USB_CONSOLE, "Entry: %d, ", cPtr - cabMap.map );
     usbIoPrintf( CDC_USB_CONSOLE, "CabId: %d, ", cPtr -> cabId );
-
-    usbIoPrintf( CDC_USB_CONSOLE, 
-                 "CabId: %d,  speed: %d, ", 
-                 cPtr -> cabId, cPtr -> speedInfo & 0x7f );
+    usbIoPrintf( CDC_USB_CONSOLE, "Speed: %d, ", cPtr -> speedInfo & 0x7f );
 
     usbIoPrintf( CDC_USB_CONSOLE, "%s, ", 
                  (( cPtr -> speedInfo & 0x80 ) ? "Rev" : "Fwd" ));
 
-    usbIoPrintf( CDC_USB_CONSOLE, " Flags: 0x%x", ( cPtr -> flags ));
+    usbIoPrintf( CDC_USB_CONSOLE, " Flags: 0x%4x", ( cPtr -> flags ));
 
     usbIoPrintf( CDC_USB_CONSOLE, " %16s", cPtr -> locoName );
     usbIoPrintf( CDC_USB_CONSOLE , ":%16s", cPtr -> trainName );
@@ -1379,7 +1375,7 @@ void LcsLocoSessions::printCabMap( ) {
     usbIoPrintf( CDC_USB_CONSOLE, "Current Cab Count: %d\n", 
                                   cabMap.currentCabCount );
 
-    usbIoPrintf( CDC_USB_CONSOLE, "Cab Entry Item Count: %d\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "Cab Entry Item Size: %d\n", 
                                   cabMap.cabEntryItemSize );
                                   
     usbIoPrintf( CDC_USB_CONSOLE, "\n\n" );
@@ -1398,7 +1394,7 @@ void  LcsLocoSessions::printActiveCabMap( ) {
 
     usbIoPrintf( CDC_USB_CONSOLE, "Active Cab Map \n\n" );
 
-    usbIoPrintf( CDC_USB_CONSOLE, "Active cab count: %d\n", 
+    usbIoPrintf( CDC_USB_CONSOLE, "Cab count: %d\n", 
                  activeCabMap.activeCabCount );
 
     for ( int i = 0; i < activeCabMap.activeCabCount; i++ ) {
@@ -1409,82 +1405,3 @@ void  LcsLocoSessions::printActiveCabMap( ) {
         printCabMapEntry( cPtr );
     }
 }
-
-
-
-// ??? not sure what to salvage from here...
-#if 0
-// There
-// is one state for speed and direction and steps to refresh the function groups 
-// 1 to 5. If the function refresh option is set, we use the DCC command that sets
-// speed, direction and the function flags in one DCC command.
-//
-//    Step 0  -> refresh speed and direction 
-//              ( if FUNC_REFRESH is set also functions F0 .. F28 )
-//
-//    Step 1  -> refresh function group 0 ( F0  .. F4  )
-//    Step 2  -> refresh function group 1 ( F5  .. F8  )
-//    Step 3  -> refresh function group 2 ( F9  .. F12 )
-//    Step 4  -> refresh function group 3 ( F13 .. F20 )
-//    Step 5  -> refresh function group 4 ( F21 .. F28 )
-//
-// ??? should we alternate when SPDIR and FUNC are sent separately ?
-// ??? is it something like: SPDIR, FG1, SPDIR, FG2, ...
-//
-// ??? what to do for emergency stop, keep refreshing ? keep alive checking ?
-// ??? how do we integrate the STEAL/SHARE/DISPATCHED concept ?
-//
-// ??? separate out the check alive functionality ? it is a separate task...
-// ??? sessionMapNextAliveCheck var needed ...
-//
-// ??? change to refreshCabEntry
-//----------------------------------------------------------------------------------------
-void LcsBaseStationLocoSession::refreshSessionEntry( SessionMapEntry *smePtr ) {
-
-    // ??? introduce a return status ?
-
-    if ( smePtr -> cabId != NIL_CAB_ID ) {
-
-        if ( flags & SM_F_KEEP_ALIVE_CHECKING ) {
-
-            if (( getMillis( ) - smePtr -> lastKeepAliveTime ) > 
-                                            refreshAliveTimeOutVal ) {
-
-                if (( debugMask & DBG_BS_CONFIG ) && 
-                    ( debugMask & DBG_BS_CHECK_ALIVE_SESSIONS )) {
-
-                    usbIoPrintf( CDC_USB_CONSOLE, "Session: %d expired\n", smePtr - sessionMap );
-                }
-
-                deallocateSessionEntry( smePtr );
-            }
-        }
-
-        // ??? separate keep alive checking and refresh options...
-
-        else {
-
-            // ??? if ( smePtr -> speed > 0 )  // only active locos are refreshed...
-
-            if ( smePtr -> nextRefreshStep == 0 ) {
-
-                setThrottle( smePtr, smePtr -> speed, smePtr -> direction );
-
-                smePtr -> nextRefreshStep = 
-                    ((( smePtr -> flags & SME_COMBINED_REFRESH ) ||
-                      ( smePtr -> flags & SME_SPDIR_REFRESH )) ? 0 : 1 );
-            }
-            else if ( smePtr -> nextRefreshStep <= 5 ) {
-
-            uint8_t fGroup = smePtr -> nextRefreshStep;
-
-            setDccFunctionGroup( smePtr, fGroup, smePtr -> functions[ fGroup - 1 ] );
-            smePtr -> nextRefreshStep = (( smePtr -> nextRefreshStep >= 5 ) ? 
-                                            0 : smePtr -> nextRefreshStep + 1 );
-         
-            }
-        }    
-    }
-}
-
-#endif

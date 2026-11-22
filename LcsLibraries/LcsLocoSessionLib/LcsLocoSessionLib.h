@@ -46,6 +46,7 @@ constexpr uint16_t  MAX_CAB_DICT_SESSIONS       = 128;
 constexpr uint16_t  MAX_CAB_ACTIVE_SESSIONS     = 32;
 
 constexpr uint16_t  CAB_ENTRY_ITEM_SIZE         = 32;
+constexpr uint16_t  CAB_DICT_HEADER_SIZE        = 8;
 constexpr uint16_t  CAB_ITEM_LOCO_NAME_LEN      = 16;
 constexpr uint16_t  CAB_ITEM_TRAIN_NAME_LEN     = 16;
 
@@ -62,8 +63,6 @@ constexpr uint32_t  DCC_SESSION_TIMEOUT_MILLIS  = 2000;
 // defined:
 //
 //      DBG_LS_CONFIG                   -   DEBUG base station enabled
-//      DBG_LS_SESSION                  -   show the session management actions
-//      DBG_LS_CHECK_ALIVE_SESSIONS     -   display check for inactive sessions
 //
 // The way to use these flags is for example:
 //
@@ -89,7 +88,9 @@ enum LcsLocoSessionErrors : uint8_t {
     ERR_SESSION_SETUP               = LOCO_SESSIONS_ERR_BASE + 0,
     ERR_NO_SVC_MODE                 = LOCO_SESSIONS_ERR_BASE + 1,
     ERR_CV_OP_FAILED                = LOCO_SESSIONS_ERR_BASE + 2,
-    ERR_CAB_MAP_FULL                = LOCO_SESSIONS_ERR_BASE + 3
+     ERR_CV_VAL_VERIFY_MATCH        = LOCO_SESSIONS_ERR_BASE + 3,
+    ERR_CAB_MAP_FULL                = LOCO_SESSIONS_ERR_BASE + 4,
+    ERR_CAB_MAP_INVALID_COUNT       = LOCO_SESSIONS_ERR_BASE + 5     
 };
 
 //----------------------------------------------------------------------------------------
@@ -110,32 +111,25 @@ enum LcsLocoSessionErrors : uint8_t {
 enum SessionMapOptions : uint16_t {
 
     SM_OPT_DEFAULT_SETTING      = 0,
-    SM_OPT_KEEP_ALIVE_CHECKING  = 1 << 0,
-    SM_OPT_ENABLE_REFRESH       = 1 << 1,
+    SM_OPT_ENABLE_REFRESH       = 1 << 0,
 };
 
 //----------------------------------------------------------------------------------------
-// The session map flags. The apply to all sessions in the session map. The 
+// The session map flags. They apply to all sessions in the session map. The 
 // initial values are copied from session option initial values.
 //
 //  SM_F_CAB_MAP_VALID        - the NVM cab map is a valid structure.
 //
-//  SM_F_KEEP_ALIVE_CHECKING  - enable keep alive checking. When enabled, the 
-//                              engine session need to receive a keep alive LCS
-//                              message periodically.
-//
 //  SM_F_ENABLE_REFRESH       - refresh the session data. This will send the 
-//                              engine speed and direction as well as the 
-//                              function flags periodically in a round robin 
+//                              engine speed and direction in a round robin 
 //                              fashion.
 //
 //----------------------------------------------------------------------------------------
 enum CabMapFlags : uint16_t {
 
     SM_F_NIL                    = 0,
-    SM_F_CAB_MAP_VALID          = 1 << 0, 
-    SM_F_KEEP_ALIVE_CHECKING    = 1 << 1,
-    SM_F_ENABLE_REFRESH         = 1 << 2
+    SM_F_CAB_MAP_INIT           = 1 << 0, 
+    SM_F_ENABLE_REFRESH         = 1 << 1
 };
 
 //----------------------------------------------------------------------------------------
@@ -145,10 +139,6 @@ enum CabMapFlags : uint16_t {
 //
 //  CMAP_F_COMBINED_REFRESH   - a DCC cab supports the combined refresh option.
 //                              There is a DCC packet code for this. 
-//
-//  CMAP_F_SPDIR_REFRESH      - a DCC cab only refreshes speed/dir.
-//
-//  CMAP_F_FUNC_REFRESH       - a DCC cab also refreshes functions. 
 // 
 //----------------------------------------------------------------------------------------
 enum CabMapEntryFlags : uint16_t {
@@ -156,8 +146,6 @@ enum CabMapEntryFlags : uint16_t {
     CMAP_F_NIL                      = 0,
     CMAP_F_ACTIVE                   = 1 << 0,
     CMAP_F_COMBINED_REFRESH         = 1 << 1,
-    CMAP_F_SPDIR_REFRESH            = 1 << 2,
-    SME_FUNC_REFRESH                = 1 << 3
 };
 
 //----------------------------------------------------------------------------------------
@@ -181,13 +169,13 @@ enum CabMapEntryFlags : uint16_t {
 //          :---------------------------:       :---------------------------:
 //      2   :   speed info              :       :   speed info              : 
 //          :---------------------------:       :---------------------------:
-//      3   :                           :       :                           : 
+//      3   :   rsv1                    :       :   rsv1                    : 
 //          :---------------------------:       :---------------------------:
-//      4   :                           :       :                           : 
+//      4   :   rsv2                    :       :   rsv2                    : 
 //          :---------------------------:       :---------------------------:
-//      5   :                           :       :                           : 
+//      5   :   rsv3                    :       :   rsv3                    : 
 //          :---------------------------:       :---------------------------:
-//      6   :                           :       :                           : 
+//      6   :   rsv4                    :       :   rsv4                    : 
 //          :===========================:       :===========================:
 //      7   :   Speed map MIN,s1        :       :   Speed map MIN,s1        : 
 //          :---------------------------:       :---------------------------:
@@ -244,7 +232,10 @@ struct LcsCabEntry {
     uint16_t    cabId;                                          // word 0 
     uint16_t    flags;                                          // word 1
     uint16_t    speedInfo;                                      // word 2
-    uint16_t    rsv[ 4 ];                                       // word 3 - 5
+    uint16_t    rsv1;                                           // word 3
+    uint16_t    rsv2;                                           // word 4
+    uint16_t    rsv3;                                           // word 5
+    uint16_t    rsv4;                                           // word 6
     uint8_t     speedMap[ 6 ];                                  // word 7 - 9 
 
     union {
@@ -286,10 +277,11 @@ struct LcsCabMap {
     uint16_t        flags;                                      // item 2
     uint16_t        maxCabCount;                                // item 3
     uint16_t        currentCabCount;                            // item 4  
-    uint16_t        cabEntryItemSize;                           // item 5   
-    uint16_t        filler[ 26 ];                               // item 6 - 31
+    uint16_t        cabEntryItemSize;                           // item 5 
+    uint16_t        rsv1;                                       // item 6
+    uint16_t        rsv2;                                       // item 7
 
-    LcsCabEntry     map[ MAX_CAB_DICT_SESSIONS ];               // item 31 - nn
+    LcsCabEntry     map[ MAX_CAB_DICT_SESSIONS ];               // item 8 - nn
 };
 
 //----------------------------------------------------------------------------------------
@@ -306,6 +298,7 @@ struct LcsActiveCabMap {
 
      uint16_t   activeCabCount;
      uint16_t   refreshIndex;
+
      int        map[ MAX_CAB_ACTIVE_SESSIONS ];
      uint32_t   tsMap[ MAX_CAB_ACTIVE_SESSIONS ];
 };
@@ -327,18 +320,16 @@ struct LcsLocoSessions {
                                            LcsDccTrack *progTrack
                                          );
 
-    uint8_t             formatCabMap( );
-    uint8_t             loadCabMap( );
-    uint8_t             updateCabMap( );
-
     uint8_t             addCabEntry( LcsCabEntry *entry );
     uint8_t             removeCabEntry( uint16_t cabId );
     LcsCabEntry         *lookupCabEntry( uint16_t cabId );
     
     uint16_t            getOptions( );
     uint16_t            getFlags( );
+    
     uint16_t            getCabCount( );
     uint16_t            getMaxCabCount( );
+    uint16_t            getActiveCabCount( );
 
     void                emergencyStopAll( );
 
@@ -410,6 +401,10 @@ struct LcsLocoSessions {
     LcsCabMap           cabMap;
     LcsActiveCabMap     activeCabMap;
 
+    uint8_t             formatCabMap( );
+    uint8_t             loadCabMap( );
+    uint8_t             updateCabMap( );
+
     LcsCabEntry         *activateCabEntry( uint16_t cabId );
     void                deactivateCabEntry( uint16_t cabId );
 
@@ -417,5 +412,4 @@ struct LcsLocoSessions {
     void                removeActiveCab( uint16_t locoIndex );
     void                rebuildActiveCabMap( );
     void                refreshActiveCabs( );
-    void                refreshActiveCabEntry( LcsCabEntry *cab );
 };
